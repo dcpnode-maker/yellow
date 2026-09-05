@@ -1,5 +1,52 @@
 # CONTRACTS.md — API conventions + the interfaces that must not drift
 
+> **Development documentation snapshot — 2026-09-05.** Source:
+> [`61dbeea`](https://github.com/dcpnode-maker/yellow/commit/61dbeea6f2e0eac764ff177d33d8a6f8ac36103e).
+> This updates the original project documentation on main; main's executable code
+> is still an older integrated baseline. Implemented contracts, setup behavior and
+> proof described below refer to that development revision, not a claim that main
+> or the local app already runs them. Planned capabilities remain planned.
+
+
+**Status and precedence:** this is the cumulative contract catalogue, not a phase-status
+dashboard. `PROJECT.md` has constitutional precedence; exact sections below define
+interfaces, while source and executable proof establish which interfaces are currently
+implemented. The [feature register](FEATURE-REGISTER.md) and
+[project map](PROJECT-MAP.md) locate current requirements and evidence. Text explicitly
+marked proposed or target is not an implemented endpoint, permission or provider
+integration.
+
+Hotel and STR workspaces may compose these capabilities differently, but they share
+the same tenant/property authorization, idempotency, state, money and audit contracts.
+Regional presentation/configuration and multilingual voice remain ordinary typed
+configuration and ingress boundaries: voice may select only a fixed authorized query
+or an existing command and never gains arbitrary SQL or database authority. See the
+[staff journeys](design/STAFF-JOURNEYS.md), [regional-pack proposal](architecture/REGIONAL-PACKS.md)
+and [voice/RMS proposal](architecture/VOICE-RMS-PLAN.md). Those specifications create
+no API by themselves.
+
+## Operator audited business-day seal
+
+`POST /api/v1/properties/{property}/business-days/{businessDate}/seal` accepts exactly
+zero request-body bytes (and therefore an undefined parsed body), no query parameters,
+and one visible-ASCII `Idempotency-Key` of 8–200 characters. The authenticated edge
+must hold `financials.business-days:seal` for the exact property. Tenant, property,
+actor, correlation identity and audit envelope are derived server-side; the
+middleware-owned transaction is passed unchanged to `BusinessDaySealService.seal`,
+which independently enforces the internal `business_day.seal` database permission.
+Client readiness, force, reopen, carry, batch and automatic-seal instructions are
+never accepted. Success returns only `{propertyNode,businessDate,previousState,state,
+sealedAt,replayed}` plus `X-Correlation-Id` and `Idempotency-Replayed`. Validation,
+authorization, missing-property and seal conflicts use bounded errors and disclose no
+database permission, readiness predicate, tenant, actor, SQL or internal evidence.
+This operator proof exercises HTTP parsing and composition through `createApp.handle`;
+the immutable `BusinessDaySealService` unit and database suites remain the authority
+for PostgreSQL locking, readiness recheck, replay durability, rollback and concurrency.
+
+## Business-day discrepancy carry operator
+
+The property Day-close surface accepts one authoritative candidate and a trimmed NFC reason of 1–500 UTF-8 bytes. The server derives tenant, property, actor, current open target, payload and hashes. The carry-only inbox is newest-first keyset paginated (default 50, maximum 100) and exposes only opaque approval id, source discrepancy/date, target date, room code, reason, requester label, status, timestamps, action flags and cursor. Approve, reject and final carry accept `{}` only. Every mutation requires a visible-ASCII `Idempotency-Key` and returns a correlation id; payloads, hashes, target-open instants, emails and permission names are never returned.
+
 ## 1. Conventions (every endpoint)
 Base `/api/v1`. Auth: bearer (staff JWT w/ tenant+scopes | api_client). Server derives
 `tenant_id` from the token — never from the body. JSON: money `{amount_minor,currency}`,
@@ -11,6 +58,65 @@ Errors: `{type,title,status,detail,errors?[],correlation_id}` with stable `type`
 slugs (`availability/no_fit`, `finance/journal_unbalanced`, `auth/scope_missing`,
 `conflict/occupancy`, …). Pagination: cursor `?after=<opaque>&limit≤200`. Filtering:
 whitelisted params only. Every response carries `X-Correlation-Id`.
+
+`app_role` is not a credential or external integration contract. It is a `NOLOGIN`,
+passwordless, membership-free capability role entered only after verified identity
+has established transaction-local `app.tenant_id` on the trusted deployment
+connection. Customer/staff login, BI, reporting and integrations must use application
+commands or a separately reviewed direct-database principal design. This boundary
+does not make a custom GUC immutable against arbitrary SQL already executing inside
+the trusted transaction; raw SQL exposure, runtime deployment authority, broad DML
+grants and occupancy-function tenant binding remain separate security risks.
+
+### Runtime mutation catalogue
+
+The post-Order-127 runtime contract is positive, not default-open: migration 0016
+grants only exact table/column mutations mapped to current production SQL. There
+is no mutation privilege on a future table or view, and no generic global or
+tenantless write path. `yellow_deploy` remains the deploy/migration/schema/seed
+principal; seed creates and verifies canonical global tenant/property rows through
+that boundary, while the runtime role performs only the exact read-only
+visibility/idempotency probe.
+
+Outbox publication is `runtime_mark_outbox_published(uuid[])`, not direct runtime
+`UPDATE`; occupancy, due-hold discovery, consumer cursor and extension listing/
+compatibility operations likewise remain signature-specific functions. `document`
+has no runtime mutation authority, and `rate_price` exposes only the sanctioned
+`superseded_by` update alongside its insert path. Insert-only fact, journal,
+posting-line and outbox history has no update/delete contract.
+
+Financial account/folio serialization is exposed only through
+`lock_financial_rows(uuid, uuid[], uuid)`. The function is not a write contract:
+it returns no row data, accepts one or two distinct accounts plus an optional
+folio linked to that set, orders account locks canonically, and remains executable
+only by `app_role` inside a tenant-bound runtime transaction. Direct account or
+folio `UPDATE` and direct row locking remain outside runtime authority.
+
+The one bounded folio-state mutation is
+`transition_folio_status(uuid,uuid,uuid,text)`. It is yellow-owner-owned and callable
+only by `app_role` from the exact `yellow_runtime` tenant transaction. The action is
+only `settle` (`open -> settled`) or `close` (`settled -> closed`); the capability
+relocks the canonical guest account/folio, proves exact property ownership and a
+canonical `folio_balance` of zero, then performs one guarded status update. It exposes
+no general column/table selector, journal/posting mutation, non-zero override, force or
+reopen authority. Direct `folio UPDATE`, PUBLIC execution and execution by the runtime
+login remain denied.
+
+Platform extension-type registration uses the separately authenticated
+`yellow_extension_registrar` only through
+`register_extension_type(uuid,text,jsonb,uuid,uuid,uuid)`. The function fixes the
+audit operation, derives the UUIDv5 subject, writes the type and first fact atomically,
+returns false for an exact replay, and rejects divergent schema. It grants no generic
+registrar transaction or direct table-write contract; runtime and `app_role` retain
+only instance/read authority.
+
+Protected transitions are never generalized by this catalogue. Approval decisions,
+extension publication, holds, inventory policy/projections, operational blocks,
+reservation/segment/guest lifecycle, folio numbering, financial posting, tasks and
+fiscal/statutory/documents may mutate only through the exact separately documented
+capabilities that exist for them. Absence of such a contract means absence of runtime
+authority; a later section does not broaden an earlier capability. Extension
+publication/retirement remains separate from type registration.
 
 ## 2. THE availability contract (the interface everything hangs off)
 
@@ -69,22 +175,39 @@ position, max 3 attempts, THEN returns 409 — losers of a bed race don't fail w
 other beds remain free. Exclusive claims never retry (the space is simply taken). |
 422 policy/payment. Direct commit without hold attempts the choke write inside the txn.
 
+The internal commit command first asks inventory for a frozen, read-only direct-claim or
+locked cart-hold preparation. It inserts the exact reservation and segment parents in the
+same uncommitted transaction, then inventory revalidates and acquires through the existing
+occupancy choke. Acquisition must match every prepared inventory identity, period and claim
+count. Any conflict, stale preparation, mismatch or later audit/event failure rolls the
+provisional parents and idempotency claim back; no provisional reservation is externally
+visible or durable.
+
 Database choke points use signature-specific `SECURITY DEFINER` authority. Their
 fixed search path is exactly `pg_catalog, public, pg_temp`, all Yellow relations
 and helper calls are schema-qualified, and `PUBLIC` has no execute privilege.
-The application role can only record/release occupancy and seal a business day;
-outbox pruning, legacy hold expiry, and the day-open assertion are owner-only.
-Negative outbox retention fails with SQLSTATE `22023`. This containment does not
-replace tenant-authority validation or RLS.
+The application role records/releases occupancy and invokes only other explicitly
+granted owner-mediated capabilities. Business-day sealing now has the audited operator
+contract at the start of this file: the service and database capability revalidate
+server-derived actor/property/readiness evidence and retain narrowly scoped execution
+authority. This does not grant reopen, force, batch or generic business-day mutation.
+Outbox pruning, legacy hold expiry and day-open enforcement retain their own exact
+capabilities; negative outbox retention fails with SQLSTATE `22023`. No definer
+function replaces tenant-authority validation or RLS.
 
-## 3. Module surfaces (names are the contract; bodies follow §1 shapes)
+## 3. Module surface vocabulary (implemented subsets are specified below)
+
+The following names describe the stable context vocabulary and destination surface.
+They are not a claim that every verb is executable. A verb is implemented only when
+this file gives it an exact boundary backed by source and proof; planned hotel/STR,
+voice, regional, OTA or RMS requirements cannot infer a missing mutation.
 
 **reservations**: create/commit · get · modify (diff-based) · cancel · reinstate ·
 check_in {segment,space?,keys?} · check_out {settlements[]} · move {to_space} ·
 extend/shorten · group: create/status/allotment/rooming_list(bulk)
 **financials**: postCharge {folio,tx_code,amount,qty} · transfer {lines[],to_folio|account} ·
-adjust {reverses_line,reason} · settle {folio,method,instrument?,amount} ·
-routeRules→Automation CRUD · folio: open_window/get/statement · deposits: request/apply ·
+adjust {reverses_line,reason} · folio: open_window/get/statement/settle/close ·
+routeRules→Automation CRUD · deposits: request/apply ·
 cashier: open/close · day: readiness/seal · ar: invoice(from folio)/allocate/statement
 **inventory**: spaces/unit_types/sellable_units CRUD · restrictions batch ·
 ooo/oos open+close · authority get/set · projection rebuild (admin)
@@ -92,6 +215,95 @@ ooo/oos open+close · authority get/set · projection rebuild (admin)
 **hk/stay**: condition set · tasks CRUD/assign/complete/verify · sheets generate ·
 discrepancies · queue · messages send/thread
 **profiles**: parties search(trgm)/create/merge/anonymise · consent · instruments(tokenize via PSP webhook)
+
+Reservation operator reads use `reservations.lifecycle:read` plus the caller's granted
+property scope. `GET /api/v1/properties/{property}/reservation-board` returns at most
+100 operational rows (default 50), ordered by `created_at DESC, id DESC`, and accepts
+only `status`, paired ISO-instant `from`/`to` stay overlap (maximum 366 days), canonical
+opaque `after`, and `limit`. OFFSET, guest/contact/search query parameters and contact,
+identity, note, history, payment, tax or inferred-total row fields are not part of the
+contract. Each row carries `arrivalTravel: null | {mode,carrier,serviceNo,scheduledAt,
+pickupRequested,pickupTaskLinked}` from only the recorded `direction='arrival'` travel
+row. Nullable mode/carrier/service/schedule values remain literal validated storage;
+`pickupTaskLinked` means only that the recorded task reference resolves in the same
+tenant and exact property. It exposes no travel/task id, note, Party/contact, task
+state or inferred pickup outcome. Each row separately carries
+`departureTravel: null | {mode,carrier,serviceNo,scheduledAt}` from only the recorded
+`direction='departure'` row. Its nullable values remain literal validated storage; it
+exposes no pickup/drop-off meaning, pickup flag, travel/task id, note, Party/contact,
+task state, vehicle/parking truth or inferred transport outcome. A hostile arrival
+task association fails the complete board read closed. Neither travel association
+alters the existing `(created_at,id)` order, filter, cursor, limit, permission or
+property boundary. `GET
+/api/v1/properties/{property}/reservations/{reservation UUID}` accepts no
+query parameters and returns the approved reservation aggregate plus server-derived
+`canModify`, `canCancel`, and `canReinstate` actions. Missing, foreign-tenant and
+foreign-property UUID details share one generic reservation not-found response. The
+existing exact `GET .../reservations?confirmationNo=...` lifecycle lookup is unchanged.
+
+Order 212 travel capture is `PUT
+/api/v1/properties/{property}/reservations/{reservation}/travel/{arrival|departure}`
+with `reservations.lifecycle:write`, the exact property grant, a mandatory printable
+visible-ASCII `Idempotency-Key`, and body exactly `{expected,travel}`. `expected` is
+`null` for create or the exact current tuple for replacement; `travel` is always the
+exact tuple `{mode,carrier,serviceNo,scheduledAt,pickupRequested}`. Mode is nullable or
+`flight|train|bus|car|ferry|other`; schedule is nullable or a canonical UTC instant;
+carrier and service number are nullable trimmed nonblank Unicode strings bounded to
+120 and 64 code points. At least one desired value must be recorded, departure cannot
+request pickup, and there is no delete command.
+
+The command derives tenant, property, reservation, direction, actor and audit envelope,
+locks the exact reservation in `reserved|due_in|in_house|due_out`, and performs one
+normalized tuple compare-and-set. Stale evidence is a bounded conflict. A changed
+command writes only the travel row plus one minimized `reservation.modified` fact and
+same-transaction outbox event; an exact no-op writes neither evidence row, and exact
+replay is stable. Notes and pickup-task ids are neither accepted nor returned. A
+changed command fails closed when the travel row is already linked to pickup work;
+it never creates, detaches or edits a task and has no vehicle, parking, occupancy,
+financial, statutory or board-read effect.
+
+Order 213 pickup automation is a specialized durable consumer, not a generic
+automation-engine claim and not an operator command. On `reservation.modified` it
+re-reads current database truth and acts only for an exact `reserved|due_in`
+reservation whose arrival row still has `pickup_requested=true`, a recorded
+`scheduled_at`, and no linked task. It atomically creates one existing
+`kind='guest_request'`, `status='open'`, `subject_type='reservation'` task for the
+exact property, with department `transport`, due time equal to the recorded arrival,
+no assignee, default priority and payload exactly `{requestType:'arrival_pickup'}`;
+the same capability links that task to the arrival row. Every ineligible or already
+linked current state is a consumed no-op. Task/link and one minimized `task.created`
+fact/outbox pair commit with the durable consumer marker. This create-only contract
+cannot edit, cancel, assign, transition, detach or delete pickup work.
+
+Order 200 active check-in contract: `GET
+/api/v1/properties/{property}/reservations/{reservation}/check-in/readiness` requires
+`stay-operations.checkin:read` and the exact property grant. It returns a no-store, server-owned
+snapshot `{reservationId,status,segmentId,assignedSpaceId,primaryFolioId,roomCondition,
+identityGate{required,satisfied,adapterKey},dirtyRoomOverrideRequired,
+dirtyRoomOverrideAuthorized,blockers[],canCheckIn}`. Stable blockers name wrong state,
+missing/ambiguous active segment or physical-room mapping, absent condition, unready
+room, missing open primary folio, unavailable configured adapter, and missing recorded
+identity evidence. The response contains no Party, document, contact, legal-field or
+financial data.
+
+`POST /api/v1/properties/{property}/reservations/{reservation}/check-in` requires
+`stay-operations.checkin:commit`, the exact property grant, a visible-ASCII `Idempotency-Key`, and
+body exactly `{}` or `{reason}`. Tenant, actor, property, readiness and dirty-room
+authority are server-derived. A dirty/pickup room additionally requires the distinct
+same-property `stay-operations.checkin:dirty-room-override` grant and a trimmed attributable
+reason; a ready room rejects an override reason. Success atomically changes only the
+exact due-in reservation and its one active booked segment to `in_house`, then writes
+one minimized fact and `reservation.checked_in` outbox event with durable actor-bound
+replay. It does not create or mutate accounts, folios, occupancy claims, keys, money,
+business days, statutory submissions, tax/fiscal documents or checkout state.
+
+Identity readiness is selected only by `org_node.config.statutory_adapter_key`. The
+key must resolve to exactly one effective active tenant-owned `statutory_adapter` with
+a non-empty valid `required_identity_fields` declaration. When selected, every Party
+attached through `reservation_guest` (plus the primary Party) must have at least one
+recorded `identity_document`; field semantics, nationality rules, validation and
+submission remain adapter-owned Phase 8 work. No country code is embedded in check-in
+logic.
 
 Implemented domain slice: `PartyProfileService.search` performs tenant-bound, bounded
 active-Party lookup by UUID, display name, or canonical contact and returns masked
@@ -114,15 +326,60 @@ identity documents, consent/preferences and profile editing remain planned.
 erasure request/execute
 **kernel**: extensions CRUD+activate · automations CRUD+test(dry_run) · approvals decide
 
+Implemented owner-trust guard: `TrustAccountingService.postOwnerExpense(tx,input)`
+accepts one exact trust account, canonical positive signed-int64 decimal amount,
+bounded reason, optional approval id, idempotency key and server audit envelope. The
+database derives the owner, property, currency, payable route, property-local business
+date and credit-normal availability. A projection below zero consumes one approved,
+different-user, single-use request and records exact relational evidence. One balanced
+`paidout` journal, two lines, fact, `journal.posted`, `trust.owner_expense_posted` and
+idempotency result commit atomically. No payout, statement, split or reconciliation is
+created.
+
+Implemented owner-trust operator workbench: `OwnerTrustExpenseWorkbenchService`
+accepts the middleware-owned tenant transaction for bounded same-property account
+discovery, exact amount/reason preview, negative-balance approval request and inbox,
+different-user decision, and final immutable expense posting. PostgreSQL
+`prepare_owner_trust_expense` takes the same deterministic financial-row locks as
+the posting command, rederives owner, payable route, currency and available/projected
+balance, returns complete approval evidence to the service, and writes nothing.
+Account and approval collections are complete-or-unavailable above 100 rows.
+
+The operator routes are `GET /api/v1/properties/{property}/trust/accounts`, `POST
+/api/v1/properties/{property}/trust/accounts/{accountId}/preview`, `POST .../
+approval-requests`, `GET /api/v1/properties/{property}/trust/approval-requests`,
+zero-byte `POST .../{approvalId}/approve|reject`, and `POST .../accounts/{accountId}/
+expenses`. Maker routes require exact-property `financials.trust:post`; decisions
+require a different active actor with exact-property
+`financials.trust:approve-negative`. Tenant, actor, audit envelopes, route/balance
+evidence and approval payload are server-owned. Responses expose only operator labels,
+currency/minor-unit balances, approval state and the final journal receipt—never the
+payable account, owner id, raw payload/hash, journal lines or ledger internals. This
+surface creates no bank payout, owner statement, split or reconciliation.
+
 Implemented financial foundation: `FolioService.openPrimary(tx, input)` accepts only
 `tenantId`, `reservationId`, `idempotencyKey`, and the audit envelope. It locks and
 derives the eligible reservation's property, primary Party, and currency; reuses the
 exact open guest account keyed by tenant/property/Party/currency; and creates reservation
-window 1 with a locked non-fiscal `document_series(kind='folio')` reference. Account,
-folio, counter increment, minimized `folio.opened` fact/outbox event, and durable
-idempotency are one transaction. An exact existing open window is returned unchanged.
-This slice does not post money or implement extra windows, settlement, payments,
-tax/fiscal behavior, cashiering, day close, or AR.
+window 1 with a governed non-fiscal `document_series(kind='folio')` reference. The
+runtime cannot update counters directly: `allocate_non_fiscal_folio_reference(uuid,
+uuid)` binds the transaction tenant and exact property, requires exactly one
+non-fiscal folio series, locks it and returns its formatted reference while advancing
+the counter in the caller transaction. Account, folio, allocation, minimized
+`folio.opened` fact/outbox event, and durable idempotency are one transaction. An exact
+existing open window is returned unchanged. This capability cannot allocate a fiscal
+series or create/update/delete `document`. This slice does not post money or implement
+settlement, payments, tax/fiscal document behavior, cashiering, day close, or AR.
+
+The operator exposes that existing command only as
+`POST /api/v1/properties/{property}/reservations/{reservationId}/primary-folio` under
+the distinct property scope `financials.folios:open`. The request body is exactly `{}`
+and the existing visible-ASCII `Idempotency-Key` header is mandatory. Tenant, actor,
+property and `folio.opened` audit authority are server-derived. A changed result is
+`201`; an existing/replayed result is `200`. The safe response contains only folio id,
+reservation id, human folio reference, window `1`, and server `changed`/`replayed`
+truth; account, Party and other PII never cross this adapter. Reservation commit does
+not call this endpoint or create a financial artifact automatically.
 
 Implemented posting slice: `ChargeService.postCharge(tx, input)` accepts an open folio,
 governed revenue tx code, canonical positive int64 decimal-string total, optional
@@ -131,9 +388,78 @@ property, currency, local calendar business date and read-only `tx_code_route`, 
 atomically posts one debit-positive guest/folio line and equal credit-negative revenue
 line. Journal, immutable lines, minimized `journal.posted` fact/outbox and idempotency
 share one transaction; the business-day latch serializes against sealing. This amount is
-explicitly untaxed and quantity is descriptive, never multiplied. Tax allocation,
-scheduled/nightly charges, route authoring, corrections, transfers, payments,
-settlement and fiscal behavior remain planned.
+explicitly untaxed and quantity is descriptive, never multiplied. This command
+performs no tax allocation, scheduled/nightly charging, route authoring, transfer,
+payment, settlement or fiscal behavior; separately documented capabilities for any of
+those concerns neither widen nor run through `postCharge` implicitly.
+
+Implemented immutable correction slice: `ChargeCorrectionService.reverseCharge(tx,
+input)` accepts only server-derived tenant/property/actor authority, an exact open folio,
+an exact original journal UUID, a trimmed visible 1–500 character reason, durable
+idempotency key and audit envelope. The original must be the canonical two-line untaxed
+`ChargeService` journal for that folio. The command deterministically locks financial
+rows, arbitrates the tenant/original pair, locks both the original and current property
+business-day rows, then inserts one current-date `adjustment` header with
+`reverses=original.id` and exact sign-negated immutable line copies. A tenant-leading
+partial unique index allows at most one correction. Original bytes never change;
+idempotency, fact and `journal.posted` outbox evidence settle in the same transaction.
+
+`POST /api/v1/properties/{property}/folios/{folioId}/adjustments` requires the exact
+property grant `financials.adjustments:write`, mandatory visible-ASCII
+`Idempotency-Key`, and body exactly `{reversesJournalId,reason}`. If either the original
+or current business day is sealed, the verified identity must additionally have the
+same property's `financials.adjustments:post-seal`; body and headers cannot assert that
+authority. This is direct authorization, not a two-person approval workflow. The
+statement exposes distinct `reversesJournalId`/`reversedByJournalId` lineage and
+server-derived `correctionEligible`/`correctionReason` per row. Partial correction,
+transfer/routing, additional windows, tax, payment, settlement, fiscal documents and
+checkout remain outside this slice.
+
+Order 188 multi-window contract: `FolioService.openAdditional(tx,input)` accepts an
+exact source folio, bounded unique window name, idempotency key and server audit
+envelope. It serializes the same reservation/account family, derives the next window
+number and non-fiscal folio reference, and creates at most 20 open presentation windows
+over the same guest account, reservation, property and currency. The existing
+`financials.folios:open` property grant authorizes this command.
+Additional-window allocation uses the same bounded owner capability as primary
+opening; exact replay is write-free and any later fact/event/idempotency failure rolls
+the counter increment back with the folio.
+
+`FolioTransferService.preview/transfer` accepts one source folio, one existing sibling
+or one new-window name, 1–50 opaque server group ids, a visible bounded reason,
+generation and preview revision. It never accepts amount, account, date, currency,
+journal kind or authority. Preview returns exact server-derived before/after window
+balances and an unchanged stay total. Commit requires property grant
+`financials.transfers:write`, durable idempotency and a fresh preview, then invokes the
+bounded owner capability once. Each whole group appends one balanced `transfer` journal
+with typed root lineage and equal/opposite guest-account folio lines; original charge
+and correction bytes never change. A corrected original/contra pair is indivisible.
+Transfer/correction races have one coherent winner. The safe statement projection adds
+only sibling-window display metadata and server-owned group metadata; it exposes no
+account, Party or PII and the browser performs no money math. These windows organize
+later document inputs only: company debtors, AR, tax/fiscal issue, legal invoice buyer,
+numbering, printing, payment and settlement remain separate contracts.
+
+Order 196 governed folio-state contract: `FolioSettlementService.settle/close` owns
+its tenant transaction and durable actor-bound idempotency. After strict input and
+server audit-envelope validation it discovers the property-owned open guest account,
+calls the shared canonical financial lock, re-reads the locked folio/account and
+`folio_balance`, and invokes `transition_folio_status` once. Settle accepts only an
+exact-zero `open` window; close accepts only an exact-zero `settled` window. The
+transition, one `folio.settled` or `folio.closed` fact, its outbox event and the stored
+idempotent response commit or roll back together. A replay returns the original
+result; changed input under the same operation/key conflicts. No journal or posting
+line is created, updated or deleted, and the guest account remains open.
+
+`POST /api/v1/properties/{property}/folios/{folioId}/status` is no-store and accepts
+exactly `{action:"settle"|"close",idempotencyKey}`. The authenticated operator must
+hold the selected property's exact `financials.folios:settle` or
+`financials.folios:close` grant. Tenant, actor, property, prior state, balance and
+authority are server-derived; the browser cannot assert them. Success is `200` with
+server folio/account/reservation/window identities, previous/current status, exact
+zero balance and replay truth. This state assertion is not payment/provider
+settlement, cashier close, account/reservation closure, checkout, invoice/document
+issue, fiscalization, taxation or business-day close.
 
 Implemented operator statement slice: `FolioStatementService.get(tx, input)` resolves
 one tenant/property folio by UUID or strict human reference and returns one PostgreSQL
@@ -170,6 +496,903 @@ prepare(document)→jurisdiction payload (UBL/PINT/IRP-JSON) · submit(payload)�
 {mode, authority_ref?, status} · poll(ref) · qr(document) · chain(document,prev_hash).
 Implement: `sa-zatca` (clearance, XAdES, PIH chain, TLV QR) · `in-irp` (IRN+signed QR) ·
 `ae-asp:<provider>` (PINT AE generate + hand-off; ASP does transmission — UAE law).
+
+## 8. India GST accommodation rate-change-date evidence (Order307)
+
+`deriveIndiaGstAccommodationRateChangeDate({ tenantId, rateVersionPair })` accepts
+only the database-derived tenant context and complete, approved predecessor/successor
+rate-version pair evidence. It recomputes the tenant-bound pair hash and revalidates the
+retired-v1/active-v2 identities, adjacent Kolkata-midnight periods, unchanged
+upper band, lower-band transition, thresholds, nil-band absence, and official
+source hashes. From the source-bound cutover instant
+`2025-09-21T18:30:00.000000Z` it derives the fixed statutory rate-change date
+`2025-09-22` and returns recursively frozen pair/source/hash evidence.
+
+This is an evidence-only internal surface: it accepts no caller date, clock,
+timezone, “latest” selector, or calendar input. It does not count working days,
+classify Section 14, apply a rate, calculate tax, post, issue fiscal documents,
+submit to IRP, or expose API/UI/local-runtime authority. Invalid, substituted,
+partial, or surplus evidence fails closed.
+
+### Pure rules-driven tax evaluator
+
+Order 237 adds one in-process positive-charge evaluator for a caller-supplied
+`tax_jurisdiction` content value and immutable attributable lines. It performs no
+extension/assignment read and accepts no caller-selected rate outside that content.
+Each line supplies exact identity, revenue group, positive signed-safe `bigint`
+amount, non-negative integer nights and person-nights and, for room revenue, exact
+positive per-night components. It derives no property, date, guest category,
+occupancy, currency, price, discount or jurisdiction.
+
+The evaluator validates explicit `tax_inclusive|tax_exclusive` price display,
+`line|document` rounding and the four adopted modes. Rates must be finite,
+non-negative and exactly convertible to integer basis points. Percent, fixed/night,
+fixed/person-night and whole-band slab calculations use rational/intermediate
+`bigint` arithmetic bounded to signed-safe minor units. `applies_to` matches only the
+line's explicit revenue group. A slab chooses the first ordered inclusive
+`upto_minor` band for each room-night component and requires exactly one final null
+band; averaging a stay or applying progressive/marginal bands is invalid.
+
+Rounding is exact positive half-up. Line rounding rounds every attributable
+component; room-night rule evaluation therefore retains ordered per-night components
+instead of collapsing mixed rates. Document rounding sums exact rational components
+and rounds once per tax code without allocating residual minor units back to lines. `tax_exclusive` adds tax
+to the supplied base; `tax_inclusive` extracts the included component without
+increasing the supplied gross. `compound_on` may reference only earlier unique tax
+codes, and missing, duplicate, forward, self or cyclic dependencies reject the whole
+evaluation. Line-rounded compounding consumes the already-rounded attributable
+component. Document-rounded compounding is rejected until a document allocation
+policy exists; it may not use an invisible per-line residual allocation.
+
+The deeply frozen result retains jurisdiction identity, display and rounding modes,
+exact input/base/tax/grand totals and ordered per-code attribution. It writes no row,
+fact, outbox event, journal, posting, folio, document or fiscal submission. Precedence
+with `rate_plan.tax_inclusive`, negative corrections, person-category derivation,
+document residual allocation and India CGST/SGST/IGST place-of-supply decomposition
+remain unresolved. Aggregate `GST_ROOM` output is calculation evidence only, never a
+legally final invoice or authority to post or issue a fiscal document.
+Input lines, room-night components, tax definitions, application groups, dependency
+lists, slab bands and rational representation complexity are explicitly bounded so a
+valid value cannot become an unbounded arithmetic-work request.
+
+### Effective tax-jurisdiction resolver
+
+Order 238 adds one internal read-only resolver before calculation. Its caller supplies
+only an exact property UUID and an already-derived property-local `YYYY-MM-DD`
+business date inside a tenant transaction. PostgreSQL tenant truth and an active
+same-tenant property are authoritative. The resolver selects assignments whose
+`daterange` contains that date with exact `[)` semantics: zero returns explicit
+`unassigned`, while more than one fails closed. Tenant id, jurisdiction key and
+extension identity are never caller selected.
+
+An assigned key is resolved only through `ExtensionRegistry.listVisible()` using the
+database-derived tenant. Exactly one visible active `tax_jurisdiction` row with that
+key is required across the existing platform-global-plus-tenant result; zero or
+multiple active versions fail closed, and no tenant-over-global preference is
+invented. After selecting that exact row, the resolver uses the narrow runtime-only
+`runtime_visible_extension_effective_period(tenant,id)` projection. It preserves the
+database `tstzrange` bounds as canonical UTC instants (or null for an unbounded end),
+rechecks extension id and owner, and fails closed on malformed or changed identity.
+The bounds are evidence only: this contract does not convert the property-local date
+to an instant or decide containment by the extension period.
+
+Order 300 extends that evidence contract without deciding applicability. In the same
+tenant transaction and snapshot, the active property read supplies its database-owned
+IANA timezone and PostgreSQL derives the UTC instants for local midnight on the
+already-derived business date and local midnight on the next local calendar date.
+Resolved and unassigned results both bind `propertyTimezone`,
+`businessDayFromInstant` and `businessDayToInstant` as canonical six-digit UTC strings;
+resolved evidence references bind the same envelope beside the selected extension's
+Order-299 bounds. The interval is a local-calendar day, not a fixed 24 hours: DST may
+make it 23 or 25 hours, and non-whole-hour offsets are preserved exactly. Callers may
+not provide the timezone or either instant, and JavaScript or the host clock does not
+derive them. These property-day and extension-period bounds are evidence only:
+containment, overlap, start-instant, split-day, section-14, or any other extension-
+applicability/legal rule remains explicitly forbidden until a later bounded policy is
+authorized. Order 301 applies one narrow containment predicate: canonical half-open
+UTC `[effectiveFrom,effectiveTo)` must contain the complete property-day
+`[businessDayFromInstant,businessDayToInstant)`. Missing edges are unbounded; equality
+passes. Partial, overlap-only, start-only, disjoint, or malformed/non-increasing
+intervals fail closed. Unassigned results skip the extension read. The India 2026
+fixture lower bound is `2025-12-31T18:30:00Z` (Kolkata civil midnight). No clock,
+JavaScript conversion, implicit timezone, or fixed 24-hour arithmetic participates.
+Section 14, working-day rules, rate changes, and old/new extension pairing remain
+excluded.
+
+A resolved value deeply freezes the exact assignment bounds and extension
+id/owner/key/version/effective UTC bounds, a recursively canonical copied content
+value, its SHA-256 hash and deterministic evidence references. Either bound changes
+the jurisdiction evidence reference. It is input authority for the pure evaluator
+only. Resolution performs no calculation or write and authorizes no quote, posting,
+journal, document, number/hash chain, provider action, fiscal submission, fact or
+event.
+
+### Attributable rate-quote tax preview
+
+Order 239 composes the existing rate quote with Orders 238 and 237 without changing
+the quote request or accepting caller-selected tax authority. `RateQuoteService`
+requires an injected Order-238 resolver and resolves every ordered property-local
+night. Zero or partial assignment, or mixed extension id, owner, key, version or
+content hash across those nights, yields explicit `preview_unavailable` evidence and
+no partial tax total; nights are never averaged, split across versions or rounded as
+an invented document.
+
+Calculation is limited to an exact, priced, unblocked and conflict-free room-only
+quote of at most 366 nights. Package evidence or allocation, included or extra
+amounts, an applied promotion or discount, or a pre-tax subtotal unequal to the room
+total yields `unsupported_attribution`. The evaluator receives one `room_revenue`
+line containing the ordered nightly `bigint` amounts, exact length of stay and exact
+`(adults + children) * length-of-stay` person-nights. It derives neither person
+categories nor an average nightly slab basis.
+
+The service reads the exact active-tenant, exact-property rate plan currency and
+`tax_inclusive` value. That value must agree with the resolved jurisdiction's
+`price_display`; neither source overrides the other, and disagreement fails the quote
+closed. The quote result retains per-night assignment evidence, exact extension
+id/version/content/hash evidence and the complete Order-237 evaluation. This frozen
+evidence enters `quoteHash`, and `bigint` money crosses HTTP only as canonical decimal
+strings. The preview performs no write, price mutation, booking commit, posting,
+journal, tax-detail, document, provider or fiscal action and adds no endpoint.
+
+Folio tax preview is explicitly deferred. Current folio truth does not canonically
+attribute revenue group, service night, person-night, originating quote, correction or
+transfer for every positive charge. It must not be reconstructed from a descriptive
+quantity or a USALI label.
+
+### Canonical positive tax-attribution snapshot
+
+Order 240 adds one pure version-1 transport value for an already-calculated Order-239
+room-tax preview. Its sole origin is `rate_quote`; it does not resolve, calculate or
+change a quote. Creation binds the exact quote SHA-256, currency, stable revenue-line
+id and `room_revenue` group, input amount, nights, person-nights, ordered room-night
+amounts, ordered business-date assignment evidence, exact jurisdiction extension
+identity/version/content hash, evaluator country/display/rounding modes, exact
+input/base/tax/grand totals, ordered tax totals and their ordered line components.
+This is complete positive-origin lineage, not a folio reconstruction.
+
+Every stored money and quantity is a canonical non-negative decimal string. Runtime
+`bigint`, JavaScript-number or float money, exponent notation, signs, leading zeroes
+other than the single value `0`, negative zero, unsafe magnitude and non-finite values
+are not snapshot values. Creation reconciles the whole value before hashing:
+room-night amounts sum exactly to the attributed input amount, evaluator input equals
+that same amount, base plus tax equals grand total, and every tax total equals its
+ordered components. Night dates, assignment references, tax identities and component
+lineage must be ordered, unique and mutually coherent.
+
+`snapshotHash` is SHA-256 over the complete canonical snapshot excluding only
+`snapshotHash` itself. Parsing is an exact hostile boundary, not permissive JSON
+normalization: unknown fields, accessors, cycles, malformed UUIDs, hashes, currency,
+dates, references or decimals, duplicate or out-of-order nights, mismatched lineage or
+totals and unsupported signs fail closed. Builder and parser do not mutate their
+inputs and return one recursively frozen value; a successful parse reproduces the
+same canonical bytes and hash-bound meaning.
+
+The snapshot is evidence only. Order 240 adds no persistence, fact, event, HTTP or UI
+surface and grants no booking, folio, journal, posting, `tax_detail`, correction,
+reversal, transfer, tax-payable allocation, invoice, CGST/SGST/IGST split, document,
+numbering, IRP, provider, submission or fiscal-finality authority.
+
+### Canonical tax-attribution persistence
+
+Order 244 gives the exact Order-240 value one append-only PostgreSQL owner. The
+internal record command first re-parses the complete value through the hostile
+Order-240 boundary; callers cannot supply duplicated identity columns separately or
+replace canonical snapshot JSON after validation. One active-tenant exact property
+and active actor are resolved inside the transaction before the database owner
+capability stores schema version, `rate_quote` origin, quote hash, snapshot hash,
+currency and the complete canonical snapshot together.
+
+The snapshot hash is the tenant convergence key. Recording the same exact snapshot
+again returns the existing immutable root; an idempotent command replay returns the
+same frozen receipt, while reuse of its command key with different request meaning
+fails closed. Creation writes one `tax.attribution_recorded` fact and one minimized
+outbox event in the same transaction. The event contains only attribution, property,
+origin, quote-hash, snapshot-hash and currency identity; it never carries the full
+snapshot, guest/Party data or financial lines.
+
+Read is tenant scoped and returns only a value that still parses and agrees exactly
+with every duplicated identity field. The table and fact are insert-only; the app
+role has no raw table mutation and may invoke only the bounded owner-mediated
+capability under its exact runtime-role and transaction-local tenant checks.
+Persistence proves only that exact positive quote-tax evidence was durably recorded
+for contextual property and actor attribution. It does not prove that the quote
+belongs to that property, was accepted, protected by a hold, committed to a
+reservation, posted, invoiced, submitted or fiscally finalized. Those links require
+separate authoritative commands.
+
+### Authoritative quoted-tax cart-hold binding
+
+Order248 adds that first authoritative link without accepting a reservation. The
+internal command accepts only the complete strict quote input, the canonical
+600-second cart-hold TTL, command idempotency and the actor-bound audit envelope. It takes the
+same tenant/rate-plan advisory lock used by release publication before resolving a
+fresh quote. The result must match the active tenant, exact property and sellable,
+remain live-bookable, have composition state `quoted`, and carry a calculated tax
+preview. A caller cannot provide or override quote hash, price, snapshot or tax.
+
+The command derives the canonical Order240 value from the fresh nightly quote and
+calculated tax evidence, then uses the existing hold and Order244 persistence owners.
+One append-only binding records the resulting hold, attribution, quote and snapshot
+identities; one minimized `tax.attribution_bound` fact/outbox pair and the idempotent
+receipt share the same transaction. Expiry or release changes only the existing hold
+state and never deletes binding evidence. Neither the receipt nor event is a price
+promise, hold consumption, reservation, posting, invoice or fiscal authorization.
+
+### Canonical positive tax posting plan
+
+Order251 adds `derivePositiveTaxPostingPlan(snapshot: unknown)` as a pure value
+boundary over the Order240 snapshot. It always re-parses the complete hostile input
+through `parsePositiveTaxAttributionSnapshot`; a caller cannot bypass canonical
+snapshot validation by supplying an object that merely has the expected TypeScript
+shape. The function does not mutate its input and returns one recursively frozen
+`PositiveTaxPostingPlanV1`.
+
+The version-1 result has exactly these public fields: `schemaVersion`, `quoteHash`,
+`snapshotHash`, `currency`, `state`, `blockers`, `revenueLine`, `taxLineage`,
+`lines` and `balanceMinor`. It carries `schemaVersion=1`, the exact quote hash,
+snapshot hash and currency, and copied positive-origin revenue and ordered tax
+lineage from the reparsed snapshot. It neither re-resolves jurisdiction nor
+recalculates, averages, allocates or changes any amount. Its state is exactly
+`route_ready` or `policy_blocked`. Blockers are deduplicated in canonical order:
+document rounding adds `document_tax_allocation_required`; country `IN` or a tax code
+matching `/^GST(?:_|$)/` adds
+`india_place_of_supply_decomposition_required`. Both blockers may be present.
+`route_ready` means only line-rounded, non-India evidence with no aggregate GST code;
+it is not financial, legal or fiscal authorization.
+
+The account-agnostic line topology is fixed and ordered under Yellow's
+debit-positive, credit-negative convention:
+
+1. one guest-receivable debit for positive `grandTotalMinor`;
+2. one room-revenue credit for negative `baseTotalMinor`;
+3. one tax-payable credit for each non-zero `taxMinor`, negative and in the
+   snapshot's canonical tax order.
+
+Zero tax is valid and emits no tax-payable line, while its exact zero entry remains in
+`taxLineage`; positive tax entries emit the ordered credit lines above. Every line
+amount is a canonical signed-int64 decimal string, all arithmetic and sign inversion
+use `bigint`, and the exact line sum is exposed as `balanceMinor="0"`. `revenueLine`
+copies the stable revenue-line identity/group and `taxLineage` copies every ordered
+tax-code/component entry needed by a later governed router; the plan invents no
+residual, component split or account identity.
+
+This plan has zero execution authority. It accepts no `Tx`, performs no SQL or other
+I/O, selects no account, tx code, route, folio, property business date or posting
+kind, and writes no journal, `posting_line`, `tax_detail`, fact, outbox event,
+idempotency result, document, series, hash chain, submission or provider request. It
+does not consume or extend a hold, bind a reservation or folio, authorize a charge,
+resolve document-rounding residuals, or derive CGST/SGST/IGST or place of supply.
+Those blockers require later explicit policy and a separately authorized,
+transactional financial command; no consumer may treat this pure plan as evidence
+that posting or fiscal issue occurred.
+
+### Governed positive-tax journal posting
+
+Order262 adds the internal financials-owned
+`PositiveTaxPostingService.post(tx,{tenantId,propertyNode,reservationId,
+idempotencyKey,envelope})`. The caller supplies identity, idempotency and an audit
+envelope only. Orders251/256/259 derive and recheck the immutable lineage, primary
+open folio and guest account, exact signed-int64 amounts, configured transaction
+codes and explicit revenue/tax accounts. A `policy_blocked` result preserves the
+exact ordered `document_tax_allocation_required` and/or
+`india_place_of_supply_decomposition_required` blockers and writes no journal,
+line, binding, fact, outbox or idempotency row.
+
+A route-ready result writes exactly one balanced `charge` journal: sequence 1 is the
+positive grand-total guest debit on the primary folio, sequence 2 is the negative
+base room-revenue credit, and later sequences are negative canonical nonzero-tax
+credits in tax order. Quantity is `1.000`; zero tax remains in lineage without a
+zero posting. The application inserts only the journal header and complete null-tax
+credit-line set. The fixed-search-path owner capability revalidates the locked
+lineage, snapshot, folio, journal and exact semantic routes, proves sequence 1 is
+absent, then inserts that root line once with the exact minimized version-1
+`tax_detail` and appends one immutable `tax_attribution_journal_binding`.
+`posting_line` remains insert-only; the app receives no direct `tax_detail` insert or
+update and no binding-table mutation authority.
+
+All distinct guest, revenue and tax accounts are locked in global UUID order with
+the primary folio before the existing locking resolver and property business-day
+recheck. The journal, every line, binding, durable idempotency receipt and exactly one
+`journal.posted` plus one `tax.attribution_posted` fact/outbox pair commit atomically;
+replay adds no domain row, and one immutable lineage converges to one journal across
+different keys. This command does not implement document-rounding allocation, India
+GST/place-of-supply decomposition, negative tax, correction or reversal, fiscal
+documents/numbering/hash chains, IRP/provider submission, payment, settlement,
+transfer, HTTP, UI or local promotion.
+
+### Governed positive-tax journal correction
+
+Order266 adds the internal financials-owned
+`PositiveTaxCorrectionService.reverse(tx,{tenantId,propertyNode,
+reversesJournalId,reason,postSealAuthorized,idempotencyKey,envelope})`. It accepts no
+money, tax, account, folio, route, business-date or posting-line input. PostgreSQL
+must prove the target is one exact Order262 positive-tax journal with its immutable
+posting binding, attribution, reservation/segment/primary-folio lineage, frozen
+configured routes and complete balanced posting set.
+
+After globally ordered account/folio and original-identity locks, the command rechecks
+all authority and data, locks the original and current financial business days, and
+creates one current property-local `adjustment` journal with `reverses=original.id`.
+Every original posting is copied in exact sequence with its amount sign-negated;
+accounts, folio, transaction codes, descriptions, quantities and currency are not
+re-routed or recalculated. The original journal, lines, attribution, binding and route
+evidence never change. Existing `journal_one_reversal` permits at most one contra
+journal and makes concurrent attempts converge.
+
+Only the reversal root receives database-derived version-2 tax evidence with
+`effect="full_reversal"`, exact original/reversal journal and posting-binding lineage,
+quote/snapshot identity and the exact original version-1 root evidence. The caller
+cannot provide or modify that JSON. Before seal, verified
+`financials.adjustments:write` authority is sufficient; when either relevant day is
+sealed, the same property's verified `financials.adjustments:post-seal` authority is
+also required. A body or header cannot manufacture that authority. Header, complete
+contra lines, root evidence, durable receipt and exactly one `journal.posted` plus one
+`tax.attribution_reversed` fact/outbox pair commit atomically. Partial correction,
+replacement/refund/payment/transfer, India or negative-tax handling, document/IRP and
+local promotion remain outside this contract.
+
+### Exact India GST supplier-registration evidence
+
+Order272 adds the internal read-only
+`IndiaGstSupplierRegistrationService.discover|resolve(tx,
+{tenantId,propertyNode,reservationId})`. Both operations first obtain the existing
+Order256 positive-tax eligibility; `discover` preserves its non-locking semantics and
+`resolve` preserves its bounded financial lock/re-read semantics. The caller supplies
+only tenant, property and reservation identity. Country, currency and the complete
+jurisdiction extension id, nullable owner, key, version and content hash come only
+from the already-frozen attribution snapshot.
+
+Resolution requires exact `IN`/`INR` truth and one SELECT-only
+`property_fiscal_registration` row for scheme `in-gstin` bound to that complete
+frozen identity and an exact tenant-owned property. It returns only a recursively
+frozen supplier-evidence value containing registration and property ids,
+scheme/currency, frozen jurisdiction identity, canonical checksum-valid GSTIN and
+matching current two-digit GST state/UT code, legal name, nullable trade name, address line, locality, six-digit
+pincode and a deterministic SHA-256 over the canonical supplier-registration
+evidence. Replaying identical stored and eligibility truth returns byte-identical
+evidence.
+
+Missing, duplicate, cross-tenant, cross-property, non-India, non-INR, malformed,
+checksum-invalid, stale or mismatched evidence fails closed. There is no lookup by
+current/effective extension, display name, GST-like code, property config, Party or
+guest data. This resolver writes no registration, journal, posting, document,
+outbox, fiscal submission or idempotency state. It does not determine buyer GST
+identity, SEZ status, place of supply, CGST/SGST/IGST decomposition, rounding or
+allocation, posting/correction/credit notes, invoice numbering/hash chains, IRP
+payloads, provider calls or submission authority.
+
+### Pure India IRP 1.1 seller-details projection
+
+Order275 admits one pure `buildIndiaIrpSellerDetails(source: unknown)` boundary over
+the exact approved Order272 `IndiaGstSupplierRegistrationResult`. The input must be
+one exact plain, accessor-free result with scheme `in-gstin`, currency `INR`, complete
+frozen jurisdiction identity and canonical evidence hash. It projects only this
+notified payload shape, in fixed key order:
+
+```json
+{"SellerDtls":{"Gstin":"...","LglNm":"...","TrdNm":"...","Addr1":"...","Loc":"...","Pin":560001,"Stcd":".."}}
+```
+
+`TrdNm` is omitted only when the exact source trade name is null. GSTIN is exactly 15
+characters; legal and trade names are at most 100 characters; address line 1 is at
+most 100; locality is at most 50; PIN is an exact six-digit nonzero numeric string
+before numeric projection; and state is an exact current GST state/UT code. Missing,
+surplus, accessor-backed, checksum-invalid, stale, mismatched or over-limit evidence
+fails closed. The builder never trims, truncates, splits, coerces or synthesizes legal
+identity.
+
+The frozen wrapper identifies format `irp_json_1_1`, retains the exact
+`registrationId` and `evidenceHash` outside the transmitted JSON, and exposes
+deterministic `payloadJson` plus its SHA-256 `payloadHash`. Replay is byte-identical;
+the source is unchanged; wrapper, lineage, payload and seller details are recursively
+frozen. This contract grants no buyer/recipient, SEZ, place-of-supply, supply-type,
+tax decomposition, item/value/document, numbering/hash-chain, submission, provider,
+database, transaction, API, HTTP or UI authority. The exact pure boundary and its
+executable proof are independently Tier-3 approved under D-719 with no finding.
+
+### Exact India GST registered-recipient candidate evidence
+
+Order276 specifies the internal read-only
+`IndiaGstRecipientRegistrationService.discover|resolve(tx,
+{tenantId,recipientPartyId,registrationId})`. The input must be one exact plain tuple;
+the registration UUID is caller-selected rather than inferred from a reservation,
+folio, account, Party role or mutable customer profile. Both operations must set and
+retain the transaction-local tenant context and select only that exact registration
+and its exact Party inside the same tenant.
+
+Resolution requires one active Party and one exact `party_fiscal_registration` row
+whose scheme is `in-gstin`. The registration must carry a canonical checksum-valid
+15-character GSTIN, its matching current two-digit GST state/UT code, legal name,
+nullable trade name, address line 1, locality and an exact six-digit nonzero PIN.
+Legal and trade names are bounded at 100 characters, address line 1 at 100 and
+locality at 50. The returned recursively frozen candidate contains only the
+registration and Party ids, scheme, statutory identity/address fields and a
+deterministic SHA-256 `evidenceHash`. Replay over identical stored truth must be
+byte-identical.
+
+Missing, foreign, inactive, merged, anonymised, malformed, checksum-invalid or
+state/PIN/text-mismatched evidence must fail closed without heuristic fallback or a
+write. `party.display_name`, `party.legal_name`, `party.attrs`, contact/address rows,
+roles, accounts, reservations and folios may neither substitute for nor enrich the
+selected statutory registration.
+
+This value is registered-recipient **candidate evidence only**. It does not designate
+the legal invoice buyer or invoice/folio window, build IRP `BuyerDtls`, select B2C
+`URP`, export, SEZ or deemed-export treatment, decide `Pos` or `SupTyp`, or authorize
+CGST/SGST/IGST decomposition, item/value/tax calculation, allocation, posting,
+correction, documents, numbering/hash chains, submission, provider, API, HTTP or UI
+behavior. Order276 and its corrected canonical setup descendant are independently
+Tier-3 approved under D-725 with no remaining finding.
+
+### Pure India IRP 1.1 buyer-details candidate projection
+
+Order278 specifies one pure `buildIndiaIrpBuyerDetails(source: unknown)` boundary
+over the exact approved Order276 `IndiaGstRecipientRegistrationResult`. The input
+must be one exact deeply frozen plain, accessor-free result with canonical Party and
+registration UUIDs, scheme `in-gstin`, complete statutory identity/address evidence
+and canonical evidence hash. It projects only this candidate payload shape, in fixed
+key order:
+
+```json
+{"BuyerDtls":{"Gstin":"...","LglNm":"...","TrdNm":"...","Addr1":"...","Loc":"...","Pin":560001,"Stcd":".."}}
+```
+
+`TrdNm` is omitted only when the exact source trade name is null. GSTIN is exactly 15
+characters with a valid checksum and its state prefix must equal `Stcd`; legal and
+trade names are at most 100 characters; address line 1 is at most 100; locality is at
+most 50; PIN is an exact six-digit nonzero numeric string before numeric projection;
+and state is an exact current GST state/UT code. Missing, surplus, accessor-backed,
+proxy, malformed, checksum-invalid, mismatched or over-limit evidence fails closed.
+The builder never trims, truncates, splits, coerces, normalizes or synthesizes legal
+evidence.
+
+The recursively frozen wrapper identifies format `irp_json_1_1`, retains an exact
+three-field lineage `{partyId,registrationId,evidenceHash}` outside the transmitted
+JSON, and exposes fixed-order deterministic `payloadJson` plus its SHA-256
+`payloadHash`. The lineage never enters `payload`, `BuyerDtls` or `payloadJson`.
+Replay over identical evidence is byte-identical, the source stays unchanged, and
+wrapper, lineage, payload and buyer details are recursively frozen.
+
+This is a payload candidate only. It neither designates the legal invoice or folio-
+window buyer nor includes or decides `Pos`, `SupTyp`, B2C `URP`, export, SEZ, deemed-
+export, seller, item, value, tax or document fields. It grants no CGST/SGST/IGST,
+calculation, allocation, posting, correction, document issue/number/hash-chain,
+submission, provider, transaction, SQL, database, API, HTTP or UI authority. Fresh
+independent Tier-3 execution approves exact Order278 under D-728 with no finding.
+
+### Exact India GST folio-window buyer candidate association
+
+Order279 specifies one read-only
+`IndiaGstFolioBuyerCandidateService.resolve(tx, input)` boundary. Its input
+is the exact plain accessor-free five-key object
+`{tenantId,propertyNode,folioId,recipientPartyId,registrationId}` with canonical UUIDs
+and no surplus truth. One tenant-scoped query must return exactly one folio anchor and
+equality-bind the tenant, explicit property and folio together with the folio's exact
+account and reservation. Account property must equal the explicit property and the
+account and reservation currencies must agree.
+
+The stored folio window number and status, account role and status, reservation status
+and common currency are lineage evidence only. No status, role or currency value makes
+the candidate a legal buyer or authorizes issue, settlement or any other transition.
+The resolver neither reads nor requires a relationship to the account Party,
+reservation primary or booker Party, guest role, folio name or folio number. Party and
+registration are always the exact explicitly selected Order276 identities.
+
+After resolving exact approved Order276 recipient evidence, the service applies the
+approved Order278 builder without changing either value. Its recursively frozen result
+has fixed-order property, folio, account, reservation, window/status/currency lineage;
+the exact Party, registration and evidence-hash lineage; exact BuyerDtls payload bytes
+and payload hash; and one deterministic SHA-256 `associationHash` over that complete
+fixed-order evidence. Identical reads are byte-identical. Two sibling windows remain
+distinct candidates even when they use the same Party and registration because each
+window's exact folio identity and window number are bound into its evidence and hash.
+
+Missing, duplicate, foreign, malformed or incoherent folio/account/reservation or
+Party/registration truth fails closed. This read persists and locks nothing, emits no
+fact/event, and creates no idempotency evidence. It is a candidate association only:
+it does not designate a legal invoice buyer, decide `Pos`, `SupTyp`, B2C `URP`, export,
+SEZ, deemed export or CGST/SGST/IGST, or authorize tax, posting, correction, document,
+numbering/hash-chain, submission, provider, API, HTTP or UI behavior. Fresh independent
+Tier-3 execution approves exact Order279 under D-731 with no finding.
+
+### Exact India property fiscal-location evidence
+
+Order280 specifies the internal SELECT-only
+`IndiaGstPropertyLocationService.resolve(tx, {tenantId,propertyNode})` boundary. Its
+input must be one exact plain accessor-free, proxy-free and symbol-free object with
+only two canonical UUIDs. The service requires the caller-established transaction-local
+tenant context and reads exactly one `property_fiscal_location` row equality-bound to
+that tenant and property. The same-tenant property reference must resolve to one
+`org_node.kind='property'`; neither the node's name, config or path nor any profile,
+space or unit-type data may substitute for the typed row.
+
+Resolution requires country `IN`, one current two-digit GST state/UT code, canonical
+address line 1 and locality, and an exact six-digit nonzero PIN. It returns only the
+recursively frozen fixed-shape value
+`{propertyNode,countryCode,stateCode,addressLine1,locality,pin,evidenceHash}`.
+`evidenceHash` is deterministic SHA-256 over fixed-order tenant, property and complete
+location evidence; tenant identity is hash-bound but remains outside the returned
+value. Replay over identical stored truth is byte-identical.
+
+Missing, duplicate, foreign, malformed, noncanonical or incoherent truth fails
+closed. There is no fallback to supplier or recipient GSTIN state,
+`property_fiscal_registration`, `party_fiscal_registration`, tax-code coincidence or
+mutable display/configuration data. The boundary locks and writes nothing, emits no
+fact or event and creates no idempotency evidence. It is a future place-of-supply
+prerequisite only: it does not emit or decide IRP `Pos` or `SupTyp`, classify
+accommodation or service supply, select HSN/SAC, choose B2C/URP, export, SEZ or
+deemed-export treatment, derive CGST/SGST/IGST or tax rates, associate a reservation,
+folio or buyer, or authorize posting, correction, document allocation/issue/number/
+hash-chain, submission, provider, API, HTTP or UI behavior.
+
+### Exact India GST accommodation-classification evidence
+
+Order281 specifies the internal SELECT-only
+`IndiaGstAccommodationClassificationService.resolve(tx,
+{tenantId,propertyNode,reservationId,classificationId})` boundary. Its input must be
+one exact plain, accessor-free, proxy-free and symbol-free object containing only four
+canonical UUIDs. The caller-established transaction-local tenant context must equal
+the supplied tenant. Before reading classification truth, the service reuses the exact
+frozen positive-tax eligibility for the supplied tenant, property and reservation.
+
+Resolution then reads exactly the explicitly selected
+`india_gst_item_classification` row and equality-binds it to the same tenant and
+property and to the eligibility result's complete frozen jurisdiction identity:
+extension id, nullable owner tenant id, key, version string and content hash. The row
+must carry country `IN`, line `room`, revenue group `room_revenue`, classification
+system `SAC`, service flag `Y` and exactly one of the six admitted accommodation codes
+`996311`, `996312`, `996313`, `996321`, `996322` or `996329`.
+
+The recursively frozen fixed-shape result is
+`{classificationId,propertyNode,jurisdiction:{extensionId,ownerTenantId,key,version,
+contentHash},lineId:"room",revenueGroup:"room_revenue",classificationSystem:"SAC",
+classificationCode,isServiceCode:"Y",evidenceHash}`. `evidenceHash` is deterministic
+SHA-256 over fixed-order unexposed tenant plus every returned evidence field, including
+the complete nested jurisdiction. Identical eligibility and stored truth replay
+byte-identically.
+
+Absent, duplicate, foreign, malformed, stale or jurisdiction-incoherent evidence
+fails closed. Goods flag, HSN system, arbitrary/non-accommodation code and any
+mismatched tenant, property, reservation, classification, line or jurisdiction fail
+closed as well. There is no inference or fallback from `GST_ROOM`, `room_revenue`,
+USALI, transaction codes, semantic posting routes, rate plans, profiles, spaces, unit
+types or property display/configuration truth. Successful and failed classification
+reads write no classification, eligibility, tax-lineage, fact, outbox, journal,
+posting, document, fiscal-submission or idempotency state.
+
+This evidence is a future item prerequisite only. It does not build IRP `ItemList`,
+decide `Pos` or `SupTyp`, choose B2C/URP, export, SEZ or deemed-export treatment,
+derive a tax rate or CGST/SGST/IGST decomposition, compose seller, buyer or folio-
+window truth, or authorize posting, correction, document allocation/issue/number/
+hash-chain, submission, provider, API, HTTP or UI behavior.
+
+### Exact India accommodation place-of-supply candidate
+
+Order282 specifies the read-only
+`IndiaGstAccommodationPlaceOfSupplyService.resolve(tx, input)` boundary. `input` is
+exactly the plain, accessor-free, proxy-free and symbol-free seven-UUID object
+`{tenantId,propertyNode,reservationId,folioId,recipientPartyId,
+recipientRegistrationId,classificationId}`; null, arrays, non-plain prototypes,
+missing or surplus keys and noncanonical UUIDs fail before composition. The
+caller-established transaction-local tenant context remains authoritative.
+
+The service composes, without rewriting, four exact approved roots: Order272 supplier
+registration for the tenant/property/reservation; Order279 explicit folio-window buyer
+candidate for the tenant/property/folio and exact recipient Party/registration;
+Order280 physical property fiscal location for the same tenant/property; and Order281
+accommodation classification for the same tenant/property/reservation and exact
+classification id. Supplier and classification must carry identical complete frozen
+jurisdiction extension id, nullable owner, key, version and content hash. Buyer folio
+property and reservation must equal the selected property and reservation, every
+currency must be `INR`, the location and both statutory roots must be Indian, and the
+classification must remain exact `room`/`room_revenue`/`SAC`/`Y` accommodation
+evidence. No source result is normalized, repaired or mutated.
+
+The fixed-order candidate body contains exactly
+`{propertyNode,reservationId,folioId,jurisdiction,supplier,recipient,
+buyerAssociation,classification,propertyLocation,legalRule,pos}`. `jurisdiction`
+retains the full frozen `{extensionId,ownerTenantId,key,version,contentHash}` identity;
+`supplier` is exactly `{registrationId,evidenceHash}`; `recipient` is exactly
+`{partyId,registrationId,evidenceHash}`; `buyerAssociation` is exactly
+`{associationHash,payloadHash}`; `classification` is exactly
+`{classificationId,evidenceHash}`; and `propertyLocation` is exactly
+`{propertyNode,evidenceHash}`. `legalRule` is `IGST_ACT_12_3_B` and `pos` is the exact
+physical-property state. Raw supplier/recipient states, SAC/service/line/group and raw
+location state are validated source truth but are not duplicated into those evidence
+subobjects.
+
+The result appends `candidateJson`, the exact fixed-order `JSON.stringify` of that
+candidate body, and `candidateHash`, the SHA-256 of fixed-order
+`JSON.stringify({tenantId,candidate:body})`. Tenant identity is therefore hash-bound
+but remains outside the body, JSON and returned result. Identical inputs and source
+bytes replay byte-identically; the result and every nested object are frozen.
+
+IGST Act section 12(3)(b) is the only admitted legal rule: hotel accommodation is
+located at the immovable property. Supplier GSTIN state and recipient GSTIN state are
+retained only in their source evidence and never substitute for, compare with or
+change `pos`. Missing, duplicate, stale, foreign, malformed, mixed-tenant/property/
+reservation/folio/Party/registration/classification/jurisdiction or hash-incoherent
+truth fails closed. There is no fallback to org/profile/address/account/guest/rate/
+tax-code/display configuration.
+
+Successful replay and every rejection leave source roots, facts, outbox, idempotency,
+journals, postings, documents and submissions byte/count unchanged. Order282 adds no
+advisory or row lock beyond any lock already acquired by the approved governed source
+resolvers. This is evidence only: it does not decide intra-state versus inter-state,
+derive CGST/SGST/IGST or any rate/component/allocation, emit `SupTyp`, build `ItemList`
+or any item description/quantity/UQC/unit/gross/assessable/tax/value field, or
+authorize posting, correction, document allocation/issue/number/hash chain,
+provider/submission, API, HTTP or UI behavior.
+
+### Exact India accommodation registered-state comparison
+
+Order283 specifies the pure in-process
+`buildIndiaGstAccommodationRegisteredStateComparison(input)` value boundary. Its
+input is exactly the plain, accessor-free, proxy-free and symbol-free three-key object
+`{tenantId,supplier,placeOfSupply}`. `tenantId` is one canonical UUID; `supplier` is
+the complete exact recursively frozen approved Order272 result and `placeOfSupply`
+is the complete exact recursively frozen approved Order282 result. Null, arrays,
+non-plain prototypes, missing or surplus keys, unfrozen evidence and malformed nested
+shapes fail before comparison.
+
+The builder independently revalidates every fixed-order source field and recomputes
+the Order272 supplier evidence hash and the Order282 `candidateJson`/`candidateHash`
+from the complete source values, including the unexposed tenant. Supplier property,
+complete frozen jurisdiction, registration id and evidence hash must remain coherent
+with the place-of-supply property and lineage. Property, reservation and folio come
+only from the approved place-of-supply candidate. No source value is normalized,
+repaired, supplemented or mutated.
+
+The fixed-order comparison body contains exactly
+`{propertyNode,reservationId,folioId,jurisdiction,supplier,recipient,
+buyerAssociation,classification,placeOfSupply,comparisonRule,stateRelationship}`.
+`jurisdiction` is the complete frozen
+`{extensionId,ownerTenantId,key,version,contentHash}` identity. `supplier` is exactly
+`{registrationId,evidenceHash,stateCode}`; `recipient` is exactly
+`{partyId,registrationId,evidenceHash}`; `buyerAssociation` is exactly
+`{associationHash,payloadHash}`; `classification` is exactly
+`{classificationId,evidenceHash}`; and `placeOfSupply` is exactly
+`{candidateHash,legalRule,pos}`. `comparisonRule` is
+`SUPPLIER_REGISTERED_STATE_VS_ACCOMMODATION_POS`. `stateRelationship` is exactly
+`same_state_or_union_territory` when the canonical two-digit supplier `stateCode`
+equals `placeOfSupply.pos`, otherwise exactly
+`different_state_or_union_territory`.
+
+The result appends `candidateJson`, the exact fixed-order `JSON.stringify` of that
+body, and `candidateHash`, the SHA-256 of fixed-order
+`JSON.stringify({tenantId,candidate:body})`. Tenant identity is hash-bound but remains
+outside the body, JSON and result. The result and every nested object are recursively
+frozen; identical source bytes replay byte-identically. Successful and rejected calls
+leave caller bytes unchanged and perform no transaction, SQL, read, lock, write,
+fact, event, journal, posting, document, submission or idempotency effect.
+
+The relationship is comparison evidence only. It is not an intra-State or inter-State
+conclusion: the registered state is not a supplier-establishment/location selection,
+and IGST Act sections 7(5)(b) and 8(2), together with the SEZ rule, can override an
+ordinary same-code comparison. Recipient state is retained only through approved
+lineage and never participates in the comparison. Order283 does not infer SEZ or
+non-SEZ status, B2C/URP, export or deemed-export treatment, `SupTyp`, `IgstOnIntra`,
+reverse charge, CGST/SGST/UTGST/IGST route/rate/amount, rounding or residuals. It does
+not build `ItemList` or any item/value field and grants no posting, correction,
+document allocation/issue/number/hash-chain, provider/submission, API, HTTP, UI,
+local-runtime or promotion authority.
+
+### Exact India GST supplier service-location evidence
+
+Order284 specifies `IndiaGstSupplierServiceLocationService.resolve(tx,input)` with
+the exact plain, accessor-free, proxy-free and symbol-free four-key input
+`{tenantId,propertyNode,reservationId,supplierServiceLocationId}`. All four values are
+canonical UUIDs. The service first obtains complete exact current Order272 supplier
+evidence for that tenant/property/reservation, revalidates its fixed shape and hash,
+then selects exactly the requested coherent `india_gst_supplier_service_location`
+assignment under transaction-local tenant context.
+
+The assignment is current only when its `supplier_registration_id` and
+`supplier_evidence_hash` equal the just-resolved Order272 identity. It carries only
+the fixed lodging-accommodation scope, explicit `principal_place_of_business` or
+`additional_place_of_business` kind,
+`supply_made_from_registered_place_of_business` basis and `IGST_ACT_2_15_A` rule.
+It never selects latest/effective truth by time. Missing, duplicate, foreign, stale,
+malformed or incoherent evidence fails closed.
+
+The recursively frozen fixed-order result is exactly
+`{supplierServiceLocationId,propertyNode,jurisdiction,supplier,serviceScope,
+registeredPlace,locationBasis,legalRule,evidenceHash}`. `supplier` is exact
+`{registrationId,evidenceHash}`. `registeredPlace` is exact
+`{kind,stateCode,addressLine,locality,postalCode}`; every location byte comes from
+revalidated Order272 rather than the assignment. The final hash is SHA-256 over
+fixed-order `JSON.stringify({tenantId,...complete result body except evidenceHash})`,
+binding but not returning the tenant. Replay is byte-identical and every success or
+rejection leaves all source and effect rows unchanged.
+
+This result proves only the explicit IGST section2(15)(a) registered-place premise.
+It does not support section2(15)(b) fixed establishment, (c) most-directly-concerned
+multi-establishment selection or (d) usual residence. It does not infer location
+from GSTIN/address, property co-location, org/profile/config, SellerDtls or Order283
+equality. It grants no SEZ/non-SEZ, supply-nature, levy, `SupTyp`, `IgstOnIntra`,
+rate/amount, item, posting, document, submission, API, HTTP, UI, local-runtime or
+promotion authority.
+
+### Exact India GST recipient SEZ-status evidence
+
+Order285 specifies `IndiaGstRecipientSezStatusService.resolve(tx,input)` with exact
+plain accessor-free, proxy-free and symbol-free
+`{tenantId,recipientPartyId,recipientRegistrationId,recipientSezStatusId}` canonical
+UUID input. It first resolves complete exact current Order276 recipient evidence,
+independently revalidates its fixed shape/GSTIN/hash, then equality-selects the
+requested tenant/registration/hash-bound `india_gst_recipient_sez_status` row.
+
+The status row records an explicit `statusAsOf`, active GST registration status,
+official GST source and exactly regular, SEZ-unit or SEZ-developer taxpayer type.
+Regular is affirmative official non-SEZ evidence and requires no approval tuple.
+SEZ unit requires complete in-force Form G evidence; SEZ developer requires complete
+in-force Form B or C evidence. Positive approval validity is finite `[)` and contains
+the status-as-of date. Missing, unsupported, stale, suspended/cancelled, expired,
+foreign, malformed or incoherent truth fails closed; absence never becomes non-SEZ.
+
+The recursively frozen result is exactly
+`{recipientSezStatusId,recipient,statusAsOf,gstRegistration,sezStatus,approval,
+legalRule,evidenceHash}`. Approval is null for affirmative regular evidence or exact
+`{form,reference,validity:{fromInclusive,toExclusive},status,evidenceSha256}` for
+positive SEZ evidence. The final hash covers fixed-order
+`JSON.stringify({tenantId,...complete body except evidenceHash})`; tenant is bound
+but unexposed. `statusAsOf` is evidence time only, not a latest-row or future supply-
+date decision.
+
+This contract grants no supplier-side SEZ status, authorized-operations endorsement,
+zero rating/refund/payment mode, supply nature, levy, `SupTyp`, `IgstOnIntra`, item,
+posting, document, submission, API, HTTP, UI, local-runtime or promotion authority.
+
+### Exact India GST supplier SEZ-status evidence
+
+Order286 specifies `IndiaGstSupplierSezStatusService.resolve(tx,input)` with exact
+plain accessor-free, proxy-free and symbol-free
+`{tenantId,propertyNode,reservationId,supplierServiceLocationId,
+supplierSezStatusId}` canonical UUID input. It first resolves complete exact current
+Order284 supplier service-location evidence, independently revalidates and rehashes
+its complete frozen shape and underlying Order272 registration id/hash, then
+equality-selects the requested tenant/registration/hash-bound
+`india_gst_supplier_sez_status` row.
+
+The status row records an explicit `statusAsOf`, active GST registration status,
+official GST source and exactly regular, SEZ-unit or SEZ-developer taxpayer type.
+Regular is affirmative official non-SEZ evidence and requires no approval tuple.
+SEZ unit requires complete in-force Form G evidence; SEZ developer requires complete
+in-force Form B or C evidence. Positive approval validity is finite canonical `[)`,
+contains the status-as-of date and carries a positive canonical reference. Missing,
+unsupported, stale, suspended/cancelled, expired, foreign, malformed or incoherent
+truth fails closed; absence never becomes non-SEZ. Form F2 renewal is unsupported.
+
+The recursively frozen result is exactly
+`{supplierSezStatusId,propertyNode,supplierServiceLocation:{id,evidenceHash},
+supplier:{registrationId,evidenceHash},statusAsOf,gstRegistration,sezStatus,
+approval,legalRule,evidenceHash}`. Official status and approval hashes are exposed as
+`evidenceSha256`; lineage and the final result use `evidenceHash`. Approval is null
+for affirmative regular evidence or exact
+`{form,reference,validity:{fromInclusive,toExclusive},status,evidenceSha256}` for
+positive SEZ evidence. The final hash covers fixed-order
+`JSON.stringify({tenantId,...complete body except evidenceHash})`; tenant is bound
+but unexposed. `statusAsOf` is evidence time only, never latest-row inference or a
+future supply-date applicability decision.
+
+This contract grants no recipient-status inference, bilateral supply-nature result,
+Form-F2 renewal, authorized-operations endorsement, zero rating/refund/payment mode,
+levy, `SupTyp`, `IgstOnIntra`, item, posting, document, submission, API, HTTP, UI,
+local-runtime or promotion authority.
+
+### Exact India SEZ-unit first LoA-renewal continuity evidence
+
+Order288 specifies `IndiaSezUnitLoaRenewalService.resolve(tx,input)` with the exact
+plain accessor-free, proxy-free and symbol-free input
+`{tenantId,propertyNode,reservationId,supplierServiceLocationId,
+supplierSezStatusId,supplierLoaRenewalId,statusAsOf}`. It first resolves complete
+exact Order286 evidence, independently revalidates its fixed frozen shape and
+tenant-bound hash, and requires an active `sez_unit` with an in-force Form G. It then
+equality-selects only the requested tenant, renewal id, supplier-status id and exact
+renewal status date from `india_sez_unit_loa_renewal`.
+
+The selected row is exactly the first directly contiguous Form-F2 renewal:
+`lower(renewal_validity) = upper(original Form-G validity)`. Its original Form-G
+reference and evidence hash equal Order286, the original issue date cannot follow
+the Form-F2 issue date, the Form-F2 issue date cannot follow `statusAsOf`, and the
+finite non-empty canonical `[fromInclusive,toExclusive)` renewal validity contains
+that date. The resolver accepts the five-year or shorter period exactly recorded; it
+does not infer, measure or require a duration. Gaps, overlaps, upper-boundary dates,
+later renewal chains, non-Form-G/developer/regular status and stale or malformed
+evidence fail closed.
+
+The recursively frozen result is exactly
+`{supplierLoaRenewalId,supplierSezStatusId,propertyNode,
+supplierServiceLocation:{id,evidenceHash},supplier:{registrationId,evidenceHash},
+statusAsOf,originalLoa,renewal,continuity,legalRule,evidenceHash}`. `originalLoa` is
+the exact Form-G reference, cited issue date, Order286 validity/status and evidence
+hash. `renewal` is the exact Form-F2 file number, issue date, validity, status date,
+`in_force` status, `development_commissioner_record` source and both status/document
+hashes. `continuity` is exactly `{from:'sez_rules_form_g',
+to:'sez_rules_form_f2',exactlyContiguous:true}` and the legal rule is
+`SEZ_RULES_19_6_AND_19_6A_3_FORM_F2_CONTINUITY`. The final hash covers fixed-order
+`JSON.stringify({tenantId,...complete body except evidenceHash})`; tenant is bound
+but unexposed.
+
+This read-only contract grants no Form-F1 authority, Form-F2 authoring, later-renewal
+selection, authorized-operations or specified-officer truth, BLUT, zero rating,
+refund/payment route, supply-nature change, levy, rate/amount, `SupTyp`,
+`IgstOnIntra`, invoice/item/document/submission, posting, API, HTTP, UI, runtime or
+promotion authority.
+
+### Exact India accommodation supply-nature evidence
+
+Order287 specifies the pure in-process
+`buildIndiaGstAccommodationSupplyNature(input)` value boundary. Its input is exactly
+the plain, accessor-free, proxy-free and symbol-free six-key object
+`{tenantId,supplyDate,registeredStateComparison,supplierServiceLocation,
+recipientSezStatus,supplierSezStatus}`. `tenantId` is one canonical UUID;
+`supplyDate` is one canonical `YYYY-MM-DD` property-local applicability date; and
+the remaining values are the complete exact recursively frozen approved Orders283,
+284, 285 and 286 results. Null, arrays, non-plain prototypes, missing or surplus
+keys, unfrozen evidence and malformed nested shapes fail closed.
+
+The builder independently revalidates every fixed-order upstream field and
+recomputes every Order283 candidate JSON/hash and Order284-286 evidence hash with
+the supplied, unexposed tenant. Property, reservation, folio, complete jurisdiction,
+place-of-supply `pos`, supplier registration and service-location, and recipient
+Party/registration lineage must agree at every point where the four roots overlap.
+Carried hashes are not trusted. No value is normalized, repaired, supplemented,
+mutated or replaced by a
+GSTIN, address, name, profile, configuration or recipient-state fallback.
+
+Both exact SEZ-status `statusAsOf` dates must equal `supplyDate`. An earlier, latest
+or nearest snapshot is never selected; a status date earlier or later than the
+supply date, or malformed, impossible or stale evidence, fails closed. The boundary
+neither reads a server clock
+nor determines the statutory time of supply: it only requires exact equality to the
+explicit date supplied to this evidence composition.
+
+Precedence is exhaustive. If both affirmative statuses are regular/non-SEZ, the
+Order283 relationship alone applies: `same_state_or_union_territory` yields
+`intra_state` under `IGST_ACT_8_2`, while
+`different_state_or_union_territory` yields `inter_state` under
+`IGST_ACT_7_3`; the determination basis is
+`ordinary_registered_state_comparison` and direction is `none`. Any SEZ-unit or
+SEZ-developer status on the recipient makes the direction `to_sez`; any such
+supplier status makes it `by_sez`; and a positive SEZ status on both sides makes it
+`to_and_by_sez`. Each SEZ direction yields `inter_state` under the overriding
+`IGST_ACT_7_5_B` with `sez_override` basis, regardless of the ordinary
+same/different-state relationship. Only affirmative regular/regular evidence may
+reach the ordinary section 7(3)/8(2) branch.
+
+The recursively frozen fixed-order candidate body has exactly the keys
+`propertyNode,reservationId,folioId,supplyDate,jurisdiction,supplier,recipient,
+buyerAssociation,classification,placeOfSupply,registeredStateComparison,
+supplyNature,determinationBasis,sezDirection,legalRule`. `supplier` is exactly
+`{registrationId,evidenceHash,stateCode,serviceLocation,status}` where
+`serviceLocation` is `{id,evidenceHash,kind,stateCode}` and `status` is
+`{id,evidenceHash,statusAsOf,taxpayerType,sezStatus}`. `recipient` is exactly
+`{partyId,registrationId,evidenceHash,status}` with the same exact status shape.
+`buyerAssociation` is `{associationHash,payloadHash}`; `classification` is
+`{classificationId,evidenceHash}`; `placeOfSupply` is
+`{candidateHash,legalRule,pos}`; and `registeredStateComparison` is
+`{candidateHash,comparisonRule,stateRelationship}`. Upstream approval details are
+fully revalidated but minimized behind their status `evidenceHash`, which already
+binds them; they are not duplicated into the candidate.
+
+The result appends `candidateJson`, the exact fixed-order candidate-body JSON, and
+`candidateHash`, the SHA-256 of fixed-order
+`JSON.stringify({tenantId,candidate:body})`. Tenant identity is hash-bound but
+unexposed. Identical inputs replay byte-identically; successful and rejected calls
+leave every caller byte unchanged and perform no transaction, SQL, read, lock,
+write, fact, event, journal, posting, tax-detail, document, submission or
+idempotency effect.
+
+This contract determines only the narrow intra-State/inter-State character of the
+approved accommodation evidence. It grants no levy, exemption, reverse-charge,
+CGST/SGST/UTGST/IGST decomposition, rate, amount, rounding, residual, `SupTyp`,
+`IgstOnIntra`, `ItemList`, posting, correction, fiscal-document, provider,
+submission, API, HTTP, UI, local-runtime or promotion authority. Form F2 renewal
+continuity is a separate future supplier-status evidence problem. Specified-officer
+endorsement for authorized operations and any resulting zero-rating/refund/payment-
+mode decision are separate future evidence and decision boundaries; neither may be
+inferred from SEZ status or this supply-nature result.
 
 ## 8. Pure rate-model evaluator
 
@@ -380,3 +1603,1611 @@ An approval decision is not publication. Only the operator who recorded an appro
 requires that operator to run a fresh server preview in the current in-memory session. Publication
 then revalidates the existing hashes, cells, release state and deciding actor atomically. Rejection
 is terminal and can never publish.
+
+## 16. Token-only payment operation boundary
+
+`PaymentService` owns authorization, incremental authorization, one capture, void,
+partial refunds and late reconciliation. Callers provide tenant-scoped resource ids,
+canonical positive int64 minor units, an idempotency key and the audit envelope; the
+service derives property, guest folio/account, provider, method, currency, governed
+payment code and clearing account. Only an active opaque card-network or UPI token is
+passed to the `PaymentProvider` port. Tokens never appear in command results, facts,
+events, errors or receipts.
+
+Each command commits a prepared attempt, calls the provider outside PostgreSQL, then
+atomically appends its result, fact and outbox evidence. Authorization, increment and
+void are journal-free. One successful capture is capped by both authorization and the
+locked positive folio balance; capture closes unused authority. Refunds are bounded by
+the captured remainder and carry explicit capture-payment and capture-journal lineage.
+Provider receipts store normalized fields and a content hash only; same receipt/hash
+replays, changed content conflicts, and receipt plus late result commit together.
+
+## 17. Hosted deposit-payment boundary
+
+`HostedDepositService.create` binds a deposit-purpose payment operation to one tenant,
+property, folio window, tokenized instrument, positive amount/currency, creator and
+24-hour expiry. Durable actor-bound idempotency returns the original request metadata
+without reissuing its bearer. Regeneration revokes the prior active generation. Only a
+SHA-256 bearer hash is stored; the 256-bit raw bearer is returned once and is excluded
+from provider handoffs, receipts, facts, events, caches and browser storage.
+
+The separately originated synthetic provider receives only a signed, short-lived
+correlation, amount, currency, return URL and expiry. `POST /provider/callback` verifies
+the bounded exact raw bytes, version, path, timestamp, event id and HMAC before parsing,
+then delegates exclusively to the payment receipt/reconciliation contract. Browser
+return values are never payment truth.
+
+Deposit capture debits clearing and credits deposit liability without touching the
+folio. `HostedDepositService.apply` separately locks the capture, applications, folio,
+accounts and business day; it caps the immutable liability-debit/guest-folio-credit
+journal by both unapplied capture and positive folio balance. Staff read, create and
+apply routes require distinct `financials.payments:read`,
+`financials.payments:write` and `financials.deposits:apply` scopes plus the exact
+property grants. This contract does not refund deposits, settle or close a folio.
+
+## 18. Governed cashier-custody boundary
+
+`CashierService` is the only application boundary for opening, recounting and closing
+a property cash drawer. Callers submit only a governed drawer id and non-negative
+quantities for the drawer's configured bigint denomination units. PostgreSQL derives
+the property, open business date, currency, actor custody and every exact int64 total;
+caller totals, dates, currencies, accounts and users are rejected authority.
+
+At most one session may be open for a drawer and for a tenant user. Counts and count
+lines are immutable. Ordinary close remains blind until a count has been submitted:
+expected cash is the opening count plus typed cash effects (opening only while Yellow
+has no cash-posting command). Zero closes directly. A non-zero over/short requires a
+reason and one exact approved, different-user, one-use `cashier_over_short` request
+bound to the session, count and server-derived totals. Supervisor abandoned close
+also requires a distinct closer, fresh closer-owned count and reason.
+
+Open, count and close append minimized facts and `cashier.opened`,
+`cashier.counted`, `cashier.closed` outbox events in the same transaction. This
+contract never posts cash, balances a discrepancy, mutates a journal, settles a
+provider or seals a business day.
+
+## 19. Governed direct-billing receivable boundary
+
+`ReceivableService` previews and transfers only the exact locked positive balance of
+one open guest folio window. The target is one open party-owned `company` account in
+the same tenant, property and currency whose Party has the `company` or `agent` role.
+The service derives amount, currency, account status, party role, current exposure,
+credit limit and projected exposure; callers provide identifiers, idempotency and an
+audit envelope only.
+
+`credit_limit_minor = NULL` denies direct billing. A within-limit transfer creates one
+balanced immutable transfer journal. An over-limit transfer additionally consumes one
+approved, different-user, one-use request bound to exact party/account/folio/amount,
+exposure before, limit and projected exposure. Every command revalidates those facts
+under deterministic financial locks before posting.
+
+The result leaves the guest folio at exact zero and increases receivable exposure by
+the same amount. It does not settle the folio automatically and creates no AR invoice,
+allocation, aging, statement, provider settlement, checkout, document, tax or fiscal
+artifact. Generic `ar_control` is never a direct-billing target.
+
+## 20. Governed housekeeping task lifecycle
+
+Order 201 exposes a bounded property housekeeping board over existing
+`kind='housekeeping'`, `subject_type='space'` tasks and active physical rooms. Read
+requires `housekeeping.tasks:read`; start and complete require
+`housekeeping.tasks:work`; verification requires the distinct
+`housekeeping.tasks:inspect` grant. The server derives tenant, property, actor,
+current status, room condition and the one allowed action. No Party PII is returned.
+
+The only executable transitions are `assigned -> in_progress`,
+`in_progress -> done` and `done -> verified`. Every command binds the exact task
+status, room condition and room-condition `updated_at` returned by the board. A stale
+or foreign target conflicts without mutation. Start preserves room condition;
+complete accepts only dirty/pickup and atomically makes it clean; verify accepts only
+clean and atomically makes it inspected. Task/condition changes, minimized facts and
+outbox events commit together under actor-bound durable idempotency.
+
+This boundary does not create, assign, cancel, reopen or delete tasks. It creates no
+task sheet, cadence, credits, occupancy, reservation, discrepancy, queue, key,
+financial, business-day or statutory effect. Direct runtime DML over `task` and
+`unit_condition` remains denied; the application may use only the bounded governed
+transition capability.
+
+## 21. Governed housekeeping task-sheet generation v1
+
+Order 202 adds bounded preview, current-sheet read and one deliberate generation
+command. `housekeeping.sheets:read` permits property-scoped preview/list reads;
+`housekeeping.sheets:generate` permits generation. The server derives tenant,
+property, actor, active physical rooms, current reservation segment and sanctioned
+occupancy truth, effective vertical-profile cadence and exact task identities. Browser
+input is only a property-local `sheetDate`, one selected active staff Party id and an
+idempotency key.
+
+The v1 cadence contract is deliberately narrow. `daily` includes a distinct active
+physical room only when an authoritative in-house segment occupies the property-local
+date. `on_departure` additionally requires the occupied segment's exclusive upper
+instant to fall on that date. Tenant configuration overrides the global profile on the
+same key; missing, ambiguous, mixed, `weekly` or `custom` cadence fails the whole
+request without artifacts. No weekday, anchor or custom language is inferred.
+
+One successful command creates one deterministic `task_sheet` for the exact
+tenant/property/date/attendant and one assigned `kind='housekeeping'`,
+`subject_type='space'` task per distinct eligible room. Tasks carry only server-owned
+sheet/date/cadence provenance and `department='Housekeeping'`; credits are absent.
+Same-key replay returns the same result, changed reuse conflicts, and concurrent
+contenders converge without silently reassigning an existing sheet. Task creation,
+matching facts and `task.created` outbox events commit atomically.
+
+Generation does not transition tasks or room condition and does not create, update or
+delete reservations, segments, occupancy, folios, journals, business days, keys,
+statutory or fiscal records. Direct runtime DML over `task_sheet` and `task` remains
+denied; only the owner-mediated bounded capability may generate them.
+
+## 22. Governed departure-readiness read boundary
+
+`CheckoutReadinessService.read` accepts only lowercase tenant, property and
+reservation UUIDs. It executes one tenant transaction and one PostgreSQL snapshot
+query, returning the stored reservation state, exactly one current `in_house`
+segment when present, its one active physical room, the exact exclusive
+`slot_kind='segment'` occupancy whose slot reference, space and period match that
+segment, and every reservation folio window ordered by `window_no,id`.
+
+Window balances are canonical bigint decimal strings from
+`COALESCE(folio_balance.balance_minor,0)`. Readiness requires reservation state
+`in_house` or `due_out`, one segment/room/occupancy chain, at least one window, and
+every window `settled` or `closed` at exact zero. Open-zero is intentionally blocked;
+only the existing settlement command may transition it. Blockers are emitted once in
+the fixed Order-203 order, and `ready=true` means only that no blocker was present in
+this advisory snapshot.
+
+The result is deeply frozen and contains no Party, contact, identity-document or note
+data. Malformed input fails validation; foreign or mismatched tenant/property/target
+authority is concealed as not found. The read performs no checkout, transition,
+occupancy release, account/folio/ledger change, fact, event or idempotency write. A
+future checkout command must lock and revalidate every predicate.
+
+## 23. Governed checkout command boundary
+
+`CheckoutService.checkout` accepts only tenant, property and reservation UUIDs, an
+8–200 visible-ASCII idempotency key, and an exact server-built
+`reservation.checked_out` audit envelope. Room, segment, folio, balances, readiness
+and time are never caller authority. Its one tenant transaction verifies the active
+actor; locks the reservation and all segments; locks the single canonical guest
+account and every reservation folio through `lock_financial_rows` in deterministic
+order; and re-evaluates the exact Order-203 blockers from PostgreSQL truth.
+
+Only `in_house` or `due_out` reservations with exactly one current `in_house`
+segment may proceed. `ReservationOccupancyService.releaseForSegment` is the only
+occupancy mutation. The segment becomes `departed`, its upper bound becomes the
+server transaction timestamp only when that timestamp is earlier than the recorded
+upper bound, and the reservation becomes `checked_out`. Checkout before the segment
+lower bound fails closed. The command never lengthens a stay.
+
+Release, both guarded transitions, idempotency, the minimized
+`reservation.checked_out` fact and matching outbox event commit or roll back as one
+effect. Exact replay returns the prior frozen result; changed reuse conflicts.
+Checkout does not settle or close folios/accounts, post or reverse money, mutate a
+business day, mark a room dirty, or create housekeeping work. Those remain separate
+governed commands.
+
+## 24. Governed vehicle-register read boundary
+
+`VehicleRegisterService.list` accepts one lowercase tenant UUID, one lowercase
+property UUID, and only optional `registration`, `cursor` and `limit` read controls.
+`registration` is compared as literal, case-sensitive text: it is never trimmed,
+normalized or interpreted as a wildcard. Limit is 1–100. The opaque canonical cursor
+represents the last `(reg_no,id)` pair and the query uses matching PostgreSQL keyset
+ordering; OFFSET is not admitted.
+
+One tenant transaction returns only vehicle id, registration, nullable make, model,
+colour, driver name, reservation id, Party id and the literally recorded entry/exit
+timestamps. Notes and parking-space truth are excluded. A linked reservation must be
+same-tenant and exact-property; a linked Party must be same-tenant. Any association
+that cannot be re-proven fails the whole response closed without exposing the foreign
+identifier.
+
+The result is deeply frozen and deterministic for unchanged PostgreSQL truth. The
+read does not infer onsite state, parking assignment, occupancy, access/security
+decisions or lifecycle. It performs no vehicle, reservation, Party, parking,
+occupancy, task, fact, outbox or idempotency write.
+
+## 25. Governed room-condition visibility boundary
+
+`HousekeepingTaskService.listConditions` accepts one lowercase tenant UUID, one
+lowercase property UUID, and only optional `condition`, `cursor` and `limit` read
+controls. `condition` is one exact `clean`, `dirty`, `pickup` or `inspected` literal;
+limit defaults to 50 and is capped at 100. The opaque canonical cursor is bound to
+that exact filter and represents the last `(space.code COLLATE "C",space.id)` pair,
+so changing or omitting the filter cannot reuse its authority.
+
+One tenant transaction reads only active physical rooms in the exact property joined
+to their canonical `unit_condition` row. The deeply frozen response is exactly
+`{rooms:[{spaceId,code,floor,condition,updatedAt}],nextCursor}`. UUIDs, condition
+literals and canonical timestamps are validated before disclosure; malformed stored
+truth fails the whole read closed. Updater identity, tasks and assignees, occupancy,
+reservations and guests, OOO/OOS state, readiness, sources, reasons and inferred room
+status are excluded.
+
+`GET /api/v1/properties/{property}/housekeeping/conditions` requires the existing
+`housekeeping.tasks:read` scope and exact property grant, rejects duplicate or extra
+query keys, and is `Cache-Control: no-store`. There is no companion write route. The
+read cannot mutate condition, task, space, occupancy, reservation, fact, outbox or
+idempotency truth.
+
+## 26. Reservation-scoped arrival pickup-task detail
+
+`ReservationDetailService.pickupTaskDetail` accepts one lowercase tenant UUID, exact
+property UUID, reservation UUID and task UUID. In one tenant-bound transaction it
+proves the property reservation, its current arrival travel row and that row's exact
+pickup-task link. The linked row must also be a same-tenant, exact-property
+`guest_request` task whose subject is that reservation, department is `transport`,
+priority is `3`, due instant equals the arrival schedule, and payload is exactly
+`{"requestType":"arrival_pickup"}`. A missing, foreign, stale or unlinked identity is
+not found; a currently linked row with any other stored shape conflicts without a
+partial result.
+
+The deeply frozen result is exactly `taskId`, `reservationId`, `confirmationNo`, one
+canonical task status, `dueAt`, `priority`, `createdAt` and nullable `completedAt`.
+Payload, assignee, Party/contact data, notes, vehicle/driver/dispatch data, tenant and
+property identifiers are not returned. The read performs no task, travel,
+reservation, fact, outbox or idempotency write.
+
+`GET /api/v1/properties/{property}/reservations/{reservation}/arrival-pickup-task/{task}`
+requires the existing `reservations.lifecycle:read` scope and exact property grant,
+accepts no query and is `Cache-Control: no-store`. It is a reservation-scoped detail
+read, not generic task-list or task-lifecycle authority.
+
+## 27. Governed vehicle-register exact-detail boundary
+
+`VehicleRegisterService.get` accepts only one lowercase tenant UUID, property UUID
+and vehicle UUID. In one transaction-local tenant-bound read it proves the exact
+property and vehicle, then re-proves a nullable linked reservation against the same
+tenant and exact property and a nullable linked Party against the same tenant. Missing,
+foreign-tenant and wrong-property identities are indistinguishable not-found results;
+a selected row whose stored association or canonical field shape is inconsistent fails
+the complete read as a conflict without disclosing a foreign identifier.
+
+The deeply frozen result is exactly the existing Order-205 row: `vehicleId`, literal
+`registration`, nullable `make`, `model`, `colour`, `driverName`, `reservationId`,
+`partyId`, `enteredAt` and `exitedAt`. Notes, parking-space truth, tenant/property
+identity, Party/reservation content, contacts, occupancy, inferred onsite/security
+meaning and action flags are excluded. Repeated unchanged reads are byte-equivalent
+and perform no vehicle, reservation, Party, parking, occupancy, task, fact, outbox or
+idempotency write.
+
+`GET /api/v1/properties/{property}/vehicles/{vehicle}` requires the existing
+`stay-operations.vehicles:read` scope and exact property grant, accepts no query and
+is `Cache-Control: no-store`. It adds no vehicle create/edit, entry/exit, parking,
+occupancy or generic lifecycle authority.
+
+## 28. Governed housekeeping-task exact-detail boundary
+
+`HousekeepingTaskService.get` accepts only one lowercase tenant UUID, property UUID
+and task UUID. One transaction-local tenant read admits only the existing board's
+`kind='housekeeping'`, `subject_type='space'`, `assigned|in_progress|done` task joined
+to one active physical room in the exact property and that room's canonical
+`unit_condition` row. Missing, foreign, wrong-property/kind/subject/status,
+inactive-room and missing-condition identities are indistinguishable not-found
+results. Malformed selected values fail the complete read as a conflict without
+partial disclosure.
+
+The deeply frozen service result is exactly `taskId`, `taskStatus`, `spaceId`,
+`spaceCode`, nullable `floor`, `roomCondition`, `roomUpdatedAt`, Boolean `assigned`,
+nullable `dueAt`, integer `priority` and nullable `completedAt`. Payload, notes,
+credits, sheet/assignee/Party/contact/updater identity, reservation, guest, occupancy,
+discrepancy, readiness, workload, SLA, urgency and room-availability inference are
+excluded. Repeated unchanged reads are byte-equivalent and perform no task, room,
+condition, occupancy, fact, outbox or idempotency write.
+
+`GET /api/v1/properties/{property}/housekeeping/tasks/{task}` requires the existing
+`housekeeping.tasks:read` scope and exact property grant, accepts no query and is
+`Cache-Control: no-store`. It is an exact read-only detail, not generic task authority;
+existing board transitions remain separate and unchanged.
+
+## 29. Governed initial room-condition ingress
+
+`HousekeepingTaskService.getInitialConditionCandidate` admits only one active
+physical room in the exact tenant and property when no `unit_condition` row exists.
+Its deeply frozen read result is exactly `{spaceId,code,floor,roomCondition:null}`;
+existing conditions, foreign or inactive rooms and malformed stored truth fail
+closed without partial disclosure. The read performs no condition, task, fact,
+outbox or idempotency write.
+
+`GET /api/v1/properties/{property}/housekeeping/conditions/{space}/candidate`
+requires `housekeeping.tasks:read` and its exact property grant, accepts no query and
+is `Cache-Control: no-store`. Its minimized candidate adds
+`allowedInitialConditions:["clean","dirty","pickup"]` only when the caller also
+holds `housekeeping.conditions:initialize` for that exact property; otherwise that
+array is empty. The candidate never infers a condition.
+
+`POST /api/v1/properties/{property}/housekeeping/conditions/{space}/initialize`
+requires the exact initialize scope and property grant, no query, a valid
+`Idempotency-Key`, and only
+`{expectedRoomCondition:null,roomCondition:"clean"|"dirty"|"pickup"}`. `inspected`
+is deliberately excluded. The owner-mediated capability inserts only while the row
+is absent; an existing row conflicts and is never changed. The atomic domain command
+records the canonical `unit.condition_changed` fact and outbox event, and exact
+replays return the same canonical receipt with `Idempotency-Replayed: true`.
+Responses are `Cache-Control: no-store`, expose only
+`{replayed,roomCondition,spaceId,updatedAt}`, and carry the request correlation ID.
+There are no PUT, PATCH or DELETE variants and direct runtime DML on
+`unit_condition` remains denied.
+
+## 30. Governed arrival pickup-task dispatch
+
+`ArrivalPickupTaskDispatchService.transition` accepts one exact tenant, property,
+reservation and currently linked task identity, an actor-bound command envelope and
+idempotency key, one literal `assign|start|complete`, expected task status and expected
+nullable assignee Party identity. Assign alone accepts a staff Party id. The server
+re-proves the current arrival link and complete Order213 task shape before the
+owner-mediated capability may apply exactly `open -> assigned`,
+`assigned -> in_progress` or `in_progress -> done`. Assignment requires an active
+same-tenant Party with role `staff`; completion alone records `completed_at`.
+
+The compare-and-set transition, one minimized `task.status_changed` fact and matching
+outbox event commit in the same tenant transaction. Exact replay returns the original
+receipt without another effect; changed key reuse, stale expected evidence,
+non-adjacent state, reassignment, hostile task shape and foreign identity fail closed.
+The deeply frozen receipt is limited to `taskId`, `reservationId`, `taskStatus`,
+nullable `assigneePartyId`, nullable `completedAt`, nullable `eligibleAction` and
+`replayed`.
+
+`POST /api/v1/properties/{property}/reservations/{reservation}/arrival-pickup-task/{task}/{action}`
+accepts no query, requires a valid `Idempotency-Key`, exact property grant and
+`stay-operations.pickup-tasks:dispatch` for assign or
+`stay-operations.pickup-tasks:work` for start/complete. Bodies contain only the
+expected task/assignee evidence and, for assign, `staffPartyId`. Responses are
+`Cache-Control: no-store`, carry correlation and replay headers and expose only the
+minimized receipt. No generic task route, reassignment, cancellation, travel edit or
+transport-detail authority is introduced.
+
+## 31. Governed arrival room-cleaning task creation
+
+`ArrivalRoomCleaningTaskService.candidate` accepts one exact lowercase tenant,
+property and reservation UUID. Its transaction-local read returns a candidate only
+for one `due_in` reservation with exactly one current booked segment, one mapped active
+physical room in the exact property and a canonical `dirty|pickup` condition. More
+than one actionable `assigned|in_progress` housekeeping/space task for that room is
+incoherent and conceals the complete candidate. The deeply frozen candidate is
+exactly `reservationId`, `spaceId`, `spaceCode`, `roomCondition`, `dueAt` and nullable
+`existingTaskId`; it performs no write and makes no readiness, occupancy or cleaning
+completion inference.
+
+`GET /api/v1/properties/{property}/reservations/{reservation}/arrival-room-cleaning-task/candidate`
+accepts no query and requires `housekeeping.arrival-tasks:read` plus its exact property
+grant. Its no-store response is exactly `{candidate,canCreate}`. `canCreate` is true
+only when no actionable task exists and the caller also holds
+`housekeeping.arrival-tasks:create` for that property. Missing scope is forbidden;
+foreign, ungranted or incoherent identities share the concealed not-found boundary.
+
+`ArrivalRoomCleaningTaskService.create` accepts the same bounded identity, one active
+same-tenant staff Party as `attendantPartyId`, an actor-bound audit envelope and an
+idempotency key. The owner-mediated capability locks and re-proves the active actor,
+due-in reservation, unique current booked segment, unique active mapped room,
+`dirty|pickup` condition, selected staff Party and exact-room actionable-task count.
+It returns the one existing assigned/in-progress task without mutation, or inserts at
+most one task with `kind='housekeeping'`, `subject_type='space'`,
+`status='assigned'`, `department='Housekeeping'`, priority 1 and due time equal to the
+segment's recorded lower-bound arrival instant. Its stored payload is limited to
+`source='arrival_room_cleaning'`, canonical reservation id and room condition.
+
+`POST /api/v1/properties/{property}/reservations/{reservation}/arrival-room-cleaning-task`
+accepts no query, requires `housekeeping.arrival-tasks:create` plus its exact property
+grant, a valid `Idempotency-Key`, and only `{attendantPartyId}`. A new task returns 201;
+an existing actionable task returns 200. The minimized receipt contains only
+`taskId`, `reservationId`, `spaceId`, `roomCondition`, `attendantPartyId`, `dueAt`,
+`created` and `replayed`, with replay and correlation headers. Exact replay is stable,
+changed-key reuse conflicts and room-scoped contenders converge. Only creation writes
+one `task.created` fact/outbox pair in the same transaction; returning an existing task
+emits nothing. No generic task CRUD, condition or reservation mutation, check-in,
+occupancy, folio, financial, day, key, travel, vehicle, parking or statutory authority
+is introduced.
+
+## 32. Governed due-in room assignment
+
+`ReservationSegmentService.findDueInRoomAssignmentCandidates` accepts one exact
+lowercase tenant, property and reservation UUID. In one transaction-local tenant
+read it admits only an exact-property `due_in` reservation with exactly one latest
+`booked` segment, a null sellable-unit assignment and zero occupancy rows whose
+`slot_ref` is that segment. It derives availability for the segment's recorded
+period, occupants and unit type through the existing PostgreSQL-authoritative
+inventory path. Only active same-property sellable units of that exact type which
+map exclusively to one active physical room are candidates.
+
+`GET /api/v1/properties/{property}/reservations/{reservation}/due-in-room-assignment/candidates`
+accepts no query, requires existing `reservations.segments:read` authority and its
+exact property grant, and is `Cache-Control: no-store`. The minimized HTTP response is
+exactly `{candidates:[...]}`. Each candidate is exactly `sellableUnitId`,
+`sellableUnitName`, `spaceId`, `spaceCode`, nullable `floor` and nullable
+`roomCondition`. Current condition is evidence only: null, dirty, pickup, clean or
+inspected never changes availability authority and never implies check-in readiness.
+Status, segment, unit-type and period expectations come only from the already-current
+canonical reservation detail/readiness descriptor and are not duplicated in this
+response. Price, guest/contact, holds, occupancy rows, internal mapping, task and other
+reservation truth are absent.
+
+`ReservationSegmentService.assignDueInRoom` accepts only one actor-bound audit
+envelope, idempotency key and
+`{segmentId,expectedReservationStatus,expectedSegmentStatus,expectedUnitTypeId,expectedSellableUnitId:null,expectedPeriod:{from,to},sellableUnitId}`.
+The command locks reservation and segment, re-proves the complete candidate contract,
+claims the exact period only through
+`ReservationOccupancyService.claimForSegment`, then calls the bounded
+`public.assign_due_in_room` owner capability to set the still-null assignment.
+Assignment, the sanctioned occupancy chain, minimized `reservation.modified` and
+`occupancy.recorded` fact/outbox evidence and the idempotency receipt commit or roll
+back together. Exact replay is byte-equivalent; changed-key reuse, stale evidence,
+prior assignment/occupancy and contention fail closed.
+
+`POST /api/v1/properties/{property}/reservations/{reservation}/due-in-room-assignment`
+accepts no query, requires existing `reservations.segments:write` authority and its
+exact property grant, a valid `Idempotency-Key`, and only the command body above.
+The no-store minimized receipt exposes the selected reservation, segment, sellable
+unit, physical room, period, claim count and replay state with correlation/replay
+headers. Success does not mutate condition, task, folio, identity or reservation
+status and does not run check-in. The client must refetch canonical reservation detail
+and check-in readiness; it cannot infer the next blocker from candidate or command
+output. There is no generic assignment, room-move, bulk or automatic-allocation route.
+
+## 33. Governed property-local due-in roll
+
+`ReservationArrivalRollService.rollDueArrivals` accepts only one lowercase tenant UUID,
+property UUID, bounded arrival limit and system audit envelope bound to
+`reservation.due_in`. One transaction-local tenant transaction derives
+`(transaction_timestamp() AT TIME ZONE property.timezone)::date`, locks at most the
+requested number of exact-property `reserved` parents with their latest current
+`booked` segment, and revalidates the same shape before writing. It changes only the
+parent to `due_in`; the segment remains byte-equivalent `booked`.
+
+Each changed parent uses the deterministic property/date/reservation idempotency key
+and commits its status, one minimized `reservation.due_in` fact/outbox pair and stored
+result together. Exact reruns and concurrent workers add no second effect. A failed
+fact or event publication rolls back status, evidence and idempotency before retry.
+Future or past arrival dates, foreign properties, absent/incoherent latest segments and
+non-`reserved` parents are no-ops; no delayed catch-up or lifecycle repair is inferred.
+
+`runtime_due_arrival_scopes(limit)` is a bounded, read-only, fixed-search-path owner
+capability callable only by `yellow_runtime`. It returns distinct tenant/property IDs
+whose coherent latest booked arrival equals that same transaction-stable property-local
+date; it exposes no reservation/segment details and grants no direct table read or
+transition authority. The worker bounds both scope and arrival batches, supports one
+deterministic drain cycle and abortable polling, and is disabled unless explicitly
+enabled in the existing workbench composition. This is an internal server contract:
+there is no API route, operator control, automatic check-in, business-day read/write or
+other reservation-state command.
+
+## 34. Governed property-local due-out roll
+
+`ReservationDepartureRollService.rollDueDepartures` accepts only one lowercase tenant
+UUID, property UUID, bounded departure limit and system audit envelope bound to
+`reservation.due_out`. One tenant transaction derives the transaction-stable stored-
+property local calendar date, locks at most the requested exact-property `in_house`
+parents with their latest current `in_house` segments, and revalidates before changing
+only each parent to `due_out`. The segment remains byte-equivalent `in_house`.
+
+Each changed parent uses a deterministic property/date/reservation idempotency key and
+commits its status, one minimized existing fact/outbox pair and stored result together.
+Reruns and contenders add no second effect; publication failure rolls everything back.
+Future, missed-past, foreign, absent/incoherent or non-`in_house` truth is a no-op.
+
+`runtime_due_departure_scopes(limit)` is the bounded runtime-only discovery capability.
+The worker bounds scope and departure batches, supports one drain cycle and abortable
+polling, and is disabled unless explicitly enabled in workbench composition. There is
+no API route, automatic checkout, segment/occupancy mutation, business-day operation,
+financial effect or other lifecycle command.
+
+## 35. Governed room discrepancy reporting
+
+`HousekeepingDiscrepancyService.listOpen` accepts one lowercase tenant UUID and one
+exact granted property UUID. In one transaction-local tenant read it returns only
+unresolved discrepancies for active physical rooms in that property, ordered by
+room code and immutable discrepancy identity. Each deeply frozen row is exactly the
+room id, room code, nullable floor, derived `sleep|skip|person` kind, canonical
+reported/system tokens, reporter id and server report instant. Reservation, segment,
+occupancy, guest and contact identities are excluded.
+
+`HousekeepingDiscrepancyService.report` accepts only one exact room id, explicit
+observed presence `occupied|vacant`, observed persons `1..99` when occupied, an
+actor-bound audit envelope and an `Idempotency-Key`. Tenant, property, actor, system
+presence, expected persons, classification, timestamps and evidence are server-owned.
+The owner-mediated PostgreSQL capability accepts only an active exact-property
+physical room with one active exclusive mapping and coherent current stay/occupancy
+truth. Dorm, positional, shared, composite, inactive, foreign, non-room, ambiguous or
+multiply occupied shapes fail closed.
+
+System presence is occupied only for one latest current `in_house` segment whose
+parent is `in_house|due_out` and whose exact room has one current exclusive occupancy
+claim for that segment. The canonical differences are sleep (observed occupied,
+system vacant), skip (observed vacant, system occupied) and person (both occupied but
+persons differ). Matching truth is a successful no-op. A changed result inserts one
+unresolved `discrepancy`, one minimized `discrepancy.reported` fact and one matching
+outbox event atomically. Exact replay returns the same effect; different evidence for
+an already-open room conflicts. V1 does not resolve, update, delete, carry, queue,
+message or automatically infer a report.
+
+`GET|POST /api/v1/properties/{property}/housekeeping/discrepancies` accept no query
+parameters and are `Cache-Control: no-store`. GET requires
+`housekeeping.discrepancies:read`; POST additionally requires
+`housekeeping.discrepancies:report`, an exact `Idempotency-Key`, and only
+`{spaceId,observedPresence,observedPersons}`. Direct runtime discrepancy DML remains
+denied. Reporting does not mutate room condition, task, sheet, reservation, segment,
+occupancy, folio, financial, business-day or statutory truth.
+
+## 36. Governed vehicle parking assignment
+
+`VehicleParkingAssignmentService.read` returns the one exact onsite reservation-linked
+vehicle, its current in-house segment, any current parking assignment, and otherwise
+only active exact-property capacity-one `profile_key='parking'` candidates. It derives
+all stay, period and occupancy truth in a transaction-local tenant read; the caller
+cannot supply or infer them.
+
+`VehicleParkingAssignmentService.assign` accepts one selected parking-space UUID,
+actor-bound audit envelope and `Idempotency-Key`. PostgreSQL locks the vehicle, linked
+stay, current segment, parking space and claim truth, derives
+`[transaction_timestamp(), upper(segment.period))`, records one exclusive
+`slot_kind='segment'` claim through `record_occupancy()`, then binds
+`vehicle.parking_space` atomically. The surrounding tenant transaction commits the
+binding, one minimized existing `occupancy.recorded` fact/outbox pair and receipt or
+rolls all of them back. Exact same-target replay is stable; changed or stale truth
+conflicts.
+
+The established six-argument room/unit recorder remains unchanged. Parking uses an
+owner-private vehicle-validating overload; direct `app_role`, runtime and PUBLIC
+execution are denied. Canonical segment checkout remains the only release path and
+clears every validated parking claim plus the matching vehicle pointer before
+delegating room/unit release in the same transaction.
+
+`GET|POST /api/v1/properties/{property}/vehicles/{vehicle}/parking` accept no query
+parameters and are `Cache-Control: no-store`. GET uses the existing vehicle read
+authority; POST requires `stay-operations.vehicles:park`, an exact idempotency header
+and only `{parkingSpaceId}`. V1 is create-only: replacement, manual release, entry/exit,
+ staff/visitor parking, history and automatic allocation are not commands.
+
+## 37. Governed India GST accommodation payment-receipt-date evidence
+
+`IndiaGstAccommodationPaymentReceiptDateService.resolve(tx,input)` accepts exactly
+`tenantId`, `propertyNode`, `reservationId`, `serviceProvisionSnapshotId`,
+`paymentReceiptSnapshotId` and `paymentReceiptDate`. The input is an exact plain,
+accessor/proxy/symbol-free six-key object. Resolution reconstructs the approved
+Order290 service-provision root, Order252 reservation/first-segment lineage and
+Order240 canonical positive room-revenue attribution, then equality-selects one
+explicit payment-receipt root id/date. Missing, duplicate, malformed, stale-hash,
+mixed-lineage or non-full-coverage evidence fails closed.
+
+The sole tenant-leading, forced-RLS, SELECT-only root is
+`india_gst_accommodation_payment_receipt_snapshot` with exactly twelve columns:
+`tenant_id`, `id`, `service_provision_snapshot_id`, `currency`, `amount_minor`,
+`coverage_scope`, `supplier_books_entry_date`, `supplier_bank_credit_date`,
+`payment_receipt_date`, `payment_receipt_source`,
+`payment_receipt_evidence_sha256`, `legal_rule`. Its exact service-root FK prevents
+parallel property/reservation truth. `amount_minor` is positive and equals the
+reparsed full Order240 attribution grand total; currency agrees across the complete
+lineage; `coverage_scope` is exactly `full_attribution`.
+
+Both statutory source dates are retained and finite, with
+`payment_receipt_date = LEAST(supplier_books_entry_date,
+supplier_bank_credit_date)`, including equal dates. The exact source is
+`governed_supplier_payment_receipt_record`; the legal literal is
+`CGST_ACT_13_2_EXPLANATION_II_PAYMENT_RECEIPT_DATE_INPUT_ONLY`; the evidence digest
+is lowercase SHA-256. The frozen result returns both source dates, the earlier date,
+full amount/currency, source, digest, legal rule, minimized complete lineage and a
+tenant-bound evidence hash without exposing tenant identity.
+
+There is no writer, ingestion, bank/provider lookup, attestation, allocation, refund
+or reversal authority. `PUBLIC`, `yellow_runtime` and `app_role` cannot INSERT,
+UPDATE, DELETE or TRUNCATE. Payment-operation, provider-receipt, journal, posting,
+folio, reservation, operational and clock dates are forbidden substitutes; no latest,
+nearest, fallback or one-source-only path exists. This is input evidence only and
+cannot decide section 13 time of supply or issue/allocate payment, invoice, receipt
+voucher, tax, item, posting, journal, document, submission, API, UI or local state.
+# Quoted-tax reservation lineage
+
+A quoted-tax attribution bound to a cart hold becomes reservation evidence only when
+the existing held-reservation command consumes that exact hold and appends the exact
+reservation/first-segment link in the same transaction. The link is immutable audit
+lineage, not folio, account, route, posting, document or statutory authority.
+
+Migration0041 remains exact historical evidence at checksum `96795066…f171`.
+Migration0042 is the forward-only compatibility correction: when no quoted-tax hold
+binding exists, the capability returns zero rows before product authority checks;
+when a binding exists, all tenant/property/actor and exact lineage checks remain
+mandatory. Neither migration authorizes a ledger checksum rewrite.
+
+## Exact date-specific India GST supplier-registration-status evidence (Order 289)
+
+`IndiaGstSupplierRegistrationStatusService.resolve(tx,input)` accepts exactly
+`tenantId`, `propertyNode`, `reservationId`, `supplierServiceLocationId`,
+`supplierGstRegistrationStatusId` and `statusAsOf`. The hardened plain input is
+resolved through complete approved Order284/272 service-location and supplier-
+registration truth. One explicit snapshot row must equality-match tenant,
+registration id, registration evidence hash and date; no latest, nearest, clock or
+network lookup exists.
+
+The immutable result exposes the selected root id, property, minimized supplier
+service-location/registration lineage, evidence date, exact active GST Portal status,
+regular/SEZ-unit/SEZ-developer taxpayer type, source, evidence hash, legal rule and a
+deterministic tenant-bound SHA-256. It is recursively frozen and fixed-order; the
+tenant remains unexposed. The date is evidence time only. It does not establish
+statutory time of supply or authorize renewed SEZ status, supply nature, zero rating,
+levy, invoice or submission.
+
+## Exact externally evidenced accommodation service-provision date (Order 290)
+
+`IndiaGstAccommodationServiceProvisionDateService.resolve(tx,input)` accepts exactly
+`tenantId`, `propertyNode`, `reservationId`, `serviceProvisionSnapshotId` and
+`serviceProvisionDate`. The accessor-, proxy- and symbol-free plain input reaches one
+explicit 15-column
+`india_gst_accommodation_service_provision_snapshot(tenant_id,id,property_node,
+reservation_lineage_id,hold_binding_id,attribution_id,reservation_id,segment_id,
+origin_quote_hash,snapshot_hash,currency,service_provision_date,
+service_provision_source,service_provision_evidence_sha256,legal_rule)` row by equality
+on the requested tenant, property, reservation, root id and exact date. No latest,
+nearest, clock or network lookup exists.
+
+Before accepting that row, the resolver independently revalidates the complete
+immutable Order252 reservation/first-segment posting-identity tuple and reparses the
+canonical Order240 attribution. The lineage must retain the exact hold binding,
+attribution, reservation, first segment, origin quote hash, snapshot hash and currency;
+the attribution must still be `rate_quote`, line `room` and revenue group
+`room_revenue`. Missing, duplicate, malformed, cross-lineage or stale-hash evidence
+fails closed.
+
+The fixed-order recursively frozen result contains minimized Order252/240 lineage,
+the explicit service-provision date, exact source
+`governed_service_provision_record`, evidence SHA-256, legal literal
+`CGST_ACT_13_2_B_SERVICE_PROVISION_DATE_INPUT_ONLY` and a deterministic tenant-bound
+evidence hash while leaving the tenant unexposed. The table is forced-RLS protected
+and `app_role` has SELECT only; no application/runtime writer, ingestion command or
+attestation policy exists yet. Deployment fixtures stand only for already governed
+external evidence.
+
+This date is an input root, not a derived operational date and not a statutory result.
+It is never derived from or compared with Order287 `supplyDate`, an Order240 room-night
+`businessDate`, the Order252 reservation period, arrival/departure, check-in,
+occupancy, checkout, journal or posting dates, or any clock. It does not decide CGST
+section 13 time of supply and grants no invoice, payment, tax, item, document,
+submission, API, UI or local-runtime authority.
+
+## 38. Governed India GST accommodation invoice-issue-date evidence
+
+`IndiaGstAccommodationInvoiceIssueDateService.resolve(tx,input)` accepts exactly
+the eight plain keys `tenantId`, `propertyNode`, `reservationId`,
+`serviceProvisionSnapshotId`, `invoiceIssueSnapshotId`, `invoiceIssueDate`,
+`invoiceSeries`, and `invoiceSerial`; accessor, proxy and symbol inputs fail closed.
+It equality-selects the exact root and revalidates approved Order290 service
+provision plus complete Order252 reservation/segment to Order240 canonical
+`rate_quote`/`room`/`room_revenue` attribution lineage.
+
+The sole root is forced-RLS, SELECT-only and has exactly twelve columns:
+`tenant_id`, `id`, `service_provision_snapshot_id`, `currency`, `amount_minor`,
+`coverage_scope`, `invoice_series`, `invoice_serial`, `invoice_issue_date`,
+`invoice_issue_source`, `invoice_issue_evidence_sha256`, `legal_rule`. Positive
+amount equals full attribution grand total; currency agrees across lineage;
+`coverage_scope` is exactly `full_attribution`; source is exactly
+`governed_supplier_tax_invoice_record`; legal rule is exactly
+`CGST_ACT_13_2_INVOICE_DATE_INPUT_ONLY`; evidence is lowercase SHA-256.
+
+The frozen result returns minimized lineage and tenant-bound evidence only. Missing,
+duplicate, malformed, mixed-lineage, stale-hash, identity, amount/currency or
+non-full evidence fails closed. `PUBLIC`, `yellow_runtime` and `app_role` cannot
+mutate it; no writer, ingestion, rendering or network lookup exists. This evidence
+does not issue an invoice, decide validity, numbering, Rule47 regime/deadline,
+timely/late status or section13 time of supply, and grants no tax, payment, voucher,
+document, IRP, submission, API, UI or local authority. No operational, payment,
+provider, folio, journal, posting, reservation or clock date substitutes.
+
+## 39. India GST accommodation invoice timeliness (Order 293)
+
+`resolveIndiaGstAccommodationInvoiceTimeliness` is a read-only composer using one
+equality-bound tenant-scoped query over approved Order290 service-date and Order292
+invoice-date evidence plus explicit ordinary Rule47 policy. Its exact plain input has
+nine keys: `tenantId`, `propertyNode`, `reservationId`, `serviceProvisionSnapshotId`,
+`invoiceIssueSnapshotId`, `serviceProvisionDate`, `invoiceIssueDate`,
+`ordinaryRegimeSource`, and `ordinaryRegimeEvidenceSha256`. Only source
+`governed_rule47_ordinary_regime_record`, and legal literal
+`CGST_RULE_47_ORDINARY_SERVICE_INVOICE_30_DAY_INPUT` is accepted; output regime is
+fixed `ordinary_rule47_30_day`; no regime is inferred. Date-only arithmetic sets
+`deadlineDate = serviceProvisionDate + 30 calendar days`; day 30 is `timely`, day 31
+is `late`. Arithmetic is explicit proleptic-Gregorian YYYY date-only arithmetic with
+low-year handling and fail-closed overflow; JavaScript `Date.UTC` is not an authority.
+
+The input rejects accessors, proxies and symbols. The fixed-order recursively frozen
+result retains both dates, deadline, output regime, policy source, legal literal,
+`ordinaryRegimeEvidenceSha256`, `invoiceSeries`, `invoiceSerial`,
+`invoiceIssueEvidenceSha256`, `serviceProvisionEvidenceSha256`, complete lineage and
+deterministic tenant-bound evidence hash without tenant identity; both predecessor
+evidence hashes are revalidated and bound into that hash.
+Missing, malformed, duplicate, stale, exception-bearing, mixed or contradictory
+evidence fails closed. No clock, timezone conversion, latest/nearest/fallback,
+write, migration, invoice issuance/validity/numbering, regime selection, section13
+result, tax, document, API, UI or local authority is produced.
+
+## Order295: India GST registration at exact time of supply
+
+`resolveIndiaGstRegistrationAtTimeOfSupply(tx,input)` is a migration-free,
+read-only composer. It performs one tenant-leading, transaction-local equality
+read joining the approved Order289 registration/status roots and complete
+Order294 service, payment, invoice, reservation-lineage and attribution roots.
+`statusAsOf` must equal the selected `timeOfSupplyDate` exactly; the snapshot date
+is evidence time only and never an inferred validity interval. The resolver
+revalidates every public predecessor envelope, identity, source, legal literal,
+date, currency, amount, attribution and deterministic evidence hash. Exact input
+fields `supplierRegistrationStatusEvidenceHash` and `timeOfSupplyEvidenceHash`
+must equal the independently recomputed approved predecessor hashes; hash-only
+trust is forbidden. The result returns
+only `active_at_time_of_supply` with fixed-order recursively frozen, tenant-hidden
+evidence. Missing, duplicate, stale, malformed, contradictory or cross-lineage
+evidence fails closed. No rate, levy, tax, section14, document, posting, IRP,
+writer, API, UI or network authority is granted.
+
+# Order294: India GST accommodation time of supply
+
+`resolveIndiaGstAccommodationTimeOfSupply(tx, input)` is a tenant-scoped, SELECT-only
+composer for ordinary CGST section 13(2)(a)/(b). It equality-binds approved service,
+payment, invoice, reservation-lineage and attribution evidence in one read and returns
+deterministic frozen evidence; it does not issue documents, calculate tax, or write.
+
+## Order296: India GST recipient registration at exact time of supply
+
+`resolveIndiaGstRecipientRegistrationAtTimeOfSupply(tx,input)` is a migration-free,
+SELECT-only composer over complete approved Order285 recipient-status evidence and
+complete Order294 accommodation time-of-supply evidence. One tenant-leading,
+equality-bound read independently reconstructs both public predecessor envelopes and
+requires their caller-selected hashes to match. `statusAsOf` must equal
+`timeOfSupplyDate`; no effective interval, nearest/latest status, or portal lookup is
+inferred. The recursively frozen result states only
+`active_recipient_registration_at_time_of_supply`, preserves complete predecessor
+identity/evidence, and hides tenant identity, GSTIN and address. Missing, duplicate,
+malformed, crossed, stale or contradictory evidence fails closed. It grants no legal
+buyer, B2B/B2C, place-of-supply, supply-nature, rate, levy, tax, document or IRP
+authority.
+
+## Order297: India GST supply nature and registrations at exact time of supply
+
+`composeIndiaGstAccommodationSupplyNatureAtTimeOfSupply(input)` is a pure,
+migration-free composition boundary over complete approved Order287 supply-nature,
+Order295 supplier-active-at-time and Order296 recipient-active-at-time results.
+It independently replays each complete frozen envelope, binds property, reservation,
+registration, service-location, lineage, hashes and every relevant date, and requires
+the Order287 `supplyDate` plus both registration status dates and both time-of-supply
+dates to be identical. The result is recursively frozen and tenant-hidden, with only
+`supply_nature_and_registrations_bound_at_time_of_supply` evidence. Malformed,
+mutable, stale, crossed, reduced, surplus or contradictory roots fail closed. No
+buyer/B2B, `Pos`, `SupTyp`, `IgstOnIntra`, rate, levy, tax, document, IRP, writer,
+network, API, UI or database authority is granted.
+The minimized result preserves `supplierTimeOfSupplyEvidenceHash` and
+`recipientTimeOfSupplyEvidenceHash` separately; the predecessor-specific hash
+algorithms are never conflated into one cross-root hash.
+
+## Order302: India GST section 14 payment-proviso boundary
+
+`classifyIndiaGstSection14PaymentProviso(input)` is a pure, migration-free boundary
+classifier over exactly `supplierBooksEntryDate`, `supplierBankCreditDate`, and an
+explicitly asserted `rateChangeDate`, each a canonical civil date. Bank credit on or
+before the asserted change date (including equality) may retain the ordinary
+earlier-of-books/bank receipt date. A later credit returns only
+`working_day_calendar_required`, with no statutory receipt date or inferred working-day
+count. Malformed, noncanonical, missing/extra, accessor, proxy, symbol or unsupported
+inputs fail closed; recursively frozen fixed-order evidence is SHA-256 bound. The
+assertion grants no governed rate-change or section14 applicability, calendar, matrix,
+rate, tax, fiscal, database, API or UI authority.
+
+## Order298: India GST accommodation effective rates
+
+The existing effective-dated `in-gst-lodging` extension retains its tax-exclusive,
+document-rounded, transaction-value `slab_percent` shape and `room_revenue` scope.
+The launch fixture follows CBIC Notification 20/2019-Central Tax (Rate), effective
+1 October 2019, and Notification 04/2022-Central Tax (Rate), effective 18 July 2022.
+For one accommodation unit per day, a value at or below 750000 minor INR uses
+`0.12`; a value above it uses `0.18` in the final null upper band. There is no nil
+or 0.05 accommodation band. The unrelated restaurant/F&B `GST_FNB` example remains
+independent. This is content for the existing evaluator only: no rate-date
+selection, section 14 change-in-rate composition, levy decomposition, posting,
+invoice or fiscal-submission authority is added.
+
+## Order303: Notification 15/2025 accommodation-rate correction
+
+The Order298 12%/18% description above is retained as historical predecessor
+evidence. For the current explicit 2026/default `in-gst-lodging` content,
+Notification 15/2025-Central Tax (Rate), effective 22 September 2025, supersedes its
+lower band: one accommodation unit per day at or below 750000 minor INR uses `0.05`
+with `itc_eligible:false`; value above INR 7,500 uses the unbounded `0.18` band with
+`itc_eligible:true`. There is no below-INR-1,000 exemption. The extension remains
+tax-exclusive, document-rounded, transaction-value based and limited to
+`room_revenue`; unrelated `GST_FNB` content and all Order298 containment boundaries
+remain unchanged.
+
+## Order304: India GST accommodation rate-version pair evidence
+
+`IndiaGstAccommodationRateVersionPairService.resolve(tx, input)` accepts exactly
+`propertyNode`, `predecessorExtensionId`, and `successorExtensionId`. The authenticated
+tenant is taken from the transaction-local PostgreSQL context; it is never accepted
+from caller input. Existing tenant-visible extension and selected-extension
+effective-period projections are the only registry truth. The property and both
+extensions must be visible in that tenant, share one owner, `tax_jurisdiction` type,
+and `in-gst-lodging` key, and have predecessor `retired`/version 1 followed by
+successor `active`/version 2.
+
+The predecessor period is exactly
+`[2022-07-17T18:30:00.000000Z,2025-09-21T18:30:00.000000Z)` and the successor is
+`[2025-09-21T18:30:00.000000Z,infinity)`. Their canonical `GST_ROOM` content is
+12% with ITC through INR 7,500 then 18% with ITC, and 5% without ITC through INR
+7,500 then 18% with ITC, respectively. Official source-byte hashes are retained as
+evidence. The recursively frozen result hides tenant identity and binds tenant,
+identity, periods, content and source hashes into its evidence hash.
+
+This is evidence composition only. It does not create history, mutate extension
+state, choose a retired rate, consult a clock/latest version, calculate tax, apply
+section 14, or expose fiscal-document, IRP, API, UI, or downstream authority.
+
+## Order305: fresh-bootstrap India GST accommodation history
+
+Fresh seed truth contains the deterministic global `in-gst-lodging` predecessor and
+successor as one exact history: retired version 1 covers
+`[2022-07-17T18:30:00.000000Z,2025-09-21T18:30:00.000000Z)` with 12%-with-ITC then
+18%-with-ITC `GST_ROOM` bands; active version 2 covers
+`[2025-09-21T18:30:00.000000Z,infinity)` with 5%-without-ITC then 18%-with-ITC
+bands. The threshold is INR 7,500 (`750000` minor INR), and the unchanged
+tax-exclusive/document-rounded/transaction-value/`room_revenue` and `GST_FNB`
+semantics remain in force.
+
+The seed transaction is all-or-nothing, writes deterministic audit evidence, is an
+exact no-op on replay, and fails closed on any collision. The current resolver
+remains active-only and therefore returns version 2; no historical stay selection,
+rate calculation, section 14, fiscal or installed-database conversion authority is
+introduced.
+
+## Order306: India GST accommodation historical resolution
+
+`IndiaGstAccommodationHistoricalResolutionService.resolve(tx, input)` accepts exactly
+`propertyNode` and `businessDate`. PostgreSQL supplies the active same-tenant property,
+its IANA timezone, and the exact UTC envelope from local midnight to the next local
+calendar midnight. Exactly one `in-gst-lodging` assignment and the complete approved
+Order304/305 retired-v1/active-v2 pair are required. The member whose effective period
+contains the complete property-local day is selected: whole days before the Kolkata
+cutover select retired v1, and whole days at/after it select active v2. Equality at
+period bounds is valid; a gap, overlap, or day crossing the cutover fails closed.
+
+The result is recursively frozen tenant-hidden property/day, assignment,
+selected-extension and pair evidence with a deterministic evidence hash. PostgreSQL
+owns DST 23/25-hour and awkward-offset day bounds; no clock, JavaScript timezone/date
+arithmetic, latest/max-version lookup, caller-supplied extension identity, split-day
+allocation, tax calculation, section 14, posting, fiscal, IRP, API, UI or installed
+database conversion authority is exposed. The existing active-only current resolver is
+unchanged.
+
+## 9. India GST accommodation component-family evidence (Order308)
+
+`deriveIndiaGstAccommodationComponentFamily({tenantId,supplyNature})` accepts
+exactly one complete approved `IndiaGstAccommodationSupplyNatureResult` and
+recomputes its tenant-bound candidate hash. Inter-State or either SEZ direction
+yields `igst`; ordinary intra-State yields `cgst_sgst`, except UTGST codes
+`04`, `26`, `31`, `35`, `38`, which yield `cgst_utgst`. Codes `01`, `07`, and
+`34` remain State-tax-side. The frozen result carries source identifiers,
+predecessor hash and deterministic evidence hash. No rate, amount, split,
+rounding, posting, document, IRP, API/UI, calendar or Section 14 authority exists.
+
+## Order309: India GST accommodation levy-input bundle
+
+`deriveIndiaGstAccommodationLevyInputBundle({tenantId,historicalResolution,
+supplyNature,componentFamily})` accepts exactly one complete approved Order306
+historical resolution, one complete approved Order287 supply-nature result and its
+complete supplied Order308 component-family result. It independently recomputes the
+Order306 resolution hash and Order287 candidate hash, revalidates the complete
+Order304 rate-version pair, and requires `selectedExtension` to be exactly the pair
+member that contains the complete property-local civil day. It then re-derives
+Order308 from the approved supply-nature evidence and requires exact equality with
+the supplied component-family result; a result hash alone is not provenance. The
+predecessors bind only when their property and civil supply date agree and the
+selected extension's id, key, version and canonical content hash exactly equal both
+the supply-nature and component-family jurisdiction.
+
+The recursively frozen, tenant-hidden result contains only the shared property,
+reservation, folio and civil date; exact selected-version identity and its complete
+aggregate `GST_ROOM` slabs, including threshold, rate, ITC and nil-band truth; the
+already-derived component family and statutory source; both predecessor evidence
+hashes; and one deterministic tenant-bound evidence hash. It preserves the aggregate
+schedule beside the family—it neither divides that rate among components nor chooses
+a taxable value.
+
+Property/date/jurisdiction mismatch, a substituted selected member, altered pair or
+predecessor hash, malformed or recomputed semantic mutant, and thawed, proxy,
+accessor, symbol-bearing or surplus input fail closed. Caller-supplied rate, value,
+amount, split, rounding, residual-allocation or calendar fields are surplus and fail
+closed. A fully rehashed family relabel fails because Order308 is re-derived, including
+D-850's `regular` ↔ `affirmatively_non_sez_regular` and exact SEZ taxpayer-type ↔
+SEZ-status ancestry guards. This pure evidence bridge performs no SQL or write and grants no component-
+rate split, taxable-value or amount calculation, rounding, residual allocation,
+account route, posting/correction, reverse charge, Section 14/calendar, zero-rating/
+authorized-operations, payer, `SupTyp`, `IgstOnIntra`, item, document, IRP, API, UI,
+local-runtime or application-complete authority.
+
+## Order310: India GST accommodation levy-component identity
+
+`deriveIndiaGstAccommodationLevyComponentIdentity({tenantId,historicalResolution,
+supplyNature,componentFamily,levyInputBundle})` re-runs the complete approved Order309
+derivation and requires insertion-byte equality with the supplied bundle. It maps the
+approved family only to `[igst]`, `[cgst,sgst]`, or `[cgst,utgst]` and preserves the
+aggregate `GST_ROOM` schedule once at envelope level. IGST is marked
+`sole_component_aggregate_schedule`; both dual families are marked
+`numeric_component_split_authority_required`.
+
+The frozen tenant-hidden result carries the existing property/stay/date/version,
+aggregate schedule, ordered identities, readiness, statutory sources and complete
+Order309 predecessor hashes plus the Order309 evidence hash. It provides no component
+percentage, value, amount, rounding, residual, Section 14, posting, document or IRP
+authority.
+
+## Order337: India GST accommodation numeric component-rate schedule
+
+`deriveIndiaGstAccommodationLevyComponentRateSchedule({tenantId,
+historicalResolution,supplyNature,componentFamily,levyInputBundle,
+componentIdentity})` re-runs complete Order310 ancestry and requires insertion-byte
+equality with the supplied Order310 result. Each approved `GST_ROOM` slab becomes one
+normalized `componentRateSlabs` row containing the unchanged aggregate rate and basis
+points exactly once plus its ordered component rates: IGST keeps the aggregate rate;
+CGST+SGST and CGST+UTGST receive equal exact halves.
+
+Every rate must be an exact non-negative basis-point value and every multi-component
+split must divide without a remainder. Slab bounds, ITC truth, family order, legal
+sources and all predecessor hashes remain bound. The frozen tenant-hidden result adds
+the Order310 evidence hash to its lineage. It grants no taxable-value selection, tax
+amount, rounding, residual allocation, Section14, account/posting, document or IRP
+authority.
+## Order338: India GST section 14 governed working-day calendar evidence
+
+`deriveIndiaGstSection14WorkingDayCalendarEvidence(input)` accepts only a tenant id,
+an asserted rate-change civil date, a bounded through date, and a deeply frozen India
+calendar-evidence envelope. The envelope identifies its external authority and source
+digest and supplies every contiguous civil day after the change through the bound as
+explicitly `working` or `non_working`. Yellow derives the ordered first four working
+dates and the fourth date without weekday, holiday, locale, timezone, network, or
+clock inference. The complete sequence and source lineage are preserved in a frozen,
+tenant-hidden, tenant-bound result. The boundary supplies evidence only: it does not
+decide payment receipt, section 14 applicability, rate selection, tax, posting,
+documents, IRP, API, or UI behavior.
+## Order339: India GST section 14 governed payment-receipt date
+
+`deriveIndiaGstSection14PaymentReceiptDate(input)` rederives complete approved
+rate-change-date, payment-proviso, and governed working-day evidence and requires each
+supplied result to insertion-byte match. It accepts only the calendar-required branch
+and a calendar window containing bank credit. Bank credit on or before the established
+fourth working day preserves the ordinary earlier of books/bank; bank credit strictly
+after it becomes the statutory receipt date. The frozen tenant-bound result records
+only that date decision, branch, calendar source lineage, and predecessor hashes. It
+does not decide the Section 14 old/new-rate matrix or calculate/post tax.
+
+## Order340: India GST Section 14 six-case rate-version selection
+
+`IndiaGstSection14RateSelectionService.resolve(tx, input)` is the sole
+transaction-bound composer for this slice. It reruns the governed Order290 service,
+Order291 payment, and Order292 invoice roots through the same tenant transaction,
+requires insertion-byte replay of every frozen supplied result, and reruns Order307
+from the supplied frozen Order304 pair. It privately normalizes payment only through
+the exact Order302 safe branch or the complete Order338/339 calendar branch.
+
+It admits precisely the six statutory before/after arrangements. Equality, all-before,
+all-after, and every other arrangement fail closed. The frozen tenant-hidden result
+returns the statutory date, exact predecessor/successor version identity and complete
+tenant-bound predecessor hashes; it returns no rate, value, amount, rounding, posting,
+document, IRP, API, or UI authority.
+
+## Order341: India GST quoted accommodation rate applicability
+
+`IndiaGstAccommodationQuotedRateApplicabilityService.resolve(tx,input)` is a
+transaction-read-only bridge. It replays frozen Order340 and Order310
+component-identity evidence, byte-matches their shared rate-version pair, then uses
+the Order337 shared numeric scheduler only on the pair member named by fresh
+Section14. It rereads the exact tenant-scoped hold, reservation, segment, primary
+folio, Order252 lineage and Order244/240 snapshot before selecting one `GST_ROOM`
+slab independently for each existing positive INR room-night quote. The result has
+quoted amounts and rate identity only: no final taxable value, tax amount, rounding,
+posting, document, ItemList or IRP data.
+
+## Order350: governed India accommodation final-valuation evidence
+
+`IndiaGstAccommodationFinalValuationService.finalize` locks one exact reservation,
+open folio window, legal buyer, attribution root and complete current INR posting-root
+set. It records one append-only evidence bundle through the app-only owner-mediated
+`record_india_gst_accommodation_final_valuation` capability. Ordinary Section 15
+requires explicit unrelated/not-distinct, sole-money, addition and eligible-discount
+evidence; ambiguous, special, related, non-money, pure-agent or tax-inclusive cases
+record only `manual_valuation_required`.
+
+Every signed source amount is allocated deterministically over the exact ordered room
+nights with the shared integer largest-remainder allocator. Corrections append one
+single-successor generation and never update an earlier bundle. The command records
+one minimized fact and `india_gst.accommodation_final_valuation_recorded` event
+atomically. This evidence is not a GST amount, journal, invoice, document number,
+ItemList, IRP payload or submission authorization.
+
+### Automatic property-local business-day roll (Order 347)
+
+`BusinessDayRollService.openCurrentBusinessDay` accepts only an exact tenant,
+property and server-created `business_day.opened` audit envelope. PostgreSQL derives
+the date from `transaction_timestamp()` and the stored property timezone. The
+existing property/date and tenant/property/date keys jointly arbitrate concurrent opens;
+targetless conflict handling covers both redundant uniqueness arbiters, and only the winning insert adds
+one minimized fact and one canonical outbox event in the same transaction. Older
+unsealed days never block today's open. Existing current rows are no-ops; there is no
+caller date, catch-up, seal or reopen authority. The runtime discovery capability
+returns only bounded due tenant/property identifiers and the opt-in worker contains
+per-scope failures.
+
+The service has no direct `business_day` DML. It calls the owner-mediated,
+fixed-search-path `open_current_business_day(tenant,property)` capability inside the
+same caller transaction. Only `app_role` may execute it; `PUBLIC` and
+`yellow_runtime` cannot. It binds transaction-local tenant context, validates the
+active property and timezone, derives the date, arbitrates the insert across both
+existing uniqueness constraints and
+returns only `{business_date,opened_at,opened}`.
+
+### Audited business-day close readiness (Order 349)
+
+`BusinessDayCloseReadinessService.read` returns one deeply frozen, read-only snapshot
+for an exact authenticated tenant, active actor, property and existing unsealed
+backlog `business_day`. It executes one CTE statement inside one transaction-local
+tenant transaction and derives its capture instant from PostgreSQL
+`transaction_timestamp()`.
+
+Typed relational evidence owns due-in/out, open-cashier, unresolved-discrepancy and
+fiscal attribution. Exact-target unpublished outbox lag is acceptable only when the
+oldest row is strictly younger than five minutes; no matching row is zero lag.
+An ordinary unresolved discrepancy requires exactly one same-room/property/date
+`discrepancy.reported` event. A governed carried target instead requires exactly one
+immutable carry link and exactly one typed `discrepancy.carried` event, with the
+migration-0063 state and request hashes recomputed from typed source/link truth.
+These creation paths are mutually exclusive; missing, duplicate, mixed, foreign or
+mismatched evidence is unknown and fails closed, while event payload JSON remains
+irrelevant.
+Pending payment, statutory or channel work without typed exact business-date
+attribution is reported as `source_attribution_unknown` and fails closed. Payload
+JSON, browser booleans, process clocks and current-timezone reconstruction have no
+authority. The snapshot writes nothing and never authorizes carry, seal, reopen,
+retry, acknowledgement or any other state change; the later seal command must rerun
+the evidence under its own guarded transaction.
+
+### Operator business-day close workbench (Order 384)
+
+`BusinessDayCloseWorkbenchService.read` is the standalone wrapper for one
+authoritative, read-only close snapshot. It accepts exactly the server-derived
+`tenantId`, `propertyNode`, `businessDate` and authenticated `actorId`, validates
+their canonical forms, opens one tenant transaction and delegates to the same
+transaction-aware loader used by HTTP. The loader itself never opens or nests a
+transaction. The operator route is exactly
+`GET /api/v1/properties/{property}/business-days/{businessDate}/close-workbench`;
+the existing tenant-context middleware owns its `Tx`, derives tenant and actor from
+the authenticated session, requires `financials.business-days:read` for the exact
+property and accepts no query, body or idempotency key. The response uses the
+canonical success/error envelope and request correlation contract and is
+`Cache-Control: no-store`.
+
+Ordinary undated entry uses the separate least-data route
+`GET /api/v1/properties/{property}/business-days/close-workbench`. Under the same
+middleware-owned tenant transaction and `financials.business-days:read` scope, one
+read-only PostgreSQL statement confirms the active tenant, actor, property and
+property grant, then returns exactly `{ businessDate }` for the least persisted
+unsealed business date. No match—whether caused by absent, inactive, foreign,
+ungranted or fully sealed truth—has the same unavailable response. This discovery
+never derives a date from any clock and returns no day list, counts, timestamps or
+financial evidence. The browser then calls the dated workbench; discovery does not
+replace or add a statement to that workbench snapshot.
+
+Application construction injects the workbench dependency into the operator routes;
+the server entry point performs only that exact construction and injection. It does
+not create an alternate route, transaction, data source, background read or clock.
+
+The transaction-aware loader executes exactly one composed PostgreSQL statement.
+Its CTEs share one database snapshot and one `transaction_timestamp()` capture
+instant; neither an application clock nor a second statement may select, classify or
+recheck any part of the result. The deeply frozen result is exactly:
+
+```text
+{
+  tenantId, propertyNode, businessDate, capturedAt,
+  currentOpenBusinessDate,
+  openDays: [{ businessDate, openedAt, isCurrent }],
+  readiness: {
+    tenantId, propertyNode, businessDate, capturedAt, ready,
+    reasons: [{ code, source, count }],
+    counts: {
+      unresolvedDueIn, unresolvedDueOut, openCashiers,
+      unresolvedDiscrepancies, financialInterface, fiscalInterface,
+      statutoryInterface, channelDelivery, unknownAttribution
+    },
+    outboxLag:
+      { kind: "none", ageMilliseconds: 0 }
+      | { kind: "within_threshold" | "over_threshold",
+          oldestCreatedAt, ageMilliseconds, thresholdMilliseconds: 300000 }
+      | { kind: "unknown", count }
+  },
+  carryCandidates: [{ discrepancyId, spaceId, spaceCode, reportedBusinessDate }]
+}
+```
+
+`openDays` contains every persisted unsealed day for the exact property, in ascending
+business-date order. `currentOpenBusinessDate` is the greatest date in that persisted
+set, never a date inferred from the browser, server clock, timezone reconstruction or
+an event timestamp. Exactly that row has `isCurrent:true`. The selected day must be
+one of those rows and remain unsealed in the same snapshot. Missing, inactive,
+foreign or ungranted tenant/actor/property truth and absent or sealed selected days
+share the unavailable boundary; no existence distinction is disclosed.
+
+`readiness` preserves the Order349 shape and semantics exactly, including all reason
+and unknown-attribution counts. Its `capturedAt` is the workbench `capturedAt`.
+Unpublished exact-target outbox work aged 299999 milliseconds is
+`within_threshold`; age 300000 is `over_threshold`, adds
+`outbox_lag_exceeded` and blocks readiness. Missing lineage stays
+`source_attribution_unknown`; the workbench does not infer attribution from dates,
+timestamps, payloads or clocks.
+
+Carry candidates exist only when the selected source day is older than the greatest
+persisted unsealed day. Each candidate is an unresolved exact-tenant/property room
+discrepancy with exactly one ordinary `discrepancy.reported` event attributed to that
+selected date and no source or target carry link. Already-carried source or target
+rows are excluded. Missing, duplicate, mixed, foreign, ambiguous or incoherent
+lineage makes the complete workbench unavailable rather than hiding only the bad row.
+The current open day always returns an empty candidate list. No event payload,
+approval material, state/request hash, guest, reservation, payment, journal, fiscal
+or other sensitive evidence is exposed.
+
+Both populations are complete-or-unavailable bounds. The statement probes at most
+367 open days (`366 + 1`) and at most 501 otherwise eligible candidates (`500 + 1`).
+Up to 366 days and 500 candidates are returned in full; detecting day 367 or candidate
+501 makes the entire read unavailable, with no truncation, partial list or readiness
+conclusion. The statement and materialization perform zero writes. This read neither
+authorizes nor exposes a carry or seal command, and its readiness result is never a
+seal token.
+
+### Audited business-day seal command (Order 356)
+
+`BusinessDaySealService.seal(tx,input)` is the sole application command for the
+one-way `open -> sealed` latch. Its exact server-bound input is tenant, property,
+existing backlog business date, authenticated actor, idempotency key and a
+`business_day.sealed` audit envelope. The actor must be active, same-tenant and
+property-scoped through an existing role grant for `business_day.seal`; the approved
+policy permits that actor to seal directly and adds no maker/checker step. Caller
+readiness, timestamps, thresholds, timezones, current dates, force/reopen flags,
+payloads and queue assertions are not accepted.
+
+The service executes inside one tenant transaction. The fixed-search-path,
+owner-mediated `seal_business_day_audited(tenant,property,date,actor)` capability
+first locks the complete mutable authorization/readiness relation set in fixed lexical
+order, then locks the exact open day, reruns the full Order349/352/355 readiness and
+carried-lineage predicate at one PostgreSQL `transaction_timestamp()`, and latches
+only a still-ready row. The earlier lock-free readiness snapshot is never a seal
+token. Missing, sealed, stale, unauthorized, foreign, ambiguous or unknown evidence
+fails closed; there is no fallback to payload JSON or application time.
+
+Durable idempotency operation `financials.business-day.seal` identifies request
+content by actor, property and business date. Same-key/same-content replay returns the
+stored receipt with `replayed:true` and writes nothing; divergent same-key reuse and a
+different key against a no-longer-open day conflict. Concurrent distinct keys admit
+exactly one winner. The bounded result is tenant/property/date, previous state
+`open`, state `sealed`, database-authored `sealedAt`, actor and replay status only.
+
+The service appends one `business_day` fact and one version-1
+`business_day.sealed` outbox event in the same transaction as the latch, using the
+same minimized property/date/state/seal-instant/actor payload. Idempotency, fact,
+event or commit failure rolls the complete effect back. The legacy
+`seal_business_day` remains owner-only; direct application/runtime day, fact and
+outbox DML remains denied. This contract adds no HTTP/API/UI route, automatic or batch
+seal, reopen, catch-up, local promotion or Phase-5 completion claim.
+
+### Persisted India quoted-rate applicability evidence (Order 400)
+
+`IndiaGstAccommodationQuotedRateApplicabilityRecorderService.record(tx,input)` reruns
+the approved Order341 resolver in the caller transaction and persists its complete
+typed result through the sole 51-argument owner-mediated capability. The immutable
+root binds the exact tenant/property/reservation/folio lineage, attribution, governed
+service/payment/invoice snapshots, current ordinary final valuation, selected
+jurisdiction extension and every persisted component-family selector. Dense child
+rows retain at most 366 room nights and their ordered component rates; calendar cases
+retain at most 366 classified dates with their authority id, source digest and
+through-date. Quoted money, slabs, rates, ITC flags and statutory dates are typed
+columns rather than JSON authority.
+
+The database independently derives the GST component family, validates all six
+Section14 partitions, locks the selected extension content/effective period and
+reconstructs the exact Order341 evidence preimage. Same request and evidence replay
+without writes; divergent replay, stale ancestry, gaps, duplicates, excess bounds,
+foreign scope or forged evidence fail closed. The root, children, minimized fact and
+outbox event, and service-owned idempotency receipt commit atomically. This evidence
+does not calculate or persist final component tax, post a journal, issue a document,
+submit IRP data, expose a route/UI, or claim Phase completion.
+
+### Persisted India accommodation final component tax (Order 367)
+
+`IndiaGstAccommodationFinalComponentTaxRecorderService.record(tx,input)` records
+the current ordinary-final accommodation valuation's statutory component tax before
+routing or posting. Its caller supplies only tenant/property/reservation/folio
+identity, complete governed quoted-rate-applicability ancestry, an optional exact
+current tax head id/hash pair, idempotency key and authenticated audit envelope. It
+does not accept taxable values, rates, component amounts, totals or evidence hashes
+as financial authority.
+
+The service reruns the approved pure calculation in the caller transaction. The
+fixed-search-path owner capability independently locks and reloads the current
+ordinary-final valuation, dense room-night values, reservation/tax-attribution
+lineage, governed India lodging extension versions and authorized property-scoped
+actor. PostgreSQL derives the slab, IGST or CGST plus SGST/UTGST split, half-up
+component amounts, night totals, root totals and immutable evidence. Missing, stale,
+ambiguous, foreign, manual, nonpositive, over-366 or divergent ancestry fails closed.
+The application and database results must byte-match before a receipt is returned.
+
+The first taxable result is generation zero even when earlier valuation generations
+were manual. A correction requires the exact current tax id and evidence hash, binds
+the new current valuation and appends a successor; it never edits or deletes prior
+financial evidence. Same-key/same-content replay is write-free, divergent reuse and
+correction forks conflict, and root, dense night/component children, minimized
+fact/outbox pair and idempotency receipt commit atomically. This contract grants no
+posting, journal, invoice, document, IRP, submission, API or UI authority.
+
+### India final component-tax semantic-route resolver (Order 406)
+
+The migration-free `IndiaGstAccommodationFinalComponentTaxSemanticRouteService.resolve`
+is a read-only tenant-transaction boundary over the approved current Order367 tax head
+and its linked final-valuation lineage. It accepts exact identity selectors only,
+reloads the persisted evidence, and aggregates stored child component amounts without
+recalculating or rerounding tax.
+
+Room revenue and each non-zero `igst`, `cgst`, `sgst` or `utgst` component resolve only
+through the explicitly configured Order259 semantic route, transaction-code group,
+transaction code and exact-property open INR account. Names, code prefixes, USALI
+numbers and defaults are never routing authority; zero-valued statutory components
+remain in the evidence lineage but require no payable route. The recursively frozen
+result retains complete tax, valuation, applicability, component, route,
+transaction-code and account evidence. Missing, duplicate, stale, superseded, foreign,
+malformed or incoherent evidence makes the whole resolution unavailable.
+
+This boundary performs no write and grants no journal, posting, tax-detail,
+correction/reversal, document, invoice number, IRP submission, HTTP/API/UI, local,
+deployment or Phase-completion authority.
+
+### Governed India final component-tax posting (Order 407)
+
+`IndiaFinalComponentTaxPostingService.post(tx,{tenantId,propertyNode,reservationId,
+idempotencyKey,envelope})` accepts identity, idempotency and audit authority only. In
+one tenant transaction it uses Order256 to derive and lock the exact open primary
+folio and coherent guest account, and uses Order406 before idempotency, inside the
+callback and after globally ordered financial and current property-business-day locks.
+All three frozen routing results must be byte-equivalent and the current business day
+must exist and remain unsealed.
+
+One current immutable Order367 final-tax root produces exactly one balanced INR charge
+journal: the primary-folio guest account is debited by `grandTotalMinor`, room revenue
+is credited by `transactionValueMinor`, and each non-zero persisted component is
+credited in Order406 canonical order to its configured tax-payable account. Zero-rounded
+components remain durable lineage and create no zero posting. No amount, folio, date,
+account, transaction code, route, tax detail or component payload is caller authority;
+no room-night recomputation or rerounding occurs.
+
+Only the guest root line carries canonical immutable
+`india_accommodation_component_tax_v1` detail. It binds the tax generation/hash,
+valuation and applicability identities/hashes, reservation/folio/property, exact INR
+totals, component family, global jurisdiction identity, revenue route and every ordered
+component, including zero components with a null route. Every credit line has null tax
+detail. The owner capability validates the complete already-inserted credit set against
+current persisted evidence and routes, inserts the absent guest line, and appends one
+forced-RLS, insert-only tax-root-to-journal binding.
+
+The operation key is `financials.india-final-component-tax.post`. Exact same-key replay
+is byte-equivalent, changed reuse conflicts, and different keys for one tax root converge
+through `(tenant_id,tax_id)` uniqueness. Journal, lines, binding, completed idempotency
+receipt and both required fact/outbox pairs commit atomically. This initial posting
+contract grants no correction, reversal, refund, payment, settlement, transfer,
+document, invoice number, IRP/provider submission, HTTP/API/UI, local deployment or
+Phase-completion authority.
+
+### Governed India final component-tax reversal (Order 408)
+
+`IndiaFinalComponentTaxCorrectionService.reverse(tx,{tenantId,propertyNode,
+originalJournalId,reason,idempotencyKey,envelope})` accepts identity, a bounded audit
+reason, idempotency and authenticated audit authority only. It reloads an exact
+Order407 journal and its current Order367 tax root, requires property-scoped
+`financials.adjustments:write`, and additionally requires
+`financials.adjustments:post-seal` when the original business day is sealed.
+
+The service locks the complete ordered account, folio, original-journal and original/
+current business-day truth and then rechecks it. It appends one current-open-day INR
+adjustment that sign-negates every original posting line, preserving sequence,
+quantity and the root tax detail, and records one forced-RLS insert-only reversal
+binding. No amount, account, folio, date, tax, route, line, component or post-seal
+decision is caller authority. It never updates or deletes financial evidence and does
+not recompute, reround, partially reverse or reroute tax.
+
+Same-key replay is write-free, changed-key content conflicts, and different keys or
+concurrent requests for one original converge through database uniqueness. Journal,
+complete contra lines, binding, receipt and both minimized fact/outbox pairs commit
+atomically. This contract grants no refund, replacement posting, document, credit
+note, IRP/return amendment, payment, settlement, transfer, API/UI, local deployment
+or Phase-completion authority.
+
+### India accommodation fiscal-source eligibility (Order 412)
+
+`IndiaFinalComponentTaxFiscalSourceService.resolve(tx,{tenantId,propertyNode,
+reservationId,folioId,journalId})` is a migration-free, read-only Financials boundary.
+It proves that the selected Order407 posting remains the exact current and unreversed
+fiscal source for the caller's tenant, property, reservation and folio. The resolver
+reloads and byte-checks the current persisted Order367 component-tax root, its complete
+final-valuation and applicability ancestry, the unique posting binding, root-only tax
+detail, balanced journal topology, ordered lines, account roles and folio ownership.
+Later valuation or tax generations, an Order408 reversal, or any stale, forked,
+duplicated, malformed, unbalanced, foreign or byte-divergent evidence conflicts;
+absence and RLS concealment are not-found.
+
+The recursively frozen `eligible_current_posted_source` result retains the exact
+posting, journal, tax, valuation, applicability, reservation, folio and guest-account
+identities; generations and evidence hashes; business date; INR totals; component
+family; and canonical ordered room nights, statutory components and journal lines.
+Its canonical SHA-256 binds but does not disclose the tenant. Folio or guest-account
+closure alone does not disqualify otherwise exact immutable evidence because fiscal
+consumption may follow checkout.
+
+This read allocates or reserves nothing and grants no issuance authority. A later
+issuer must rerun it inside that issuer's locked write transaction. It creates no
+document, invoice, credit/debit note, series number, hash-chain body, India `ItemList`,
+`Pos`, `SupTyp`, provider submission, IRN/QR, API/UI/local or Phase-completion surface.
+
+### India accommodation statutory-envelope eligibility (Order 413)
+
+`IndiaIrpAccommodationSourceService.resolve(tx,input)` is a migration-free, read-only
+Tax-Fiscal boundary. Its exact frozen input contains only `tenantId`, `propertyNode`,
+`reservationId`, `folioId`, `journalId`, `recipientPartyId`,
+`recipientRegistrationId`, `classificationId`, and the complete approved Order297
+`supplyNatureAtTimeOfSupplyInput` plus `supplyNatureAtTimeOfSupplyResult` replay pair.
+Both Order297 values are evidence that the service recomputes and byte-compares, not
+caller policy or authority. The caller cannot supply seller or buyer
+details, place of supply, SAC/service classification, time of supply, component
+family, monetary values, source hashes or fiscal eligibility as authority.
+
+Inside the caller's tenant transaction the service reruns the approved Order412
+Financials resolver through its public boundary, rereads the selected final
+valuation's explicit persisted `buyer_party_id`, and resolves the approved India
+seller, legal buyer, property `Pos`, accommodation SAC/`IsServc`, time-of-supply and
+supply-nature paths. It builds the existing `SellerDtls` and `BuyerDtls`, revalidates
+the complete Order297 result, derives the approved Order308 component family, and
+equality-binds every tenant-hidden identity, statutory date, jurisdiction coordinate,
+evidence hash, INR amount and predecessor source coordinate. Absence or RLS
+concealment is not-found; stale, reversed, foreign, mixed, malformed, duplicated or
+divergent evidence conflicts.
+
+The recursively frozen deterministic `eligible_irp_invoice_source` envelope retains
+the exact current unreversed posted fiscal source and its complete statutory ancestry,
+seller and explicit legal-buyer details, property place of supply, accommodation
+service classification, time and nature of supply, and component family. Its
+canonical SHA-256 binds but does not disclose the tenant. Repeated reads of unchanged
+truth are byte-equivalent, and the operation performs no write or lock.
+
+This envelope is eligibility evidence only. It does not construct IRP JSON, choose or
+infer `SupTyp`, SEZ treatment, reverse charge or `IgstOnIntra`; create `ItemList`,
+`DocDtls`, descriptions, serials, grouping, quantities, UQC, unit prices or residual
+allocation; issue or number a document; build a hash chain; call a provider; submit a
+fiscal record; obtain an IRN/QR; or expose an API/UI/local/deployment or Phase-7
+completion surface. A later issuer must rerun this source inside its own locked write
+transaction.
+
+### India accommodation IRP numeric item-source composition (Order 414)
+
+`composeIndiaIrpAccommodationNumericItemSources({tenantId,source})` is a pure,
+migration-free Tax-Fiscal boundary over the exact deeply frozen Order413 statutory
+envelope. It revalidates both tenant-bound Order413 and Financials source hashes,
+requires an eligible INR accommodation source, and binds the existing property,
+reservation, folio, legal-buyer, seller, classification, supply-date and component-
+family identities. It accepts no caller-supplied amount, rate, component, grouping or
+presentation choice.
+
+The composer requires one through 366 dense ordered room nights and the exact flat
+component topology already persisted by Orders353/367. It groups those unchanged
+components by their existing room-night ordinal, while proving canonical non-negative
+minor units, safe integer rates, component-to-night rate and tax equality, night-to-
+root transaction and tax equality, and signed-int64-safe grand-total reconciliation.
+Malformed, unsafe, overflowing, missing, duplicated, surplus, reordered, wrong-family
+or mixed-lineage evidence fails closed. It does not recalculate tax, reround a value or
+allocate a residual.
+
+The recursively frozen `eligible_irp_accommodation_numeric_item_sources` result keeps
+the exact currency, component family, classification, per-night numeric evidence,
+ordered components and root totals. `sourceEvidenceHash` is the exact Order413 hash;
+the new canonical SHA-256 binds the tenant without returning it. Repeated composition
+of unchanged input is byte-equivalent and leaves the entire input byte-unchanged.
+
+This is numeric source evidence for a later serializer only. It creates no `ItemList`,
+`SlNo`, `PrdDesc`, quantity, unit/UQC, unit price, IRP-named value/tax field, grouping,
+`DocDtls`, `TranDtls`, `SupTyp`, `RegRev`, `IgstOnIntra`, SEZ or reverse-charge
+decision. It issues, numbers and submits no document and exposes no provider, API, UI,
+runtime, local, deployment or Phase-completion surface.
+
+### India IRP ordinary registered B2B supply type (Order 415)
+
+`composeIndiaIrpOrdinaryRegisteredB2bSupplyType({tenantId,source})` is a pure,
+migration-free Tax-Fiscal boundary over the exact deeply frozen Order413 statutory
+source. It invokes the approved Order414 composer first, so the complete posted,
+numeric and statutory envelope is validated through one existing public boundary
+rather than copied into a second validator.
+
+The composer admits only an explicit registered legal buyer with matching BuyerDtls,
+domestic INR accommodation-service truth and Order297's ordinary registered state
+comparison with no SEZ direction. Same-state/UT truth must use `IGST_ACT_8_2` and its
+ordinary intra-State component family; different-state/UT truth must use
+`IGST_ACT_7_3` and IGST. It then returns only the recursively frozen state
+`eligible_irp_ordinary_registered_b2b_supply_type`, `supplyTypeCode: B2B`, the exact
+Order413 evidence hash and a deterministic tenant-bound evidence hash. The tenant is
+not returned and repeated unchanged composition is byte-equivalent.
+
+SEZ, export, deemed-export and B2C/URP are not fallback branches: they fail closed and
+require separate governed contracts. This result does not decide reverse charge,
+`RegRev`, `IgstOnIntra`, `EcmGstin`, `TranDtls`, `TaxSch`, items or values. It creates
+no `ItemList` or `DocDtls`, issues or numbers no document, calls no provider, submits
+nothing and exposes no database, API, UI, runtime, local, deployment or Phase-
+completion authority.
+
+### India IRP accommodation party-details candidate (Order 422)
+
+`composeIndiaIrpAccommodationPartyDetailsCandidate({tenantId,source})` is a pure,
+migration-free Tax-Fiscal boundary over the exact deeply frozen Order413 source. It
+invokes Order414 only to revalidate the complete source, requires the returned source
+hash to match, and discards every numeric field before composing party details.
+
+The fixed-order payload preserves the exact approved `SellerDtls` and exact approved
+`BuyerDtls` identity/address fields, adding only `BuyerDtls.Pos` from the separately
+approved property place-of-supply candidate. Trade names remain present or absent
+exactly as approved. Lineage contains only the Order413 source hash, seller and buyer
+payload hashes, and place-of-supply candidate hash. Canonical JSON and the final
+SHA-256 are deterministic; the result is recursively frozen and returns no tenant
+identifier.
+
+Caller-provided POS, mutable or malformed graphs, and incoherent or stale party,
+payload, hash or place-of-supply evidence fail closed through the approved Order414
+validation boundary. This intermediate candidate contains no transaction details,
+items, values, tax calculation, document identity, provider call, submission, IRN,
+QR, database operation, API, UI, runtime or Phase-completion authority.
+
+### India IRP ordinary-B2B transaction-details candidate (Order 423)
+
+`composeIndiaIrpOrdinaryB2bTransactionDetailsCandidate({tenantId,source})` is a
+pure, migration-free Tax-Fiscal boundary over the exact deeply frozen Order413
+source. It invokes the approved Order415 ordinary registered B2B composer, requires
+its returned source hash to match the supplied Order413 evidence hash, and emits only
+the fixed-order IRP payload `{TranDtls:{TaxSch:"GST",SupTyp:"B2B"}}`.
+
+The fixed lineage contains only `sourceEvidenceHash` and
+`supplyTypeEvidenceHash`. Canonical JSON and the final tenant-bound SHA-256 are
+deterministic; the result is recursively frozen and returns no tenant identifier.
+Malformed, mutable, proxy, accessor, symbol, sparse, cyclic, surplus, stale, foreign
+and coherently rehashed unsupported supply evidence fails closed through Order415.
+
+`RegRev`, `IgstOnIntra` and `EcmGstin` are deliberately absent because the approved
+source establishes no reverse-charge, same-state IGST override or e-commerce GSTIN
+authority. This intermediate candidate includes no parties, document details, items,
+values, provider call, submission, IRN, QR, database operation, API, UI, runtime or
+Phase-completion authority.
+
+### India IRP accommodation room-night item candidates (Order 419)
+
+`composeIndiaIrpAccommodationRoomNightItemCandidates({tenantId,source})` is a pure,
+migration-free Tax-Fiscal boundary over the exact deeply frozen Order413 source. It
+invokes both approved Order414 numeric validation and Order415 ordinary registered
+B2B admission before emitting any item field. No caller-provided item, serial,
+description, quantity, unit, money, rate, tax or supply-type value is accepted.
+
+The result preserves exactly one candidate per existing dense room-night. Each
+candidate contains a provider-facing `irp` record with only `SlNo`, `IsServc`,
+`HsnCd`, `UnitPrice`, `TotAmt`, `AssAmt`, `GstRt`, the applicable persisted tax
+amount field or fields, and `TotItemVal`. `SlNo` is the one-based source ordinal;
+`IsServc` and `HsnCd` are the approved service/SAC classification. `UnitPrice`,
+`TotAmt` and `AssAmt` are the exact final room-night transaction value, and
+`TotItemVal` is that value plus its exact persisted tax. IGST emits `IgstAmt`;
+CGST+SGST and CGST+UTGST emit `CgstAmt` plus `SgstAmt`, the notified portal's
+SGST/UTGST slot. Money and basis points are serialized to canonical two-decimal
+strings without floating point, recalculation or rerounding.
+
+Provider-neutral lineage retains the source room-night ordinal/date, component family
+and exact persisted component evidence. The complete result is recursively frozen,
+deterministic and tenant-hidden except for the evidence-hash preimage. This boundary
+does not group nights or infer description, quantity/UQC, discounts, cess, other
+charges or document residuals. It allocates no document identity, persists nothing,
+contacts no provider and exposes no API/UI/runtime authority.
+
+### India IRP accommodation invoice-value candidate (Order 420)
+
+`composeIndiaIrpAccommodationInvoiceValueCandidate({tenantId,source})` is a pure,
+migration-free Tax-Fiscal boundary over the exact approved Order419 room-night item
+candidates. It invokes Order419 as the sole admission boundary, then aggregates the
+already serialized canonical item fields with signed-int64-safe integer minor-unit
+arithmetic. `valDtls` contains only `AssVal`, `TotInvVal`, and either `IgstVal` or
+`CgstVal` plus `SgstVal`; the latter is also the notified IRP slot for UTGST.
+
+The result is recursively frozen and tenant-hidden, with fixed lineage containing the
+Order419 candidate evidence hash, source evidence hash, item count and component family,
+plus a deterministic tenant-bound evidence hash. Empty, non-dense, mixed-family,
+foreign, stale, malformed, noncanonical, overflowing or arithmetic-inconsistent source
+evidence fails closed. Optional discount, cess, state cess, other-charge and round-off
+fields are never inferred or emitted. This intermediate candidate is not an invoice,
+complete IRP payload, document, number, provider call, submission, API, UI or runtime
+authority.
+
+### India IRP accommodation pre-document evidence assembly (Order 424)
+
+`composeIndiaIrpAccommodationPreDocumentEvidenceAssembly({tenantId,source})` is a
+pure, migration-free Tax-Fiscal integration boundary over the exact deeply frozen
+Order413 source. It independently invokes approved Orders423, 422, 419 and 420 and
+fails closed unless their outer and nested source hashes, formatted-child versions,
+ordinary-B2B code, INR currency, item count, per-item component family/source backlinks
+and Order420-to-Order419 evidence backlink agree at their approved locations.
+
+The fixed-order `sections` projection contains only `Version`, `TranDtls`,
+`SellerDtls`, `BuyerDtls`, `ItemList` and `ValDtls`; it copies child evidence without
+recalculation, rerounding or defaulting and records canonical `sectionsJson`. The
+lineage contains only the common source hash and the four child evidence hashes. The
+complete result and deterministic tenant-bound hash are recursively frozen and tenant-
+hidden.
+
+The state is explicitly
+`incomplete_non_submit_ready_irp_accommodation_pre_document_evidence`, with
+`submissionReady:false` and the known governed omissions `DocDtls`, `ItemList[].Qty`
+and `ItemList[].Unit`. Those omissions are not an exhaustive provider-validation
+result. This internal evidence assembly is not an invoice, fiscal document or provider
+payload; it issues or numbers nothing, persists nothing, submits nothing and exposes no
+database, provider, API, UI, runtime, local or Phase-completion authority.
+
+### India IRP accommodation service quantity/UQC compatibility candidate (Order 425)
+
+`composeIndiaIrpAccommodationServiceQuantityUqcCompatibilityCandidate({tenantId,source})`
+is a pure, migration-free Tax-Fiscal boundary over the exact deeply frozen Order413
+input accepted by approved Order419. It invokes Order419 as the sole admission boundary
+and preserves its exact one-item-per-room-night count, order, values, component family,
+B2B/INR truth, source backlink, evidence backlink and byte-exact item lineage.
+
+Each projected `irp` record inserts only `Qty:"1.000"` and `Unit:"OTH"` immediately
+after `HsnCd`; every inherited field retains its exact value and notified schema order.
+The fixed lineage contains only the Order419 evidence hash, common source hash, item
+count and component family. The item count must equal the approved source room-night
+count, and the inherited Order419 tenant-bound evidence hash is revalidated. Inherited
+`UnitPrice` and `TotAmt` must remain identical.
+Replay is byte-equivalent and the deterministic tenant-bound result is recursively
+frozen without returning the tenant.
+
+These two constants are compatibility evidence for current IRP validation errors 2238
+and 2239, not configurable commercial quantity, provider certification or submission
+readiness. The boundary recalculates no amount or rate, infers no other optional item
+field, and creates no document, number, hash chain, provider call, submission, IRN/QR,
+database operation, API, UI, runtime, local or Phase-completion authority.
+
+### India IRP accommodation validation-compatibility pre-document evidence assembly (Order 426)
+
+`composeIndiaIrpAccommodationValidationCompatibilityPreDocumentEvidenceAssembly({tenantId,source})`
+is a pure, migration-free Tax-Fiscal boundary over the shared exact deeply frozen
+Order413 input. It independently invokes approved Orders424 and 425, revalidates each
+tenant-bound child evidence hash and their common source, and requires exact agreement
+on item count and order, component family, INR/B2B truth and the inherited Order419
+item-candidate evidence hash.
+
+The fixed-order `sections` projection preserves Order424 `Version`, `TranDtls`,
+`SellerDtls`, `BuyerDtls` and `ValDtls` byte-exact. Only `ItemList` is replaced by the
+exact ordered Order425 projection. Every enriched item must contain exactly
+`Qty:"1.000"` and `Unit:"OTH"`; stripping only those two fields must reproduce the
+corresponding Order424 item byte-exact. No amount, rate, tax or quantity is recalculated.
+The fixed lineage contains the common source hash, both child evidence hashes and the
+shared Order419 item-candidate hash. Canonical `sectionsJson`, deterministic tenant-
+bound evidence, recursive freeze and tenant concealment are preserved.
+
+The state remains explicitly
+`incomplete_non_submit_ready_irp_accommodation_validation_compatibility_pre_document_evidence`.
+Both `submissionReady` and `authenticatedProviderSandboxCertified` are false, and
+`explicitlyExcludedEvidence` is the known non-exhaustive `["DocDtls"]`. This is not a
+complete payload, invoice, fiscal document, provider certification or submission; it
+allocates or issues nothing, persists nothing and exposes no database, API, UI,
+runtime, local or Phase-completion authority.
+### India IRP accommodation fiscal-action readiness (Order 429)
+
+`IndiaIrpAccommodationFiscalActionReadinessService.resolve(tx, input)` is a
+migration-free, read-only Tax-Fiscal boundary. It reruns the exact tenant-scoped
+Order413 posted-source resolver on the supplied transaction, then composes Order426
+from only `{ tenantId, source }`. Its fixed result is deeply frozen and contains
+`state = blocked_pending_fiscal_document_origin_policy`, `submissionReady = false`,
+no permitted actions, and the ordered blockers
+`FISCAL_DOCUMENT_ORIGIN_UNSELECTED`, `LEGAL_DOCUMENT_NUMBER_FORMAT_UNCONFIGURED`,
+and `DOCUMENT_SERIES_UNBOUND`.
+
+The boundary independently validates both child hashes, ancestry, state, B2B/INR
+and item topology before returning their hashes and the Order426 pre-document
+evidence. Tenant identity is used only in evidence-hash preimages. This contract
+does not choose document origin, configure legal numbering, bind or advance a
+series, emit `DocDtls` or a full invoice number, create a document, submit to IRP,
+or write any database, event, fact, idempotency, provider, API, or UI state.
