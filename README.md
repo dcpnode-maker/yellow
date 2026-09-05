@@ -1,81 +1,118 @@
 # Yellow — hospitality operating system
 
-Yellow is an actively developed hotel and short-term-rental ERP: PMS, bookkeeping,
-stay operations and compliance, with planned distribution, booking engine/CRS,
-CRM, multilingual voice, RMS and hotel interfaces. The domain core uses
-TypeScript/Bun/Elysia and PostgreSQL in a modular monolith.
+> **Original project documentation updated — 2026-09-05.** The guides, roadmap and
+> specifications here now reflect [development revision `61dbeea`](https://github.com/dcpnode-maker/yellow/commit/61dbeea6f2e0eac764ff177d33d8a6f8ac36103e).
+> Main's application code is still an older integrated baseline. Documentation
+> synchronization does not merge unfinished code or refresh the local app.
 
-## Important: this default branch is not the latest development build
+Yellow is an actively implemented, tenant-scoped hotel and STR platform: PMS,
+bookkeeping and cashier finance, stay operations and fiscal compliance, with planned
+channel management, booking engine/CRS, CRM, multilingual voice, RMS and hotel interfaces.
+The domain core is a TypeScript/Bun/Elysia modular monolith over PostgreSQL 16.
+Use open-source infrastructure, measured latency and replaceable integrations rather
+than speculative rewrites or a separate app fork for every country.
 
-**Publication checkpoint: 2026-09-05.** The code and many original files on `main`
-still belong to the older integrated baseline. Significant later work is published on
-[the development branch](https://github.com/dcpnode-maker/yellow/tree/phase-7/persisted-india-final-component-tax-evidence)
-and tracked by [PR #80](https://github.com/dcpnode-maker/yellow/pull/80).
+## Start with the actual project
 
-This README correction does **not** merge that code, update your local app or claim
-that every feature below exists on this branch. Its purpose is to make the real
-project and publication gap visible. Built, independently reviewed, merged and
-running locally are separate states.
+Read [PROJECT.md](https://github.com/dcpnode-maker/yellow/blob/61dbeea6f2e0eac764ff177d33d8a6f8ac36103e/PROJECT.md), your [role adapter](https://github.com/dcpnode-maker/yellow/blob/61dbeea6f2e0eac764ff177d33d8a6f8ac36103e/AGENTS.md), then
+[the project map](docs/PROJECT-MAP.md). The [feature register](docs/FEATURE-REGISTER.md)
+maps the founder's current requirements to phases, design, existing source and
+remaining acceptance work. [START-HERE.md](START-HERE.md),
+[Windows setup](START-HERE-WINDOWS.md) and [USAGE.md](USAGE.md) describe working on
+this existing repository—not creating another package or database.
 
-## Latest recorded project scope: 18 phases, not 13
+**Publication checkpoint: 2026-09-05.** The latest development is on
+[the Phase-7 branch](https://github.com/dcpnode-maker/yellow/tree/phase-7/persisted-india-final-component-tax-evidence)
+and [PR #80](https://github.com/dcpnode-maker/yellow/pull/80). GitHub's default
+`main` still represents the older integrated baseline. A development commit, green
+CI, independent approval, merge and local app refresh are separate events. This README
+does not assert that unmerged work is present on `main` or in a running local app.
 
-| Phases | Recorded development state |
+## Current build snapshot
+
+The roadmap has **18 phases, numbered 0–17**:
+
+| Phases | Recorded state |
 |---|---|
-| 0–3, 5 and 6 | Independently reviewed |
+| 0–3, 5, 6 | Independently reviewed |
 | 4 | Built; final integration/review outstanding |
-| 7 | Active; native fiscal issuance incomplete |
+| 7 | Active; native fiscal issuance remains incomplete |
 | 8–17 | Planned |
 
 Order430 was rejected for incomplete canonical provenance (D1323).
-[Order434](https://github.com/dcpnode-maker/yellow/blob/phase-7/persisted-india-final-component-tax-evidence/handoff/orders/434-native-fiscal-source-completion.md)
-is the active complete repair, not a completed or approved invoice feature.
-Founder priority is **11 → 13 → 17**, subject to the existing dependencies.
+[Order434](https://github.com/dcpnode-maker/yellow/blob/61dbeea6f2e0eac764ff177d33d8a6f8ac36103e/handoff/orders/434-native-fiscal-source-completion.md) is the active complete
+repair—not a completed or approved invoice-issuance result. Founder priority is
+**11 → 13 → 17**, subject to mandatory dependencies. From the active phase:
+`7 → 8 → 9 → 10 → 11 → 12 → 13 → 17 → 14 → 15 → 16`.
 
-Read the development
-[BUILD-PLAN](https://github.com/dcpnode-maker/yellow/blob/phase-7/persisted-india-final-component-tax-evidence/BUILD-PLAN.md)
-and [ROADMAP](https://github.com/dcpnode-maker/yellow/blob/phase-7/persisted-india-final-component-tax-evidence/handoff/ROADMAP.md)
-for current definitions and later changes. **13 bounded contexts** remains the
-architecture; it is not the phase count. The first migration's 80 tables plus migration
-ledger describe the immutable baseline, not the current development schema census.
+[BUILD-PLAN.md](BUILD-PLAN.md) owns phase definitions;
+[ROADMAP.md](handoff/ROADMAP.md), [decisions](https://github.com/dcpnode-maker/yellow/blob/61dbeea6f2e0eac764ff177d33d8a6f8ac36103e/DECISIONS.log) and
+[ledger](https://github.com/dcpnode-maker/yellow/blob/61dbeea6f2e0eac764ff177d33d8a6f8ac36103e/handoff/LEDGER.md) carry current execution evidence.
+[The recorded app status model](https://github.com/dcpnode-maker/yellow/blob/61dbeea6f2e0eac764ff177d33d8a6f8ac36103e/src/project-status.ts) is not a live GitHub query;
+its per-order prose can lag later decisions until a scoped status update.
+Neither it nor a filename is proof that a local process has the latest build.
 
-## Current source of truth for developers and AI
+## Current product direction in the original specifications
 
-The following links deliberately point to the published development branch.
-Relative files on this older `main` may still contain historical startup guidance.
-
-| Need | Current development document |
+| Area | Original specification and detailed implementation destination |
 |---|---|
-| Constitution and ownership | [PROJECT](https://github.com/dcpnode-maker/yellow/blob/phase-7/persisted-india-final-component-tax-evidence/PROJECT.md), [AGENTS](https://github.com/dcpnode-maker/yellow/blob/phase-7/persisted-india-final-component-tax-evidence/AGENTS.md) |
-| Complete project navigation | [PROJECT-MAP](https://github.com/dcpnode-maker/yellow/blob/phase-7/persisted-india-final-component-tax-evidence/docs/PROJECT-MAP.md) |
-| Founder requirements mapped to phases, source and gaps | [FEATURE-REGISTER](https://github.com/dcpnode-maker/yellow/blob/phase-7/persisted-india-final-component-tax-evidence/docs/FEATURE-REGISTER.md) |
-| Existing-project setup and daily development | [START-HERE](https://github.com/dcpnode-maker/yellow/blob/phase-7/persisted-india-final-component-tax-evidence/START-HERE.md), [Windows](https://github.com/dcpnode-maker/yellow/blob/phase-7/persisted-india-final-component-tax-evidence/START-HERE-WINDOWS.md), [USAGE](https://github.com/dcpnode-maker/yellow/blob/phase-7/persisted-india-final-component-tax-evidence/USAGE.md) |
-| Hotel/STR journeys, distinct workspaces and design | [UI-SPEC](https://github.com/dcpnode-maker/yellow/blob/phase-7/persisted-india-final-component-tax-evidence/docs/UI-SPEC.md), [DESIGN](https://github.com/dcpnode-maker/yellow/blob/phase-7/persisted-india-final-component-tax-evidence/docs/DESIGN.md), [staff journeys](https://github.com/dcpnode-maker/yellow/blob/phase-7/persisted-india-final-component-tax-evidence/docs/design/STAFF-JOURNEYS.md) |
-| Domain, finance and configuration contracts | [DOMAIN-MODEL](https://github.com/dcpnode-maker/yellow/blob/phase-7/persisted-india-final-component-tax-evidence/docs/DOMAIN-MODEL-V1.md), [CONTRACTS](https://github.com/dcpnode-maker/yellow/blob/phase-7/persisted-india-final-component-tax-evidence/docs/CONTRACTS.md), [EXTENSIONS](https://github.com/dcpnode-maker/yellow/blob/phase-7/persisted-india-final-component-tax-evidence/docs/EXTENSIONS.md) |
-| Multilingual authorized voice and RMS | [AI-ARCHITECTURE](https://github.com/dcpnode-maker/yellow/blob/phase-7/persisted-india-final-component-tax-evidence/docs/AI-ARCHITECTURE.md), [voice/RMS plan](https://github.com/dcpnode-maker/yellow/blob/phase-7/persisted-india-final-component-tax-evidence/docs/architecture/VOICE-RMS-PLAN.md) |
-| Regional preferences and channel integrations | [Regional packs](https://github.com/dcpnode-maker/yellow/blob/phase-7/persisted-india-final-component-tax-evidence/docs/architecture/REGIONAL-PACKS.md), [OTA plan](https://github.com/dcpnode-maker/yellow/blob/phase-7/persisted-india-final-component-tax-evidence/docs/integrations/OTA-CONNECTIVITY.md) |
-| Decisions and exact work/proof history | [Decisions](https://github.com/dcpnode-maker/yellow/blob/phase-7/persisted-india-final-component-tax-evidence/DECISIONS.log), [orders](https://github.com/dcpnode-maker/yellow/tree/phase-7/persisted-india-final-component-tax-evidence/handoff/orders), [reviews](https://github.com/dcpnode-maker/yellow/tree/phase-7/persisted-india-final-component-tax-evidence/handoff/reviews), [ledger](https://github.com/dcpnode-maker/yellow/blob/phase-7/persisted-india-final-component-tax-evidence/handoff/LEDGER.md) |
+| Hotel and STR workspaces; reservations, arrivals, room readiness and checkout coordination | [UI specification](docs/UI-SPEC.md), [domain model](docs/DOMAIN-MODEL-V1.md), [staff journeys](docs/design/STAFF-JOURNEYS.md) |
+| Cashiering, immutable corrections, folio windows, payer separation and authorized post-seal actions | [Contracts](docs/CONTRACTS.md), [state machines](https://github.com/dcpnode-maker/yellow/blob/61dbeea6f2e0eac764ff177d33d8a6f8ac36103e/docs/STATE-MACHINES.md), [events](https://github.com/dcpnode-maker/yellow/blob/61dbeea6f2e0eac764ff177d33d8a6f8ac36103e/docs/EVENTS.md) |
+| Apple, Android/Pixel, Win95/98, glass, neo and ERP materials with contextual disclosure | [Design](docs/DESIGN.md), [UI specification](docs/UI-SPEC.md) |
+| Multilingual voice answers and role-bound workflow actions; explainable room recommendations | [AI architecture](docs/AI-ARCHITECTURE.md), [voice/RMS plan](docs/architecture/VOICE-RMS-PLAN.md) |
+| Revenue/profit forecasting, STR revenue workbench, permitted market signals and OTA visibility | [Voice/RMS plan](docs/architecture/VOICE-RMS-PLAN.md), [OTA connectivity](docs/integrations/OTA-CONNECTIVITY.md) |
+| Lightweight country/region/locality/property preferences, Arabic/RTL and local distribution | [Extensions](docs/EXTENSIONS.md), [regional packs](docs/architecture/REGIONAL-PACKS.md) |
+| Durable developer/AI handoff, order/phase traceability and one repository lineage | [Project map](docs/PROJECT-MAP.md), [feature register](docs/FEATURE-REGISTER.md) |
 
-Current requirements include rich progressive reservations; arrival/departure
-drill-downs; room readiness, housekeeping and checkout coordination; append-only
-financial corrections and split-payer folios; six dedicated Apple, Android/Pixel,
-Win95/98, glass, neo and ERP appearances; distinct hotel/STR workflows; regional
-preferences; authorized multilingual voice; RMS profit/value decisions and permitted
-OTA visibility/market signals. Requirements are not claims of complete implementation.
+These are linked requirements and designs, not a claim that all workflows, native
+appearances, providers, voice or RMS are implemented. Preserve the distinction
+between a located foundation and the complete requested experience. The design
+direction allows different layouts; the existing runtime's global
+Simple/Advanced/Expert selector is not the final contextual-disclosure design.
 
-## Contribution and integration
+## Source, architecture and evidence
 
-Codex coordinates implementation with bounded parallel workers and model selection
-by risk, cost and capability. High-risk work needs a qualified non-implementer to
-execute proof personally. Implementers do not self-review or self-merge. Required
-CI and the invariant referee remain binding; a document change cannot approve
-unfinished fiscal code.
+- [PROJECT.md](https://github.com/dcpnode-maker/yellow/blob/61dbeea6f2e0eac764ff177d33d8a6f8ac36103e/PROJECT.md) is the canonical constitution; [AGENTS.md](https://github.com/dcpnode-maker/yellow/blob/61dbeea6f2e0eac764ff177d33d8a6f8ac36103e/AGENTS.md) and
+  [CLAUDE.md](https://github.com/dcpnode-maker/yellow/blob/61dbeea6f2e0eac764ff177d33d8a6f8ac36103e/CLAUDE.md) are role adapters, not competing constitutions.
+- [migrations/0001_init.sql](https://github.com/dcpnode-maker/yellow/blob/61dbeea6f2e0eac764ff177d33d8a6f8ac36103e/migrations/0001_init.sql) is the immutable **80-table,
+  13-context baseline**. The migration runner adds its ledger; later forward migrations
+  expand the schema. **13 contexts is not 13 phases**, and 81 is not today's table census.
+- [src/contexts](https://github.com/dcpnode-maker/yellow/tree/61dbeea6f2e0eac764ff177d33d8a6f8ac36103e/src/contexts), [kernel](https://github.com/dcpnode-maker/yellow/tree/61dbeea6f2e0eac764ff177d33d8a6f8ac36103e/src/kernel), [contracts](docs/CONTRACTS.md),
+  [events](https://github.com/dcpnode-maker/yellow/blob/61dbeea6f2e0eac764ff177d33d8a6f8ac36103e/docs/EVENTS.md) and [security](https://github.com/dcpnode-maker/yellow/blob/61dbeea6f2e0eac764ff177d33d8a6f8ac36103e/docs/SECURITY.md) define executable boundaries.
+- [Orders](https://github.com/dcpnode-maker/yellow/tree/61dbeea6f2e0eac764ff177d33d8a6f8ac36103e/handoff/orders), [reviews](https://github.com/dcpnode-maker/yellow/tree/61dbeea6f2e0eac764ff177d33d8a6f8ac36103e/handoff/reviews), decisions and ledger preserve
+  exact scope, findings and proof. Historical records are not rewritten to look new.
+- [Tests](https://github.com/dcpnode-maker/yellow/tree/61dbeea6f2e0eac764ff177d33d8a6f8ac36103e/tests), [dependency policy](https://github.com/dcpnode-maker/yellow/blob/61dbeea6f2e0eac764ff177d33d8a6f8ac36103e/docs/DEPENDENCIES.md), [lockfile](https://github.com/dcpnode-maker/yellow/blob/61dbeea6f2e0eac764ff177d33d8a6f8ac36103e/bun.lock) and
+  [CI](https://github.com/dcpnode-maker/yellow/tree/61dbeea6f2e0eac764ff177d33d8a6f8ac36103e/.github/workflows) provide reproducible checks. Database skips are not passes.
+- [Research](docs/research/README.md) separates historical findings, dated public-source
+  research and proposed capability. The September
+  [PMS/STR benchmark](docs/research/STAFF-STR-ECOSYSTEM-2026-09.md) includes public
+  Oracle/Beds24 material; it does not claim copied proprietary code or assets.
 
-Do not overwrite dirty checkouts, rewrite historical reviews, alter applied
-migrations or touch files merely to make timestamps recent. Update living documents
-where their content changes and retain linked evidence. Do not duplicate the app
-or database to resume development.
+## Development and local review
 
-The desired single local review URL is `http://127.0.0.1:3000`, but verify the
-serving revision, health and real synthetic login before calling it current.
-Credentials and runtime authority stay out of Git. No provider integration,
-certification, production deployment or performance result is implied by this page.
+Use the existing checkout. Before starting services, read the platform setup guide
+and identify the retained runtime. Unix `./setup.sh --db-only` migrates development
+data and recreates disposable `yellow_test`; it is a mutating proof workflow, not
+a read-only health command. The required invariant referee is **11 passed, 0 failed**.
+Full setup also starts/verifies the app; a current serving-source receipt is still
+required before calling the founder's local app up to date.
+
+The desired single review URL is `http://127.0.0.1:3000`, not a live-status promise.
+See [local review](https://github.com/dcpnode-maker/yellow/blob/61dbeea6f2e0eac764ff177d33d8a6f8ac36103e/docs/LOCAL-REVIEW.md) alongside its current runtime order.
+Keep synthetic login-prefill credentials and database authority protected and out
+of Git. Never restore deleted hotel records, duplicate stacks or erase active work
+merely to make a demo available.
+
+## Implementation and external boundaries
+
+Codex owns implementation and coordination. Use bounded parallel workers and choose
+models by risk, cost and capability. High-risk changes require a qualified
+non-implementer to execute proof personally; implementers do not self-review or
+self-merge. See [workflow](https://github.com/dcpnode-maker/yellow/blob/61dbeea6f2e0eac764ff177d33d8a6f8ac36103e/docs/WORKFLOW.md) and [roster](https://github.com/dcpnode-maker/yellow/blob/61dbeea6f2e0eac764ff177d33d8a6f8ac36103e/handoff/ROSTER.md).
+
+Provider contracts, certifications, credentials, spending and legal/business policy
+remain explicit external gates. Public API documentation does not establish access.
+Source-permitted market collection and approved own-extranet operations do not imply
+anonymous scraping, access-control evasion, universal integrations or guaranteed OTA
+ranking. Research, design and a green service check are never substitutes for an
+implemented, tested and authorized customer journey.
