@@ -42,7 +42,7 @@ This documentation does not change the running UI or existing executable gates.
 **Status:** Order 195 implementation contract · D-493–D-526
 **Catalogue:** Apple iOS · Android 17 / native Pixel · Windows 95/98 ·
 Glassmorphism · Neomorphism · Enterprise ERP
-**Default:** Apple iOS  
+**Default:** Apple iOS
 **Historical constraints:** the same authenticated Yellow application, server truth,
 ordered semantic DOM and global detail selector in every appearance. These are
 retained for existing review evidence only; they are not the new desired UX.
