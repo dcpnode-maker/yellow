@@ -22,8 +22,10 @@ import { PersistedIndiaFiscalSourceFactory } from "./fixtures/india-native-fisca
 
 setDefaultTimeout(300_000);
 
-const DEPLOY_URL = process.env.YELLOW_ORDER430_DEPLOY_DATABASE_URL ?? process.env.YELLOW_DEPLOY_DATABASE_URL;
-const RUNTIME_URL = process.env.YELLOW_ORDER430_RUNTIME_DATABASE_URL ?? process.env.YELLOW_RUNTIME_DATABASE_URL;
+// Historical Order430 proof targets an explicitly supplied migration74 database only.
+// Released75 authority is verified by native-fiscal-release-containment.integration.test.ts.
+const DEPLOY_URL = process.env.YELLOW_ORDER430_DEPLOY_DATABASE_URL;
+const RUNTIME_URL = process.env.YELLOW_ORDER430_RUNTIME_DATABASE_URL;
 const REQUIRE_DATABASE = process.env.YELLOW_REQUIRE_ORDER430_DATABASE === "1";
 
 if (REQUIRE_DATABASE && (!DEPLOY_URL || !RUNTIME_URL)) {
@@ -120,11 +122,16 @@ async function waitForRuntimeLockCount(observer: SQL, minimum: number): Promise<
   throw new Error(`timed out waiting for ${minimum} governed runtime lock waiters`);
 }
 
-beforeAll(() => {
+beforeAll(async () => {
   if (!DEPLOY_URL || !RUNTIME_URL) return;
   deploy = new SQL(DEPLOY_URL, { max: 1, prepare: false });
   runtime = new SQL(RUNTIME_URL, { max: 1, prepare: false });
   database = Database.connect(RUNTIME_URL, { maxConnections: 16, prepare: false });
+  const [frontier] = await deploy<Array<{ count: number; highest: number }>>`
+    SELECT count(*)::int AS count, max(version)::int AS highest FROM public.schema_migration`;
+  if (frontier?.count !== 74 || frontier.highest !== 74) {
+    throw new Error("Historical rejected Order430 proof requires exactly migrations1–74; use Order439 containment proof for the released schema");
+  }
 });
 
 afterAll(async () => {

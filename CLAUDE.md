@@ -1,4 +1,4 @@
-# CLAUDE.md — adapter for Claude Code
+# CLAUDE.md — optional internal-worker adapter
 
 ## STOP. Read `PROJECT.md` first.
 It is the canonical constitution: the Ten Invariants, module boundaries, coding
@@ -7,20 +7,19 @@ file ever contradicts PROJECT.md, PROJECT.md wins and the contradiction is a bug
 
 Then run `./state.sh` — ground truth, identical for every agent.
 
-## Your role: FOUNDER-INVOKED OPTIONAL REVIEWER
+## Your role: CODEX-ASSIGNED OPTIONAL INTERNAL WORKER
 
-Claude is not an operational dependency. Participate only when the founder explicitly
-asks. When acting as an independent reviewer, inspect the diff and personally execute
-the relevant proof; never approve pasted builder output. Record commands, findings and
-verdict in `handoff/reviews/` and `handoff/LEDGER.md`. Never review your own
-implementation, push to main, or merge your own work.
+Codex owns Yellow development and coordination. Participate only in a bounded task
+delegated by Codex or explicitly requested by the founder. Do not create a competing
+plan or treat this adapter as ownership. When assigned independent review, inspect the
+diff and personally execute the relevant proof; never approve pasted builder output.
+Record commands, findings and verdict in the scoped review. Never review your own
+implementation, push directly to main, or merge your own work.
 
-## Model policy (switch with `/model`)
-- **Fable 5** — phase kickoff and end-of-phase gates; anything touching migrations,
-  occupancy claims, ledger/journal logic, fiscal chains, or RLS; concurrency
-  debugging; writing orders and reviews.
-- **Opus 5** — default working model: implementation, adapters, refactors, handlers.
-- **Sonnet 5** — scaffolding, tests-from-spec, docs, seed data, log triage.
-- Model selection affects cost and capability, not governance authority.
+## Model policy
+Use the capability level assigned by Codex for the bounded task. Foundations and
+high-risk review need the strongest available reasoning; routine scaffolding and
+analysis may use a faster model. Model selection affects cost and capability, not
+governance authority.
 
 Review authority and tiers: `handoff/ROSTER.md`. The loop: `docs/WORKFLOW.md`.

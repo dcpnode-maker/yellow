@@ -1,18 +1,16 @@
 # ROSTER.md — who's on the team and who reviews what
 
-Adding an AI agent should be a **config entry, not a redesign**. This file is that
-config. Every agent reads `PROJECT.md` (canonical); this file says what each one is
-for and what its approval is worth.
+Codex owns development and coordination. Internal models are assigned bounded roles,
+not competing ownership. Every worker reads `PROJECT.md` and `docs/PROJECT-STATUS.md`;
+this file says what an assignment may approve.
 
 ## Current roster
 
-| Agent | Adapter file | Role | May approve | Cost posture |
+| Assignment | Adapter file | Role | May approve | Cost posture |
 |---|---|---|---|---|
-| **Claude Fable 5** | `CLAUDE.md` | Founder-invoked optional reviewer | Tier 1 · 2 · 3 when independent | Expensive — optional |
-| **Claude Opus 5** | `CLAUDE.md` | Implementation, adapters, refactors | Tier 1 | Default working model |
-| **Claude Sonnet 5** | `CLAUDE.md` | Scaffolding, tests-from-spec, docs, log triage | — | Cheapest Claude |
-| **OpenAI Codex** | `AGENTS.md` | Primary implementation and coordination owner | Routine work; high-risk only when not implementer | Default owner |
-| *(open slot)* | `<VENDOR>.md` | Second-opinion reviewer | Tier 2 (see below) | — |
+| **Codex coordinator** | `AGENTS.md` | Sole implementation, coordination and release owner | Routine work; high-risk only when not its implementer | Default owner |
+| **Internal builder** | `AGENTS.md` or thin optional adapter | Bounded implementation, test, documentation or research lane | Its routine lane only | Match capability to scope |
+| **Internal independent reviewer** | `AGENTS.md` or thin optional adapter | Non-implementer review and personal proof execution | Tier 1–3 for the assigned review | Strongest needed for risk |
 
 ## Review tiers — how much scrutiny a change needs
 
@@ -54,23 +52,22 @@ positions in writing (Question 008 did exactly this, and D-72 corrected the arch
 own D-69), and every Tier-3 claim must be reproduced from a command, not asserted.
 Recorded so the residual risk is a known cost, not an oversight.
 
-## Adding a new agent (the whole procedure)
+## Assigning an internal worker
 
-1. Create `<VENDOR>.md` at repo root — whatever filename that tool auto-loads.
-   Contents: **a pointer to `PROJECT.md` plus its role. Nothing else.** Never copy
-   the invariants; copies drift.
-2. Add a row above: role, approval tier, cost posture.
-3. Mirror MCP config into that tool's dialect if it supports MCP (`.mcp.json` for
-   Claude Code, `.codex/config.toml` for Codex — same three servers).
-4. Pick a commit prefix — `[claude]`, `[codex]`, `[gemini]`, … — and add it here.
-5. First session: run `./state.sh`, read `PROJECT.md`, then a Tier-1 order as a
-   shakedown before anything foundational.
-6. Append one line to `DECISIONS.log` recording the addition and the role.
+1. Codex assigns a bounded order/lane, exact files and required proof.
+2. The worker reads PROJECT, PROJECT-STATUS, the adapter and current order, then runs
+   `./state.sh`.
+3. Parallel builders receive non-overlapping files. One coordinator integrates the
+   result and checks the combined diff.
+4. A reviewer must not have implemented the surface it reviews and must personally
+   execute the registered proof.
+5. Add a new adapter or tool only through a scoped decision when it provides a real
+   capability; never duplicate the constitution.
 
 ## Rules that apply to every agent, forever
 
 - **Nobody merges their own work.** The builder and the approver are never the same
-  agent, regardless of vendor.
+  assignment, regardless of the internal model selected.
 - **`DECISIONS.log` is shared and append-only.** Union-merged in `.gitattributes` so
   parallel appends never conflict. Grep before deciding.
 - **Commit prefixes are mandatory** — `git log --grep="\[codex\]"` must remain able

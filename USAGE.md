@@ -4,6 +4,8 @@ Yellow is an actively built multi-tenant hotel/STR ERP: TypeScript/Bun/Elysia ov
 PostgreSQL 16 in a modular monolith. Read [PROJECT.md](PROJECT.md) first and navigate
 with [the project map](docs/PROJECT-MAP.md). Setup guidance:
 [START-HERE.md](START-HERE.md) / [Windows](START-HERE-WINDOWS.md).
+Read [PROJECT-STATUS](docs/PROJECT-STATUS.md) for the one current task and the exact
+distinction between candidate, merged, local and cloud state.
 
 ## Current build versus the app you are running
 
@@ -11,13 +13,13 @@ with [the project map](docs/PROJECT-MAP.md). Setup guidance:
 
 - Phases 0–3, 5 and 6: independently reviewed.
 - Phase 4: built; final integration/review outstanding.
-- Phase 7: active. Order430 was rejected for incomplete canonical provenance
-  (D1323); Order434 is the active complete repair, not a completed invoice feature.
+- Phase 7: active. Orders438/439 form one consolidated release task. Order434's
+  native-fiscal work is preserved but remains unfinished and unreleased.
 - Phases 8–17: planned. Founder priority is 11 → 13 → 17, subject to dependencies.
 
 Follow [BUILD-PLAN](BUILD-PLAN.md) and [roadmap](handoff/ROADMAP.md) for later changes.
 “Built,” “reviewed,” “merged” and “running locally” are separate states. GitHub
-`main` remains the historical integrated baseline at this checkpoint;
+`main` remains the older integrated baseline at this checkpoint;
 [PR #80](https://github.com/dcpnode-maker/yellow/pull/80) carries development.
 Neither the browser nor the default branch necessarily contains every built order.
 
@@ -30,8 +32,8 @@ functionality merely because its document exists.
 1. Inspect the existing branch, commit and dirty files; preserve work.
 2. Read PROJECT, the role adapter, recent decisions and the scoped order.
 3. Run `./state.sh` in the supported Unix environment or `./state.ps1` natively on
-   Windows. Its historical-open-order parser is imperfect; cross-check phase/open
-   counts against the latest decisions rather than trusting its maximum phase.
+   Windows. Both read the active task and phase from PROJECT-STATUS and keep legacy
+   unclosed markers separate as historical record counts.
 4. Implement with tests. Delegate bounded non-conflicting work to suitable models;
    one coordinator owns integration and the dependency sequence.
 5. Execute proportionate checks and required database/referee gates. Record skips
@@ -109,6 +111,6 @@ export guest data, secrets, local authority, model weights or live disks into Gi
 an external AI conversation.
 
 Use [AGENTS.md](AGENTS.md), [workflow](docs/WORKFLOW.md) and [roster](handoff/ROSTER.md)
-for ownership/model routing. Codex coordinates routine implementation; qualified
-non-implementers execute high-risk review. Use faster/cheaper models for suitable
-bounded work. Claude is not a mandatory build gate.
+for ownership/model routing. Codex owns and coordinates implementation; qualified
+internal non-implementers execute high-risk review. Use faster models for suitable
+bounded work and the strongest available reasoning for foundations.

@@ -18657,7 +18657,6 @@ GRANT ALL ON FUNCTION public.close_cashier_session(p_tenant uuid, p_property uui
 --
 
 REVOKE ALL ON FUNCTION public.commit_india_native_fiscal_invoice(p_tenant_id uuid, p_property_node uuid, p_actor_id uuid, p_reservation_id uuid, p_folio_id uuid, p_journal_id uuid, p_idempotency_key text, p_frozen_evidence jsonb, p_correlation_id uuid) FROM PUBLIC;
-GRANT ALL ON FUNCTION public.commit_india_native_fiscal_invoice(p_tenant_id uuid, p_property_node uuid, p_actor_id uuid, p_reservation_id uuid, p_folio_id uuid, p_journal_id uuid, p_idempotency_key text, p_frozen_evidence jsonb, p_correlation_id uuid) TO app_role;
 
 
 --

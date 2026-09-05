@@ -14,8 +14,8 @@ npm pages mark the previously configured Postgres server 0.6.2 and GitHub server
 2025.4.8 as deprecated, and the launch-on-first-use model created unnecessary
 supply-chain and credential surface.
 
-Use the existing local `psql`/repository scripts for Postgres, `git` and `gh` for
-GitHub, and the built-in web/documentation tools for current library references.
+Use the existing local `psql`/repository scripts for Postgres, the configured
+Git/GitHub connection, and the session's approved research/documentation tools.
 These replacements preserve the repository workflows without silently installing
 an external process. Deployment and schema/referee commands use only
 `YELLOW_DEPLOY_DATABASE_URL`; the application, workers, event relay and tenant
@@ -41,29 +41,14 @@ nothing else speculatively — an unused server costs context on every single se
 
 ## Deliberately NOT installed
 
-- **Filesystem MCP** — redundant. Claude Code ships Read/Edit/Write/Glob/Grep with
-  permission rules and sandboxing.
-- **Web search MCP (Exa etc.)** — Claude Code has web search built in. Exa stays
-  useful in the claude.ai chat for research, which is where it's already connected.
+- **Filesystem MCP** — redundant with the development environment's filesystem tools.
+- **Generic web-search MCP** — use the session's approved research tools when a
+  bounded order needs current external evidence.
 - **Everything else in the marketplace** — see the rule below.
-
-## Optional: cost observability (vet before installing)
-
-Useful given the model-routing policy in CLAUDE.md — these read local session logs
-and show which tool, agent, MCP server, or skill is actually burning quota, so you
-can verify the policy works instead of assuming it:
-
-```bash
-npm install -g claude-token-lens     # read the source first — see rule below
-```
-
-Deliberately not wired into `setup.sh`: auto-installing third-party global packages
-is exactly the risk the rule exists to prevent.
 
 ## The rule for anything from the marketplace
 
-The Claude Code plugin ecosystem is enormous — thousands of plugins across ~200
-community marketplaces — and largely unvetted. **Skills, hooks, and MCP servers
+Agent plugin ecosystems contain many unvetted packages. **Skills, hooks, and MCP servers
 execute on your machine with your GitHub token and database credentials.** This is
 DEPENDENCIES.md's supply-chain risk pointed at your laptop.
 
@@ -77,7 +62,7 @@ Before installing anything:
 
 ## Your own skills beat all of it
 
-`.claude/skills/` already holds three skills encoding decisions no generic skill can
+The repository's project skills encode decisions no generic skill can
 know — that folios belong to accounts, that views bypass RLS, that UAE clearance must
 be provider-routed. When a pattern repeats across phases, write a fourth. That is
 strictly better than shopping for one.

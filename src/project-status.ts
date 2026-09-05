@@ -1,4 +1,5 @@
 import { INDEPENDENTLY_REVIEWED_THROUGH_ORDER } from "./generated/review-coverage";
+import { UNKNOWN_BUILD_INFO, type BuildInfo } from "./kernel/build-info";
 
 export type PhaseBuildState = "reviewed" | "built_unverified" | "active" | "planned";
 
@@ -15,13 +16,14 @@ export interface ProjectRecordedWorkSnapshot {
     | 126 | 127 | 148 | 154 | 155 | 156 | 160 | 161 | 162 | 163 | 164
     | 165 | 166 | 168 | 169 | 170 | 171 | 173 | 174 | 175 | 176 | 177 | 178
     | 179 | 180 | 181 | 182 | 183 | 184 | 185 | 186 | 188 | 189
-    | 190 | 191 | 192 | 193 | 195 | 199 | 236 | 310 | 396 | 429 | 430;
+    | 190 | 191 | 192 | 193 | 195 | 199 | 236 | 310 | 396 | 429 | 438;
   readonly state: ProjectRecordedWorkState;
   readonly summary: string;
   readonly remaining?: string;
 }
 
 export interface OperatorRuntimeStatus {
+  readonly build: BuildInfo;
   readonly workbenchEnabled: boolean;
   readonly holdExpiryWorkerEnabled: boolean;
   readonly availabilityProjectionWorkerEnabled: boolean;
@@ -33,6 +35,7 @@ export interface OperatorRuntimeStatus {
 }
 
 export const DEFAULT_OPERATOR_RUNTIME_STATUS: OperatorRuntimeStatus = Object.freeze({
+  build: UNKNOWN_BUILD_INFO,
   workbenchEnabled: false,
   holdExpiryWorkerEnabled: false,
   availabilityProjectionWorkerEnabled: false,
@@ -44,13 +47,13 @@ export const DEFAULT_OPERATOR_RUNTIME_STATUS: OperatorRuntimeStatus = Object.fre
 });
 
 export const PROJECT_BUILD_SNAPSHOT = Object.freeze({
-  schemaVersion: 1,
+  schemaVersion: 2,
   recordedAt: "2026-09-05",
-  label: "Recorded build snapshot",
+  label: "Consolidated release candidate snapshot",
   roadmap: Object.freeze({
     phaseCount: 18,
-    latestBuiltOrder: 429,
-    currentOrder: 431,
+    latestBuiltOrder: 438,
+    currentOrder: 438,
     activePhase: 7,
   }),
   review: Object.freeze({
@@ -74,19 +77,19 @@ export const PROJECT_BUILD_SNAPSHOT = Object.freeze({
       order: 148,
       state: "independently_approved" as const,
       summary: "Order 148 independently approved (D-412).",
-      remaining: "PR #78 is open and unmerged; no deployment is claimed.",
+      remaining: "Historical approval was limited to this source scope; current integration and release truth is carried by Order 438 evidence.",
     }),
     Object.freeze({
       order: 154,
       state: "independently_approved" as const,
       summary: "Order 154 reviewed runtime-DML union independently approved.",
-      remaining: "The reviewed union is unmerged; no deployment is claimed.",
+      remaining: "Historical review was limited to the runtime-DML union; current integration and release truth is carried by Order 438 evidence.",
     }),
     Object.freeze({
       order: 155,
       state: "independently_approved" as const,
       summary: "Order 155 resolved-question normalization independently checked.",
-      remaining: "The governance-only order is unmerged.",
+      remaining: "This remains historical governance evidence; current integration and release truth is carried by Order 438.",
     }),
     Object.freeze({
       order: 156,
@@ -317,10 +320,10 @@ export const PROJECT_BUILD_SNAPSHOT = Object.freeze({
       remaining: "Approval returns frozen false readiness only; document origin, numbering, series, provider submission, and Phase-7 completion remain separate.",
     }),
     Object.freeze({
-      order: 430,
-      state: "proof_in_progress" as const,
-      summary: "Order 430 is active under D1302/D1304 for Yellow-native India fiscal invoice issuance.",
-      remaining: "Builder implementation and fresh independent Tier-3 review remain pending; no built, provider, IRP, local, or Phase-7 completion claim is made.",
+      order: 438,
+      state: "built_unverified" as const,
+      summary: "Orders 438/439 are the current consolidated operational release candidate. They preserve PR80's working flows and contain the unapproved legacy native-fiscal issue capability at migration frontier 75.",
+      remaining: "Order 434 has substantial bounded invoice/replay and concurrency proof but native issuance remains unreleased pending its full acceptance, 0076/0077 assembly and fresh Tier-3 review. Orders 438/439 still require an exact runtime build receipt, independent review, merge and separate local/cloud release evidence; Phase 7 is not complete.",
     }),
   ] satisfies readonly ProjectRecordedWorkSnapshot[]),
   phases: Object.freeze([

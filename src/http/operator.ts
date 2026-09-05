@@ -2548,6 +2548,7 @@ export class OperatorHttpApi {
           state: "operational",
           checkedAt: new Date().toISOString(),
           processStartedAt: this.#runtimeStatus.processStartedAt,
+          build: this.#runtimeStatus.build,
         },
         database: {
           state: "operational",

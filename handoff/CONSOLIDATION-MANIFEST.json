@@ -1,0 +1,639 @@
+{
+  "schema_version": 1,
+  "order": 438,
+  "generated_at": "2026-09-05",
+  "repository": "dcpnode-maker/yellow",
+  "audited_main": "main@2e55b88488300b1d4efb551f8ec79698dbb52dad",
+  "release_base": "refs/heads/phase-7/persisted-india-final-component-tax-evidence@6a981cce0672a6018fa79872e828e3c003fd3f71",
+  "summary": {
+    "source_open_pr_snapshot_count": 62,
+    "already_in_main_closed_count": 52,
+    "archived_unique_closed_count": 5,
+    "pending_integration_count": 4,
+    "active_candidate_count": 1,
+    "standalone_open_issue_count_at_audit": 0
+  },
+  "preservation_policy": "Closing a pull request does not claim its unique content was merged. Exact source branches and heads remain retained; no branch was deleted or rewritten.",
+  "pull_requests": [
+    {
+      "number": 18,
+      "title": "[codex] Yellow Architecture V1 + interactive prototype order",
+      "source_ref": "refs/heads/phase-0/yellow-v1-blueprint",
+      "head": "61712c423359c5cf93ddef345bc1434b6fd3ea48",
+      "disposition": "closed_archived_unique_ref",
+      "preservation_ref": "refs/heads/phase-0/yellow-v1-blueprint@61712c423359c5cf93ddef345bc1434b6fd3ea48",
+      "evidence": "Two unique early blueprint/order files remain at the exact source ref; current architecture and order lineage supersede their authority.",
+      "current_working_flow_impact": "None; retained prototype research is not a shipped hotel user flow."
+    },
+    {
+      "number": 19,
+      "title": "[codex] Order 036: evaluate availability restrictions",
+      "source_ref": "refs/heads/phase-2/restriction-evaluation",
+      "head": "fb4d014e5f9f5aafd1f178b61c1e986a3364783b",
+      "disposition": "closed_exact_main_ancestor",
+      "preservation_ref": "main@2e55b88488300b1d4efb551f8ec79698dbb52dad",
+      "evidence": "Exact ancestry verified: fb4d014e5f9f5aafd1f178b61c1e986a3364783b is an ancestor of 2e55b88488300b1d4efb551f8ec79698dbb52dad.",
+      "current_working_flow_impact": "None; implementation is already present in current main."
+    },
+    {
+      "number": 20,
+      "title": "Order 037: audited OOO/OOS lifecycle",
+      "source_ref": "refs/heads/phase-2/ooo-oos-lifecycle",
+      "head": "def27b8c23316136f83a411e5e23e7d27d603cc2",
+      "disposition": "closed_exact_main_ancestor",
+      "preservation_ref": "main@2e55b88488300b1d4efb551f8ec79698dbb52dad",
+      "evidence": "Exact ancestry verified: def27b8c23316136f83a411e5e23e7d27d603cc2 is an ancestor of 2e55b88488300b1d4efb551f8ec79698dbb52dad.",
+      "current_working_flow_impact": "None; implementation is already present in current main."
+    },
+    {
+      "number": 21,
+      "title": "Orders 038-039: configurable OOS sellability policy",
+      "source_ref": "refs/heads/phase-2/oos-sellability-policy",
+      "head": "2d370be352dfa71ee9a07bb91a225932509d9741",
+      "disposition": "closed_exact_main_ancestor",
+      "preservation_ref": "main@2e55b88488300b1d4efb551f8ec79698dbb52dad",
+      "evidence": "Exact ancestry verified: 2d370be352dfa71ee9a07bb91a225932509d9741 is an ancestor of 2e55b88488300b1d4efb551f8ec79698dbb52dad.",
+      "current_working_flow_impact": "None; implementation is already present in current main."
+    },
+    {
+      "number": 22,
+      "title": "Orders 040-041: operational-block availability and Windows state correction",
+      "source_ref": "refs/heads/phase-2/operational-block-availability",
+      "head": "aabf113d18c7946a1ad2ece30c85b2bc21674b58",
+      "disposition": "closed_exact_main_ancestor",
+      "preservation_ref": "main@2e55b88488300b1d4efb551f8ec79698dbb52dad",
+      "evidence": "Exact ancestry verified: aabf113d18c7946a1ad2ece30c85b2bc21674b58 is an ancestor of 2e55b88488300b1d4efb551f8ec79698dbb52dad.",
+      "current_working_flow_impact": "None; implementation is already present in current main."
+    },
+    {
+      "number": 23,
+      "title": "Order 042: themed authenticated availability workbench",
+      "source_ref": "refs/heads/phase-2/operator-login-availability",
+      "head": "6003c7d426f8d616170b4aa3f689f18665199bd7",
+      "disposition": "closed_exact_main_ancestor",
+      "preservation_ref": "main@2e55b88488300b1d4efb551f8ec79698dbb52dad",
+      "evidence": "Exact ancestry verified: 6003c7d426f8d616170b4aa3f689f18665199bd7 is an ancestor of 2e55b88488300b1d4efb551f8ec79698dbb52dad.",
+      "current_working_flow_impact": "None; implementation is already present in current main."
+    },
+    {
+      "number": 24,
+      "title": "Order 043: bind local data services to loopback",
+      "source_ref": "refs/heads/phase-2/local-service-loopback-hardening",
+      "head": "9839c27bc791c03bb4dbfeb9db01be433b87ed1b",
+      "disposition": "closed_exact_main_ancestor",
+      "preservation_ref": "main@2e55b88488300b1d4efb551f8ec79698dbb52dad",
+      "evidence": "Exact ancestry verified: 9839c27bc791c03bb4dbfeb9db01be433b87ed1b is an ancestor of 2e55b88488300b1d4efb551f8ec79698dbb52dad.",
+      "current_working_flow_impact": "None; implementation is already present in current main."
+    },
+    {
+      "number": 25,
+      "title": "Order 044: make handoff state review-accurate",
+      "source_ref": "refs/heads/phase-2/handoff-state-accuracy",
+      "head": "6bfd2c581377cb43ed59ab1c065375b09c7820d4",
+      "disposition": "closed_exact_main_ancestor",
+      "preservation_ref": "main@2e55b88488300b1d4efb551f8ec79698dbb52dad",
+      "evidence": "Exact ancestry verified: 6bfd2c581377cb43ed59ab1c065375b09c7820d4 is an ancestor of 2e55b88488300b1d4efb551f8ec79698dbb52dad.",
+      "current_working_flow_impact": "None; implementation is already present in current main."
+    },
+    {
+      "number": 26,
+      "title": "Order 045: fail closed on incomplete Windows state",
+      "source_ref": "refs/heads/phase-2/windows-state-fail-closed",
+      "head": "36c9489fa80d0c835ed3bb9bcc09c5e45441da73",
+      "disposition": "closed_exact_main_ancestor",
+      "preservation_ref": "main@2e55b88488300b1d4efb551f8ec79698dbb52dad",
+      "evidence": "Exact ancestry verified: 36c9489fa80d0c835ed3bb9bcc09c5e45441da73 is an ancestor of 2e55b88488300b1d4efb551f8ec79698dbb52dad.",
+      "current_working_flow_impact": "None; implementation is already present in current main."
+    },
+    {
+      "number": 27,
+      "title": "Order 046: seed real local review inventory",
+      "source_ref": "refs/heads/phase-2/local-review-demo-inventory",
+      "head": "dc3407614c8fec2f934df3602b618478996787df",
+      "disposition": "closed_exact_main_ancestor",
+      "preservation_ref": "main@2e55b88488300b1d4efb551f8ec79698dbb52dad",
+      "evidence": "Exact ancestry verified: dc3407614c8fec2f934df3602b618478996787df is an ancestor of 2e55b88488300b1d4efb551f8ec79698dbb52dad.",
+      "current_working_flow_impact": "None; implementation is already present in current main."
+    },
+    {
+      "number": 28,
+      "title": "Order 047: durable API idempotency foundation",
+      "source_ref": "refs/heads/phase-2/api-idempotency-foundation",
+      "head": "4f393d2713b9846cdc691460d9411a6aff96f1ef",
+      "disposition": "closed_exact_main_ancestor",
+      "preservation_ref": "main@2e55b88488300b1d4efb551f8ec79698dbb52dad",
+      "evidence": "Exact ancestry verified: 4f393d2713b9846cdc691460d9411a6aff96f1ef is an ancestor of 2e55b88488300b1d4efb551f8ec79698dbb52dad.",
+      "current_working_flow_impact": "None; implementation is already present in current main."
+    },
+    {
+      "number": 29,
+      "title": "Order 048: authenticated inventory management workbench",
+      "source_ref": "refs/heads/phase-2/operator-inventory-management",
+      "head": "fe6532f1895580a504add31ad035c99caf2b1177",
+      "disposition": "closed_exact_main_ancestor",
+      "preservation_ref": "main@2e55b88488300b1d4efb551f8ec79698dbb52dad",
+      "evidence": "Exact ancestry verified: fe6532f1895580a504add31ad035c99caf2b1177 is an ancestor of 2e55b88488300b1d4efb551f8ec79698dbb52dad.",
+      "current_working_flow_impact": "None; implementation is already present in current main."
+    },
+    {
+      "number": 30,
+      "title": "Order 049: operator restriction management",
+      "source_ref": "refs/heads/phase-2/operator-restriction-management",
+      "head": "4c7fc943a651cc58ccff7f08a970d3f8f1409852",
+      "disposition": "closed_exact_main_ancestor",
+      "preservation_ref": "main@2e55b88488300b1d4efb551f8ec79698dbb52dad",
+      "evidence": "Exact ancestry verified: 4c7fc943a651cc58ccff7f08a970d3f8f1409852 is an ancestor of 2e55b88488300b1d4efb551f8ec79698dbb52dad.",
+      "current_working_flow_impact": "None; implementation is already present in current main."
+    },
+    {
+      "number": 31,
+      "title": "Order 050: operator rate-plan management",
+      "source_ref": "refs/heads/phase-2/operator-rate-plan-management",
+      "head": "48104396abd158e71e732a6185ce1c3d4f58891d",
+      "disposition": "closed_exact_main_ancestor",
+      "preservation_ref": "main@2e55b88488300b1d4efb551f8ec79698dbb52dad",
+      "evidence": "Exact ancestry verified: 48104396abd158e71e732a6185ce1c3d4f58891d is an ancestor of 2e55b88488300b1d4efb551f8ec79698dbb52dad.",
+      "current_working_flow_impact": "None; implementation is already present in current main."
+    },
+    {
+      "number": 32,
+      "title": "Order 051: operator exact rate pricing",
+      "source_ref": "refs/heads/phase-2/operator-rate-price-management",
+      "head": "2a8adf8534d5c4a536155bd183efe6b451125586",
+      "disposition": "closed_exact_main_ancestor",
+      "preservation_ref": "main@2e55b88488300b1d4efb551f8ec79698dbb52dad",
+      "evidence": "Exact ancestry verified: 2a8adf8534d5c4a536155bd183efe6b451125586 is an ancestor of 2e55b88488300b1d4efb551f8ec79698dbb52dad.",
+      "current_working_flow_impact": "None; implementation is already present in current main."
+    },
+    {
+      "number": 33,
+      "title": "Order 052: immutable operator rate-price correction",
+      "source_ref": "refs/heads/phase-2/operator-rate-price-correction",
+      "head": "413d568dad035806ac996a44d20710248f40f9be",
+      "disposition": "closed_exact_main_ancestor",
+      "preservation_ref": "main@2e55b88488300b1d4efb551f8ec79698dbb52dad",
+      "evidence": "Exact ancestry verified: 413d568dad035806ac996a44d20710248f40f9be is an ancestor of 2e55b88488300b1d4efb551f8ec79698dbb52dad.",
+      "current_working_flow_impact": "None; implementation is already present in current main."
+    },
+    {
+      "number": 34,
+      "title": "Order 053: operator OOO/OOS lifecycle",
+      "source_ref": "refs/heads/phase-2/operator-operational-block-management",
+      "head": "47f86503d7d582b96909d26414e4cbcf8f627995",
+      "disposition": "closed_exact_main_ancestor",
+      "preservation_ref": "main@2e55b88488300b1d4efb551f8ec79698dbb52dad",
+      "evidence": "Exact ancestry verified: 47f86503d7d582b96909d26414e4cbcf8f627995 is an ancestor of 2e55b88488300b1d4efb551f8ec79698dbb52dad.",
+      "current_working_flow_impact": "None; implementation is already present in current main."
+    },
+    {
+      "number": 35,
+      "title": "Order 054: operator OOS sellability policy",
+      "source_ref": "refs/heads/phase-2/operator-oos-sellability-policy",
+      "head": "72cc2c5feff93c7dc7fde06583523ce1ab4d4967",
+      "disposition": "closed_exact_main_ancestor",
+      "preservation_ref": "main@2e55b88488300b1d4efb551f8ec79698dbb52dad",
+      "evidence": "Exact ancestry verified: 72cc2c5feff93c7dc7fde06583523ce1ab4d4967 is an ancestor of 2e55b88488300b1d4efb551f8ec79698dbb52dad.",
+      "current_working_flow_impact": "None; implementation is already present in current main."
+    },
+    {
+      "number": 36,
+      "title": "Order 055: operator cart-hold management",
+      "source_ref": "refs/heads/phase-2/operator-cart-hold-management",
+      "head": "5c0da02154cfca18e06e4076db399872b59db78c",
+      "disposition": "closed_exact_main_ancestor",
+      "preservation_ref": "main@2e55b88488300b1d4efb551f8ec79698dbb52dad",
+      "evidence": "Exact ancestry verified: 5c0da02154cfca18e06e4076db399872b59db78c is an ancestor of 2e55b88488300b1d4efb551f8ec79698dbb52dad.",
+      "current_working_flow_impact": "None; implementation is already present in current main."
+    },
+    {
+      "number": 37,
+      "title": "Order 056: audited hold-expiry worker",
+      "source_ref": "refs/heads/phase-2/audited-hold-expiry-worker",
+      "head": "41242def35f6c28cd61f58a151f89d67c1fbf201",
+      "disposition": "closed_exact_main_ancestor",
+      "preservation_ref": "main@2e55b88488300b1d4efb551f8ec79698dbb52dad",
+      "evidence": "Exact ancestry verified: 41242def35f6c28cd61f58a151f89d67c1fbf201 is an ancestor of 2e55b88488300b1d4efb551f8ec79698dbb52dad.",
+      "current_working_flow_impact": "None; implementation is already present in current main."
+    },
+    {
+      "number": 38,
+      "title": "Order 057: atomic bulk hotel room creation",
+      "source_ref": "refs/heads/phase-2/operator-bulk-room-creation",
+      "head": "8495a6f20ed1bfbc53256fc1bbd0a5a7d1100a49",
+      "disposition": "closed_exact_main_ancestor",
+      "preservation_ref": "main@2e55b88488300b1d4efb551f8ec79698dbb52dad",
+      "evidence": "Exact ancestry verified: 8495a6f20ed1bfbc53256fc1bbd0a5a7d1100a49 is an ancestor of 2e55b88488300b1d4efb551f8ec79698dbb52dad.",
+      "current_working_flow_impact": "None; implementation is already present in current main."
+    },
+    {
+      "number": 39,
+      "title": "Order 058: truth-derived availability projection rebuild",
+      "source_ref": "refs/heads/phase-2/availability-projection-rebuild",
+      "head": "77a54d027655e9400ef01da39d383263778e1421",
+      "disposition": "closed_exact_main_ancestor",
+      "preservation_ref": "main@2e55b88488300b1d4efb551f8ec79698dbb52dad",
+      "evidence": "Exact ancestry verified: 77a54d027655e9400ef01da39d383263778e1421 is an ancestor of 2e55b88488300b1d4efb551f8ec79698dbb52dad.",
+      "current_working_flow_impact": "None; implementation is already present in current main."
+    },
+    {
+      "number": 40,
+      "title": "Order 059: durable availability projection consumer",
+      "source_ref": "refs/heads/phase-2/availability-projection-consumer",
+      "head": "53d3b3066094a0db678490dcfcf3041952d90ca1",
+      "disposition": "closed_exact_main_ancestor",
+      "preservation_ref": "main@2e55b88488300b1d4efb551f8ec79698dbb52dad",
+      "evidence": "Exact ancestry verified: 53d3b3066094a0db678490dcfcf3041952d90ca1 is an ancestor of 2e55b88488300b1d4efb551f8ec79698dbb52dad.",
+      "current_working_flow_impact": "None; implementation is already present in current main."
+    },
+    {
+      "number": 41,
+      "title": "Phase 2: operator projection bootstrap (Order 060)",
+      "source_ref": "refs/heads/phase-2/operator-projection-bootstrap",
+      "head": "248d720ba2cb512be7cb97b1e173fd8247a29b0a",
+      "disposition": "closed_exact_main_ancestor",
+      "preservation_ref": "main@2e55b88488300b1d4efb551f8ec79698dbb52dad",
+      "evidence": "Exact ancestry verified: 248d720ba2cb512be7cb97b1e173fd8247a29b0a is an ancestor of 2e55b88488300b1d4efb551f8ec79698dbb52dad.",
+      "current_working_flow_impact": "None; implementation is already present in current main."
+    },
+    {
+      "number": 42,
+      "title": "Phase 2: availability work-scaling proof (Order 061)",
+      "source_ref": "refs/heads/phase-2/availability-scaling-proof",
+      "head": "51ac7d733e400f4ef1019c4e3c683566a9bee420",
+      "disposition": "closed_exact_main_ancestor",
+      "preservation_ref": "main@2e55b88488300b1d4efb551f8ec79698dbb52dad",
+      "evidence": "Exact ancestry verified: 51ac7d733e400f4ef1019c4e3c683566a9bee420 is an ancestor of 2e55b88488300b1d4efb551f8ec79698dbb52dad.",
+      "current_working_flow_impact": "None; implementation is already present in current main."
+    },
+    {
+      "number": 43,
+      "title": "Phase 2: operator-managed offline capacity leases (Order 062)",
+      "source_ref": "refs/heads/phase-2/operator-offline-lease-pool",
+      "head": "fdd09891d2bb4acfe0af951f150695fbc5f7295b",
+      "disposition": "closed_exact_main_ancestor",
+      "preservation_ref": "main@2e55b88488300b1d4efb551f8ec79698dbb52dad",
+      "evidence": "Exact ancestry verified: fdd09891d2bb4acfe0af951f150695fbc5f7295b is an ancestor of 2e55b88488300b1d4efb551f8ec79698dbb52dad.",
+      "current_working_flow_impact": "None; implementation is already present in current main."
+    },
+    {
+      "number": 44,
+      "title": "Order 063: universal rate-plan product contract",
+      "source_ref": "refs/heads/phase-3/universal-rate-plan-contract",
+      "head": "9c1f1df633bcc77b8ca8ee2e28b43ad1876e0bc1",
+      "disposition": "closed_exact_main_ancestor",
+      "preservation_ref": "main@2e55b88488300b1d4efb551f8ec79698dbb52dad",
+      "evidence": "Exact ancestry verified: 9c1f1df633bcc77b8ca8ee2e28b43ad1876e0bc1 is an ancestor of 2e55b88488300b1d4efb551f8ec79698dbb52dad.",
+      "current_working_flow_impact": "None; implementation is already present in current main."
+    },
+    {
+      "number": 45,
+      "title": "Order 064: founder project status and system health",
+      "source_ref": "refs/heads/phase-3/founder-status-dashboard",
+      "head": "9c9cba160717ed820b5da881ca46973f8d56bce8",
+      "disposition": "closed_exact_main_ancestor",
+      "preservation_ref": "main@2e55b88488300b1d4efb551f8ec79698dbb52dad",
+      "evidence": "Exact ancestry verified: 9c9cba160717ed820b5da881ca46973f8d56bce8 is an ancestor of 2e55b88488300b1d4efb551f8ec79698dbb52dad.",
+      "current_working_flow_impact": "None; implementation is already present in current main."
+    },
+    {
+      "number": 46,
+      "title": "Order 065: versioned rate-model catalogue",
+      "source_ref": "refs/heads/phase-3/versioned-rate-model-catalogue",
+      "head": "6168b6b1499e7ec828bc75b065add93ec204bc4a",
+      "disposition": "closed_exact_main_ancestor",
+      "preservation_ref": "main@2e55b88488300b1d4efb551f8ec79698dbb52dad",
+      "evidence": "Exact ancestry verified: 6168b6b1499e7ec828bc75b065add93ec204bc4a is an ancestor of 2e55b88488300b1d4efb551f8ec79698dbb52dad.",
+      "current_working_flow_impact": "None; implementation is already present in current main."
+    },
+    {
+      "number": 47,
+      "title": "Order 066: deterministic rate targeting resolver",
+      "source_ref": "refs/heads/phase-3/rate-targeting-resolver",
+      "head": "6c07b0a90e5ee214ae383f18d941618725617a45",
+      "disposition": "closed_exact_main_ancestor",
+      "preservation_ref": "main@2e55b88488300b1d4efb551f8ec79698dbb52dad",
+      "evidence": "Exact ancestry verified: 6c07b0a90e5ee214ae383f18d941618725617a45 is an ancestor of 2e55b88488300b1d4efb551f8ec79698dbb52dad.",
+      "current_working_flow_impact": "None; implementation is already present in current main."
+    },
+    {
+      "number": 48,
+      "title": "Order 067: typed exact-money rate evaluators",
+      "source_ref": "refs/heads/phase-3/typed-rate-evaluators",
+      "head": "f5dfda6ed52929d81c55d48d6978039d8d016b32",
+      "disposition": "closed_exact_main_ancestor",
+      "preservation_ref": "main@2e55b88488300b1d4efb551f8ec79698dbb52dad",
+      "evidence": "Exact ancestry verified: f5dfda6ed52929d81c55d48d6978039d8d016b32 is an ancestor of 2e55b88488300b1d4efb551f8ec79698dbb52dad.",
+      "current_working_flow_impact": "None; implementation is already present in current main."
+    },
+    {
+      "number": 49,
+      "title": "Order 068: compose guest, package, policy and distribution choices",
+      "source_ref": "refs/heads/phase-3/rate-policy-package-composition",
+      "head": "7d8e311058ee278c0bb7b444862f522b046c2e82",
+      "disposition": "closed_exact_main_ancestor",
+      "preservation_ref": "main@2e55b88488300b1d4efb551f8ec79698dbb52dad",
+      "evidence": "Exact ancestry verified: 7d8e311058ee278c0bb7b444862f522b046c2e82 is an ancestor of 2e55b88488300b1d4efb551f8ec79698dbb52dad.",
+      "current_working_flow_impact": "None; implementation is already present in current main."
+    },
+    {
+      "number": 50,
+      "title": "Order 069: atomic rate release publication",
+      "source_ref": "refs/heads/phase-3/rate-draft-publish-versioning",
+      "head": "193e01df1db0414d8c4f0539fce6298a5a573f0d",
+      "disposition": "closed_exact_main_ancestor",
+      "preservation_ref": "main@2e55b88488300b1d4efb551f8ec79698dbb52dad",
+      "evidence": "Exact ancestry verified: 193e01df1db0414d8c4f0539fce6298a5a573f0d is an ancestor of 2e55b88488300b1d4efb551f8ec79698dbb52dad.",
+      "current_working_flow_impact": "None; implementation is already present in current main."
+    },
+    {
+      "number": 51,
+      "title": "Order 070: universal rate quote and governed RMS",
+      "source_ref": "refs/heads/phase-3/universal-rate-quote-rms",
+      "head": "ea8d357b6b91c1cb07487c4700c64ed6534744dd",
+      "disposition": "closed_exact_main_ancestor",
+      "preservation_ref": "main@2e55b88488300b1d4efb551f8ec79698dbb52dad",
+      "evidence": "Exact ancestry verified: ea8d357b6b91c1cb07487c4700c64ed6534744dd is an ancestor of 2e55b88488300b1d4efb551f8ec79698dbb52dad.",
+      "current_working_flow_impact": "None; implementation is already present in current main."
+    },
+    {
+      "number": 52,
+      "title": "Order 071: guided and expert universal rate-plan workbench",
+      "source_ref": "refs/heads/phase-3/guided-expert-rate-workbench",
+      "head": "674790b3199ec3893d396eb272fa94d9a780d2cc",
+      "disposition": "closed_exact_main_ancestor",
+      "preservation_ref": "main@2e55b88488300b1d4efb551f8ec79698dbb52dad",
+      "evidence": "Exact ancestry verified: 674790b3199ec3893d396eb272fa94d9a780d2cc is an ancestor of 2e55b88488300b1d4efb551f8ec79698dbb52dad.",
+      "current_working_flow_impact": "None; implementation is already present in current main."
+    },
+    {
+      "number": 53,
+      "title": "Order 072: secure AI-assisted rate intent",
+      "source_ref": "refs/heads/phase-3/secure-rate-intent-assistant",
+      "head": "38720c152240fd57cfb764e11d34532c88a34fd7",
+      "disposition": "closed_exact_main_ancestor",
+      "preservation_ref": "main@2e55b88488300b1d4efb551f8ec79698dbb52dad",
+      "evidence": "Exact ancestry verified: 38720c152240fd57cfb764e11d34532c88a34fd7 is an ancestor of 2e55b88488300b1d4efb551f8ec79698dbb52dad.",
+      "current_working_flow_impact": "None; implementation is already present in current main."
+    },
+    {
+      "number": 54,
+      "title": "Order 073: configurable rate applicability and server preview cells",
+      "source_ref": "refs/heads/phase-3/rate-target-rule-workbench",
+      "head": "646b87e6db0868eb08d4c9690389538243cf74f0",
+      "disposition": "closed_exact_main_ancestor",
+      "preservation_ref": "main@2e55b88488300b1d4efb551f8ec79698dbb52dad",
+      "evidence": "Exact ancestry verified: 646b87e6db0868eb08d4c9690389538243cf74f0 is an ancestor of 2e55b88488300b1d4efb551f8ec79698dbb52dad.",
+      "current_working_flow_impact": "None; implementation is already present in current main."
+    },
+    {
+      "number": 55,
+      "title": "Order 074: Gate-3 proof and founder-status corrections",
+      "source_ref": "refs/heads/phase-3/gate-3-corrections",
+      "head": "da8c64f60ec30f90ccefa28c19d6993222934550",
+      "disposition": "closed_exact_main_ancestor",
+      "preservation_ref": "main@2e55b88488300b1d4efb551f8ec79698dbb52dad",
+      "evidence": "Exact ancestry verified: da8c64f60ec30f90ccefa28c19d6993222934550 is an ancestor of 2e55b88488300b1d4efb551f8ec79698dbb52dad.",
+      "current_working_flow_impact": "None; implementation is already present in current main."
+    },
+    {
+      "number": 56,
+      "title": "Phase 3: bind rate preview to selected release policies (Order 075)",
+      "source_ref": "refs/heads/phase-3/selected-release-preview-evidence",
+      "head": "ba1125b865831c56d4dd8ce61cc7868f493b937b",
+      "disposition": "closed_exact_main_ancestor",
+      "preservation_ref": "main@2e55b88488300b1d4efb551f8ec79698dbb52dad",
+      "evidence": "Exact ancestry verified: ba1125b865831c56d4dd8ce61cc7868f493b937b is an ancestor of 2e55b88488300b1d4efb551f8ec79698dbb52dad.",
+      "current_working_flow_impact": "None; implementation is already present in current main."
+    },
+    {
+      "number": 57,
+      "title": "Phase 3: inspect and reuse immutable rate releases (Order 076)",
+      "source_ref": "refs/heads/phase-3/rate-release-reuse-workbench",
+      "head": "02a2845140f669345ba61095b65f180dbc6e87e7",
+      "disposition": "closed_exact_main_ancestor",
+      "preservation_ref": "main@2e55b88488300b1d4efb551f8ec79698dbb52dad",
+      "evidence": "Exact ancestry verified: 02a2845140f669345ba61095b65f180dbc6e87e7 is an ancestor of 2e55b88488300b1d4efb551f8ec79698dbb52dad.",
+      "current_working_flow_impact": "None; implementation is already present in current main."
+    },
+    {
+      "number": 58,
+      "title": "Order 077: two-operator rate publication approval inbox",
+      "source_ref": "refs/heads/phase-3/rate-approval-inbox",
+      "head": "68d9701a437fddb0774848c07ace34f1c751c675",
+      "disposition": "closed_exact_main_ancestor",
+      "preservation_ref": "main@2e55b88488300b1d4efb551f8ec79698dbb52dad",
+      "evidence": "Exact ancestry verified: 68d9701a437fddb0774848c07ace34f1c751c675 is an ancestor of 2e55b88488300b1d4efb551f8ec79698dbb52dad.",
+      "current_working_flow_impact": "None; implementation is already present in current main."
+    },
+    {
+      "number": 59,
+      "title": "[codex] Order 078 — reproducible local-review published rate",
+      "source_ref": "refs/heads/phase-3/local-review-published-rate",
+      "head": "12ba636ff64f2ee8457f626d8ffcf6d2779d58a0",
+      "disposition": "closed_exact_main_ancestor",
+      "preservation_ref": "main@2e55b88488300b1d4efb551f8ec79698dbb52dad",
+      "evidence": "Exact ancestry verified: 12ba636ff64f2ee8457f626d8ffcf6d2779d58a0 is an ancestor of 2e55b88488300b1d4efb551f8ec79698dbb52dad.",
+      "current_working_flow_impact": "None; implementation is already present in current main."
+    },
+    {
+      "number": 60,
+      "title": "Order 079: reproducible Phase 3 database proofs",
+      "source_ref": "refs/heads/phase-3/reproducible-gate-3-proofs",
+      "head": "d26f4a518658288ab9ab2e1fed14c874f4d9f584",
+      "disposition": "closed_exact_main_ancestor",
+      "preservation_ref": "main@2e55b88488300b1d4efb551f8ec79698dbb52dad",
+      "evidence": "Exact ancestry verified: d26f4a518658288ab9ab2e1fed14c874f4d9f584 is an ancestor of 2e55b88488300b1d4efb551f8ec79698dbb52dad.",
+      "current_working_flow_impact": "None; implementation is already present in current main."
+    },
+    {
+      "number": 61,
+      "title": "[codex] Phase 4 reservation state contract (Order 080)",
+      "source_ref": "refs/heads/phase-4/reservation-state-contract",
+      "head": "550e429078e55b268b4080470f0eed3d0bb02372",
+      "disposition": "closed_exact_main_ancestor",
+      "preservation_ref": "main@2e55b88488300b1d4efb551f8ec79698dbb52dad",
+      "evidence": "Exact ancestry verified: 550e429078e55b268b4080470f0eed3d0bb02372 is an ancestor of 2e55b88488300b1d4efb551f8ec79698dbb52dad.",
+      "current_working_flow_impact": "None; implementation is already present in current main."
+    },
+    {
+      "number": 62,
+      "title": "[codex] Phase 4: atomic held reservation commit",
+      "source_ref": "refs/heads/phase-4/atomic-hold-reservation-commit",
+      "head": "e8eb15e381a46fc88150e29c340250eed6d522dc",
+      "disposition": "closed_exact_main_ancestor",
+      "preservation_ref": "main@2e55b88488300b1d4efb551f8ec79698dbb52dad",
+      "evidence": "Exact ancestry verified: e8eb15e381a46fc88150e29c340250eed6d522dc is an ancestor of 2e55b88488300b1d4efb551f8ec79698dbb52dad.",
+      "current_working_flow_impact": "None; implementation is already present in current main."
+    },
+    {
+      "number": 63,
+      "title": "Phase 4: direct reservation commit HTTP (Order 082)",
+      "source_ref": "refs/heads/phase-4/direct-reservation-commit-http",
+      "head": "383c98f420d9c9b052e824ca64b27c484d8dec2b",
+      "disposition": "closed_exact_main_ancestor",
+      "preservation_ref": "main@2e55b88488300b1d4efb551f8ec79698dbb52dad",
+      "evidence": "Exact ancestry verified: 383c98f420d9c9b052e824ca64b27c484d8dec2b is an ancestor of 2e55b88488300b1d4efb551f8ec79698dbb52dad.",
+      "current_working_flow_impact": "None; implementation is already present in current main."
+    },
+    {
+      "number": 64,
+      "title": "Order 083: isolate review seed proofs",
+      "source_ref": "refs/heads/phase-4/gate-3-seed-proof-correction",
+      "head": "97b20151492aa5007447bdddde33ebb238dea8e4",
+      "disposition": "closed_exact_main_ancestor",
+      "preservation_ref": "main@2e55b88488300b1d4efb551f8ec79698dbb52dad",
+      "evidence": "Exact ancestry verified: 97b20151492aa5007447bdddde33ebb238dea8e4 is an ancestor of 2e55b88488300b1d4efb551f8ec79698dbb52dad.",
+      "current_working_flow_impact": "None; implementation is already present in current main."
+    },
+    {
+      "number": 65,
+      "title": "Order 084: complete availability offer search",
+      "source_ref": "refs/heads/phase-4/complete-availability-offer-search",
+      "head": "a577bed8a85c1ed2ff62ea2224d49c05e3edafa7",
+      "disposition": "closed_exact_main_ancestor",
+      "preservation_ref": "main@2e55b88488300b1d4efb551f8ec79698dbb52dad",
+      "evidence": "Exact ancestry verified: a577bed8a85c1ed2ff62ea2224d49c05e3edafa7 is an ancestor of 2e55b88488300b1d4efb551f8ec79698dbb52dad.",
+      "current_working_flow_impact": "None; implementation is already present in current main."
+    },
+    {
+      "number": 66,
+      "title": "Order 085: reservation lifecycle commands",
+      "source_ref": "refs/heads/phase-4/reservation-lifecycle-commands",
+      "head": "d3f6ee442ccadb55c26762256cac9afcce5c0461",
+      "disposition": "closed_exact_main_ancestor",
+      "preservation_ref": "main@2e55b88488300b1d4efb551f8ec79698dbb52dad",
+      "evidence": "Exact ancestry verified: d3f6ee442ccadb55c26762256cac9afcce5c0461 is an ancestor of 2e55b88488300b1d4efb551f8ec79698dbb52dad.",
+      "current_working_flow_impact": "None; implementation is already present in current main."
+    },
+    {
+      "number": 67,
+      "title": "Order 086: atomic reservation segment changes",
+      "source_ref": "refs/heads/phase-4/reservation-segment-changes",
+      "head": "c92b096b815dcc08a5971c4cb53b72f4980e8ff5",
+      "disposition": "closed_exact_main_ancestor",
+      "preservation_ref": "main@2e55b88488300b1d4efb551f8ec79698dbb52dad",
+      "evidence": "Exact ancestry verified: c92b096b815dcc08a5971c4cb53b72f4980e8ff5 is an ancestor of 2e55b88488300b1d4efb551f8ec79698dbb52dad.",
+      "current_working_flow_impact": "None; implementation is already present in current main."
+    },
+    {
+      "number": 68,
+      "title": "Phase 4 correction: strict HTTP calendar instants (Order 089)",
+      "source_ref": "refs/heads/phase-4/strict-http-calendar-instants",
+      "head": "1cac9b5e30722a3ce4aacbff802765a4078799ea",
+      "disposition": "closed_exact_main_ancestor",
+      "preservation_ref": "main@2e55b88488300b1d4efb551f8ec79698dbb52dad",
+      "evidence": "Exact ancestry verified: 1cac9b5e30722a3ce4aacbff802765a4078799ea is an ancestor of 2e55b88488300b1d4efb551f8ec79698dbb52dad.",
+      "current_working_flow_impact": "None; implementation is already present in current main."
+    },
+    {
+      "number": 69,
+      "title": "Order 090: portable AI intent provider contract",
+      "source_ref": "refs/heads/phase-4/portable-ai-provider-contract",
+      "head": "2eb03058a57b69d628a7ab3ab5936e825f09891d",
+      "disposition": "closed_exact_main_ancestor",
+      "preservation_ref": "main@2e55b88488300b1d4efb551f8ec79698dbb52dad",
+      "evidence": "Exact ancestry verified: 2eb03058a57b69d628a7ab3ab5936e825f09891d is an ancestor of 2e55b88488300b1d4efb551f8ec79698dbb52dad.",
+      "current_working_flow_impact": "None; implementation is already present in current main."
+    },
+    {
+      "number": 70,
+      "title": "[codex] Order 091: canonical RMS room economics",
+      "source_ref": "refs/heads/phase-4/rms-economic-metric-contract",
+      "head": "aa07830c28f90a94658a78bf300d1f343373fd3c",
+      "disposition": "closed_semantically_superseded",
+      "preservation_ref": "main@2e55b88488300b1d4efb551f8ec79698dbb52dad",
+      "evidence": "Substantive parent 4874f5cd8052435d5c5d2f67698f6088cff502fe is an exact main ancestor; branch-only aa07830c28f90a94658a78bf300d1f343373fd3c records superseded localhost status.",
+      "current_working_flow_impact": "None; Order 091 implementation remains in main."
+    },
+    {
+      "number": 71,
+      "title": "[codex] Order 092: OTA research evidence contract",
+      "source_ref": "refs/heads/phase-4/ota-research-evidence-contract",
+      "head": "5ab6457f389f95fa1f9ff7054023aa7fbb7f20c9",
+      "disposition": "closed_archived_unique_ref",
+      "preservation_ref": "refs/heads/phase-4/ota-research-evidence-contract@5ab6457f389f95fa1f9ff7054023aa7fbb7f20c9",
+      "evidence": "Unique OTA research-record normalizer, canonicalizer, documentation and tests are absent from PR 80 and retained at the exact source ref.",
+      "current_working_flow_impact": "None; research-only foundation has no HTTP, UI, persistence or live execution path."
+    },
+    {
+      "number": 72,
+      "title": "Order 093: canonical channel booked-value contract",
+      "source_ref": "refs/heads/phase-4/channel-booked-value-contract",
+      "head": "18bf20b884746f83da55956d21ef7897e8cbb46c",
+      "disposition": "closed_archived_unique_ref",
+      "preservation_ref": "refs/heads/phase-4/channel-booked-value-contract@18bf20b884746f83da55956d21ef7897e8cbb46c",
+      "evidence": "Unique OTA foundation plus exact-money channel booked-value contract and tests are absent from PR 80 and retained at the exact source ref.",
+      "current_working_flow_impact": "None; foundation has no current HTTP, UI, accounting, tax or publication path."
+    },
+    {
+      "number": 73,
+      "title": "[codex] Adopt Codex-led governance and phone-worker RFC",
+      "source_ref": "refs/heads/phase-0/phone-idle-worker-rfc",
+      "head": "86dd59e38ec82e7b4770a7e77c84b769eb436d92",
+      "disposition": "closed_archived_unique_ref",
+      "preservation_ref": "refs/heads/phase-0/phone-idle-worker-rfc@86dd59e38ec82e7b4770a7e77c84b769eb436d92",
+      "evidence": "Codex governance is current through later lineage; unique phone-worker RFC material remains at the exact source ref.",
+      "current_working_flow_impact": "None; retained worker research is not a shipped hotel user flow."
+    },
+    {
+      "number": 74,
+      "title": "[codex] OnePlus fleet worker and verified model preparation",
+      "source_ref": "refs/heads/phase-0/android-worker-foundation",
+      "head": "6e07bf8e9eb5f9a807a3297d3ddd294759d30bf1",
+      "disposition": "closed_archived_unique_ref",
+      "preservation_ref": "refs/heads/phase-0/android-worker-foundation@6e07bf8e9eb5f9a807a3297d3ddd294759d30bf1",
+      "evidence": "Sixty Android worker files, workflow and pinned llama.cpp gitlink are absent from PR 80 and retained at the exact source ref.",
+      "current_working_flow_impact": "None; auxiliary APK reaches MODEL_READY only, signed jobs remain disabled, and it has no Yellow server or hotel-flow integration."
+    },
+    {
+      "number": 75,
+      "title": "Order 104: balanced charge posting",
+      "source_ref": "refs/heads/phase-5/balanced-charge-posting",
+      "head": "52f8b0c61db23d0faf3f232527881083bf8040e2",
+      "disposition": "open_pending_pr80_integration",
+      "preservation_ref": "refs/heads/phase-5/balanced-charge-posting@52f8b0c61db23d0faf3f232527881083bf8040e2",
+      "evidence": "Financial core is present in current lineage; PR 80 carries the corrected Order 121 actor-bound idempotency implementation and independent review.",
+      "current_working_flow_impact": "Wait for PR 80 integration before closing this historical lineage."
+    },
+    {
+      "number": 76,
+      "title": "Order 113: contain SECURITY DEFINER shadow paths",
+      "source_ref": "refs/heads/phase-5/security-definer-containment",
+      "head": "0ec1b77faea0f100b05bb051dc7c71b3c124a48b",
+      "disposition": "open_pending_pr80_integration",
+      "preservation_ref": "refs/heads/phase-5/security-definer-containment@0ec1b77faea0f100b05bb051dc7c71b3c124a48b",
+      "evidence": "Migrations 0010/0011 are byte-identical in main and PR 80; current lineage carries independently reviewed Orders 108 and 121.",
+      "current_working_flow_impact": "Wait for PR 80 integration before closing this historical lineage."
+    },
+    {
+      "number": 78,
+      "title": "Order 148: integrate approved runtime database authority",
+      "source_ref": "refs/heads/phase-5/post127-approved-integration",
+      "head": "4748ded0868a35434bbf9bbfd10b87294dc73301",
+      "disposition": "open_pending_pr80_integration",
+      "preservation_ref": "PR-80@6a981cce0672a6018fa79872e828e3c003fd3f71",
+      "evidence": "Exact ancestry verified: 4748ded0868a35434bbf9bbfd10b87294dc73301 is an ancestor of PR 80 head 6a981cce0672a6018fa79872e828e3c003fd3f71.",
+      "current_working_flow_impact": "Present in the release candidate; close after PR 80 integration."
+    },
+    {
+      "number": 79,
+      "title": "Order 149: show approved integration status",
+      "source_ref": "refs/heads/phase-5/founder-status-approved-integration",
+      "head": "ebce025b496757f6b011c6b071a6fe9287840fc2",
+      "disposition": "open_pending_pr80_integration",
+      "preservation_ref": "PR-80@6a981cce0672a6018fa79872e828e3c003fd3f71",
+      "evidence": "Exact ancestry verified: ebce025b496757f6b011c6b071a6fe9287840fc2 is an ancestor of PR 80 head 6a981cce0672a6018fa79872e828e3c003fd3f71.",
+      "current_working_flow_impact": "Present in the release candidate; close after PR 80 integration."
+    },
+    {
+      "number": 80,
+      "title": "Yellow current build: 18-phase roadmap and Phase 7 progress",
+      "source_ref": "refs/heads/phase-7/persisted-india-final-component-tax-evidence",
+      "head": "6a981cce0672a6018fa79872e828e3c003fd3f71",
+      "disposition": "open_active_integration_candidate",
+      "preservation_ref": "refs/heads/phase-7/persisted-india-final-component-tax-evidence@6a981cce0672a6018fa79872e828e3c003fd3f71",
+      "evidence": "Current application candidate used as the Order 438 release base.",
+      "current_working_flow_impact": "Active integration target; verification and contained fiscal release work remain required."
+    }
+  ]
+}

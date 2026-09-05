@@ -1652,6 +1652,7 @@ databaseDescribe("Bun SQL migration runner", () => {
           "0072_governed_india_final_component_tax_correction.sql",
           "0073_document_series_runtime_authority_containment.sql",
           "0074_india_native_fiscal_invoice_authority.sql",
+          "0075_contain_unapproved_native_fiscal_issuance.sql",
         ]);
 
         const preservedLedger = await sql<Array<{
@@ -1677,7 +1678,7 @@ databaseDescribe("Bun SQL migration runner", () => {
             FROM public.schema_migration
            ORDER BY version
         `;
-        expect(upgradedLedger).toHaveLength(74);
+        expect(upgradedLedger).toHaveLength(75);
 
         const noOpLog: string[] = [];
         const noOp = await runMigrations({
@@ -1686,7 +1687,7 @@ databaseDescribe("Bun SQL migration runner", () => {
           logger: (message) => noOpLog.push(message),
         });
         expect(noOp.appliedFiles).toEqual([]);
-        expect(noOp.discoveredFiles).toBe(74);
+        expect(noOp.discoveredFiles).toBe(75);
         expect(noOp.transactionBackendPids).toEqual([]);
         expect(noOpLog).toHaveLength(1);
         expect(noOpLog[0]).toContain("applied=0 status=no-op");

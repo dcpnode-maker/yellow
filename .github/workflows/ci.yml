@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    branches: [main, phase-7/codex-consolidated-release]
   pull_request:
   workflow_dispatch:
 
@@ -28,26 +28,36 @@ jobs:
         run: |
           $ErrorActionPreference = 'Stop'
           $probePath = 'handoff/questions/zz-ci-windows-state-probe.md'
-          $probeListing = "  $($probePath -replace '\\', '/')"
 
           function Get-StateSnapshot([string] $step) {
             $output = @(& .\state.ps1 6>&1 | ForEach-Object { "$_" })
-            $line = @($output | Where-Object { $_ -match '^Open work:' })
-            if ($line.Count -ne 1) {
-              throw "$step diverged: expected exactly one Open work line, got $($line.Count)"
+            $line = @($output | Where-Object { $_ -match '^Historical records:' })
+            $taskLine = @($output | Where-Object { $_ -match '^Current task: .+' })
+            $lifecycleLine = @($output | Where-Object { $_ -match '^Lifecycle: .+' })
+            $phaseLine = @($output | Where-Object { $_ -match '^Phase: \d+ · .+' })
+            if ($line.Count -ne 1 -or $taskLine.Count -ne 1 -or $lifecycleLine.Count -ne 1 -or $phaseLine.Count -ne 1) {
+              throw "$step diverged: expected one historical/task/lifecycle/phase line; got historical=$($line.Count) task=$($taskLine.Count) lifecycle=$($lifecycleLine.Count) phase=$($phaseLine.Count)"
             }
-            if ($line[0] -notmatch '^Open work: orders=(\d+) open \((\d+) total\) reviews=(\d+) open \((\d+) total\) questions=(\d+) open \((\d+) total\)$') {
-              throw "$step diverged: could not parse Open work line: $($line[0])"
+            if ($line[0] -notmatch '^Historical records: orders=(\d+) total \((\d+) lack legacy MERGED marker\) reviews=(\d+) total questions=(\d+) without legacy resolution marker \((\d+) total\)$') {
+              throw "$step diverged: could not parse Historical records line: $($line[0])"
+            }
+            $ordersTotal = [int] $Matches[1]
+            $ordersLegacyUnclosed = [int] $Matches[2]
+            $reviewsTotal = [int] $Matches[3]
+            $questionsUnresolved = [int] $Matches[4]
+            $questionsTotal = [int] $Matches[5]
+            $lifecycle = $lifecycleLine[0].Substring('Lifecycle: '.Length)
+            if ($phaseLine[0] -notmatch '^Phase: (\d+) · (.+)$' -or $Matches[2] -ne $lifecycle) {
+              throw "$step diverged: phase lifecycle does not match '$($lifecycleLine[0])': $($phaseLine[0])"
             }
             return [pscustomobject]@{
               Output = $output
               Line = $line[0]
-              OrdersOpen = [int] $Matches[1]
-              OrdersTotal = [int] $Matches[2]
-              ReviewsOpen = [int] $Matches[3]
-              ReviewsTotal = [int] $Matches[4]
-              QuestionsOpen = [int] $Matches[5]
-              QuestionsTotal = [int] $Matches[6]
+              OrdersTotal = $ordersTotal
+              OrdersLegacyUnclosed = $ordersLegacyUnclosed
+              ReviewsTotal = $reviewsTotal
+              QuestionsUnresolved = $questionsUnresolved
+              QuestionsTotal = $questionsTotal
             }
           }
 
@@ -55,22 +65,21 @@ jobs:
             [string] $step,
             [object] $actual,
             [object] $baseline,
-            [int] $questionOpenDelta,
+            [int] $questionUnresolvedDelta,
             [int] $questionTotalDelta
           ) {
             $sameNonQuestionCounts =
-              $actual.OrdersOpen -eq $baseline.OrdersOpen -and
               $actual.OrdersTotal -eq $baseline.OrdersTotal -and
-              $actual.ReviewsOpen -eq $baseline.ReviewsOpen -and
+              $actual.OrdersLegacyUnclosed -eq $baseline.OrdersLegacyUnclosed -and
               $actual.ReviewsTotal -eq $baseline.ReviewsTotal
-            $expectedQuestionsOpen = $baseline.QuestionsOpen + $questionOpenDelta
+            $expectedQuestionsUnresolved = $baseline.QuestionsUnresolved + $questionUnresolvedDelta
             $expectedQuestionsTotal = $baseline.QuestionsTotal + $questionTotalDelta
             if (
               -not $sameNonQuestionCounts -or
-              $actual.QuestionsOpen -ne $expectedQuestionsOpen -or
+              $actual.QuestionsUnresolved -ne $expectedQuestionsUnresolved -or
               $actual.QuestionsTotal -ne $expectedQuestionsTotal
             ) {
-              throw "$step diverged: expected question deltas open=$questionOpenDelta total=$questionTotalDelta from '$($baseline.Line)', got '$($actual.Line)'"
+              throw "$step diverged: expected question deltas unresolved=$questionUnresolvedDelta total=$questionTotalDelta from '$($baseline.Line)', got '$($actual.Line)'"
             }
           }
 
@@ -120,8 +129,8 @@ jobs:
             Set-Content -LiteralPath $probePath -Value '# Windows state CI probe'
             $unmarked = Get-StateSnapshot 'unmarked question'
             Assert-Counts 'unmarked question' $unmarked $baseline 1 1
-            if ($unmarked.Output -notcontains $probeListing) {
-              throw "unmarked question diverged: $probePath was not listed under Open questions"
+            if ($unmarked.Output -match [regex]::Escape($probePath)) {
+              throw "unmarked question diverged: historical probe leaked into the current-task listing"
             }
 
             Add-Content -LiteralPath $probePath -Value '## RESOLVED'
@@ -135,8 +144,8 @@ jobs:
             Set-Content -LiteralPath $probePath -Value '# Windows state CI probe', 'This line contains ## RESOLVED inside it.'
             $nearMiss = Get-StateSnapshot 'inline-marker near-miss'
             Assert-Counts 'inline-marker near-miss' $nearMiss $baseline 1 1
-            if ($nearMiss.Output -notcontains $probeListing) {
-              throw "inline-marker near-miss diverged: $probePath was not listed under Open questions"
+            if ($nearMiss.Output -match [regex]::Escape($probePath)) {
+              throw "inline-marker near-miss diverged: historical probe leaked into the current-task listing"
             }
           } finally {
             Remove-Item -LiteralPath $probePath -Force -ErrorAction SilentlyContinue
@@ -249,7 +258,7 @@ jobs:
   database:
     needs: quality
     runs-on: ubuntu-24.04
-    timeout-minutes: 20
+    timeout-minutes: 35
     env:
       COMPOSE_PROJECT_NAME: yellow-ci-database
       YELLOW_DATABASE_NAME: yellow_ci_deployment
@@ -356,6 +365,46 @@ jobs:
       - name: Run seed integration suite
         run: bun run test:db:seed
 
+      - name: Prove native fiscal release containment on fresh and upgraded databases
+        shell: bash
+        run: |
+          set -euo pipefail
+          export YELLOW_DEPLOY_DATABASE_URL="$ADMIN_URL"
+          export YELLOW_RUNTIME_DATABASE_URL="postgres://yellow_runtime:${YELLOW_RUNTIME_DATABASE_PASSWORD}@${POSTGRES_ADDRESS}/postgres"
+          export YELLOW_REQUIRE_NATIVE_FISCAL_CONTAINMENT=1 YELLOW_REQUIRE_BUILD_READINESS=1
+          bun test tests/native-fiscal-release-containment.integration.test.ts tests/build-readiness.integration.test.ts
+
+      - name: Prove released operational and tax compatibility with split runtime authority
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker compose exec -T postgres psql --username yellow_deploy --dbname postgres --set ON_ERROR_STOP=1 \
+            --command 'CREATE DATABASE yellow_ci_compatibility'
+          export YELLOW_DEPLOY_DATABASE_URL="postgres://yellow_deploy:${YELLOW_DEPLOY_DATABASE_PASSWORD}@${POSTGRES_ADDRESS}/yellow_ci_compatibility"
+          export YELLOW_RUNTIME_DATABASE_URL="postgres://yellow_runtime:${YELLOW_RUNTIME_DATABASE_PASSWORD}@${POSTGRES_ADDRESS}/yellow_ci_compatibility"
+          export YELLOW_FOLIO_TRANSFERS_URL="$YELLOW_RUNTIME_DATABASE_URL"
+          export YELLOW_ORDER400_DATABASE_URL="$YELLOW_DEPLOY_DATABASE_URL"
+          export YELLOW_ORDER400_RUNTIME_DATABASE_URL="$YELLOW_RUNTIME_DATABASE_URL"
+          export YELLOW_ORDER367_DATABASE_URL="$YELLOW_DEPLOY_DATABASE_URL"
+          export YELLOW_ORDER367_RUNTIME_DATABASE_URL="$YELLOW_RUNTIME_DATABASE_URL"
+          export YELLOW_REQUIRE_PHASE5_JOURNEY=1 YELLOW_REQUIRE_FOLIO_TRANSFERS=1
+          export YELLOW_REQUIRE_POSITIVE_TAX_CORRECTION=1 YELLOW_REQUIRE_ORDER408_DATABASE=1
+          export YELLOW_REQUIRE_BUSINESS_DAY_SEAL=1 YELLOW_REQUIRE_STAY_CHECKIN=1
+          export YELLOW_REQUIRE_CHECKOUT=1 YELLOW_REQUIRE_SECURITY_DEFINER=1
+          bun run db:migrate
+          bun run db:seed
+          bun test \
+            tests/phase-5-financial-journey.integration.test.ts \
+            tests/financial-folio-transfers.integration.test.ts \
+            tests/positive-tax-correction.integration.test.ts \
+            tests/india-final-component-tax-correction.integration.test.ts \
+            tests/business-day-seal.integration.test.ts \
+            tests/stay-checkin.integration.test.ts \
+            tests/stay-checkout.integration.test.ts \
+            tests/security-definer-containment.integration.test.ts \
+            tests/india-gst-accommodation-quoted-rate-applicability-recording.integration.test.ts \
+            tests/india-gst-accommodation-final-component-tax-recording.integration.test.ts
+
       - name: Create fresh acceptance databases
         shell: bash
         run: |
@@ -410,6 +459,7 @@ jobs:
           YELLOW_REVIEW_APPROVER_PASSWORD="$approver_password" \
             bun scripts/seed-review.ts
 
+          export YELLOW_BUILD_SHA="$(git rev-parse HEAD)"
           export YELLOW_OPERATOR_WORKBENCH=1
           export YELLOW_HOLD_EXPIRY_WORKER=1
           export YELLOW_AVAILABILITY_PROJECTION_WORKER=1
@@ -444,6 +494,15 @@ jobs:
             echo "application did not reach exact health" >&2
             exit 1
           fi
+
+          curl --fail --silent --show-error --max-time 10 \
+            "http://${app_address}/ready" --output "$proof_directory/readiness.json"
+          READY_FILE="$proof_directory/readiness.json" bun -e '
+            const body = await Bun.file(process.env.READY_FILE!).json();
+            if (body.status !== "ready" || body.build?.revision !== process.env.YELLOW_BUILD_SHA
+                || body.build?.expectedMigrationFrontier !== 75
+                || body.target !== "yellow_runtime_database") process.exit(1);
+          '
 
           LOGIN_PASSWORD="$review_password" LOGIN_FILE="$proof_directory/login-request.json" bun -e '
             await Bun.write(process.env.LOGIN_FILE!, JSON.stringify({
@@ -519,3 +578,43 @@ jobs:
       - name: Remove database stack and volumes
         if: always()
         run: docker compose down --volumes --remove-orphans
+
+  local-review:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    env:
+      COMPOSE_PROJECT_NAME: yellow-review
+      YELLOW_DATABASE_NAME: yellow_dev
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
+        with:
+          bun-version: 1.3.14
+
+      - name: Set up Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
+        with:
+          python-version: "3.12"
+
+      - name: Install frozen verification dependencies
+        run: |
+          bun install --frozen-lockfile
+          python -m pip install --require-hashes --only-binary=:all: -r requirements-ci.txt
+
+      - name: Prove the supported local launcher, canonical referee, readiness and login
+        run: ./scripts/local-review.sh start
+
+      - name: Verify local status after startup
+        run: ./scripts/local-review.sh status
+
+      - name: Stop local preview
+        if: always()
+        run: |
+          if [ -f .yellow/runtime-database-authority.env ]; then
+            ./scripts/local-review.sh stop
+          fi

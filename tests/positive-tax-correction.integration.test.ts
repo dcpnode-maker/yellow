@@ -942,7 +942,7 @@ dbDescribe("Order 266 governed positive-tax correction", () => {
         WHERE n.nspname='public' AND c.relkind IN ('r','p')) tables,
       (SELECT count(*)::int FROM pg_policy p JOIN pg_class c ON c.oid=p.polrelid
         JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname='public') policies`)[0])
-      .toEqual({ tables: 98, policies: 88 });
+      .toEqual({ tables: 125, policies: 115 });
 
     const fixture = await seedPositive();
     await expectSqlState(() => deploy!.unsafe(

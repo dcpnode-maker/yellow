@@ -2,7 +2,8 @@
 
 Use the existing checkout and installed dependencies. Do not copy the project into
 WSL, unzip another package or initialize another repository merely to resume.
-Read [the common guide](START-HERE.md), [PROJECT](PROJECT.md) and [USAGE](USAGE.md)
+Read [the common guide](START-HERE.md), [PROJECT](PROJECT.md),
+[PROJECT-STATUS](docs/PROJECT-STATUS.md) and [USAGE](USAGE.md)
 for current branch, scope and proof requirements.
 
 ## Current workstation boundary
@@ -30,16 +31,15 @@ If Git is not on PATH, use the existing `git.exe` location reported by the envir
 A missing PATH entry does not require another installation. Do not print credentials
 or protected `.yellow` contents in diagnostics.
 
-The native session inventory is:
+The native session inventory reads the same canonical current task as Unix:
 
 ```powershell
 & .\state.ps1
 ```
 
 If execution policy prevents it, inspect the script and follow the machine's approved
-policy; do not weaken system-wide policy. The historical-open-order parser can
-overstate counts or infer a phase from old orders. Reconcile with latest decisions,
-the actual current order and [roadmap](handoff/ROADMAP.md).
+policy; do not weaken system-wide policy. Legacy unclosed markers remain visible only
+as a historical-record count; they do not replace the current task in PROJECT-STATUS.
 
 ## Native source checks
 
@@ -92,6 +92,6 @@ in protected development storage, never Git.
 
 There are **18 phases (0–17)** and **13 bounded contexts**. Start with
 [FEATURE-REGISTER](docs/FEATURE-REGISTER.md), the current phase and scoped order,
-not a Phase-0 kickoff prompt. Codex coordinates bounded parallel implementation with
-model choice by risk, cost and capability. Preserve independent high-risk proof and
-normal GitHub integration.
+not a Phase-0 kickoff prompt. Codex owns and coordinates development, using bounded
+internal models by risk, cost and capability. Preserve independent high-risk proof
+and normal GitHub integration.

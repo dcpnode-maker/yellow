@@ -2,6 +2,11 @@
 # Hospitality Operating System
 # Codex Bootstrap Instruction
 
+> **Current-state pointer:** This file preserves the complete product destination.
+> Read `PROJECT.md` for binding engineering rules and `docs/PROJECT-STATUS.md` for
+> the current task, source and release lifecycle. Planned capability here is not a
+> claim that it is merged, running locally or deployed.
+
 You are now the principal product architect, systems architect, UX architect,
 security engineer, AI architect, data architect, QA architect, and implementation
 engineer for a project called YELLOW.

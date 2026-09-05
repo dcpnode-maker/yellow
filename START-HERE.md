@@ -23,20 +23,20 @@ git clone https://github.com/dcpnode-maker/yellow.git
 cd yellow
 ```
 
-**Publication checkpoint, 2026-09-05:** GitHub's default `main` still holds the older
-integrated baseline. Current development is on
-[the Phase-7 branch](https://github.com/dcpnode-maker/yellow/tree/phase-7/persisted-india-final-component-tax-evidence)
-and [PR #80](https://github.com/dcpnode-maker/yellow/pull/80).
-A clone of `main` does not contain every development feature. Select the task's
-source ref only after checking its order and preserving existing uncommitted work.
-Do not reset, replace the default branch or merge unapproved code to hide the gap.
+**Consolidation checkpoint, 2026-09-05:** GitHub's default `main` still holds the older
+integrated baseline. Orders438/439 form the current release task based on
+[PR #80](https://github.com/dcpnode-maker/yellow/pull/80). Read
+[PROJECT-STATUS](docs/PROJECT-STATUS.md) for the exact source and lifecycle before
+selecting a ref. A clone of `main` does not yet contain every candidate feature.
+Preserve existing uncommitted work; never reset or merge unapproved code to hide a gap.
 
 ## 2. Read the canonical entry points
 
 1. [PROJECT.md](PROJECT.md): constitution, invariants and boundaries.
-2. Your role adapter: [AGENTS.md](AGENTS.md) or [CLAUDE.md](CLAUDE.md).
-3. [Project map](docs/PROJECT-MAP.md) and [feature register](docs/FEATURE-REGISTER.md).
-4. The current phase in [BUILD-PLAN.md](BUILD-PLAN.md), scoped
+2. [Current project status](docs/PROJECT-STATUS.md).
+3. Your role adapter: [AGENTS.md](AGENTS.md) or [CLAUDE.md](CLAUDE.md).
+4. [Project map](docs/PROJECT-MAP.md) and [feature register](docs/FEATURE-REGISTER.md).
+5. The current phase in [BUILD-PLAN.md](BUILD-PLAN.md), scoped
    [order](handoff/orders), recent [decisions](DECISIONS.log) and
    [ledger](handoff/LEDGER.md).
 
@@ -46,10 +46,9 @@ Run the session inventory in the supported shell:
 ./state.sh
 ```
 
-At this documentation checkpoint the historical-open-order parser can report an
-inflated count and the highest phase mentioned in an old order. Reconcile it with
-the latest decision and current order; that one number is not a completion oracle.
-On Windows, use the native report described in the Windows guide.
+The report reads its current task and phase from PROJECT-STATUS. It reports legacy
+unclosed markers only as a historical-record count. On Windows, use the native report
+described in the Windows guide.
 
 The roadmap has **18 phases (0–17)**. The architecture still has **13 bounded
 contexts**. The first migration's 80 tables plus migration ledger are an immutable
@@ -105,7 +104,7 @@ tests are not database proof. An old green receipt is not verification of a new 
 
 ## 5. Work from an order, with bounded parallelism
 
-Codex owns implementation and coordination. Use capable models for foundations and
+Codex is the sole implementation and coordination owner. It may use capable internal models for foundations and
 high-risk work, and faster/cheaper models for bounded routine tasks. This guide does
 not mandate a vendor-specific model. Delegate non-overlapping files or read-only
 analysis, retain one authoritative plan and integrate the results.
