@@ -1,6 +1,14 @@
 import { types as utilTypes } from "node:util";
 import type { Tx } from "../../kernel";
 import { parsePositiveTaxAttributionSnapshot } from "./attribution";
+import type {
+  IndiaGstAccommodationNativeInvoiceSourceResult,
+} from "./india-gst-accommodation-invoice-source";
+import {
+  IndiaGstAccommodationInvoiceSourceValidationError,
+  validateIndiaGstAccommodationNativeInvoiceSourceResult,
+} from "./india-gst-accommodation-invoice-source";
+import type { IndiaGstNativeRegistrationTimeOfSupplyEvidence } from "./india-gst-registration-at-time-of-supply";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 const SHA256 = /^[0-9a-f]{64}$/;
@@ -25,6 +33,40 @@ export interface IndiaGstRecipientRegistrationAtTimeOfSupplyResult {
   readonly approval: Readonly<{ form: "sez_rules_form_g" | "sez_rules_form_b" | "sez_rules_form_c"; reference: string; validity: Readonly<{ fromInclusive: string; toExclusive: string }>; status: "in_force"; evidenceSha256: string }> | null;
   readonly recipientRegistrationStatusEvidenceHash: string; readonly timeOfSupplyEvidenceHash: string;
   readonly timeOfSupply: Readonly<Record<string, unknown>>;
+  readonly recipientRegistrationLegalRule: "IGST_ACT_7_5_B_AND_8_2_RECIPIENT_STATUS";
+  readonly timeOfSupplyLegalRule: "CGST_ACT_13_2_A_OR_B_ORDINARY_TIME_OF_SUPPLY";
+  readonly evidenceHash: string;
+}
+export interface IndiaGstRecipientRegistrationStatusForNativeTimeOfSupply {
+  readonly recipientPartyId: string;
+  readonly recipientRegistrationId: string;
+  readonly recipientSezStatusId: string;
+  readonly statusAsOf: string;
+  readonly recipient: Readonly<{ readonly registrationId: string; readonly evidenceHash: string }>;
+  readonly gstRegistration: Readonly<{ readonly status: "active"; readonly taxpayerType: "regular" | "sez_unit" | "sez_developer"; readonly source: "gst_common_portal"; readonly evidenceSha256: string }>;
+  readonly sezStatus: "affirmatively_non_sez_regular" | "sez_unit" | "sez_developer";
+  readonly approval: Readonly<{ readonly form: "sez_rules_form_g" | "sez_rules_form_b" | "sez_rules_form_c"; readonly reference: string; readonly validity: Readonly<{ readonly fromInclusive: string; readonly toExclusive: string }>; readonly status: "in_force"; readonly evidenceSha256: string }> | null;
+  readonly recipientRegistrationStatusEvidenceHash: string;
+  readonly recipientRegistrationLegalRule: "IGST_ACT_7_5_B_AND_8_2_RECIPIENT_STATUS";
+}
+export interface IndiaGstRecipientRegistrationAtNativeTimeOfSupplyInput {
+  readonly tenantId: string;
+  readonly recipientRegistrationStatus: IndiaGstRecipientRegistrationStatusForNativeTimeOfSupply;
+  readonly invoiceSource: IndiaGstAccommodationNativeInvoiceSourceResult;
+}
+export interface IndiaGstRecipientRegistrationAtNativeTimeOfSupplyResult {
+  readonly kind: "native_current_transaction";
+  readonly recipientPartyId: string; readonly recipientRegistrationId: string; readonly recipientSezStatusId: string;
+  readonly propertyNode: string; readonly reservationId: string; readonly statusAsOf: string; readonly timeOfSupplyDate: string;
+  readonly result: "active_recipient_registration_at_time_of_supply";
+  readonly recipient: Readonly<{ readonly registrationId: string; readonly evidenceHash: string }>;
+  readonly gstRegistration: IndiaGstRecipientRegistrationStatusForNativeTimeOfSupply["gstRegistration"];
+  readonly sezStatus: IndiaGstRecipientRegistrationStatusForNativeTimeOfSupply["sezStatus"];
+  readonly approval: IndiaGstRecipientRegistrationStatusForNativeTimeOfSupply["approval"];
+  readonly recipientRegistrationStatusEvidenceHash: string;
+  readonly invoiceSourceEvidenceHash: string;
+  readonly timeOfSupplyEvidenceHash: string;
+  readonly timeOfSupply: IndiaGstNativeRegistrationTimeOfSupplyEvidence;
   readonly recipientRegistrationLegalRule: "IGST_ACT_7_5_B_AND_8_2_RECIPIENT_STATUS";
   readonly timeOfSupplyLegalRule: "CGST_ACT_13_2_A_OR_B_ORDINARY_TIME_OF_SUPPLY";
   readonly evidenceHash: string;
@@ -114,3 +156,43 @@ export class IndiaGstRecipientRegistrationAtTimeOfSupplyService {
   }
 }
 export function resolveIndiaGstRecipientRegistrationAtTimeOfSupply(tx: Tx, input: IndiaGstRecipientRegistrationAtTimeOfSupplyInput): Promise<IndiaGstRecipientRegistrationAtTimeOfSupplyResult> { return new IndiaGstRecipientRegistrationAtTimeOfSupplyService().resolve(tx, input); }
+
+function deeplyFrozen(value: unknown, seen = new Set<object>()): void {
+  if (value === null || typeof value === "string" || typeof value === "boolean" || typeof value === "number" && Number.isFinite(value)) return;
+  if (typeof value === "object" && seen.has(value)) return;
+  if (typeof value !== "object" || utilTypes.isProxy(value) || !Object.isFrozen(value) || Object.getOwnPropertySymbols(value).length !== 0 || !Array.isArray(value) && Object.getPrototypeOf(value) !== Object.prototype && Object.getPrototypeOf(value) !== null) throw new IndiaGstRecipientRegistrationAtTimeOfSupplyValidationError("native registration timing input must be an exact deeply frozen graph");
+  seen.add(value);
+  for (const [key, descriptor] of Object.entries(Object.getOwnPropertyDescriptors(value))) { if (Array.isArray(value) && key === "length") continue; if (descriptor.get !== undefined || descriptor.set !== undefined || descriptor.enumerable !== true || descriptor.configurable !== false || !("value" in descriptor) || descriptor.writable !== false) throw new IndiaGstRecipientRegistrationAtTimeOfSupplyValidationError("native registration timing input contains invalid descriptors"); deeplyFrozen(descriptor.value, seen); }
+}
+
+function validateNativeInvoiceSource(tenantId: string, raw: IndiaGstAccommodationNativeInvoiceSourceResult): IndiaGstAccommodationNativeInvoiceSourceResult { try { return validateIndiaGstAccommodationNativeInvoiceSourceResult(tenantId, raw); } catch (error) { if (error instanceof IndiaGstAccommodationInvoiceSourceValidationError) throw new IndiaGstRecipientRegistrationAtTimeOfSupplyValidationError(error.message); throw error; } }
+
+/** Pure composition only; persisted-root authentication remains in the issuance SQL boundary. */
+export function composeIndiaGstRecipientRegistrationAtNativeTimeOfSupply(raw: IndiaGstRecipientRegistrationAtNativeTimeOfSupplyInput): IndiaGstRecipientRegistrationAtNativeTimeOfSupplyResult {
+  deeplyFrozen(raw);
+  const input = exact(raw, ["tenantId", "recipientRegistrationStatus", "invoiceSource"], "native recipient registration timing input", IndiaGstRecipientRegistrationAtTimeOfSupplyValidationError) as unknown as IndiaGstRecipientRegistrationAtNativeTimeOfSupplyInput;
+  const tenantId = uuid(input.tenantId, "tenantId", IndiaGstRecipientRegistrationAtTimeOfSupplyValidationError);
+  const invoiceSource = validateNativeInvoiceSource(tenantId, input.invoiceSource), timing = invoiceSource.timing;
+  const status = exact(input.recipientRegistrationStatus, ["recipientPartyId", "recipientRegistrationId", "recipientSezStatusId", "statusAsOf", "recipient", "gstRegistration", "sezStatus", "approval", "recipientRegistrationStatusEvidenceHash", "recipientRegistrationLegalRule"], "native recipient registration status", IndiaGstRecipientRegistrationAtTimeOfSupplyValidationError);
+  const partyId = uuid(status.recipientPartyId, "recipient party id", IndiaGstRecipientRegistrationAtTimeOfSupplyValidationError), registrationId = uuid(status.recipientRegistrationId, "recipient registration id", IndiaGstRecipientRegistrationAtTimeOfSupplyValidationError), statusId = uuid(status.recipientSezStatusId, "recipient status id", IndiaGstRecipientRegistrationAtTimeOfSupplyValidationError), statusAsOf = date(status.statusAsOf, "recipient statusAsOf", IndiaGstRecipientRegistrationAtTimeOfSupplyValidationError);
+  const recipient = exact(status.recipient, ["registrationId", "evidenceHash"], "native recipient registration", IndiaGstRecipientRegistrationAtTimeOfSupplyValidationError), gst = exact(status.gstRegistration, ["status", "taxpayerType", "source", "evidenceSha256"], "native recipient GST status", IndiaGstRecipientRegistrationAtTimeOfSupplyValidationError);
+  if (recipient.registrationId !== registrationId || statusAsOf !== timing.timeOfSupplyDate || gst.status !== "active" || gst.source !== "gst_common_portal" || gst.taxpayerType !== "regular" && gst.taxpayerType !== "sez_unit" && gst.taxpayerType !== "sez_developer" || status.recipientRegistrationLegalRule !== "IGST_ACT_7_5_B_AND_8_2_RECIPIENT_STATUS") throw new IndiaGstRecipientRegistrationAtTimeOfSupplyValidationError("native recipient registration status conflicts with timing");
+  hash(recipient.evidenceHash, "recipient evidence hash"); hash(gst.evidenceSha256, "recipient GST status evidence hash");
+  const expectedSezStatus = (gst.taxpayerType === "regular" ? "affirmatively_non_sez_regular" : gst.taxpayerType) as IndiaGstRecipientRegistrationStatusForNativeTimeOfSupply["sezStatus"];
+  if (status.sezStatus !== expectedSezStatus) throw new IndiaGstRecipientRegistrationAtTimeOfSupplyValidationError("native recipient SEZ status conflicts with GST status");
+  let approval: IndiaGstRecipientRegistrationStatusForNativeTimeOfSupply["approval"] = null;
+  if (gst.taxpayerType === "regular") { if (status.approval !== null) throw new IndiaGstRecipientRegistrationAtTimeOfSupplyValidationError("regular native recipient cannot carry SEZ approval"); }
+  else {
+    const candidate = exact(status.approval, ["form", "reference", "validity", "status", "evidenceSha256"], "native recipient SEZ approval", IndiaGstRecipientRegistrationAtTimeOfSupplyValidationError), validity = exact(candidate.validity, ["fromInclusive", "toExclusive"], "native recipient SEZ approval validity", IndiaGstRecipientRegistrationAtTimeOfSupplyValidationError);
+    const fromInclusive = date(validity.fromInclusive, "native recipient SEZ approval start", IndiaGstRecipientRegistrationAtTimeOfSupplyValidationError), toExclusive = date(validity.toExclusive, "native recipient SEZ approval end", IndiaGstRecipientRegistrationAtTimeOfSupplyValidationError);
+    if ((gst.taxpayerType === "sez_unit" && candidate.form !== "sez_rules_form_g") || (gst.taxpayerType === "sez_developer" && candidate.form !== "sez_rules_form_b" && candidate.form !== "sez_rules_form_c") || candidate.status !== "in_force" || fromInclusive >= toExclusive || statusAsOf < fromInclusive || statusAsOf >= toExclusive) throw new IndiaGstRecipientRegistrationAtTimeOfSupplyValidationError("native recipient SEZ approval is invalid");
+    approval = { form: candidate.form as "sez_rules_form_g" | "sez_rules_form_b" | "sez_rules_form_c", reference: canonical(candidate.reference, "native recipient SEZ approval reference", 128), validity: { fromInclusive, toExclusive }, status: "in_force", evidenceSha256: hash(candidate.evidenceSha256, "native recipient SEZ approval evidence hash") };
+  }
+  const gstRegistration = { status: "active" as const, taxpayerType: gst.taxpayerType as "regular" | "sez_unit" | "sez_developer", source: "gst_common_portal" as const, evidenceSha256: gst.evidenceSha256 as string };
+  const statusBody = { recipientSezStatusId: statusId, recipient: { partyId, registrationId, evidenceHash: recipient.evidenceHash as string }, statusAsOf, gstRegistration, sezStatus: expectedSezStatus, approval, legalRule: "IGST_ACT_7_5_B_AND_8_2_RECIPIENT_STATUS" as const };
+  const expectedStatusHash = digest({ tenantId, ...statusBody });
+  if (status.recipientRegistrationStatusEvidenceHash !== expectedStatusHash) throw new IndiaGstRecipientRegistrationAtTimeOfSupplyValidationError("native recipient registration status hash is invalid");
+  const timeBody = { kind: "native_current_transaction" as const, nativeTiming: timing }, timeOfSupplyEvidenceHash = digest({ tenantId, ...timeBody }), timeOfSupply = freeze({ ...timeBody, evidenceHash: timeOfSupplyEvidenceHash });
+  const evidence = { kind: "native_current_transaction" as const, recipientPartyId: partyId, recipientRegistrationId: registrationId, recipientSezStatusId: statusId, propertyNode: timing.propertyNode, reservationId: timing.reservationId, statusAsOf, timeOfSupplyDate: timing.timeOfSupplyDate, result: "active_recipient_registration_at_time_of_supply" as const, recipient: { registrationId, evidenceHash: recipient.evidenceHash as string }, gstRegistration, sezStatus: expectedSezStatus, approval, recipientRegistrationStatusEvidenceHash: expectedStatusHash, invoiceSourceEvidenceHash: invoiceSource.evidenceHash, timeOfSupplyEvidenceHash, timeOfSupply, recipientRegistrationLegalRule: "IGST_ACT_7_5_B_AND_8_2_RECIPIENT_STATUS" as const, timeOfSupplyLegalRule: "CGST_ACT_13_2_A_OR_B_ORDINARY_TIME_OF_SUPPLY" as const };
+  return freeze({ ...evidence, evidenceHash: digest({ tenantId, ...evidence }) });
+}

@@ -1,6 +1,14 @@
 import { types as utilTypes } from "node:util";
 import type { Tx } from "../../kernel";
 import { parsePositiveTaxAttributionSnapshot } from "./attribution";
+import type {
+  IndiaGstAccommodationNativeInvoiceSourceResult,
+  IndiaGstAccommodationNativeTimingResult,
+} from "./india-gst-accommodation-invoice-source";
+import {
+  IndiaGstAccommodationInvoiceSourceValidationError,
+  validateIndiaGstAccommodationNativeInvoiceSourceResult,
+} from "./india-gst-accommodation-invoice-source";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 const SHA256 = /^[0-9a-f]{64}$/;
@@ -115,6 +123,58 @@ export interface IndiaGstRegistrationAtTimeOfSupplyResult {
   readonly evidenceHash: string;
 }
 
+export interface IndiaGstSupplierRegistrationStatusForNativeTimeOfSupply {
+  readonly supplierRegistrationId: string;
+  readonly supplierGstRegistrationStatusId: string;
+  readonly supplierServiceLocationId: string;
+  readonly propertyNode: string;
+  readonly statusAsOf: string;
+  readonly supplierServiceLocation: Readonly<{ readonly id: string; readonly evidenceHash: string }>;
+  readonly supplier: Readonly<{ readonly registrationId: string; readonly evidenceHash: string }>;
+  readonly gstRegistration: Readonly<{
+    readonly status: "active";
+    readonly taxpayerType: "regular" | "sez_unit" | "sez_developer";
+    readonly source: "gst_common_portal";
+    readonly evidenceSha256: string;
+  }>;
+  readonly supplierRegistrationStatusEvidenceHash: string;
+  readonly registrationLegalRule: "CGST_ACT_25_29_30_AND_RULE_21A_REGISTRATION_STATUS";
+}
+
+export interface IndiaGstRegistrationAtNativeTimeOfSupplyInput {
+  readonly tenantId: string;
+  readonly supplierRegistrationStatus: IndiaGstSupplierRegistrationStatusForNativeTimeOfSupply;
+  readonly invoiceSource: IndiaGstAccommodationNativeInvoiceSourceResult;
+}
+
+export interface IndiaGstNativeRegistrationTimeOfSupplyEvidence {
+  readonly kind: "native_current_transaction";
+  readonly nativeTiming: IndiaGstAccommodationNativeTimingResult;
+  readonly evidenceHash: string;
+}
+
+export interface IndiaGstRegistrationAtNativeTimeOfSupplyResult {
+  readonly kind: "native_current_transaction";
+  readonly supplierRegistrationId: string;
+  readonly supplierGstRegistrationStatusId: string;
+  readonly supplierServiceLocationId: string;
+  readonly propertyNode: string;
+  readonly reservationId: string;
+  readonly statusAsOf: string;
+  readonly timeOfSupplyDate: string;
+  readonly result: "active_at_time_of_supply";
+  readonly supplierServiceLocation: Readonly<{ readonly id: string; readonly evidenceHash: string }>;
+  readonly supplier: Readonly<{ readonly registrationId: string; readonly evidenceHash: string }>;
+  readonly gstRegistration: IndiaGstSupplierRegistrationStatusForNativeTimeOfSupply["gstRegistration"];
+  readonly supplierRegistrationStatusEvidenceHash: string;
+  readonly invoiceSourceEvidenceHash: string;
+  readonly timeOfSupplyEvidenceHash: string;
+  readonly timeOfSupply: IndiaGstNativeRegistrationTimeOfSupplyEvidence;
+  readonly registrationLegalRule: "CGST_ACT_25_29_30_AND_RULE_21A_REGISTRATION_STATUS";
+  readonly timeOfSupplyLegalRule: "CGST_ACT_13_2_A_OR_B_ORDINARY_TIME_OF_SUPPLY";
+  readonly evidenceHash: string;
+}
+
 export class IndiaGstRegistrationAtTimeOfSupplyValidationError extends Error { constructor(message: string) { super(message); this.name = "IndiaGstRegistrationAtTimeOfSupplyValidationError"; } }
 export class IndiaGstRegistrationAtTimeOfSupplyNotFoundError extends Error { constructor(message: string) { super(message); this.name = "IndiaGstRegistrationAtTimeOfSupplyNotFoundError"; } }
 export class IndiaGstRegistrationAtTimeOfSupplyConflictError extends Error { constructor(message: string) { super(message); this.name = "IndiaGstRegistrationAtTimeOfSupplyConflictError"; } }
@@ -131,6 +191,7 @@ function hash(value: unknown, subject: string): string { if (typeof value !== "s
 function date(value: unknown, subject: string, E = IndiaGstRegistrationAtTimeOfSupplyConflictError): string { if (typeof value !== "string") throw new E(`${subject} is invalid`); const m = DATE.exec(value); if (!m) throw new E(`${subject} is invalid`); const year = +m[1]!, month = +m[2]!, day = +m[3]!, leap = year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0), days = [31, leap ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]; if (year === 0 || month < 1 || month > 12 || day < 1 || day > (days[month - 1] ?? 0)) throw new E(`${subject} is invalid`); return value; }
 function digest(value: unknown): string { return new Bun.CryptoHasher("sha256").update(JSON.stringify(value)).digest("hex"); }
 function freeze<T>(value: T, seen = new Set<object>()): T { if (typeof value !== "object" || value === null || seen.has(value)) return value; seen.add(value); for (const key of Reflect.ownKeys(value)) freeze((value as Record<PropertyKey, unknown>)[key], seen); return Object.freeze(value); }
+function deeplyFrozen(value: unknown, seen = new Set<object>()): void { if (value === null || typeof value === "string" || typeof value === "boolean" || typeof value === "number" && Number.isFinite(value)) return; if (typeof value === "object" && seen.has(value)) return; if (typeof value !== "object" || utilTypes.isProxy(value) || !Object.isFrozen(value) || Object.getOwnPropertySymbols(value).length !== 0 || !Array.isArray(value) && Object.getPrototypeOf(value) !== Object.prototype && Object.getPrototypeOf(value) !== null) throw new IndiaGstRegistrationAtTimeOfSupplyValidationError("native registration timing input must be an exact deeply frozen graph"); seen.add(value); for (const [key, descriptor] of Object.entries(Object.getOwnPropertyDescriptors(value))) { if (Array.isArray(value) && key === "length") continue; if (descriptor.get !== undefined || descriptor.set !== undefined || descriptor.enumerable !== true || descriptor.configurable !== false || !("value" in descriptor) || descriptor.writable !== false) throw new IndiaGstRegistrationAtTimeOfSupplyValidationError("native registration timing input contains invalid descriptors"); deeplyFrozen(descriptor.value, seen); } }
 function add30(value: string): string { const parts = value.split("-").map(Number) as [number, number, number]; let [year, month, day] = parts; for (let i = 0; i < 30; i += 1) { day += 1; const leap = year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0), max = [31, leap ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31][month - 1]!; if (day > max) { day = 1; month += 1; if (month > 12) { month = 1; year += 1; } } } if (year > 9999) throw new IndiaGstRegistrationAtTimeOfSupplyConflictError("ordinary deadline exceeds supported calendar"); return `${String(year).padStart(4, "0")}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`; }
 function gstinChecksum(body: string): string { let factor = 2, sum = 0; for (let i = body.length - 1; i >= 0; i -= 1) { const code = GST_ALPHABET.indexOf(body[i] ?? ""); if (code < 0) throw new IndiaGstRegistrationAtTimeOfSupplyConflictError("GSTIN is invalid"); const addend = factor * code; factor = factor === 2 ? 1 : 2; sum += Math.floor(addend / 36) + addend % 36; } return GST_ALPHABET[(36 - sum % 36) % 36]!; }
 function canonicalText(value: unknown, subject: string, max: number): string { if (typeof value !== "string" || value.length === 0 || value.length > max || value !== value.trim() || value !== value.normalize("NFC") || /[\u0000-\u001f\u007f]/.test(value)) throw new IndiaGstRegistrationAtTimeOfSupplyConflictError(`${subject} is not canonical`); return value; }
@@ -191,3 +252,34 @@ export class IndiaGstRegistrationAtTimeOfSupplyService {
 }
 
 export function resolveIndiaGstRegistrationAtTimeOfSupply(tx: Tx, input: IndiaGstRegistrationAtTimeOfSupplyInput): Promise<IndiaGstRegistrationAtTimeOfSupplyResult> { return new IndiaGstRegistrationAtTimeOfSupplyService().resolve(tx, input); }
+
+function validateNativeInvoiceSource(tenantId: string, raw: IndiaGstAccommodationNativeInvoiceSourceResult): IndiaGstAccommodationNativeInvoiceSourceResult { try { return validateIndiaGstAccommodationNativeInvoiceSourceResult(tenantId, raw); } catch (error) { if (error instanceof IndiaGstAccommodationInvoiceSourceValidationError) throw new IndiaGstRegistrationAtTimeOfSupplyValidationError(error.message); throw error; } }
+
+/** Pure composition only; persisted-root authentication remains in the issuance SQL boundary. */
+export function composeIndiaGstRegistrationAtNativeTimeOfSupply(
+  raw: IndiaGstRegistrationAtNativeTimeOfSupplyInput,
+): IndiaGstRegistrationAtNativeTimeOfSupplyResult {
+  deeplyFrozen(raw);
+  const input = exact(raw, ["tenantId", "supplierRegistrationStatus", "invoiceSource"], "native supplier registration timing input", IndiaGstRegistrationAtTimeOfSupplyValidationError) as unknown as IndiaGstRegistrationAtNativeTimeOfSupplyInput;
+  const tenantId = uuid(input.tenantId, "tenantId", IndiaGstRegistrationAtTimeOfSupplyValidationError);
+  const invoiceSource = validateNativeInvoiceSource(tenantId, input.invoiceSource);
+  const timing = invoiceSource.timing;
+  const status = exact(input.supplierRegistrationStatus, ["supplierRegistrationId", "supplierGstRegistrationStatusId", "supplierServiceLocationId", "propertyNode", "statusAsOf", "supplierServiceLocation", "supplier", "gstRegistration", "supplierRegistrationStatusEvidenceHash", "registrationLegalRule"], "native supplier registration status", IndiaGstRegistrationAtTimeOfSupplyValidationError);
+  const registrationId = uuid(status.supplierRegistrationId, "supplier registration id", IndiaGstRegistrationAtTimeOfSupplyValidationError);
+  const statusId = uuid(status.supplierGstRegistrationStatusId, "supplier status id", IndiaGstRegistrationAtTimeOfSupplyValidationError);
+  const locationId = uuid(status.supplierServiceLocationId, "supplier service-location id", IndiaGstRegistrationAtTimeOfSupplyValidationError);
+  const propertyNode = uuid(status.propertyNode, "supplier status property", IndiaGstRegistrationAtTimeOfSupplyValidationError);
+  const statusAsOf = date(status.statusAsOf, "supplier statusAsOf", IndiaGstRegistrationAtTimeOfSupplyValidationError);
+  const location = exact(status.supplierServiceLocation, ["id", "evidenceHash"], "native supplier service location", IndiaGstRegistrationAtTimeOfSupplyValidationError);
+  const supplier = exact(status.supplier, ["registrationId", "evidenceHash"], "native supplier registration", IndiaGstRegistrationAtTimeOfSupplyValidationError);
+  const gst = exact(status.gstRegistration, ["status", "taxpayerType", "source", "evidenceSha256"], "native supplier GST status", IndiaGstRegistrationAtTimeOfSupplyValidationError);
+  if (location.id !== locationId || supplier.registrationId !== registrationId || propertyNode !== timing.propertyNode || statusAsOf !== timing.timeOfSupplyDate || gst.status !== "active" || gst.source !== "gst_common_portal" || gst.taxpayerType !== "regular" && gst.taxpayerType !== "sez_unit" && gst.taxpayerType !== "sez_developer" || status.registrationLegalRule !== "CGST_ACT_25_29_30_AND_RULE_21A_REGISTRATION_STATUS") throw new IndiaGstRegistrationAtTimeOfSupplyValidationError("native supplier registration status conflicts with timing");
+  hash(location.evidenceHash, "supplier location evidence hash"); hash(supplier.evidenceHash, "supplier evidence hash"); hash(gst.evidenceSha256, "supplier GST status evidence hash");
+  const expectedStatusHash = digest({ tenantId, supplierGstRegistrationStatusId: statusId, propertyNode, supplierServiceLocation: { id: locationId, evidenceHash: location.evidenceHash }, supplier: { registrationId, evidenceHash: supplier.evidenceHash }, statusAsOf, gstRegistration: { status: gst.status, taxpayerType: gst.taxpayerType, source: gst.source, evidenceSha256: gst.evidenceSha256 }, legalRule: "CGST_ACT_25_29_30_AND_RULE_21A_REGISTRATION_STATUS" });
+  if (status.supplierRegistrationStatusEvidenceHash !== expectedStatusHash) throw new IndiaGstRegistrationAtTimeOfSupplyValidationError("native supplier registration status hash is invalid");
+  const timeBody = { kind: "native_current_transaction" as const, nativeTiming: timing };
+  const timeOfSupplyEvidenceHash = digest(timeBody);
+  const timeOfSupply = freeze({ ...timeBody, evidenceHash: timeOfSupplyEvidenceHash });
+  const evidence = { kind: "native_current_transaction" as const, supplierRegistrationId: registrationId, supplierGstRegistrationStatusId: statusId, supplierServiceLocationId: locationId, propertyNode, reservationId: timing.reservationId, statusAsOf, timeOfSupplyDate: timing.timeOfSupplyDate, result: "active_at_time_of_supply" as const, supplierServiceLocation: { id: locationId, evidenceHash: location.evidenceHash as string }, supplier: { registrationId, evidenceHash: supplier.evidenceHash as string }, gstRegistration: { status: "active" as const, taxpayerType: gst.taxpayerType as "regular" | "sez_unit" | "sez_developer", source: "gst_common_portal" as const, evidenceSha256: gst.evidenceSha256 as string }, supplierRegistrationStatusEvidenceHash: expectedStatusHash, invoiceSourceEvidenceHash: invoiceSource.evidenceHash, timeOfSupplyEvidenceHash, timeOfSupply, registrationLegalRule: "CGST_ACT_25_29_30_AND_RULE_21A_REGISTRATION_STATUS" as const, timeOfSupplyLegalRule: "CGST_ACT_13_2_A_OR_B_ORDINARY_TIME_OF_SUPPLY" as const };
+  return freeze({ ...evidence, evidenceHash: digest({ tenantId, ...evidence }) });
+}

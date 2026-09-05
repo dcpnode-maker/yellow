@@ -26,6 +26,7 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 const SHA256 = /^[0-9a-f]{64}$/;
 const DATE = /^(\d{4})-(\d{2})-(\d{2})$/;
 const DECIMAL = /^[1-9][0-9]*$/;
+const INT64_MAX = 9_223_372_036_854_775_807n;
 
 const NATIVE_INPUT_KEYS = [
   "kind", "tenantId", "propertyNode", "reservationId", "serviceProvision",
@@ -69,6 +70,19 @@ const SECTION14_RESULT_KEYS = [
   "case", "serviceProvisionDate", "invoiceIssueDate", "paymentReceiptDate",
   "rateChangeDate", "timeOfSupplyDate", "selectedVersionSide", "selectedVersion",
   "legalRule", "predecessorHashes", "evidenceHash",
+] as const;
+const NATIVE_RESULT_KEYS = ["kind", "timing", "rateSource", "evidenceHash"] as const;
+const NATIVE_TIMING_RESULT_KEYS = [
+  "kind", "nativeTimingId", "prospectiveDocumentId", "serviceProvisionSnapshotId",
+  "paymentReceiptSnapshotId", "ordinaryRegimeEvidenceId", "propertyNode", "reservationId",
+  "serviceProvisionDate", "paymentReceiptDate", "invoiceIssueDate", "supplierBooksEntryDate",
+  "supplierBankCreditDate", "deadlineDate", "candidateDates", "branch", "timeOfSupplyDate",
+  "regime", "ordinaryRegimeSource", "ordinaryRegimeLegalBasis", "amountMinor", "currency",
+  "predecessorHashes", "evidenceHash",
+] as const;
+const NATIVE_RATE_HISTORY_HASH_KEYS = [
+  "serviceProvision", "invoiceIssue", "supplierBooksEntry", "supplierBankCredit",
+  "paymentReceipt", "timeOfSupply",
 ] as const;
 
 type JsonRecord = Record<string, unknown>;
@@ -696,6 +710,112 @@ function nativeRateSource(
   });
 }
 
+function validateNativeRateSourceResult(raw: IndiaGstAccommodationNativeRateSource): void {
+  let kind: unknown;
+  if (typeof raw === "object" && raw !== null && !Array.isArray(raw)
+      && !utilTypes.isProxy(raw)) {
+    const descriptor = Object.getOwnPropertyDescriptor(raw, "kind");
+    if (descriptor && descriptor.get === undefined && descriptor.set === undefined
+        && "value" in descriptor) kind = descriptor.value;
+  }
+  const rate = exact(
+    raw,
+    kind === "ordinary_section13_single_version"
+      ? ["kind", "selectedVersion", "historicalResolutionEvidenceHashes", "evidenceHash"]
+      : ["kind", "section14", "historicalResolutionEvidenceHashes", "evidenceHash"],
+    "native rate-source result",
+  );
+  const histories = exact(
+    rate.historicalResolutionEvidenceHashes,
+    NATIVE_RATE_HISTORY_HASH_KEYS,
+    "native rate-source history hashes",
+  );
+  for (const key of NATIVE_RATE_HISTORY_HASH_KEYS) hash(histories[key], `native ${key} history hash`);
+  hash(rate.evidenceHash, "native rate-source evidence hash");
+  if (rate.kind === "ordinary_section13_single_version") {
+    const version = exact(rate.selectedVersion, ["extensionId", "key", "version", "status", "effectiveFromInstant", "effectiveToInstant", "content", "contentHash", "gstRoomSlabs"], "native selected rate version");
+    uuid(version.extensionId, "native selected rate-version id");
+    if (version.key !== "in-gst-lodging" || version.version !== 1 && version.version !== 2
+        || version.status !== "retired" && version.status !== "active"
+        || typeof version.effectiveFromInstant !== "string"
+        || version.effectiveToInstant !== null && typeof version.effectiveToInstant !== "string") {
+      fail("native selected rate version is invalid");
+    }
+    if (typeof version.content !== "object" || version.content === null
+        || Array.isArray(version.content) || utilTypes.isProxy(version.content)
+        || Object.getOwnPropertySymbols(version.content).length !== 0
+        || (Object.getPrototypeOf(version.content) !== Object.prototype
+          && Object.getPrototypeOf(version.content) !== null)) {
+      fail("native selected rate content must be an exact plain object");
+    }
+    exact(version.content, Object.keys(version.content), "native selected rate content");
+    if (hash(version.contentHash, "native selected rate content hash")
+        !== canonicalDigest(version.content)) fail("native selected rate content hash is inconsistent");
+    if (!Array.isArray(version.gstRoomSlabs) || version.gstRoomSlabs.length !== 2) fail("native selected GST room slabs are invalid");
+    for (const slabRaw of version.gstRoomSlabs) {
+      const slab = exact(slabRaw, ["uptoMinor", "rate", "itcEligible"], "native selected GST room slab");
+      if (slab.uptoMinor !== null && (!Number.isSafeInteger(slab.uptoMinor) || (slab.uptoMinor as number) <= 0)
+          || typeof slab.rate !== "number" || !Number.isFinite(slab.rate) || slab.rate < 0 || slab.rate > 1
+          || typeof slab.itcEligible !== "boolean") fail("native selected GST room slab is invalid");
+    }
+    return;
+  }
+  if (rate.kind !== "genuine_section14_rate_change") fail("native rate-source kind is invalid");
+  const section14 = exact(rate.section14, SECTION14_RESULT_KEYS, "native Section14 result");
+  const cases = new Set([
+    "supply_before_invoice_after_payment_after", "supply_invoice_before_payment_after",
+    "supply_payment_before_invoice_after", "supply_after_invoice_before_payment_after",
+    "supply_after_invoice_payment_before", "supply_invoice_after_payment_before",
+  ]);
+  for (const key of ["serviceProvisionDate", "invoiceIssueDate", "paymentReceiptDate", "rateChangeDate", "timeOfSupplyDate"] as const) civilDate(section14[key], `native Section14 ${key}`);
+  if (typeof section14.case !== "string" || !cases.has(section14.case)
+      || section14.selectedVersionSide !== "predecessor" && section14.selectedVersionSide !== "successor"
+      || section14.legalRule !== "CGST_ACT_14_CHANGE_IN_RATE_SIX_CASE_RATE_VERSION_SELECTION") fail("native Section14 result is invalid");
+  const selected = exact(section14.selectedVersion, ["extensionId", "version", "status", "contentHash", "effectiveFromInstant", "effectiveToInstant"], "native Section14 selected version");
+  uuid(selected.extensionId, "native Section14 selected version id"); hash(selected.contentHash, "native Section14 selected version content hash");
+  if (selected.version !== 1 && selected.version !== 2 || selected.status !== "retired" && selected.status !== "active" || typeof selected.effectiveFromInstant !== "string" || selected.effectiveToInstant !== null && typeof selected.effectiveToInstant !== "string") fail("native Section14 selected version is invalid");
+  const predecessorHashes = exact(section14.predecessorHashes, ["rateVersionPair", "rateChangeDate", "serviceProvision", "paymentReceipt", "invoiceIssue", "paymentProviso", "workingDayCalendar", "governedPaymentReceipt"], "native Section14 predecessor hashes");
+  for (const key of ["rateVersionPair", "rateChangeDate", "serviceProvision", "paymentReceipt", "invoiceIssue", "paymentProviso"] as const) hash(predecessorHashes[key], `native Section14 ${key} hash`);
+  for (const key of ["workingDayCalendar", "governedPaymentReceipt"] as const) if (predecessorHashes[key] !== null) hash(predecessorHashes[key], `native Section14 ${key} hash`);
+  hash(section14.evidenceHash, "native Section14 evidence hash");
+}
+
+/**
+ * Validates the exact, frozen reduced native result and its timing/source envelope.
+ * It cannot authenticate the rate-source inner evidence hashes because the reduced
+ * result intentionally omits their rate-version-pair and historical roots; that
+ * authentication remains mandatory at the persisted issuance boundary.
+ */
+export function validateIndiaGstAccommodationNativeInvoiceSourceResult(
+  tenantIdRaw: string,
+  raw: IndiaGstAccommodationNativeInvoiceSourceResult,
+): IndiaGstAccommodationNativeInvoiceSourceResult {
+  const tenantId = uuid(tenantIdRaw, "tenantId");
+  deeplyFrozen(raw, "native invoice-source result");
+  const source = exact(raw, NATIVE_RESULT_KEYS, "native invoice-source result");
+  if (source.kind !== "native_current_transaction") fail("native invoice-source result kind is invalid");
+  const timing = exact(source.timing, NATIVE_TIMING_RESULT_KEYS, "native invoice timing result");
+  for (const key of ["nativeTimingId", "prospectiveDocumentId", "serviceProvisionSnapshotId", "paymentReceiptSnapshotId", "ordinaryRegimeEvidenceId", "propertyNode", "reservationId"] as const) uuid(timing[key], `native timing ${key}`);
+  for (const key of ["serviceProvisionDate", "paymentReceiptDate", "invoiceIssueDate", "supplierBooksEntryDate", "supplierBankCreditDate", "deadlineDate", "timeOfSupplyDate"] as const) civilDate(timing[key], `native timing ${key}`);
+  const predecessors = exact(timing.predecessorHashes, ["serviceProvision", "paymentReceipt", "ordinaryRegime", "nativeTiming"], "native timing predecessor hashes");
+  for (const key of ["serviceProvision", "paymentReceipt", "ordinaryRegime", "nativeTiming"] as const) hash(predecessors[key], `native timing ${key} hash`);
+  const dates = deriveIndiaGstAccommodationOrdinaryTimeOfSupplyDates({ serviceProvisionDate: timing.serviceProvisionDate as string, paymentReceiptDate: timing.paymentReceiptDate as string, invoiceIssueDate: timing.invoiceIssueDate as string });
+  exact(timing.candidateDates, dates.branch === "section13_2_a_invoice_or_payment" ? ["invoiceIssueDate", "paymentReceiptDate"] : ["serviceProvisionDate", "paymentReceiptDate"], "native timing candidate dates");
+  if (timing.kind !== "native_current_transaction" || timing.deadlineDate !== dates.deadlineDate
+      || timing.branch !== dates.branch || timing.timeOfSupplyDate !== dates.timeOfSupplyDate
+      || canonicalJson(timing.candidateDates) !== canonicalJson(dates.candidateDates)
+      || timing.paymentReceiptDate !== ((timing.supplierBooksEntryDate as string) < (timing.supplierBankCreditDate as string) ? timing.supplierBooksEntryDate : timing.supplierBankCreditDate)
+      || timing.regime !== "ordinary_rule47_30_day" || timing.ordinaryRegimeSource !== "governed_rule47_ordinary_regime_record"
+      || timing.ordinaryRegimeLegalBasis !== "CGST_RULE_47_ORDINARY_SERVICE_INVOICE_30_DAY_INPUT"
+      || timing.currency !== "INR" || typeof timing.amountMinor !== "string" || !DECIMAL.test(timing.amountMinor)
+      || BigInt(timing.amountMinor) > INT64_MAX) fail("native invoice timing semantics are invalid");
+  const timingBody = Object.fromEntries(NATIVE_TIMING_RESULT_KEYS.slice(0, -1).map((key) => [key, timing[key]]));
+  if (hash(timing.evidenceHash, "native timing evidence hash") !== canonicalDigest({ tenantId, ...timingBody })) fail("native timing evidence hash is invalid");
+  validateNativeRateSourceResult(source.rateSource as IndiaGstAccommodationNativeRateSource);
+  if (hash(source.evidenceHash, "native invoice-source evidence hash") !== canonicalDigest({ tenantId, kind: source.kind, timing: source.timing, rateSource: source.rateSource })) fail("native invoice-source evidence hash is invalid");
+  return raw;
+}
+
 /**
  * Pure native timing/rate composition. Persisted-root authentication remains
  * the responsibility of the owner-mediated SQL issuance boundary.
@@ -727,7 +847,10 @@ export function deriveIndiaGstAccommodationNativeInvoiceSource(
   );
   const rateSource = nativeRateSource(input, timing);
   const body = { kind: "native_current_transaction" as const, timing, rateSource };
-  return freeze({ ...body, evidenceHash: canonicalDigest({ tenantId, ...body }) });
+  return validateIndiaGstAccommodationNativeInvoiceSourceResult(
+    tenantId,
+    freeze({ ...body, evidenceHash: canonicalDigest({ tenantId, ...body }) }),
+  );
 }
 
 function validateExternalTimeOfSupply(

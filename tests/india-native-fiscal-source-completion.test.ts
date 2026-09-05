@@ -4,9 +4,13 @@ import {
   adaptIndiaGstAccommodationExternalInvoiceSource,
   deriveIndiaGstAccommodationInvoiceSource,
   deriveIndiaGstAccommodationNativeInvoiceSource,
+  validateIndiaGstAccommodationNativeInvoiceSourceResult,
   type IndiaGstAccommodationNativeInvoiceSourceInput,
 } from "../src/contexts/tax-fiscal/india-gst-accommodation-invoice-source";
 import { deriveIndiaGstAccommodationOrdinaryTimeOfSupplyDates } from "../src/contexts/tax-fiscal/india-gst-accommodation-time-of-supply";
+import { composeIndiaGstRegistrationAtNativeTimeOfSupply } from "../src/contexts/tax-fiscal/india-gst-registration-at-time-of-supply";
+import { composeIndiaGstRecipientRegistrationAtNativeTimeOfSupply } from "../src/contexts/tax-fiscal/india-gst-recipient-registration-at-time-of-supply";
+import { composeIndiaGstAccommodationNativeSupplyNatureAtTimeOfSupply } from "../src/contexts/tax-fiscal/india-gst-accommodation-supply-nature-at-time-of-supply";
 import type { IndiaGstAccommodationHistoricalResolutionResult } from "../src/contexts/tax-fiscal/india-gst-accommodation-historical-resolution";
 import type { IndiaGstAccommodationOrdinaryRegimeEvidenceResult } from "../src/contexts/tax-fiscal/india-gst-accommodation-ordinary-regime-evidence";
 import { deriveIndiaGstAccommodationRateChangeDate } from "../src/contexts/tax-fiscal/india-gst-accommodation-rate-change-date";
@@ -38,6 +42,15 @@ const ORDINARY = id(43410);
 const TIMING = id(43411);
 const DOCUMENT = id(43412);
 const INVOICE = id(43413);
+const FOLIO = id(43414);
+const SUPPLIER_REGISTRATION = id(43415);
+const SUPPLIER_STATUS = id(43416);
+const SUPPLIER_LOCATION = id(43417);
+const RECIPIENT_PARTY = id(43418);
+const RECIPIENT_REGISTRATION = id(43419);
+const RECIPIENT_STATUS = id(43420);
+const JURISDICTION = id(43421);
+const CLASSIFICATION = id(43422);
 const PREDECESSOR = "a806f516-fed6-5768-b310-94aa03286adb";
 const SUCCESSOR = "0b21daf2-ea6e-5568-9c21-69e4d4424574";
 const PRE_FROM = "2022-07-17T18:30:00.000000Z";
@@ -408,6 +421,50 @@ function externalTimeOfSupply(input: IndiaGstAccommodationNativeInvoiceSourceInp
   return freeze({ ...evidence, evidenceHash: insertionHash({ tenantId: TENANT, ...evidence }) });
 }
 
+function nativeRegistrationComposition(source: ReturnType<typeof deriveIndiaGstAccommodationNativeInvoiceSource>) {
+  const statusAsOf = source.timing.timeOfSupplyDate;
+  const supplierServiceLocation = freeze({ id: SUPPLIER_LOCATION, evidenceHash: HASH("4") });
+  const supplierIdentity = freeze({ registrationId: SUPPLIER_REGISTRATION, evidenceHash: HASH("5") });
+  const supplierGst = freeze({ status: "active" as const, taxpayerType: "regular" as const, source: "gst_common_portal" as const, evidenceSha256: HASH("6") });
+  const supplierStatusHash = insertionHash({ tenantId: TENANT, supplierGstRegistrationStatusId: SUPPLIER_STATUS, propertyNode: PROPERTY, supplierServiceLocation, supplier: supplierIdentity, statusAsOf, gstRegistration: supplierGst, legalRule: "CGST_ACT_25_29_30_AND_RULE_21A_REGISTRATION_STATUS" });
+  const supplier = composeIndiaGstRegistrationAtNativeTimeOfSupply(freeze({
+    tenantId: TENANT,
+    supplierRegistrationStatus: freeze({ supplierRegistrationId: SUPPLIER_REGISTRATION, supplierGstRegistrationStatusId: SUPPLIER_STATUS, supplierServiceLocationId: SUPPLIER_LOCATION, propertyNode: PROPERTY, statusAsOf, supplierServiceLocation, supplier: supplierIdentity, gstRegistration: supplierGst, supplierRegistrationStatusEvidenceHash: supplierStatusHash, registrationLegalRule: "CGST_ACT_25_29_30_AND_RULE_21A_REGISTRATION_STATUS" as const }),
+    invoiceSource: source,
+  }));
+
+  const recipientIdentity = freeze({ registrationId: RECIPIENT_REGISTRATION, evidenceHash: HASH("7") });
+  const recipientGst = freeze({ status: "active" as const, taxpayerType: "regular" as const, source: "gst_common_portal" as const, evidenceSha256: HASH("8") });
+  const recipientStatusHash = insertionHash({ tenantId: TENANT, recipientSezStatusId: RECIPIENT_STATUS, recipient: { partyId: RECIPIENT_PARTY, registrationId: RECIPIENT_REGISTRATION, evidenceHash: recipientIdentity.evidenceHash }, statusAsOf, gstRegistration: recipientGst, sezStatus: "affirmatively_non_sez_regular", approval: null, legalRule: "IGST_ACT_7_5_B_AND_8_2_RECIPIENT_STATUS" });
+  const recipient = composeIndiaGstRecipientRegistrationAtNativeTimeOfSupply(freeze({
+    tenantId: TENANT,
+    recipientRegistrationStatus: freeze({ recipientPartyId: RECIPIENT_PARTY, recipientRegistrationId: RECIPIENT_REGISTRATION, recipientSezStatusId: RECIPIENT_STATUS, statusAsOf, recipient: recipientIdentity, gstRegistration: recipientGst, sezStatus: "affirmatively_non_sez_regular" as const, approval: null, recipientRegistrationStatusEvidenceHash: recipientStatusHash, recipientRegistrationLegalRule: "IGST_ACT_7_5_B_AND_8_2_RECIPIENT_STATUS" as const }),
+    invoiceSource: source,
+  }));
+
+  const supplyHead = {
+    propertyNode: PROPERTY,
+    reservationId: RESERVATION,
+    folioId: FOLIO,
+    supplyDate: statusAsOf,
+    jurisdiction: freeze({ extensionId: JURISDICTION, ownerTenantId: null, key: "in-gst-lodging", version: "2", contentHash: HASH("9") }),
+    supplier: freeze({ registrationId: SUPPLIER_REGISTRATION, evidenceHash: supplierIdentity.evidenceHash, stateCode: "29", serviceLocation: freeze({ id: SUPPLIER_LOCATION, evidenceHash: supplierServiceLocation.evidenceHash, kind: "principal_place_of_business" as const, stateCode: "29" }), status: freeze({ id: SUPPLIER_STATUS, evidenceHash: supplierStatusHash, statusAsOf, taxpayerType: "regular" as const, sezStatus: "affirmatively_non_sez_regular" as const }) }),
+    recipient: freeze({ partyId: RECIPIENT_PARTY, registrationId: RECIPIENT_REGISTRATION, evidenceHash: recipientIdentity.evidenceHash, status: freeze({ id: RECIPIENT_STATUS, evidenceHash: recipientStatusHash, statusAsOf, taxpayerType: "regular" as const, sezStatus: "affirmatively_non_sez_regular" as const }) }),
+    buyerAssociation: freeze({ associationHash: HASH("a"), payloadHash: HASH("b") }),
+    classification: freeze({ classificationId: CLASSIFICATION, evidenceHash: HASH("c") }),
+    placeOfSupply: freeze({ candidateHash: HASH("d"), legalRule: "IGST_ACT_12_3_B" as const, pos: "29" }),
+    registeredStateComparison: freeze({ candidateHash: HASH("e"), comparisonRule: "SUPPLIER_REGISTERED_STATE_VS_ACCOMMODATION_POS" as const, stateRelationship: "same_state_or_union_territory" as const }),
+    supplyNature: "intra_state" as const,
+    determinationBasis: "ordinary_registered_state_comparison" as const,
+    sezDirection: "none" as const,
+    legalRule: "IGST_ACT_8_2" as const,
+  };
+  const candidateJson = JSON.stringify(supplyHead);
+  const supplyNature = freeze({ ...supplyHead, candidateJson, candidateHash: insertionHash({ tenantId: TENANT, candidate: supplyHead }) });
+  const composed = composeIndiaGstAccommodationNativeSupplyNatureAtTimeOfSupply({ tenantId: TENANT, supplyNature, supplierRegistrationAtTimeOfSupply: supplier, recipientRegistrationAtTimeOfSupply: recipient });
+  return { source, supplier, recipient, supplyNature, composed };
+}
+
 describe("Order 434 native/external invoice timing and rate source", () => {
   test("uses ordinary Rule47/Section13 and whole-day history without inventing Section14 or an external invoice", () => {
     const input = nativeInput("2026-01-01", "2026-01-03", "2026-01-04", "2026-01-02");
@@ -596,9 +653,122 @@ describe("Order 434 native/external invoice timing and rate source", () => {
     expect(() => deriveIndiaGstAccommodationNativeInvoiceSource(malformedOrdinaryHash as never))
       .toThrow(/ordinary-regime evidence SHA-256 must be a canonical SHA-256/);
 
+    const oversizedAmount = structuredClone(ordinary) as Mutable;
+    oversizedAmount.paymentReceipt.amountMinor = "9223372036854775808";
+    freeze(oversizedAmount);
+    expect(() => deriveIndiaGstAccommodationNativeInvoiceSource(oversizedAmount as never))
+      .toThrow(/timing semantics/);
+
+    const validResult = deriveIndiaGstAccommodationNativeInvoiceSource(ordinary);
+    const missingRateSource = structuredClone(validResult) as Mutable;
+    missingRateSource.rateSource = null;
+    freeze(missingRateSource);
+    expect(() => validateIndiaGstAccommodationNativeInvoiceSourceResult(
+      TENANT,
+      missingRateSource as never,
+    )).toThrow(/native rate-source result must be an exact plain object/);
+
+    const malformedRateContent = structuredClone(validResult) as Mutable;
+    malformedRateContent.rateSource.selectedVersion.content = null;
+    freeze(malformedRateContent);
+    expect(() => validateIndiaGstAccommodationNativeInvoiceSourceResult(
+      TENANT,
+      malformedRateContent as never,
+    )).toThrow(/selected rate content must be an exact plain object/);
+
     expect(() => deriveIndiaGstAccommodationNativeInvoiceSource({
       ...ordinary,
       invoiceIssueSnapshotId: INVOICE,
+    } as never)).toThrow(/shape is invalid/);
+  });
+
+  test("composes native Order295/296/297 evidence with distinct canonical time hashes", () => {
+    const source = deriveIndiaGstAccommodationNativeInvoiceSource(
+      nativeInput("2026-01-01", "2026-01-03", "2026-01-04", "2026-01-02"),
+    );
+    const { supplier, recipient, composed } = nativeRegistrationComposition(source);
+    expect(supplier.kind).toBe("native_current_transaction");
+    expect(recipient.kind).toBe("native_current_transaction");
+    expect(supplier.invoiceSourceEvidenceHash).toBe(source.evidenceHash);
+    expect(recipient.invoiceSourceEvidenceHash).toBe(source.evidenceHash);
+    expect(supplier.timeOfSupplyEvidenceHash).toBe(insertionHash({
+      kind: "native_current_transaction",
+      nativeTiming: source.timing,
+    }));
+    expect(recipient.timeOfSupplyEvidenceHash).toBe(insertionHash({
+      tenantId: TENANT,
+      kind: "native_current_transaction",
+      nativeTiming: source.timing,
+    }));
+    expect(supplier.timeOfSupplyEvidenceHash).not.toBe(recipient.timeOfSupplyEvidenceHash);
+    expect(composed).toMatchObject({
+      kind: "native_current_transaction",
+      invoiceSourceEvidenceHash: source.evidenceHash,
+      nativeTimingEvidenceHash: source.timing.evidenceHash,
+      supplierTimeOfSupplyEvidenceHash: supplier.timeOfSupplyEvidenceHash,
+      recipientTimeOfSupplyEvidenceHash: recipient.timeOfSupplyEvidenceHash,
+      timeOfSupplyDate: source.timing.timeOfSupplyDate,
+    });
+    expect(JSON.stringify(composed)).not.toContain("invoiceIssueSnapshotId");
+    expect(JSON.stringify(composed)).not.toContain("invoiceSeries");
+    expect(Object.isFrozen(composed)).toBeTrue();
+  });
+
+  test("composes each genuine Section14 variant without manufacturing external-invoice ancestry", () => {
+    const cases = [
+      ["2025-09-21", "2025-09-23", "2025-09-24", "2025-09-23", "2025-09-23"],
+      ["2025-09-21", "2025-09-23", "2025-09-24", "2025-09-21", "2025-09-21"],
+      ["2025-09-21", "2025-09-20", "2025-09-21", "2025-09-23", "2025-09-20"],
+      ["2025-09-23", "2025-09-23", "2025-09-24", "2025-09-21", "2025-09-23"],
+      ["2025-09-23", "2025-09-20", "2025-09-21", "2025-09-21", "2025-09-20"],
+      ["2025-09-23", "2025-09-20", "2025-09-21", "2025-09-23", "2025-09-23"],
+    ] as const;
+    for (const args of cases) {
+      const source = deriveIndiaGstAccommodationNativeInvoiceSource(nativeInput(args[0], args[1], args[2], args[3], args[4]));
+      expect(source.rateSource.kind).toBe("genuine_section14_rate_change");
+      const actual = nativeRegistrationComposition(source);
+      expect(actual.composed.invoiceSourceEvidenceHash).toBe(source.evidenceHash);
+      expect(actual.composed.nativeTimingEvidenceHash).toBe(source.timing.evidenceHash);
+    }
+  });
+
+  test("rejects incomplete, surplus, and mismatched otherwise-valid native roots", () => {
+    const first = nativeRegistrationComposition(deriveIndiaGstAccommodationNativeInvoiceSource(
+      nativeInput("2026-01-01", "2026-01-03", "2026-01-04", "2026-01-02"),
+    ));
+    expect(() => composeIndiaGstRegistrationAtNativeTimeOfSupply(freeze({
+      tenantId: TENANT,
+      invoiceSource: first.source,
+    }) as never)).toThrow(/shape is invalid/);
+    expect(() => composeIndiaGstRecipientRegistrationAtNativeTimeOfSupply(freeze({
+      tenantId: TENANT,
+      recipientRegistrationStatus: freeze({ surplus: true }),
+      invoiceSource: first.source,
+      surplus: true,
+    }) as never)).toThrow(/shape is invalid/);
+
+    const second = nativeRegistrationComposition(deriveIndiaGstAccommodationNativeInvoiceSource(
+      nativeInput("2026-01-01", "2026-01-04", "2026-01-05", "2026-01-03"),
+    ));
+    expect(() => composeIndiaGstAccommodationNativeSupplyNatureAtTimeOfSupply({
+      tenantId: TENANT,
+      supplyNature: first.supplyNature,
+      supplierRegistrationAtTimeOfSupply: first.supplier,
+      recipientRegistrationAtTimeOfSupply: second.recipient,
+    })).toThrow(/do not describe one transaction/);
+    const oversizedSupplier = structuredClone(first.supplier) as Mutable;
+    oversizedSupplier.timeOfSupply.nativeTiming.amountMinor = "9223372036854775808";
+    freeze(oversizedSupplier);
+    expect(() => composeIndiaGstAccommodationNativeSupplyNatureAtTimeOfSupply({
+      tenantId: TENANT,
+      supplyNature: first.supplyNature,
+      supplierRegistrationAtTimeOfSupply: oversizedSupplier as never,
+      recipientRegistrationAtTimeOfSupply: first.recipient,
+    })).toThrow(/native timing semantics/);
+    expect(() => composeIndiaGstAccommodationNativeSupplyNatureAtTimeOfSupply({
+      tenantId: TENANT,
+      supplyNature: first.supplyNature,
+      supplierRegistrationAtTimeOfSupply: first.supplier,
     } as never)).toThrow(/shape is invalid/);
   });
 

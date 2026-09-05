@@ -30,23 +30,41 @@ export interface IndiaGstAccommodationFinalValuationInput {
   readonly idempotencyKey:string; readonly envelope:AuditEnvelope;
 }
 export interface IndiaGstAccommodationFinalValuationResult extends Readonly<Record<string,JsonValue>> { readonly valuationId:string; readonly generation:number; readonly disposition:"ordinary_final"|"manual_valuation_required"; readonly transactionValueMinor:string|null; readonly evidenceHash:string; readonly replayed:boolean; }
+export interface IndiaGstAccommodationNativeFinalValuationInput {
+  readonly tenantId:string; readonly propertyNode:string; readonly reservationId:string;
+  readonly folioId:string; readonly buyerPartyId:string; readonly serviceProvisionSnapshotId:string;
+  readonly sources:readonly IndiaGstFinalValuationSourceInput[];
+  readonly ordinaryAttestation:IndiaGstFinalValuationOrdinaryAttestation;
+  readonly expectedCurrentValuationId:string|null; readonly expectedCurrentEvidenceHash:string|null;
+  readonly approvalRequestId:string|null; readonly idempotencyKey:string; readonly envelope:AuditEnvelope;
+}
+export interface IndiaGstAccommodationNativeFinalValuationResult {
+  readonly valuationId:string; readonly generation:number; readonly disposition:"ordinary_final";
+  readonly transactionValueMinor:string; readonly evidenceHash:string;
+  readonly nativeConsiderationBasisHash:string; readonly replayed:boolean;
+}
 export interface IndiaGstAccommodationFinalValuationServiceOptions { readonly idempotency:PostgresIdempotency; }
 export class IndiaGstAccommodationFinalValuationValidationError extends Error { constructor(m:string){super(m);this.name="IndiaGstAccommodationFinalValuationValidationError";} }
 export class IndiaGstAccommodationFinalValuationConflictError extends Error { constructor(m:string){super(m);this.name="IndiaGstAccommodationFinalValuationConflictError";} }
 export class IndiaGstAccommodationFinalValuationNotFoundError extends Error { constructor(m:string){super(m);this.name="IndiaGstAccommodationFinalValuationNotFoundError";} }
 interface SourceRow { root_id:string; amount_minor:string; }
 interface CapabilityRow { valuation_id:string; generation:number; disposition:"ordinary_final"|"manual_valuation_required"; transaction_value_minor:string|null; evidence_hash:string; }
+interface NativeCapabilityRow { valuation_id:string; generation:number; disposition:string; transaction_value_minor:string; evidence_hash:string; native_consideration_basis_hash:string; created:boolean; }
 
 function fail(message:string):never{throw new IndiaGstAccommodationFinalValuationValidationError(message);}
 function uuid(v:unknown,n:string):string{if(typeof v!=="string"||!UUID.test(v))return fail(`${n} must be a lowercase UUID`);return v;}
 function hash(v:unknown,n:string):string{if(typeof v!=="string"||!HASH.test(v))return fail(`${n} must be lowercase SHA-256`);return v;}
 function frozen(value:unknown,seen=new Set<object>()):void{if(value===null||typeof value==="string"||typeof value==="boolean"||(typeof value==="number"&&Number.isFinite(value)))return;if(typeof value!=="object"||seen.has(value)||utilTypes.isProxy(value)||!Object.isFrozen(value)||Object.getOwnPropertySymbols(value).length)return fail("final valuation input must be an exact deeply frozen graph");seen.add(value);if(!Array.isArray(value)&&Object.getPrototypeOf(value)!==Object.prototype&&Object.getPrototypeOf(value)!==null)return fail("final valuation input must contain plain records");for(const d of Object.values(Object.getOwnPropertyDescriptors(value))){if(d.get||d.set||!("value" in d))return fail("accessors are forbidden");frozen(d.value,seen);}}
 function exact(value:object,keys:readonly string[],name:string):void{const actual=Object.keys(value).sort(),wanted=[...keys].sort();if(actual.length!==wanted.length||actual.some((k,i)=>k!==wanted[i]))fail(`${name} shape is invalid`);}
+function exactNative(value:object,keys:readonly string[],name:string):void{const descriptors=Object.getOwnPropertyDescriptors(value),actual=Object.keys(descriptors).sort(),wanted=[...keys].sort();if(actual.length!==wanted.length||actual.some((key,index)=>key!==wanted[index])||Object.values(descriptors).some(descriptor=>descriptor.get!==undefined||descriptor.set!==undefined||descriptor.enumerable!==true||descriptor.configurable!==false||!("value" in descriptor)||descriptor.writable!==false))fail(`${name} shape is invalid`);}
 function sourceText(v:unknown,n:string):string{if(typeof v!=="string"||!SOURCE.test(v))return fail(`${n} is invalid`);return v;}
 function reference(v:unknown,n:string):string{if(typeof v!=="string"||!REFERENCE.test(v))return fail(`${n} is invalid`);return v;}
 function digest(value:unknown):string{return createHash("sha256").update(JSON.stringify(value)).digest("hex");}
+function postgresArray(values:readonly (string|number|bigint|boolean|null)[]):string{return `{${values.map(value=>value===null?"NULL":`"${String(value).replaceAll("\\","\\\\").replaceAll('"','\\"')}"`).join(",")}}`;}
 function same(a:unknown,b:unknown):boolean{return JSON.stringify(a)===JSON.stringify(b);}
 function mapDbError(error:unknown):never{const code=(error as {code?:string;errno?:string}).code??(error as {errno?:string}).errno;if(code==="42501")throw new IndiaGstAccommodationFinalValuationNotFoundError("Final valuation authority was not found");if(code==="55000"||code==="23505"||code==="23503")throw new IndiaGstAccommodationFinalValuationConflictError("Final valuation scope is stale or unavailable");if(code==="22023"||code==="22003"||code==="23514")throw new IndiaGstAccommodationFinalValuationValidationError("Final valuation evidence is invalid");throw error;}
+function mapNativeDbError(error:unknown):never{if(typeof error!=="object"||error===null)throw error;const shaped=error as {errno?:unknown;sqlState?:unknown;code?:unknown};const code=[shaped.errno,shaped.sqlState,shaped.code].find(value=>typeof value==="string") as string|undefined;if(code==="42501")throw new IndiaGstAccommodationFinalValuationNotFoundError("Final valuation authority was not found");if(code==="55000"||code==="23505"||code==="23503")throw new IndiaGstAccommodationFinalValuationConflictError("Final valuation scope is stale or unavailable");if(code==="22023"||code==="22003"||code==="23514")throw new IndiaGstAccommodationFinalValuationValidationError("Final valuation evidence is invalid");throw error;}
+function positiveMinor(v:unknown,n:string):string{if(typeof v!=="string"||!/^[1-9][0-9]{0,18}$/.test(v)||BigInt(v)>9223372036854775807n)throw new IndiaGstAccommodationFinalValuationConflictError(`${n} returned by the capability is invalid`);return v;}
 
 export class IndiaGstAccommodationFinalValuationService {
   readonly #idempotency:PostgresIdempotency;
@@ -81,5 +99,53 @@ export class IndiaGstAccommodationFinalValuationService {
       });
       return {...result.body,replayed:result.replayed} as IndiaGstAccommodationFinalValuationResult;
     }catch(error){return mapDbError(error);}
+  }
+
+  async finalizeNative(
+    tx:Tx,
+    input:IndiaGstAccommodationNativeFinalValuationInput,
+  ):Promise<IndiaGstAccommodationNativeFinalValuationResult>{
+    if(typeof tx!=="function")return fail("tenant transaction is unavailable");
+    if(typeof input!=="object"||input===null||Array.isArray(input))return fail("native final valuation input shape is invalid");
+    frozen(input);
+    exactNative(input,["tenantId","propertyNode","reservationId","folioId","buyerPartyId","serviceProvisionSnapshotId","sources","ordinaryAttestation","expectedCurrentValuationId","expectedCurrentEvidenceHash","approvalRequestId","idempotencyKey","envelope"],"native final valuation input");
+    const tenant=uuid(input.tenantId,"tenantId"),property=uuid(input.propertyNode,"propertyNode"),reservation=uuid(input.reservationId,"reservationId"),folio=uuid(input.folioId,"folioId"),buyer=uuid(input.buyerPartyId,"buyerPartyId"),service=uuid(input.serviceProvisionSnapshotId,"serviceProvisionSnapshotId");
+    if(!Array.isArray(input.sources)||input.sources.length===0||input.sources.length>500||typeof input.idempotencyKey!=="string"||!KEY.test(input.idempotencyKey))return fail("source set or idempotency key is invalid");
+    if(typeof input.envelope!=="object"||input.envelope===null||Array.isArray(input.envelope))return fail("audit envelope shape is invalid");
+    exactNative(input.envelope,["tenantId","propertyNode","actorId","requestId","operation"],"audit envelope");
+    const actor=uuid(input.envelope.actorId,"envelope.actorId"),requestId=uuid(input.envelope.requestId,"envelope.requestId");
+    if(input.envelope.tenantId!==tenant||input.envelope.propertyNode!==property||input.envelope.operation!=="india_gst.accommodation_final_valuation_recorded")return fail("audit envelope is invalid");
+    const sources=input.sources.map(source=>{
+      if(typeof source!=="object"||source===null||Array.isArray(source))return fail("source attestation shape is invalid");
+      exactNative(source,["postingRootId","sourceKind","additionSubtype","discountEligibility","evidenceSource","evidenceReference"],"source attestation");
+      const postingRootId=uuid(source.postingRootId,"postingRootId");
+      if(!KINDS.has(source.sourceKind))return fail("sourceKind is invalid");
+      const additionSubtype=source.additionSubtype===null?null:String(source.additionSubtype);
+      const discountEligibility=source.discountEligibility===null?null:String(source.discountEligibility);
+      if((source.sourceKind==="section15_2_addition")!==ADDITIONS.has(additionSubtype??"")||(source.sourceKind!=="section15_2_addition"&&additionSubtype!==null))return fail("addition subtype conflicts with source kind");
+      if((source.sourceKind==="section15_3_discount")!==DISCOUNTS.has(discountEligibility??"")||(source.sourceKind!=="section15_3_discount"&&discountEligibility!==null))return fail("discount eligibility conflicts with source kind");
+      if(source.sourceKind==="section15_3_discount"&&discountEligibility!=="eligible_pre_supply_recorded"&&discountEligibility!=="eligible_post_supply_linked_itc_reversed")return fail("native ordinary valuation requires an eligible Section 15(3) discount");
+      return Object.freeze({postingRootId,sourceKind:source.sourceKind,additionSubtype,discountEligibility,evidenceSource:sourceText(source.evidenceSource,"source evidence source"),evidenceReference:reference(source.evidenceReference,"source evidence reference")});
+    });
+    if(new Set(sources.map(source=>source.postingRootId)).size!==sources.length)return fail("source set or idempotency key is invalid");
+    const ordinary=input.ordinaryAttestation;
+    if(typeof ordinary!=="object"||ordinary===null||Array.isArray(ordinary))return fail("ordinary attestation shape is invalid");
+    exactNative(ordinary,["relationshipConclusion","considerationConclusion","section152Conclusion","section153Conclusion","sourceCompletenessConclusion","evidenceSource","evidenceReference"],"ordinary attestation");
+    if(ordinary.relationshipConclusion!=="unrelated_not_distinct"||ordinary.considerationConclusion!=="money_only"||ordinary.section152Conclusion!=="all_additions_enumerated"||ordinary.section153Conclusion!=="all_discounts_eligible"||ordinary.sourceCompletenessConclusion!=="all_sources_classified")return fail("ordinary attestation conclusions are incomplete");
+    const attestationSource=sourceText(ordinary.evidenceSource,"ordinary evidence source"),attestationReference=reference(ordinary.evidenceReference,"ordinary evidence reference");
+    const expected=input.expectedCurrentValuationId===null?null:uuid(input.expectedCurrentValuationId,"expectedCurrentValuationId"),expectedHash=input.expectedCurrentEvidenceHash===null?null:hash(input.expectedCurrentEvidenceHash,"expectedCurrentEvidenceHash"),approval=input.approvalRequestId===null?null:uuid(input.approvalRequestId,"approvalRequestId");
+    if((expected===null)!==(expectedHash===null))return fail("expected current id and hash must be supplied together");
+    try{
+      const postingRootIds=postgresArray(sources.map(source=>source.postingRootId));
+      const sourceKinds=postgresArray(sources.map(source=>source.sourceKind));
+      const additionSubtypes=postgresArray(sources.map(source=>source.additionSubtype??""));
+      const discountEligibilities=postgresArray(sources.map(source=>source.discountEligibility??""));
+      const evidenceSources=postgresArray(sources.map(source=>source.evidenceSource));
+      const evidenceReferences=postgresArray(sources.map(source=>source.evidenceReference));
+      const capability=await tx<NativeCapabilityRow[]>`SELECT * FROM public.record_india_gst_native_accommodation_valuation(${tenant}::uuid,${property}::uuid,${reservation}::uuid,${folio}::uuid,${buyer}::uuid,${service}::uuid,${requestId}::uuid,${actor}::uuid,${input.idempotencyKey},${expected}::uuid,${expectedHash},${approval}::uuid,${ordinary.relationshipConclusion},${ordinary.considerationConclusion},${ordinary.section152Conclusion},${ordinary.section153Conclusion},${ordinary.sourceCompletenessConclusion},${attestationSource},${attestationReference},${postingRootIds}::uuid[],${sourceKinds}::text[],${additionSubtypes}::text[],${discountEligibilities}::text[],${evidenceSources}::text[],${evidenceReferences}::text[])`;
+      const row=capability[0];
+      if(capability.length!==1||!row||!UUID.test(row.valuation_id)||!Number.isInteger(row.generation)||row.generation<0||row.disposition!=="ordinary_final"||typeof row.created!=="boolean"||!HASH.test(row.evidence_hash)||!HASH.test(row.native_consideration_basis_hash))throw new IndiaGstAccommodationFinalValuationConflictError("Native final valuation capability returned invalid evidence");
+      return Object.freeze({valuationId:row.valuation_id,generation:row.generation,disposition:"ordinary_final",transactionValueMinor:positiveMinor(row.transaction_value_minor,"transactionValueMinor"),evidenceHash:row.evidence_hash,nativeConsiderationBasisHash:row.native_consideration_basis_hash,replayed:!row.created});
+    }catch(error){return mapNativeDbError(error);}
   }
 }

@@ -1,8 +1,8 @@
 # Phase 7 — Tax engine and India IRP
 
-**Status:** active; Orders 237–429 are recorded through their explicit review states; Order430 is active and proof_in_progress under D1302/D1304
+**Status:** active; Orders237–429 retain their recorded review states. Order430 was rejected under D1323; Order434 is its active complete native-source repair under D1330.
 **Entry point:** approved Phase-6 and Phase-7 dependencies as recorded in BUILD-PLAN.md and handoff/ROADMAP.md
-**Current order:** Order431 current-status reconciliation; Order430 is the active India fiscal-invoice issuance implementation
+**Current order:** [Order434](orders/434-native-fiscal-source-completion.md). Governed source intake and native consideration valuation have executed builder database proof; dependent issuance timing, incremental tax accounting, full canonical completion and independent acceptance remain unfinished.
 
 ## Outcome
 
@@ -21,9 +21,11 @@ without giving a browser, provider or mutable configuration a second financial t
 7. deliberate operator document/IRP journey with receipts, retry and failure visibility.
 
 Independent review remains required for each high-risk slice and for the Phase-7 exit.
-Order429 is independently approved and closed; Order430 remains proof_in_progress
-pending builder gates and a fresh non-implementing Tier-3 review. No Phase-7 or app
-completion is claimed by opening this plan.
+Order429 is independently approved and closed. Order430's rejection is not erased
+by the later repair. Order434 must complete its single first-native-invoice outcome
+and fresh non-implementing Tier-3 proof before approval. Source/valuation progress,
+green CI and documentation publication do not mean an invoice has been issued,
+the local app has been refreshed, or Phase7 is complete.
 
 ## Order 237 boundary
 

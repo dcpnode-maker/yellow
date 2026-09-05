@@ -961,3 +961,123 @@ verified76,372,039-byte test directory at
 execution policy rejected its exact-target cleanup command. No alternative deletion
 method was attempted. No retained hotel database was touched; this small leftover
 does not block implementation or require founder action now.
+
+## Native valuation implementation contract — 2026-09-05
+
+The native writer uses the existing four valuation tables with
+`basis_kind = native_consideration`; external rows default to
+`external_quoted_applicability`. The external writer and its hashes remain
+unchanged. Native rows have no Order341 digest. They bind the service/lineage,
+named consideration and approval-basis hashes, actor-bound request/key hashes,
+and the original approval decider/time/expiry/evidence where an override is used.
+Native-only source/night counts and the actual recording transaction identity
+support same-transaction child creation and one deferred aggregate-conservation
+check. They are integrity metadata, not a second valuation or money ledger.
+
+`record_india_gst_native_accommodation_valuation` has exactly25 parameters:
+six scope IDs (tenant/property/reservation/folio/buyer/service), request/actor/key,
+expected-current ID/hash and approval ID, seven ordinary Section15 strings, and
+six parallel source arrays (root ID/kind/addition/discount/source/reference).
+SQL derives money, complete source membership, quote weights, signed integer
+allocations, IDs and hashes. The return is valuation ID, generation, disposition,
+transaction value, evidence hash, native consideration-basis hash and `created`.
+The TypeScript `finalizeNative` calls this capability on every attempt, including
+replay; it does not use the legacy idempotency shortcut. Arrays are explicit
+escaped PostgreSQL literals bound as parameters, preserving punctuation in
+references; they are not interpolated SQL.
+
+The native request hash excludes the audit request UUID and idempotency key,
+includes actor/scope/current-head/approval plus exact Section15 data, and sorts
+complete source tuples by root UUID. The native approval payload is exactly
+property/reservation/folio/window/buyer, relationship-set and request hashes,
+`basisKind`, service snapshot ID and `nativeApprovalBasisHash`. The latter binds
+the service evidence and lineage snapshot as well as the actor-bound request.
+The approved0062 different-active-user, decision-time and expiry rules are
+retained; no new approval permission or tax/legal policy is invented.
+
+Unlike the legacy source selection, the native branch retains both original and
+contra roots of ordinary charge corrections. The original and negative entry
+must net together; dropping only the original would misstate consideration.
+Each root's complete transfer history and every pair in a multi-root transfer
+journal are checked without truncation. Charge/correction journals retain the
+exact two-line balanced guest/revenue shape. The valuation-only account bound is
+501 (500 revenue plus one guest); the issuing command later adds at most two
+component payable accounts for the documented503 bound.
+
+The writer refuses a transaction that already holds the global publication lock
+before acquiring financial resources. Source recording, valuation and final
+issuance remain separate dedicated transactions as specified above. Existing
+external commands and the retained local runtime are not changed by this rule.
+
+The first fresh migration application found that new FK validation against
+FORCE-RLS evidence tables cannot run under `yellow_owner` without a tenant.
+The repair follows0018's checked direct-deployment-role DDL pattern for only the
+existing-table ALTER/FK block, then restores `yellow_owner` before capabilities.
+It validates every tenant normally; it does not select a dummy tenant, disable
+RLS/FORCE, leave a constraint unvalidated or change the production runner.
+
+The parallel Order295/296/297 native composition lane uses their three
+already-scoped product files, the already-scoped
+`india-gst-accommodation-invoice-source.ts`, and
+`tests/india-native-fiscal-source-completion.test.ts`. The shared source module
+owns exact/frozen native-result and timing validation; supplier and recipient
+translate its errors instead of duplicating canonical serialization. Their
+distinct hash preimages remain unchanged. The reduced rate result omits rate
+pair/history roots, so checking its shape and outer hash cannot authenticate
+those inner roots: complete SQL reconstruction remains mandatory. No public
+index or operator action is admitted by this clarification.
+
+## Native valuation and composition checkpoint — D1342
+
+Root executed the final candidate on the single isolated PostgreSQL16.15
+cluster, database `yellow_order434_valuation`, after the unchanged74 migrations
+and draft0075 SHA256
+`81f163ca7c8129499587febe72cee6d013c88990d323a0ce1e92f53a5d9dfdd3`.
+The draft remains outside the production migration runner.
+
+With `YELLOW_REQUIRE_ORDER434_DATABASE=1` and the explicit isolated deploy/runtime
+URLs, this command passed15 tests,0 failures,86 assertions:
+
+```text
+bun test tests/india-native-fiscal-source-completion.integration.test.ts tests/india-gst-accommodation-ordinary-regime-evidence.integration.test.ts
+```
+
+The additional real workflow opens two more folio windows using `FolioService`,
+posts4000 and6000 minor units using `ChargeService`, and moves both whole groups
+twice using `FolioTransferService`. The two balanced four-line transfer journals,
+all eight immutable transfer fragments, zero balances on the first two windows
+and10000 on the final window are retained. Native valuation consumes both roots
+and their complete history; it adds no money or document. Exact valuation and
+historical transfer replay remain stable. The earlier correction, rollback,
+16-way replay, successor,366-night and500-root/501-account cases were rerun in
+the same15-case receipt. This proves valuation of routed consideration, not an
+issued split invoice or the missing native accounting composition.
+
+A second worker's bounded read-only check found raw-null error translation and
+a downstream signed-int64 validation mismatch in the pure native composers.
+The implementation worker corrected both using ordinary malformed-input tests.
+The reduced result is never represented as authenticated database evidence.
+This checkpoint check is not the final non-implementing Tier3 acceptance.
+
+Root's final `bun test` passed1497 tests,0 failures,20970 assertions across473
+files;1087 environment-dependent cases were explicitly skipped. The15 database
+cases above are separately executed proof, not inferred from that standing run.
+Typecheck, import boundaries(164 files), licence policy(23 packages), `bun audit`
+(no known vulnerabilities reported), and `git diff --check` passed. The native
+database suite also failed as required when its mandatory flag was enabled
+without database URLs. Runnable migrations0001–0074 remain byte-identical to
+published6dfbf45. Current-candidate schema/referee and complete76-migration
+acceptance remain future work; the previous published checkpoint's11/11 CI
+receipt does not certify this unfinished draft.
+
+Root stopped the isolated cluster and verified port55502 closed. The retained
+test directory `D:\Yellow\temp\order434-source-intake-20260905` is103,468,921 bytes.
+No alternate cleanup was attempted after the earlier policy-blocked deletion;
+no retained hotel database, local app, public action or dependency changed.
+
+Still required: positive legal-buyer override proof; the dependent timing table;
+native ordinary/genuine-change applicability and tax branches; incremental
+component-only accounting and zero-tax binding; full database-root canonical
+issuance; all final races/referee/schema gates and fresh independent Tier3
+acceptance. Order434 and Phase7 remain active. Publishing this checkpoint is
+source preservation, not deployment, main integration or phase completion.
