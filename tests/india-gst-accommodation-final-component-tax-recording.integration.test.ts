@@ -230,7 +230,7 @@ databaseRun("Order 367 fresh PostgreSQL integration", () => {
   const runtimeDb = new SQL(runtimeDatabaseUrl!, { max: 4 });
   afterAll(async () => { await Promise.all([db.close(), runtimeDb.close()]); });
 
-  test("has the exact released 0075 catalogue frontier", async () => {
+  test("has the exact canonical 0077 catalogue frontier", async () => {
     const [actual] = await db<Array<{
       migrations: number; tables: number; rls: number; policies: number;
       forced: number; views: number;

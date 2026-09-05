@@ -2183,3 +2183,12 @@ Latest dependency-free standing run: 1,570 passed, 1,189 explicit environment sk
 zero failures, 21,646 assertions (97.41 seconds). Typecheck, 168-file import boundaries,
 23-package licence check and dependency audit pass. This remains an unapproved
 development checkpoint for real CI execution, not a main merge or local refresh.
+
+CI33991882050 at bcc6df3 passed quality, Windows state, container smoke and the
+complete local launcher. Its actual setup log reports migrations1–77/127 tables
+and the genuine referee **11 passed, 0 failed**. The database job stopped at one
+remaining historical table-count expectation in the financial-posting proof:
+125 expected versus actual127. The other nine posting cases passed, including
+500 charges and 1,000 balanced immutable lines. That exact count is corrected
+under the existing catalogue scope; no posting, ACL, money or race assertion changes.
+Later database steps were not reached and remain pending the next CI run.
