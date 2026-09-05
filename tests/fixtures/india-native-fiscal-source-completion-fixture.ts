@@ -53,6 +53,8 @@ export interface NativeSourceFixtureOptions {
   readonly supplierBankCreditDate?: string;
   /** Synthetic quote arithmetic; never changes approved production GST rules. */
   readonly quotedTaxRounding?: "exact_5_percent" | "component_half_up";
+  /** Synthetic quote evidence only; production rate history remains authoritative. */
+  readonly quotedTaxRateBasisPoints?: 500 | 1200 | 1800;
 }
 
 export interface NativeSourceCharge {
@@ -110,11 +112,13 @@ function fixtureTimezone(value: string | undefined): string {
 }
 
 function canonicalAmounts(values: readonly string[] | undefined,
-  rounding: NativeSourceFixtureOptions["quotedTaxRounding"] = "exact_5_percent"): {
+  rounding: NativeSourceFixtureOptions["quotedTaxRounding"] = "exact_5_percent",
+  rateBasisPoints: NativeSourceFixtureOptions["quotedTaxRateBasisPoints"] = 500): {
   readonly values: readonly string[];
   readonly base: bigint;
   readonly tax: bigint;
   readonly payment: bigint;
+  readonly rateBasisPoints: 500 | 1200 | 1800;
 } {
   const amounts = values ?? DEFAULT_ROOM_NIGHT_AMOUNTS;
   if (!Array.isArray(amounts) || amounts.length < 1 || amounts.length > 366) {
@@ -129,21 +133,26 @@ function canonicalAmounts(values: readonly string[] | undefined,
     return parsed;
   });
   const base = canonical.reduce((sum, amount) => sum + amount, 0n);
-  const taxNumerator = base * 500n;
+  if (rateBasisPoints !== 500 && rateBasisPoints !== 1200 && rateBasisPoints !== 1800) {
+    throw new Error("Native source fixture quoted tax rate basis points are unsupported");
+  }
+  const taxNumerator = base * BigInt(rateBasisPoints);
   if (rounding !== "exact_5_percent" && rounding !== "component_half_up") {
     throw new Error("Native source fixture quoted tax rounding is unsupported");
   }
   if (base > MAX_INT64 || (rounding === "exact_5_percent" && taxNumerator % 10_000n !== 0n)) {
-    throw new Error("Native source fixture requires an exact 5% synthetic quoted-tax result");
+    throw new Error(rateBasisPoints === 500
+      ? "Native source fixture requires an exact 5% synthetic quoted-tax result"
+      : `Native source fixture requires an exact ${rateBasisPoints / 100}% synthetic quoted-tax result`);
   }
   const tax = rounding === "component_half_up"
-    ? canonical.reduce((sum, amount) => sum + 2n * ((amount * 250n + 5_000n) / 10_000n), 0n)
+    ? canonical.reduce((sum, amount) => sum + 2n * ((amount * BigInt(rateBasisPoints / 2) + 5_000n) / 10_000n), 0n)
     : taxNumerator / 10_000n;
   const payment = base + tax;
   if (tax < 0n || (rounding === "exact_5_percent" && tax < 1n) || payment > MAX_INT64) {
     throw new Error("Native source fixture quoted-tax total is outside admitted int64 bounds");
   }
-  return Object.freeze({ values: Object.freeze([...amounts]), base, tax, payment });
+  return Object.freeze({ values: Object.freeze([...amounts]), base, tax, payment, rateBasisPoints });
 }
 
 function revenueAccountCount(value: number | undefined): number {
@@ -181,7 +190,7 @@ export async function createNativeSourceFixture(
 ): Promise<NativeSourceFixture> {
   const label = fixtureLabel(options.label);
   const timezone = fixtureTimezone(options.timezone);
-  const amounts = canonicalAmounts(options.roomNightAmounts, options.quotedTaxRounding);
+  const amounts = canonicalAmounts(options.roomNightAmounts, options.quotedTaxRounding, options.quotedTaxRateBasisPoints);
   const configuredRevenueAccountCount = revenueAccountCount(options.revenueAccountCount);
   const marker = `${label}-${crypto.randomUUID().replaceAll("-", "").slice(0, 12)}`;
   const pathMarker = marker.replaceAll("-", "").toLowerCase();
@@ -280,7 +289,7 @@ export async function createNativeSourceFixture(
           revenueGroup: "room_revenue",
           baseMinor: amounts.base,
           taxMinor: amounts.tax,
-          rateBasisPoints: 500,
+          rateBasisPoints: amounts.rateBasisPoints,
         }],
       }],
     },
@@ -683,7 +692,8 @@ export async function createNativeIssuanceFixture(
   options: NativeIssuanceFixtureOptions = {},
 ) {
   const label = fixtureLabel(options.label ?? "native-issuance");
-  const amount = options.chargeAmountMinor ?? canonicalAmounts(options.roomNightAmounts, options.quotedTaxRounding).base.toString();
+  const amount = options.chargeAmountMinor ?? canonicalAmounts(options.roomNightAmounts, options.quotedTaxRounding,
+    options.quotedTaxRateBasisPoints).base.toString();
   if (!/^[1-9][0-9]*$/.test(amount) || BigInt(amount) > MAX_INT64) {
     throw new Error("Native issuance final consideration must be a positive int64 minor-unit string");
   }
@@ -827,7 +837,8 @@ export async function createNativeCorrectionFirstIssuanceFixture(
 ) {
   const label = fixtureLabel(options.label ?? "native-correction-first");
   const amount = options.chargeAmountMinor
-    ?? canonicalAmounts(options.roomNightAmounts, options.quotedTaxRounding).base.toString();
+    ?? canonicalAmounts(options.roomNightAmounts, options.quotedTaxRounding,
+      options.quotedTaxRateBasisPoints).base.toString();
   if (!/^[1-9][0-9]*$/.test(amount) || BigInt(amount) > MAX_INT64) {
     throw new Error("Native correction-first final consideration must be a positive int64 minor-unit string");
   }
@@ -867,7 +878,8 @@ export async function createNativeTransferFirstIssuanceFixture(
 ) {
   const label = fixtureLabel(options.label ?? "native-transfer-first");
   const amount = options.chargeAmountMinor
-    ?? canonicalAmounts(options.roomNightAmounts, options.quotedTaxRounding).base.toString();
+    ?? canonicalAmounts(options.roomNightAmounts, options.quotedTaxRounding,
+      options.quotedTaxRateBasisPoints).base.toString();
   if (!/^[1-9][0-9]*$/.test(amount) || BigInt(amount) > MAX_INT64) {
     throw new Error("Native transfer-first final consideration must be a positive int64 minor-unit string");
   }
@@ -936,7 +948,7 @@ export async function createNativeMaximumBoundIssuanceFixture(
 }
 
 export interface NativeIssuanceCohortOptions extends Pick<NativeIssuanceFixtureOptions,
-  "label" | "roomNightAmounts" | "quotedTaxRounding"> {
+  "label" | "roomNightAmounts" | "quotedTaxRounding" | "quotedTaxRateBasisPoints"> {
   readonly count: number;
 }
 
@@ -958,7 +970,7 @@ async function createSharedNativeSourceMember(
   options: NativeIssuanceCohortOptions,
   label: string,
 ): Promise<NativeSourceFixture> {
-  const amounts = canonicalAmounts(options.roomNightAmounts, options.quotedTaxRounding);
+  const amounts = canonicalAmounts(options.roomNightAmounts, options.quotedTaxRounding, options.quotedTaxRateBasisPoints);
   const fixture = original.fixture;
   const [template] = await deploy<SharedSourceTemplateRow[]>`
     SELECT ut.id::text AS unit_type_id, su.id::text AS sellable_unit_id,
@@ -1008,7 +1020,7 @@ async function createSharedNativeSourceMember(
       baseTotalMinor: amounts.base, taxTotalMinor: amounts.tax, grandTotalMinor: amounts.payment,
       taxes: [{ code: "GST_ROOM", name: "Synthetic quoted GST evidence", taxMinor: amounts.tax,
         components: [{ lineId: "room", revenueGroup: "room_revenue", baseMinor: amounts.base,
-          taxMinor: amounts.tax, rateBasisPoints: 500 }] }] },
+          taxMinor: amounts.tax, rateBasisPoints: amounts.rateBasisPoints }] }] },
   });
 
   await deploy.begin(async tx => {
@@ -1123,7 +1135,8 @@ export async function createNativeIssuanceCohort(
   for (let index = 2; index <= options.count; index++) {
     const label = `${baseLabel.slice(0, 27)}-${index}`;
     const member = await createSharedNativeSourceMember(deploy, runtime, original, options, label);
-    const amount = canonicalAmounts(options.roomNightAmounts, options.quotedTaxRounding).base.toString();
+    const amount = canonicalAmounts(options.roomNightAmounts, options.quotedTaxRounding,
+      options.quotedTaxRateBasisPoints).base.toString();
     const charge = await member.postCharge(amount, `${label}-charge`);
     const valuation = await runtime.withTenantTransaction(member.tenant, tx => valuationService.finalizeNative(tx,
       freezeStatutoryFixture({ tenantId: member.tenant, propertyNode: member.property, reservationId: member.reservation,

@@ -941,6 +941,72 @@ candidateDescribe("Order434 native completion real candidate variants", () => {
     expect(await candidateCensus(deploy, candidate.fixture.tenant, candidate.series.seriesId)).toEqual(afterIssue);
   }, 60_000);
 
+  test("issues approved predecessor 12% and upper-slab 18% rates from authentic history", async () => {
+    const cases = [
+      {
+        label: "native-rate-predecessor-12",
+        roomNightAmounts: ["10000"] as const,
+        quotedTaxRateBasisPoints: 1200 as const,
+        serviceProvisionDate: "2025-09-20",
+        supplierBooksEntryDate: "2025-09-20",
+        supplierBankCreditDate: "2025-09-20",
+        selectedVersion: 1, selectedSide: "predecessor", taxKind: "genuine_section14_rate_change",
+        tax: "1200", total: "11200", component: [{ identity: "cgst", amount: "600" }, { identity: "sgst", amount: "600" }],
+      },
+      {
+        label: "native-rate-upper-slab-18",
+        roomNightAmounts: ["750100"] as const,
+        quotedTaxRateBasisPoints: 1800 as const,
+        selectedVersion: 2, selectedSide: null, taxKind: "ordinary_section13_single_version",
+        tax: "135018", total: "885118", component: [{ identity: "cgst", amount: "67509" }, { identity: "sgst", amount: "67509" }],
+      },
+    ] as const;
+    for (const expected of cases) {
+      const candidate = await createNativeIssuanceFixture(deploy, runtime, expected);
+      const before = await candidateCensus(deploy, candidate.fixture.tenant, candidate.series.seriesId);
+      const issued = await new IssueIndiaNativeFiscalInvoiceCommand(runtime).execute(candidate.request);
+      const [projection] = await deploy<Array<{
+        selected_version: number; selected_side: string | null; rate_kind: string;
+        tax: string; total: string; transaction_value: string;
+        components: Array<{ identity: string; amount: string }>;
+        guest: string; revenue: string; payable: string; journal_balance: string;
+      }>>`SELECT app.selected_extension_version AS selected_version,app.selected_version_side AS selected_side,
+          tax.rate_selection_kind AS rate_kind,tax.tax_minor::text AS tax,tax.grand_total_minor::text AS total,
+          tax.transaction_value_minor::text AS transaction_value,
+          (SELECT jsonb_agg(jsonb_build_object('identity',c.component_identity,'amount',c.tax_amount_minor::text)
+             ORDER BY c.component_ordinal)
+             FROM public.india_gst_accommodation_final_component_tax_component c
+             WHERE c.tenant_id=tax.tenant_id AND c.tax_id=tax.id) AS components,
+          (SELECT sum(l.amount_minor)::text FROM public.posting_line l WHERE l.tenant_id=origin.tenant_id
+             AND l.account_id=${candidate.fixture.guestAccount}::uuid) AS guest,
+          (SELECT sum(l.amount_minor)::text FROM public.posting_line l JOIN public.account a
+             ON a.tenant_id=l.tenant_id AND a.id=l.account_id WHERE l.tenant_id=origin.tenant_id AND a.role='revenue') AS revenue,
+          (SELECT (-sum(l.amount_minor))::text FROM public.posting_line l JOIN public.account a
+             ON a.tenant_id=l.tenant_id AND a.id=l.account_id WHERE l.tenant_id=origin.tenant_id AND a.role='tax_payable') AS payable,
+          (SELECT sum(l.amount_minor)::text FROM public.posting_line l WHERE l.tenant_id=binding.tenant_id
+             AND l.journal_id=binding.journal_id) AS journal_balance
+        FROM public.india_gst_native_fiscal_document_origin origin
+        JOIN public.india_gst_native_invoice_timing timing ON timing.tenant_id=origin.tenant_id AND timing.id=origin.native_timing_id
+        JOIN public.india_gst_accommodation_quoted_rate_applicability app ON app.tenant_id=timing.tenant_id AND app.id=timing.applicability_id
+        JOIN public.india_gst_accommodation_final_component_tax tax ON tax.tenant_id=timing.tenant_id AND tax.id=timing.tax_id
+        JOIN public.india_gst_accommodation_final_component_tax_journal_binding binding
+          ON binding.tenant_id=timing.tenant_id AND binding.id=timing.accounting_binding_id
+        WHERE origin.tenant_id=${candidate.fixture.tenant}::uuid AND origin.document_id=${issued.documentId}::uuid`;
+      expect(projection).toEqual({ selected_version: expected.selectedVersion, selected_side: expected.selectedSide,
+        rate_kind: expected.taxKind, tax: expected.tax, total: expected.total,
+        transaction_value: expected.roomNightAmounts[0], components: [...expected.component],
+        guest: expected.total, revenue: `-${expected.roomNightAmounts[0]}`, payable: expected.tax, journal_balance: "0" });
+      const afterIssue = await candidateCensus(deploy, candidate.fixture.tenant, candidate.series.seriesId);
+      expect(afterIssue).toEqual({ ...before, documents: before.documents + 1, origins: before.origins + 1,
+        accountingBindings: before.accountingBindings + 1, journals: before.journals + 1, lines: before.lines + 4,
+        facts: before.facts + 3, events: before.events + 4, idempotencyRows: before.idempotencyRows + 1,
+        issueReceipts: before.issueReceipts + 1, nextNo: (BigInt(before.nextNo) + 1n).toString() });
+      await expect(new IssueIndiaNativeFiscalInvoiceCommand(runtime).execute(replayRequest(candidate.request)))
+        .resolves.toEqual({ ...issued, replayed: true });
+      expect(await candidateCensus(deploy, candidate.fixture.tenant, candidate.series.seriesId)).toEqual(afterIssue);
+    }
+  }, 120_000);
+
   test("permanently replays after exact ephemeral receipt and issuance events are retained away", async () => {
     const candidate = await createNativeIssuanceFixture(deploy, runtime, {
       label: "native-retained-replay",

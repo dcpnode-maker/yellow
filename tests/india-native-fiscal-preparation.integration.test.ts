@@ -1,8 +1,9 @@
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { SQL } from "bun";
 import { IssueIndiaNativeFiscalInvoiceCommand } from "../src/commands/issue-india-native-fiscal-invoice";
-import { IndiaGstAccommodationFinalValuationService, IndiaNativeFiscalSeriesConfigurationService } from "../src/contexts/tax-fiscal";
-import { createAuditEnvelope, Database, PostgresIdempotency } from "../src/kernel";
+import { IndiaGstAccommodationFinalValuationService, IndiaNativeFiscalInvoiceIssuanceService, IndiaNativeFiscalSeriesConfigurationService } from "../src/contexts/tax-fiscal";
+import { IndiaNativeFiscalAccountingEventHandler } from "../src/contexts/financials";
+import { createAuditEnvelope, Database, PostgresIdempotency, type Tx } from "../src/kernel";
 import { createNativeIssuanceFixture, createNativeSourceFixture, createNativeStatutoryFixture } from "./fixtures/india-native-fiscal-source-completion-fixture";
 
 const draft = new URL("../handoff/drafts/order434/0076-native-preparation.sql", import.meta.url);
@@ -257,6 +258,171 @@ issuanceDescribe("Order434 genuine native invoice transaction", () => {
     expect(await census()).toEqual(beforeReplay);
     expect(beforeReplay).toMatchObject({ documents: "1", timings: "1", next_no: "2" });
   }, 60000);
+
+  test("real inline accounting replay preserves event order and survives original request-event retention", async () => {
+    for (const variant of [
+      { label: "positive", amount: "10000", rounding: "exact_5_percent" as const, hasTaxJournal: true },
+      { label: "zero", amount: "1", rounding: "component_half_up" as const, hasTaxJournal: false },
+    ]) {
+      const { fixture, series, request } = await createNativeIssuanceFixture(deploy, runtime, {
+        label: `native-inline-${variant.label}`, roomNightAmounts: [variant.amount], quotedTaxRounding: variant.rounding,
+      });
+      const snapshot = async (tx: Tx) => (await tx`SELECT
+        (SELECT count(*)::integer FROM public.document WHERE tenant_id=${fixture.tenant}::uuid) AS documents,
+        (SELECT count(*)::integer FROM public.india_gst_native_fiscal_document_origin WHERE tenant_id=${fixture.tenant}::uuid) AS origins,
+        (SELECT count(*)::integer FROM public.india_gst_accommodation_final_component_tax_journal_binding WHERE tenant_id=${fixture.tenant}::uuid) AS bindings,
+        (SELECT count(*)::integer FROM public.journal WHERE tenant_id=${fixture.tenant}::uuid) AS journals,
+        (SELECT count(*)::integer FROM public.posting_line WHERE tenant_id=${fixture.tenant}::uuid) AS lines,
+        (SELECT count(*)::integer FROM public.fact_log WHERE tenant_id=${fixture.tenant}::uuid) AS facts,
+        (SELECT count(*)::integer FROM public.outbox WHERE tenant_id=${fixture.tenant}::uuid) AS events,
+        (SELECT count(*)::integer FROM public.api_idempotency WHERE tenant_id=${fixture.tenant}::uuid) AS receipts,
+        (SELECT next_no::text FROM public.document_series WHERE tenant_id=${fixture.tenant}::uuid AND id=${series.seriesId}::uuid) AS next_no`)[0];
+      const handler = new IndiaNativeFiscalAccountingEventHandler();
+      let recordedEventId: string | undefined;
+      let recordedAccounting: Awaited<ReturnType<typeof handler.handle>> | undefined;
+      // Delegate both calls to the real handler. This observation port changes
+      // no SQL, clock, authentication, connection or financial source.
+      const issuer = new IndiaNativeFiscalInvoiceIssuanceService({ nativeAccounting: {
+        async handle(tx, input) {
+          recordedEventId = input.eventId;
+          const [before] = await tx<Array<{ pid: number; xid: string; documents: number; bindings: number }>>`
+            SELECT pg_backend_pid() AS pid,pg_current_xact_id()::text AS xid,
+              (SELECT count(*)::integer FROM public.document WHERE tenant_id=${fixture.tenant}::uuid) AS documents,
+              (SELECT count(*)::integer FROM public.india_gst_accommodation_final_component_tax_journal_binding
+                WHERE tenant_id=${fixture.tenant}::uuid) AS bindings`;
+          expect(before).toMatchObject({ documents: 0, bindings: 0 });
+          const first = await handler.handle(tx, input);
+          expect(first).toMatchObject({ created: true, replayed: false, folioId: fixture.folio,
+            reservationId: fixture.reservation, currency: "INR" });
+          expect(first.journalId !== null).toBe(variant.hasTaxJournal);
+          const afterFirst = await snapshot(tx);
+          expect(afterFirst).toMatchObject({ documents: 0, origins: 0, bindings: 1, next_no: series.nextNo });
+          expect(await handler.handle(tx, input)).toEqual({ ...first, created: false, replayed: true });
+          expect(await snapshot(tx)).toEqual(afterFirst);
+          const [after] = await tx<Array<{ pid: number; xid: string }>>`
+            SELECT pg_backend_pid() AS pid,pg_current_xact_id()::text AS xid`;
+          expect(after).toEqual({ pid: before!.pid, xid: before!.xid });
+          recordedAccounting = first;
+          return first;
+        },
+      } });
+      const issued = await runtime.withTenantTransaction(fixture.tenant, tx => issuer.issueNative(tx, request));
+      if (!recordedEventId || !recordedAccounting) throw new Error("Real inline accounting was not observed");
+      const eventId = recordedEventId;
+      const expectedReplay = { ...recordedAccounting, created: false, replayed: true };
+      const events = await deploy<Array<{ kind: string; same_clock: boolean; request_cause: boolean }>>`
+        SELECT e.event_type AS kind,e.created_at=n.transaction_timestamp AS same_clock,
+          e.causation_id=n.request_event_id AS request_cause
+        FROM public.india_gst_native_invoice_timing n JOIN public.outbox e
+          ON e.tenant_id=n.tenant_id AND e.correlation_id=n.request_id
+        WHERE n.tenant_id=${fixture.tenant}::uuid AND n.request_event_id=${eventId}::uuid ORDER BY e.seq`;
+      expect(events.map(event => event.kind)).toEqual([
+        "india_gst.native_accommodation_accounting_requested", "india_gst.native_accommodation_accounting_bound",
+        ...(variant.hasTaxJournal ? ["journal.posted"] : []), "document.issued",
+      ]);
+      expect(events.every(event => event.same_clock)).toBe(true);
+      expect(events.slice(1, -1).every(event => event.request_cause)).toBe(true);
+      const committed = await runtime.withTenantTransaction(fixture.tenant, snapshot);
+      expect(await runtime.withTenantTransaction(fixture.tenant, tx => handler.handle(tx, { tenantId: fixture.tenant, eventId })))
+        .toEqual(expectedReplay);
+      expect(await runtime.withTenantTransaction(fixture.tenant, snapshot)).toEqual(committed);
+      const [dependencies] = await deploy<Array<{ count: number }>>`
+        SELECT count(*)::integer AS count FROM public.consumer_processed WHERE outbox_id=${eventId}::uuid`;
+      expect(dependencies).toEqual({ count: 0 });
+      // Remove only this synthetic request event by its permanent timing link;
+      // all financial records, document and immutable origin remain untouched.
+      const removed = await deploy<Array<{ id: string }>>`
+        DELETE FROM public.outbox e USING public.india_gst_native_invoice_timing n
+        WHERE n.tenant_id=${fixture.tenant}::uuid AND n.prospective_document_id=${issued.documentId}::uuid
+          AND n.request_event_id=${eventId}::uuid AND e.tenant_id=n.tenant_id
+          AND e.id=n.request_event_id AND e.seq=n.request_event_seq
+          AND e.event_type='india_gst.native_accommodation_accounting_requested' RETURNING e.id::text`;
+      expect(removed).toEqual([{ id: eventId }]);
+      const retained = await runtime.withTenantTransaction(fixture.tenant, snapshot);
+      expect(retained).toEqual({ ...committed, events: committed.events - 1 });
+      expect(await runtime.withTenantTransaction(fixture.tenant, tx => handler.handle(tx, { tenantId: fixture.tenant, eventId })))
+        .toEqual(expectedReplay);
+      expect(await runtime.withTenantTransaction(fixture.tenant, snapshot)).toEqual(retained);
+      expect(await new IssueIndiaNativeFiscalInvoiceCommand(runtime).execute({ ...request,
+        envelope: { ...request.envelope, requestId: crypto.randomUUID() } })).toEqual({ ...issued, replayed: true });
+      expect(await runtime.withTenantTransaction(fixture.tenant, snapshot)).toEqual(retained);
+    }
+  }, 60_000);
+
+  test("actual native issuance preserves the exact 30-calendar-day timely and late boundary", async () => {
+    for (const daysAfterService of [30, 31] as const) {
+      // Date only the original service/payment facts. The command must retain
+      // its own PostgreSQL transaction clock and the actual property timezone.
+      const [dates] = await deploy<Array<{ today: string; service: string; deadline: string }>>`
+        SELECT (transaction_timestamp() AT TIME ZONE 'Asia/Kolkata')::date::text AS today,
+          ((transaction_timestamp() AT TIME ZONE 'Asia/Kolkata')::date - ${daysAfterService})::text AS service,
+          ((transaction_timestamp() AT TIME ZONE 'Asia/Kolkata')::date - ${daysAfterService} + 30)::text AS deadline`;
+      if (!dates) throw new Error("Native timing boundary property date is unavailable");
+      const { fixture, series, request } = await createNativeIssuanceFixture(deploy, runtime, {
+        label: `native-calendar-${daysAfterService}`, roomNightAmounts: ["10000"],
+        serviceProvisionDate: dates.service, supplierBooksEntryDate: dates.today,
+        supplierBankCreditDate: dates.today,
+      });
+      const census = async () => (await deploy`SELECT
+        (SELECT count(*)::integer FROM public.document WHERE tenant_id=${fixture.tenant}::uuid) AS documents,
+        (SELECT count(*)::integer FROM public.india_gst_native_fiscal_document_origin WHERE tenant_id=${fixture.tenant}::uuid) AS origins,
+        (SELECT count(*)::integer FROM public.india_gst_native_invoice_timing WHERE tenant_id=${fixture.tenant}::uuid) AS timings,
+        (SELECT count(*)::integer FROM public.india_gst_accommodation_quoted_rate_applicability WHERE tenant_id=${fixture.tenant}::uuid) AS applicability,
+        (SELECT count(*)::integer FROM public.india_gst_accommodation_final_component_tax WHERE tenant_id=${fixture.tenant}::uuid) AS taxes,
+        (SELECT count(*)::integer FROM public.india_gst_accommodation_final_component_tax_journal_binding WHERE tenant_id=${fixture.tenant}::uuid) AS bindings,
+        (SELECT count(*)::integer FROM public.journal WHERE tenant_id=${fixture.tenant}::uuid) AS journals,
+        (SELECT count(*)::integer FROM public.posting_line WHERE tenant_id=${fixture.tenant}::uuid) AS lines,
+        (SELECT count(*)::integer FROM public.api_idempotency WHERE tenant_id=${fixture.tenant}::uuid) AS receipts,
+        (SELECT count(*)::integer FROM public.outbox WHERE tenant_id=${fixture.tenant}::uuid) AS events,
+        (SELECT count(*)::integer FROM public.fact_log WHERE tenant_id=${fixture.tenant}::uuid) AS facts,
+        (SELECT next_no::text FROM public.document_series WHERE tenant_id=${fixture.tenant}::uuid AND id=${series.seriesId}::uuid) AS next_no`)[0];
+      const before = await census();
+      const command = new IssueIndiaNativeFiscalInvoiceCommand(runtime);
+      const issued = await command.execute(request);
+      const [projection] = await deploy<Array<{
+        issue_date: string; document_date: string; clock_date: string; service_date: string;
+        deadline_date: string; receipt_date: string; supply_date: string; statutory_date: string;
+        timely: boolean; timezone: string; source_kind: string; rate_kind: string;
+        base: string; tax: string; total: string; guest: string; revenue: string;
+      }>>`SELECT n.invoice_issue_date::text AS issue_date,d.business_date::text AS document_date,
+          (n.transaction_timestamp AT TIME ZONE n.property_timezone)::date::text AS clock_date,
+          a.service_provision_date::text AS service_date,(a.service_provision_date+30)::text AS deadline_date,
+          a.payment_receipt_date::text AS receipt_date,a.time_of_supply_date::text AS supply_date,
+          s.status_as_of::text AS statutory_date,n.invoice_issue_date<=a.service_provision_date+30 AS timely,
+          n.property_timezone AS timezone,a.invoice_source_kind AS source_kind,a.rate_selection_kind AS rate_kind,
+          t.transaction_value_minor::text AS base,t.tax_minor::text AS tax,t.grand_total_minor::text AS total,
+          (SELECT sum(p.amount_minor)::text FROM public.posting_line p
+            WHERE p.tenant_id=n.tenant_id AND p.account_id=${fixture.guestAccount}::uuid) AS guest,
+          (SELECT sum(p.amount_minor)::text FROM public.posting_line p
+            WHERE p.tenant_id=n.tenant_id AND p.account_id=${fixture.revenueAccount}::uuid) AS revenue
+        FROM public.india_gst_native_fiscal_document_origin o
+        JOIN public.document d ON d.tenant_id=o.tenant_id AND d.id=o.document_id
+        JOIN public.india_gst_native_invoice_timing n ON n.tenant_id=o.tenant_id AND n.id=o.native_timing_id
+        JOIN public.india_gst_accommodation_quoted_rate_applicability a ON a.tenant_id=n.tenant_id AND a.id=n.applicability_id
+        JOIN public.india_gst_accommodation_final_component_tax t ON t.tenant_id=n.tenant_id AND t.id=n.tax_id
+        JOIN public.india_gst_supplier_registration_status_snapshot s
+          ON s.tenant_id=n.tenant_id AND s.id=n.supplier_registration_status_id
+        WHERE o.tenant_id=${fixture.tenant}::uuid AND o.document_id=${issued.documentId}::uuid`;
+      expect(projection).toEqual({
+        issue_date: dates.today, document_date: dates.today, clock_date: dates.today,
+        service_date: dates.service, deadline_date: dates.deadline, receipt_date: dates.today,
+        supply_date: daysAfterService === 30 ? dates.today : dates.service,
+        statutory_date: daysAfterService === 30 ? dates.today : dates.service,
+        timely: daysAfterService === 30, timezone: "Asia/Kolkata", source_kind: "native_current_transaction",
+        rate_kind: "ordinary_section13_single_version", base: "10000", tax: "500", total: "10500",
+        guest: "10500", revenue: "-10000",
+      });
+      const after = await census();
+      expect(after).toEqual({ ...before, documents: before.documents + 1, origins: before.origins + 1,
+        timings: before.timings + 1, applicability: before.applicability + 1, taxes: before.taxes + 1,
+        bindings: before.bindings + 1, journals: before.journals + 1, lines: before.lines + 4,
+        receipts: before.receipts + 1, events: before.events + 4, facts: before.facts + 3,
+        next_no: (BigInt(before.next_no) + 1n).toString() });
+      expect(await command.execute({ ...request, envelope: { ...request.envelope, requestId: crypto.randomUUID() } }))
+        .toEqual({ ...issued, replayed: true });
+      expect(await census()).toEqual(after);
+    }
+  }, 60_000);
 
   test("preparation without accounting and final document cannot commit or consume a number", async () => {
     const { fixture, series, request: r } = await createNativeIssuanceFixture(deploy, runtime, { label: "native-partial-rollback" });
