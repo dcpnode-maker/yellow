@@ -3,7 +3,7 @@ import { SQL } from "bun";
 import { IssueIndiaNativeFiscalInvoiceCommand } from "../src/commands/issue-india-native-fiscal-invoice";
 import { IndiaGstAccommodationFinalValuationService, IndiaNativeFiscalInvoiceIssuanceService, IndiaNativeFiscalSeriesConfigurationService } from "../src/contexts/tax-fiscal";
 import { IndiaNativeFiscalAccountingEventHandler } from "../src/contexts/financials";
-import { createAuditEnvelope, Database, PostgresIdempotency, type Tx } from "../src/kernel";
+import { createAuditEnvelope, Database, PostgresEventBus, PostgresIdempotency, type Tx } from "../src/kernel";
 import { createNativeIssuanceFixture, createNativeSourceFixture, createNativeStatutoryFixture } from "./fixtures/india-native-fiscal-source-completion-fixture";
 
 const draft = new URL("../handoff/drafts/order434/0076-native-preparation.sql", import.meta.url);
@@ -106,6 +106,110 @@ function domain(input: BasisParts): ObjectValue {
     serviceSupplyNatureCanonicalJson: JSON.stringify(input.nature), quotedTaxComposition: input.composition,
     seriesIdentity: input.series,
   };
+}
+
+async function boundedObservation<T>(promise: Promise<T>, label: string): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    return await Promise.race([promise, new Promise<never>((_resolve, reject) => {
+      timer = setTimeout(() => reject(new Error(`Timed out observing ${label}`)), 15_000);
+    })]);
+  } finally {
+    if (timer !== undefined) clearTimeout(timer);
+  }
+}
+
+// Pause only after the actual command has returned inside its real transaction.
+// No statement, authority, clock, connection or domain response is replaced.
+function issuanceCommitBarrier() {
+  const reached = Promise.withResolvers<number>();
+  const release = Promise.withResolvers<void>();
+  const pool = new SQL(issueRuntimeUrl!, { max: 1, prepare: false });
+  const database = new class extends Database {
+    override async withTenantTransaction<T>(tenantId: string, operation: (tx: Tx) => Promise<T>): Promise<T> {
+      try {
+        return await super.withTenantTransaction(tenantId, async tx => {
+          const result = await operation(tx);
+          const [backend] = await tx<Array<{ pid: number }>>`SELECT pg_backend_pid() AS pid`;
+          if (!backend) throw new Error("Issuance barrier backend is unavailable");
+          reached.resolve(backend.pid);
+          await release.promise;
+          return result;
+        });
+      } catch (error) { reached.reject(error); throw error; }
+    }
+  }(pool);
+  return { database, reached: reached.promise, release: () => release.resolve(),
+    close: () => pool.close({ timeout: 0 }) };
+}
+
+async function observedWaiter(deploy: SQL, holder: number, waiter?: number) {
+  const deadline = performance.now() + 10_000;
+  while (performance.now() < deadline) {
+    const rows = await deploy<Array<{
+      pid: number; blockers: number[]; holder_blockers: number[]; waiting: boolean; publication: boolean;
+    }>>`SELECT a.pid,pg_blocking_pids(a.pid) AS blockers,
+      pg_blocking_pids(${holder}) AS holder_blockers,
+      EXISTS(SELECT 1 FROM pg_locks WHERE pid=a.pid AND NOT granted) AS waiting,
+      EXISTS(SELECT 1 FROM pg_locks WHERE pid=a.pid AND locktype='advisory' AND granted
+        AND objsubid=1 AND classid=((6441674055002974568::bigint>>32)&4294967295)::oid
+        AND objid=(6441674055002974568::bigint&4294967295)::oid) AS publication
+      FROM pg_stat_activity a WHERE a.datname=current_database() AND a.pid<>pg_backend_pid()
+        AND (${waiter ?? null}::integer IS NULL OR a.pid=${waiter ?? null}::integer)
+        AND ${holder}=ANY(pg_blocking_pids(a.pid)) ORDER BY a.pid`;
+    if (rows.length === 1 && rows[0]) return rows[0];
+    // Poll observations only; neither business command is ever retried.
+    await Bun.sleep(25);
+  }
+  throw new Error("Expected exact transaction wait was not observed");
+}
+
+async function concurrencyCensus(deploy: SQL, tenant: string, series: string) {
+  const [row] = await deploy`SELECT
+    (SELECT count(*)::integer FROM public.document WHERE tenant_id=${tenant}::uuid) AS documents,
+    (SELECT count(*)::integer FROM public.india_gst_native_fiscal_document_origin WHERE tenant_id=${tenant}::uuid) AS origins,
+    (SELECT count(*)::integer FROM public.india_gst_native_invoice_timing WHERE tenant_id=${tenant}::uuid) AS timings,
+    (SELECT count(*)::integer FROM public.india_gst_accommodation_quoted_rate_applicability WHERE tenant_id=${tenant}::uuid) AS applicability,
+    (SELECT count(*)::integer FROM public.india_gst_accommodation_quoted_rate_applicability_room_night WHERE tenant_id=${tenant}::uuid) AS applicability_nights,
+    (SELECT count(*)::integer FROM public.india_gst_accommodation_final_component_tax WHERE tenant_id=${tenant}::uuid) AS taxes,
+    (SELECT count(*)::integer FROM public.india_gst_accommodation_final_component_tax_room_night WHERE tenant_id=${tenant}::uuid) AS tax_nights,
+    (SELECT count(*)::integer FROM public.india_gst_accommodation_final_component_tax_component WHERE tenant_id=${tenant}::uuid) AS components,
+    (SELECT count(*)::integer FROM public.india_gst_accommodation_final_component_tax_journal_binding WHERE tenant_id=${tenant}::uuid) AS bindings,
+    (SELECT count(*)::integer FROM public.journal WHERE tenant_id=${tenant}::uuid) AS journals,
+    (SELECT count(*)::integer FROM public.posting_line WHERE tenant_id=${tenant}::uuid) AS lines,
+    (SELECT count(*)::integer FROM public.api_idempotency WHERE tenant_id=${tenant}::uuid) AS receipts,
+    (SELECT count(*)::integer FROM public.outbox WHERE tenant_id=${tenant}::uuid) AS events,
+    (SELECT count(*)::integer FROM public.fact_log WHERE tenant_id=${tenant}::uuid) AS facts,
+    (SELECT md5(string_agg(row_to_json(original)::text,'|' ORDER BY original.id)) FROM
+      (SELECT p.* FROM public.posting_line p JOIN public.journal j ON j.tenant_id=p.tenant_id AND j.id=p.journal_id
+        WHERE p.tenant_id=${tenant}::uuid AND j.kind='charge'
+          AND j.source='{"interface":"financials.charge.post"}'::jsonb) original) AS original_lines,
+    (SELECT coalesce(sum(p.amount_minor),0)::text FROM public.posting_line p JOIN public.account a
+      ON a.tenant_id=p.tenant_id AND a.id=p.account_id WHERE p.tenant_id=${tenant}::uuid AND a.role='guest') AS guest,
+    (SELECT coalesce(sum(p.amount_minor),0)::text FROM public.posting_line p JOIN public.account a
+      ON a.tenant_id=p.tenant_id AND a.id=p.account_id WHERE p.tenant_id=${tenant}::uuid AND a.role='revenue') AS revenue,
+    (SELECT coalesce(sum(p.amount_minor),0)::text FROM public.posting_line p JOIN public.account a
+      ON a.tenant_id=p.tenant_id AND a.id=p.account_id WHERE p.tenant_id=${tenant}::uuid AND a.role='tax_payable') AS payables,
+    (SELECT count(*)::integer FROM (SELECT journal_id FROM public.posting_line WHERE tenant_id=${tenant}::uuid
+      GROUP BY journal_id HAVING sum(amount_minor)<>0) unbalanced) AS unbalanced,
+    next_no::text,last_doc_hash FROM public.document_series WHERE tenant_id=${tenant}::uuid AND id=${series}::uuid`;
+  if (!row) throw new Error("Concurrency fixture census is unavailable");
+  return row;
+}
+
+function expectOneConcurrentInvoice(before: Awaited<ReturnType<typeof concurrencyCensus>>,
+  after: Awaited<ReturnType<typeof concurrencyCensus>>, positive: boolean, extraEvents = 0): void {
+  expect(after.last_doc_hash).toMatch(/^[0-9a-f]{64}$/);
+  expect(after).toEqual({ ...before,
+    documents: before.documents + 1, origins: before.origins + 1, timings: before.timings + 1,
+    applicability: before.applicability + 1, applicability_nights: before.applicability_nights + 1,
+    taxes: before.taxes + 1, tax_nights: before.tax_nights + 1, components: before.components + 2,
+    bindings: before.bindings + 1, journals: before.journals + (positive ? 1 : 0),
+    lines: before.lines + (positive ? 4 : 0), receipts: before.receipts + 1,
+    facts: before.facts + (positive ? 3 : 2), events: before.events + (positive ? 4 : 3) + extraEvents,
+    guest: (BigInt(before.guest) + (positive ? 500n : 0n)).toString(),
+    payables: (BigInt(before.payables) - (positive ? 500n : 0n)).toString(),
+    next_no: (BigInt(before.next_no) + 1n).toString(), last_doc_hash: after.last_doc_hash });
 }
 
 // Uses the production-shaped candidate capabilities, never a test authority
@@ -423,6 +527,174 @@ issuanceDescribe("Order434 genuine native invoice transaction", () => {
       expect(await census()).toEqual(after);
     }
   }, 60_000);
+
+  test("publication wait retains already acquired financial day and series locks without inversion", async () => {
+    for (const positive of [true, false]) {
+      const { fixture, series, request } = await createNativeIssuanceFixture(deploy, runtime, {
+        label: `native-publication-${positive}`, roomNightAmounts: [positive ? "10000" : "1"],
+        quotedTaxRounding: positive ? "exact_5_percent" : "component_half_up",
+      });
+      const before = await concurrencyCensus(deploy, fixture.tenant, series.seriesId);
+      const publication = Promise.withResolvers<number>();
+      const releasePublisher = Promise.withResolvers<void>();
+      const probes = new SQL(deployUrl!, { max: 3, prepare: false });
+      const eventsPool = new SQL(issueRuntimeUrl!, { max: 1, prepare: false });
+      const events = new PostgresEventBus(eventsPool);
+      const barrier = issuanceCommitBarrier();
+      const pending: Promise<unknown>[] = [];
+      const publisher = runtime.withTenantTransaction(fixture.tenant, async tx => {
+        const [backend] = await tx<Array<{ pid: number; day: string }>>`SELECT pg_backend_pid() AS pid,
+          (transaction_timestamp() AT TIME ZONE 'Asia/Kolkata')::date::text AS day`;
+        if (!backend) throw new Error("Publication holder backend is unavailable");
+        const event = await events.publish(tx, { tenantId: fixture.tenant, propertyNode: fixture.property,
+          businessDate: backend.day, aggregateType: "property", aggregateId: fixture.property,
+          eventType: "order434.publication_probe", actorId: fixture.actor, correlationId: crypto.randomUUID(),
+          payload: { synthetic: true } });
+        publication.resolve(backend.pid);
+        await releasePublisher.promise;
+        return event;
+      });
+      pending.push(publisher);
+      publisher.catch(error => publication.reject(error));
+      try {
+        const publisherPid = await boundedObservation(publication.promise, "publication holder");
+        const issue = new IssueIndiaNativeFiscalInvoiceCommand(barrier.database).execute(request);
+        pending.push(issue);
+        const waiting = await observedWaiter(deploy, publisherPid);
+        const issuerPid = waiting.pid;
+        expect(issuerPid).not.toBe(publisherPid);
+        expect(waiting).toMatchObject({ blockers: [publisherPid], holder_blockers: [], waiting: true, publication: false });
+        expect(await concurrencyCensus(deploy, fixture.tenant, series.seriesId)).toEqual(before);
+        const probePids: number[] = [];
+        for (const resource of ["financial", "day", "series"] as const) {
+          const started = Promise.withResolvers<number>();
+          const probe = probes.begin(async tx => {
+            const [backend] = await tx<Array<{ pid: number }>>`SELECT pg_backend_pid() AS pid`;
+            if (!backend) throw new Error("Resource probe backend is unavailable");
+            started.resolve(backend.pid);
+            // Read-only lock probes never invoke a business writer or acquire D99.
+            if (resource === "financial") await tx`SELECT id FROM public.account
+              WHERE tenant_id=${fixture.tenant}::uuid AND id=${fixture.guestAccount}::uuid FOR UPDATE`;
+            else if (resource === "day") await tx`SELECT business_date FROM public.business_day
+              WHERE tenant_id=${fixture.tenant}::uuid AND property_node=${fixture.property}::uuid FOR UPDATE`;
+            else await tx`SELECT id FROM public.document_series
+              WHERE tenant_id=${fixture.tenant}::uuid AND id=${series.seriesId}::uuid FOR UPDATE`;
+          });
+          pending.push(probe);
+          probe.catch(error => started.reject(error));
+          const probePid = await boundedObservation(started.promise, `${resource} lock probe`);
+          probePids.push(probePid);
+          const state = await observedWaiter(deploy, issuerPid, probePid);
+          expect(state).toMatchObject({ blockers: [issuerPid], holder_blockers: [publisherPid], waiting: true, publication: false });
+        }
+        expect(new Set([publisherPid, issuerPid, ...probePids]).size).toBe(5);
+        releasePublisher.resolve();
+        const event = await boundedObservation(publisher, "publication COMMIT");
+        expect(await boundedObservation(barrier.reached, "issuer pre-COMMIT")).toBe(issuerPid);
+        for (const probePid of probePids) expect(await observedWaiter(deploy, issuerPid, probePid))
+          .toMatchObject({ blockers: [issuerPid], holder_blockers: [], waiting: true, publication: false });
+        expect(await concurrencyCensus(deploy, fixture.tenant, series.seriesId)).toEqual({ ...before, events: before.events + 1 });
+        barrier.release();
+        const issued = await boundedObservation(issue, "issuer COMMIT");
+        await boundedObservation(Promise.all(pending), "resource probe release");
+        const after = await concurrencyCensus(deploy, fixture.tenant, series.seriesId);
+        expectOneConcurrentInvoice(before, after, positive, 1);
+        const [sequence] = await deploy<Array<{ ordered: boolean }>>`SELECT n.request_event_seq>${event.seq} AS ordered
+          FROM public.india_gst_native_invoice_timing n WHERE tenant_id=${fixture.tenant}::uuid
+            AND prospective_document_id=${issued.documentId}::uuid`;
+        expect(sequence).toEqual({ ordered: true });
+        expect(await new IssueIndiaNativeFiscalInvoiceCommand(runtime).execute(request)).toEqual({ ...issued, replayed: true });
+        expect(await concurrencyCensus(deploy, fixture.tenant, series.seriesId)).toEqual(after);
+      } finally {
+        releasePublisher.resolve(); barrier.release();
+        await Promise.allSettled(pending);
+        await barrier.close(); await probes.close({ timeout: 0 }); await eventsPool.close({ timeout: 0 });
+      }
+    }
+  }, 120_000);
+
+  test("concurrent authority removal and issuance preserve the committed authority winner", async () => {
+    for (const issueFirst of [false, true]) for (const positive of [true, false]) {
+      const { fixture, series, request } = await createNativeIssuanceFixture(deploy, runtime, {
+        label: `native-authority-${issueFirst}-${positive}`, roomNightAmounts: [positive ? "10000" : "1"],
+        quotedTaxRounding: positive ? "exact_5_percent" : "component_half_up",
+      });
+      // No grant-revoke application command exists. Modify only this synthetic
+      // actor's configured role tuples through deployment and restore exactly.
+      const permission = "tax-fiscal.documents:issue";
+      const roles = await deploy<Array<{ role_id: string }>>`SELECT rp.role_id::text FROM public.role_permission rp
+        JOIN public.user_role ur ON ur.role_id=rp.role_id WHERE ur.tenant_id=${fixture.tenant}::uuid
+          AND ur.user_id=${fixture.actor}::uuid AND rp.permission_code=${permission} ORDER BY rp.role_id`;
+      expect(roles.length).toBeGreaterThan(0);
+      const before = await concurrencyCensus(deploy, fixture.tenant, series.seriesId);
+      const configPool = new SQL(deployUrl!, { max: 1, prepare: false });
+      const barrier = issuanceCommitBarrier();
+      const remover = Promise.withResolvers<number>();
+      const removed = Promise.withResolvers<void>();
+      const releaseRemover = Promise.withResolvers<void>();
+      const pending: Promise<unknown>[] = [];
+      const remove = () => {
+        const operation = configPool.begin(async tx => {
+          const [backend] = await tx<Array<{ pid: number }>>`SELECT pg_backend_pid() AS pid`;
+          if (!backend) throw new Error("Authority remover backend is unavailable");
+          remover.resolve(backend.pid);
+          for (const role of roles) {
+            const result = await tx`DELETE FROM public.role_permission WHERE role_id=${role.role_id}::uuid
+              AND permission_code=${permission} RETURNING role_id`;
+            expect(result).toHaveLength(1);
+          }
+          removed.resolve();
+          await releaseRemover.promise;
+        });
+        operation.catch(error => { remover.reject(error); removed.reject(error); });
+        pending.push(operation);
+        return operation;
+      };
+      try {
+        if (issueFirst) {
+          const issue = new IssueIndiaNativeFiscalInvoiceCommand(barrier.database).execute(request);
+          pending.push(issue);
+          const issuerPid = await boundedObservation(barrier.reached, "authority-holding issuer");
+          const removal = remove();
+          const removerPid = await boundedObservation(remover.promise, "authority remover");
+          expect(await observedWaiter(deploy, issuerPid, removerPid))
+            .toMatchObject({ blockers: [issuerPid], holder_blockers: [], waiting: true, publication: false });
+          expect(await concurrencyCensus(deploy, fixture.tenant, series.seriesId)).toEqual(before);
+          barrier.release(); releaseRemover.resolve();
+          const issued = await boundedObservation(issue, "authorized issuer COMMIT");
+          await boundedObservation(removal, "post-issue authority removal");
+          const after = await concurrencyCensus(deploy, fixture.tenant, series.seriesId);
+          expectOneConcurrentInvoice(before, after, positive);
+          await expectSqlState(new IssueIndiaNativeFiscalInvoiceCommand(runtime).execute(request), "42501",
+            "native issuer requires both property issue and valuation authority");
+          expect(await concurrencyCensus(deploy, fixture.tenant, series.seriesId)).toEqual(after);
+          for (const role of roles) await deploy`INSERT INTO public.role_permission(role_id,permission_code)
+            VALUES(${role.role_id}::uuid,${permission})`;
+          expect(await new IssueIndiaNativeFiscalInvoiceCommand(runtime).execute(request)).toEqual({ ...issued, replayed: true });
+          expect(await concurrencyCensus(deploy, fixture.tenant, series.seriesId)).toEqual(after);
+        } else {
+          const removal = remove();
+          const removerPid = await boundedObservation(remover.promise, "first authority remover");
+          await boundedObservation(removed.promise, "uncommitted authority removal");
+          const issue = new IssueIndiaNativeFiscalInvoiceCommand(runtime).execute(request);
+          pending.push(issue); void issue.catch(() => undefined);
+          const waiting = await observedWaiter(deploy, removerPid);
+          expect(waiting).toMatchObject({ blockers: [removerPid], holder_blockers: [], waiting: true, publication: false });
+          expect(await concurrencyCensus(deploy, fixture.tenant, series.seriesId)).toEqual(before);
+          releaseRemover.resolve();
+          await boundedObservation(removal, "first authority removal COMMIT");
+          await expectSqlState(issue, "55000", "native issue role-permission lock set changed");
+          expect(await concurrencyCensus(deploy, fixture.tenant, series.seriesId)).toEqual(before);
+        }
+      } finally {
+        releaseRemover.resolve(); barrier.release();
+        await Promise.allSettled(pending);
+        for (const role of roles) await deploy`INSERT INTO public.role_permission(role_id,permission_code)
+          VALUES(${role.role_id}::uuid,${permission}) ON CONFLICT DO NOTHING`;
+        await barrier.close(); await configPool.close({ timeout: 0 });
+      }
+    }
+  }, 120_000);
 
   test("preparation without accounting and final document cannot commit or consume a number", async () => {
     const { fixture, series, request: r } = await createNativeIssuanceFixture(deploy, runtime, { label: "native-partial-rollback" });

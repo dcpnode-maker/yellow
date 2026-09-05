@@ -855,6 +855,134 @@ This is bounded evidence for the invoice-before-COMMIT concurrent folio-transfer
 schedule only. It does not characterize arbitrary simultaneous races, approve the
 whole order or phase, or authorize migration promotion.
 
+## Independent inverse concurrent-winner execution — 2026-09-06
+
+Non-implementer `/root/native_closed_review` inspected frozen source-lock integration
+SHA-256 `50c9aa7c0b4d6ea89616b8878f71766d577ae5b357bd4571a37c7b44d6886d7a`.
+The added inverse cases exercise positive and rounded-zero tax for both a real charge
+correction and real folio transfer held after their application command but before
+COMMIT. Only then is the real native issuer started. Database observation requires a
+distinct issuer backend, exactly the held financial backend in its blocker list, a
+non-granted issuer lock, and no acquired D99 publication lock. Observation polling
+does not retry either application operation.
+
+While the winner is uncommitted, separate-session fiscal and financial censuses and
+root identity remain at baseline. After release, the financial operation must commit
+successfully and the stale issuer must reject with exact SQLSTATE `55000` and message
+`native consideration root membership differs from recorded valuation`. Exact
+postconditions admit only the correction winner's reversal effects or transfer
+winner's fragment effects; they require no fiscal document, timing, tax, binding,
+number, receipt or fiscal-event effects. Root identity, expected folio balances and
+effect-free winner replay are also checked. Both original promises and the barrier
+are settled in `finally`. No bounded inspection finding was found.
+
+With mandatory native database flags and only Question192's exact four functions
+temporarily granted to `app_role` inside a PowerShell `try/finally`, the reviewer
+personally ran:
+
+```powershell
+bun test tests/india-native-fiscal-source-locks.integration.test.ts `
+  --test-name-pattern 'concurrent stale invoice'
+```
+
+Result: **2 passed, 0 failed, 16 filtered, 60 assertions**, 3.65 seconds. The
+correction-first test body took 1915.61ms and transfer-first 1488.58ms. The file hash
+remained identical after execution.
+
+The four grants were revoked unconditionally. A final default-aware
+`aclexplode(coalesce(proacl,acldefault('f',proowner)))` audit, including grantee `0`,
+proved PUBLIC, `app_role` and `yellow_runtime` EXECUTE false for all four invoice
+functions and the Question193 approval helper. Zero other database sessions remained.
+No lifecycle action, implementation edit, wrapper, extra grant, direct derived row,
+commit, push, merge or deployment occurred.
+
+This is bounded executable evidence for the two explicit financial-before-COMMIT
+inverse schedules only. It does not characterize every possible race, approve all of
+Order434 or Phase7, or authorize migration promotion.
+
+## Independent publication, authority, direct-bill and seal schedules — 2026-09-06
+
+Non-implementer `/root/native_closed_review` inspected the frozen concurrency tests.
+The preparation publication schedule uses the real event publisher to hold D99, then
+starts the actual issuer. Database observations require the distinct issuer to wait
+only behind that publisher without holding D99. Three further distinct deploy probe
+backends then demonstrate that the waiting issuer already retains its financial
+account, business-day and document-series locks; the probes wait only behind the
+issuer and introduce no reverse dependency. After publisher COMMIT, the same issuer
+reaches its pre-COMMIT barrier while retaining those resources, then commits one
+invoice after release. Exact event ordering/delta, complete fiscal census, original
+charge hash, guest/revenue/payable totals, balanced journals and replay are checked
+for positive and rounded-zero tax.
+
+The authority schedule covers both committed winners for both tax variants. Removal
+uses deploy-only configuration DML because no application grant-revoke command exists,
+selects and deletes every qualifying role tuple for one required permission, and
+restores the exact tuples. Remove-first makes the issuer wait without D99 and then
+reject with exact `55000` / `native issue role-permission lock set changed`, with no
+fiscal effect. Issue-first makes the remover wait behind the issuer, commits exactly
+one invoice, then proves revoked permanent replay rejects with exact `42501` /
+`native issuer requires both property issue and valuation authority`; restoration
+permits an effect-free permanent replay.
+
+The source-lock tests use the real `ReceivableService` for both orderings and tax
+variants. Exact backend/blocker/no-inversion observations and invisible baselines
+precede release. Both operations commit: invoice-first direct bill moves consideration
+plus the newly posted tax; bill-first moves original consideration and leaves only
+later tax on the guest folio. Exact receivable exposure, transfer journal/lines,
+fact/event identities, guest/receivable balances, full fiscal census, original-root
+identity and both permanent replays are asserted. The two previously reviewed inverse
+stale-invoice schedules also remained selected and passed.
+
+The reviewer personally ran these six tests as part of the three-file focused command:
+
+```powershell
+bun test tests/india-native-fiscal-preparation.integration.test.ts `
+  tests/india-native-fiscal-completion.integration.test.ts `
+  tests/india-native-fiscal-source-locks.integration.test.ts `
+  --test-name-pattern 'publication wait|concurrent authority|uncommitted .*direct bill|seal-first and issue-first schedules|concurrent stale invoice'
+```
+
+The unchanged preparation/source-lock tests passed: publication 5284.70ms, authority
+7516.60ms, inverse correction 2436.27ms, inverse transfer 2088.13ms, invoice-first
+direct bill 6502.58ms and direct-bill-first 6638.48ms. The seal result from that first
+command is deliberately not accepted here because a lifecycle review gap was reported
+after execution. The six valid files remained frozen at preparation SHA-256
+`1be3ae5faa36cff8a21ba3823c353c5c53a97580492bfb00e445f41455feb91e`
+and source-lock SHA-256
+`c791445d190421af8a043e9c0d1caae5117ca55b81f2059c26dcae8827848008`.
+
+The repaired seal test moves every barrier wait inside a `finally`-protected lifetime,
+uses a 15-second observation bound and tagged outcomes, and snapshots the complete
+candidate census, exact original charge-line hash, guest/revenue/payable balances,
+balanced journals and day seal state. Seal-first requires the actual seal to commit,
+the blocked invoice to fail exact `P0011` / `native fiscal issue business date is
+sealed`, only seal audit effects, unchanged money and seal replay. Issue-first requires
+the actual invoice then seal to commit in order, exact invoice/tax/seal deltas and
+money, and effect-free invoice and seal replays. No generic-error or partial-success
+outcome is accepted. The reviewer then personally ran:
+
+```powershell
+bun test tests/india-native-fiscal-completion.integration.test.ts `
+  --test-name-pattern 'seal-first and issue-first schedules'
+```
+
+Result: **1 passed, 0 failed, 19 filtered, 52 assertions**, 6.84 seconds (test body
+6666.00ms), covering seal-first and issue-first for both positive and rounded-zero
+tax. The repaired completion test remained byte-stable at SHA-256
+`47f3cb2d9044283c246d4764e4e0d9e37111e9213b185909b2c4a6c5e6a6f273`.
+No bounded inspection or executable finding remained.
+
+Each run used mandatory native database flags and only Question192's exact four
+temporary `app_role` grants inside PowerShell `try/finally`. All grants were revoked.
+A final default-aware `aclexplode(coalesce(proacl,acldefault('f',proowner)))` audit,
+including grantee `0`, proved PUBLIC, `app_role` and `yellow_runtime` EXECUTE false for
+all four invoice functions and the Question193 approval helper. Zero other sessions
+remained. No lifecycle action, SQL/product/test edit, wrapper, extra grant, direct
+derived record, commit, push, merge or deployment occurred.
+
+This is bounded evidence for the named schedules only. It does not approve all of
+Order434 or Phase7, characterize arbitrary concurrency, or authorize promotion.
+
 ## Independent focused timing, rate and regression execution — 2026-09-06
 
 Non-implementer `/root/native_closed_review` inspected the later frozen native

@@ -47,8 +47,17 @@ delivery and invoice replay remain effect-free after the exact synthetic origina
 request event is retained away. Independent focused execution passed7/0 with124
 assertions; the complete environment-cleared suite passed1560/0 with1165 explicit
 database/environment skips. No production tax policy or clock was changed.
-These are bounded additions, not full acceptance: remaining simultaneous winner/
-authority schedules, rate/history cases and migration0076 integration remain open.
+The D1373 checkpoint additionally proves simultaneous correction-first and transfer-
+first stale-issuer rejection, direct billing in both concurrent orders, authority
+removal in both orders, publication waiting while account/day/series locks remain
+held, and audited seal/issue winner schedules. Positive and rounded-zero paths use
+real commands, exact balances and effect-free permanent replay. Independent proof
+covers six unchanged-hash cases plus the final repaired seal case (52 assertions).
+The final full suite is1560 passed,1172 explicit database/environment skips,0 failed.
+These are bounded additions, not full acceptance. Complete0076 assembly, fresh/
+upgrade/partial-deployment/schema/referee and full native/legacy acceptance remain
+open; any remaining boundary/calendar requirements must be reconciled against the
+executed matrix, not silently dropped or replaced by these selected races.
 This status does not claim IRP completion, Phase 7 completion or a local promotion.
 See [the project map](docs/PROJECT-MAP.md) for the separate development, main, CI
 and runtime evidence states. Older order milestones below retain their historical

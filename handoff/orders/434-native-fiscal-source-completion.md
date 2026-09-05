@@ -1997,7 +1997,94 @@ CI33984192939. Root personally read database101354795615's11 passed,0 failed of1
 at2026-09-05T18:34:24.2521160Z. That certifies its74-runnable-migration checkpoint,
 not the unassembled76-migration candidate or this subsequent test-only work.
 
-Order434 remains active: inverse/authority/publication/direct-bill schedules,
-remaining bounds/calendar acceptance, full0076 assembly and fresh/upgrade/schema/
+Order434 remains active: remaining bounds/calendar acceptance, full0076 assembly
+and fresh/upgrade/schema/
 referee/legacy proof and complete Tier3 acceptance are still required. There is
 no main merge, local app refresh, IRP activation or phase/order completion.
+
+## Concurrent financial, authority, publication and seal checkpoint — D1373
+
+The remaining named simultaneous schedules are implemented in the existing three
+integration suites. These are deterministic, observed interleavings of real
+commands, not sequential operations described as concurrency:
+
+- Correction-first and folio-transfer-first: hold the real financial command after
+  writes and before COMMIT, observe the stale issuer waiting without D99, commit
+  the winner, then require exact55000 root-membership rejection with no native
+  fiscal artifacts or lost number. Original account/folio/root identities and
+  winner-only money/fact/event/idempotency deltas remain exact.
+- Direct billing in both orders: use the unchanged0025 `ReceivableService` and
+  sorted account prefix. Both commands commit. Invoice-first transfers consideration
+  plus tax to receivables; bill-first transfers consideration and leaves the newly
+  posted tax on the guest account. Direct billing is settlement, not prohibited
+  rewriting of source consideration. Both permanent replays are effect-free.
+- Authority in both orders: only synthetic configuration tuples are removed by
+  deployment because no runtime grant/revoke command exists. Revoke-first makes
+  the waiting issuer reject55000 `native issue role-permission lock set changed`.
+  Issue-first commits once; after removal its replay rejects42501 with the exact
+  dual-authority message. Exact tuple restoration permits unchanged replay.
+- Publication ordering: a real kernel event publisher holds D99; a distinct native
+  issuer waits behind it while three distinct read-only probes wait on its account,
+  day and series locks. The publisher has no reverse dependency. After publication
+  commits the same issuer reaches its pre-COMMIT barrier and retains all three
+  resources. Exact event order, financial effects, chain advance and replay follow.
+- Audited day close in both orders: seal-first makes the waiting invoice reject
+  exactP0011 `native fiscal issue business date is sealed`; issue-first permits
+  the waiting seal to commit. Original charge-line identity, guest/revenue/payable
+  totals, balanced journals, actual sealed state, number and both applicable
+  permanent replays are asserted.
+
+Every schedule includes positive and rounded-zero tax. Barriers have bounded
+observations and unconditional release, promise settlement and connection closure;
+no business command retries, fake clock, SQL override or runtime grant broadening
+is introduced. The synthetic publication probe is a test event, not a new product
+event contract. Production SQL and the source fixture remain unchanged.
+
+Builder proof: inverse2/0(60), direct-bill2/0(52), publication/authority2/0(74),
+final seal1/0(52). Initial inverse oracle expected a later ancestry guard; actual
+55000 root-membership rejection was made exact. Root's first publication/authority
+run0/2 counted new tax charge journals as original charge lines; the census now
+filters exact `financials.charge.post` provenance while separately checking all
+incremental journals and guest/revenue/payable totals. Seal implementation was
+repaired for actual Bun `errno`, positive/zero/idempotency deltas, finally-protected
+waits, precise money/source/day snapshots and typed outcomes. None changes product
+guards or hides the unsuccessful attempts.
+
+Independent `/root/native_closed_review` personally executed the unchanged six
+inverse/direct-bill/publication/authority cases within a7/0,220-assertion run in
+38.62s. Its stale34-assertion seal result is explicitly excluded. After root's
+repair, the reviewer inspected and personally executed the current seal case:
+1/0,19 filtered,52 assertions,6.84s. Frozen hashes:
+
+- preparation test: `1be3ae5faa36cff8a21ba3823c353c5c53a97580492bfb00e445f41455feb91e`
+- source-lock test: `c791445d190421af8a043e9c0d1caae5117ca55b81f2059c26dcae8827848008`
+- final completion test: `47f3cb2d9044283c246d4764e4e0d9e37111e9213b185909b2c4a6c5e6a6f273`
+
+The initial, superseded worker seal run temporarily granted all five capabilities,
+including the separately admitted Question193 helper, then revoked all five.
+Root and the final independent seal proof used only Question192's four grants.
+Question192's four exact temporary capabilities were revoked after execution;
+default-aware ACL audits cover those four plus the Question193 helper, with no
+PUBLIC/app_role/yellow_runtime access and zero other sessions. The one retained
+synthetic75-ledger/127-table cluster is still available for acceptance. No retained
+hotel database or local app was changed.
+
+Root's final environment-cleared standing suite: **1560 passed,1172 explicitly
+skipped,0 failed,21543 assertions**,2732 tests/479 files,69.04s. Two preceding full
+runs each failed the unchanged Order328 responsive-folio browser test; the isolated
+test passed1/0(3), and the final full run passed without UI/harness modification.
+The filtered earlier logs do not establish its underlying cause; no browser fix
+or unconditional reliability claim is made. Typecheck,167 import boundaries,
+23-package licence check, audit and diff checks pass.
+
+Root verified published6a7cd8a CI33985487983: all four jobs succeeded; actual
+database101358280536 logs report11 passed,0 failed of11 at
+2026-09-05T18:58:48.1473296Z. This remains a74-runnable-migration checkpoint,
+not acceptance of the unassembled76 migration.
+
+Next implementation is complete0076 assembly and least-privilege final entry
+grants, schema/catalogue reconciliation, fresh74→75→76/partial-deployment proof,
+native plus legacy acceptance and the independent full outcome check. Preserve
+all1–74 checksums and installed75. Reconcile the remaining bounds/calendar matrix
+against the actual tests; do not silently treat selected races as whole-order
+acceptance. No founder decision or external authorization is currently needed.
