@@ -253,6 +253,40 @@ content. Replay and a losing concurrent contender emit neither pair. Consumers m
 net the named financial posting, but must not infer a cash refund, replacement
 invoice, credit note, tax-return amendment, payment, settlement or submission.
 
+## Order434 native fiscal source events — specified, implementation pending
+
+These version1 events extend the existing envelope. They are not emitted by the
+released app merely because they are catalogued here. Source recorders derive
+tenant/property/actor/business date and canonical hashes on the trusted boundary.
+No event accepts guest profiles, card data, caller-selected money or a legal body.
+
+| Event | Producer → consumer | Identity-only payload and meaning |
+| --- | --- | --- |
+| `india_gst.accommodation_service_provision_recorded` | TaxFiscal → audit/projections | `{serviceProvisionSnapshotId,reservationId,attributionId,evidenceHash}`: explicit externally evidenced service date recorded; not inferred service completion or invoice approval. |
+| `india_gst.accommodation_payment_receipt_recorded` | TaxFiscal → audit/projections | `{paymentReceiptSnapshotId,serviceProvisionSnapshotId,reservationId,evidenceHash}`: supplied books/bank receipt evidence recorded; no payment capture, settlement or money movement. |
+| `india_gst.accommodation_ordinary_regime_recorded` | TaxFiscal → audit/projections | `{ordinaryRegimeEvidenceId,serviceProvisionSnapshotId,reservationId,attributionId,evidenceHash}`: affirmative governed ordinary-regime evidence recorded; no inferred eligibility or exceptional regime. |
+| `india_gst.native_accommodation_accounting_requested` | TaxFiscal → Financials same-Tx handler | `{nativeTimingId,documentId,taxId,applicabilityId,valuationId,reservationId,folioId,sourceBasisHash}`: exact dependent preparation requests its database-derived incremental tax accounting. Existence of an event alone is not authority. |
+| `india_gst.native_accommodation_accounting_bound` | Financials → TaxFiscal same-Tx completion | `{bindingId,nativeTimingId,taxId,valuationId,reservationId,folioId,journalId,evidenceHash}`: immutable binding of original consideration and optional tax-only journal; `journalId` is null only for native zero tax. Not document issue or fiscal submission. |
+
+Each intake root, fact, event and completed idempotency receipt commits together;
+exact replay emits nothing. For native issuance, all financial/source/day/series
+locks precede the first outbox publication. A dedicated tenant transaction writes
+the request, invokes the Financials-owned event-ID handler in that same transaction,
+then validates and completes the native document. No kernel consumer cursor, second
+connection, separate commit or asynchronous accounting completion is introduced.
+
+The Financials handler checks exact persisted event identity, type/version, payload,
+actor/property/date and current-transaction preparation before deriving money. Its
+immutable accounting binding deduplicates the effect. The bound event and optional
+`journal.posted` causally reference the request. Number allocation follows final
+canonical authentication; any rejection rolls back every new dependent artifact.
+
+Permanent fiscal rows retain event IDs/hashes, not a foreign key blocking normal
+outbox pruning. Later exact replay uses permanent timing/binding/origin/receipt
+evidence. This does not add a new asynchronous consumer or relax any runtime grant.
+See [Order434](../handoff/orders/434-native-fiscal-source-completion.md) for the full
+source, locking, accounting and executable acceptance contract.
+
 ## Consumer registry (who must exist by launch)
 
 projection-rebuilder (availability, stats_daily, folio_balance cache) · valkey-invalidator ·
