@@ -101,3 +101,31 @@ india-irp-issued-wire-candidate.test.ts        1D561522595387D728CB28F32E038D0CF
 india-irp-issued-wire-candidate.integration.test.ts
                                                 CD7FBA74653B5AD2312910AA7232B5573CF9BBCCAC25F6910D913111AE01B104
 ```
+
+## Q197 CI workflow receipt
+
+Reviewer: `/root/native_migration_assembly` (independent), 2026-09-06.
+Scope: `.github/workflows/ci.yml` Order440 isolated-proof step only.
+
+Static inspection confirms the step runs after the six Order434 native suites,
+while the migrated `yellow_ci_order434_native_template` remains alive. It creates
+the fixed CI-owned `yellow_order440_ci` database from that pristine template,
+passes explicit deploy/runtime URLs and `YELLOW_REQUIRE_ORDER440_DATABASE=1`, runs
+`tests/india-irp-issued-wire-candidate.integration.test.ts`, tracks the database
+in the existing `native_clones` EXIT trap, and drops it with `WITH (FORCE)` after
+the proof. The existing native template/clones and other proofs are unchanged.
+Database names are fixed workflow literals; no provider or external submission is
+introduced.
+
+Personally executed:
+
+```text
+bun test tests/release-workflow.test.ts
+git diff --check -- .github/workflows/ci.yml
+```
+
+Result: 4 passed, 0 failed, 53 expectations; diff check passed. The focused
+workflow contract test and direct YAML block/indentation inspection passed. A
+PowerShell YAML parser was unavailable on this host, so no claim of a full parser
+library validation is made. No CI dispatch, database, runtime, or file outside
+the admitted review receipt was used.

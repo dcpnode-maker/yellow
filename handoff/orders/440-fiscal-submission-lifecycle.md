@@ -131,6 +131,11 @@ belong to this new private lane, not to the published Order434 candidate.
 
 ## Current-status admission after native acceptance
 
+[Question198](../questions/198-concurrent-reviewed-source-integration.md) additionally
+admits exact integration of concurrent reviewed PR84 hotel-journey/schema/design
+work with this fiscal lane and Order441's Astra Ultra RMS research. Preserve both
+descriptive Order440 histories; no scope or capability is silently removed.
+
 [Question196](../questions/196-native-closure-status-admission.md) admits the exact
 current status/plan/source/test paths listed there. This is recorded build
 truth only, not durable integration or runtime activation. Root's additional proxy
