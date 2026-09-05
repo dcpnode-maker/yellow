@@ -1,6 +1,6 @@
 # UI-SPEC.md — operator journeys, surfaces and PWA contracts
 
-## Current direction — Order433/435
+## Current direction — Orders433/435/440
 
 Yellow has one governed domain core but separate hotel and STR workspaces. Hotel
 staff work from shift queues—arrivals, departures, in-house, room readiness,
@@ -21,6 +21,14 @@ claim that replacement is implemented.
 PEEK, DRAWER and WORKBENCH below are interaction surfaces and navigation depth,
 not global detail modes. Contextual progressive disclosure and role-aware next
 actions decide what detail appears within a surface.
+
+Order440 turns that direction into the [staff workbench contract](design/STAFF-WORKBENCH-SPEC.md)
+and [16-case hotel casebook](design/HOTEL-CASEBOOK.md). Every departmental handoff
+shows the current owner, requested outcome, evidence/version, due time and receiving
+acknowledgement. Keep condition, occupancy, service preference, inventory restriction
+and arrival readiness distinct. BEO acknowledgement binds a revision; fulfilment and
+financial posting remain different commands. The repository-local prototype exercises
+14 fictional scenarios and 16 department views without adding production authority.
 
 ## Operator owner-trust expense workbench
 

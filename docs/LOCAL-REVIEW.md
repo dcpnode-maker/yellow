@@ -34,7 +34,7 @@ The first response is process liveness. The second is release readiness and must
 - `status: "ready"`;
 - target `yellow_runtime_database`;
 - the exact 40-character Git revision printed by the start command;
-- expected migration frontier `75`.
+- expected migration frontier `77`.
 
 The start command also verifies that this revision can authenticate the synthetic
 operator. A green response establishes the serving source and bounded database
@@ -109,11 +109,13 @@ idempotent; a conflict fails closed instead of rewriting existing hotel truth.
 ## Explicit release limits
 
 Local payment and hosted-deposit providers are synthetic. No live PSP, acquiring,
-OTA, IRP/GSP, ZATCA or UAE ASP access is implied. Order434 contains substantial
-native India invoice/replay and concurrency evidence, but native issuance remains
-unreleased while its full source/history/race acceptance, migration 0076/0077 assembly
-and fresh independent Tier-3 review are incomplete. Migration 0075 deliberately
-revokes the unapproved legacy issue capability.
+OTA, IRP/GSP, ZATCA or UAE ASP access is implied. Order434 completed native source,
+replay, concurrency and migration0076/0077 acceptance, passed fresh independent
+Tier-3 review and exact CI178, and merged through PR83 as main443e3826. Main now
+expects77 migrations and127 public tables. Migration0075 still revokes the rejected
+legacy issue capability; the reviewed native path is a separate governed entry.
+IRP submission and operator invoice UI remain separately scoped. Source acceptance
+does not prove that a retained local app was refreshed or a cloud host was deployed.
 
 The broader 18-phase destination, including voice, RMS, distribution, native clients,
 CRM/CRS and hotel interfaces, remains planned where PROJECT-STATUS says planned.

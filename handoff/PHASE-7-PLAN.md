@@ -1,18 +1,26 @@
 # Phase 7 — Tax engine and India IRP
 
-**Status:** active; Orders438/439 are the merged operational baseline. Orders237–429
-retain their recorded review states. Order430 was rejected under D1323; Order434's
-replacement is in native-fiscal acceptance and remains unreleased.
-**Entry point:** approved Phase-6 and Phase-7 dependencies as recorded in BUILD-PLAN.md and handoff/ROADMAP.md
-**Current task:** [Order434](orders/434-native-fiscal-source-completion.md), integrating
-native issuance through canonical migrations 0076/0077 without changing the
-released 0075 containment boundary.
-[PROJECT-STATUS](../docs/PROJECT-STATUS.md) distinguishes candidate, main, local and
-cloud state. [Order434](orders/434-native-fiscal-source-completion.md) retains its
-exact checkpoints, exclusions and remaining acceptance work. Current development
-must not be confused with the released operational app.
+**Status:** active. Orders438/439 merged the operational baseline through PR82;
+Order434's replacement native fiscal source passed independent review and exact
+CI178, then merged through PR83 as main443e3826. Orders237–429 retain their
+recorded review states; Order430's rejection remains historical evidence.
+**Entry point:** approved Phase6/7 dependencies in BUILD-PLAN.md and handoff/ROADMAP.md.
+**Current task:** [Order440](orders/440-hotel-journeys-and-schema-guide.md) integrates
+hotel/staff journey research, schema clarity and a design study into this one Codex
+Yellow task. [PROJECT-STATUS](../docs/PROJECT-STATUS.md) owns current source, local and
+cloud evidence. Main includes77 migrations /127 public tables;0075 still contains
+the rejected legacy entry while0076/0077 add the reviewed native source path.
 
 ## Outcome
+
+The founder's follow-up is recorded in
+[Order440](orders/440-hotel-journeys-and-schema-guide.md): schema-count clarity,
+independent hotel/staff journey research, a casebook and an interaction study feeding
+the same Codex Yellow task. It changes neither this phase's fiscal exit nor the
+dependency gates for future departments. [PROJECT-STATUS](../docs/PROJECT-STATUS.md)
+owns the current candidate/release lifecycle; [SCHEMA-GUIDE](../docs/SCHEMA-GUIDE.md)
+distinguishes the80-table immutable baseline,125-table historical PR82 frontier and
+127-table reviewed main443e3826 frontier.
 
 Phase 7 turns immutable commercial and posting inputs into deterministic integer-minor-
 unit tax evidence, then builds governed fiscal-document issue and India IRP reporting
@@ -30,9 +38,9 @@ without giving a browser, provider or mutable configuration a second financial t
 
 Independent review remains required for each high-risk slice and for the Phase-7 exit.
 Order429 is independently approved and closed. Order430's rejection is not erased
-by the later repair. Order434 must complete its single first-native-invoice outcome
-and fresh non-implementing Tier-3 proof before approval. Source/valuation progress,
-green CI and documentation publication do not mean an invoice has been issued,
+by the later repair. Order434 completed its bounded source-to-native-invoice outcome
+and fresh non-implementing Tier-3 proof before PR83 merged. That acceptance and
+documentation publication do not mean a real hotel invoice has been issued,
 the local app has been refreshed, or Phase7 is complete.
 
 ## Order 237 boundary

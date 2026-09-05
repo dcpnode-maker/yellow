@@ -2,6 +2,10 @@
 set -euo pipefail
 cd "$(dirname "$0")"
 
+# This script operates on the existing Yellow checkout. It does not initialize a Bun
+# package or install dependencies. For a fresh clone use `bun install --frozen-lockfile`;
+# never use `bun init` to replace the tracked package.json or bun.lock.
+
 DB_ONLY=0
 for argument in "$@"; do
   case "$argument" in
@@ -129,6 +133,9 @@ compose exec -T postgres psql -U yellow_deploy -d yellow_test -v ON_ERROR_STOP=1
 
 tables=$(compose exec -T postgres psql -U yellow_deploy -d yellow_test -tAc \
   "SELECT count(*) FROM pg_tables WHERE schemaname='public';" | tr -d '[:space:]')
+# Reviewed main now applies migrations 1-77: 126 application tables plus the
+# runner-owned schema_migration ledger. PR83 / CI33993977811 verifies this frontier.
+# Keep future assertions tied to executed PostgreSQL evidence for their exact source.
 [ "$tables" = '127' ] || { printf 'yellow_test has %s public tables; expected 127 after migrations 1-77.\n' "$tables" >&2; exit 1; }
 echo 'yellow_test tables: 127 after migrations 1-77'
 

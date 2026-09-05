@@ -1,6 +1,6 @@
 # Yellow feature register
 
-**Updated:** 2026-09-05 · **Orders:** 433 requirements / 435 status reconciliation · **Authority:** founder requirements,
+**Updated:** 2026-09-05 · **Orders:** 433 requirements / 435 status / 440 department journeys · **Authority:** founder requirements,
 [PROJECT.md](../PROJECT.md), [DECISIONS.log](../DECISIONS.log).
 
 This is the durable index of the founder's current product direction, including the
@@ -34,7 +34,7 @@ Phase status remains in [BUILD-PLAN.md](../BUILD-PLAN.md) and
 | YF-005 | Explainable room assignment, protected VIP/preferences, upgrades and useful sales suggestions | 2–4, 6, 13–15 | Full smart workflow specified, not verified. Hard occupancy, readiness, accessibility and assignment rules precede soft preferences; suggestions must explain evidence and trade-offs. |
 | YF-006 | Checkout coordinates housekeeping room audit, minibar and luggage/bell-desk tasks | 5, 6, 10, 17 | Foundations: [checkout](../src/contexts/stay-operations/checkout.ts), [readiness](../src/contexts/stay-operations/checkout-readiness.ts), [housekeeping tasks](../src/contexts/housekeeping/tasks.ts). Full task orchestration and operational policy remain acceptance work. |
 | YF-007 | Dirty, clean and inspected are distinct; staff can see cleaning progress and expected readiness | 6, 10, 17 | Foundations: [arrival cleaning](../src/contexts/housekeeping/arrival-cleaning.ts) and housekeeping tasks. Predicted readiness must not masquerade as a completed inspection. |
-| YF-008 | Contextual cashier billing, append-only corrections, multiple folio windows and payer/invoice separation | 5, 7, 10 | [Cashier foundation](../src/contexts/financials/cashiers.ts), PROJECT invariants and existing financial orders govern. No deleted financial records; invoice eligibility is distinct from display grouping. Independent review D1323 rejected [Order430](../handoff/orders/430-india-native-fiscal-invoice-issuance.md). [Order434](../handoff/orders/434-native-fiscal-source-completion.md) is the active complete repair under D1330: first native invoice without an external invoice, with persisted provenance, actual-date atomic issuance and no duplicate revenue. It is not built or independently approved. |
+| YF-008 | Contextual cashier billing, append-only corrections, multiple folio windows and payer/invoice separation | 5, 7, 10 | [Cashier foundation](../src/contexts/financials/cashiers.ts), PROJECT invariants and existing financial orders govern. No deleted financial records; invoice eligibility is distinct from display grouping. Independent review D1323 rejected [Order430](../handoff/orders/430-india-native-fiscal-invoice-issuance.md). [Order434](../handoff/orders/434-native-fiscal-source-completion.md) is the independently approved repair under D1330: first native invoice without an external invoice, with persisted provenance, actual-date atomic issuance and no duplicate revenue. Its canonical77-migration source passed CI178 and merged through PR83; current source and runtime evidence remain in [PROJECT-STATUS](PROJECT-STATUS.md). |
 | YF-009 | Post-business-day corrections require explicitly authorized users | 5–8 | Existing invariant and actor policies, not a UI preference. Preserve original records, current correction journal and exact post-seal authority. |
 | YF-010 | Hotel configuration exercises realistic features and combinations before presentation claims | 1–4, 7–12, 17 | Specified: room classes/types/units, occupancy, amenities, charges, packages, meal plans EP/CP/MAP/AP, taxes and policies. Use synthetic fixtures, not deleted hotel data; tax/meal semantics must be explicit, not guessed from an abbreviation. |
 | YF-011 | No global Simple/Advanced/Expert switch as the final UX; reveal detail in context within role access | 10 | Specified superseding design direction in [DESIGN.md](DESIGN.md). Existing runtime selector may remain until its scoped UI replacement; hiding a control never grants or removes server authority. |
@@ -53,6 +53,15 @@ Phase status remains in [BUILD-PLAN.md](../BUILD-PLAN.md) and
 | YF-024 | RMS and distribution improve price/value positioning and OTA visibility together | 9, 14–16 | Specified: permitted content/amenity completeness, room/occupancy mappings, total-price parity, restrictions and authorized promotions; measure comparable offer exposure where a provider permits it. No guaranteed ranking, invented impressions or promotion spending without authority. |
 
 ## Required implementation handoff for each ID
+
+Order440 adds the following explicit continuation of the same Codex task:
+
+| ID | Required outcome | Owning phases | Current evidence and acceptance destination |
+|---|---|---|---|
+| YF-025 | Full guest lifecycle and department workdays, with owned, acknowledged, versioned handoffs | 6, 10, 11, 12, 15, 17 | [Staff journeys](design/STAFF-JOURNEYS.md), [independent research](research/HOTEL-OPERATIONS-REVIEW.md) and [16 synthetic cases](design/HOTEL-CASEBOOK.md). Specified; full cross-department backend not asserted. |
+| YF-026 | One next action with preserved context on desktop and phone; visible uncertainty, receipt and next owner | 10, then each owning domain phase | [Workbench specification](design/STAFF-WORKBENCH-SPEC.md) and [14-case interaction study](design/staff-workbench/index.html). Fictional in-memory prototype using one existing appearance; live authorization and domain integration remain acceptance work. |
+| YF-027 | GitHub/setup distinguish immutable schema baseline from released and candidate frontiers | Delivery tooling | [Schema guide](SCHEMA-GUIDE.md) defines80/81/125/127 and exact source evidence. No global count replacement, applied migration rewrite or count-based feature-completion claim. |
+
 
 Every implementing order names its YF IDs, exact scope, existing contracts reused,
 acceptance scenarios, unavailable branches, data/permission impact, performance

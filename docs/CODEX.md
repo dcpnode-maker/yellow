@@ -53,7 +53,7 @@ not refresh a local process, and a merged commit does not prove cloud deployment
 baseline. `./scripts/local-review.sh` accepts `start`, `status` or `stop`; do not
 recreate its seed, credential or Compose sequence manually. A valid readiness receipt
 names the exact Git SHA, `yellow_runtime_database` target and expected migration
-frontier 75.
+frontier 77.
 
 ## Proof and review
 

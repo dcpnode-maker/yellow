@@ -1,6 +1,6 @@
 # Start here: Yellow for developers and AI agents
 
-**Updated:** 2026-09-05 · Orders438/439 consolidated release.
+**Updated:** 2026-09-05 · Orders438/439 release; Order440 journey/design continuation.
 This is a navigation guide, not a second constitution.
 
 Yellow is a modular hospitality ERP built with strict TypeScript, Bun, Elysia and
@@ -12,12 +12,21 @@ The existing architecture has 13 bounded contexts; the delivery plan has 18 phas
 (0–17). The immutable 80-table baseline and the current additive migration catalogue
 are different counts. None of these numbers alone measures product completion.
 
-Current work is the paired [Order438](../handoff/orders/438-codex-consolidated-release.md)
-and [Order439](../handoff/orders/439-contained-native-fiscal-release.md) release task.
-[PROJECT-STATUS](PROJECT-STATUS.md) records its exact lifecycle. Order434's native
-invoice work is preserved but unfinished and unreleased. The operational baseline
-and supported local launcher passed independent CI proof; IRP, Phase7 completion,
-the user's own local refresh and cloud deployment require their separate evidence.
+Orders438/439 consolidated the operational app through PR82. Order434's native
+fiscal source passed independent review and exact CI178, then merged through PR83
+as main443e3826 (77 migrations /127 public tables). Post-merge CI179 and image
+publication also passed. [PROJECT-STATUS](PROJECT-STATUS.md) records current lifecycle;
+IRP/operator completion, the user's local refresh and cloud deployment retain their
+separate evidence gates.
+
+The active follow-up is [Order440](../handoff/orders/440-hotel-journeys-and-schema-guide.md).
+Read the
+[hotel research](research/HOTEL-OPERATIONS-REVIEW.md) →
+[staff journeys](design/STAFF-JOURNEYS.md) →
+[casebook](design/HOTEL-CASEBOOK.md) →
+[workbench contract](design/STAFF-WORKBENCH-SPEC.md) before implementing a department
+surface. The [schema guide](SCHEMA-GUIDE.md) explains80/81/125/127 at their exact
+frontiers. Planned departments and the local design study are not backend release claims.
 
 ## First ten minutes
 
@@ -143,13 +152,12 @@ recorded, evidence-backed decision.
 
 ## Main, development, CI and local runtime are separate states
 
-There is one GitHub repository: `dcpnode-maker/yellow`. Orders438/439 consolidate the
-PR80 development line on the release-candidate branch. Check PROJECT-STATUS and the
-PR's exact published commit; a local HEAD or documentation edit is not proof of a push
-or merge. `main` is not yet that candidate. A worktree shares Git history; it is not a
-separate product/repository. Do not
-copy files between checkouts to simulate a merge, force-reset a dirty checkout, or
-delete an unintegrated worktree to make folders appear consolidated.
+There is one GitHub repository: `dcpnode-maker/yellow`. Main integrates the preserved
+PR80 operational lineage through PR82 and reviewed native fiscal source through
+PR83. Check PROJECT-STATUS and exact published commits; a local HEAD or document
+edit is not proof of a push, merge or runtime refresh. A worktree shares Git history;
+it is not a separate product. Preserve dirty checkouts and unintegrated work; use
+Git integration rather than copying files to imitate a merge.
 
 | State | What establishes it | What it does not establish |
 |---|---|---|

@@ -4,10 +4,13 @@
 
 **Current coordination:** Codex under PROJECT and the applicable agent adapter.
 
-**Status reconciled:** 2026-09-06 · Orders438/439 are the merged operational baseline.
-Order434 native acceptance passes under D1375; final corrected-head CI remains
-required before closure and native issuance is unreleased. Historical sections below
-retain their original evidence; PROJECT-STATUS is the current record.
+**Status reconciled:** 2026-09-05. Orders438/439 merged the operational baseline
+through PR82. Order434 passed independent whole-candidate Tier-3 proof and exact
+CI178, then merged through PR83 as main443e3826 (77 migrations /127 public tables).
+All five post-merge CI179 jobs and image publication33995471357 passed. Order440
+continues the same Codex task with hotel/staff journeys, schema clarity and a design
+study. A retained local runtime and cloud deployment require separate evidence.
+Historical sections below retain their original meaning; PROJECT-STATUS is current.
 
 [PROJECT-STATUS](../docs/PROJECT-STATUS.md) records what is current now.
 [BUILD-PLAN.md](../BUILD-PLAN.md) says what each phase contains. This file records

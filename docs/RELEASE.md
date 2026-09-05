@@ -76,11 +76,12 @@ the exact successful SHA and publishes two amd64 images to GitHub Container Regi
 
 Both carry the OCI `org.opencontainers.image.revision` label and
 `YELLOW_BUILD_SHA`. The application keeps `/health` as dependency-free process
-liveness. `/ready` reports the exact revision and expected development migration
+liveness. `/ready` reports the exact revision and expected reviewed migration
 frontier 77, and fails closed unless the revision is present and the runtime database
-role proves the core catalogue and Order 439 issue-authority containment. Frontier 75
-remains the released containment boundary; frontier 77 is a development target until
-its fresh, unseeded acceptance proof is complete. It does not claim to
+role proves the core catalogue and Order439 legacy issue-authority containment.
+Frontier77 is current reviewed main after PR83, independent native/fresh/upgrade
+proof, exact CI178 and post-merge CI179. Frontier75/125 is the historical operational
+predecessor. The runtime readiness response does not claim to
 read the deployment-only migration ledger. Registry digests and the expected frontier
 in the workflow summary are the image receipt. There is deliberately no mutable
 `latest` tag.
