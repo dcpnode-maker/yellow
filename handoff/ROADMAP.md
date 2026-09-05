@@ -4,8 +4,10 @@
 
 **Current coordination:** Codex under PROJECT and the applicable agent adapter.
 
-**Status reconciled:** 2026-09-05 · Orders438/439 form the current consolidated
-release task; Order434 is preserved, unfinished and unreleased.
+**Status reconciled:** 2026-09-06 · Orders438/439 are the merged operational baseline.
+Order434 native acceptance passes under D1375; final corrected-head CI remains
+required before closure and native issuance is unreleased. Historical sections below
+retain their original evidence; PROJECT-STATUS is the current record.
 
 [PROJECT-STATUS](../docs/PROJECT-STATUS.md) records what is current now.
 [BUILD-PLAN.md](../BUILD-PLAN.md) says what each phase contains. This file records

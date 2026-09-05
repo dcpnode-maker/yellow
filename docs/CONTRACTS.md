@@ -3186,6 +3186,64 @@ Both `submissionReady` and `authenticatedProviderSandboxCertified` are false, an
 complete payload, invoice, fiscal document, provider certification or submission; it
 allocates or issues nothing, persists nothing and exposes no database, API, UI,
 runtime, local or Phase-completion authority.
+
+### India native fiscal invoice issuance (Order434, current development)
+
+The executable developer entry is
+[`IssueIndiaNativeFiscalInvoiceCommand.execute(input)`](../src/commands/issue-india-native-fiscal-invoice.ts),
+or its `issueIndiaNativeFiscalInvoice(database, input)` convenience function. It opens
+the tenant transaction and calls the internal
+[`IndiaNativeFiscalInvoiceIssuanceService.issueNative(tx, input)`](../src/contexts/tax-fiscal/india-native-fiscal-invoice.ts)
+port with `IndiaNativeFiscalInvoiceIssueNativeInput`. That input selects the
+reservation, folio, final valuation, service/payment/ordinary evidence, supplier and
+recipient status, classification, and optional governed calendar evidence; it accepts
+no caller journal, tax amount, document number or prepared payload.
+
+`IndiaNativeFiscalInvoiceIssuanceService.issue(tx,
+IndiaNativeFiscalInvoiceIssueInput)` retains the old external-journal input shape for
+source compatibility only. Its legacy nine-argument database entry is revoked by the
+immutable 0075 boundary, so it is not a currently available issue path or an automatic
+fallback from native issuance. No HTTP endpoint is documented for either shape.
+
+The native path begins with real `ChargeService` consideration and the governed
+service-provision, payment-receipt and ordinary-regime intake records. The caller
+records a complete
+[`IndiaGstAccommodationFinalValuationService.finalizeNative(...)`](../src/contexts/tax-fiscal/index.ts)
+valuation, then invokes `issueNative(...)`. One tenant transaction performs native
+preparation, calls the Financials-owned `IndiaNativeFiscalAccountingEventHandler`,
+reconstructs the bound financial source, validates fiscal readiness, and commits the
+numbered document. Positive tax creates only the incremental tax journal; rounded-zero
+tax records a null journal binding. Original consideration is never reposted.
+
+The transaction runs as the governed tenant `app_role`; actor, property and permission
+checks remain database-derived. Audit facts, outbox events, idempotency receipts,
+timing, accounting binding, document origin, series allocation and hash-chain state
+commit or roll back together. Exact replay returns the permanent receipt without a
+new number, journal, fact or event. Issued documents and their source, valuation,
+timing, tax, accounting and origin references are immutable. The issued-source guard
+rejects the general financial correction path; a future correction must be a new
+numbered correction document rather than an edit to issued history.
+
+The current migration grants `app_role` only the five exact entry capabilities needed
+by this flow: native prepare, accounting-event consume, accounting-source read, native
+commit, and approval creation with options. Their helpers remain private; PUBLIC and
+`yellow_runtime` do not receive these entry capabilities.
+
+The inline Financials adapter is
+[`IndiaNativeFiscalAccountingEventHandler`](../src/contexts/financials/india-native-fiscal-accounting.ts).
+
+Executable contract evidence lives in
+[`tests/india-native-fiscal-source-completion.integration.test.ts`](../tests/india-native-fiscal-source-completion.integration.test.ts),
+[`tests/india-native-fiscal-accounting.integration.test.ts`](../tests/india-native-fiscal-accounting.integration.test.ts),
+[`tests/india-native-fiscal-preparation.integration.test.ts`](../tests/india-native-fiscal-preparation.integration.test.ts),
+[`tests/india-native-fiscal-completion.integration.test.ts`](../tests/india-native-fiscal-completion.integration.test.ts),
+and [`tests/india-native-fiscal-source-locks.integration.test.ts`](../tests/india-native-fiscal-source-locks.integration.test.ts).
+For current release status and the full acceptance boundary, see
+[`PROJECT-STATUS.md`](PROJECT-STATUS.md) and
+[`Order434`](../handoff/orders/434-native-fiscal-source-completion.md). This section
+does not claim Phase 7, provider submission, IRP production readiness, deployment or
+local-environment completion.
+
 ### India IRP accommodation fiscal-action readiness (Order 429)
 
 `IndiaIrpAccommodationFiscalActionReadinessService.resolve(tx, input)` is a

@@ -26,10 +26,12 @@ founder priority 11 → 13 → 17 below are unchanged.
 
 [Order430](handoff/orders/430-india-native-fiscal-invoice-issuance.md) was rejected
 by independent review D1323. [Order434](handoff/orders/434-native-fiscal-source-completion.md)
-is a preserved, unfinished and unreleased repair under D1330: the first native invoice without an
-external-invoice prerequisite, with persisted provenance, actual-date atomic
-issuance and no duplicate revenue. The complete order is not independently approved or released.
-Its runtime now issues ordinary, rounded-zero and genuine rate-change invoices.
+implements the first native invoice without an external-invoice prerequisite, with
+persisted provenance, actual-date atomic issuance and no duplicate revenue. D1375
+records independent native116/116, migration41/41, catalogue23/23, exact schema and
+referee11/11. Consolidated Tier-3 has no unresolved finding; approval is conditional
+on green CI for the final corrected catalogue expectations. Issuance is unreleased.
+The following checkpoints preserve earlier bounded evidence, not current blockers.
 Earlier bounded independent proof also verifies permanent replay after payment,
 folio and day closure, and 100 distinct invoices sharing one series: 11 passed,
 0 failed,897 assertions. Order434 records the remaining acceptance conditions.
@@ -65,10 +67,9 @@ held, and audited seal/issue winner schedules. Positive and rounded-zero paths u
 real commands, exact balances and effect-free permanent replay. Independent proof
 covers six unchanged-hash cases plus the final repaired seal case (52 assertions).
 The final full suite is1560 passed,1172 explicit database/environment skips,0 failed.
-These are bounded additions, not full acceptance. Complete0076/0077 integration, fresh/
-upgrade/partial-deployment/schema/referee and full native/legacy acceptance remain
-open; any remaining boundary/calendar requirements must be reconciled against the
-executed matrix, not silently dropped or replaced by these selected races.
+Those were bounded additions, not full acceptance at D1373. D1375 now closes native
+and migration execution on assembled0076/0077; the actual CI runtime and legacy
+regressions pass. Final corrected-head CI remains the acceptance condition.
 This status does not claim IRP completion, Phase 7 completion or a local promotion.
 See [the project map](docs/PROJECT-MAP.md) for the separate development, main, CI
 and runtime evidence states. Older order milestones below retain their historical
@@ -704,7 +705,8 @@ provenance authentication. Order434 is the preserved unfinished repair under D13
 persist the original ordinary/source evidence, remove the external-invoice
 prerequisite, bind the actual issue date and complete graph in one transaction,
 and add only incremental tax accounting before immutable native issuance. The
-repair is not built or independently approved. IRP provider submission, IRN/QR,
+repair is implemented with independent native acceptance under D1375; final exact-head
+CI remains required before closure. IRP provider submission, IRN/QR,
 local promotion and Phase7 completion remain separately gated work.
 
 Order240 is ready under D-630. It creates the missing pure canonical positive-origin

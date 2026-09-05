@@ -4,7 +4,7 @@
 <!-- current-phase: 7 -->
 <!-- current-task: Order 434 — native fiscal completion on the consolidated baseline -->
 <!-- current-order-files: handoff/orders/434-native-fiscal-source-completion.md -->
-<!-- current-lifecycle: building and verifying candidate migrations 76/77; native issuance unreleased -->
+<!-- current-lifecycle: native acceptance passed; final corrected-candidate CI pending; issuance unreleased -->
 
 This is the canonical current-state record. It identifies the consolidated source,
 verified behavior, release boundaries and active work. Historical orders,
@@ -21,8 +21,18 @@ reviewed release source at96b808d. Neither development checkpoint is a deployed
 native-fiscal release. Development now contains the complete 77-migration candidate
 and its derived 127-table schema snapshot. The full migration suite passed 41/41,
 including production-75 upgrade, rollback, checksum protection and fresh-install
-equivalence. Whole native-fiscal acceptance remains in progress. Question195 records
-the numbering, scope and strict separation from the retained hotel database.
+equivalence. Independent native acceptance now passes all six suites (116 tests),
+the 11-invariant referee, canonical database acceptance (23 tests) and exact schema
+comparison. Consolidated Tier-3 inspection has no unresolved findings; its approval
+requires green CI on the final corrected candidate. Question195 records the numbering,
+scope and strict separation from the retained hotel database.
+
+CI33992123191 at6bb7ba6 passed four of five jobs, including the real local launcher.
+Its database job passed migration41/41, native116/116, containment/readiness7/7 and
+operational/tax compatibility89/89 before four stale catalogue expectations failed.
+Those exact assertions are repaired and independently pass23/23. D1375 records the
+proof and failure history. A subsequent exact-head CI run must still finish green;
+neither the failed run nor local proof is described as full CI acceptance.
 
 Order438 consolidates the
 working operational application, documentation, local workflow and Git-to-cloud
@@ -40,7 +50,7 @@ person for ordinary development.
 | Independent acceptance | Both reviews approve operational candidate `bb3b8f933ce344f9325445dac1e6fc77d646c9de`; all five jobs in [CI33986577250](https://github.com/dcpnode-maker/yellow/actions/runs/33986577250) passed | Final receipt/status changes require review and green CI on their exact head; the earlier failed run is retained in the review history |
 | GitHub work queue | All 62 PRs in the original audit are closed with exact source preservation; the working lineage is consolidated in PR82, while five unique research/worker lines remain preserved as archives | [The manifest](../handoff/CONSOLIDATION-MANIFEST.json) records each disposition; [GitHub](https://github.com/dcpnode-maker/yellow/pulls) is authoritative for the live open queue |
 | Released database | Main retains 75 migrations and 125 public tables; migration `0075` revokes the unapproved legacy issue capability | Released fresh/upgrade/no-op, ACL denial, normalized schema, compatibility and genuine 11/11 referee passed; native issuance stays disabled |
-| Development database | Candidate migrations `0076`/`0077` are assembled in source; actual fresh catalogue has 127 tables and exactly matches the derived snapshot | Migration tests passed 41/41; full native/legacy and independent acceptance are not yet complete. No retained hotel database was migrated |
+| Development database | Candidate migrations `0076`/`0077` are assembled in source; actual fresh catalogue has 127 tables and exactly matches the derived snapshot | Independent migration41/41, native116/116, catalogue23/23 and referee11/11 pass. Tier-3 has no unresolved findings; final corrected-candidate CI remains required. No retained hotel database was migrated |
 | Local app | The complete supported launcher passed in clean CI: real database, canonical/review seeds, exact-SHA readiness, authentication and volume-preserving stop | Run [the same launcher](RELEASE.md) on the user's supported machine for `http://127.0.0.1:3000`; CI does not prove that machine has been refreshed |
 | Cloud app | [Main CI33987884230](https://github.com/dcpnode-maker/yellow/actions/runs/33987884230) and [image publication33988185696](https://github.com/dcpnode-maker/yellow/actions/runs/33988185696) succeeded for `5879e2b7` | No approved host, ingress, production credential or serving URL is connected; image publication is not cloud deployment |
 
@@ -54,7 +64,7 @@ container build, merge and deployment are separate events.
 | Phases 0–3, 5 and 6 | Independently reviewed | Recorded review exists for their accepted scopes; later changes still need regression proof |
 | Phase 4 | Built; integration review outstanding | Preserve the implementation and close its remaining integration evidence |
 | Phase 7 operational flows | Consolidated and independently approved baseline | Working PMS, stay, folio, payment, approval and fiscal-support flows are preserved; source acceptance does not complete the entire phase |
-| Order434 native fiscal issuance | Actively integrating; unfinished and unreleased | D1373 concurrency cases are preserved. The complete `0076`/`0077` candidate is now in the development runner with its derived catalogue. Production-75 upgrade, rollback/checksum and fresh equivalence passed; native, legacy and independent full-outcome acceptance continue |
+| Order434 native fiscal issuance | Native acceptance passed; final CI pending; unreleased | Real source-to-invoice, tax-only accounting, immutable replay, concurrency, tenant isolation, maximum bounds and migration proofs pass. The final catalogue expectations are corrected; exact published-candidate CI is the remaining acceptance condition, not a founder approval |
 | Phases 8–17 | Planned | Requirements and architecture are retained; documentation is not shipped behavior |
 
 The roadmap contains **18 phases, numbered 0–17**. The founder's highlighted feature

@@ -1,12 +1,13 @@
 # Order 434 — Complete the first native fiscal invoice source
 
-**Status:** ACTIVE — implementation in progress; no completion or review approval — D1330
+**Status:** ACTIVE — implementation and independent native proofs complete; Tier-3 approval conditional on final exact-head CI — D1375
 **Phase:** 7 · YF-008, YF-009, YF-023
 **Implementation base:** `591ace8` (includes the complete Order432 current-catalogue repair)
 
 **Latest implementation work:** [Canonical 76/77 integration on the released containment baseline](#current-integration-continuation--question195).
 The complete candidate and its derived schema are now in the development runner.
-The full migration suite passes 41/41; whole native acceptance is still in progress.
+The full migration suite passes 41/41 and independent native acceptance passes116/116;
+final corrected-candidate CI remains pending. See the D1375 receipt below.
 Question195 supersedes historical draft migration numbers throughout this order.
 
 **Earlier command checkpoint:**
@@ -2192,3 +2193,43 @@ remaining historical table-count expectation in the financial-posting proof:
 500 charges and 1,000 balanced immutable lines. That exact count is corrected
 under the existing catalogue scope; no posting, ACL, money or race assertion changes.
 Later database steps were not reached and remain pending the next CI run.
+
+### D1375 — independent native acceptance and final catalogue repair
+
+All six native files now pass on separate pristine canonical77 clones without
+temporary grants: ordinary4/4, source22/22, accounting27/27, preparation21/21,
+source locks20/20 and completion22/22 — **116 passed, 0 failed, 2,350 assertions**.
+The same non-implementer personally passed the current full migration41/41(233),
+genuine PostgreSQL referee11/11 and canonical-seed database acceptance23/23(65).
+Its full native PostgreSQL16.15 schema dump exactly matches the derived snapshot.
+The 500-root/366-night/183,000-allocation proof stays within the original300-second
+case deadline; the monetary ceiling and genuine two-tenant denials are included.
+
+CI33992123191 at6bb7ba6 passed quality, Windows state, container smoke and the actual
+local launcher. The database job passed migration41/41, seed10/10, native116/116,
+containment/readiness7/7(43) and isolated operational/tax compatibility89/89(2,384).
+The Windows readiness process crash is not relabelled green: the unchanged actual
+readiness suite now has a successful Linux CI process receipt. Deployment catalogue
+acceptance then failed19/4(57), before schema/referee/API steps in that job.
+
+The four stale assertions now include the exact native supplier/recipient identity
+constraints and indexes, six nullable service/payment recording fields, and their
+named recording constraints. Permission/grant expectations remain11/0. Root first
+reproduced19/4 with the canonical seed, then passed23/23(65); the independent rerun
+also passed23/23(65) and exact schema comparison. The earlier reviewer17/6 run used
+the wrong seed, and the earlier migration32/9 run collided with root's runtime
+sessions; both remain preserved as errors, not initial successes.
+
+Root additionally passed existing external accommodation source5/5(213), financial
+corrections9/9(53), and receivable transfers10/10(45) in separate synthetic clones.
+All assigned clones were dropped after sessions ended; the pristine template and
+retained hotel/local data were untouched. Final standing checks:1,570 passed,
+1,189 explicit database/environment skips,0 failed,21,646 assertions,103.11seconds;
+typecheck,168-file boundaries,23-package licence check and audit pass.
+
+The non-implementer consolidated the whole candidate's Tier-3 inspection, exact
+historical-body migration assembly, command/SQL transaction coupling and release
+boundary. No unresolved finding remains. Approval is conditional on green CI for
+the exact final corrected candidate and recording that SHA/result. No additional
+founder decision is needed. This receipt does not merge or deploy source, refresh
+the local app, enable a provider, or complete all Phase7 work.

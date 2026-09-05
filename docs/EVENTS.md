@@ -253,12 +253,13 @@ content. Replay and a losing concurrent contender emit neither pair. Consumers m
 net the named financial posting, but must not infer a cash refund, replacement
 invoice, credit note, tax-return amendment, payment, settlement or submission.
 
-## Order434 native fiscal source events — specified, implementation pending
+## Order434 native fiscal source events — current development contract
 
-These version1 events extend the existing envelope. They are not emitted by the
-released app merely because they are catalogued here. Source recorders derive
-tenant/property/actor/business date and canonical hashes on the trusted boundary.
-No event accepts guest profiles, card data, caller-selected money or a legal body.
+These version1 events extend the existing envelope. This section documents the
+current development path, not a released provider or deployment claim. Source
+recorders derive tenant/property/actor/business date and canonical hashes on the
+trusted boundary. No event accepts guest profiles, card data, caller-selected money
+or a legal body.
 
 | Event | Producer → consumer | Identity-only payload and meaning |
 | --- | --- | --- |
@@ -278,13 +279,31 @@ connection, separate commit or asynchronous accounting completion is introduced.
 The Financials handler checks exact persisted event identity, type/version, payload,
 actor/property/date and current-transaction preparation before deriving money. Its
 immutable accounting binding deduplicates the effect. The bound event and optional
-`journal.posted` causally reference the request. Number allocation follows final
-canonical authentication; any rejection rolls back every new dependent artifact.
+`journal.posted` causally reference the request. The existing `document.issued` event
+is emitted only with the completed document in this same transaction. Number
+allocation follows final canonical authentication; any rejection rolls back every
+new dependent artifact.
 
 Permanent fiscal rows retain event IDs/hashes, not a foreign key blocking normal
 outbox pruning. Later exact replay uses permanent timing/binding/origin/receipt
-evidence. This does not add a new asynchronous consumer or relax any runtime grant.
-See [Order434](../handoff/orders/434-native-fiscal-source-completion.md) for the full
+evidence even after the corresponding outbox rows have passed normal retention. This
+does not add a new asynchronous consumer or relax any runtime grant. The accounting
+request is handled inline by `IndiaNativeFiscalAccountingEventHandler`; ordinary
+relay consumers still process committed outbox events through their own durable
+cursors and must not rerun the same-transaction accounting command.
+
+The executable entry and inline adapter are
+[`IssueIndiaNativeFiscalInvoiceCommand`](../src/commands/issue-india-native-fiscal-invoice.ts)
+and
+[`IndiaNativeFiscalAccountingEventHandler`](../src/contexts/financials/india-native-fiscal-accounting.ts).
+
+Executable event and replay evidence lives in
+[`tests/india-native-fiscal-accounting.integration.test.ts`](../tests/india-native-fiscal-accounting.integration.test.ts),
+[`tests/india-native-fiscal-preparation.integration.test.ts`](../tests/india-native-fiscal-preparation.integration.test.ts),
+[`tests/india-native-fiscal-completion.integration.test.ts`](../tests/india-native-fiscal-completion.integration.test.ts),
+and [`tests/india-native-fiscal-source-locks.integration.test.ts`](../tests/india-native-fiscal-source-locks.integration.test.ts).
+See [`PROJECT-STATUS.md`](PROJECT-STATUS.md) for current status and
+[`Order434`](../handoff/orders/434-native-fiscal-source-completion.md) for the full
 source, locking, accounting and executable acceptance contract.
 
 ## Consumer registry (who must exist by launch)

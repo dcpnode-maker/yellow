@@ -1918,7 +1918,8 @@ databaseDescribe("fresh deployment database acceptance", () => {
                     'india_gst_supplier_status_snapshot_taxpayer_type_ck',
                     'india_gst_supplier_registration_status_snapshot_source_ck',
                     'india_gst_supplier_status_snapshot_portal_evidence_ck',
-                    'india_gst_supplier_registration_status_snapshot_legal_rule_ck'
+                    'india_gst_supplier_registration_status_snapshot_legal_rule_ck',
+                    'india_native_supplier_status_identity_uq'
                   ])
              ) AS "requiredConstraints",
              EXISTS (
@@ -1959,9 +1960,9 @@ databaseDescribe("fresh deployment database acceptance", () => {
       appSelect: true, appMutation: false,
       publicPrivileges: 0, runtimePrivileges: 0,
       policyCount: 1, policyUsesNullifContext: true,
-      constraintCount: 9, requiredConstraints: 9,
+      constraintCount: 10, requiredConstraints: 10,
       exactIdentity: true, compositeSupplierRegistrationForeignKey: true,
-      tenantLeadingIndexes: 2, totalIndexes: 2,
+      tenantLeadingIndexes: 3, totalIndexes: 3,
     }]);
 
     const appRead = await sql!.begin(async (tx) => {
@@ -2046,7 +2047,13 @@ databaseDescribe("fresh deployment database acceptance", () => {
                  'india_gst_accommodation_service_provision_date_ck',
                  'india_gst_accommodation_service_provision_source_ck',
                  'india_gst_accommodation_service_provision_evidence_ck',
-                 'india_gst_accommodation_service_provision_legal_rule_ck']))
+                 'india_gst_accommodation_service_provision_legal_rule_ck',
+                 'india_service_recording_actor_fk',
+                 'india_service_recording_shape_ck',
+                 'india_service_recording_key_uq',
+                 'india_service_recorded_identity_uq',
+                 'india_service_native_valuation_identity_uq',
+                 'india_native_timing_service_uq']))
                AS "requiredConstraints",
              EXISTS (SELECT 1 FROM pg_catalog.pg_constraint c
                WHERE c.conrelid=cls.oid
@@ -2071,14 +2078,14 @@ databaseDescribe("fresh deployment database acceptance", () => {
     `;
     expect(relation).toEqual([{
       owner: "yellow_owner", rls: true, forceRls: true,
-      columns: "tenant_id,id,property_node,reservation_lineage_id,hold_binding_id,attribution_id,reservation_id,segment_id,origin_quote_hash,snapshot_hash,currency,service_provision_date,service_provision_source,service_provision_evidence_sha256,legal_rule",
-      types: "uuid,uuid,uuid,uuid,uuid,uuid,uuid,uuid,text,text,character(3),date,text,text,text",
-      notNull: "true,true,true,true,true,true,true,true,true,true,true,true,true,true,true",
+      columns: "tenant_id,id,property_node,reservation_lineage_id,hold_binding_id,attribution_id,reservation_id,segment_id,origin_quote_hash,snapshot_hash,currency,service_provision_date,service_provision_source,service_provision_evidence_sha256,legal_rule,recording_actor_id,recording_request_id,request_key_hash,request_hash,recorded_at,evidence_hash",
+      types: "uuid,uuid,uuid,uuid,uuid,uuid,uuid,uuid,text,text,character(3),date,text,text,text,uuid,uuid,text,text,timestamp with time zone,text",
+      notNull: "true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,false,false,false,false,false,false",
       appSelect: true, appMutation: false, publicPrivileges: 0, runtimePrivileges: 0,
       policyCount: 1, policyUsesNullifContext: true,
-      constraintCount: 10, requiredConstraints: 10,
+      constraintCount: 16, requiredConstraints: 16,
       exactIdentity: true, exactLineageFk: true,
-      tenantLeadingIndexes: 2, totalIndexes: 2,
+      tenantLeadingIndexes: 6, totalIndexes: 6,
     }]);
 
     const appRead = await sql!.begin(async (tx) => {
@@ -2203,7 +2210,8 @@ databaseDescribe("fresh deployment database acceptance", () => {
                     'party_fiscal_registration_trade_name_ck',
                     'party_fiscal_registration_address_line1_ck',
                     'party_fiscal_registration_locality_ck',
-                    'party_fiscal_registration_pin_ck'
+                    'party_fiscal_registration_pin_ck',
+                    'india_native_recipient_party_uq'
                   ])
              ) AS "requiredConstraints",
              EXISTS (
@@ -2241,11 +2249,11 @@ databaseDescribe("fresh deployment database acceptance", () => {
       runtimePrivileges: 0,
       policyCount: 1,
       policyUsesNullifContext: true,
-      constraintCount: 12,
-      requiredConstraints: 12,
+      constraintCount: 13,
+      requiredConstraints: 13,
       identityIsTenantSchemeRegistration: true,
-      tenantLeadingIndexes: 3,
-      totalIndexes: 3,
+      tenantLeadingIndexes: 4,
+      totalIndexes: 4,
     }]);
 
     const foreignKeys = await sql!<Array<{ name: string; definition: string }>>`
@@ -2734,7 +2742,7 @@ databaseDescribe("fresh deployment database acceptance", () => {
         EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid=c.oid AND contype='f' AND conname='india_gst_accommodation_payment_receipt_service_fk') fk,
         EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid=c.oid AND contype='u' AND conname='india_gst_accommodation_payment_receipt_service_uq') "serviceUnique"
       FROM pg_class c WHERE c.oid='public.india_gst_accommodation_payment_receipt_snapshot'::regclass`;
-    expect(shape).toEqual([{ columns: "tenant_id,id,service_provision_snapshot_id,currency,amount_minor,coverage_scope,supplier_books_entry_date,supplier_bank_credit_date,payment_receipt_date,payment_receipt_source,payment_receipt_evidence_sha256,legal_rule", owner: "yellow_owner", rls: true, force: true, policies: 1, appSelect: true, appMutation: false, fk: true, serviceUnique: true }]);
+    expect(shape).toEqual([{ columns: "tenant_id,id,service_provision_snapshot_id,currency,amount_minor,coverage_scope,supplier_books_entry_date,supplier_bank_credit_date,payment_receipt_date,payment_receipt_source,payment_receipt_evidence_sha256,legal_rule,recording_actor_id,recording_request_id,request_key_hash,request_hash,recorded_at,evidence_hash", owner: "yellow_owner", rls: true, force: true, policies: 1, appSelect: true, appMutation: false, fk: true, serviceUnique: true }]);
     const checks = await sql!<{ name: string }[]>`SELECT conname name FROM pg_constraint WHERE conrelid='public.india_gst_accommodation_payment_receipt_snapshot'::regclass AND contype='c' ORDER BY conname`;
     expect(checks.map((x) => x.name)).toEqual([
       "india_gst_accommodation_payment_receipt_amount_ck", "india_gst_accommodation_payment_receipt_bank_date_ck",
@@ -2742,6 +2750,7 @@ databaseDescribe("fresh deployment database acceptance", () => {
       "india_gst_accommodation_payment_receipt_currency_ck", "india_gst_accommodation_payment_receipt_date_ck",
       "india_gst_accommodation_payment_receipt_evidence_ck", "india_gst_accommodation_payment_receipt_legal_rule_ck",
       "india_gst_accommodation_payment_receipt_source_ck",
+      "india_payment_recording_shape_ck",
     ]);
   });
 

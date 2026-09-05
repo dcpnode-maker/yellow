@@ -1155,6 +1155,196 @@ run. All three clone databases were dropped and the final catalogue check found 
 `order434_review_*` databases and zero matching sessions. This is bounded failure
 evidence and is not full Order434 acceptance.
 
+## 2026-09-06 — canonical 0077 independent native completion and referee proof
+
+After the fixture registry repair and accounting ACL-expectation correction, the
+non-implementing reviewer ran each remaining file as its own native Bun process
+against a separate pristine, unseeded database cloned from
+`yellow_order434_production` on PostgreSQL 16.15 port 55503. Mandatory accounting and
+issuance gates were enabled as applicable; deploy and runtime URLs used their actual
+`yellow_deploy` and `yellow_runtime` roles. No temporary grant, legacy grant,
+derived-row restoration, or shared seeded database was used.
+
+Personally observed process results:
+
+- accounting `13c5002b0ea98e5a987450266a898749cbfd15a7a595f882197dae730935c1a9`:
+  **27 passed, 0 failed, 401 assertions**, exit 0, 8.09 seconds;
+- preparation `cb87bcd028a856daba7b6c36585c7282b707a2f0c15be18f2f2bf0b2f61a2b22`:
+  **21 passed, 0 failed, 262 assertions**, exit 0, 30.09 seconds;
+- source locks `3b942c5f5b1c1ac03c6ee85b2c6fe677de87ad4b52c7c26766b0ce3daee37770`:
+  **20 passed, 0 failed, 1,148 assertions**, exit 0, 203.58 seconds. The genuine
+  100-distinct-source case itself took 161.46 seconds;
+- completion `40733b7046710efb89b2ce544ee09926d64dd67ebe73ad0ae9ff0ca4b2b284dd`:
+  **22 passed, 0 failed, 247 assertions**, exit 0, 317.24 seconds. The authentic
+  500-root/366-night case passed in 276.17 seconds (fixture 49.09 seconds, prefix
+  0.48 seconds, issue 224.99 seconds, exact account/totals 0.08 seconds, replay 1.48
+  seconds, final census 0.003 seconds). The int64-safe upper-slab boundary and genuine
+  two-tenant denial/isolation cases also passed.
+
+Before that final run, the implementer's focused form of the two new completion tests
+had first failed because it built a wrong-tenant request with a stale audit envelope,
+expected non-canonical SQL messages, and computed the total oracle as a constant.
+The frozen test instead uses genuinely bound replay requests, independently derived
+canonical denial messages, and reads the persisted `tax.grand_total_minor`; the
+reviewer did not suppress those earlier test failures.
+
+For the standalone referee, the reviewer confirmed zero other client sessions,
+restarted only `D:\Yellow\temp\order434-production-cluster-20260906` with its existing
+loopback port, 32 MB shared buffers, 32/128 MB WAL bounds, SCRAM and
+`pg_stat_statements` preload while raising `max_connections` from 40 to 200, then
+created another pristine clone and loaded only `tests/seed_fixture.sql`. Using
+`C:\Users\astha\AppData\Local\Programs\Python\Python313\python.exe`, psycopg2 2.9.12,
+UTF-8 output and the local deploy DSN, `tests/run_invariants.py` passed **11 of 11**,
+including 100 gapless concurrent invoice numbers and 117/117 RLS/policy coverage;
+process exit was 0.
+
+The shared fixture remained
+`3f6ca16e56547a934b4fef37f191c34f44ffd70338a03a9dd1350cff558f8488`;
+the referee and seed hashes were respectively
+`2afa95bb7c02cd9637ffc9c3df00d1ddf7cfc5d8d31c4fd8fad29b950c1a418d`
+and `f8e8147800bc3ee24ba5020b70f95ad77a987c698d3c63dd664ed8d4cba1a409`.
+All reviewer clones were dropped. The final catalogue audit found zero
+`order434_review_*` databases and zero other client sessions; the retained template
+still had exactly migration 77 and zero native registry seed rows.
+
+Readiness was not rerun because the known Windows Bun `afterAll` crash is not native
+acceptance evidence. The earlier readiness concerns are not blockers: the migration
+ledger is intentionally deployment-only, and exhaustive private-helper ACL auditing
+belongs migration/security proof rather than every runtime readiness request. This
+section is bounded independent native evidence; it does not approve the whole order,
+PR, release, or deployment.
+
+## 2026-09-06 — migration transport green; database-acceptance contract stale
+
+The reviewer ran the complete current migration integration file
+`64e1ffc6a53a1ccbd89c2022484a2e07eebb87d120f009acf4003e4034ba2b7f`
+with mandatory Order434 Phase E enabled, the exact candidate directory
+`D:\Yellow\temp\order434-production-candidate-20260906`, genuine SCRAM roles and
+native PostgreSQL 16.15 `pg_dump`. A first attempt passed the two Phase-E cases but
+finished **32 passed, 9 failed** because root's parallel compatibility tests held
+cluster-global `yellow_runtime` sessions and migration 0012 correctly failed closed.
+This was recorded as a coordination error, not a product defect or reason to weaken
+the guard. After root drained its work, the reviewer verified zero client sessions
+and reran the identical command: **41 passed, 0 failed, 233 assertions**, exit 0,
+197.14 seconds.
+
+The subsequent database-acceptance attempt used a separate pristine migration-77
+clone and current test
+`99829a3a4dee31cf9ae1d190c424ae25db46e19f92ba06eb0abbdc18cece55d6`.
+It stopped at **17 passed, 6 failed, 56 assertions**, exit 1. One failure was the
+reviewer's fixture selection: `tests/seed_fixture.sql` creates Acme/Rival tenants,
+whereas the last acceptance case expects the canonical demo seed. Five further
+failures are independent stale catalog expectations against canonical 0076/0077:
+
+- expected permission/grant counts 11/0, observed 15/8;
+- supplier-registration expected 9 constraints and 2 indexes, observed 10/3;
+- service-provision expected the pre-0076 15-column shape, 10 constraints and 2
+  indexes, observed the six recording fields plus 16 constraints and 6 indexes;
+- party fiscal registration expected 12 constraints and 3 indexes, observed 13/4;
+- payment receipt expected the pre-0076 12-column shape, observed the six recording
+  fields appended by the canonical migration.
+
+The normalized full-dump acceptance was not claimed after this terminal failure.
+All `yellow_migrate_*` and `order434_review_*` databases were dropped, and a final
+audit found zero other client sessions. This bounded section preserves both the
+interfered migration run and the acceptance failure; it is not Order434 approval.
+
+## 2026-09-06 — corrected canonical-seed database acceptance and native snapshot
+
+Root correctly identified that the preceding 15-permission/8-grant and tenant
+observations were side effects of the reviewer's use of `tests/seed_fixture.sql`, not
+canonical schema findings. The reviewer preserved that failed run, created a new
+pristine migration-77 clone, and this time ran `bun scripts/seed.ts` with the actual
+deploy role. The canonical seed inserted exactly the Yellow Demo tenant and property.
+
+Against database-acceptance test
+`4207a53151d57f8a3a986b9ad33dce8ded9f301c8ddc47ef544e4fe297c4c1ba`,
+the reviewer personally observed **23 passed, 0 failed, 65 assertions**, process exit
+0, 668 ms. The narrow test correction covers only the four previously observed
+canonical additions: supplier native identity constraint/index; the six nullable
+service recorder fields with their named constraints/indexes; party native recipient
+identity constraint/index; and the six payment recorder fields plus recording-shape
+check. The permission oracle remains 11 permissions and zero grants.
+
+The reviewer then invoked native PostgreSQL 16.15 `pg_dump` directly against that
+same clone with `--schema-only --no-owner --no-comments`, passed the complete output
+through `normalizeSchemaDump(output,true)`, and exact-compared it with snapshot
+`e7dab1576e1ac72dcc70ca3c57902051ac5306b5c07db76bc1bae750b27c00be`.
+Result: exact match, normalized size 1,546,113 bytes, process exit 0. The clone was
+dropped; final audit found zero assigned-prefix databases and zero other client
+sessions.
+
+This closes the executable migration/database/snapshot evidence in this review. It
+does not alone close Order434: final acceptance still needs the exact published CI
+run to finish green and a consolidated independent whole-diff/Tier-3 inspection of
+the canonical 0076/0077 boundary (plus governance recording) if that inspection has
+not already been completed elsewhere. The reviewer has deeply inspected and executed
+the changed paths in bounded slices, but does not claim a single end-to-end reread of
+every line of both large canonical migrations in this section.
+
+## 2026-09-06 — consolidated whole-candidate Tier-3 review
+
+Reviewer: Codex `/root/native_closed_review`, independent of implementation. Review
+base: released main `5879e2b7`; candidate content through `6bb7ba6` plus the frozen
+database-acceptance catalogue corrections described above. The reviewer inspected
+the full 38-path candidate inventory, Question195's superseding scope, the remaining
+release/readiness/setup/status adaptations, canonical migration assembly, all public
+capability call sites, and the accumulated personally executed receipts in this
+document. Generated `tests/schema/expected.sql` was assessed through its exact native
+normalized-dump equality rather than by treating its 1.5 MB text as an independent
+handwritten specification.
+
+Assembly was independently recomputed from bytes:
+
+- canonical 0076 is byte-for-byte equal to historical draft source evidence, both
+  SHA-256 `d550b41cd405aea2da2b84e75fd3632ae2a6aca3b24b5cd12697394405d29869`;
+- canonical 0077 contains each historical fragment body exactly once and in required
+  dependency order: accounting
+  `e6c30d972c12c4dd2999c2d5f269f0ac07944ea8e8431831244919654c7ef754`,
+  preparation `90aa77a7d1501fb560705a5edef5c84c0f5582d5df4808eacf0cffe9b9ae770a`,
+  statutory `367f83ffe459af5d5099186aa67b0ee207f6614b9e879d8a376046b9ffbddf79`,
+  and completion `75219b4a9315ade112538f6a8981f66260becdd4a0adc79b789126b6edb3a09b`;
+- the only assembled public entry authority is the exact five `app_role` grants for
+  prepare-v2, accounting consumption, authenticated accounting closure, commit-v2
+  and approval-with-options. Textual inventory found four pre-existing governed
+  recorder/valuation grants in 0076, five final grants in 0077, no grant to PUBLIC or
+  `yellow_runtime`, no default-privilege mutation and no dynamic SQL execution.
+
+The reviewer traced the complete TypeScript/SQL coupling. `issueNative` passes the
+22 preparation arguments in signature order, validates the exact four-field result,
+consumes the persisted request event in the same transaction, authenticates the
+returned accounting binding through the two-argument closure capability, reconstructs
+and compares the fiscal source/readiness hashes, then passes the exact seven commit
+arguments and validates the 20-column permanent receipt. The Financials handler owns
+only tenant/event input; the closure adapter rechecks binding, scope, topology,
+currency, generations, hashes, totals and immutable source sets. Approval keeps the
+unchanged six-column legacy INSERT when no options are supplied and uses the exact
+nine-argument governed helper only for identity/expiry options. No caller supplies
+derived money, accounts, dates, hashes or document numbers.
+
+The remaining diff inspection found the readiness frontier and exact-five authority
+check consistent with the release-77 contract while preserving legacy-issue denial,
+direct `yellow_runtime` identity, default-aware PUBLIC denial and deployment-login
+rejection. CI uses one freshly migrated unseeded template and a separate clone for
+each of the six native files with mandatory gates; its trap covers both active and
+already-dropped clone names. Historical release-containment tests now construct exact
+74/75 directories and separately prove current-77 legacy denial. Setup/catalogue
+changes are limited to the derived 77/127 counts, platform-correct state output and
+the matching release frontier. No scope escape or new product authority was found.
+
+Finding disposition: **no unresolved Tier-3 code, SQL, financial-invariant, migration,
+ACL, isolation, replay or lifecycle finding** after the recorded repairs. The earlier
+registry, stale ACL expectation, wrong request envelope/message, constant total
+oracle, parallel migration-session interference, wrong seed and stale catalogue
+failures remain preserved above and were not reclassified as initial successes.
+
+Tier-3 conclusion: **approved conditionally on the exact final published candidate CI
+finishing green and governance recording that exact SHA/result**. This review does
+not pre-approve a later diff, waive a failed/skipped CI database proof, merge the
+branch, publish a release, or authorize deployment. If final CI is green on the exact
+reviewed content with only the narrow catalogue/test-governance repairs already
+described, no further native database repetition is required for Order434.
+
 ## Supported-service reachability rationale for malformed journal shapes
 
 This is a static reachability rationale, not an executed database proof of the inner
