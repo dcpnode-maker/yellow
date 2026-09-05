@@ -284,9 +284,23 @@ export type {
   IndiaFinalComponentTaxFiscalSourceComponent,
   IndiaFinalComponentTaxFiscalSourceInput,
   IndiaFinalComponentTaxFiscalSourceJournalLine,
+  IndiaFinalComponentTaxNativeConsiderationSource,
+  IndiaFinalComponentTaxNativeFiscalSourceInput,
+  IndiaFinalComponentTaxNativeFiscalSourceResult,
   IndiaFinalComponentTaxFiscalSourceResult,
   IndiaFinalComponentTaxFiscalSourceRoomNight,
 } from "./india-final-component-tax-fiscal-source";
+
+export {
+  IndiaNativeFiscalAccountingConflictError,
+  IndiaNativeFiscalAccountingEventHandler,
+  IndiaNativeFiscalAccountingNotFoundError,
+  IndiaNativeFiscalAccountingValidationError,
+} from "./india-native-fiscal-accounting";
+export type {
+  IndiaNativeFiscalAccountingEventInput,
+  IndiaNativeFiscalAccountingEventResult,
+} from "./india-native-fiscal-accounting";
 
 export {
   PositiveTaxCorrectionAuthorizationError,

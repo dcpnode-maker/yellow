@@ -20,6 +20,17 @@ const frozenInvalidInput = Object.freeze({
   supplyNatureAtTimeOfSupplyInput: Object.freeze({}),
   supplyNatureAtTimeOfSupplyResult: Object.freeze({}),
 });
+const frozenInvalidNativeInput = Object.freeze({
+  tenantId: IDS.tenantId,
+  financialSource: Object.freeze({}),
+  legalBuyerPartyId: IDS.recipientPartyId,
+  sellerRegistration: Object.freeze({}),
+  recipientRegistration: Object.freeze({}),
+  placeOfSupply: Object.freeze({}),
+  classification: Object.freeze({}),
+  supplyNatureAtTimeOfSupplyInput: Object.freeze({}),
+  supplyNatureAtTimeOfSupplyResult: Object.freeze({}),
+});
 
 describe("Order429 hostile pure boundary", () => {
   test("rejects a missing transaction before any source access", async () => {
@@ -34,5 +45,15 @@ describe("Order429 hostile pure boundary", () => {
     const extra = Object.freeze({ ...frozenInvalidInput, extra: true });
     await expect(new IndiaIrpAccommodationFiscalActionReadinessService().resolve((async () => []) as never, extra as never))
       .rejects.toThrow("input shape is invalid");
+  });
+
+  test("native resolve rejects a missing transaction and non-exact graphs before composition", async () => {
+    const service = new IndiaIrpAccommodationFiscalActionReadinessService();
+    await expect(service.resolveNative(null as never, frozenInvalidNativeInput as never))
+      .rejects.toBeInstanceOf(IndiaIrpAccommodationFiscalActionReadinessValidationError);
+    await expect(service.resolveNative((async () => []) as never,
+      { ...frozenInvalidNativeInput } as never)).rejects.toThrow("exact deeply frozen graph");
+    await expect(service.resolveNative((async () => []) as never,
+      Object.freeze({ ...frozenInvalidNativeInput, extra: true }) as never)).rejects.toThrow("shape is invalid");
   });
 });

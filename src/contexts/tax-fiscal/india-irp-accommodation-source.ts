@@ -40,6 +40,7 @@ import {
   buildIndiaIrpSellerDetails,
   type IndiaIrpSellerDetailsResultV1,
 } from "./india-irp-seller-details";
+import type { IndiaNativeFiscalSourceResult } from "./india-native-fiscal-source";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 const INPUT_KEYS = [
@@ -63,7 +64,7 @@ export interface IndiaIrpAccommodationSourceInput {
   readonly supplyNatureAtTimeOfSupplyResult: IndiaGstAccommodationSupplyNatureAtTimeOfSupplyResult;
 }
 
-export interface IndiaIrpAccommodationSourceResult {
+export interface IndiaIrpAccommodationExternalSourceResult {
   readonly state: "eligible_irp_invoice_source";
   readonly financialSource: IndiaFinalComponentTaxFiscalSourceResult;
   readonly legalBuyerPartyId: string;
@@ -77,6 +78,11 @@ export interface IndiaIrpAccommodationSourceResult {
   readonly componentFamily: IndiaGstAccommodationComponentFamilyResult;
   readonly evidenceHash: string;
 }
+
+/** Explicit union: the legacy external source remains byte-identical and undiscriminated. */
+export type IndiaIrpAccommodationSourceResult =
+  | IndiaIrpAccommodationExternalSourceResult
+  | IndiaNativeFiscalSourceResult;
 
 export class IndiaIrpAccommodationSourceValidationError extends Error {
   constructor(message: string) { super(message); this.name = "IndiaIrpAccommodationSourceValidationError"; }
@@ -155,13 +161,13 @@ function mapCompositionError(error: unknown): never {
 }
 
 export class IndiaIrpAccommodationSourceService {
-  async resolve(tx: Tx, rawInput: IndiaIrpAccommodationSourceInput): Promise<IndiaIrpAccommodationSourceResult> {
+  async resolve(tx: Tx, rawInput: IndiaIrpAccommodationSourceInput): Promise<IndiaIrpAccommodationExternalSourceResult> {
     if (typeof tx !== "function") return validation("tenant transaction is unavailable");
     const input = exactInput(rawInput);
     try { return await this.resolveValidated(tx, input); } catch (error) { return mapCompositionError(error); }
   }
 
-  private async resolveValidated(tx: Tx, input: IndiaIrpAccommodationSourceInput): Promise<IndiaIrpAccommodationSourceResult> {
+  private async resolveValidated(tx: Tx, input: IndiaIrpAccommodationSourceInput): Promise<IndiaIrpAccommodationExternalSourceResult> {
     const tenantId = uuid(input.tenantId, "tenantId");
     const propertyNode = uuid(input.propertyNode, "propertyNode");
     const reservationId = uuid(input.reservationId, "reservationId");

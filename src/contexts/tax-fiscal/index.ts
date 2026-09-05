@@ -616,3 +616,14 @@ export type {
   IndiaNativeFiscalSeriesConfigurationInput,
   IndiaNativeFiscalSeriesConfigurationResult,
 } from "./india-native-fiscal-invoice";
+export {
+  assembleIndiaNativeFiscalSource,
+  composeIndiaNativeFiscalSource,
+  IndiaNativeFiscalSourceAssembler,
+  IndiaNativeFiscalSourceConflictError,
+  IndiaNativeFiscalSourceValidationError,
+} from "./india-native-fiscal-source";
+export type {
+  IndiaNativeFiscalSourceInput,
+  IndiaNativeFiscalSourceResult,
+} from "./india-native-fiscal-source";

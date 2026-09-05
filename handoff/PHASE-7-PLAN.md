@@ -2,7 +2,7 @@
 
 **Status:** active; Orders237–429 retain their recorded review states. Order430 was rejected under D1323; Order434 is its active complete native-source repair under D1330.
 **Entry point:** approved Phase-6 and Phase-7 dependencies as recorded in BUILD-PLAN.md and handoff/ROADMAP.md
-**Current order:** [Order434](orders/434-native-fiscal-source-completion.md). Governed source intake and native consideration valuation have executed builder database proof; dependent issuance timing, incremental tax accounting, full canonical completion and independent acceptance remain unfinished.
+**Current order:** [Order434](orders/434-native-fiscal-source-completion.md). D1350 adds authenticated financial-source reconstruction, private consumed-source guards and native statutory/numeric composition with bounded builder proof. Complete native prepare/accounting/commit, real issued-source races and final independent acceptance remain unfinished. See the order's latest checkpoint for exact commands, results and exclusions.
 
 ## Outcome
 

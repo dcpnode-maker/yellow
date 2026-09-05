@@ -353,6 +353,154 @@ function makeSource(options: FixtureOptions = {}, tenantId = TENANT): IndiaIrpAc
   }) as unknown as IndiaIrpAccommodationSourceResult;
 }
 
+function makeNativeSource(options: FixtureOptions = {}, tenantId = TENANT): IndiaIrpAccommodationSourceResult {
+  const legacy = clone(makeSource(options, tenantId)) as MutableRecord;
+  const prior = legacy.financialSource;
+  const componentTotals = identities(prior.componentFamily).map((identity) => ({
+    identity,
+    amount: prior.components
+      .filter((component: MutableRecord) => component.componentIdentity === identity)
+      .reduce((sum: bigint, component: MutableRecord) => sum + BigInt(component.taxAmountMinor), 0n),
+  }));
+  const positive = componentTotals.filter((component) => component.amount > 0n);
+  const journalLines = positive.flatMap((component, index) => {
+    const description = `${component.identity.toUpperCase()} on accommodation`;
+    return [
+      {
+        id: `8${index}000000-0000-4000-8000-00000000008${index}`,
+        seq: index * 2 + 1,
+        accountId: prior.guestAccountId,
+        accountRole: "guest",
+        folioId: prior.folioId,
+        txCode: component.identity.toUpperCase(),
+        description,
+        amountMinor: component.amount.toString(),
+        quantity: "1.000",
+        businessDate: prior.businessDate,
+        currency: "INR",
+        taxDetail: null,
+      },
+      {
+        id: `9${index}000000-0000-4000-8000-00000000009${index}`,
+        seq: index * 2 + 2,
+        accountId: `2${index}000000-0000-4000-8000-00000000002${index}`,
+        accountRole: "tax_payable",
+        folioId: null,
+        txCode: component.identity.toUpperCase(),
+        description,
+        amountMinor: (-component.amount).toString(),
+        quantity: "1.000",
+        businessDate: prior.businessDate,
+        currency: "INR",
+        taxDetail: null,
+      },
+    ];
+  });
+  const nativeFinancialBody = {
+    state: "eligible_current_native_accounted_source",
+    sourceKind: "native_component_tax_delta",
+    postingBindingId: prior.postingBindingId,
+    accountingEvidenceHash: H,
+    nativeTimingId: "11000000-0000-4000-8000-000000000011",
+    nativeTimingEvidenceHash: "3".repeat(64),
+    journalId: BigInt(prior.taxMinor) === 0n ? null : prior.journalId,
+    taxId: prior.taxId,
+    taxGeneration: prior.taxGeneration,
+    taxEvidenceHash: prior.taxEvidenceHash,
+    valuationId: prior.valuationId,
+    valuationGeneration: prior.valuationGeneration,
+    finalValuationEvidenceHash: prior.finalValuationEvidenceHash,
+    applicabilityId: prior.applicabilityId,
+    applicabilityEvidenceHash: prior.applicabilityEvidenceHash,
+    reservationId: prior.reservationId,
+    folioId: prior.folioId,
+    guestAccountId: prior.guestAccountId,
+    buyerPartyId: legacy.legalBuyerPartyId,
+    propertyNode: prior.propertyNode,
+    businessDate: prior.businessDate,
+    currency: "INR",
+    transactionValueMinor: prior.transactionValueMinor,
+    taxMinor: prior.taxMinor,
+    grandTotalMinor: prior.grandTotalMinor,
+    componentFamily: prior.componentFamily,
+    rateSelectionKind: "ordinary_section13_single_version",
+    predecessorHashes: {
+      nativeTiming: "3".repeat(64), nativeRateSelection: "4".repeat(64),
+      finalValuation: prior.finalValuationEvidenceHash,
+      quotedRateApplicability: prior.applicabilityEvidenceHash,
+      levyComponentIdentity: "f".repeat(64), reservationLineage: "1".repeat(64),
+      attributionSnapshot: "2".repeat(64), serviceProvisionRecording: "5".repeat(64),
+      paymentReceiptRecording: "6".repeat(64), ordinaryRegimeRecording: "7".repeat(64),
+      requestEventPayload: "8".repeat(64), nativeRoute: "9".repeat(64),
+    },
+    nativeSourceBasisHash: "4".repeat(64),
+    nativeConsiderationBasisHash: "5".repeat(64),
+    considerationAccountIds: ["05000000-0000-4000-8000-000000000050", prior.guestAccountId].sort(),
+    considerationRootIds: ["12000000-0000-4000-8000-000000000012"],
+    considerationSources: [{
+      postingRootId: "12000000-0000-4000-8000-000000000012",
+      journalId: "13000000-0000-4000-8000-000000000013",
+      currentAmountMinor: prior.transactionValueMinor,
+      txCode: "ROOM",
+      currentFragmentSetHash: "6".repeat(64),
+    }],
+    roomNights: prior.roomNights,
+    components: prior.components,
+    journalLines: BigInt(prior.taxMinor) === 0n ? [] : journalLines,
+  };
+  const financialSource = {
+    ...nativeFinancialBody,
+    sourceEvidenceHash: digest({ tenantId, ...nativeFinancialBody }),
+  };
+  const oldSupply = legacy.supplyNatureAtTimeOfSupply;
+  const nativeSupplyBody = {
+    kind: "native_current_transaction",
+    propertyNode: oldSupply.propertyNode,
+    reservationId: oldSupply.reservationId,
+    folioId: oldSupply.folioId,
+    supplyDate: oldSupply.supplyDate,
+    supplyNature: oldSupply.supplyNature,
+    determinationBasis: oldSupply.determinationBasis,
+    sezDirection: oldSupply.sezDirection,
+    legalRule: oldSupply.legalRule,
+    supplierRegistrationId: oldSupply.supplierRegistrationId,
+    supplierGstRegistrationStatusId: oldSupply.supplierGstRegistrationStatusId,
+    supplierServiceLocationId: oldSupply.supplierServiceLocationId,
+    supplierRegistrationStatusEvidenceHash: oldSupply.supplierRegistrationStatusEvidenceHash,
+    recipientPartyId: oldSupply.recipientPartyId,
+    recipientRegistrationId: oldSupply.recipientRegistrationId,
+    recipientSezStatusId: oldSupply.recipientSezStatusId,
+    recipientRegistrationStatusEvidenceHash: oldSupply.recipientRegistrationStatusEvidenceHash,
+    timeOfSupplyDate: oldSupply.timeOfSupplyDate,
+    supplierTimeOfSupplyEvidenceHash: oldSupply.supplierTimeOfSupplyEvidenceHash,
+    recipientTimeOfSupplyEvidenceHash: oldSupply.recipientTimeOfSupplyEvidenceHash,
+    invoiceSourceEvidenceHash: "7".repeat(64),
+    nativeTimingEvidenceHash: financialSource.nativeTimingEvidenceHash,
+    result: oldSupply.result,
+  };
+  const supplyNatureAtTimeOfSupply = {
+    ...nativeSupplyBody,
+    evidenceHash: digest({ tenantId, ...nativeSupplyBody }),
+  };
+  const body = {
+    state: "eligible_irp_invoice_source",
+    sourceKind: "native_current_transaction_graph",
+    sourceVersion: 2,
+    financialSource,
+    legalBuyerPartyId: legacy.legalBuyerPartyId,
+    sellerRegistration: legacy.sellerRegistration,
+    recipientRegistration: legacy.recipientRegistration,
+    sellerDetails: legacy.sellerDetails,
+    buyerDetails: legacy.buyerDetails,
+    placeOfSupply: legacy.placeOfSupply,
+    classification: legacy.classification,
+    supplyNatureAtTimeOfSupply,
+    componentFamily: legacy.componentFamily,
+  };
+  return deepFreeze({ ...body, evidenceHash: digest({ tenantId, ...body }) }) as
+    unknown as IndiaIrpAccommodationSourceResult;
+}
+
 function input(source = makeSource(), tenantId = TENANT): IndiaIrpAccommodationNumericItemSourceInput {
   return deepFreeze({ tenantId, source });
 }
@@ -382,6 +530,29 @@ function expectRejected(value: IndiaIrpAccommodationNumericItemSourceInput): voi
 }
 
 describe("Order 414 India accommodation numeric item-source composition", () => {
+  test("native component-tax delta reuses statutory and numeric cores without pretending to repost revenue", () => {
+    const source = makeNativeSource({ family: "cgst_sgst", componentTaxes: [["250", "250"]] });
+    const actual = composeIndiaIrpAccommodationNumericItemSources(input(source));
+    expect(actual).toMatchObject({
+      state: "eligible_irp_accommodation_numeric_item_sources",
+      componentFamily: "cgst_sgst",
+      transactionValueMinor: "10000",
+      taxMinor: "500",
+      grandTotalMinor: "10500",
+      sourceEvidenceHash: source.evidenceHash,
+    });
+    expect(source.financialSource.journalLines).toHaveLength(4);
+    expect(source.financialSource.journalLines.some((line) => line.accountRole === "revenue")).toBeFalse();
+  });
+
+  test("native zero tax retains consideration and emits no fictitious tax journal", () => {
+    const source = makeNativeSource({ componentTaxes: [["0"]] });
+    const actual = composeIndiaIrpAccommodationNumericItemSources(input(source));
+    expect(actual.taxMinor).toBe("0");
+    expect(source.financialSource.journalId).toBeNull();
+    expect(source.financialSource.journalLines).toEqual([]);
+  });
+
   test("golden 5/12/18-percent across every family, multi-night and zero components preserve exact source fields", () => {
     const cases: readonly FixtureOptions[] = [
       { family: "igst", aggregateRateBasisPoints: 500, componentTaxes: [["500"]] },

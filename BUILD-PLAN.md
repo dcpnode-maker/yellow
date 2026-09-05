@@ -2118,6 +2118,12 @@ different fresh Tier3 review remain required. Order434 is not built or approved;
 neither order establishes provider readiness, IRP completion, a local refresh or
 Phase7 completion.
 
+The latest [Order434/D1350 checkpoint](handoff/orders/434-native-fiscal-source-completion.md#authenticated-financial-source-and-native-composition-checkpoint--d1350)
+records implemented financial-source reconstruction, private consumed-source
+guards and native statutory/numeric composition with exact bounded proof. Full
+prepare/accounting/commit and independent acceptance remain open; the18-phase
+scope and dependency-gated11→13→17 priority are unchanged.
+
 ## Current cross-phase requirements index — Order433, 2026-09-05
 
 The [feature register](docs/FEATURE-REGISTER.md) records current founder requirements

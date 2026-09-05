@@ -2,11 +2,17 @@ import { types as utilTypes } from "node:util";
 
 import type {
   IndiaFinalComponentTaxFiscalSourceComponent,
+  IndiaFinalComponentTaxFiscalSourceJournalLine,
   IndiaFinalComponentTaxFiscalSourceResult,
   IndiaFinalComponentTaxFiscalSourceRoomNight,
+  IndiaFinalComponentTaxNativeFiscalSourceResult,
 } from "../financials";
 import type { IndiaGstAccommodationClassificationResult } from "./india-gst-accommodation-classification";
-import type { IndiaIrpAccommodationSourceResult } from "./india-irp-accommodation-source";
+import type {
+  IndiaIrpAccommodationExternalSourceResult,
+  IndiaIrpAccommodationSourceResult,
+} from "./india-irp-accommodation-source";
+import type { IndiaNativeFiscalSourceResult } from "./india-native-fiscal-source";
 import { buildIndiaIrpBuyerDetails } from "./india-irp-buyer-details";
 import { buildIndiaIrpSellerDetails } from "./india-irp-seller-details";
 
@@ -19,17 +25,35 @@ const ACCOMMODATION_SAC = new Set(["996311", "996312", "996313", "996321", "9963
 const UTGST_STATE_CODES = new Set(["04", "26", "31", "35", "38"]);
 
 const INPUT_KEYS = ["tenantId", "source"] as const;
-const SOURCE_KEYS = [
+const EXTERNAL_SOURCE_KEYS = [
   "state", "financialSource", "legalBuyerPartyId", "sellerRegistration",
   "recipientRegistration", "sellerDetails", "buyerDetails", "placeOfSupply",
   "classification", "supplyNatureAtTimeOfSupply", "componentFamily", "evidenceHash",
 ] as const;
-const FINANCIAL_KEYS = [
+const NATIVE_SOURCE_KEYS = [
+  "state", "sourceKind", "sourceVersion", "financialSource", "legalBuyerPartyId",
+  "sellerRegistration", "recipientRegistration", "sellerDetails", "buyerDetails",
+  "placeOfSupply", "classification", "supplyNatureAtTimeOfSupply", "componentFamily",
+  "evidenceHash",
+] as const;
+const EXTERNAL_FINANCIAL_KEYS = [
   "state", "postingBindingId", "journalId", "taxId", "taxGeneration", "taxEvidenceHash",
   "valuationId", "valuationGeneration", "finalValuationEvidenceHash", "applicabilityId",
   "applicabilityEvidenceHash", "reservationId", "folioId", "guestAccountId", "propertyNode",
   "businessDate", "currency", "transactionValueMinor", "taxMinor", "grandTotalMinor",
   "componentFamily", "predecessorHashes", "roomNights", "components", "journalLines",
+  "sourceEvidenceHash",
+] as const;
+const NATIVE_FINANCIAL_KEYS = [
+  "state", "sourceKind", "postingBindingId", "accountingEvidenceHash",
+  "nativeTimingId", "nativeTimingEvidenceHash", "journalId", "taxId",
+  "taxGeneration", "taxEvidenceHash", "valuationId", "valuationGeneration",
+  "finalValuationEvidenceHash", "applicabilityId", "applicabilityEvidenceHash",
+  "reservationId", "folioId", "guestAccountId", "buyerPartyId", "propertyNode", "businessDate",
+  "currency", "transactionValueMinor", "taxMinor", "grandTotalMinor",
+  "componentFamily", "rateSelectionKind", "predecessorHashes", "nativeSourceBasisHash",
+  "nativeConsiderationBasisHash", "considerationAccountIds", "considerationRootIds",
+  "considerationSources", "roomNights", "components", "journalLines",
   "sourceEvidenceHash",
 ] as const;
 const NIGHT_KEYS = [
@@ -47,8 +71,16 @@ const CLASSIFICATION_KEYS = ["classificationId", "propertyNode", "jurisdiction",
 const PLACE_KEYS = ["propertyNode", "reservationId", "folioId", "jurisdiction", "supplier", "recipient", "buyerAssociation", "classification", "propertyLocation", "legalRule", "pos", "candidateJson", "candidateHash"] as const;
 const COMPONENT_FAMILY_KEYS = ["propertyNode", "reservationId", "folioId", "supplyDate", "jurisdiction", "supplierRegistrationId", "placeOfSupplyStateCode", "supplyNature", "determinationBasis", "sezDirection", "componentFamily", "legalSources", "predecessorCandidateHash", "evidenceHash"] as const;
 const SUPPLY_TIME_KEYS = ["propertyNode", "reservationId", "folioId", "supplyDate", "supplyNature", "determinationBasis", "sezDirection", "legalRule", "supplierRegistrationId", "supplierGstRegistrationStatusId", "supplierServiceLocationId", "supplierRegistrationStatusEvidenceHash", "recipientPartyId", "recipientRegistrationId", "recipientSezStatusId", "recipientRegistrationStatusEvidenceHash", "timeOfSupplyDate", "supplierTimeOfSupplyEvidenceHash", "recipientTimeOfSupplyEvidenceHash", "result", "evidenceHash"] as const;
+const NATIVE_SUPPLY_TIME_KEYS = ["kind", "propertyNode", "reservationId", "folioId", "supplyDate", "supplyNature", "determinationBasis", "sezDirection", "legalRule", "supplierRegistrationId", "supplierGstRegistrationStatusId", "supplierServiceLocationId", "supplierRegistrationStatusEvidenceHash", "recipientPartyId", "recipientRegistrationId", "recipientSezStatusId", "recipientRegistrationStatusEvidenceHash", "timeOfSupplyDate", "supplierTimeOfSupplyEvidenceHash", "recipientTimeOfSupplyEvidenceHash", "invoiceSourceEvidenceHash", "nativeTimingEvidenceHash", "result", "evidenceHash"] as const;
 const PREDECESSOR_KEYS = ["section14", "levyComponentIdentity", "reservationLineage", "attributionSnapshot"] as const;
+const NATIVE_PREDECESSOR_KEYS = [
+  "nativeTiming", "nativeRateSelection", "finalValuation", "quotedRateApplicability",
+  "levyComponentIdentity", "reservationLineage", "attributionSnapshot",
+  "serviceProvisionRecording", "paymentReceiptRecording", "ordinaryRegimeRecording",
+  "requestEventPayload", "nativeRoute",
+] as const;
 const JOURNAL_LINE_KEYS = ["id", "seq", "accountId", "accountRole", "folioId", "txCode", "description", "amountMinor", "quantity", "businessDate", "currency", "taxDetail"] as const;
+const CONSIDERATION_SOURCE_KEYS = ["postingRootId", "journalId", "currentAmountMinor", "txCode", "currentFragmentSetHash"] as const;
 
 type ComponentIdentity = IndiaFinalComponentTaxFiscalSourceComponent["componentIdentity"];
 type ComponentFamily = IndiaFinalComponentTaxFiscalSourceResult["componentFamily"];
@@ -189,6 +221,10 @@ function same(left: unknown, right: unknown): boolean {
   return JSON.stringify(left) === JSON.stringify(right);
 }
 
+function isNativeSource(source: IndiaIrpAccommodationSourceResult): source is IndiaNativeFiscalSourceResult {
+  return "sourceKind" in source;
+}
+
 function validateInnerStatutoryEvidence(
   tenantId: string,
   source: IndiaIrpAccommodationSourceResult,
@@ -268,7 +304,11 @@ function validateInnerStatutoryEvidence(
     return fail("place-of-supply candidate evidence is inconsistent");
   }
 
-  const supplyTime = exactRecord(source.supplyNatureAtTimeOfSupply, SUPPLY_TIME_KEYS, "supply-at-time evidence");
+  const supplyTime = exactRecord(
+    source.supplyNatureAtTimeOfSupply,
+    isNativeSource(source) ? NATIVE_SUPPLY_TIME_KEYS : SUPPLY_TIME_KEYS,
+    "supply-at-time evidence",
+  );
   const { evidenceHash: supplyTimeEvidenceHash, ...supplyTimeBody } = supplyTime;
   if (hash(supplyTimeEvidenceHash, "supply-at-time evidence hash") !==
       digest({ tenantId, ...supplyTimeBody })) return fail("supply-at-time evidence hash is inconsistent");
@@ -306,7 +346,7 @@ function validateInnerStatutoryEvidence(
   }
 }
 
-function validateFinancialEnvelope(source: IndiaIrpAccommodationSourceResult): void {
+function validateFinancialEnvelope(source: IndiaIrpAccommodationExternalSourceResult): void {
   const financial = source.financialSource;
   for (const [value, subject] of [
     [financial.postingBindingId, "posting binding id"], [financial.journalId, "journal id"],
@@ -440,6 +480,141 @@ function validateFinancialEnvelope(source: IndiaIrpAccommodationSourceResult): v
   if (lineIndex !== lines.length) return fail("canonical posting line set is incomplete");
 }
 
+function signedMoney(value: unknown, subject: string): bigint {
+  if (typeof value !== "string" || !/^-?(?:0|[1-9][0-9]*)$/.test(value)) {
+    return fail(`${subject} must be canonical signed minor units`);
+  }
+  const parsed = BigInt(value);
+  if (parsed < -MAX_INT64 || parsed > MAX_INT64) return fail(`${subject} exceeds signed-int64 range`);
+  return parsed;
+}
+
+function validateNativeJournalLine(
+  raw: IndiaFinalComponentTaxFiscalSourceJournalLine,
+  index: number,
+): Readonly<Record<string, unknown>> {
+  const line = exactRecord(raw, JOURNAL_LINE_KEYS, "native component-tax journal line");
+  canonicalUuid(line.id, "native journal line id");
+  canonicalUuid(line.accountId, "native journal line account id");
+  if (line.folioId !== null) canonicalUuid(line.folioId, "native journal line folio id");
+  if (line.seq !== index + 1 || typeof line.txCode !== "string" || line.txCode.length === 0 ||
+      line.quantity !== "1.000" || line.currency !== "INR" || line.taxDetail !== null) {
+    return fail("native component-tax journal line is malformed");
+  }
+  calendarDate(line.businessDate, "native journal line business date");
+  signedMoney(line.amountMinor, "native journal line amount");
+  return line;
+}
+
+function validateNativeFinancialEnvelope(source: IndiaNativeFiscalSourceResult): void {
+  const financial = source.financialSource;
+  for (const [value, subject] of [
+    [financial.postingBindingId, "native posting binding id"],
+    [financial.nativeTimingId, "native timing id"], [financial.taxId, "native tax id"],
+    [financial.valuationId, "native valuation id"], [financial.applicabilityId, "native applicability id"],
+    [financial.reservationId, "native reservation id"], [financial.folioId, "native folio id"],
+    [financial.guestAccountId, "native guest account id"], [financial.buyerPartyId, "native buyer party id"],
+    [financial.propertyNode, "native property node"],
+  ] as const) canonicalUuid(value, subject);
+  for (const [value, subject] of [
+    [financial.accountingEvidenceHash, "native accounting evidence hash"],
+    [financial.nativeTimingEvidenceHash, "native timing evidence hash"],
+    [financial.taxEvidenceHash, "native tax evidence hash"],
+    [financial.finalValuationEvidenceHash, "native valuation evidence hash"],
+    [financial.applicabilityEvidenceHash, "native applicability evidence hash"],
+    [financial.nativeSourceBasisHash, "native source-basis hash"],
+    [financial.nativeConsiderationBasisHash, "native consideration-basis hash"],
+  ] as const) hash(value, subject);
+  safeNonNegativeInteger(financial.taxGeneration, "native tax generation");
+  safeNonNegativeInteger(financial.valuationGeneration, "native valuation generation");
+  calendarDate(financial.businessDate, "native financial business date");
+  if (financial.rateSelectionKind !== "ordinary_section13_single_version" &&
+      financial.rateSelectionKind !== "genuine_section14_rate_change") {
+    return fail("native rate-selection kind is invalid");
+  }
+  const predecessors = exactRecord(
+    financial.predecessorHashes,
+    NATIVE_PREDECESSOR_KEYS,
+    "native financial predecessors",
+  );
+  for (const [name, value] of Object.entries(predecessors)) hash(value, `${name} predecessor hash`);
+
+  if (!Array.isArray(financial.considerationAccountIds) ||
+      financial.considerationAccountIds.length < 2 || financial.considerationAccountIds.length > 501 ||
+      !Array.isArray(financial.considerationRootIds) ||
+      financial.considerationRootIds.length < 1 || financial.considerationRootIds.length > 500 ||
+      !Array.isArray(financial.considerationSources) ||
+      financial.considerationSources.length !== financial.considerationRootIds.length) {
+    return fail("native consideration source closure is incomplete");
+  }
+  const accounts = financial.considerationAccountIds.map((id) => canonicalUuid(id, "consideration account id"));
+  const roots = financial.considerationRootIds.map((id) => canonicalUuid(id, "consideration root id"));
+  if (new Set(accounts).size !== accounts.length || !accounts.includes(financial.guestAccountId) ||
+      new Set(roots).size !== roots.length) return fail("native consideration identities are duplicated or incomplete");
+  let considerationTotal = 0n;
+  for (const [index, raw] of financial.considerationSources.entries()) {
+    const item = exactRecord(raw, CONSIDERATION_SOURCE_KEYS, "native consideration source");
+    if (canonicalUuid(item.postingRootId, "consideration posting root id") !== roots[index] ||
+        typeof item.txCode !== "string" || item.txCode.length === 0) {
+      return fail("native consideration source order or identity is inconsistent");
+    }
+    canonicalUuid(item.journalId, "consideration journal id");
+    hash(item.currentFragmentSetHash, "consideration fragment-set hash");
+    considerationTotal += signedMoney(item.currentAmountMinor, "consideration current amount");
+    if (considerationTotal < -MAX_INT64 || considerationTotal > MAX_INT64) {
+      return fail("native consideration total exceeds signed-int64 range");
+    }
+  }
+  if (considerationTotal !== money(financial.transactionValueMinor, "native transaction value")) {
+    return fail("native consideration sources do not reconcile to transaction value");
+  }
+
+  if (!Array.isArray(financial.journalLines)) return fail("native journal-line evidence is malformed");
+  const totals = new Map<ComponentIdentity, bigint>();
+  for (const component of financial.components) {
+    totals.set(component.componentIdentity,
+      (totals.get(component.componentIdentity) ?? 0n) + money(component.taxAmountMinor, "native component tax"));
+  }
+  const positive = expectedIdentities(financial.componentFamily)
+    .filter((identity) => (totals.get(identity) ?? 0n) > 0n);
+  const rootTax = money(financial.taxMinor, "native root tax");
+  if (rootTax === 0n) {
+    if (financial.journalId !== null || financial.journalLines.length !== 0 || positive.length !== 0) {
+      return fail("zero native tax must not manufacture a journal");
+    }
+    return;
+  }
+  if (financial.journalId === null) return fail("positive native tax requires a journal");
+  canonicalUuid(financial.journalId, "native component-tax journal id");
+  if (financial.journalLines.length !== positive.length * 2) {
+    return fail("native component-tax journal pair set is incomplete");
+  }
+  const ids = new Set<string>();
+  let debits = 0n;
+  for (const [componentIndex, identity] of positive.entries()) {
+    const amount = totals.get(identity)!;
+    const debit = validateNativeJournalLine(financial.journalLines[componentIndex * 2]!, componentIndex * 2);
+    const credit = validateNativeJournalLine(financial.journalLines[componentIndex * 2 + 1]!, componentIndex * 2 + 1);
+    const description = `${identity.toUpperCase()} on accommodation`;
+    if (debit.accountId !== financial.guestAccountId || debit.accountRole !== "guest" ||
+        debit.folioId !== financial.folioId || debit.amountMinor !== amount.toString() ||
+        credit.accountRole !== "tax_payable" || credit.folioId !== null ||
+        credit.amountMinor !== (-amount).toString() || debit.txCode !== credit.txCode ||
+        debit.description !== description || credit.description !== description ||
+        debit.businessDate !== financial.businessDate || credit.businessDate !== financial.businessDate) {
+      return fail("native component-tax journal pair is inconsistent");
+    }
+    ids.add(String(debit.id));
+    ids.add(String(credit.id));
+    debits += amount;
+  }
+  if (ids.size !== financial.journalLines.length || debits !== rootTax ||
+      financial.journalLines.reduce((sum, line) => sum + BigInt(line.amountMinor), 0n) !== 0n ||
+      financial.journalLines.some((line) => line.accountRole === "revenue")) {
+    return fail("native component-tax journal is not the exact balanced delta topology");
+  }
+}
+
 function recursivelyFreeze<T>(value: T, seen = new Set<object>()): T {
   if (value !== null && typeof value === "object" && !seen.has(value)) {
     seen.add(value);
@@ -476,19 +651,32 @@ function composeValidated(
   const input = exactRecord(rawInput, INPUT_KEYS, "numeric item-source input") as unknown as
     IndiaIrpAccommodationNumericItemSourceInput;
   const tenantId = canonicalUuid(input.tenantId, "tenantId");
-  const source = exactRecord(input.source, SOURCE_KEYS, "Order413 source") as unknown as
-    IndiaIrpAccommodationSourceResult;
-  const financial = exactRecord(source.financialSource, FINANCIAL_KEYS, "financial source") as unknown as
-    IndiaFinalComponentTaxFiscalSourceResult;
+  const sourceKind = (input.source as unknown as Record<string, unknown>).sourceKind;
+  const source = exactRecord(
+    input.source,
+    sourceKind === "native_current_transaction_graph" ? NATIVE_SOURCE_KEYS : EXTERNAL_SOURCE_KEYS,
+    "Order413 source",
+  ) as unknown as IndiaIrpAccommodationSourceResult;
+  const native = isNativeSource(source);
+  const financial = exactRecord(
+    source.financialSource,
+    native ? NATIVE_FINANCIAL_KEYS : EXTERNAL_FINANCIAL_KEYS,
+    "financial source",
+  ) as unknown as IndiaFinalComponentTaxFiscalSourceResult | IndiaFinalComponentTaxNativeFiscalSourceResult;
 
-  if (source.state !== "eligible_irp_invoice_source" ||
-      financial.state !== "eligible_current_posted_source" || financial.currency !== "INR" ||
+  if (source.state !== "eligible_irp_invoice_source" || financial.currency !== "INR" ||
+      (native
+        ? financial.state !== "eligible_current_native_accounted_source" ||
+          (financial as IndiaFinalComponentTaxNativeFiscalSourceResult).sourceKind !== "native_component_tax_delta" ||
+          source.sourceVersion !== 2
+        : financial.state !== "eligible_current_posted_source") ||
       source.sellerRegistration.currency !== "INR") {
     return fail("source is not an eligible INR accommodation supply");
   }
   validateSourceHash(tenantId, source);
   validateInnerStatutoryEvidence(tenantId, source);
-  validateFinancialEnvelope(source);
+  if (native) validateNativeFinancialEnvelope(source);
+  else validateFinancialEnvelope(source);
 
   const family = financial.componentFamily;
   if (family !== "igst" && family !== "cgst_sgst" && family !== "cgst_utgst") {
@@ -513,6 +701,8 @@ function composeValidated(
       source.supplyNatureAtTimeOfSupply.propertyNode !== financial.propertyNode ||
       source.supplyNatureAtTimeOfSupply.reservationId !== financial.reservationId ||
       source.supplyNatureAtTimeOfSupply.folioId !== financial.folioId ||
+      (native && (financial as IndiaFinalComponentTaxNativeFiscalSourceResult).buyerPartyId !==
+        source.legalBuyerPartyId) ||
       source.legalBuyerPartyId !== source.recipientRegistration.partyId ||
       source.buyerDetails.lineage.partyId !== source.legalBuyerPartyId ||
       source.buyerDetails.lineage.registrationId !== source.recipientRegistration.registrationId ||

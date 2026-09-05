@@ -32,6 +32,10 @@ import {
   type IndiaGstSection14PaymentEvidence,
 } from "../src/contexts/tax-fiscal/india-gst-section14-rate-selection";
 import { deriveIndiaGstSection14WorkingDayCalendarEvidence } from "../src/contexts/tax-fiscal/india-gst-section14-working-day-calendar-evidence";
+import { assembleIndiaNativeFiscalSource, type IndiaNativeFiscalSourceInput } from "../src/contexts/tax-fiscal/india-native-fiscal-source";
+import { IndiaIrpAccommodationFiscalActionReadinessService } from "../src/contexts/tax-fiscal/india-irp-accommodation-fiscal-action-readiness";
+import { composeIndiaIrpAccommodationValidationCompatibilityPreDocumentEvidenceAssembly } from "../src/contexts/tax-fiscal/india-irp-accommodation-validation-compatibility-pre-document-evidence-assembly";
+import { composeIndiaIrpAccommodationNumericItemSources } from "../src/contexts/tax-fiscal/india-irp-accommodation-numeric-item-source";
 
 type Mutable = Record<PropertyKey, any>;
 
@@ -446,10 +450,15 @@ function externalTimeOfSupply(input: IndiaGstAccommodationNativeInvoiceSourceInp
   return freeze({ ...evidence, evidenceHash: insertionHash({ tenantId: TENANT, ...evidence }) });
 }
 
-function nativeRegistrationComposition(source: ReturnType<typeof deriveIndiaGstAccommodationNativeInvoiceSource>) {
+function nativeRegistrationComposition(
+  source: ReturnType<typeof deriveIndiaGstAccommodationNativeInvoiceSource>,
+  identityHashes: Readonly<{ supplier: string; recipient: string; classification?: string }> = {
+    supplier: HASH("5"), recipient: HASH("7"), classification: HASH("c"),
+  },
+) {
   const statusAsOf = source.timing.timeOfSupplyDate;
   const supplierServiceLocation = freeze({ id: SUPPLIER_LOCATION, evidenceHash: HASH("4") });
-  const supplierIdentity = freeze({ registrationId: SUPPLIER_REGISTRATION, evidenceHash: HASH("5") });
+  const supplierIdentity = freeze({ registrationId: SUPPLIER_REGISTRATION, evidenceHash: identityHashes.supplier });
   const supplierGst = freeze({ status: "active" as const, taxpayerType: "regular" as const, source: "gst_common_portal" as const, evidenceSha256: HASH("6") });
   const supplierStatusHash = insertionHash({ tenantId: TENANT, supplierGstRegistrationStatusId: SUPPLIER_STATUS, propertyNode: PROPERTY, supplierServiceLocation, supplier: supplierIdentity, statusAsOf, gstRegistration: supplierGst, legalRule: "CGST_ACT_25_29_30_AND_RULE_21A_REGISTRATION_STATUS" });
   const supplier = composeIndiaGstRegistrationAtNativeTimeOfSupply(freeze({
@@ -458,7 +467,7 @@ function nativeRegistrationComposition(source: ReturnType<typeof deriveIndiaGstA
     invoiceSource: source,
   }));
 
-  const recipientIdentity = freeze({ registrationId: RECIPIENT_REGISTRATION, evidenceHash: HASH("7") });
+  const recipientIdentity = freeze({ registrationId: RECIPIENT_REGISTRATION, evidenceHash: identityHashes.recipient });
   const recipientGst = freeze({ status: "active" as const, taxpayerType: "regular" as const, source: "gst_common_portal" as const, evidenceSha256: HASH("8") });
   const recipientStatusHash = insertionHash({ tenantId: TENANT, recipientSezStatusId: RECIPIENT_STATUS, recipient: { partyId: RECIPIENT_PARTY, registrationId: RECIPIENT_REGISTRATION, evidenceHash: recipientIdentity.evidenceHash }, statusAsOf, gstRegistration: recipientGst, sezStatus: "affirmatively_non_sez_regular", approval: null, legalRule: "IGST_ACT_7_5_B_AND_8_2_RECIPIENT_STATUS" });
   const recipient = composeIndiaGstRecipientRegistrationAtNativeTimeOfSupply(freeze({
@@ -476,7 +485,7 @@ function nativeRegistrationComposition(source: ReturnType<typeof deriveIndiaGstA
     supplier: freeze({ registrationId: SUPPLIER_REGISTRATION, evidenceHash: supplierIdentity.evidenceHash, stateCode: "29", serviceLocation: freeze({ id: SUPPLIER_LOCATION, evidenceHash: supplierServiceLocation.evidenceHash, kind: "principal_place_of_business" as const, stateCode: "29" }), status: freeze({ id: SUPPLIER_STATUS, evidenceHash: supplierStatusHash, statusAsOf, taxpayerType: "regular" as const, sezStatus: "affirmatively_non_sez_regular" as const }) }),
     recipient: freeze({ partyId: RECIPIENT_PARTY, registrationId: RECIPIENT_REGISTRATION, evidenceHash: recipientIdentity.evidenceHash, status: freeze({ id: RECIPIENT_STATUS, evidenceHash: recipientStatusHash, statusAsOf, taxpayerType: "regular" as const, sezStatus: "affirmatively_non_sez_regular" as const }) }),
     buyerAssociation: freeze({ associationHash: HASH("a"), payloadHash: HASH("b") }),
-    classification: freeze({ classificationId: CLASSIFICATION, evidenceHash: HASH("c") }),
+    classification: freeze({ classificationId: CLASSIFICATION, evidenceHash: identityHashes.classification ?? HASH("c") }),
     placeOfSupply: freeze({ candidateHash: HASH("d"), legalRule: "IGST_ACT_12_3_B" as const, pos: "29" }),
     registeredStateComparison: freeze({ candidateHash: HASH("e"), comparisonRule: "SUPPLIER_REGISTERED_STATE_VS_ACCOMMODATION_POS" as const, stateRelationship: "same_state_or_union_territory" as const }),
     supplyNature: "intra_state" as const,
@@ -488,6 +497,114 @@ function nativeRegistrationComposition(source: ReturnType<typeof deriveIndiaGstA
   const supplyNature = freeze({ ...supplyHead, candidateJson, candidateHash: insertionHash({ tenantId: TENANT, candidate: supplyHead }) });
   const composed = composeIndiaGstAccommodationNativeSupplyNatureAtTimeOfSupply({ tenantId: TENANT, supplyNature, supplierRegistrationAtTimeOfSupply: supplier, recipientRegistrationAtTimeOfSupply: recipient });
   return { source, supplier, recipient, supplyNature, composed };
+}
+
+function nativeFiscalInput(): IndiaNativeFiscalSourceInput {
+  const nativeInvoiceInput = nativeInput("2026-01-01", "2026-01-03", "2026-01-04", "2026-01-02");
+  const invoiceSource = deriveIndiaGstAccommodationNativeInvoiceSource(
+    nativeInvoiceInput,
+  );
+  const jurisdiction = freeze({ extensionId: JURISDICTION, ownerTenantId: null,
+    key: "in-gst-lodging", version: "2", contentHash: HASH("9") });
+  const sellerRegistration = freeze({
+    registrationId: SUPPLIER_REGISTRATION, propertyNode: PROPERTY, scheme: "in-gstin" as const,
+    currency: "INR" as const, jurisdiction, gstin: "29AAPFU0939F1ZR", stateCode: "29",
+    legalName: "Order 434 Hotel Private Limited", tradeName: "Order 434 Hotel",
+    addressLine: "1 Residency Road", locality: "Bengaluru", postalCode: "560001",
+    evidenceHash: insertionHash({ registrationId: SUPPLIER_REGISTRATION, tenantId: TENANT,
+      propertyNode: PROPERTY, scheme: "in-gstin", currency: "INR", jurisdiction,
+      gstin: "29AAPFU0939F1ZR", stateCode: "29", legalName: "Order 434 Hotel Private Limited",
+      tradeName: "Order 434 Hotel", addressLine: "1 Residency Road", locality: "Bengaluru",
+      postalCode: "560001" }),
+  });
+  const recipientRegistration = freeze({
+    registrationId: RECIPIENT_REGISTRATION, partyId: RECIPIENT_PARTY, scheme: "in-gstin" as const,
+    gstin: "29AAPFU0939F1ZR", stateCode: "29", legalName: "Order 434 Buyer Private Limited",
+    tradeName: "Order 434 Buyer", addressLine1: "2 Residency Road", locality: "Bengaluru",
+    pin: "560001", evidenceHash: insertionHash({ registrationId: RECIPIENT_REGISTRATION,
+      tenantId: TENANT, partyId: RECIPIENT_PARTY, scheme: "in-gstin", gstin: "29AAPFU0939F1ZR",
+      stateCode: "29", legalName: "Order 434 Buyer Private Limited", tradeName: "Order 434 Buyer",
+      addressLine1: "2 Residency Road", locality: "Bengaluru", pin: "560001" }),
+  });
+  const classification = freeze({
+    classificationId: CLASSIFICATION, propertyNode: PROPERTY, jurisdiction, lineId: "room" as const,
+    revenueGroup: "room_revenue" as const, classificationSystem: "SAC" as const,
+    classificationCode: "996311", isServiceCode: "Y" as const,
+    evidenceHash: insertionHash({ tenantId: TENANT, classificationId: CLASSIFICATION,
+      propertyNode: PROPERTY, jurisdiction, lineId: "room", revenueGroup: "room_revenue",
+      classificationSystem: "SAC", classificationCode: "996311", isServiceCode: "Y" }),
+  });
+  const registration = nativeRegistrationComposition(invoiceSource, {
+    supplier: sellerRegistration.evidenceHash, recipient: recipientRegistration.evidenceHash,
+    classification: classification.evidenceHash,
+  });
+  const placeCandidate = {
+    propertyNode: PROPERTY, reservationId: RESERVATION, folioId: FOLIO, jurisdiction,
+    supplier: freeze({ registrationId: SUPPLIER_REGISTRATION, evidenceHash: sellerRegistration.evidenceHash }),
+    recipient: freeze({ partyId: RECIPIENT_PARTY, registrationId: RECIPIENT_REGISTRATION, evidenceHash: recipientRegistration.evidenceHash }),
+    buyerAssociation: registration.supplyNature.buyerAssociation,
+    classification: freeze({ classificationId: CLASSIFICATION, evidenceHash: classification.evidenceHash }),
+    propertyLocation: freeze({ propertyNode: PROPERTY, evidenceHash: HASH("d") }),
+    legalRule: "IGST_ACT_12_3_B" as const, pos: "29",
+  };
+  const placeOfSupply = freeze({ ...placeCandidate, candidateJson: JSON.stringify(placeCandidate),
+    candidateHash: insertionHash({ tenantId: TENANT, candidate: placeCandidate }) });
+  const financialBody = {
+    state: "eligible_current_native_accounted_source" as const,
+    sourceKind: "native_component_tax_delta" as const,
+    postingBindingId: id(43430), accountingEvidenceHash: HASH("6"), nativeTimingId: TIMING,
+    nativeTimingEvidenceHash: nativeInvoiceInput.nativeTiming.evidenceHash, journalId: id(43437),
+    taxId: id(43431), taxGeneration: 0, taxEvidenceHash: HASH("5"), valuationId: VALUATION,
+    valuationGeneration: 0, finalValuationEvidenceHash: HASH("f"), applicabilityId: id(43432),
+    applicabilityEvidenceHash: HASH("e"), reservationId: RESERVATION, folioId: FOLIO,
+    guestAccountId: id(43433), buyerPartyId: RECIPIENT_PARTY, propertyNode: PROPERTY,
+    businessDate: "2026-01-02",
+    currency: "INR" as const, transactionValueMinor: "10000", taxMinor: "500",
+    grandTotalMinor: "10500", componentFamily: "cgst_sgst" as const,
+    rateSelectionKind: "ordinary_section13_single_version" as const,
+    predecessorHashes: freeze({ nativeTiming: nativeInvoiceInput.nativeTiming.evidenceHash,
+      nativeRateSelection: invoiceSource.rateSource.evidenceHash, finalValuation: HASH("f"),
+      quotedRateApplicability: HASH("e"), levyComponentIdentity: HASH("d"),
+      reservationLineage: HASH("c"), attributionSnapshot: HASH("b"),
+      serviceProvisionRecording: HASH("a"), paymentReceiptRecording: HASH("8"),
+      ordinaryRegimeRecording: HASH("7"), requestEventPayload: HASH("6"), nativeRoute: HASH("5") }),
+    nativeSourceBasisHash: HASH("4"), nativeConsiderationBasisHash: HASH("3"),
+    considerationAccountIds: freeze([id(43433), id(43434)]),
+    considerationRootIds: freeze([id(43435)]),
+    considerationSources: freeze([{ postingRootId: id(43435), journalId: id(43436),
+      currentAmountMinor: "10000", txCode: "ROOM", currentFragmentSetHash: HASH("2") }]),
+    roomNights: freeze([{ ordinal: "0", businessDate: "2026-01-01",
+      transactionValueMinor: "10000", slabUptoMinor: "750000",
+      aggregateRateBasisPoints: 500, itcEligible: false, taxMinor: "500" }]),
+    components: freeze([
+      { roomNightOrdinal: 0, componentOrdinal: 0, componentIdentity: "cgst" as const,
+        rateBasisPoints: 250, taxAmountMinor: "250" },
+      { roomNightOrdinal: 0, componentOrdinal: 1, componentIdentity: "sgst" as const,
+        rateBasisPoints: 250, taxAmountMinor: "250" },
+    ]),
+    journalLines: freeze([
+      { id: id(43440), seq: 1, accountId: id(43433), accountRole: "guest", folioId: FOLIO,
+        txCode: "CGST", description: "CGST on accommodation", amountMinor: "250", quantity: "1.000",
+        businessDate: "2026-01-02", currency: "INR" as const, taxDetail: null },
+      { id: id(43441), seq: 2, accountId: id(43450), accountRole: "tax_payable", folioId: null,
+        txCode: "CGST", description: "CGST on accommodation", amountMinor: "-250", quantity: "1.000",
+        businessDate: "2026-01-02", currency: "INR" as const, taxDetail: null },
+      { id: id(43442), seq: 3, accountId: id(43433), accountRole: "guest", folioId: FOLIO,
+        txCode: "SGST", description: "SGST on accommodation", amountMinor: "250", quantity: "1.000",
+        businessDate: "2026-01-02", currency: "INR" as const, taxDetail: null },
+      { id: id(43443), seq: 4, accountId: id(43451), accountRole: "tax_payable", folioId: null,
+        txCode: "SGST", description: "SGST on accommodation", amountMinor: "-250", quantity: "1.000",
+        businessDate: "2026-01-02", currency: "INR" as const, taxDetail: null },
+    ]),
+  };
+  const financialSource = freeze({ ...financialBody,
+    sourceEvidenceHash: insertionHash({ tenantId: TENANT, ...financialBody }) });
+  return freeze({ tenantId: TENANT, financialSource, legalBuyerPartyId: RECIPIENT_PARTY,
+    sellerRegistration, recipientRegistration, placeOfSupply, classification,
+    supplyNatureAtTimeOfSupplyInput: freeze({ tenantId: TENANT, supplyNature: registration.supplyNature,
+      supplierRegistrationAtTimeOfSupply: registration.supplier,
+      recipientRegistrationAtTimeOfSupply: registration.recipient }),
+    supplyNatureAtTimeOfSupplyResult: registration.composed });
 }
 
 function quotedComponentIdentity(historicalResolution: IndiaGstAccommodationHistoricalResolutionResult, family: "igst" | "cgst_sgst" | "cgst_utgst" = "cgst_sgst") {
@@ -558,6 +675,75 @@ function nativeFinalRows(sourceInput: IndiaGstAccommodationNativeInvoiceSourceIn
 }
 
 describe("Order 434 native/external invoice timing and rate source", () => {
+  test("assembles explicit native Order413 from the full native297 replay and delta source", () => {
+    const input = nativeFiscalInput();
+    const actual = assembleIndiaNativeFiscalSource(input);
+    expect(actual).toMatchObject({
+      state: "eligible_irp_invoice_source",
+      sourceKind: "native_current_transaction_graph",
+      sourceVersion: 2,
+      legalBuyerPartyId: RECIPIENT_PARTY,
+      financialSource: {
+        state: "eligible_current_native_accounted_source",
+        sourceKind: "native_component_tax_delta",
+      },
+    });
+    expect(actual.supplyNatureAtTimeOfSupply).toEqual(input.supplyNatureAtTimeOfSupplyResult);
+    expect(input.financialSource.nativeTimingEvidenceHash)
+      .toBe(input.supplyNatureAtTimeOfSupplyInput.supplierRegistrationAtTimeOfSupply
+        .timeOfSupply.nativeTiming.predecessorHashes.nativeTiming);
+    expect(input.financialSource.nativeTimingEvidenceHash)
+      .not.toBe(input.supplyNatureAtTimeOfSupplyInput.supplierRegistrationAtTimeOfSupply
+        .timeOfSupply.nativeTiming.evidenceHash);
+    expect(actual.componentFamily.componentFamily).toBe("cgst_sgst");
+    expect(JSON.stringify(actual)).not.toContain("external_issued_invoice");
+    expect(Object.isFrozen(actual)).toBeTrue();
+    expect(() => assembleIndiaNativeFiscalSource(freeze({
+      ...input,
+      financialSource: { ...input.financialSource, surplus: "forged" },
+    }) as never)).toThrow("native financial source shape is invalid");
+    const { sourceEvidenceHash: _sourceEvidenceHash, ...financialBody } = input.financialSource;
+    const wrongBuyerBody = { ...financialBody, buyerPartyId: id(43999) };
+    expect(() => assembleIndiaNativeFiscalSource(freeze({
+      ...input,
+      financialSource: {
+        ...wrongBuyerBody,
+        sourceEvidenceHash: insertionHash({ tenantId: TENANT, ...wrongBuyerBody }),
+      },
+    }) as never)).toThrow("native statutory and financial evidence do not describe one exact supply");
+    const wrongBusinessDateBody = { ...financialBody, businessDate: "2026-01-03" };
+    expect(() => assembleIndiaNativeFiscalSource(freeze({
+      ...input,
+      financialSource: {
+        ...wrongBusinessDateBody,
+        sourceEvidenceHash: insertionHash({ tenantId: TENANT, ...wrongBusinessDateBody }),
+      },
+    }) as never)).toThrow("native statutory and financial evidence do not describe one exact supply");
+  });
+
+  test("native Order429 preserves the exact false/no-actions/three-blocker contract", async () => {
+    const input = nativeFiscalInput();
+    const source = assembleIndiaNativeFiscalSource(input);
+    expect(composeIndiaIrpAccommodationNumericItemSources(
+      freeze({ tenantId: TENANT, source }),
+    ).state).toBe("eligible_irp_accommodation_numeric_item_sources");
+    expect(composeIndiaIrpAccommodationValidationCompatibilityPreDocumentEvidenceAssembly(
+      freeze({ tenantId: TENANT, source }),
+    ).submissionReady).toBeFalse();
+    const actual = await new IndiaIrpAccommodationFiscalActionReadinessService().resolveNative(
+      (async () => []) as never,
+      input,
+    );
+    expect(actual.submissionReady).toBeFalse();
+    expect(actual.permittedActions).toEqual([]);
+    expect(actual.blockers).toEqual([
+      "FISCAL_DOCUMENT_ORIGIN_UNSELECTED",
+      "LEGAL_DOCUMENT_NUMBER_FORMAT_UNCONFIGURED",
+      "DOCUMENT_SERIES_UNBOUND",
+    ]);
+    expect(actual.state).toBe("blocked_pending_fiscal_document_origin_policy");
+  });
+
   test("uses ordinary Rule47/Section13 and whole-day history without inventing Section14 or an external invoice", () => {
     const input = nativeInput("2026-01-01", "2026-01-03", "2026-01-04", "2026-01-02");
     expect(Object.keys(input.ordinaryRegime).sort()).toEqual([

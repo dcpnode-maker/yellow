@@ -275,6 +275,54 @@ databaseDescribe("Order434 native valuation from governed consideration", () => 
     return row;
   }
 
+  test("installs private consumed-source guards at every admitted financial and fiscal boundary", async () => {
+    const guards = await deploy<Array<{ relation: string; function_name: string; trigger_type: number;
+      enabled: string; owner: string; definer: boolean; app_execute: boolean; runtime_execute: boolean }>>`
+      SELECT c.relname relation,p.proname function_name,t.tgtype::integer trigger_type,
+             t.tgenabled::text enabled,pg_get_userbyid(p.proowner) owner,p.prosecdef definer,
+             has_function_privilege('app_role',p.oid,'EXECUTE') app_execute,
+             has_function_privilege('yellow_runtime',p.oid,'EXECUTE') runtime_execute
+      FROM pg_trigger t JOIN pg_class c ON c.oid=t.tgrelid
+      JOIN pg_namespace n ON n.oid=c.relnamespace JOIN pg_proc p ON p.oid=t.tgfoid
+      WHERE n.nspname='public' AND t.tgname IN (
+        'india_native_consumed_journal_guard','india_native_consumed_posting_line_guard',
+        'india_native_consumed_fiscal_source_guard','india_native_fiscal_source_reversal_guard')
+      ORDER BY c.relname`;
+    expect(guards.map(row => row.relation)).toEqual([
+      'india_gst_accommodation_final_component_tax',
+      'india_gst_accommodation_final_component_tax_component',
+      'india_gst_accommodation_final_component_tax_room_night',
+      'india_gst_accommodation_final_valuation',
+      'india_gst_accommodation_quoted_rate_applicability',
+      'india_gst_accommodation_valuation_allocation',
+      'india_gst_accommodation_valuation_room_night',
+      'india_gst_accommodation_valuation_source',
+      'india_gst_final_component_tax_journal_reversal_binding','journal','posting_line',
+    ]);
+    for (const guard of guards) {
+      expect(guard).toMatchObject({ trigger_type: 7, enabled: 'O', owner: 'yellow_owner',
+        definer: true, app_execute: false, runtime_execute: false });
+      const expectedFunction = guard.relation === 'journal' ? 'guard_india_native_consumed_journal'
+        : guard.relation === 'posting_line' ? 'guard_india_native_consumed_posting_line'
+        : guard.relation === 'india_gst_final_component_tax_journal_reversal_binding'
+          ? 'prevent_issued_india_native_fiscal_source_reversal' : 'guard_india_native_consumed_fiscal_source';
+      expect(guard.function_name).toBe(expectedFunction);
+    }
+    const helpers = await deploy<Array<{ name: string; app_execute: boolean; runtime_execute: boolean }>>`
+      SELECT p.proname name,has_function_privilege('app_role',p.oid,'EXECUTE') app_execute,
+             has_function_privilege('yellow_runtime',p.oid,'EXECUTE') runtime_execute
+      FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace
+      WHERE n.nspname='public' AND p.proname IN ('india_native_root_is_consumed','india_native_journal_is_consumed')
+      ORDER BY p.proname`;
+    expect(helpers).toEqual([
+      { name: 'india_native_journal_is_consumed', app_execute: false, runtime_execute: false },
+      { name: 'india_native_root_is_consumed', app_execute: false, runtime_execute: false },
+    ]);
+    // This is installation/authority evidence, not a substituted invoice fixture.
+    // The following real-charge/correction/transfer tests also execute the guards
+    // for unissued sources. Issued-source winner schedules require real v2 issue.
+  });
+
   test("keeps source recording hashes distinct from freshly resolved date projections", async () => {
     const fixture = await createNativeSourceFixture(deploy, database, { label: "native-source-hashes" });
     const [persisted] = await deploy<Array<{

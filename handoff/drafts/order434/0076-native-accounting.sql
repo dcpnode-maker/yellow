@@ -5,7 +5,7 @@
 
 -- Shared with the preparation preview: exact 0070 component-first integer
 -- half-up rule. Numeric is only a widened intermediate; result remains int64.
-CREATE FUNCTION public.india_native_component_tax_minor(p_value bigint,p_bps integer)
+CREATE OR REPLACE FUNCTION public.india_native_component_tax_minor(p_value bigint,p_bps integer)
 RETURNS bigint LANGUAGE plpgsql IMMUTABLE
 SET search_path=pg_catalog,public AS $$
 DECLARE v_product numeric; v_result numeric;
@@ -31,7 +31,7 @@ REVOKE ALL ON FUNCTION public.india_native_component_tax_minor(bigint,integer) F
 -- including archived/live fragments and every line of multi-root transfers.
 -- This verifies the financial closure, not the complete valuation/approval or
 -- fiscal preimages; the preparation authentication helper must replay those.
-CREATE FUNCTION public.read_india_native_valuation_source_closure(
+CREATE OR REPLACE FUNCTION public.read_india_native_valuation_source_closure(
   p_tenant uuid,p_property uuid,p_reservation uuid,p_folio uuid,p_valuation uuid
 ) RETURNS jsonb LANGUAGE plpgsql VOLATILE
 SET search_path=pg_catalog,public SET timezone='UTC' SET datestyle='ISO,YMD' AS $$
@@ -149,7 +149,7 @@ REVOKE ALL ON FUNCTION public.read_india_native_valuation_source_closure(uuid,uu
 -- component sums before acquiring the complete <=503 account set. Accounting
 -- calls this same mapper with authenticated persisted component sums. No locks,
 -- rounding, caller account array, revenue route or standalone posting authority.
-CREATE FUNCTION public.india_native_component_tax_routes(
+CREATE OR REPLACE FUNCTION public.india_native_component_tax_routes(
   p_tenant uuid,p_property uuid,p_extension uuid,p_version smallint,p_content_hash text,
   p_family text,p_component_amounts bigint[]
 ) RETURNS TABLE(component_ordinal smallint,component_identity text,amount_minor bigint,
@@ -210,7 +210,7 @@ REVOKE ALL ON FUNCTION public.india_native_component_tax_routes(uuid,uuid,uuid,s
 -- Independent persisted-money verification using the shared rule, not a second
 -- preparation or a caller's requested totals. Full rate/history authentication
 -- remains the canonical preparation helper's responsibility.
-CREATE FUNCTION public.read_india_native_component_tax_amounts(p_tenant uuid,p_tax uuid)
+CREATE OR REPLACE FUNCTION public.read_india_native_component_tax_amounts(p_tenant uuid,p_tax uuid)
 RETURNS bigint[] LANGUAGE plpgsql VOLATILE
 SET search_path=pg_catalog,public SET timezone='UTC' SET datestyle='ISO,YMD' AS $$
 DECLARE
@@ -284,7 +284,7 @@ ALTER FUNCTION public.read_india_native_component_tax_amounts(uuid,uuid) OWNER T
 REVOKE ALL ON FUNCTION public.read_india_native_component_tax_amounts(uuid,uuid) FROM PUBLIC,app_role,yellow_runtime;
 
 -- Complete actual header/line evidence; NULL is the only zero-tax journal graph.
-CREATE FUNCTION public.india_native_accounting_journal_graph(p_tenant uuid,p_journal uuid)
+CREATE OR REPLACE FUNCTION public.india_native_accounting_journal_graph(p_tenant uuid,p_journal uuid)
 RETURNS jsonb LANGUAGE sql VOLATILE SET search_path=pg_catalog,public
 SET timezone='UTC' SET datestyle='ISO,YMD' AS $$
   SELECT CASE WHEN p_journal IS NULL THEN 'null'::jsonb ELSE (
@@ -299,7 +299,7 @@ REVOKE ALL ON FUNCTION public.india_native_accounting_journal_graph(uuid,uuid) F
 -- Durable verification does not require a retained outbox row, an open folio,
 -- or today's route configuration. It verifies the immutable financial graph
 -- initially admitted by the authenticator, including exact component pairs.
-CREATE FUNCTION public.assert_india_native_accounting_binding(p_tenant uuid,p_binding uuid)
+CREATE OR REPLACE FUNCTION public.assert_india_native_accounting_binding(p_tenant uuid,p_binding uuid)
 RETURNS void LANGUAGE plpgsql VOLATILE SET search_path=pg_catalog,public
 SET timezone='UTC' SET datestyle='ISO,YMD' AS $$
 DECLARE
@@ -373,7 +373,45 @@ $$;
 ALTER FUNCTION public.assert_india_native_accounting_binding(uuid,uuid) OWNER TO yellow_owner;
 REVOKE ALL ON FUNCTION public.assert_india_native_accounting_binding(uuid,uuid) FROM PUBLIC,app_role,yellow_runtime;
 
-CREATE FUNCTION public.assert_india_native_accounting_request(p_tenant uuid,p_timing uuid)
+-- Read-only Financials bridge. Rebuild the complete historical/current source
+-- graph instead of treating a stored fragment hash as proof of present closure.
+-- This authenticates accounting, not statutory preparation or issuance authority.
+-- Keep EXECUTE withheld until the complete native prepare/commit candidate lands.
+CREATE OR REPLACE FUNCTION public.read_india_native_accounting_source_closure(
+  p_tenant uuid,p_binding uuid
+) RETURNS TABLE(posting_binding_id uuid,accounting_evidence_hash text,source_closure jsonb)
+LANGUAGE plpgsql VOLATILE SECURITY DEFINER
+SET search_path=pg_catalog,public SET timezone='UTC' SET datestyle='ISO,YMD' AS $$
+DECLARE
+  v_context uuid;
+  v_binding public.india_gst_accommodation_final_component_tax_journal_binding%ROWTYPE;
+BEGIN
+  BEGIN
+    v_context:=NULLIF(pg_catalog.current_setting('app.tenant_id',true),'')::uuid;
+  EXCEPTION WHEN invalid_text_representation THEN
+    RAISE EXCEPTION USING ERRCODE='42501',MESSAGE='native accounting source tenant context is invalid';
+  END;
+  IF p_tenant IS NULL OR p_binding IS NULL OR p_tenant IS DISTINCT FROM v_context THEN
+    RAISE EXCEPTION USING ERRCODE='42501',MESSAGE='native accounting source requires exact tenant context and binding';
+  END IF;
+  SELECT b.* INTO v_binding FROM public.india_gst_accommodation_final_component_tax_journal_binding b
+    WHERE b.tenant_id=p_tenant AND b.id=p_binding AND b.accounting_kind='native_component_tax_delta';
+  IF NOT FOUND THEN
+    RAISE EXCEPTION USING ERRCODE='55000',MESSAGE='native accounting source binding unavailable';
+  END IF;
+  PERFORM public.assert_india_native_accounting_binding(p_tenant,p_binding);
+  posting_binding_id:=v_binding.id;
+  accounting_evidence_hash:=v_binding.evidence_hash;
+  source_closure:=public.read_india_native_valuation_source_closure(p_tenant,
+    v_binding.property_node,v_binding.reservation_id,v_binding.folio_id,v_binding.valuation_id);
+  RETURN NEXT;
+END;
+$$;
+ALTER FUNCTION public.read_india_native_accounting_source_closure(uuid,uuid) OWNER TO yellow_owner;
+REVOKE ALL ON FUNCTION public.read_india_native_accounting_source_closure(uuid,uuid)
+  FROM PUBLIC,app_role,yellow_runtime;
+
+CREATE OR REPLACE FUNCTION public.assert_india_native_accounting_request(p_tenant uuid,p_timing uuid)
 RETURNS void LANGUAGE plpgsql VOLATILE SET search_path=pg_catalog,public
 SET timezone='UTC' SET datestyle='ISO,YMD' AS $$
 DECLARE v_timing public.india_gst_native_invoice_timing%ROWTYPE;
@@ -407,7 +445,7 @@ $$;
 ALTER FUNCTION public.assert_india_native_accounting_request(uuid,uuid) OWNER TO yellow_owner;
 REVOKE ALL ON FUNCTION public.assert_india_native_accounting_request(uuid,uuid) FROM PUBLIC,app_role,yellow_runtime;
 
-CREATE FUNCTION public.consume_india_native_fiscal_accounting_event(p_tenant uuid,p_event uuid)
+CREATE OR REPLACE FUNCTION public.consume_india_native_fiscal_accounting_event(p_tenant uuid,p_event uuid)
 RETURNS TABLE(posting_binding_id uuid,native_timing_id uuid,tax_id uuid,valuation_id uuid,
   applicability_id uuid,reservation_id uuid,folio_id uuid,journal_id uuid,currency character(3),
   business_date date,evidence_hash text,created boolean)
@@ -593,3 +631,217 @@ ALTER FUNCTION public.consume_india_native_fiscal_accounting_event(uuid,uuid) OW
 REVOKE ALL ON FUNCTION public.consume_india_native_fiscal_accounting_event(uuid,uuid) FROM PUBLIC,app_role,yellow_runtime;
 -- app_role EXECUTE is deliberately withheld until the assembled 0076 has the
 -- real authenticator, prepare/commit, financial guards and executable acceptance.
+
+-- Permanent consumed-source protection. These predicates inspect immutable typed
+-- origins and bindings, not event retention or the existence of a tax journal.
+-- A zero-tax native invoice therefore protects the same consideration ancestry.
+CREATE OR REPLACE FUNCTION public.india_native_root_is_consumed(p_tenant uuid,p_root uuid)
+RETURNS boolean LANGUAGE sql STABLE SECURITY INVOKER
+SET search_path=pg_catalog,public
+AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM public.india_gst_native_fiscal_document_origin o
+    JOIN public.india_gst_accommodation_final_component_tax_journal_binding b
+      ON b.tenant_id=o.tenant_id AND b.id=o.native_accounting_binding_id
+      AND b.native_timing_id=o.native_timing_id
+    JOIN public.india_gst_accommodation_valuation_source s
+      ON s.tenant_id=b.tenant_id AND s.valuation_id=b.valuation_id
+    WHERE o.tenant_id=p_tenant AND o.source_kind='native_current_transaction_graph'
+      AND s.posting_root_id=p_root
+  )
+$$;
+ALTER FUNCTION public.india_native_root_is_consumed(uuid,uuid) OWNER TO yellow_owner;
+REVOKE ALL ON FUNCTION public.india_native_root_is_consumed(uuid,uuid) FROM PUBLIC,app_role,yellow_runtime;
+
+CREATE OR REPLACE FUNCTION public.india_native_journal_is_consumed(p_tenant uuid,p_journal uuid)
+RETURNS boolean LANGUAGE sql STABLE SECURITY INVOKER
+SET search_path=pg_catalog,public
+AS $$
+  SELECT EXISTS (
+    -- Preserve the original0074 protection for already issued legacy origins.
+    SELECT 1 FROM public.india_gst_native_fiscal_document_origin o
+    WHERE o.tenant_id=p_tenant AND o.source_journal_id=p_journal
+  ) OR EXISTS (
+    SELECT 1 FROM public.india_gst_native_fiscal_document_origin o
+    JOIN public.india_gst_accommodation_final_component_tax_journal_binding b
+      ON b.tenant_id=o.tenant_id AND b.id=o.native_accounting_binding_id
+      AND b.native_timing_id=o.native_timing_id
+    JOIN public.india_gst_accommodation_valuation_source s
+      ON s.tenant_id=b.tenant_id AND s.valuation_id=b.valuation_id
+    JOIN public.posting_line fragment ON fragment.tenant_id=s.tenant_id
+      AND COALESCE(fragment.folio_transfer_root_line_id,fragment.id)=s.posting_root_id
+    WHERE o.tenant_id=p_tenant AND o.source_kind='native_current_transaction_graph'
+      AND fragment.journal_id=p_journal
+  )
+$$;
+ALTER FUNCTION public.india_native_journal_is_consumed(uuid,uuid) OWNER TO yellow_owner;
+REVOKE ALL ON FUNCTION public.india_native_journal_is_consumed(uuid,uuid) FROM PUBLIC,app_role,yellow_runtime;
+
+CREATE OR REPLACE FUNCTION public.guard_india_native_consumed_journal()
+RETURNS trigger LANGUAGE plpgsql VOLATILE SECURITY DEFINER
+SET search_path=pg_catalog,public
+AS $$
+DECLARE v_previous_tenant text:=pg_catalog.current_setting('app.tenant_id',true);
+BEGIN
+  IF NEW.reverses IS NULL THEN RETURN NEW; END IF;
+  PERFORM pg_catalog.set_config('app.tenant_id',NEW.tenant_id::text,true);
+  -- Ordinary correction writers already hold these guest coordination rows.
+  -- Acquire no revenue accounts, sibling folios, day, series or publication lock.
+  PERFORM 1 FROM public.account a
+    WHERE a.tenant_id=NEW.tenant_id AND a.role='guest' AND EXISTS (
+      SELECT 1 FROM public.posting_line l WHERE l.tenant_id=a.tenant_id
+        AND l.account_id=a.id AND l.journal_id=NEW.reverses)
+    ORDER BY a.id FOR UPDATE OF a;
+  IF public.india_native_journal_is_consumed(NEW.tenant_id,NEW.reverses) THEN
+    RAISE EXCEPTION USING ERRCODE='55000',
+      MESSAGE='issued India native fiscal consideration requires a numbered correction document';
+  END IF;
+  PERFORM pg_catalog.set_config('app.tenant_id',v_previous_tenant,true);
+  RETURN NEW;
+EXCEPTION WHEN OTHERS THEN
+  PERFORM pg_catalog.set_config('app.tenant_id',v_previous_tenant,true);
+  RAISE;
+END;
+$$;
+ALTER FUNCTION public.guard_india_native_consumed_journal() OWNER TO yellow_owner;
+REVOKE ALL ON FUNCTION public.guard_india_native_consumed_journal() FROM PUBLIC,app_role,yellow_runtime;
+CREATE OR REPLACE TRIGGER india_native_consumed_journal_guard
+  BEFORE INSERT ON public.journal
+  FOR EACH ROW EXECUTE FUNCTION public.guard_india_native_consumed_journal();
+
+CREATE OR REPLACE FUNCTION public.guard_india_native_consumed_posting_line()
+RETURNS trigger LANGUAGE plpgsql VOLATILE SECURITY DEFINER
+SET search_path=pg_catalog,public
+AS $$
+DECLARE
+  v_previous_tenant text:=pg_catalog.current_setting('app.tenant_id',true);
+  v_root uuid:=COALESCE(NEW.folio_transfer_root_line_id,NEW.id);
+  v_root_group text; v_line_group text;
+BEGIN
+  PERFORM pg_catalog.set_config('app.tenant_id',NEW.tenant_id::text,true);
+  -- Only guest coordination roots: the new line's own account, its immutable
+  -- transfer root, or the guest side of the journal being appended. Governed
+  -- charge/correction/transfer/settlement writers already lock these accounts.
+  PERFORM 1 FROM public.account a WHERE a.tenant_id=NEW.tenant_id AND a.role='guest'
+    AND (a.id=NEW.account_id OR EXISTS (
+      SELECT 1 FROM public.posting_line l WHERE l.tenant_id=a.tenant_id
+        AND l.account_id=a.id AND (l.id=v_root OR l.journal_id=NEW.journal_id)))
+    ORDER BY a.id FOR UPDATE OF a;
+  IF public.india_native_journal_is_consumed(NEW.tenant_id,NEW.journal_id)
+     OR public.india_native_root_is_consumed(NEW.tenant_id,v_root) THEN
+    RAISE EXCEPTION USING ERRCODE='55000',
+      MESSAGE='issued India native fiscal posting ancestry is immutable';
+  END IF;
+  SELECT c.grp INTO v_line_group FROM public.tx_code c WHERE c.code=NEW.tx_code;
+  IF NEW.folio_transfer_root_line_id IS NOT NULL THEN
+    SELECT c.grp INTO v_root_group FROM public.posting_line r
+      JOIN public.tx_code c ON c.code=r.tx_code
+      WHERE r.tenant_id=NEW.tenant_id AND r.id=v_root;
+  END IF;
+  -- Incoming transfers carry the original revenue/adjustment classification.
+  -- Payments, settlements and DIRECT_BILL (transfer without a revenue root)
+  -- remain permitted; this is deliberately not a ban on all folio postings.
+  IF NEW.folio_id IS NOT NULL
+     AND COALESCE(v_root_group,v_line_group) IN ('revenue','adjustment')
+     AND EXISTS (SELECT 1 FROM public.india_gst_native_fiscal_document_origin o
+       WHERE o.tenant_id=NEW.tenant_id AND o.folio_id=NEW.folio_id
+         AND o.source_kind='native_current_transaction_graph') THEN
+    RAISE EXCEPTION USING ERRCODE='55000',
+      MESSAGE='issued India native fiscal folio consideration requires a numbered correction document';
+  END IF;
+  PERFORM pg_catalog.set_config('app.tenant_id',v_previous_tenant,true);
+  RETURN NEW;
+EXCEPTION WHEN OTHERS THEN
+  PERFORM pg_catalog.set_config('app.tenant_id',v_previous_tenant,true);
+  RAISE;
+END;
+$$;
+ALTER FUNCTION public.guard_india_native_consumed_posting_line() OWNER TO yellow_owner;
+REVOKE ALL ON FUNCTION public.guard_india_native_consumed_posting_line() FROM PUBLIC,app_role,yellow_runtime;
+CREATE OR REPLACE TRIGGER india_native_consumed_posting_line_guard
+  BEFORE INSERT ON public.posting_line
+  FOR EACH ROW EXECUTE FUNCTION public.guard_india_native_consumed_posting_line();
+
+CREATE OR REPLACE FUNCTION public.guard_india_native_consumed_fiscal_source()
+RETURNS trigger LANGUAGE plpgsql VOLATILE SECURITY DEFINER
+SET search_path=pg_catalog,public
+AS $$
+DECLARE
+  v_previous_tenant text:=pg_catalog.current_setting('app.tenant_id',true);
+  v_reservation uuid; v_folio uuid;
+BEGIN
+  PERFORM pg_catalog.set_config('app.tenant_id',NEW.tenant_id::text,true);
+  IF TG_TABLE_NAME IN ('india_gst_accommodation_final_valuation',
+      'india_gst_accommodation_quoted_rate_applicability',
+      'india_gst_accommodation_final_component_tax') THEN
+    v_reservation:=NEW.reservation_id; v_folio:=NEW.folio_id;
+  ELSIF TG_TABLE_NAME IN ('india_gst_accommodation_valuation_source',
+      'india_gst_accommodation_valuation_room_night','india_gst_accommodation_valuation_allocation') THEN
+    SELECT v.reservation_id,v.folio_id INTO v_reservation,v_folio
+      FROM public.india_gst_accommodation_final_valuation v
+      WHERE v.tenant_id=NEW.tenant_id AND v.id=NEW.valuation_id;
+  ELSIF TG_TABLE_NAME IN ('india_gst_accommodation_final_component_tax_room_night',
+      'india_gst_accommodation_final_component_tax_component') THEN
+    SELECT t.reservation_id,t.folio_id INTO v_reservation,v_folio
+      FROM public.india_gst_accommodation_final_component_tax t
+      WHERE t.tenant_id=NEW.tenant_id AND t.id=NEW.tax_id;
+  ELSE
+    RAISE EXCEPTION USING ERRCODE='55000',MESSAGE='native source guard has an unsupported attachment';
+  END IF;
+  IF v_reservation IS NULL OR v_folio IS NULL THEN
+    RAISE EXCEPTION USING ERRCODE='23503',MESSAGE='native source guard parent scope is unavailable';
+  END IF;
+  -- Existing aggregate writers already hold scope0. Child guards must not add
+  -- financial locks after publication or silently permit post-issue appends.
+  PERFORM pg_catalog.pg_advisory_xact_lock(pg_catalog.hashtextextended(
+    NEW.tenant_id::text||v_reservation::text||v_folio::text,0));
+  IF EXISTS (SELECT 1 FROM public.india_gst_native_fiscal_document_origin o
+    WHERE o.tenant_id=NEW.tenant_id AND o.folio_id=v_folio
+      AND o.source_kind='native_current_transaction_graph') THEN
+    RAISE EXCEPTION USING ERRCODE='55000',MESSAGE='issued India native fiscal source generations and children are immutable';
+  END IF;
+  PERFORM pg_catalog.set_config('app.tenant_id',v_previous_tenant,true);
+  RETURN NEW;
+EXCEPTION WHEN OTHERS THEN
+  PERFORM pg_catalog.set_config('app.tenant_id',v_previous_tenant,true);
+  RAISE;
+END;
+$$;
+ALTER FUNCTION public.guard_india_native_consumed_fiscal_source() OWNER TO yellow_owner;
+REVOKE ALL ON FUNCTION public.guard_india_native_consumed_fiscal_source() FROM PUBLIC,app_role,yellow_runtime;
+DO $native_consumed_source_guards$
+DECLARE v_table text;
+BEGIN
+  FOREACH v_table IN ARRAY ARRAY[
+    'india_gst_accommodation_final_valuation','india_gst_accommodation_valuation_source',
+    'india_gst_accommodation_valuation_room_night','india_gst_accommodation_valuation_allocation',
+    'india_gst_accommodation_quoted_rate_applicability','india_gst_accommodation_final_component_tax',
+    'india_gst_accommodation_final_component_tax_room_night','india_gst_accommodation_final_component_tax_component'] LOOP
+    EXECUTE pg_catalog.format('CREATE OR REPLACE TRIGGER india_native_consumed_fiscal_source_guard
+      BEFORE INSERT ON public.%I FOR EACH ROW EXECUTE FUNCTION public.guard_india_native_consumed_fiscal_source()',v_table);
+  END LOOP;
+END;
+$native_consumed_source_guards$;
+
+-- Keep0074's existing reversal-binding attachment, broaden its permanent source
+-- predicate, and take no late guest/account408 lock at this recheck boundary.
+CREATE OR REPLACE FUNCTION public.prevent_issued_india_native_fiscal_source_reversal()
+RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER
+SET search_path=pg_catalog,public
+AS $$
+DECLARE v_previous_tenant text:=pg_catalog.current_setting('app.tenant_id',true);
+BEGIN
+  PERFORM pg_catalog.set_config('app.tenant_id',NEW.tenant_id::text,true);
+  IF public.india_native_journal_is_consumed(NEW.tenant_id,NEW.original_journal_id) THEN
+    RAISE EXCEPTION USING ERRCODE='55000',
+      MESSAGE='issued India native fiscal source requires a numbered correction document';
+  END IF;
+  PERFORM pg_catalog.set_config('app.tenant_id',v_previous_tenant,true);
+  RETURN NEW;
+EXCEPTION WHEN OTHERS THEN
+  PERFORM pg_catalog.set_config('app.tenant_id',v_previous_tenant,true);
+  RAISE;
+END;
+$$;
+ALTER FUNCTION public.prevent_issued_india_native_fiscal_source_reversal() OWNER TO yellow_owner;
+REVOKE ALL ON FUNCTION public.prevent_issued_india_native_fiscal_source_reversal() FROM PUBLIC,app_role,yellow_runtime;

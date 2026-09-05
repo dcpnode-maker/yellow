@@ -4,10 +4,11 @@
 **Phase:** 7 · YF-008, YF-009, YF-023
 **Implementation base:** `591ace8` (includes the complete Order432 current-catalogue repair)
 
-**Latest implementation checkpoint:** [D1345 — dependent timing and native tax composition](#dependent-timing-and-native-tax-composition-checkpoint--d1345).
-The isolated database migration and source/valuation regressions pass. Native
-prepare, incremental accounting and final issuance are still unfinished; this
-checkpoint is not enabled in the retained local app.
+**Latest implementation checkpoint:** [D1350 — authenticated financial source and native composition](#authenticated-financial-source-and-native-composition-checkpoint--d1350).
+Original-recording/valuation reconstruction, private consumed-source guards and
+native financial/statutory composition are implemented with bounded builder proof.
+Complete native prepare/accounting/commit and final independent acceptance remain
+unfinished; this checkpoint is not enabled in the retained local app.
 
 **Date:** 2026-09-05
 
@@ -405,10 +406,11 @@ on this implementation, not invitations to rewrite unrelated financial writers.
   pre-existing consideration accounts/roots, not blindly copy that ordering.
 - Business-day sealing takes its day row FOR UPDATE and reads readiness without
   financial row locks. Financial commands take the day lock after financial rows.
--0025's `create_receivable_transfer` currently takes a joined
-  `FOR UPDATE OF folio, guest, target, party` without the sorted financial prefix.
-  Its service performs no earlier row-lock call. This is distinct from0020's
-  folio-root transfer, and must not be described as already account-first.
+-0025's `create_receivable_transfer` already calls `lock_financial_rows` for the
+  discovered guest and receivable accounts before its joined
+  `FOR UPDATE OF folio, guest, target, party`. D1350 corrects the original draft's
+  contrary assumption after inspecting the applied file, lines133–156. Preserve
+  this account-first implementation and prove its native-issue compatibility.
 
 Implement and document one order for all new native entry points:
 
@@ -454,13 +456,13 @@ credit/debit behavior here.
 
 | Existing function/entry point | Existing coordination | Selected forward protection |
 | --- | --- | --- |
-| `lock_financial_rows(uuid,uuid[],uuid)` /0017 |1–2 sorted accounts, then selected folio | Keep unchanged; reuse for the receivable lock prefix only. |
+| `lock_financial_rows(uuid,uuid[],uuid)` /0017 |1–2 sorted accounts, then selected folio | Keep unchanged;0025 already uses this receivable lock prefix. |
 | `lock_positive_tax_posting_rows(uuid,uuid[],uuid)` /0044 |2–66 sorted guest/revenue/tax-payable accounts, then primary window1 | Keep unchanged; native gets its own private derived-set helper. |
 | `create_charge_correction_header` /0019 | Generic service takes account/folio, root188, original-journal0, then day locks before this header | A journal BEFORE INSERT guard inspects `NEW.reverses` and rejects reversal of any issued consumed journal. |
 | `create_positive_tax_correction_header` and `record_positive_tax_correction_root` /0045 | Service takes account/folio then266; SQL root writer inserts the tax-bearing guest line | Same journal guard plus posting-line guard; do not change existing positive-tax shape/authority. |
 | `create_india_final_component_tax_correction_header` and `record_india_final_component_tax_journal_reversal` /0072 | Service408 key, then days; binding has a second, differently named408 key | Same journal/posting guards; preserve and extend0074's binding-level issued-source rejection. |
 | `create_folio_transfer` /0020 | Guest account; sorted source/destination folios; sorted root188 keys; current day | Posting-line BEFORE INSERT guard rejects an issued consumed transfer root or a new consideration fragment into an issued folio. |
-| `create_receivable_transfer(uuid,uuid,uuid,uuid,uuid,uuid,text)` /0025 | Existing joined folio/guest/target/party lock, then approval and day | Forward CREATE OR REPLACE adds a sorted two-account→folio prefix before the joined lock; preserve exact authority, money, approval, signature and grants. Direct-bill settlement itself remains permitted. |
+| `create_receivable_transfer(uuid,uuid,uuid,uuid,uuid,uuid,text)` /0025 | Existing sorted guest/receivable accounts→folio prefix, then joined folio/guest/target/party lock, approval and day | Preserve existing implementation, signature, authority, money and grants. No redundant forward replacement. Prove compatibility with native issuance; direct-bill settlement remains permitted. |
 | `record_india_gst_accommodation_final_valuation` /0062 | Scope0→reservation SHARE→folio UPDATE→account SHARE; current head UPDATE; source fragments SHARE | Native writer uses the new ordered financial prefix. Parent/child INSERT guards reject new generations or appended evidence under an issued origin. Legacy writer's source behavior remains unchanged. |
 | `record_india_gst_accommodation_quoted_rate_applicability` /0069 and `record_india_gst_accommodation_final_component_tax` /0070 | Scope0 then400/367; typed source/head locks | Discriminator-aware source/supersession INSERT guards use scope0 and reject post-issue ancestry changes; no global runtime DML grant. |
 | `record_india_final_component_tax_journal_binding` /0071 |407 tax-root binding key | Existing full-gross path unchanged. Native handler uses the same key family for its newly created tax ID before publication, and the strict native variant. |
@@ -526,10 +528,11 @@ than checking only `supersedes_*`.0074's existing
 `india_native_fiscal_source_reversal_guard` on the India reversal-binding table
 is retained and generalized through a forward function replacement, not removed.
 
-The0025 lock-only replacement discovers its existing guest and selected company
+The existing0025 implementation discovers its guest and selected company
 account after current tenant/actor/property input checks, calls unchanged
 `lock_financial_rows` for those two sorted IDs and the selected folio, then runs
-its existing joined query/approval/day logic and exact reread. The company
+its joined query/approval/day logic and exact reread. No replacement is needed
+for this already-present prefix (D1350). The company
 account is not part of a native consideration account set; sorted acquisition
 plus the shared guest/folio serializes both operations without banning normal
 receivable transfer. Test this concrete compatibility, not just folio-root
@@ -581,8 +584,8 @@ last migration. Reserve these exact next filenames when root admits the order:
    issuing through0074. No new issue grant until the whole path exists.
 2. `migrations/0076_india_native_fiscal_source_completion.sql`: canonical SQL
    reconstruction, native prepare/accounting/final completion, correction/source
-   guards, event linkage, deferrable completion checks, the0025 lock-only forward
-   replacement, and the least-privilege new native issue capability. Keep old issued rows readable as immutable
+   guards, event linkage, deferrable completion checks and the least-privilege
+   new native issue capability. Preserve0025's existing lock prefix. Keep old issued rows readable as immutable
    history; do not backfill invented ordinary evidence or adopt them into the
    authenticated new source branch. Old signature is revoked or fails closed.
 
@@ -620,8 +623,10 @@ command framework. No new table beyond the two named above is admitted without a
 scope amendment. Kernel event/consumer source is a read-only reuse target.
 
 D1346 / Question190 also admits two exclusive, non-runnable0076 implementation
-fragments: `handoff/drafts/order434/0076-native-preparation.sql` (coordinator) and
-`handoff/drafts/order434/0076-native-accounting.sql` (Financials SQL worker).
+fragments: `handoff/drafts/order434/0076-native-preparation.sql` and
+`handoff/drafts/order434/0076-native-accounting.sql`. The D1350 checkpoint explicitly
+assigns preparation to `/root/native_source_sql` and accounting/guards to root;
+this supersedes the earlier lane allocation, not the admitted implementation scope.
 They preserve work while the single complete0076 migration is unfinished; they
 do not enter the production runner or establish separate completion boundaries.
 
@@ -823,7 +828,7 @@ Required coverage:
   zero-artifact rollback. No consumer cursor/processed-marker grant changes or
   second connection may appear. Observe publication waiting behind already-held
   financial/day/series resources without an inverted wait, and cover ordinary
-  direct-bill transfer versus issue after the0025 lock-prefix replacement.
+  direct-bill transfer versus issue using0025's existing sorted lock prefix.
 - Exercise the native SQL500-root/366-night/503-account boundaries using ordinary
   source construction and invalid-size rejection. Prove a complete500-root case
   is not silently limited by the legacy66-account helper; reject unsupported
@@ -867,7 +872,7 @@ acceptance conditions and independent review are actually satisfied.
 
 The bounded source checks resolve the three drafting questions: the event-first
 same-Tx handler/coordinator and durable binding dedupe are selected; exact
-correction/transfer guard attachments, the0025 lock-order compatibility repair
+correction/transfer guard attachments, unchanged0025 lock-order compatibility
 and the503-account bound are specified;0075/0076 and all five new event names
 are vacant. The native zero-tax variant retains typed timing/accounting binding
 identity while its optional tax-journal reference is null; legacy origin/journal
@@ -1246,3 +1251,71 @@ Financials native read-source/413–414–426–429 composition, final commit,
 consumed-source correction guards, and complete76-schema/concurrency/referee
 plus fresh independent Tier3 proof. Order434/Phase7 remain active. Publication
 preserves work on the development branch; it is not main/local promotion.
+
+## Authenticated financial source and native composition checkpoint — D1350
+
+Implemented, but not yet the complete invoice command:
+
+- Private SQL reconstructs genuine service/payment recording and date-projection
+  preimages, ordinary-regime evidence, reservation attribution and final-valuation
+  basis/allocations. Approval is authenticated at its original consumption time,
+  `valuation.recorded_at`; this does not authorize an expired approval for a new
+  valuation. Current issue/finalize authority belongs to the current issuing actor.
+  Request identity retains the existing explicit governed calendar authority,
+  source hash, through-date and dense date/state vectors; no calendar-ID table is invented.
+- Financials `resolveNative` reads a typed component-tax delta, preserves the
+  existing consideration and nullable zero-tax journal, and binds the valuation's
+  actual buyer. The private `read_india_native_accounting_source_closure(uuid,uuid)`
+  authenticates the accounting binding against complete actual financial history;
+  TypeScript independently matches its accounts, roots and source rows. A stored
+  fragment hash alone is no longer treated as proof of current complete membership.
+  This bridge is private: app_role/runtime/PUBLIC EXECUTE remains revoked.
+- Native413/414 composition reuses the existing statutory/numeric cores and
+  native297 calculation. Native429 retains the exact false/no-actions/three-blocker
+  contract. Its new adapter is pure composition over supplied, checked results,
+  not a substitute for future same-Tx SQL root preparation. Pure module exports
+  do not expose a server route, command or callable database issuance capability.
+- The persisted timing hash and derived complete time-of-supply hash are different
+  domains. Financials binds to `nativeTiming.predecessorHashes.nativeTiming`;
+  native297 replay binds to `nativeTiming.evidenceHash`. Tests deliberately make
+  those hashes different. Financial business date must equal the native issue date,
+  and the legal buyer must equal the buyer recorded in the valuation.
+- Private consumed-source guards cover journal reversals, posting additions,
+  all eight admitted valuation/applicability/tax parent-child tables and the
+  retained0074 reversal-binding trigger. Predicates use permanent native origin
+  and complete valuation/transfer ancestry, including zero-tax bindings. Ordinary
+  payments and direct-bill settlement are not blanket-banned. Actual issued-source
+  winner schedules and races still require the complete prepare/commit path.
+
+Root personally ran the exact updated suites on native Windows/Bun/PG16.15:
+
+| Proof | Result | Boundary |
+|---|---|---|
+| Accounting/private reconstruction suite |15 passed,0 failed,135 assertions | Includes actual charge/correction→valuation reads, source preimage parity, timezone invariance,366 nights and installed private-wrapper metadata; no live native issuance claim. |
+| Native source/valuation suite |16 passed,0 failed,124 assertions | Includes actual corrections, two multi-root reroutes,16-way replay,500 roots/501 accounts and consumed-guard installation; not an issued-source race proof. |
+| Five-file native/legacy composition suite |39 passed,15 explicit DB skips,0 failed,406 assertions | Pure and controlled-Tx composition; skipped legacy live cases are not counted as executed. |
+
+The integration worker personally ran the whole standing suite with DB variables
+cleared:1518 passed,1103 explicit environment skips,0 failed,21134 assertions across
+474 files. Typecheck,166 import boundaries,23-package licence check, dependency
+audit and diff checks passed. Bounded non-implementing guard/wrapper observations
+are recorded in [the review notes](../reviews/434-native-fiscal-source-completion.md);
+they explicitly do not approve Order434 or replace fresh final Tier3 acceptance.
+
+Both private fragments parsed/applied atomically only in the existing synthetic
+75-migration/127-table database. All74 runnable migrations and draft75 are unchanged.
+Accounting SHA256:
+`e6c30d972c12c4dd2999c2d5f269f0ac07944ea8e8431831244919654c7ef754`;
+preparation:
+`09815b8c03ad93c8aa9a33964e393e0c5021a8b085870288453d2d4d1992133b`.
+The single isolated cluster is stopped, port55502 is closed and its retained
+directory is189,966,603 bytes. No retained local app, Docker, real hotel data,
+dependency or applied migration changed. C/D/E free space was1.39/25.88/7.83GiB;
+no cleanup or new dependency download was attempted in this checkpoint.
+
+Remaining: complete canonical statutory preparation/authentication, actual native
+accounting and durable replay, same-Tx command/final commit, full76-migration
+schema/referee and real issuance/concurrency/compatibility proofs, then fresh
+non-implementing Tier3 acceptance. D1349 certifies only the preceding1499faa
+published CI. This checkpoint is implementation progress, not Order434/Phase7
+completion, main integration or a refreshed local app.

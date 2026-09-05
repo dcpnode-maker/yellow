@@ -10,6 +10,13 @@ import {
   type IndiaIrpAccommodationSourceResult,
 } from "./india-irp-accommodation-source";
 import {
+  assembleIndiaNativeFiscalSource,
+  IndiaNativeFiscalSourceConflictError,
+  IndiaNativeFiscalSourceValidationError,
+  type IndiaNativeFiscalSourceInput,
+  type IndiaNativeFiscalSourceResult,
+} from "./india-native-fiscal-source";
+import {
   composeIndiaIrpAccommodationValidationCompatibilityPreDocumentEvidenceAssembly,
   type IndiaIrpAccommodationValidationCompatibilityPreDocumentEvidenceAssembly,
 } from "./india-irp-accommodation-validation-compatibility-pre-document-evidence-assembly";
@@ -25,10 +32,16 @@ const RESULT_KEYS = [
   "preDocumentEvidence", "sourceEvidenceHash", "preDocumentEvidenceHash",
   "evidenceHash",
 ] as const;
-const SOURCE_KEYS = [
+const EXTERNAL_SOURCE_KEYS = [
   "state", "financialSource", "legalBuyerPartyId", "sellerRegistration",
   "recipientRegistration", "sellerDetails", "buyerDetails", "placeOfSupply",
   "classification", "supplyNatureAtTimeOfSupply", "componentFamily", "evidenceHash",
+] as const;
+const NATIVE_SOURCE_KEYS = [
+  "state", "sourceKind", "sourceVersion", "financialSource", "legalBuyerPartyId",
+  "sellerRegistration", "recipientRegistration", "sellerDetails", "buyerDetails",
+  "placeOfSupply", "classification", "supplyNatureAtTimeOfSupply", "componentFamily",
+  "evidenceHash",
 ] as const;
 const PRE_DOCUMENT_KEYS = [
   "state", "format", "submissionReady", "authenticatedProviderSandboxCertified",
@@ -41,6 +54,12 @@ const LINEAGE_KEYS = [
   "serviceQuantityUqcCompatibilityEvidenceHash", "itemCandidatesEvidenceHash",
 ] as const;
 const PREDECESSOR_KEYS = ["section14", "levyComponentIdentity", "reservationLineage", "attributionSnapshot"] as const;
+const NATIVE_PREDECESSOR_KEYS = [
+  "nativeTiming", "nativeRateSelection", "finalValuation", "quotedRateApplicability",
+  "levyComponentIdentity", "reservationLineage", "attributionSnapshot",
+  "serviceProvisionRecording", "paymentReceiptRecording", "ordinaryRegimeRecording",
+  "requestEventPayload", "nativeRoute",
+] as const;
 const BLOCKERS = [
   "FISCAL_DOCUMENT_ORIGIN_UNSELECTED",
   "LEGAL_DOCUMENT_NUMBER_FORMAT_UNCONFIGURED",
@@ -49,6 +68,7 @@ const BLOCKERS = [
 type RecordValue = Record<string, unknown>;
 
 export type IndiaIrpAccommodationFiscalActionReadinessInput = IndiaIrpAccommodationSourceInput;
+export type IndiaIrpAccommodationNativeFiscalActionReadinessInput = IndiaNativeFiscalSourceInput;
 
 export interface IndiaIrpAccommodationFiscalActionReadinessResult {
   readonly state: "blocked_pending_fiscal_document_origin_policy";
@@ -155,35 +175,65 @@ function recursivelyFreeze<T>(value: T, seen = new Set<object>()): T {
   return value;
 }
 
-function validateSource(source: IndiaIrpAccommodationSourceResult, input: IndiaIrpAccommodationSourceInput): void {
-  const root = exactKeys(source, SOURCE_KEYS, "Order413 source");
+function validateSource(
+  source: IndiaIrpAccommodationSourceResult,
+  input: IndiaIrpAccommodationSourceInput | IndiaNativeFiscalSourceInput,
+): void {
+  const native = "sourceKind" in source;
+  const nativeInput = input as IndiaNativeFiscalSourceInput;
+  const externalInput = input as IndiaIrpAccommodationSourceInput;
+  const propertyNode = native ? nativeInput.financialSource.propertyNode : externalInput.propertyNode;
+  const reservationId = native ? nativeInput.financialSource.reservationId : externalInput.reservationId;
+  const folioId = native ? nativeInput.financialSource.folioId : externalInput.folioId;
+  const recipientPartyId = native ? nativeInput.legalBuyerPartyId : externalInput.recipientPartyId;
+  const recipientRegistrationId = native
+    ? nativeInput.recipientRegistration.registrationId
+    : externalInput.recipientRegistrationId;
+  const root = exactKeys(source, native ? NATIVE_SOURCE_KEYS : EXTERNAL_SOURCE_KEYS, "Order413 source");
   if (root.state !== "eligible_irp_invoice_source") return conflict("Order413 source state is inconsistent");
+  if (native && (root.sourceKind !== "native_current_transaction_graph" || root.sourceVersion !== 2)) {
+    return conflict("native Order413 source identity is inconsistent");
+  }
   hash(root.evidenceHash, "Order413 source evidence hash");
   if (root.evidenceHash !== recomputeTenantHash(root, input.tenantId, "evidenceHash")) return conflict("Order413 source evidence hash is inconsistent");
-  if (root.legalBuyerPartyId !== input.recipientPartyId) return conflict("Order413 legal buyer lineage is inconsistent");
+  if (root.legalBuyerPartyId !== recipientPartyId) return conflict("Order413 legal buyer lineage is inconsistent");
   const financial = root.financialSource as RecordValue;
   if (typeof financial !== "object" || financial === null || Array.isArray(financial)) return conflict("Order413 financial source is malformed");
   hash(financial.sourceEvidenceHash, "Order413 fiscal source evidence hash");
   if (financial.sourceEvidenceHash !== recomputeTenantHash(financial, input.tenantId, "sourceEvidenceHash")) return conflict("Order413 fiscal source evidence hash is inconsistent");
-  for (const [field, expected] of [["propertyNode", input.propertyNode], ["reservationId", input.reservationId], ["folioId", input.folioId], ["journalId", input.journalId]] as const) {
+  const expectedFinancialFields: readonly (readonly [string, unknown])[] = native
+    ? [["propertyNode", propertyNode], ["reservationId", reservationId], ["folioId", folioId]]
+    : [["propertyNode", propertyNode], ["reservationId", reservationId], ["folioId", folioId],
+      ["journalId", (input as IndiaIrpAccommodationSourceInput).journalId]];
+  for (const [field, expected] of expectedFinancialFields) {
     if (financial[field] !== expected) return conflict("Order413 fiscal source ancestry is inconsistent");
   }
-  if (financial.currency !== "INR" || financial.state !== "eligible_current_posted_source" ||
+  if (native && financial.buyerPartyId !== recipientPartyId) {
+    return conflict("native Order413 financial buyer lineage is inconsistent");
+  }
+  if (financial.currency !== "INR" ||
+      (native ? financial.state !== "eligible_current_native_accounted_source" ||
+        financial.sourceKind !== "native_component_tax_delta" :
+        financial.state !== "eligible_current_posted_source") ||
       !Array.isArray(financial.roomNights) || financial.roomNights.length < 1 || financial.roomNights.length > 366 ||
       !Array.isArray(financial.components) || !Array.isArray(financial.journalLines)) return conflict("Order413 fiscal source state is inconsistent");
   if (financial.componentFamily !== (root.componentFamily as RecordValue)?.componentFamily) return conflict("Order413 component-family lineage is inconsistent");
-  const predecessors = exactKeys(financial.predecessorHashes, PREDECESSOR_KEYS, "Order413 predecessor lineage");
+  const predecessors = exactKeys(
+    financial.predecessorHashes,
+    native ? NATIVE_PREDECESSOR_KEYS : PREDECESSOR_KEYS,
+    "Order413 predecessor lineage",
+  );
   for (const predecessor of Object.values(predecessors)) hash(predecessor, "Order413 predecessor evidence hash");
   const componentFamily = root.componentFamily as RecordValue;
-  if (componentFamily.propertyNode !== input.propertyNode || componentFamily.reservationId !== input.reservationId || componentFamily.folioId !== input.folioId ||
+  if (componentFamily.propertyNode !== propertyNode || componentFamily.reservationId !== reservationId || componentFamily.folioId !== folioId ||
       componentFamily.supplierRegistrationId !== (root.sellerRegistration as RecordValue)?.registrationId) return conflict("Order413 component-family ancestry is inconsistent");
   const supply = root.supplyNatureAtTimeOfSupply as RecordValue;
-  if (supply.propertyNode !== input.propertyNode || supply.reservationId !== input.reservationId || supply.folioId !== input.folioId ||
-      supply.recipientPartyId !== input.recipientPartyId || supply.recipientRegistrationId !== input.recipientRegistrationId ||
+  if (supply.propertyNode !== propertyNode || supply.reservationId !== reservationId || supply.folioId !== folioId ||
+      supply.recipientPartyId !== recipientPartyId || supply.recipientRegistrationId !== recipientRegistrationId ||
       supply.supplierRegistrationId !== (root.sellerRegistration as RecordValue)?.registrationId) return conflict("Order413 supply-nature lineage is inconsistent");
   if (supply.evidenceHash !== input.supplyNatureAtTimeOfSupplyResult.evidenceHash) return conflict("Order413 replay evidence is inconsistent");
   const seller = root.sellerRegistration as RecordValue, recipient = root.recipientRegistration as RecordValue;
-  if (seller.registrationId !== componentFamily.supplierRegistrationId || recipient.registrationId !== input.recipientRegistrationId) return conflict("Order413 registration lineage is inconsistent");
+  if (seller.registrationId !== componentFamily.supplierRegistrationId || recipient.registrationId !== recipientRegistrationId) return conflict("Order413 registration lineage is inconsistent");
   hash(seller.evidenceHash, "Order413 seller evidence hash"); hash(recipient.evidenceHash, "Order413 recipient evidence hash");
   hash((componentFamily.evidenceHash), "Order413 component-family evidence hash");
   hash((root.classification as RecordValue)?.evidenceHash, "Order413 classification evidence hash");
@@ -242,6 +292,33 @@ export class IndiaIrpAccommodationFiscalActionReadinessService {
       }
       throw error;
     }
+    return this.composeReadiness(source, input);
+  }
+
+  async resolveNative(
+    tx: Tx,
+    rawInput: IndiaIrpAccommodationNativeFiscalActionReadinessInput,
+  ): Promise<IndiaIrpAccommodationFiscalActionReadinessResult> {
+    if (typeof tx !== "function") return fail("tenant transaction is unavailable");
+    let source: IndiaNativeFiscalSourceResult;
+    try {
+      source = assembleIndiaNativeFiscalSource(rawInput);
+    } catch (error) {
+      if (error instanceof IndiaNativeFiscalSourceValidationError) {
+        throw new IndiaIrpAccommodationFiscalActionReadinessValidationError(error.message);
+      }
+      if (error instanceof IndiaNativeFiscalSourceConflictError) {
+        throw new IndiaIrpAccommodationFiscalActionReadinessConflictError(error.message);
+      }
+      throw error;
+    }
+    return this.composeReadiness(source, rawInput);
+  }
+
+  private composeReadiness(
+    source: IndiaIrpAccommodationSourceResult,
+    input: IndiaIrpAccommodationSourceInput | IndiaNativeFiscalSourceInput,
+  ): IndiaIrpAccommodationFiscalActionReadinessResult {
     try {
       validateSource(source, input);
     } catch (error) {

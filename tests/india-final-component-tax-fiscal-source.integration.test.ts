@@ -7,6 +7,7 @@ import {
   IndiaFinalComponentTaxFiscalSourceConflictError,
   IndiaFinalComponentTaxFiscalSourceNotFoundError,
   IndiaFinalComponentTaxFiscalSourceService,
+  IndiaFinalComponentTaxFiscalSourceValidationError,
 } from "../src/contexts/financials";
 import { Database } from "../src/kernel";
 
@@ -36,6 +37,389 @@ interface SourceRoot {
 }
 
 const sha256 = (value: unknown): string => createHash("sha256").update(JSON.stringify(value)).digest("hex");
+
+const nativeId = (suffix: number): string =>
+  `00000000-0000-0000-0000-${String(suffix).padStart(12, "0")}`;
+const nativeHash = (digit: string): string => digit.repeat(64);
+const NATIVE_TENANT = nativeId(434801);
+const NATIVE_PROPERTY = nativeId(434802);
+const NATIVE_RESERVATION = nativeId(434803);
+const NATIVE_FOLIO = nativeId(434804);
+const NATIVE_BINDING = nativeId(434805);
+const NATIVE_TIMING = nativeId(434806);
+const NATIVE_TAX = nativeId(434807);
+const NATIVE_VALUATION = nativeId(434808);
+const NATIVE_APPLICABILITY = nativeId(434809);
+const NATIVE_GUEST = nativeId(434810);
+const NATIVE_REVENUE = nativeId(434811);
+const NATIVE_CONSIDERATION_JOURNAL = nativeId(434812);
+const NATIVE_ROOT = nativeId(434813);
+const NATIVE_TAX_JOURNAL = nativeId(434814);
+const NATIVE_BUYER = nativeId(434826);
+
+type NativeMockRow = Record<string, unknown>;
+
+function nativeRoot(overrides: NativeMockRow = {}): NativeMockRow {
+  return {
+    posting_binding_id: NATIVE_BINDING,
+    accounting_kind: "native_component_tax_delta",
+    invoice_source_kind: "native_current_transaction",
+    native_timing_id: NATIVE_TIMING,
+    journal_id: NATIVE_TAX_JOURNAL,
+    tax_id: NATIVE_TAX,
+    tax_generation: 1,
+    tax_evidence_hash: nativeHash("1"),
+    valuation_id: NATIVE_VALUATION,
+    valuation_generation: 2,
+    applicability_id: NATIVE_APPLICABILITY,
+    reservation_id: NATIVE_RESERVATION,
+    folio_id: NATIVE_FOLIO,
+    guest_account_id: NATIVE_GUEST,
+    property_node: NATIVE_PROPERTY,
+    business_date: "2026-09-05",
+    currency: "INR",
+    native_source_basis_hash: nativeHash("2"),
+    native_consideration_basis_hash: nativeHash("3"),
+    native_tax_minor: "500",
+    request_event_seq: 42,
+    request_event_id: nativeId(434815),
+    request_event_payload_hash: nativeHash("4"),
+    native_route_evidence_hash: nativeHash("5"),
+    accounting_evidence_hash: nativeHash("6"),
+    posted_by: nativeId(434816),
+    posted_at: "2026-09-05 05:00:00+00",
+    native_journal_id: NATIVE_TAX_JOURNAL,
+    native_journal_kind: "charge",
+    native_journal_reverses: null,
+    native_journal_property: NATIVE_PROPERTY,
+    native_journal_business_date: "2026-09-05",
+    native_journal_currency: "INR",
+    native_journal_source: {
+      interface: "financials.india-native-component-tax.post",
+      native_timing_id: NATIVE_TIMING,
+      tax_id: NATIVE_TAX,
+      request_event_id: nativeId(434815),
+    },
+    native_journal_created_by: nativeId(434816),
+    native_journal_created_at: "2026-09-05 05:00:00+00",
+    native_timing_evidence_hash: nativeHash("7"),
+    timing_source_basis_hash: nativeHash("2"),
+    timing_consideration_basis_hash: nativeHash("3"),
+    service_provision_evidence_hash: nativeHash("8"),
+    payment_receipt_evidence_hash: nativeHash("9"),
+    ordinary_regime_evidence_hash: nativeHash("a"),
+    timing_binding_id: NATIVE_BINDING,
+    timing_tax_id: NATIVE_TAX,
+    timing_applicability_id: NATIVE_APPLICABILITY,
+    timing_valuation_id: NATIVE_VALUATION,
+    timing_valuation_generation: 2,
+    timing_account_id: NATIVE_GUEST,
+    timing_buyer_party_id: NATIVE_BUYER,
+    timing_business_date: "2026-09-05",
+    timing_timestamp: "2026-09-05 05:00:00+00",
+    same_transaction: true,
+    completed_origin: false,
+    current_tax_generation: 1,
+    current_tax_evidence_hash: nativeHash("1"),
+    transaction_value_minor: "10000",
+    tax_minor: "500",
+    grand_total_minor: "10500",
+    component_family: "cgst_sgst",
+    rate_selection_kind: "ordinary_section13_single_version",
+    tax_source_kind: "native_current_transaction",
+    tax_valuation_basis: "native_consideration",
+    tax_timing_id: NATIVE_TIMING,
+    tax_timing_evidence_hash: nativeHash("7"),
+    native_rate_selection_evidence_hash: nativeHash("b"),
+    tax_consideration_basis_hash: nativeHash("3"),
+    final_valuation_evidence_hash: nativeHash("c"),
+    quoted_rate_applicability_evidence_hash: nativeHash("d"),
+    levy_component_identity_evidence_hash: nativeHash("e"),
+    reservation_lineage_evidence_hash: nativeHash("f"),
+    attribution_snapshot_evidence_hash: nativeHash("0"),
+    current_applicability_evidence_hash: nativeHash("d"),
+    applicability_source_kind: "native_current_transaction",
+    applicability_rate_kind: "ordinary_section13_single_version",
+    applicability_valuation_basis: "native_consideration",
+    applicability_timing_id: NATIVE_TIMING,
+    applicability_timing_evidence_hash: nativeHash("7"),
+    applicability_rate_evidence_hash: nativeHash("b"),
+    applicability_consideration_basis_hash: nativeHash("3"),
+    current_valuation_generation: 2,
+    current_valuation_evidence_hash: nativeHash("c"),
+    valuation_consideration_basis_hash: nativeHash("3"),
+    basis_kind: "native_consideration",
+    disposition: "ordinary_final",
+    valuation_transaction_value_minor: "10000",
+    native_source_count: 1,
+    valuation_account_id: NATIVE_GUEST,
+    buyer_party_id: NATIVE_BUYER,
+    folio_account_id: NATIVE_GUEST,
+    folio_reservation_id: NATIVE_RESERVATION,
+    account_property: NATIVE_PROPERTY,
+    account_currency: "INR",
+    account_role: "guest",
+    reservation_property: NATIVE_PROPERTY,
+    tax_has_successor: false,
+    valuation_has_successor: false,
+    journal_has_reversal: false,
+    ...overrides,
+  };
+}
+
+function nativeNights(value = "5000", tax = "250", count = 2): NativeMockRow[] {
+  return Array.from({ length: count }, (_, ordinal) => ({
+    ordinal,
+    business_date: `2026-09-0${ordinal + 3}`,
+    final_value_minor: value,
+    slab_upto_minor: "750000",
+    aggregate_rate_basis_points: 500,
+    itc_eligible: false,
+    tax_minor: tax,
+  }));
+}
+
+function nativeComponents(amount = "125", count = 2): NativeMockRow[] {
+  return Array.from({ length: count }, (_, roomNightOrdinal) => [
+    { room_night_ordinal: roomNightOrdinal, component_ordinal: 0, component_identity: "cgst", rate_basis_points: 250, tax_amount_minor: amount },
+    { room_night_ordinal: roomNightOrdinal, component_ordinal: 1, component_identity: "sgst", rate_basis_points: 250, tax_amount_minor: amount },
+  ]).flat();
+}
+
+function nativeSource(amount = "10000", overrides: NativeMockRow = {}): NativeMockRow {
+  return {
+    posting_root_id: NATIVE_ROOT,
+    current_amount_minor: amount,
+    tx_code: "ROOM",
+    current_fragment_set_hash: nativeHash("1"),
+    journal_id: NATIVE_CONSIDERATION_JOURNAL,
+    root_seq: 1,
+    root_account_id: NATIVE_GUEST,
+    root_amount_minor: amount,
+    root_tx_code: "ROOM",
+    root_currency: "INR",
+    root_tax_detail: null,
+    header_kind: "charge",
+    header_reverses: null,
+    header_source: { interface: "financials.charge.post" },
+    header_currency: "INR",
+    counterpart_account_id: NATIVE_REVENUE,
+    counterpart_account_role: "revenue",
+    counterpart_account_property: NATIVE_PROPERTY,
+    counterpart_account_currency: "INR",
+    counterpart_amount_minor: (-BigInt(amount)).toString(),
+    counterpart_folio_id: null,
+    counterpart_tx_code: "ROOM",
+    counterpart_currency: "INR",
+    counterpart_tax_detail: null,
+    header_line_count: 2,
+    header_balance: "0",
+    allocations: [{ folioId: NATIVE_FOLIO, amountMinor: amount }],
+    ...overrides,
+  };
+}
+
+function nativeClosure(amount = "10000", overrides: NativeMockRow = {}): NativeMockRow {
+  return {
+    posting_binding_id: NATIVE_BINDING,
+    accounting_evidence_hash: nativeHash("6"),
+    source_closure: {
+      accountId: NATIVE_GUEST,
+      accountIds: [NATIVE_GUEST, NATIVE_REVENUE].sort(),
+      rootIds: [NATIVE_ROOT],
+      sources: [{
+        postingRootId: NATIVE_ROOT,
+        journalId: NATIVE_CONSIDERATION_JOURNAL,
+        currentAmountMinor: amount,
+        txCode: "ROOM",
+        currentFragmentSetHash: nativeHash("1"),
+      }],
+    },
+    ...overrides,
+  };
+}
+
+function nativeTaxLines(): NativeMockRow[] {
+  return [
+    { id: nativeId(434820), seq: 1, account_id: NATIVE_GUEST, account_role: "guest", account_property: NATIVE_PROPERTY, account_currency: "INR", folio_id: NATIVE_FOLIO, tx_code: "GST-C", description: "CGST on accommodation", amount_minor: "250", quantity: "1.000", business_date: "2026-09-05", currency: "INR", tax_detail: null, tax_code: true },
+    { id: nativeId(434821), seq: 2, account_id: nativeId(434822), account_role: "tax_payable", account_property: NATIVE_PROPERTY, account_currency: "INR", folio_id: null, tx_code: "GST-C", description: "CGST on accommodation", amount_minor: "-250", quantity: "1.000", business_date: "2026-09-05", currency: "INR", tax_detail: null, tax_code: true },
+    { id: nativeId(434823), seq: 3, account_id: NATIVE_GUEST, account_role: "guest", account_property: NATIVE_PROPERTY, account_currency: "INR", folio_id: NATIVE_FOLIO, tx_code: "GST-S", description: "SGST on accommodation", amount_minor: "250", quantity: "1.000", business_date: "2026-09-05", currency: "INR", tax_detail: null, tax_code: true },
+    { id: nativeId(434824), seq: 4, account_id: nativeId(434825), account_role: "tax_payable", account_property: NATIVE_PROPERTY, account_currency: "INR", folio_id: null, tx_code: "GST-S", description: "SGST on accommodation", amount_minor: "-250", quantity: "1.000", business_date: "2026-09-05", currency: "INR", tax_detail: null, tax_code: true },
+  ];
+}
+
+function nativeTx(responses: readonly (readonly NativeMockRow[])[], calls: string[] = []): Parameters<IndiaFinalComponentTaxFiscalSourceService["resolveNative"]>[0] {
+  let index = 0;
+  return (async (strings: TemplateStringsArray) => {
+    calls.push(strings.join("?"));
+    return responses[index++] ?? [];
+  }) as Parameters<IndiaFinalComponentTaxFiscalSourceService["resolveNative"]>[0];
+}
+
+const nativeInput = Object.freeze({
+  tenantId: NATIVE_TENANT,
+  propertyNode: NATIVE_PROPERTY,
+  reservationId: NATIVE_RESERVATION,
+  folioId: NATIVE_FOLIO,
+  postingBindingId: NATIVE_BINDING,
+});
+
+describe("Order434 native Financials fiscal-source projection", () => {
+  test("resolves a positive component-only delta with complete consideration closure", async () => {
+    const calls: string[] = [];
+    const result = await new IndiaFinalComponentTaxFiscalSourceService().resolveNative(
+      nativeTx([[nativeRoot()], [nativeClosure()], nativeNights(), nativeComponents(), [nativeSource()], nativeTaxLines()], calls),
+      nativeInput,
+    );
+
+    expect(result).toMatchObject({
+      state: "eligible_current_native_accounted_source",
+      sourceKind: "native_component_tax_delta",
+      postingBindingId: NATIVE_BINDING,
+      nativeTimingId: NATIVE_TIMING,
+      journalId: NATIVE_TAX_JOURNAL,
+      taxId: NATIVE_TAX,
+      valuationId: NATIVE_VALUATION,
+      applicabilityId: NATIVE_APPLICABILITY,
+      buyerPartyId: NATIVE_BUYER,
+      transactionValueMinor: "10000",
+      taxMinor: "500",
+      grandTotalMinor: "10500",
+      componentFamily: "cgst_sgst",
+      rateSelectionKind: "ordinary_section13_single_version",
+      considerationAccountIds: [NATIVE_GUEST, NATIVE_REVENUE].sort(),
+      considerationRootIds: [NATIVE_ROOT],
+      considerationSources: [{
+        postingRootId: NATIVE_ROOT,
+        journalId: NATIVE_CONSIDERATION_JOURNAL,
+        currentAmountMinor: "10000",
+        txCode: "ROOM",
+        currentFragmentSetHash: nativeHash("1"),
+      }],
+    });
+    expect(result.journalLines).toHaveLength(4);
+    expect(result.nativeTimingEvidenceHash).toBe(nativeHash("7"));
+    expect(Object.keys(result).indexOf("buyerPartyId")).toBe(Object.keys(result).indexOf("propertyNode") - 1);
+    expect(result.journalLines.every((line) => line.taxDetail === null)).toBeTrue();
+    expect(result.journalLines.reduce((sum, line) => sum + BigInt(line.amountMinor), 0n)).toBe(0n);
+    expect(result.sourceEvidenceHash).toMatch(/^[0-9a-f]{64}$/);
+    const { sourceEvidenceHash, ...sourceBody } = result;
+    expect(sourceEvidenceHash).toBe(sha256({ tenantId: NATIVE_TENANT, ...sourceBody }));
+    expect(JSON.stringify(await new IndiaFinalComponentTaxFiscalSourceService().resolveNative(
+      nativeTx([[nativeRoot({ same_transaction: false, completed_origin: true })], [nativeClosure()], nativeNights(), nativeComponents(), [nativeSource()], nativeTaxLines()]),
+      nativeInput,
+    ))).toBe(JSON.stringify(result));
+    expect(calls).toHaveLength(6);
+    expect(calls[0]).toContain("b.id=");
+    expect(calls[1]).toContain("read_india_native_accounting_source_closure");
+    expect(calls.join("\n")).not.toMatch(/\b(?:INSERT|UPDATE|DELETE|CALL)\b/i);
+    expect(Object.isFrozen(result)).toBeTrue();
+    expect(Object.isFrozen(result.predecessorHashes)).toBeTrue();
+    expect(Object.isFrozen(result.considerationSources)).toBeTrue();
+    expect(Object.isFrozen(result.journalLines)).toBeTrue();
+  });
+
+  test("retains a real zero-tax native source without manufacturing a journal", async () => {
+    const zeroRoot = nativeRoot({
+      journal_id: null,
+      native_journal_id: null,
+      native_journal_kind: null,
+      native_journal_reverses: null,
+      native_journal_property: null,
+      native_journal_business_date: null,
+      native_journal_currency: null,
+      native_journal_source: null,
+      native_journal_created_by: null,
+      native_journal_created_at: null,
+      native_tax_minor: "0",
+      transaction_value_minor: "1",
+      tax_minor: "0",
+      grand_total_minor: "1",
+      component_family: "igst",
+      valuation_transaction_value_minor: "1",
+    });
+    const zeroNight = nativeNights("1", "0", 1);
+    const zeroComponent = [{ room_night_ordinal: 0, component_ordinal: 0, component_identity: "igst", rate_basis_points: 500, tax_amount_minor: "0" }];
+    const result = await new IndiaFinalComponentTaxFiscalSourceService().resolveNative(
+      nativeTx([[zeroRoot], [nativeClosure("1")], zeroNight, zeroComponent, [nativeSource("1")]]),
+      nativeInput,
+    );
+    expect(result).toMatchObject({ journalId: null, journalLines: [], taxMinor: "0", grandTotalMinor: "1" });
+    expect(result.considerationSources).toHaveLength(1);
+  });
+
+  test("rejects malformed scope and mismatched valid persisted native roots", async () => {
+    let queried = false;
+    const tx = (async () => { queried = true; return []; }) as unknown as Parameters<IndiaFinalComponentTaxFiscalSourceService["resolveNative"]>[0];
+    for (const candidate of [
+      { ...nativeInput, postingBindingId: "not-a-uuid" },
+      { tenantId: NATIVE_TENANT, propertyNode: NATIVE_PROPERTY, reservationId: NATIVE_RESERVATION, folioId: NATIVE_FOLIO },
+      { ...nativeInput, amountMinor: "500" },
+      null,
+    ]) {
+      queried = false;
+      await expect(new IndiaFinalComponentTaxFiscalSourceService().resolveNative(tx, candidate as never)).rejects.toBeInstanceOf(IndiaFinalComponentTaxFiscalSourceValidationError);
+      expect(queried).toBeFalse();
+    }
+
+    await expect(new IndiaFinalComponentTaxFiscalSourceService().resolveNative(
+      nativeTx([[]]),
+      nativeInput,
+    )).rejects.toBeInstanceOf(IndiaFinalComponentTaxFiscalSourceNotFoundError);
+
+    await expect(new IndiaFinalComponentTaxFiscalSourceService().resolveNative(
+      nativeTx([[nativeRoot({ timing_source_basis_hash: nativeHash("3") })]]),
+      nativeInput,
+    )).rejects.toBeInstanceOf(IndiaFinalComponentTaxFiscalSourceConflictError);
+    await expect(new IndiaFinalComponentTaxFiscalSourceService().resolveNative(
+      nativeTx([[nativeRoot()], [nativeClosure()], nativeNights(), nativeComponents(), [nativeSource("10000", { allocations: [{ folioId: nativeId(434899), amountMinor: "10000" }] })]]),
+      nativeInput,
+    )).rejects.toBeInstanceOf(IndiaFinalComponentTaxFiscalSourceConflictError);
+    await expect(new IndiaFinalComponentTaxFiscalSourceService().resolveNative(
+      nativeTx([[nativeRoot()], [nativeClosure()], nativeNights(), nativeComponents(), [nativeSource()], nativeTaxLines().slice(0, 2)]),
+      nativeInput,
+    )).rejects.toBeInstanceOf(IndiaFinalComponentTaxFiscalSourceConflictError);
+    await expect(new IndiaFinalComponentTaxFiscalSourceService().resolveNative(
+      nativeTx([[nativeRoot({ buyer_party_id: "not-a-uuid", timing_buyer_party_id: "not-a-uuid" })]]),
+      nativeInput,
+    )).rejects.toBeInstanceOf(IndiaFinalComponentTaxFiscalSourceConflictError);
+    await expect(new IndiaFinalComponentTaxFiscalSourceService().resolveNative(
+      nativeTx([[nativeRoot()], [nativeClosure("10000", {
+        source_closure: {
+          accountId: NATIVE_GUEST,
+          accountIds: [NATIVE_GUEST, NATIVE_REVENUE].sort(),
+          rootIds: [NATIVE_ROOT, nativeId(434899)],
+          sources: [{
+            postingRootId: NATIVE_ROOT,
+            journalId: NATIVE_CONSIDERATION_JOURNAL,
+            currentAmountMinor: "10000",
+            txCode: "ROOM",
+            currentFragmentSetHash: nativeHash("1"),
+          }],
+        },
+      })]]),
+      nativeInput,
+    )).rejects.toBeInstanceOf(IndiaFinalComponentTaxFiscalSourceConflictError);
+    await expect(new IndiaFinalComponentTaxFiscalSourceService().resolveNative(
+      nativeTx([[nativeRoot()], [nativeClosure("10000", { accounting_evidence_hash: nativeHash("f") })]]),
+      nativeInput,
+    )).rejects.toBeInstanceOf(IndiaFinalComponentTaxFiscalSourceConflictError);
+    await expect(new IndiaFinalComponentTaxFiscalSourceService().resolveNative(
+      nativeTx([[nativeRoot()], [nativeClosure()], nativeNights(), nativeComponents(), [nativeSource("10000", {
+        current_fragment_set_hash: nativeHash("f"),
+      })]]),
+      nativeInput,
+    )).rejects.toBeInstanceOf(IndiaFinalComponentTaxFiscalSourceConflictError);
+  });
+
+  test("keeps the legacy resolver input/result contract and implementation entry distinct", async () => {
+    const source = await Bun.file(new URL("../src/contexts/financials/india-final-component-tax-fiscal-source.ts", import.meta.url)).text();
+    expect(source).toContain("async resolve(tx:Tx,raw:IndiaFinalComponentTaxFiscalSourceInput)");
+    expect(source).toContain('state:"eligible_current_posted_source" as const');
+    expect(source).toContain("async resolveNative(tx:Tx,raw:IndiaFinalComponentTaxNativeFiscalSourceInput)");
+    expect(Object.keys(nativeInput)).toEqual(["tenantId", "propertyNode", "reservationId", "folioId", "postingBindingId"]);
+  });
+});
 
 live("Order412 live India fiscal-source eligibility", () => {
   const deploy = new SQL(deployUrl!, { max: 4, prepare: false });
