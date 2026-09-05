@@ -76,6 +76,7 @@ describe("context layout", () => {
   test("the real source tree obeys the boundary rule", async () => {
     const result = await checkImportBoundaries(PROJECT_ROOT);
     const expectedFilesScanned =
+      await countTypeScriptFiles(resolve(PROJECT_ROOT, "src", "commands")) +
       await countTypeScriptFiles(resolve(PROJECT_ROOT, "src", "contexts")) +
       await countTypeScriptFiles(resolve(PROJECT_ROOT, "src", "kernel"));
 
@@ -147,6 +148,30 @@ describe("import boundary checker", () => {
           "../contexts/inventory/repository",
         ]);
         expect(result.violations.every(({ reason }) => reason === "kernel must not import context 'inventory'"))
+          .toBe(true);
+      },
+    );
+  });
+
+  test("allows command index imports and rejects deep context imports in every syntax form", async () => {
+    await withFixture(
+      {
+        "src/contexts/financials/index.ts": "",
+        "src/contexts/tax-fiscal/index.ts": "",
+        "src/kernel/index.ts": "",
+        "src/commands/good.ts": 'import "../contexts/financials"; export * from "../contexts/tax-fiscal/index"; import "../kernel";\n',
+        "src/commands/static.ts": 'import "../contexts/financials/private";\n',
+        "src/commands/reexport.ts": 'export * from "../contexts/tax-fiscal/internal";\n',
+        "src/commands/dynamic.ts": 'void import("../contexts/financials/handler");\n',
+      },
+      async (root) => {
+        const result = await checkImportBoundaries(root);
+        expect(result.violations.map(({ specifier }) => specifier).sort()).toEqual([
+          "../contexts/financials/handler",
+          "../contexts/financials/private",
+          "../contexts/tax-fiscal/internal",
+        ]);
+        expect(result.violations.every(({ reason }) => reason.startsWith("command must import context")))
           .toBe(true);
       },
     );

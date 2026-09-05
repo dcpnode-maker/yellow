@@ -4,11 +4,12 @@
 **Phase:** 7 · YF-008, YF-009, YF-023
 **Implementation base:** `591ace8` (includes the complete Order432 current-catalogue repair)
 
-**Latest implementation checkpoint:** [D1350 — authenticated financial source and native composition](#authenticated-financial-source-and-native-composition-checkpoint--d1350).
-Original-recording/valuation reconstruction, private consumed-source guards and
-native financial/statutory composition are implemented with bounded builder proof.
-Complete native prepare/accounting/commit and final independent acceptance remain
-unfinished; this checkpoint is not enabled in the retained local app.
+**Latest implementation checkpoint:** [D1353 — native command, actual-clock timing and distinct statutory roots](#native-command-actual-clock-timing-and-distinct-statutory-roots--d1353).
+The one-transaction command is wired, the private timing/rate reader is database-
+proven, and native composition now keeps supplier GST and SEZ evidence distinct.
+Complete SQL preparation/authentication, actual accounting/commit and final
+independent acceptance remain unfinished. This checkpoint is not enabled in the
+retained local app.
 
 **Date:** 2026-09-05
 
@@ -629,6 +630,14 @@ assigns preparation to `/root/native_source_sql` and accounting/guards to root;
 this supersedes the earlier lane allocation, not the admitted implementation scope.
 They preserve work while the single complete0076 migration is unfinished; they
 do not enter the production runner or establish separate completion boundaries.
+
+D1352 / Question191 additionally admits
+`handoff/drafts/order434/0076-native-statutory.sql` for a separate exclusive
+statutory-source reconstruction worker. Preparation retains actual-date/rate
+work; this third fragment reconstructs existing supplier/recipient/property and
+classification roots and their 295/296/297 composition. No new table, event,
+grant, policy or production migration is added. Root owns integration and the
+complete outcome; fragments remain non-runnable WIP, not separate deliverables.
 
 ### Existing product paths: native union/composition only
 
@@ -1251,6 +1260,134 @@ Financials native read-source/413–414–426–429 composition, final commit,
 consumed-source correction guards, and complete76-schema/concurrency/referee
 plus fresh independent Tier3 proof. Order434/Phase7 remain active. Publication
 preserves work on the development branch; it is not main/local promotion.
+
+## Native command wire contract — D1352
+
+The existing `.issue` path is preserved. The new `.issueNative` accepts the exact
+15 UUID identities in this order: tenant, property, actor, reservation, folio,
+valuation, service-provision snapshot, payment-receipt snapshot, ordinary-regime
+evidence, supplier service location, supplier registration status, supplier SEZ
+status, recipient registration, recipient SEZ status and classification. The
+remaining input is the governed calendar or null, idempotency key and existing
+actor/tenant/property/request/`document.issued` audit envelope. It accepts no
+invoice/document selector, date, clock, money, prepared body or evidence digest.
+
+`prepare_india_native_fiscal_invoice_v2` receives exactly22 positional arguments:
+the15 UUIDs above; calendar authority text, source SHA256 text, through date,
+date array and state array; key text; request UUID. Empty arrays with null
+calendar metadata represent absence. Bind arrays as escaped PostgreSQL array
+text parameters, not interpolated JavaScript arrays. Its five returned columns
+are `native_timing_id`, `request_event_id`, `posting_binding_id`,
+`prepared_source_json` and `completed_receipt`.
+
+- Fresh preparation returns three UUIDs, exact insertion-order source JSON and
+  a null completed receipt. The JSON has exactly the canonical
+  `Omit<IndiaNativeFiscalSourceInput, "financialSource">` keys, in this order:
+  tenantId, legalBuyerPartyId, sellerRegistration, recipientRegistration,
+  placeOfSupply, classification, supplyNatureAtTimeOfSupplyInput and
+  supplyNatureAtTimeOfSupplyResult. These are reconstructed database evidence,
+  not caller-provided fiscal authority.
+- Completed replay returns the same three permanent identities, null source
+  JSON and the existing exact20-column commit receipt with `created=false`.
+  Preparation must authenticate current actor authority and the unchanged
+  semantic request before returning it. The service does not call accounting,
+  source resolution or commit again on completed replay.
+
+Fresh preparation is followed, on the identical Tx, by the injected Financials
+handler with `{tenantId,eventId}`, then the Financials public `resolveNative`
+query with the exact property/reservation/folio/binding. Bind handler and reader
+identities, compose native413 and real426/429, and retain the exact false
+readiness, empty actions and three approved blockers before committing.
+
+`commit_india_native_fiscal_invoice_v2` receives exactly7 arguments: tenant UUID,
+property UUID, actor UUID, native timing UUID, key text, full canonical
+413/426/429 evidence payload JSONB and request UUID. It returns the existing
+20-column receipt. SQL must authenticate/reconstruct the complete graph before
+number allocation. The service checks the receipt's prospective document ID,
+parties, scope, issue date and all three composed hashes against preparation.
+
+The dedicated command constructs the Financials-owned handler through public
+indices and opens one `Database.withTenantTransaction`; no additional connection,
+consumer cursor, public HTTP route or background worker is introduced. Focused
+test doubles can prove orchestration but cannot prove PostgreSQL issuance. Do
+not add placeholder prepare/commit/authenticator SQL merely to make them pass.
+
+## Native command, actual-clock timing and distinct statutory roots — D1353
+
+Implemented additions to D1350; this is not complete native issuance:
+
+- `IssueIndiaNativeFiscalInvoiceCommand` opens one tenant transaction and wires
+  the Financials-owned handler through public context indices. Fresh issue uses
+  the exact D1352 prepare → handler → financial source → 413/426/429 → commit
+  sequence. Completed replay skips new accounting. The prepared prospective
+  document identity is checked against the final receipt. PostgreSQL array
+  parameters use escaped bound array text; Bun's JavaScript-array interpolation
+  is not used for the governed calendar.
+- The private `read_india_native_invoice_timing_source` reconstructs genuine
+  intake and approved whole-property-day rate history using the actual issuing
+  transaction timestamp, xid and property timezone. Same-version dates use the
+  ordinary branch. Genuine rate changes use the existing six-case calculation
+  and governed calendar, including the strict four-working-day receipt boundary.
+  It returns both typed JSON and the original insertion-order input/result JSON
+  strings needed by existing TypeScript hash replay. It does not write timing,
+  acquire issue locks, authorize the actor or issue a document.
+- `india-native-invoice-timing-projection-v1` hashes sorted canonical tenant,
+  selected timing/document/property/reservation/source identities, original
+  recording roots and actual transaction context. Its hash is distinct from the
+  complete derived timing hash. The Section14 issue-date predecessor uses the
+  projection hash; native rate-source timing lineage uses the full timing hash.
+  Actor, valuation and request authentication still belong to full preparation.
+- Native297 previously compared Order287's supplier SEZ-status identity (286)
+  with the independent GST registration-status identity (289). The fixture also
+  conflated them. Native input now requires the complete separate 286 result,
+  validates its original preimage and dated GST/SEZ/approval semantics, and binds
+  it to Order287. The 289 result remains independently bound through native295.
+  Native297 inserts `supplierSezStatusId` and `supplierSezStatusEvidenceHash`
+  immediately after `supplierRegistrationStatusEvidenceHash` in its output/hash
+  body. Native numeric composition accepts that exact shape. Legacy/external
+  input, output and preimages are unchanged.
+
+Root personally inspected these diffs and executed:
+
+| Proof | Result | Limit |
+|---|---|---|
+| Native accounting/private timing database suite | 20 passed, 0 failed, 329 assertions | Real intake, actual-clock ordinary/historical timing, calendar boundaries, SQL↔TypeScript original-preimage parity and existing financial preview; not issued-invoice proof. |
+| Existing source/valuation database suite | Passed, exit 0 | Real corrections, transfers, replay, bounds and installed guards remain compatible after additive historical fixture options. |
+| Native/legacy composition, command and boundary suites | 63 passed, 0 failed, 558 assertions across 5 files | Fresh orchestration uses controlled Tx responses and real composers; it is not PostgreSQL prepare/commit proof. |
+
+The standing-check worker personally ran the frozen TypeScript
+tree: 1,523 passed, 1,108 explicit environment/database skips, 0 failed, 21,174
+assertions across 2,631 tests/474 files in 86.91 seconds. Typecheck, 167-file import
+boundaries, 23-package licence check, dependency audit and diff checks passed.
+An earlier full run had one Windows Chrome `DevToolsActivePort` EBUSY; its focused
+rerun passed, and the final whole-suite rerun above did not reproduce it. Skipped
+database tests are not counted as executed acceptance.
+
+Preparation fragment SHA256:
+`2235750150f16d50ed17fe865b7ad7a51f1ac068d5255d6dd435e9fed61d3167`.
+The 74 runnable migrations, draft75 and private accounting fragment are unchanged.
+The one existing synthetic PG16.15 cluster (port55502, 75 migration records,
+127 tables) remains in use for the next bounded statutory lane; no second cluster,
+Docker instance, retained local app, real hotel data or dependency was created.
+
+The D1352 statutory lane is still under implementation, not part of the proven
+timing leaf. Its selected private STABLE/no-lock contract takes 11 UUID selectors
+(tenant, property, reservation, folio, valuation, supplier service location,
+supplier registration status, supplier SEZ status, recipient registration,
+recipient SEZ status, classification) and two internal text transports: the
+reconstructed native invoice source and five-field family jurisdiction
+`{extensionId,ownerTenantId,key,version:string,contentHash}`. The jurisdiction
+must be rechecked against service-day history, not the selected Section14 side.
+Those texts are internal reconstruction inputs, never new command/request
+authority. The leaf returns D1352's exact prepared-source JSON; final preparation
+and authentication must derive its inputs from real roots on the same Tx.
+
+Still required: complete statutory-source reconstruction, preparation and graph
+authentication, actual native accounting/commit and durable replay, complete
+76-migration schema/referee/issuance/concurrency/compatibility proof, followed by
+fresh independent Tier3 acceptance. D1351 verifies only published0fad631 CI; it
+does not certify this later checkpoint. No main merge, local refresh, Order434
+completion or Phase7 completion is claimed.
 
 ## Authenticated financial source and native composition checkpoint — D1350
 

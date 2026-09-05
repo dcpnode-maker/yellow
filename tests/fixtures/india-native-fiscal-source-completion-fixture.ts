@@ -31,6 +31,10 @@ export interface NativeSourceFixtureOptions {
   readonly roomNightAmounts?: readonly string[];
   readonly timezone?: string;
   readonly revenueAccountCount?: number;
+  /** Synthetic historical source/stay prerequisites; never overrides the issue clock. */
+  readonly serviceProvisionDate?: string;
+  readonly supplierBooksEntryDate?: string;
+  readonly supplierBankCreditDate?: string;
 }
 
 export interface NativeSourceCharge {
@@ -196,8 +200,10 @@ export async function createNativeSourceFixture(
   const [dates] = await deploy<DateRow[]>`
     SELECT
       (transaction_timestamp() AT TIME ZONE ${timezone})::date::text AS business_date,
-      ((transaction_timestamp() AT TIME ZONE ${timezone})::date - ${amounts.values.length})::date::text AS first_night,
-      (transaction_timestamp() AT TIME ZONE ${timezone})::date::text AS completion_date
+      (COALESCE(${options.serviceProvisionDate ?? null}::date,
+        (transaction_timestamp() AT TIME ZONE ${timezone})::date) - ${amounts.values.length})::date::text AS first_night,
+      COALESCE(${options.serviceProvisionDate ?? null}::date,
+        (transaction_timestamp() AT TIME ZONE ${timezone})::date)::text AS completion_date
   `;
   if (!dates) throw new Error("Native source fixture could not resolve property-local dates");
   const firstNight = new Date(`${dates.first_night}T00:00:00Z`);
@@ -369,8 +375,8 @@ export async function createNativeSourceFixture(
       amountMinor: amounts.payment.toString(),
       currency: "INR" as const,
       coverageScope: "full_attribution" as const,
-      supplierBooksEntryDate: dates.completion_date,
-      supplierBankCreditDate: dates.completion_date,
+      supplierBooksEntryDate: options.supplierBooksEntryDate ?? dates.completion_date,
+      supplierBankCreditDate: options.supplierBankCreditDate ?? dates.completion_date,
       paymentReceiptSource: "governed_supplier_payment_receipt_record" as const,
       paymentReceiptEvidenceSha256: paymentEvidence,
       legalRule: "CGST_ACT_13_2_EXPLANATION_II_PAYMENT_RECEIPT_DATE_INPUT_ONLY" as const,

@@ -15,7 +15,10 @@ import {
 } from "../src/contexts/tax-fiscal/india-gst-accommodation-final-valuation";
 import { IndiaGstAccommodationServiceProvisionDateService, type IndiaGstAccommodationServiceProvisionDateResult } from "../src/contexts/tax-fiscal/india-gst-accommodation-service-provision-date";
 import { IndiaGstAccommodationPaymentReceiptDateService, type IndiaGstAccommodationPaymentReceiptDateResult } from "../src/contexts/tax-fiscal/india-gst-accommodation-payment-receipt-date";
-import { createAuditEnvelope, Database, PostgresEventBus, PostgresIdempotency, type Tx } from "../src/kernel";
+import { IndiaGstAccommodationHistoricalResolutionService, type IndiaGstAccommodationHistoricalResolutionResult } from "../src/contexts/tax-fiscal/india-gst-accommodation-historical-resolution";
+import { deriveIndiaGstAccommodationNativeInvoiceSource, type IndiaGstAccommodationNativeInvoiceSourceInput, type IndiaGstAccommodationNativeInvoiceSourceResult } from "../src/contexts/tax-fiscal/india-gst-accommodation-invoice-source";
+import { deriveIndiaGstSection14RateSelectionFromEvidence } from "../src/contexts/tax-fiscal/india-gst-section14-rate-selection";
+import { createAuditEnvelope, Database, ExtensionRegistry, PostgresEventBus, PostgresIdempotency, type Tx } from "../src/kernel";
 import {
   createNativeSourceFixture,
   type NativeSourceFixture,
@@ -80,6 +83,24 @@ interface NativeValuationEvidence {
   readonly intake: NativeIntakeProjection;
 }
 
+interface NativeTimingSource {
+  readonly nativeTiming: IndiaGstAccommodationNativeInvoiceSourceInput["nativeTiming"];
+  readonly nativeTimingProjectionPreimage: Mutable;
+  readonly transactionContext: Readonly<{ issuingTransactionId: string; transactionTimestamp: string; propertyTimezone: string; invoiceIssueDate: string }>;
+  readonly invoiceSourceInput: IndiaGstAccommodationNativeInvoiceSourceInput;
+  readonly invoiceSourceResult: IndiaGstAccommodationNativeInvoiceSourceResult;
+  readonly invoiceSourceInputCanonicalJson: string;
+  readonly invoiceSourceResultCanonicalJson: string;
+}
+
+function freezeGraph<T>(value: T): T {
+  if (value && typeof value === "object") {
+    for (const item of Object.values(value)) freezeGraph(item);
+    Object.freeze(value);
+  }
+  return value;
+}
+
 function row(created = true, journalId: string | null = id(434710)): Mutable {
   return {
     posting_binding_id: id(434703),
@@ -118,6 +139,14 @@ function deepFreeze<T>(value: T, seen = new Set<object>()): T {
   seen.add(value);
   for (const key of Reflect.ownKeys(value)) deepFreeze(Reflect.get(value, key), seen);
   return Object.freeze(value);
+}
+
+// Independent serialization of genuine reader output for SQL/TS preimage parity.
+function canonicalEvidence(value: unknown): string {
+  if (value === null || typeof value !== "object") return JSON.stringify(value);
+  if (Array.isArray(value)) return `[${value.map(canonicalEvidence).join(",")}]`;
+  const record = value as Record<string, unknown>;
+  return `{${Object.keys(record).sort().map(key => `${JSON.stringify(key)}:${canonicalEvidence(record[key])}`).join(",")}}`;
 }
 
 function valuationInput(
@@ -423,6 +452,27 @@ databaseDescribe("Order434 live private native-tax preview and accounting metada
     expect(String(fn!.definition)).not.toMatch(/\b(?:INSERT|UPDATE|DELETE|MERGE|CALL)\b/i);
   });
 
+  test("keeps the historical-rate day leaf private, stable and free of writes or locks", async () => {
+    const [fn] = await deploy<Array<Record<string, unknown>>>`
+      SELECT pg_get_userbyid(proc.proowner) AS owner,proc.prosecdef AS security_definer,
+        proc.provolatile AS volatility,proc.proconfig AS config,
+        oidvectortypes(proc.proargtypes) AS arguments,pg_get_function_result(proc.oid) AS result,
+        pg_get_functiondef(proc.oid) AS definition,
+        has_function_privilege('app_role',proc.oid,'EXECUTE') AS app_execute,
+        has_function_privilege('yellow_runtime',proc.oid,'EXECUTE') AS runtime_execute,
+        has_function_privilege('public',proc.oid,'EXECUTE') AS public_execute
+      FROM pg_proc proc JOIN pg_namespace ns ON ns.oid=proc.pronamespace
+      WHERE ns.nspname='public' AND proc.proname='read_india_native_rate_history_day'`;
+    expect(fn).toMatchObject({ owner: "yellow_owner", security_definer: false,
+      volatility: "s", arguments: "uuid, uuid, date", result: "jsonb",
+      app_execute: false, runtime_execute: false, public_execute: false });
+    expect(fn!.config).toEqual(expect.arrayContaining([
+      expect.stringContaining("search_path="),expect.stringContaining("TimeZone=UTC"),
+      expect.stringContaining("DateStyle=ISO"),
+    ]));
+    expect(String(fn!.definition)).not.toMatch(/\b(?:INSERT|UPDATE|DELETE|MERGE|CALL)\b|pg_advisory|FOR\s+(?:SHARE|KEY)/i);
+  });
+
   async function finalize(
     fixture: NativeSourceFixture,
     chargeAmount: string,
@@ -522,6 +572,101 @@ databaseDescribe("Order434 live private native-tax preview and accounting metada
     expect(caught).toBeDefined();
     const error = caught as { errno?: unknown; sqlState?: unknown; code?: unknown };
     expect(String(error.errno ?? error.sqlState ?? error.code)).toBe(state);
+  }
+
+  async function privateHistory(fixture: NativeSourceFixture, businessDate: string, timezone = "UTC") {
+    return deploy.begin(async tx => {
+      await tx`SELECT set_config('app.tenant_id',${fixture.tenant},true)`;
+      await tx`SET LOCAL ROLE yellow_owner`;
+      await tx`SELECT set_config('TimeZone',${timezone},true)`;
+      const [result] = await tx<Array<{
+        evidence: IndiaGstAccommodationHistoricalResolutionResult;
+        canonical_json: string;
+        pair_canonical_json: string;
+      }>>`
+        SELECT source.evidence,
+          public.india_native_source_canonical_json((source.evidence-'evidenceHash')||
+            jsonb_build_object('tenantId',${fixture.tenant}::text)) AS canonical_json,
+          public.india_native_source_canonical_json(((source.evidence->'rateVersionPair')-'evidenceHash')||
+            jsonb_build_object('tenantId',${fixture.tenant}::text,
+              'predecessorOwnerTenantId',NULL,'successorOwnerTenantId',NULL)) AS pair_canonical_json
+        FROM (SELECT public.read_india_native_rate_history_day(
+          ${fixture.tenant}::uuid,${fixture.property}::uuid,${businessDate}::date) AS evidence) source`;
+      if (!result) throw new Error("Private historical-rate day returned no row");
+      const [setting] = await tx<Array<{ timezone: string }>>`SELECT current_setting('TimeZone') AS timezone`;
+      expect(setting?.timezone).toBe(timezone);
+      return result;
+    });
+  }
+
+  type TimingCalendar = Readonly<{ authority: string; sourceHash: string; through: string; dates: readonly string[]; states: readonly string[] }>;
+  async function privateTiming(fixture: NativeSourceFixture, calendar: TimingCalendar | null = null,
+    ordinaryId = fixture.ordinaryResult.ordinaryRegimeEvidenceId) {
+    const timingId = crypto.randomUUID();
+    const documentId = crypto.randomUUID();
+    return deploy.begin(async tx => {
+      await tx`SELECT set_config('app.tenant_id',${fixture.tenant},true)`;
+      await tx`SET LOCAL ROLE yellow_owner`;
+      const read = async () => {
+        const [row] = await tx<Array<{ evidence: NativeTimingSource }>>`
+          SELECT public.read_india_native_invoice_timing_source(
+            ${fixture.tenant}::uuid,${fixture.property}::uuid,${fixture.reservation}::uuid,
+            ${fixture.serviceResult.serviceProvision.serviceProvisionSnapshotId}::uuid,
+            ${fixture.paymentResult.paymentReceipt.paymentReceiptSnapshotId}::uuid,${ordinaryId}::uuid,
+            ${timingId}::uuid,${documentId}::uuid,${calendar?.authority ?? null}::text,
+            ${calendar?.sourceHash ?? null}::text,${calendar?.through ?? null}::date,
+            ${`{${calendar?.dates.join(",") ?? ""}}`}::date[],${`{${calendar?.states.join(",") ?? ""}}`}::text[]) AS evidence`;
+        if (!row) throw new Error("Native timing source missing");
+        return row.evidence;
+      };
+      const first = await read();
+      await tx`SET LOCAL TIME ZONE 'Asia/Calcutta'`;
+      expect(await read()).toEqual(first);
+      const [clock] = await tx<Array<{ issuing_transaction: string; issue_date: string; timezone: string }>>`
+        SELECT pg_current_xact_id()::text AS issuing_transaction,
+          (transaction_timestamp() AT TIME ZONE p.timezone)::date::text AS issue_date,
+          current_setting('TimeZone') AS timezone
+        FROM public.org_node p WHERE p.tenant_id=${fixture.tenant}::uuid AND p.id=${fixture.property}::uuid`;
+      expect(first.transactionContext.issuingTransactionId).toBe(clock!.issuing_transaction);
+      expect(first.transactionContext.invoiceIssueDate).toBe(clock!.issue_date);
+      expect(first.nativeTiming.invoiceIssueDate).toBe(clock!.issue_date);
+      expect(clock!.timezone).toBe("Asia/Calcutta");
+      return first;
+    });
+  }
+
+  function assertTimingParity(actual: NativeTimingSource, fixture: NativeSourceFixture) {
+    const input = freezeGraph(JSON.parse(actual.invoiceSourceInputCanonicalJson) as IndiaGstAccommodationNativeInvoiceSourceInput);
+    const result = freezeGraph(JSON.parse(actual.invoiceSourceResultCanonicalJson) as IndiaGstAccommodationNativeInvoiceSourceResult);
+    expect(input).toEqual(actual.invoiceSourceInput);
+    expect(result).toEqual(actual.invoiceSourceResult);
+    expect(input.serviceProvision).toEqual(fixture.serviceResult.serviceProvision);
+    expect(input.paymentReceipt).toEqual(fixture.paymentResult.paymentReceipt);
+    const expected = deriveIndiaGstAccommodationNativeInvoiceSource(input);
+    expect(result).toEqual(expected);
+    const projectionHash = new Bun.CryptoHasher("sha256").update(canonicalEvidence(actual.nativeTimingProjectionPreimage)).digest("hex");
+    expect(actual.nativeTiming.evidenceHash).toBe(projectionHash);
+    expect(actual.nativeTimingProjectionPreimage.kind).toBe("india-native-invoice-timing-projection-v1");
+    expect(result.timing.predecessorHashes.nativeTiming).toBe(projectionHash);
+    expect(result.timing.evidenceHash).not.toBe(projectionHash);
+    expect(actual.nativeTimingProjectionPreimage.recordingRoots).toEqual({
+      serviceProvisionRecording: fixture.serviceResult.evidenceHash,
+      paymentReceiptRecording: fixture.paymentResult.evidenceHash,
+      ordinaryRegimeRecording: fixture.ordinaryResult.evidenceHash,
+    });
+    if (result.rateSource.kind === "genuine_section14_rate_change") {
+      const section14 = deriveIndiaGstSection14RateSelectionFromEvidence({
+        tenantId: fixture.tenant, propertyNode: fixture.property, reservationId: fixture.reservation,
+        rateVersionPair: input.rateVersionPair, rateChangeDateEvidence: input.rateChangeDateEvidence,
+        serviceProvisionResult: input.serviceProvision, paymentReceiptResult: input.paymentReceipt,
+        invoiceTiming: freezeGraph({ propertyNode: fixture.property, serviceProvision: input.paymentReceipt.serviceProvision,
+          invoiceIssueDate: input.nativeTiming.invoiceIssueDate, amountMinor: input.paymentReceipt.amountMinor,
+          currency: input.paymentReceipt.currency, evidenceHash: input.nativeTiming.evidenceHash }),
+        paymentEvidence: input.section14PaymentEvidence!,
+      });
+      expect(JSON.stringify(result.rateSource.section14)).toBe(JSON.stringify(section14));
+    }
+    return result;
   }
 
   function halfUp(value: bigint, basisPoints: number): bigint {
@@ -681,6 +826,146 @@ databaseDescribe("Order434 live private native-tax preview and accounting metada
     await expectSqlState(privateIntake(fixture, payment.paymentReceiptSnapshotId, crypto.randomUUID()), "42501");
     expect(await census(fixture.tenant)).toEqual(before);
   }, 30_000);
+
+  test("private historical-rate day matches real TS registry history and both canonical preimages", async () => {
+    const fixture = await createNativeSourceFixture(deploy, runtime, { label: "private-historical-day" });
+    // Ordinary fiscal configuration prerequisite; no derived timing or tax rows.
+    await deploy`INSERT INTO public.tax_assignment(tenant_id,property_node,jurisdiction_key,effective)
+      VALUES(${fixture.tenant}::uuid,${fixture.property}::uuid,'in-gst-lodging',daterange(NULL,NULL,'[)'))`;
+    const service = new IndiaGstAccommodationHistoricalResolutionService(new ExtensionRegistry(runtimeEvents));
+    const [clock] = await runtime.withTenantTransaction(fixture.tenant, tx => tx<Array<{ business_date: string }>>`
+      SELECT (transaction_timestamp() AT TIME ZONE property.timezone)::date::text AS business_date
+        FROM public.org_node property WHERE property.tenant_id=${fixture.tenant}::uuid
+          AND property.id=${fixture.property}::uuid`);
+    if (!clock) throw new Error("Actual property-local transaction clock unavailable");
+    const dates = [...new Set([
+      "2022-07-18", "2025-09-21", "2025-09-22", clock.business_date,
+      fixture.serviceResult.serviceProvision.serviceProvisionDate,
+      fixture.paymentResult.paymentReceipt.supplierBooksEntryDate,
+      fixture.paymentResult.paymentReceipt.supplierBankCreditDate,
+      fixture.paymentResult.paymentReceipt.paymentReceiptDate,
+    ])];
+    const before = await census(fixture.tenant);
+    for (const businessDate of dates) {
+      const expected = await runtime.withTenantTransaction(fixture.tenant,
+        tx => service.resolve(tx, { propertyNode: fixture.property, businessDate }));
+      const actual = await privateHistory(fixture, businessDate);
+      expect(actual.evidence).toEqual(expected);
+      expect(actual.evidence.assignment).toEqual({
+        jurisdictionKey: "in-gst-lodging", effectiveFrom: null, effectiveTo: null,
+      });
+      expect(actual.evidence.selectedExtension.extensionId).toBe(businessDate < "2025-09-22" ? PREDECESSOR : SUCCESSOR);
+      const { evidenceHash, ...body } = expected;
+      const { evidenceHash: pairHash, ...pair } = expected.rateVersionPair;
+      expect(actual.canonical_json).toBe(canonicalEvidence({ tenantId: fixture.tenant, ...body }));
+      expect(actual.pair_canonical_json).toBe(canonicalEvidence({ tenantId: fixture.tenant,
+        predecessorOwnerTenantId: null, successorOwnerTenantId: null, ...pair }));
+      expect(new Bun.CryptoHasher("sha256").update(actual.canonical_json).digest("hex")).toBe(evidenceHash);
+      expect(new Bun.CryptoHasher("sha256").update(actual.pair_canonical_json).digest("hex")).toBe(pairHash);
+      expect(await privateHistory(fixture, businessDate, "Asia/Calcutta")).toEqual(actual);
+    }
+    expect((await privateHistory(fixture, "2025-09-21")).evidence.businessDay).toEqual({
+      businessDate: "2025-09-21", fromInstant: "2025-09-20T18:30:00.000000Z", toInstant: "2025-09-21T18:30:00.000000Z",
+    });
+    expect((await privateHistory(fixture, "2025-09-22")).evidence.businessDay).toEqual({
+      businessDate: "2025-09-22", fromInstant: "2025-09-21T18:30:00.000000Z", toInstant: "2025-09-22T18:30:00.000000Z",
+    });
+    expect(await census(fixture.tenant)).toEqual(before);
+  }, 30_000);
+
+  test("native timing reader is private and the six-case helper is non-authoritative date arithmetic", async () => {
+    const functions = await deploy<Array<{ proname: string; owner: string; runtime_execute: boolean; app_execute: boolean; config: string[] }>>`
+      SELECT p.proname,pg_get_userbyid(p.proowner) AS owner,p.proconfig AS config,
+        has_function_privilege('yellow_runtime',p.oid,'EXECUTE') AS runtime_execute,
+        has_function_privilege('app_role',p.oid,'EXECUTE') AS app_execute
+      FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace WHERE n.nspname='public'
+        AND p.proname IN ('read_india_native_invoice_timing_source','india_native_section14_case')`;
+    expect(functions).toHaveLength(2);
+    for (const fn of functions) {
+      expect(fn.owner).toBe("yellow_owner");
+      expect(fn.runtime_execute).toBe(false);
+      expect(fn.app_execute).toBe(false);
+      expect(fn.config).toContain("TimeZone=UTC");
+    }
+    // Arithmetic-only historical vectors: none is a persisted invoice or clock override.
+    const cases = [
+      ["2025-09-20", "2025-09-24", "2025-09-25", "supply_before_invoice_after_payment_after", "2025-09-24", "successor"],
+      ["2025-09-20", "2025-09-21", "2025-09-25", "supply_invoice_before_payment_after", "2025-09-21", "predecessor"],
+      ["2025-09-20", "2025-09-24", "2025-09-21", "supply_payment_before_invoice_after", "2025-09-21", "predecessor"],
+      ["2025-09-24", "2025-09-20", "2025-09-25", "supply_after_invoice_before_payment_after", "2025-09-25", "successor"],
+      ["2025-09-24", "2025-09-20", "2025-09-21", "supply_after_invoice_payment_before", "2025-09-20", "predecessor"],
+      ["2025-09-24", "2025-09-25", "2025-09-21", "supply_invoice_after_payment_before", "2025-09-25", "successor"],
+    ] as const;
+    for (const [service, invoice, payment, selectedCase, timeOfSupplyDate, selectedVersionSide] of cases) {
+      const [actual] = await deploy.begin(async tx => {
+        await tx`SET LOCAL ROLE yellow_owner`;
+        return tx<Array<{ evidence: Mutable }>>`SELECT public.india_native_section14_case(
+          ${service}::date,${invoice}::date,${payment}::date,'2025-09-22'::date) AS evidence`;
+      });
+      expect(actual?.evidence).toEqual({ case: selectedCase, timeOfSupplyDate, selectedVersionSide });
+    }
+    for (const dates of [["2025-09-22", "2025-09-24", "2025-09-25"], ["2025-09-24", "2025-09-25", "2025-09-26"]]) {
+      await expectSqlState(deploy.begin(async tx => {
+        await tx`SET LOCAL ROLE yellow_owner`;
+        await tx`SELECT public.india_native_section14_case(${dates[0]!}::date,${dates[1]!}::date,${dates[2]!}::date,'2025-09-22'::date)`;
+      }), "22023");
+    }
+  });
+
+  test("private prospective ordinary timing uses authentic roots and actual transaction/property clock", async () => {
+    const fixture = await createNativeSourceFixture(deploy, runtime, { label: "native-timing-ordinary" });
+    await deploy`INSERT INTO public.tax_assignment(tenant_id,property_node,jurisdiction_key,effective)
+      VALUES(${fixture.tenant}::uuid,${fixture.property}::uuid,'in-gst-lodging',daterange(NULL,NULL,'[)'))`;
+    const before = await census(fixture.tenant);
+    const actual = await privateTiming(fixture);
+    const result = assertTimingParity(actual, fixture);
+    expect(result.rateSource.kind).toBe("ordinary_section13_single_version");
+    expect(result.timing.branch).toBe("section13_2_a_invoice_or_payment");
+    expect(actual.invoiceSourceInput.section14PaymentEvidence).toBeNull();
+    await expectSqlState(privateTiming(fixture, null, crypto.randomUUID()), "55000");
+    await expectSqlState(privateTiming(fixture, { authority: "TEST_CALENDAR", sourceHash: "a".repeat(64),
+      through: "2025-09-26", dates: ["2025-09-23", "2025-09-24", "2025-09-25", "2025-09-26"],
+      states: ["working", "working", "working", "working"] }), "22023");
+    expect(await census(fixture.tenant)).toEqual(before);
+  }, 30_000);
+
+  test("private current-clock Section14 reconstructs genuine historical intake and exact calendar boundary hashes", async () => {
+    const calendar: TimingCalendar = { authority: "ORDER434_SYNTHETIC_CALENDAR", sourceHash: "b".repeat(64),
+      through: "2025-09-29", dates: ["2025-09-23", "2025-09-24", "2025-09-25", "2025-09-26", "2025-09-27", "2025-09-28", "2025-09-29"],
+      states: ["working", "working", "working", "working", "non_working", "non_working", "working"] };
+    const cases = [
+      { label: "native-timing-safe", service: "2025-09-20", books: "2025-09-19", bank: "2025-09-21", calendar: null,
+        selectedCase: "supply_payment_before_invoice_after", receipt: "2025-09-19" },
+      { label: "native-timing-day-four", service: "2025-09-20", books: "2025-09-19", bank: "2025-09-26", calendar,
+        selectedCase: "supply_payment_before_invoice_after", receipt: "2025-09-19" },
+      { label: "native-timing-after-four", service: "2025-09-20", books: "2025-09-19", bank: "2025-09-29", calendar,
+        selectedCase: "supply_before_invoice_after_payment_after", receipt: "2025-09-29" },
+      { label: "native-timing-later-service", service: "2025-09-24", books: "2025-09-19", bank: "2025-09-21", calendar: null,
+        selectedCase: "supply_invoice_after_payment_before", receipt: "2025-09-19" },
+    ] as const;
+    for (const item of cases) {
+      const fixture = await createNativeSourceFixture(deploy, runtime, { label: item.label,
+        serviceProvisionDate: item.service, supplierBooksEntryDate: item.books, supplierBankCreditDate: item.bank });
+      await deploy`INSERT INTO public.tax_assignment(tenant_id,property_node,jurisdiction_key,effective)
+        VALUES(${fixture.tenant}::uuid,${fixture.property}::uuid,'in-gst-lodging',daterange(NULL,NULL,'[)'))`;
+      const before = await census(fixture.tenant);
+      const actual = await privateTiming(fixture, item.calendar);
+      const result = assertTimingParity(actual, fixture);
+      expect(result.rateSource.kind).toBe("genuine_section14_rate_change");
+      if (result.rateSource.kind !== "genuine_section14_rate_change") throw new Error("Expected genuine cutover source");
+      expect(result.rateSource.section14.case).toBe(item.selectedCase);
+      expect(result.rateSource.section14.paymentReceiptDate).toBe(item.receipt);
+      expect(result.rateSource.section14.predecessorHashes.invoiceIssue).toBe(actual.nativeTiming.evidenceHash);
+      expect(result.timing.paymentReceiptDate).toBe(item.books);
+      expect(result.timing.branch).toBe("section13_2_b_service_or_payment");
+      if (item.calendar) {
+        await expectSqlState(privateTiming(fixture), "22023");
+        await expectSqlState(privateTiming(fixture, { ...calendar, through: "2025-09-28" }), "22023");
+        await expectSqlState(privateTiming(fixture, { ...calendar, states: calendar.states.map(() => "non_working") }), "22023");
+      }
+      expect(await census(fixture.tenant)).toEqual(before);
+    }
+  }, 60_000);
 
   test("private valuation authenticates genuine stored basis, allocations and original actor across session timezones", async () => {
     const fixture = await createNativeSourceFixture(deploy, runtime, {

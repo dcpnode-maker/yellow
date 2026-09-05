@@ -34,6 +34,10 @@ import {
 import { deriveIndiaGstSection14WorkingDayCalendarEvidence } from "../src/contexts/tax-fiscal/india-gst-section14-working-day-calendar-evidence";
 import { assembleIndiaNativeFiscalSource, type IndiaNativeFiscalSourceInput } from "../src/contexts/tax-fiscal/india-native-fiscal-source";
 import { IndiaIrpAccommodationFiscalActionReadinessService } from "../src/contexts/tax-fiscal/india-irp-accommodation-fiscal-action-readiness";
+import {
+  IndiaNativeFiscalInvoiceConflictError,
+  IndiaNativeFiscalInvoiceIssuanceService,
+} from "../src/contexts/tax-fiscal/india-native-fiscal-invoice";
 import { composeIndiaIrpAccommodationValidationCompatibilityPreDocumentEvidenceAssembly } from "../src/contexts/tax-fiscal/india-irp-accommodation-validation-compatibility-pre-document-evidence-assembly";
 import { composeIndiaIrpAccommodationNumericItemSources } from "../src/contexts/tax-fiscal/india-irp-accommodation-numeric-item-source";
 
@@ -65,6 +69,7 @@ const JURISDICTION = id(43421);
 const CLASSIFICATION = id(43422);
 const SELLABLE = id(43423);
 const VALUATION = id(43424);
+const SUPPLIER_SEZ_STATUS = id(43425);
 const PERIOD = "[\"2026-01-01 00:00:00+00\",\"2026-01-03 00:00:00+00\")";
 const PREDECESSOR = "a806f516-fed6-5768-b310-94aa03286adb";
 const SUCCESSOR = "0b21daf2-ea6e-5568-9c21-69e4d4424574";
@@ -455,6 +460,7 @@ function nativeRegistrationComposition(
   identityHashes: Readonly<{ supplier: string; recipient: string; classification?: string }> = {
     supplier: HASH("5"), recipient: HASH("7"), classification: HASH("c"),
   },
+  supplierSezStatusId = SUPPLIER_SEZ_STATUS,
 ) {
   const statusAsOf = source.timing.timeOfSupplyDate;
   const supplierServiceLocation = freeze({ id: SUPPLIER_LOCATION, evidenceHash: HASH("4") });
@@ -466,6 +472,21 @@ function nativeRegistrationComposition(
     supplierRegistrationStatus: freeze({ supplierRegistrationId: SUPPLIER_REGISTRATION, supplierGstRegistrationStatusId: SUPPLIER_STATUS, supplierServiceLocationId: SUPPLIER_LOCATION, propertyNode: PROPERTY, statusAsOf, supplierServiceLocation, supplier: supplierIdentity, gstRegistration: supplierGst, supplierRegistrationStatusEvidenceHash: supplierStatusHash, registrationLegalRule: "CGST_ACT_25_29_30_AND_RULE_21A_REGISTRATION_STATUS" as const }),
     invoiceSource: source,
   }));
+  const supplierSezStatusBody = {
+    supplierSezStatusId,
+    propertyNode: PROPERTY,
+    supplierServiceLocation,
+    supplier: supplierIdentity,
+    statusAsOf,
+    gstRegistration: supplierGst,
+    sezStatus: "affirmatively_non_sez_regular" as const,
+    approval: null,
+    legalRule: "IGST_ACT_7_5_B_AND_8_2_SUPPLIER_STATUS" as const,
+  };
+  const supplierSezStatus = freeze({
+    ...supplierSezStatusBody,
+    evidenceHash: insertionHash({ tenantId: TENANT, ...supplierSezStatusBody }),
+  });
 
   const recipientIdentity = freeze({ registrationId: RECIPIENT_REGISTRATION, evidenceHash: identityHashes.recipient });
   const recipientGst = freeze({ status: "active" as const, taxpayerType: "regular" as const, source: "gst_common_portal" as const, evidenceSha256: HASH("8") });
@@ -482,7 +503,7 @@ function nativeRegistrationComposition(
     folioId: FOLIO,
     supplyDate: statusAsOf,
     jurisdiction: freeze({ extensionId: JURISDICTION, ownerTenantId: null, key: "in-gst-lodging", version: "2", contentHash: HASH("9") }),
-    supplier: freeze({ registrationId: SUPPLIER_REGISTRATION, evidenceHash: supplierIdentity.evidenceHash, stateCode: "29", serviceLocation: freeze({ id: SUPPLIER_LOCATION, evidenceHash: supplierServiceLocation.evidenceHash, kind: "principal_place_of_business" as const, stateCode: "29" }), status: freeze({ id: SUPPLIER_STATUS, evidenceHash: supplierStatusHash, statusAsOf, taxpayerType: "regular" as const, sezStatus: "affirmatively_non_sez_regular" as const }) }),
+    supplier: freeze({ registrationId: SUPPLIER_REGISTRATION, evidenceHash: supplierIdentity.evidenceHash, stateCode: "29", serviceLocation: freeze({ id: SUPPLIER_LOCATION, evidenceHash: supplierServiceLocation.evidenceHash, kind: "principal_place_of_business" as const, stateCode: "29" }), status: freeze({ id: supplierSezStatusId, evidenceHash: supplierSezStatus.evidenceHash, statusAsOf, taxpayerType: "regular" as const, sezStatus: "affirmatively_non_sez_regular" as const }) }),
     recipient: freeze({ partyId: RECIPIENT_PARTY, registrationId: RECIPIENT_REGISTRATION, evidenceHash: recipientIdentity.evidenceHash, status: freeze({ id: RECIPIENT_STATUS, evidenceHash: recipientStatusHash, statusAsOf, taxpayerType: "regular" as const, sezStatus: "affirmatively_non_sez_regular" as const }) }),
     buyerAssociation: freeze({ associationHash: HASH("a"), payloadHash: HASH("b") }),
     classification: freeze({ classificationId: CLASSIFICATION, evidenceHash: identityHashes.classification ?? HASH("c") }),
@@ -495,8 +516,8 @@ function nativeRegistrationComposition(
   };
   const candidateJson = JSON.stringify(supplyHead);
   const supplyNature = freeze({ ...supplyHead, candidateJson, candidateHash: insertionHash({ tenantId: TENANT, candidate: supplyHead }) });
-  const composed = composeIndiaGstAccommodationNativeSupplyNatureAtTimeOfSupply({ tenantId: TENANT, supplyNature, supplierRegistrationAtTimeOfSupply: supplier, recipientRegistrationAtTimeOfSupply: recipient });
-  return { source, supplier, recipient, supplyNature, composed };
+  const composed = composeIndiaGstAccommodationNativeSupplyNatureAtTimeOfSupply({ tenantId: TENANT, supplyNature, supplierRegistrationAtTimeOfSupply: supplier, supplierSezStatus, recipientRegistrationAtTimeOfSupply: recipient });
+  return { source, supplier, supplierSezStatus, recipient, supplyNature, composed };
 }
 
 function nativeFiscalInput(): IndiaNativeFiscalSourceInput {
@@ -603,6 +624,7 @@ function nativeFiscalInput(): IndiaNativeFiscalSourceInput {
     sellerRegistration, recipientRegistration, placeOfSupply, classification,
     supplyNatureAtTimeOfSupplyInput: freeze({ tenantId: TENANT, supplyNature: registration.supplyNature,
       supplierRegistrationAtTimeOfSupply: registration.supplier,
+      supplierSezStatus: registration.supplierSezStatus,
       recipientRegistrationAtTimeOfSupply: registration.recipient }),
     supplyNatureAtTimeOfSupplyResult: registration.composed });
 }
@@ -742,6 +764,138 @@ describe("Order 434 native/external invoice timing and rate source", () => {
       "DOCUMENT_SERIES_UNBOUND",
     ]);
     expect(actual.state).toBe("blocked_pending_fiscal_document_origin_policy");
+  });
+
+  test("fresh native issue orchestrates prepare, accounting, source, readiness and commit in one Tx", async () => {
+    const sourceInput = nativeFiscalInput();
+    const financial = sourceInput.financialSource;
+    const timing = sourceInput.supplyNatureAtTimeOfSupplyInput
+      .supplierRegistrationAtTimeOfSupply.timeOfSupply.nativeTiming;
+    const { financialSource: _financialSource, ...prepared } = sourceInput;
+    const preparedSourceJson = JSON.stringify(prepared);
+    const actorId = id(43480);
+    const requestId = id(43481);
+    const issueInput = freeze({
+      tenantId: TENANT,
+      propertyNode: PROPERTY,
+      actorId,
+      reservationId: RESERVATION,
+      folioId: FOLIO,
+      valuationId: financial.valuationId,
+      serviceProvisionSnapshotId: timing.serviceProvisionSnapshotId,
+      paymentReceiptSnapshotId: timing.paymentReceiptSnapshotId,
+      ordinaryRegimeEvidenceId: timing.ordinaryRegimeEvidenceId,
+      supplierServiceLocationId: sourceInput.supplyNatureAtTimeOfSupplyResult.supplierServiceLocationId,
+      supplierRegistrationStatusId: sourceInput.supplyNatureAtTimeOfSupplyResult.supplierGstRegistrationStatusId,
+      supplierSezStatusId: sourceInput.supplyNatureAtTimeOfSupplyInput.supplyNature.supplier.status.id,
+      recipientRegistrationId: sourceInput.recipientRegistration.registrationId,
+      recipientSezStatusId: sourceInput.supplyNatureAtTimeOfSupplyResult.recipientSezStatusId,
+      classificationId: sourceInput.classification.classificationId,
+      calendarEvidence: null,
+      idempotencyKey: "order434-native-fresh-issue",
+      envelope: freeze({ actorId, tenantId: TENANT, propertyNode: PROPERTY, requestId,
+        operation: "document.issued" as const }),
+    });
+    const expectedSource = assembleIndiaNativeFiscalSource(sourceInput);
+    const expectedReadiness = await new IndiaIrpAccommodationFiscalActionReadinessService()
+      .resolveNative((async () => []) as never, sourceInput);
+    const order: string[] = [];
+    let observedPayload: Record<string, unknown> | undefined;
+    let activeTx: Tx | undefined;
+    let committedDocumentId = timing.prospectiveDocumentId;
+    const tx = (async (strings: TemplateStringsArray, ...values: unknown[]) => {
+      const sql = Array.from(strings).join(" ");
+      if (sql.includes("prepare_india_native_fiscal_invoice_v2")) {
+        order.push("prepare");
+        return [{ native_timing_id: timing.nativeTimingId, request_event_id: id(43482),
+          posting_binding_id: financial.postingBindingId, prepared_source_json: preparedSourceJson,
+          completed_receipt: null }];
+      }
+      if (sql.includes("commit_india_native_fiscal_invoice_v2")) {
+        order.push("commit");
+        observedPayload = JSON.parse(String(values[5])) as Record<string, unknown>;
+        return [{ document_id: committedDocumentId, document_kind: "invoice",
+          series_id: id(43483), doc_no: "I/2627/1", property_node: PROPERTY,
+          reservation_id: RESERVATION, folio_id: FOLIO,
+          supplier_registration_id: sourceInput.sellerRegistration.registrationId,
+          recipient_registration_id: sourceInput.recipientRegistration.registrationId,
+          financial_year_start: "2026-04-01", currency: "INR", status: "issued",
+          business_date: financial.businessDate, issued_at: "2026-09-05T00:00:00.000Z",
+          prev_hash: null, sha256: HASH("1"), source_evidence_hash: expectedSource.evidenceHash,
+          pre_document_evidence_hash: expectedReadiness.preDocumentEvidenceHash,
+          readiness_evidence_hash: expectedReadiness.evidenceHash, created: true }];
+      }
+      throw new Error(`unexpected native issue SQL: ${sql}`);
+    }) as unknown as Tx;
+    activeTx = tx;
+    const service = new IndiaNativeFiscalInvoiceIssuanceService({
+      nativeAccounting: { handle: async (seenTx, input) => {
+        order.push("handler");
+        expect(seenTx).toBe(activeTx!);
+        expect(input).toEqual({ tenantId: TENANT, eventId: id(43482) });
+        return freeze({ postingBindingId: financial.postingBindingId,
+          nativeTimingId: financial.nativeTimingId, taxId: financial.taxId,
+          valuationId: financial.valuationId, applicabilityId: financial.applicabilityId,
+          reservationId: financial.reservationId, folioId: financial.folioId,
+          journalId: financial.journalId, currency: "INR" as const,
+          businessDate: financial.businessDate, evidenceHash: financial.accountingEvidenceHash,
+          created: true, replayed: false });
+      } },
+      nativeFinancialSource: { resolveNative: async (seenTx, input) => {
+        order.push("reader");
+        expect(seenTx).toBe(activeTx!);
+        expect(input).toEqual({ tenantId: TENANT, propertyNode: PROPERTY,
+          reservationId: RESERVATION, folioId: FOLIO,
+          postingBindingId: financial.postingBindingId });
+        return financial;
+      } },
+    });
+    const result = await service.issueNative(tx, issueInput);
+    expect(order).toEqual(["prepare", "handler", "reader", "commit"]);
+    expect(result).toMatchObject({ documentId: timing.prospectiveDocumentId, replayed: false,
+      sourceEvidenceHash: expectedSource.evidenceHash,
+      preDocumentEvidenceHash: expectedReadiness.preDocumentEvidenceHash,
+      readinessEvidenceHash: expectedReadiness.evidenceHash });
+    expect(insertionHash(JSON.parse(String(observedPayload?.sourceEvidencePreimage))))
+      .toBe(expectedSource.evidenceHash);
+    expect(insertionHash(JSON.parse(String(observedPayload?.preDocumentEvidencePreimage))))
+      .toBe(expectedReadiness.preDocumentEvidenceHash);
+    expect(insertionHash(JSON.parse(String(observedPayload?.readinessEvidencePreimage))))
+      .toBe(expectedReadiness.evidenceHash);
+
+    committedDocumentId = id(43499);
+    await expect(service.issueNative(tx, issueInput))
+      .rejects.toBeInstanceOf(IndiaNativeFiscalInvoiceConflictError);
+
+    const handlerFailure = new Error("ordinary handler failure");
+    order.length = 0;
+    await expect(new IndiaNativeFiscalInvoiceIssuanceService({
+      nativeAccounting: { handle: async () => { throw handlerFailure; } },
+    }).issueNative(tx, issueInput)).rejects.toBe(handlerFailure);
+    expect(order).toEqual(["prepare"]);
+
+    const commitFailure = new Error("ordinary commit failure");
+    const failingCommitTx = (async (strings: TemplateStringsArray) => {
+      const sql = Array.from(strings).join(" ");
+      if (sql.includes("prepare_india_native_fiscal_invoice_v2")) return [{
+        native_timing_id: timing.nativeTimingId, request_event_id: id(43482),
+        posting_binding_id: financial.postingBindingId, prepared_source_json: preparedSourceJson,
+        completed_receipt: null,
+      }];
+      if (sql.includes("commit_india_native_fiscal_invoice_v2")) throw commitFailure;
+      throw new Error(`unexpected failing native issue SQL: ${sql}`);
+    }) as unknown as Tx;
+    await expect(new IndiaNativeFiscalInvoiceIssuanceService({
+      nativeAccounting: { handle: async () => freeze({
+        postingBindingId: financial.postingBindingId, nativeTimingId: financial.nativeTimingId,
+        taxId: financial.taxId, valuationId: financial.valuationId,
+        applicabilityId: financial.applicabilityId, reservationId: financial.reservationId,
+        folioId: financial.folioId, journalId: financial.journalId, currency: "INR" as const,
+        businessDate: financial.businessDate, evidenceHash: financial.accountingEvidenceHash,
+        created: true, replayed: false,
+      }) },
+      nativeFinancialSource: { resolveNative: async () => financial },
+    }).issueNative(failingCommitTx, issueInput)).rejects.toBe(commitFailure);
   });
 
   test("uses ordinary Rule47/Section13 and whole-day history without inventing Section14 or an external invoice", () => {
@@ -964,7 +1118,7 @@ describe("Order 434 native/external invoice timing and rate source", () => {
     const source = deriveIndiaGstAccommodationNativeInvoiceSource(
       nativeInput("2026-01-01", "2026-01-03", "2026-01-04", "2026-01-02"),
     );
-    const { supplier, recipient, composed } = nativeRegistrationComposition(source);
+    const { supplier, supplierSezStatus, recipient, composed } = nativeRegistrationComposition(source);
     expect(supplier.kind).toBe("native_current_transaction");
     expect(recipient.kind).toBe("native_current_transaction");
     expect(supplier.invoiceSourceEvidenceHash).toBe(source.evidenceHash);
@@ -979,8 +1133,14 @@ describe("Order 434 native/external invoice timing and rate source", () => {
       nativeTiming: source.timing,
     }));
     expect(supplier.timeOfSupplyEvidenceHash).not.toBe(recipient.timeOfSupplyEvidenceHash);
+    expect(supplier.supplierGstRegistrationStatusId).not.toBe(supplierSezStatus.supplierSezStatusId);
+    expect(supplier.supplierRegistrationStatusEvidenceHash).not.toBe(supplierSezStatus.evidenceHash);
     expect(composed).toMatchObject({
       kind: "native_current_transaction",
+      supplierGstRegistrationStatusId: supplier.supplierGstRegistrationStatusId,
+      supplierRegistrationStatusEvidenceHash: supplier.supplierRegistrationStatusEvidenceHash,
+      supplierSezStatusId: supplierSezStatus.supplierSezStatusId,
+      supplierSezStatusEvidenceHash: supplierSezStatus.evidenceHash,
       invoiceSourceEvidenceHash: source.evidenceHash,
       nativeTimingEvidenceHash: source.timing.evidenceHash,
       supplierTimeOfSupplyEvidenceHash: supplier.timeOfSupplyEvidenceHash,
@@ -1032,8 +1192,34 @@ describe("Order 434 native/external invoice timing and rate source", () => {
       tenantId: TENANT,
       supplyNature: first.supplyNature,
       supplierRegistrationAtTimeOfSupply: first.supplier,
+      supplierSezStatus: first.supplierSezStatus,
       recipientRegistrationAtTimeOfSupply: second.recipient,
     })).toThrow(/do not describe one transaction/);
+    const alternateSupplierSez = nativeRegistrationComposition(first.source, undefined, id(43426));
+    expect(() => composeIndiaGstAccommodationNativeSupplyNatureAtTimeOfSupply({
+      tenantId: TENANT,
+      supplyNature: first.supplyNature,
+      supplierRegistrationAtTimeOfSupply: first.supplier,
+      supplierSezStatus: alternateSupplierSez.supplierSezStatus,
+      recipientRegistrationAtTimeOfSupply: first.recipient,
+    })).toThrow(/do not describe one transaction/);
+    const malformedSupplierSez = structuredClone(first.supplierSezStatus) as Mutable;
+    malformedSupplierSez.evidenceHash = HASH("f");
+    freeze(malformedSupplierSez);
+    expect(() => composeIndiaGstAccommodationNativeSupplyNatureAtTimeOfSupply({
+      tenantId: TENANT,
+      supplyNature: first.supplyNature,
+      supplierRegistrationAtTimeOfSupply: first.supplier,
+      supplierSezStatus: malformedSupplierSez as never,
+      recipientRegistrationAtTimeOfSupply: first.recipient,
+    })).toThrow(/supplier SEZ-status evidence hash is inconsistent/);
+    expect(() => composeIndiaGstAccommodationNativeSupplyNatureAtTimeOfSupply({
+      tenantId: TENANT,
+      supplyNature: first.supplyNature,
+      supplierRegistrationAtTimeOfSupply: first.supplier,
+      supplierSezStatus: null,
+      recipientRegistrationAtTimeOfSupply: first.recipient,
+    } as never)).toThrow(/supplier SEZ-status evidence must be an exact plain object/);
     const oversizedSupplier = structuredClone(first.supplier) as Mutable;
     oversizedSupplier.timeOfSupply.nativeTiming.amountMinor = "9223372036854775808";
     freeze(oversizedSupplier);
@@ -1041,6 +1227,7 @@ describe("Order 434 native/external invoice timing and rate source", () => {
       tenantId: TENANT,
       supplyNature: first.supplyNature,
       supplierRegistrationAtTimeOfSupply: oversizedSupplier as never,
+      supplierSezStatus: first.supplierSezStatus,
       recipientRegistrationAtTimeOfSupply: first.recipient,
     })).toThrow(/native timing semantics/);
     expect(() => composeIndiaGstAccommodationNativeSupplyNatureAtTimeOfSupply({

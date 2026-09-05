@@ -2,10 +2,11 @@
 
 **Status:** INCOMPLETE; no Order434/Phase7 approval.
 **Recorded by:** root from the named agents' personally executed reports.
-**Date:** 2026-09-05 · D1350.
+**Date:** 2026-09-05 · D1350, D1353.
 
-These checks cover private implementation fragments only. The full native
-prepare/accounting/commit command and production0076 migration do not yet exist.
+These checks cover implementation fragments only. The one-Tx TypeScript command
+is wired at D1353, but full SQL prepare/authentication/accounting/commit and the
+production0076 migration do not yet exist.
 No reviewer fabricated a native issued binding to stand in for that missing path.
 Fresh non-implementing Tier3 proof remains required on the complete candidate.
 
@@ -50,6 +51,31 @@ bun test tests/india-native-fiscal-accounting.integration.test.ts -t "authentica
 
 Result:1 passed,0 failed,14 filtered,6 assertions. This verifies installed
 metadata/definition only, not successful native binding or issuance provenance.
+
+## D1353 bounded source/command observations — not final acceptance
+
+Root did not implement the native timing SQL leaf, command/service wiring or
+native297 correction. Root inspected their diffs and personally executed the
+accounting/private-timing database suite (20 passed, 0 failed, 329 assertions),
+the existing source/valuation database suite (exit 0), and the five-file native/
+legacy composition/command/import-boundary set (63 passed, 0 failed, 558 assertions).
+The actual property clock, historical-rate and calendar cases use genuine intake;
+the fresh command test still uses controlled preparation/commit Tx responses.
+
+The implementation review exposed three concrete issues before this checkpoint:
+Bun JavaScript-array binding was replaced with bound escaped PostgreSQL arrays;
+the fresh receipt now binds the prepared prospective document ID; native297 now
+keeps original Order286 supplier SEZ evidence distinct from Order289 registration
+status. Those corrections preserve the external/legacy path. Root found no further
+bounded issue in the inspected diffs, but did not execute complete native issuance.
+
+`/root/native_fiscal_composition` personally reran final whole-tree standing checks
+with database/require environment variables cleared: 1,523 pass, 1,108 explicit
+skips, 0 fail, 21,174 assertions, 474 files; typecheck, boundaries167, licences23,
+audit and diff checks passed. This worker implemented command wiring, so its
+standing result is executable regression evidence, not independent approval of
+its own implementation. The earlier Windows EBUSY flake did not recur in this
+final whole-suite run. See the order's D1353 section for scope and exact limits.
 
 ## Still required
 

@@ -2118,10 +2118,10 @@ different fresh Tier3 review remain required. Order434 is not built or approved;
 neither order establishes provider readiness, IRP completion, a local refresh or
 Phase7 completion.
 
-The latest [Order434/D1350 checkpoint](handoff/orders/434-native-fiscal-source-completion.md#authenticated-financial-source-and-native-composition-checkpoint--d1350)
-records implemented financial-source reconstruction, private consumed-source
-guards and native statutory/numeric composition with exact bounded proof. Full
-prepare/accounting/commit and independent acceptance remain open; the18-phase
+The latest [Order434/D1353 checkpoint](handoff/orders/434-native-fiscal-source-completion.md#native-command-actual-clock-timing-and-distinct-statutory-roots--d1353)
+records the one-Tx command, actual-clock historical timing reader and corrected
+distinct supplier GST/SEZ evidence, with exact bounded proof. Complete SQL
+prepare/authentication/accounting/commit and independent acceptance remain open; the18-phase
 scope and dependency-gated11→13→17 priority are unchanged.
 
 ## Current cross-phase requirements index — Order433, 2026-09-05

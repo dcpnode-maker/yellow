@@ -10,6 +10,7 @@ import type {
   IndiaGstRecipientRegistrationAtTimeOfSupplyResult,
   IndiaGstRecipientRegistrationAtNativeTimeOfSupplyResult,
 } from "./india-gst-recipient-registration-at-time-of-supply";
+import type { IndiaGstSupplierSezStatusResult } from "./india-gst-supplier-sez-status";
 import { deriveIndiaGstAccommodationOrdinaryTimeOfSupplyDates } from "./india-gst-accommodation-time-of-supply";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
@@ -21,6 +22,13 @@ const INPUT_KEYS = [
   "tenantId",
   "supplyNature",
   "supplierRegistrationAtTimeOfSupply",
+  "recipientRegistrationAtTimeOfSupply",
+] as const;
+const NATIVE_INPUT_KEYS = [
+  "tenantId",
+  "supplyNature",
+  "supplierRegistrationAtTimeOfSupply",
+  "supplierSezStatus",
   "recipientRegistrationAtTimeOfSupply",
 ] as const;
 const SUPPLY_KEYS = [
@@ -58,6 +66,10 @@ const NATIVE_RECIPIENT_KEYS = [
   "timeOfSupplyLegalRule", "evidenceHash",
 ] as const;
 const NATIVE_TOS_KEYS = ["kind", "nativeTiming", "evidenceHash"] as const;
+const SUPPLIER_SEZ_KEYS = [
+  "supplierSezStatusId", "propertyNode", "supplierServiceLocation", "supplier",
+  "statusAsOf", "gstRegistration", "sezStatus", "approval", "legalRule", "evidenceHash",
+] as const;
 const NATIVE_TIMING_KEYS = ["kind", "nativeTimingId", "prospectiveDocumentId", "serviceProvisionSnapshotId", "paymentReceiptSnapshotId", "ordinaryRegimeEvidenceId", "propertyNode", "reservationId", "serviceProvisionDate", "paymentReceiptDate", "invoiceIssueDate", "supplierBooksEntryDate", "supplierBankCreditDate", "deadlineDate", "candidateDates", "branch", "timeOfSupplyDate", "regime", "ordinaryRegimeSource", "ordinaryRegimeLegalBasis", "amountMinor", "currency", "predecessorHashes", "evidenceHash"] as const;
 const GST_KEYS = ["status", "taxpayerType", "source", "evidenceSha256"] as const;
 const REGISTRATION_KEYS = ["registrationId", "evidenceHash"] as const;
@@ -120,11 +132,14 @@ export interface IndiaGstAccommodationNativeSupplyNatureAtTimeOfSupplyInput {
   readonly tenantId: string;
   readonly supplyNature: IndiaGstAccommodationSupplyNatureResult;
   readonly supplierRegistrationAtTimeOfSupply: IndiaGstRegistrationAtNativeTimeOfSupplyResult;
+  readonly supplierSezStatus: IndiaGstSupplierSezStatusResult;
   readonly recipientRegistrationAtTimeOfSupply: IndiaGstRecipientRegistrationAtNativeTimeOfSupplyResult;
 }
 
 export interface IndiaGstAccommodationNativeSupplyNatureAtTimeOfSupplyResult extends IndiaGstAccommodationSupplyNatureAtTimeOfSupplyResult {
   readonly kind: "native_current_transaction";
+  readonly supplierSezStatusId: string;
+  readonly supplierSezStatusEvidenceHash: string;
   readonly invoiceSourceEvidenceHash: string;
   readonly nativeTimingEvidenceHash: string;
 }
@@ -197,6 +212,27 @@ function exactInput(value: unknown): RecordValue {
         descriptor.set !== undefined || descriptor.enumerable !== true || !("value" in descriptor))) {
     throw new IndiaGstAccommodationSupplyNatureAtTimeOfSupplyValidationError(
       "accommodation supply nature timing input shape is invalid",
+    );
+  }
+  return value as RecordValue;
+}
+
+function exactNativeInput(value: unknown): RecordValue {
+  if (typeof value !== "object" || value === null || Array.isArray(value) ||
+      utilTypes.isProxy(value) || Object.getOwnPropertySymbols(value).length !== 0 ||
+      (Object.getPrototypeOf(value) !== Object.prototype && Object.getPrototypeOf(value) !== null)) {
+    throw new IndiaGstAccommodationSupplyNatureAtTimeOfSupplyValidationError(
+      "native accommodation supply nature timing input must be an exact plain object",
+    );
+  }
+  const descriptors = Object.getOwnPropertyDescriptors(value);
+  const actual = Object.keys(descriptors).sort();
+  const expected = [...NATIVE_INPUT_KEYS].sort();
+  if (actual.length !== expected.length || actual.some((key, index) => key !== expected[index]) ||
+      Object.values(descriptors).some((descriptor) => descriptor.get !== undefined ||
+        descriptor.set !== undefined || descriptor.enumerable !== true || !("value" in descriptor))) {
+    throw new IndiaGstAccommodationSupplyNatureAtTimeOfSupplyValidationError(
+      "native accommodation supply nature timing input shape is invalid",
     );
   }
   return value as RecordValue;
@@ -504,6 +540,95 @@ function validateNativeSupplier(value: unknown, tenantId: string): IndiaGstRegis
   return root as unknown as IndiaGstRegistrationAtNativeTimeOfSupplyResult;
 }
 
+function validateNativeSupplierSezStatus(
+  value: unknown,
+  tenantId: string,
+): IndiaGstSupplierSezStatusResult {
+  const root = rootRecord(value, SUPPLIER_SEZ_KEYS, "native Order286 supplier SEZ-status evidence");
+  const supplierSezStatusId = uuid(root.supplierSezStatusId, "native supplier SEZ-status id");
+  const propertyNode = uuid(root.propertyNode, "native supplier SEZ-status property");
+  const statusAsOf = date(root.statusAsOf, "native supplier SEZ-status date");
+  const location = exactRecord(
+    root.supplierServiceLocation,
+    SERVICE_LOCATION_KEYS,
+    "native supplier SEZ-status service location",
+  );
+  const supplier = exactRecord(
+    root.supplier,
+    REGISTRATION_KEYS,
+    "native supplier SEZ-status registration",
+  );
+  const gst = exactRecord(root.gstRegistration, GST_KEYS, "native supplier SEZ GST status");
+  const locationId = uuid(location.id, "native supplier SEZ-status service location id");
+  const registrationId = uuid(supplier.registrationId, "native supplier SEZ-status registration id");
+  hash(location.evidenceHash, "native supplier SEZ-status service location hash");
+  hash(supplier.evidenceHash, "native supplier SEZ-status registration hash");
+  validateGst(gst, "native supplier SEZ GST status");
+  if (root.legalRule !== "IGST_ACT_7_5_B_AND_8_2_SUPPLIER_STATUS") {
+    return fail("native supplier SEZ-status legal rule is invalid");
+  }
+  const expectedSezStatus = gst.taxpayerType === "regular"
+    ? "affirmatively_non_sez_regular"
+    : gst.taxpayerType;
+  if (root.sezStatus !== expectedSezStatus) {
+    return fail("native supplier SEZ status conflicts with GST taxpayer type");
+  }
+  let approval: RecordValue | null = null;
+  if (gst.taxpayerType === "regular") {
+    if (root.approval !== null) return fail("regular native supplier cannot carry SEZ approval");
+  } else {
+    const candidate = exactRecord(
+      root.approval,
+      ["form", "reference", "validity", "status", "evidenceSha256"],
+      "native supplier SEZ approval",
+    );
+    const validity = exactRecord(
+      candidate.validity,
+      ["fromInclusive", "toExclusive"],
+      "native supplier SEZ approval validity",
+    );
+    const fromInclusive = date(validity.fromInclusive, "native supplier SEZ approval start");
+    const toExclusive = date(validity.toExclusive, "native supplier SEZ approval end");
+    if ((gst.taxpayerType === "sez_unit" && candidate.form !== "sez_rules_form_g") ||
+        (gst.taxpayerType === "sez_developer" && candidate.form !== "sez_rules_form_b" &&
+          candidate.form !== "sez_rules_form_c") || candidate.status !== "in_force" ||
+        fromInclusive >= toExclusive || statusAsOf < fromInclusive || statusAsOf >= toExclusive) {
+      return fail("native supplier SEZ approval is invalid");
+    }
+    canonicalText(candidate.reference, "native supplier SEZ approval reference", 128);
+    hash(candidate.evidenceSha256, "native supplier SEZ approval hash");
+    approval = {
+      form: candidate.form,
+      reference: candidate.reference,
+      validity: { fromInclusive, toExclusive },
+      status: candidate.status,
+      evidenceSha256: candidate.evidenceSha256,
+    };
+  }
+  const expectedHash = digest({
+    tenantId,
+    supplierSezStatusId,
+    propertyNode,
+    supplierServiceLocation: { id: locationId, evidenceHash: location.evidenceHash },
+    supplier: { registrationId, evidenceHash: supplier.evidenceHash },
+    statusAsOf,
+    gstRegistration: {
+      status: gst.status,
+      taxpayerType: gst.taxpayerType,
+      source: gst.source,
+      evidenceSha256: gst.evidenceSha256,
+    },
+    sezStatus: expectedSezStatus,
+    approval,
+    legalRule: "IGST_ACT_7_5_B_AND_8_2_SUPPLIER_STATUS",
+  });
+  if (hash(root.evidenceHash, "native supplier SEZ-status evidence hash") !== expectedHash) {
+    return fail("native supplier SEZ-status evidence hash is inconsistent");
+  }
+  assertFrozen(root);
+  return root as unknown as IndiaGstSupplierSezStatusResult;
+}
+
 function validateNativeRecipient(value: unknown, tenantId: string): IndiaGstRecipientRegistrationAtNativeTimeOfSupplyResult {
   const root = rootRecord(value, NATIVE_RECIPIENT_KEYS, "native Order296 recipient timing evidence");
   if (root.kind !== "native_current_transaction" || root.result !== "active_recipient_registration_at_time_of_supply" || root.recipientRegistrationLegalRule !== "IGST_ACT_7_5_B_AND_8_2_RECIPIENT_STATUS" || root.timeOfSupplyLegalRule !== "CGST_ACT_13_2_A_OR_B_ORDINARY_TIME_OF_SUPPLY") return fail("native Order296 identity is invalid");
@@ -532,11 +657,11 @@ function validateNativeRecipient(value: unknown, tenantId: string): IndiaGstReci
 
 /** Pure composition only; the issuance persistence boundary must reconstruct and authenticate all roots. */
 export function composeIndiaGstAccommodationNativeSupplyNatureAtTimeOfSupply(rawInput: IndiaGstAccommodationNativeSupplyNatureAtTimeOfSupplyInput): IndiaGstAccommodationNativeSupplyNatureAtTimeOfSupplyResult {
-  const input = exactInput(rawInput) as unknown as IndiaGstAccommodationNativeSupplyNatureAtTimeOfSupplyInput;
-  const tenantId = uuid(input.tenantId, "tenantId"), nature = validateSupplyNature(input.supplyNature, tenantId), supplier = validateNativeSupplier(input.supplierRegistrationAtTimeOfSupply, tenantId), recipient = validateNativeRecipient(input.recipientRegistrationAtTimeOfSupply, tenantId);
+  const input = exactNativeInput(rawInput) as unknown as IndiaGstAccommodationNativeSupplyNatureAtTimeOfSupplyInput;
+  const tenantId = uuid(input.tenantId, "tenantId"), nature = validateSupplyNature(input.supplyNature, tenantId), supplier = validateNativeSupplier(input.supplierRegistrationAtTimeOfSupply, tenantId), supplierSez = validateNativeSupplierSezStatus(input.supplierSezStatus, tenantId), recipient = validateNativeRecipient(input.recipientRegistrationAtTimeOfSupply, tenantId);
   const supplierTiming = supplier.timeOfSupply.nativeTiming, recipientTiming = recipient.timeOfSupply.nativeTiming;
-  if (nature.propertyNode !== supplier.propertyNode || nature.propertyNode !== recipient.propertyNode || nature.reservationId !== supplier.reservationId || nature.reservationId !== recipient.reservationId || nature.supplyDate !== supplier.statusAsOf || nature.supplyDate !== recipient.statusAsOf || nature.supplyDate !== supplier.timeOfSupplyDate || nature.supplyDate !== recipient.timeOfSupplyDate || nature.supplier.registrationId !== supplier.supplier.registrationId || nature.supplier.evidenceHash !== supplier.supplier.evidenceHash || nature.supplier.serviceLocation.id !== supplier.supplierServiceLocation.id || nature.supplier.serviceLocation.evidenceHash !== supplier.supplierServiceLocation.evidenceHash || nature.supplier.status.id !== supplier.supplierGstRegistrationStatusId || nature.supplier.status.evidenceHash !== supplier.supplierRegistrationStatusEvidenceHash || nature.supplier.status.taxpayerType !== supplier.gstRegistration.taxpayerType || nature.supplier.status.sezStatus !== (supplier.gstRegistration.taxpayerType === "regular" ? "affirmatively_non_sez_regular" : supplier.gstRegistration.taxpayerType) || nature.recipient.partyId !== recipient.recipientPartyId || nature.recipient.registrationId !== recipient.recipientRegistrationId || nature.recipient.evidenceHash !== recipient.recipient.evidenceHash || nature.recipient.status.id !== recipient.recipientSezStatusId || nature.recipient.status.evidenceHash !== recipient.recipientRegistrationStatusEvidenceHash || nature.recipient.status.taxpayerType !== recipient.gstRegistration.taxpayerType || nature.recipient.status.sezStatus !== recipient.sezStatus || supplier.invoiceSourceEvidenceHash !== recipient.invoiceSourceEvidenceHash || !equalJson(supplierTiming, recipientTiming)) return fail("native approved roots do not describe one transaction at one time of supply");
-  const body = Object.freeze({ kind: "native_current_transaction" as const, propertyNode: nature.propertyNode, reservationId: nature.reservationId, folioId: nature.folioId, supplyDate: nature.supplyDate, supplyNature: nature.supplyNature, determinationBasis: nature.determinationBasis, sezDirection: nature.sezDirection, legalRule: nature.legalRule, supplierRegistrationId: supplier.supplierRegistrationId, supplierGstRegistrationStatusId: supplier.supplierGstRegistrationStatusId, supplierServiceLocationId: supplier.supplierServiceLocationId, supplierRegistrationStatusEvidenceHash: supplier.supplierRegistrationStatusEvidenceHash, recipientPartyId: recipient.recipientPartyId, recipientRegistrationId: recipient.recipientRegistrationId, recipientSezStatusId: recipient.recipientSezStatusId, recipientRegistrationStatusEvidenceHash: recipient.recipientRegistrationStatusEvidenceHash, timeOfSupplyDate: nature.supplyDate, supplierTimeOfSupplyEvidenceHash: supplier.timeOfSupplyEvidenceHash, recipientTimeOfSupplyEvidenceHash: recipient.timeOfSupplyEvidenceHash, invoiceSourceEvidenceHash: supplier.invoiceSourceEvidenceHash, nativeTimingEvidenceHash: supplierTiming.evidenceHash, result: "supply_nature_and_registrations_bound_at_time_of_supply" as const });
+  if (nature.propertyNode !== supplier.propertyNode || nature.propertyNode !== supplierSez.propertyNode || nature.propertyNode !== recipient.propertyNode || nature.reservationId !== supplier.reservationId || nature.reservationId !== recipient.reservationId || nature.supplyDate !== supplier.statusAsOf || nature.supplyDate !== supplierSez.statusAsOf || nature.supplyDate !== recipient.statusAsOf || nature.supplyDate !== supplier.timeOfSupplyDate || nature.supplyDate !== recipient.timeOfSupplyDate || nature.supplier.registrationId !== supplier.supplier.registrationId || nature.supplier.evidenceHash !== supplier.supplier.evidenceHash || nature.supplier.serviceLocation.id !== supplier.supplierServiceLocation.id || nature.supplier.serviceLocation.evidenceHash !== supplier.supplierServiceLocation.evidenceHash || nature.supplier.status.id !== supplierSez.supplierSezStatusId || nature.supplier.status.evidenceHash !== supplierSez.evidenceHash || nature.supplier.status.taxpayerType !== supplierSez.gstRegistration.taxpayerType || nature.supplier.status.sezStatus !== supplierSez.sezStatus || supplierSez.supplier.registrationId !== supplier.supplierRegistrationId || supplierSez.supplier.evidenceHash !== supplier.supplier.evidenceHash || supplierSez.supplierServiceLocation.id !== supplier.supplierServiceLocationId || supplierSez.supplierServiceLocation.evidenceHash !== supplier.supplierServiceLocation.evidenceHash || !equalJson(supplierSez.gstRegistration, supplier.gstRegistration) || nature.recipient.partyId !== recipient.recipientPartyId || nature.recipient.registrationId !== recipient.recipientRegistrationId || nature.recipient.evidenceHash !== recipient.recipient.evidenceHash || nature.recipient.status.id !== recipient.recipientSezStatusId || nature.recipient.status.evidenceHash !== recipient.recipientRegistrationStatusEvidenceHash || nature.recipient.status.taxpayerType !== recipient.gstRegistration.taxpayerType || nature.recipient.status.sezStatus !== recipient.sezStatus || supplier.invoiceSourceEvidenceHash !== recipient.invoiceSourceEvidenceHash || !equalJson(supplierTiming, recipientTiming)) return fail("native approved roots do not describe one transaction at one time of supply");
+  const body = Object.freeze({ kind: "native_current_transaction" as const, propertyNode: nature.propertyNode, reservationId: nature.reservationId, folioId: nature.folioId, supplyDate: nature.supplyDate, supplyNature: nature.supplyNature, determinationBasis: nature.determinationBasis, sezDirection: nature.sezDirection, legalRule: nature.legalRule, supplierRegistrationId: supplier.supplierRegistrationId, supplierGstRegistrationStatusId: supplier.supplierGstRegistrationStatusId, supplierServiceLocationId: supplier.supplierServiceLocationId, supplierRegistrationStatusEvidenceHash: supplier.supplierRegistrationStatusEvidenceHash, supplierSezStatusId: supplierSez.supplierSezStatusId, supplierSezStatusEvidenceHash: supplierSez.evidenceHash, recipientPartyId: recipient.recipientPartyId, recipientRegistrationId: recipient.recipientRegistrationId, recipientSezStatusId: recipient.recipientSezStatusId, recipientRegistrationStatusEvidenceHash: recipient.recipientRegistrationStatusEvidenceHash, timeOfSupplyDate: nature.supplyDate, supplierTimeOfSupplyEvidenceHash: supplier.timeOfSupplyEvidenceHash, recipientTimeOfSupplyEvidenceHash: recipient.timeOfSupplyEvidenceHash, invoiceSourceEvidenceHash: supplier.invoiceSourceEvidenceHash, nativeTimingEvidenceHash: supplierTiming.evidenceHash, result: "supply_nature_and_registrations_bound_at_time_of_supply" as const });
   return Object.freeze({ ...body, evidenceHash: digest({ tenantId, ...body }) });
 }
 

@@ -467,6 +467,8 @@ function makeNativeSource(options: FixtureOptions = {}, tenantId = TENANT): Indi
     supplierGstRegistrationStatusId: oldSupply.supplierGstRegistrationStatusId,
     supplierServiceLocationId: oldSupply.supplierServiceLocationId,
     supplierRegistrationStatusEvidenceHash: oldSupply.supplierRegistrationStatusEvidenceHash,
+    supplierSezStatusId: "18000000-0000-4000-8000-000000000018",
+    supplierSezStatusEvidenceHash: "b".repeat(64),
     recipientPartyId: oldSupply.recipientPartyId,
     recipientRegistrationId: oldSupply.recipientRegistrationId,
     recipientSezStatusId: oldSupply.recipientSezStatusId,

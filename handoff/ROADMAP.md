@@ -148,10 +148,11 @@ actual-date atomic issuance, immutable accounting and no duplicate revenue.
 It is not built or independently approved; fresh implementation/proof and a
 different non-implementing Tier3 review remain required.
 
-Latest implementation evidence is [Order434/D1350](orders/434-native-fiscal-source-completion.md#authenticated-financial-source-and-native-composition-checkpoint--d1350):
-authenticated financial-source reconstruction, private consumed-source guards and
-native statutory/numeric composition. Complete issuance and final acceptance are
-still outstanding; these are building blocks, not a new completed phase.
+Latest implementation evidence is [Order434/D1353](orders/434-native-fiscal-source-completion.md#native-command-actual-clock-timing-and-distinct-statutory-roots--d1353):
+the one-Tx native command, actual-clock historical timing reader and separate
+supplier GST/SEZ evidence binding. Complete SQL preparation/authentication,
+accounting/commit and final acceptance are still outstanding; these are building
+blocks, not a new completed phase.
 
 The existing 18-phase vector is unchanged: 0–3, 5 and 6 reviewed; 4 built pending final
 integration/review; 7 active; 8–17 planned. The 13 bounded contexts and all phase

@@ -867,3 +867,398 @@ ALTER FUNCTION public.india_native_invoice_request_identity(
 REVOKE ALL ON FUNCTION public.india_native_invoice_request_identity(
   uuid,uuid,uuid,uuid,uuid,uuid,uuid,uuid,uuid,uuid,uuid,uuid,uuid,uuid,uuid,text,text,date,date[],text[],text,uuid)
   FROM PUBLIC,app_role,yellow_runtime;
+
+-- Order306 historical-resolution leaf, with the exact303/305 registered pair.
+-- The date argument is PRIVATE: preparation derives it from authenticated intake
+-- or its actual property-local transaction clock. This reader grants no public
+-- legal-date override, does not create timing, and does not select Section14.
+CREATE OR REPLACE FUNCTION public.read_india_native_rate_history_day(
+  p_tenant uuid,p_property uuid,p_business_date date
+) RETURNS jsonb LANGUAGE plpgsql STABLE
+SET search_path=pg_catalog,public SET timezone='UTC' SET datestyle='ISO,YMD' AS $$
+DECLARE
+  v_context uuid;v_timezone text;v_from timestamptz;v_to timestamptz;
+  v_from_text text;v_to_text text;v_assignment public.tax_assignment%ROWTYPE;
+  v_assignment_count integer;v_extension public.extension%ROWTYPE;
+  v_ids uuid[]:=ARRAY['a806f516-fed6-5768-b310-94aa03286adb'::uuid,'0b21daf2-ea6e-5568-9c21-69e4d4424574'::uuid];
+  v_froms timestamptz[]:=ARRAY['2022-07-17T18:30:00Z'::timestamptz,'2025-09-21T18:30:00Z'::timestamptz];
+  v_tos timestamptz[]:=ARRAY['2025-09-21T18:30:00Z'::timestamptz,NULL::timestamptz];
+  v_hashes text[]:=ARRAY['2160e1747afcb3c280f1fd66e55534a5be563a10f277e8fcc178324e51abaa08',
+    'eb323eff707aad1e460b425c87b448d4e924d2eb17499094abad71b33c69a820'];
+  v_members jsonb[]:='{}'::jsonb[];v_i integer;v_matches integer:=0;
+  v_pair jsonb;v_pair_hash text;v_body jsonb;v_selected jsonb;
+BEGIN
+  BEGIN v_context:=NULLIF(pg_catalog.current_setting('app.tenant_id',true),'')::uuid;
+  EXCEPTION WHEN invalid_text_representation THEN
+    RAISE EXCEPTION USING ERRCODE='42501',MESSAGE='native historical-rate tenant context is invalid';
+  END;
+  IF p_tenant IS NULL OR p_tenant IS DISTINCT FROM v_context THEN
+    RAISE EXCEPTION USING ERRCODE='42501',MESSAGE='native historical-rate tenant mismatch';
+  END IF;
+  IF p_property IS NULL OR p_business_date IS NULL
+      OR p_business_date NOT BETWEEN DATE '0001-01-01' AND DATE '9999-12-31' THEN
+    RAISE EXCEPTION USING ERRCODE='22023',MESSAGE='native historical-rate property and finite civil date are required';
+  END IF;
+  SELECT p.timezone INTO v_timezone FROM public.org_node p
+    JOIN public.tenant t ON t.id=p.tenant_id AND t.status='active'
+    WHERE p.tenant_id=p_tenant AND p.id=p_property AND p.kind='property';
+  IF NOT FOUND THEN
+    RAISE EXCEPTION USING ERRCODE='55000',MESSAGE='native historical-rate property unavailable';
+  END IF;
+  IF v_timezone IS NULL OR v_timezone='' OR v_timezone<>pg_catalog.btrim(v_timezone) THEN
+    RAISE EXCEPTION USING ERRCODE='55000',MESSAGE='native historical-rate property timezone is invalid';
+  END IF;
+  v_from:=p_business_date::timestamp AT TIME ZONE v_timezone;
+  v_to:=(p_business_date+1)::timestamp AT TIME ZONE v_timezone;
+  v_from_text:=pg_catalog.to_char(v_from AT TIME ZONE 'UTC','YYYY-MM-DD"T"HH24:MI:SS.US"Z"');
+  v_to_text:=pg_catalog.to_char(v_to AT TIME ZONE 'UTC','YYYY-MM-DD"T"HH24:MI:SS.US"Z"');
+  IF v_from>=v_to OR v_from_text !~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\.[0-9]{6}Z$'
+      OR v_to_text !~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\.[0-9]{6}Z$' THEN
+    RAISE EXCEPTION USING ERRCODE='55000',MESSAGE='native historical-rate whole property day is invalid';
+  END IF;
+  SELECT pg_catalog.count(*)::integer INTO v_assignment_count FROM public.tax_assignment a
+    WHERE a.tenant_id=p_tenant AND a.property_node=p_property AND a.jurisdiction_key='in-gst-lodging'
+      AND a.effective @> p_business_date;
+  IF v_assignment_count<>1 THEN
+    RAISE EXCEPTION USING ERRCODE='55000',MESSAGE='native historical-rate assignment is missing or ambiguous';
+  END IF;
+  SELECT a.* INTO STRICT v_assignment FROM public.tax_assignment a
+    WHERE a.tenant_id=p_tenant AND a.property_node=p_property AND a.jurisdiction_key='in-gst-lodging'
+      AND a.effective @> p_business_date;
+  IF (pg_catalog.lower(v_assignment.effective) IS NOT NULL AND
+        pg_catalog.lower(v_assignment.effective) NOT BETWEEN DATE '0001-01-01' AND DATE '9999-12-31')
+      OR (pg_catalog.upper(v_assignment.effective) IS NOT NULL AND
+        pg_catalog.upper(v_assignment.effective) NOT BETWEEN DATE '0001-01-01' AND DATE '9999-12-31') THEN
+    RAISE EXCEPTION USING ERRCODE='55000',MESSAGE='native historical-rate assignment bounds are not canonical civil dates';
+  END IF;
+  FOR v_i IN 1..2 LOOP
+    SELECT e.* INTO v_extension FROM public.extension e WHERE e.id=v_ids[v_i]
+      AND e.tenant_id IS NULL AND e.type='tax_jurisdiction' AND e.key='in-gst-lodging'
+      AND e.version=v_i AND e.status=CASE v_i WHEN 1 THEN 'retired' ELSE 'active' END;
+    IF NOT FOUND OR pg_catalog.lower(v_extension.effective) IS DISTINCT FROM v_froms[v_i]
+        OR pg_catalog.upper(v_extension.effective) IS DISTINCT FROM v_tos[v_i]
+        OR NOT pg_catalog.lower_inc(v_extension.effective) OR pg_catalog.upper_inc(v_extension.effective)
+        OR public.india_native_source_hash(v_extension.content) IS DISTINCT FROM v_hashes[v_i] THEN
+      RAISE EXCEPTION USING ERRCODE='55000',MESSAGE='native historical-rate approved registry member is inconsistent';
+    END IF;
+    v_members:=pg_catalog.array_append(v_members,pg_catalog.jsonb_build_object('extensionId',v_extension.id,
+      'key','in-gst-lodging','version',v_i,'status',v_extension.status,
+      'effectiveFromInstant',pg_catalog.to_char(v_froms[v_i] AT TIME ZONE 'UTC','YYYY-MM-DD"T"HH24:MI:SS.US"Z"'),
+      'effectiveToInstant',CASE WHEN v_tos[v_i] IS NOT NULL THEN
+        pg_catalog.to_char(v_tos[v_i] AT TIME ZONE 'UTC','YYYY-MM-DD"T"HH24:MI:SS.US"Z"') END,
+      'content',v_extension.content,'contentHash',v_hashes[v_i],
+      'gstRoomSlabs',pg_catalog.jsonb_build_array(
+        pg_catalog.jsonb_build_object('uptoMinor',750000,'rate',CASE v_i WHEN 1 THEN 0.12::numeric ELSE 0.05::numeric END,'itcEligible',v_i=1),
+        pg_catalog.jsonb_build_object('uptoMinor',NULL,'rate',0.18::numeric,'itcEligible',true))));
+    IF v_froms[v_i]<=v_from AND (v_tos[v_i] IS NULL OR v_tos[v_i]>=v_to) THEN
+      v_matches:=v_matches+1;v_selected:=v_members[v_i];
+    END IF;
+  END LOOP;
+  IF v_matches<>1 THEN
+    RAISE EXCEPTION USING ERRCODE='55000',MESSAGE='no single approved native rate member contains the whole property day';
+  END IF;
+  v_pair:=pg_catalog.jsonb_build_object('propertyNode',p_property,'predecessor',v_members[1],
+    'successor',v_members[2],'cutoverInstant','2025-09-21T18:30:00.000000Z',
+    'statutoryLowerBandDelta',pg_catalog.jsonb_build_object('thresholdMinor',750000,
+      'predecessorRate',0.12::numeric,'predecessorItcEligible',true,'successorRate',0.05::numeric,
+      'successorItcEligible',false,'predecessorHasNilBand',false,'successorHasNilBand',false),
+    'sourceHashes',pg_catalog.jsonb_build_object(
+      'notification20_2019','ee920c82c30ed88d9bb515d7d79b975cc2ed599c6dad411d04d8b7fcd5a86901',
+      'notification04_2022','c6d264f1906375e93466dd97b2c60bb9b21c0dec34b93900b15237b4a98b7716',
+      'notification15_2025','46c9447579017d8bf1fefd75b6e6a48856dab7b23e44c7e06babfdc99ae9d289'));
+  v_pair_hash:=public.india_native_source_hash(v_pair||pg_catalog.jsonb_build_object(
+    'tenantId',p_tenant,'predecessorOwnerTenantId',NULL,'successorOwnerTenantId',NULL));
+  v_pair:=v_pair||pg_catalog.jsonb_build_object('evidenceHash',v_pair_hash);
+  v_body:=pg_catalog.jsonb_build_object('property',pg_catalog.jsonb_build_object(
+      'propertyNode',p_property,'propertyTimezone',v_timezone),
+    'businessDay',pg_catalog.jsonb_build_object('businessDate',p_business_date,'fromInstant',v_from_text,'toInstant',v_to_text),
+    'assignment',pg_catalog.jsonb_build_object('jurisdictionKey','in-gst-lodging',
+      'effectiveFrom',pg_catalog.lower(v_assignment.effective),'effectiveTo',pg_catalog.upper(v_assignment.effective)),
+    'selectedExtension',v_selected,'rateVersionPair',v_pair);
+  RETURN v_body||pg_catalog.jsonb_build_object('evidenceHash',public.india_native_source_hash(
+    v_body||pg_catalog.jsonb_build_object('tenantId',p_tenant)));
+END;
+$$;
+ALTER FUNCTION public.read_india_native_rate_history_day(uuid,uuid,date) OWNER TO yellow_owner;
+REVOKE ALL ON FUNCTION public.read_india_native_rate_history_day(uuid,uuid,date) FROM PUBLIC,app_role,yellow_runtime;
+
+-- Pure parity with Order340's six strict arrangements. This is date arithmetic,
+-- not an invoice clock, source authenticator, or permission to issue a document.
+CREATE OR REPLACE FUNCTION public.india_native_section14_case(
+  p_service date,p_invoice date,p_payment date,p_change date
+) RETURNS jsonb LANGUAGE plpgsql IMMUTABLE
+SET search_path=pg_catalog,public SET timezone='UTC' SET datestyle='ISO,YMD' AS $$
+DECLARE v_case text;v_supply date;v_side text;
+BEGIN
+  IF p_service IS NULL OR p_invoice IS NULL OR p_payment IS NULL OR p_change IS NULL
+      OR p_service NOT BETWEEN DATE '0001-01-01' AND DATE '9999-12-31'
+      OR p_invoice NOT BETWEEN DATE '0001-01-01' AND DATE '9999-12-31'
+      OR p_payment NOT BETWEEN DATE '0001-01-01' AND DATE '9999-12-31'
+      OR p_change NOT BETWEEN DATE '0001-01-01' AND DATE '9999-12-31' THEN
+    RAISE EXCEPTION USING ERRCODE='22023',MESSAGE='Section14 requires four finite civil dates';
+  END IF;
+  IF p_service<p_change AND p_invoice>p_change AND p_payment>p_change THEN
+    v_case:='supply_before_invoice_after_payment_after';v_supply:=LEAST(p_invoice,p_payment);v_side:='successor';
+  ELSIF p_service<p_change AND p_invoice<p_change AND p_payment>p_change THEN
+    v_case:='supply_invoice_before_payment_after';v_supply:=p_invoice;v_side:='predecessor';
+  ELSIF p_service<p_change AND p_invoice>p_change AND p_payment<p_change THEN
+    v_case:='supply_payment_before_invoice_after';v_supply:=p_payment;v_side:='predecessor';
+  ELSIF p_service>p_change AND p_invoice<p_change AND p_payment>p_change THEN
+    v_case:='supply_after_invoice_before_payment_after';v_supply:=p_payment;v_side:='successor';
+  ELSIF p_service>p_change AND p_invoice<p_change AND p_payment<p_change THEN
+    v_case:='supply_after_invoice_payment_before';v_supply:=LEAST(p_invoice,p_payment);v_side:='predecessor';
+  ELSIF p_service>p_change AND p_invoice>p_change AND p_payment<p_change THEN
+    v_case:='supply_invoice_after_payment_before';v_supply:=p_invoice;v_side:='successor';
+  ELSE
+    RAISE EXCEPTION USING ERRCODE='22023',MESSAGE='date arrangement has no admitted Section14 case';
+  END IF;
+  RETURN pg_catalog.jsonb_build_object('case',v_case,'timeOfSupplyDate',v_supply,'selectedVersionSide',v_side);
+END;
+$$;
+ALTER FUNCTION public.india_native_section14_case(date,date,date,date) OWNER TO yellow_owner;
+REVOKE ALL ON FUNCTION public.india_native_section14_case(date,date,date,date) FROM PUBLIC,app_role,yellow_runtime;
+
+-- Authenticated read-only prospective timing/rate leaf. The eight UUID selectors
+-- are private server inputs; no supplied issue date, clock, money, or hash is an
+-- authority. The projection root is deliberately NOT the full time-of-supply
+-- hash. Its domain binds recording roots and this actual transaction/property
+-- clock; the existing native TS envelope then derives its separate timing hash.
+-- Insertion-order transport strings preserve the original 337/338/339/340 hashes.
+-- This does not authenticate issue permission, acquire locks, insert preparation,
+-- accept a completed replay, or claim the remaining source/valuation graph.
+CREATE OR REPLACE FUNCTION public.read_india_native_invoice_timing_source(
+  p_tenant uuid,p_property uuid,p_reservation uuid,p_service uuid,p_payment uuid,p_ordinary uuid,
+  p_native_timing uuid,p_document uuid,p_calendar_authority text,p_calendar_source_hash text,
+  p_calendar_through date,p_calendar_dates date[],p_calendar_states text[]
+) RETURNS jsonb LANGUAGE plpgsql VOLATILE
+SET search_path=pg_catalog,public SET timezone='UTC' SET datestyle='ISO,YMD' AS $$
+DECLARE
+  v_intake jsonb;v_service json;v_payment json;v_ordinary jsonb;v_timezone text;v_context jsonb;
+  v_invoice date;v_service_date date;v_books date;v_bank date;v_receipt date;v_supply date;v_deadline date;
+  v_change date:=DATE '2025-09-22';v_projection jsonb;v_projection_preimage jsonb;v_timing jsonb;
+  v_histories jsonb:='{}';v_history_hashes jsonb:='{}';v_history jsonb;v_pair jsonb;v_keys text[];
+  v_dates date[];v_i integer;v_member_count integer;v_selected jsonb;v_identity json;
+  v_rate_date json;v_proviso json;v_calendar json;v_governed json;v_section14 json;v_payment_evidence json;
+  v_text text;v_hash text;v_days json;v_four date[];v_fourth date;v_class jsonb;v_rate json;v_result json;v_input json;
+  v_body json;v_input_text text;v_result_text text;v_existing public.india_gst_native_invoice_timing%ROWTYPE;
+BEGIN
+  -- Intake authenticates tenant context and the entire immutable recording chain.
+  v_intake:=public.read_india_native_intake_source(p_tenant,p_property,p_reservation,p_service,p_payment,p_ordinary);
+  IF p_native_timing IS NULL OR p_document IS NULL THEN
+    RAISE EXCEPTION USING ERRCODE='22023',MESSAGE='prospective native timing and document identities are required';
+  END IF;
+  SELECT p.timezone INTO v_timezone FROM public.org_node p
+    JOIN public.tenant t ON t.id=p.tenant_id AND t.status='active'
+    WHERE p.tenant_id=p_tenant AND p.id=p_property AND p.kind='property';
+  IF NOT FOUND OR v_timezone IS NULL OR v_timezone='' OR v_timezone<>pg_catalog.btrim(v_timezone) THEN
+    RAISE EXCEPTION USING ERRCODE='55000',MESSAGE='native timing property clock unavailable';
+  END IF;
+  v_invoice:=(pg_catalog.transaction_timestamp() AT TIME ZONE v_timezone)::date;
+  v_context:=pg_catalog.jsonb_build_object('issuingTransactionId',pg_catalog.pg_current_xact_id()::text,
+    'transactionTimestamp',pg_catalog.to_char(pg_catalog.transaction_timestamp() AT TIME ZONE 'UTC','YYYY-MM-DD"T"HH24:MI:SS.US"Z"'),
+    'propertyTimezone',v_timezone,'invoiceIssueDate',v_invoice);
+  v_projection:=pg_catalog.jsonb_build_object('nativeTimingId',p_native_timing,'prospectiveDocumentId',p_document,
+    'propertyNode',p_property,'reservationId',p_reservation,'serviceProvisionSnapshotId',p_service,
+    'paymentReceiptSnapshotId',p_payment,'ordinaryRegimeEvidenceId',p_ordinary,'invoiceIssueDate',v_invoice);
+  v_projection_preimage:=pg_catalog.jsonb_build_object('kind','india-native-invoice-timing-projection-v1',
+    'tenantId',p_tenant,'projection',v_projection,'recordingRoots',v_intake->'recordingRoots','transactionContext',v_context);
+  v_projection:=v_projection||pg_catalog.jsonb_build_object('evidenceHash',public.india_native_source_hash(v_projection_preimage));
+  -- If the ID already has a row, only its actual issuing transaction can re-read
+  -- this prospective leaf. Completed receipt replay belongs to the future issuer.
+  SELECT n.* INTO v_existing FROM public.india_gst_native_invoice_timing n
+    WHERE n.tenant_id=p_tenant AND (n.id=p_native_timing OR n.prospective_document_id=p_document);
+  IF FOUND AND (v_existing.id IS DISTINCT FROM p_native_timing OR v_existing.prospective_document_id IS DISTINCT FROM p_document
+      OR v_existing.property_node IS DISTINCT FROM p_property OR v_existing.reservation_id IS DISTINCT FROM p_reservation
+      OR v_existing.service_provision_snapshot_id IS DISTINCT FROM p_service
+      OR v_existing.payment_receipt_snapshot_id IS DISTINCT FROM p_payment
+      OR v_existing.ordinary_regime_evidence_id IS DISTINCT FROM p_ordinary
+      OR v_existing.issuing_transaction_id IS DISTINCT FROM pg_catalog.pg_current_xact_id()
+      OR v_existing.transaction_timestamp IS DISTINCT FROM pg_catalog.transaction_timestamp()
+      OR v_existing.property_timezone IS DISTINCT FROM v_timezone OR v_existing.invoice_issue_date IS DISTINCT FROM v_invoice
+      OR v_existing.evidence_hash IS DISTINCT FROM v_projection->>'evidenceHash'
+      OR v_existing.service_provision_evidence_hash IS DISTINCT FROM v_intake#>>'{recordingRoots,serviceProvisionRecording}'
+      OR v_existing.payment_receipt_evidence_hash IS DISTINCT FROM v_intake#>>'{recordingRoots,paymentReceiptRecording}'
+      OR v_existing.ordinary_regime_evidence_hash IS DISTINCT FROM v_intake#>>'{recordingRoots,ordinaryRegimeRecording}') THEN
+    RAISE EXCEPTION USING ERRCODE='55000',MESSAGE='native timing is not the reconstructed current transaction projection';
+  END IF;
+  -- Recover original ordered date projections from their authenticated preimages.
+  SELECT pg_catalog.json_object_agg(e.key,e.value ORDER BY e.ordinality) INTO v_service
+    FROM pg_catalog.json_each((v_intake->>'serviceProvisionCanonicalJson')::json) WITH ORDINALITY e WHERE e.key<>'tenantId';
+  v_text:=public.india_native_insertion_json(v_service);
+  v_service:=(pg_catalog.left(v_text,pg_catalog.length(v_text)-1)||',"evidenceHash":'||(v_intake#>'{serviceProvision,evidenceHash}')::text||'}')::json;
+  SELECT pg_catalog.json_object_agg(e.key,e.value ORDER BY e.ordinality) INTO v_payment
+    FROM pg_catalog.json_each((v_intake->>'paymentReceiptCanonicalJson')::json) WITH ORDINALITY e WHERE e.key<>'tenantId';
+  v_text:=public.india_native_insertion_json(v_payment);
+  v_payment:=(pg_catalog.left(v_text,pg_catalog.length(v_text)-1)||',"evidenceHash":'||(v_intake#>'{paymentReceipt,evidenceHash}')::text||'}')::json;
+  v_ordinary:=v_intake->'ordinaryRegime';v_service_date:=(v_service->>'serviceProvisionDate')::date;
+  v_books:=(v_payment->>'supplierBooksEntryDate')::date;v_bank:=(v_payment->>'supplierBankCreditDate')::date;
+  v_receipt:=LEAST(v_books,v_bank);v_deadline:=v_service_date+30;
+  IF v_invoice NOT BETWEEN DATE '0001-01-01' AND DATE '9999-12-31'
+      OR v_deadline>DATE '9999-12-31' THEN
+    RAISE EXCEPTION USING ERRCODE='22023',MESSAGE='native timing exceeds admitted civil dates';
+  END IF;
+  v_supply:=LEAST(CASE WHEN v_invoice<=v_deadline THEN v_invoice ELSE v_service_date END,v_receipt);
+  v_timing:=pg_catalog.jsonb_build_object('kind','native_current_transaction','nativeTimingId',p_native_timing,
+    'prospectiveDocumentId',p_document,'serviceProvisionSnapshotId',p_service,'paymentReceiptSnapshotId',p_payment,
+    'ordinaryRegimeEvidenceId',p_ordinary,'propertyNode',p_property,'reservationId',p_reservation,
+    'serviceProvisionDate',v_service_date,'paymentReceiptDate',v_receipt,'invoiceIssueDate',v_invoice,
+    'supplierBooksEntryDate',v_books,'supplierBankCreditDate',v_bank,'deadlineDate',v_deadline,
+    'candidateDates',CASE WHEN v_invoice<=v_deadline THEN pg_catalog.jsonb_build_object('invoiceIssueDate',v_invoice,'paymentReceiptDate',v_receipt)
+      ELSE pg_catalog.jsonb_build_object('serviceProvisionDate',v_service_date,'paymentReceiptDate',v_receipt) END,
+    'branch',CASE WHEN v_invoice<=v_deadline THEN 'section13_2_a_invoice_or_payment' ELSE 'section13_2_b_service_or_payment' END,
+    'timeOfSupplyDate',v_supply,'regime','ordinary_rule47_30_day','ordinaryRegimeSource','governed_rule47_ordinary_regime_record',
+    'ordinaryRegimeLegalBasis','CGST_RULE_47_ORDINARY_SERVICE_INVOICE_30_DAY_INPUT','amountMinor',v_payment->>'amountMinor','currency','INR',
+    'predecessorHashes',pg_catalog.jsonb_build_object('serviceProvision',v_service->>'evidenceHash',
+      'paymentReceipt',v_payment->>'evidenceHash','ordinaryRegime',v_ordinary->>'evidenceHash','nativeTiming',v_projection->>'evidenceHash'));
+  v_timing:=v_timing||pg_catalog.jsonb_build_object('evidenceHash',public.india_native_source_hash(
+    v_timing||pg_catalog.jsonb_build_object('tenantId',p_tenant)));
+  v_keys:=ARRAY['serviceProvision','invoiceIssue','supplierBooksEntry','supplierBankCredit','paymentReceipt','timeOfSupply'];
+  v_dates:=ARRAY[v_service_date,v_invoice,v_books,v_bank];
+  FOR v_i IN 1..4 LOOP
+    v_history:=public.read_india_native_rate_history_day(p_tenant,p_property,v_dates[v_i]);
+    IF v_pair IS NULL THEN v_pair:=v_history->'rateVersionPair';
+    ELSIF v_pair IS DISTINCT FROM v_history->'rateVersionPair' THEN
+      RAISE EXCEPTION USING ERRCODE='55000',MESSAGE='native timing rate history changed between source days';
+    END IF;
+    v_histories:=v_histories||pg_catalog.jsonb_build_object(v_keys[v_i],v_history);
+  END LOOP;
+  SELECT pg_catalog.count(DISTINCT e.value->'selectedExtension')::integer INTO v_member_count
+    FROM pg_catalog.jsonb_each(v_histories) e;
+  -- Order337 rate-date identity uses a sorted hash but the identity/result key
+  -- order below is also preserved for 339's original exact insertion replay.
+  SELECT pg_catalog.json_build_object('predecessor',pg_catalog.json_build_object(
+      'extensionId',v_pair#>'{predecessor,extensionId}','version',1,'status','retired',
+      'effectiveFromInstant',v_pair#>'{predecessor,effectiveFromInstant}','effectiveToInstant',v_pair#>'{predecessor,effectiveToInstant}',
+      'contentHash',v_pair#>'{predecessor,contentHash}'),'successor',pg_catalog.json_build_object(
+      'extensionId',v_pair#>'{successor,extensionId}','version',2,'status','active',
+      'effectiveFromInstant',v_pair#>'{successor,effectiveFromInstant}','effectiveToInstant',NULL,
+      'contentHash',v_pair#>'{successor,contentHash}'),'cutoverInstant',v_pair->'cutoverInstant','rateChangeDate',v_change,
+      'notification15SourceHash',v_pair#>'{sourceHashes,notification15_2025}','pairEvidenceHash',v_pair->'evidenceHash') INTO v_rate_date;
+  v_hash:=public.india_native_source_hash(v_rate_date::jsonb||pg_catalog.jsonb_build_object('propertyNode',p_property));
+  v_text:=public.india_native_insertion_json(v_rate_date);
+  v_rate_date:=(pg_catalog.left(v_text,pg_catalog.length(v_text)-1)||',"evidenceHash":"'||v_hash||'"}')::json;
+  IF v_member_count=1 THEN
+    IF p_calendar_authority IS NOT NULL OR p_calendar_source_hash IS NOT NULL OR p_calendar_through IS NOT NULL
+        OR p_calendar_dates IS DISTINCT FROM ARRAY[]::date[] OR p_calendar_states IS DISTINCT FROM ARRAY[]::text[] THEN
+      RAISE EXCEPTION USING ERRCODE='22023',MESSAGE='ordinary single-version timing cannot carry Section14 calendar evidence';
+    END IF;
+    v_selected:=v_histories#>'{serviceProvision,selectedExtension}';
+  ELSIF v_member_count=2 THEN
+    IF v_bank>v_change THEN
+      v_proviso:=pg_catalog.json_build_object('state','working_day_calendar_required','supplierBooksEntryDate',v_books,
+        'supplierBankCreditDate',v_bank,'rateChangeDate',v_change,'legalRule','CGST_ACT_14_PAYMENT_CREDIT_FOUR_WORKING_DAY_PROVISO_GUARD');
+    ELSE
+      v_proviso:=pg_catalog.json_build_object('state','proviso_not_triggered_on_recorded_dates','paymentReceiptDate',v_receipt,
+        'supplierBooksEntryDate',v_books,'supplierBankCreditDate',v_bank,'rateChangeDate',v_change,
+        'legalRule','CGST_ACT_14_PAYMENT_CREDIT_FOUR_WORKING_DAY_PROVISO_GUARD');
+    END IF;
+    v_text:=public.india_native_insertion_json(v_proviso);
+    v_hash:=pg_catalog.encode(public.digest(pg_catalog.convert_to(v_text,'UTF8'),'sha256'),'hex');
+    v_proviso:=(pg_catalog.left(v_text,pg_catalog.length(v_text)-1)||',"evidenceHash":"'||v_hash||'"}')::json;
+    IF v_bank>v_change THEN
+      IF p_calendar_authority IS NULL OR p_calendar_authority !~ '^[A-Z][A-Z0-9_.:-]{2,127}$'
+          OR p_calendar_source_hash IS NULL OR p_calendar_source_hash !~ '^[0-9a-f]{64}$'
+          OR p_calendar_through IS NULL OR p_calendar_dates IS NULL OR p_calendar_states IS NULL
+          OR pg_catalog.cardinality(p_calendar_dates) NOT BETWEEN 4 AND 366
+          OR pg_catalog.cardinality(p_calendar_dates)<>pg_catalog.cardinality(p_calendar_states)
+          OR pg_catalog.array_ndims(p_calendar_dates)<>1 OR pg_catalog.array_lower(p_calendar_dates,1)<>1
+          OR pg_catalog.array_ndims(p_calendar_states)<>1 OR pg_catalog.array_lower(p_calendar_states,1)<>1 THEN
+        RAISE EXCEPTION USING ERRCODE='22023',MESSAGE='mixed rate timing requires complete governed working-day calendar';
+      END IF;
+      v_four:=ARRAY[]::date[];
+      FOR v_i IN 1..pg_catalog.cardinality(p_calendar_dates) LOOP
+        IF p_calendar_dates[v_i] IS DISTINCT FROM v_change+v_i
+            OR p_calendar_dates[v_i]>=DATE '9999-12-31' OR p_calendar_states[v_i] IS NULL
+            OR p_calendar_states[v_i] NOT IN ('working','non_working') THEN
+          RAISE EXCEPTION USING ERRCODE='22023',MESSAGE='working-day calendar must classify consecutive days after the cutover';
+        END IF;
+        IF p_calendar_states[v_i]='working' AND pg_catalog.cardinality(v_four)<4 THEN
+          v_four:=pg_catalog.array_append(v_four,p_calendar_dates[v_i]);
+        END IF;
+      END LOOP;
+      IF p_calendar_dates[pg_catalog.cardinality(p_calendar_dates)] IS DISTINCT FROM p_calendar_through
+          OR pg_catalog.cardinality(v_four)<>4 OR NOT(v_bank=ANY(p_calendar_dates)) THEN
+        RAISE EXCEPTION USING ERRCODE='22023',MESSAGE='working-day calendar must end at throughDate and cover bank credit and four working days';
+      END IF;
+      v_fourth:=v_four[4];
+      SELECT pg_catalog.json_agg(pg_catalog.json_build_object('date',p_calendar_dates[i],'state',p_calendar_states[i]) ORDER BY i)
+        INTO v_days FROM pg_catalog.generate_subscripts(p_calendar_dates,1) i;
+      v_calendar:=pg_catalog.json_build_object('rateChangeDate',v_change,'throughDate',p_calendar_through,'jurisdiction','IN',
+        'authorityId',p_calendar_authority,'sourceDigestSha256',p_calendar_source_hash,'calendarDays',v_days,
+        'firstFourWorkingDates',v_four,'fourthWorkingDayDate',v_fourth,'legalRule','CGST_ACT_14_FOUR_WORKING_DAY_CALENDAR_EVIDENCE_ONLY');
+      v_text:=public.india_native_insertion_json(v_calendar);
+      v_hash:=pg_catalog.encode(public.digest(pg_catalog.convert_to('{"tenantId":'||pg_catalog.to_json(p_tenant)::text||','||pg_catalog.substr(v_text,2),'UTF8'),'sha256'),'hex');
+      v_calendar:=(pg_catalog.left(v_text,pg_catalog.length(v_text)-1)||',"evidenceHash":"'||v_hash||'"}')::json;
+      v_receipt:=CASE WHEN v_bank>v_fourth THEN v_bank ELSE LEAST(v_books,v_bank) END;
+      v_governed:=pg_catalog.json_build_object('rateChangeDate',v_change,'supplierBooksEntryDate',v_books,'supplierBankCreditDate',v_bank,
+        'fourthWorkingDayDate',v_fourth,'paymentReceiptDate',v_receipt,'branch',CASE WHEN v_bank>v_fourth
+          THEN 'bank_credit_after_four_working_days' ELSE 'ordinary_earlier_of_within_four_working_days' END,
+        'calendarAuthorityId',p_calendar_authority,'calendarSourceDigestSha256',p_calendar_source_hash,
+        'legalRule','CGST_ACT_14_PAYMENT_RECEIPT_DATE_FOUR_WORKING_DAY_PROVISO','predecessorHashes',pg_catalog.json_build_object(
+          'rateChangeDate',v_rate_date->>'evidenceHash','paymentProviso',v_proviso->>'evidenceHash','workingDayCalendar',v_calendar->>'evidenceHash'));
+      v_text:=public.india_native_insertion_json(v_governed);
+      v_hash:=pg_catalog.encode(public.digest(pg_catalog.convert_to('{"tenantId":'||pg_catalog.to_json(p_tenant)::text||','||pg_catalog.substr(v_text,2),'UTF8'),'sha256'),'hex');
+      v_governed:=(pg_catalog.left(v_text,pg_catalog.length(v_text)-1)||',"evidenceHash":"'||v_hash||'"}')::json;
+      v_payment_evidence:=pg_catalog.json_build_object('kind','calendar_governed_receipt','paymentProvisoEvidence',v_proviso,
+        'throughDate',p_calendar_through,'calendarEvidence',pg_catalog.json_build_object('jurisdiction','IN','authorityId',p_calendar_authority,
+          'sourceDigestSha256',p_calendar_source_hash,'days',v_days),'workingDayEvidence',v_calendar,'paymentReceiptEvidence',v_governed);
+    ELSE
+      IF p_calendar_authority IS NOT NULL OR p_calendar_source_hash IS NOT NULL OR p_calendar_through IS NOT NULL
+          OR p_calendar_dates IS DISTINCT FROM ARRAY[]::date[] OR p_calendar_states IS DISTINCT FROM ARRAY[]::text[] THEN
+        RAISE EXCEPTION USING ERRCODE='22023',MESSAGE='safe ordinary receipt cannot carry working-day calendar evidence';
+      END IF;
+      v_payment_evidence:=pg_catalog.json_build_object('kind','safe_ordinary_receipt','paymentProvisoEvidence',v_proviso);
+    END IF;
+    v_class:=public.india_native_section14_case(v_service_date,v_invoice,v_receipt,v_change);
+    v_supply:=(v_class->>'timeOfSupplyDate')::date;v_selected:=v_pair->(v_class->>'selectedVersionSide');
+    v_identity:=pg_catalog.json_build_object('extensionId',v_selected->'extensionId','version',v_selected->'version',
+      'status',v_selected->'status','contentHash',v_selected->'contentHash','effectiveFromInstant',v_selected->'effectiveFromInstant',
+      'effectiveToInstant',v_selected->'effectiveToInstant');
+    v_section14:=pg_catalog.json_build_object('case',v_class->>'case','serviceProvisionDate',v_service_date,'invoiceIssueDate',v_invoice,
+      'paymentReceiptDate',v_receipt,'rateChangeDate',v_change,'timeOfSupplyDate',v_supply,'selectedVersionSide',v_class->>'selectedVersionSide',
+      'selectedVersion',v_identity,'legalRule','CGST_ACT_14_CHANGE_IN_RATE_SIX_CASE_RATE_VERSION_SELECTION',
+      'predecessorHashes',pg_catalog.json_build_object('rateVersionPair',v_pair->>'evidenceHash','rateChangeDate',v_rate_date->>'evidenceHash',
+        'serviceProvision',v_service->>'evidenceHash','paymentReceipt',v_payment->>'evidenceHash','invoiceIssue',v_projection->>'evidenceHash',
+        'paymentProviso',v_proviso->>'evidenceHash','workingDayCalendar',v_calendar->>'evidenceHash','governedPaymentReceipt',v_governed->>'evidenceHash'));
+    v_text:=public.india_native_insertion_json(v_section14);
+    v_hash:=pg_catalog.encode(public.digest(pg_catalog.convert_to('{"tenantId":'||pg_catalog.to_json(p_tenant)::text||',"propertyNode":'||
+      pg_catalog.to_json(p_property)::text||',"reservationId":'||pg_catalog.to_json(p_reservation)::text||','||pg_catalog.substr(v_text,2),'UTF8'),'sha256'),'hex');
+    v_section14:=(pg_catalog.left(v_text,pg_catalog.length(v_text)-1)||',"evidenceHash":"'||v_hash||'"}')::json;
+  ELSE
+    RAISE EXCEPTION USING ERRCODE='55000',MESSAGE='native timing lacks a single approved pair of rate versions';
+  END IF;
+  v_dates:=ARRAY[v_receipt,v_supply];
+  FOR v_i IN 1..2 LOOP
+    v_history:=public.read_india_native_rate_history_day(p_tenant,p_property,v_dates[v_i]);
+    IF v_history->'rateVersionPair' IS DISTINCT FROM v_pair
+        OR ((v_member_count=1 OR v_i=2) AND v_history->'selectedExtension' IS DISTINCT FROM v_selected) THEN
+      RAISE EXCEPTION USING ERRCODE='55000',MESSAGE='native selected rate conflicts with whole-day receipt or time-of-supply history';
+    END IF;
+    v_histories:=v_histories||pg_catalog.jsonb_build_object(v_keys[v_i+4],v_history);
+  END LOOP;
+  FOR v_i IN 1..6 LOOP
+    v_history_hashes:=v_history_hashes||pg_catalog.jsonb_build_object(v_keys[v_i],v_histories#>ARRAY[v_keys[v_i],'evidenceHash']);
+  END LOOP;
+  v_rate:=CASE WHEN v_member_count=1 THEN pg_catalog.json_build_object('kind','ordinary_section13_single_version',
+      'selectedVersion',v_selected,'historicalResolutionEvidenceHashes',v_history_hashes)
+    ELSE pg_catalog.json_build_object('kind','genuine_section14_rate_change','section14',v_section14,'historicalResolutionEvidenceHashes',v_history_hashes) END;
+  v_hash:=public.india_native_source_hash(v_rate::jsonb||pg_catalog.jsonb_build_object('tenantId',p_tenant,'propertyNode',p_property,
+    'reservationId',p_reservation,'invoiceTimingEvidenceHash',v_timing->>'evidenceHash','rateVersionPairEvidenceHash',v_pair->>'evidenceHash'));
+  v_text:=public.india_native_insertion_json(v_rate);
+  v_rate:=(pg_catalog.left(v_text,pg_catalog.length(v_text)-1)||',"evidenceHash":"'||v_hash||'"}')::json;
+  v_result:=pg_catalog.json_build_object('kind','native_current_transaction','timing',v_timing,'rateSource',v_rate);
+  v_hash:=public.india_native_source_hash(v_result::jsonb||pg_catalog.jsonb_build_object('tenantId',p_tenant));
+  v_text:=public.india_native_insertion_json(v_result);
+  v_result_text:=pg_catalog.left(v_text,pg_catalog.length(v_text)-1)||',"evidenceHash":"'||v_hash||'"}';
+  v_input:=pg_catalog.json_build_object('kind','native_current_transaction','tenantId',p_tenant,'propertyNode',p_property,
+    'reservationId',p_reservation,'serviceProvision',v_service,'paymentReceipt',v_payment,'ordinaryRegime',v_ordinary,
+    'nativeTiming',v_projection,'rateVersionPair',v_pair,'rateChangeDateEvidence',v_rate_date,
+    'historicalResolutions',v_histories,'section14PaymentEvidence',v_payment_evidence);
+  v_input_text:=public.india_native_insertion_json(v_input);
+  RETURN pg_catalog.jsonb_build_object('nativeTiming',v_projection,'nativeTimingProjectionPreimage',v_projection_preimage,
+    'transactionContext',v_context,'invoiceSourceInput',v_input::jsonb,'invoiceSourceResult',v_result_text::jsonb,
+    'invoiceSourceInputCanonicalJson',v_input_text,'invoiceSourceResultCanonicalJson',v_result_text);
+END;
+$$;
+ALTER FUNCTION public.read_india_native_invoice_timing_source(uuid,uuid,uuid,uuid,uuid,uuid,uuid,uuid,text,text,date,date[],text[]) OWNER TO yellow_owner;
+REVOKE ALL ON FUNCTION public.read_india_native_invoice_timing_source(uuid,uuid,uuid,uuid,uuid,uuid,uuid,uuid,text,text,date,date[],text[]) FROM PUBLIC,app_role,yellow_runtime;

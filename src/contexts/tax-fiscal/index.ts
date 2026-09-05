@@ -610,9 +610,14 @@ export {
   validateIndiaNativeFiscalPrefix,
 } from "./india-native-fiscal-invoice";
 export type {
+  IndiaNativeFiscalAccountingHandlerPort,
+  IndiaNativeFiscalInvoiceCalendarEvidence,
   IndiaNativeFiscalInvoiceIssueInput,
+  IndiaNativeFiscalInvoiceIssueNativeInput,
   IndiaNativeFiscalInvoiceReceipt,
   IndiaNativeFiscalInvoiceServiceOptions,
+  IndiaNativeFiscalPreparedSourceInput,
+  IndiaNativeFiscalSourceReaderPort,
   IndiaNativeFiscalSeriesConfigurationInput,
   IndiaNativeFiscalSeriesConfigurationResult,
 } from "./india-native-fiscal-invoice";

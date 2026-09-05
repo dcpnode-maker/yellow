@@ -71,7 +71,7 @@ const CLASSIFICATION_KEYS = ["classificationId", "propertyNode", "jurisdiction",
 const PLACE_KEYS = ["propertyNode", "reservationId", "folioId", "jurisdiction", "supplier", "recipient", "buyerAssociation", "classification", "propertyLocation", "legalRule", "pos", "candidateJson", "candidateHash"] as const;
 const COMPONENT_FAMILY_KEYS = ["propertyNode", "reservationId", "folioId", "supplyDate", "jurisdiction", "supplierRegistrationId", "placeOfSupplyStateCode", "supplyNature", "determinationBasis", "sezDirection", "componentFamily", "legalSources", "predecessorCandidateHash", "evidenceHash"] as const;
 const SUPPLY_TIME_KEYS = ["propertyNode", "reservationId", "folioId", "supplyDate", "supplyNature", "determinationBasis", "sezDirection", "legalRule", "supplierRegistrationId", "supplierGstRegistrationStatusId", "supplierServiceLocationId", "supplierRegistrationStatusEvidenceHash", "recipientPartyId", "recipientRegistrationId", "recipientSezStatusId", "recipientRegistrationStatusEvidenceHash", "timeOfSupplyDate", "supplierTimeOfSupplyEvidenceHash", "recipientTimeOfSupplyEvidenceHash", "result", "evidenceHash"] as const;
-const NATIVE_SUPPLY_TIME_KEYS = ["kind", "propertyNode", "reservationId", "folioId", "supplyDate", "supplyNature", "determinationBasis", "sezDirection", "legalRule", "supplierRegistrationId", "supplierGstRegistrationStatusId", "supplierServiceLocationId", "supplierRegistrationStatusEvidenceHash", "recipientPartyId", "recipientRegistrationId", "recipientSezStatusId", "recipientRegistrationStatusEvidenceHash", "timeOfSupplyDate", "supplierTimeOfSupplyEvidenceHash", "recipientTimeOfSupplyEvidenceHash", "invoiceSourceEvidenceHash", "nativeTimingEvidenceHash", "result", "evidenceHash"] as const;
+const NATIVE_SUPPLY_TIME_KEYS = ["kind", "propertyNode", "reservationId", "folioId", "supplyDate", "supplyNature", "determinationBasis", "sezDirection", "legalRule", "supplierRegistrationId", "supplierGstRegistrationStatusId", "supplierServiceLocationId", "supplierRegistrationStatusEvidenceHash", "supplierSezStatusId", "supplierSezStatusEvidenceHash", "recipientPartyId", "recipientRegistrationId", "recipientSezStatusId", "recipientRegistrationStatusEvidenceHash", "timeOfSupplyDate", "supplierTimeOfSupplyEvidenceHash", "recipientTimeOfSupplyEvidenceHash", "invoiceSourceEvidenceHash", "nativeTimingEvidenceHash", "result", "evidenceHash"] as const;
 const PREDECESSOR_KEYS = ["section14", "levyComponentIdentity", "reservationLineage", "attributionSnapshot"] as const;
 const NATIVE_PREDECESSOR_KEYS = [
   "nativeTiming", "nativeRateSelection", "finalValuation", "quotedRateApplicability",
@@ -312,6 +312,10 @@ function validateInnerStatutoryEvidence(
   const { evidenceHash: supplyTimeEvidenceHash, ...supplyTimeBody } = supplyTime;
   if (hash(supplyTimeEvidenceHash, "supply-at-time evidence hash") !==
       digest({ tenantId, ...supplyTimeBody })) return fail("supply-at-time evidence hash is inconsistent");
+  if (isNativeSource(source)) {
+    canonicalUuid(supplyTime.supplierSezStatusId, "supplier SEZ-status id");
+    hash(supplyTime.supplierSezStatusEvidenceHash, "supplier SEZ-status evidence hash");
+  }
 
   const componentFamily = exactRecord(source.componentFamily, COMPONENT_FAMILY_KEYS, "component-family evidence");
   exactRecord(componentFamily.jurisdiction, ["extensionId", "key", "version", "contentHash"], "component-family jurisdiction");
