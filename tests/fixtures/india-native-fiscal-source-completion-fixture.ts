@@ -1,6 +1,12 @@
 import { SQL } from "bun";
 import type { IndiaGstSupplierServiceLocationResult } from "../../src/contexts/tax-fiscal/india-gst-supplier-service-location";
 import type { IndiaGstRecipientSezStatusResult } from "../../src/contexts/tax-fiscal/india-gst-recipient-sez-status";
+import {
+  IndiaGstAccommodationFinalValuationService,
+  IndiaNativeFiscalSeriesConfigurationService,
+  type IndiaNativeFiscalInvoiceCalendarEvidence,
+  type IndiaNativeFiscalInvoiceIssueNativeInput,
+} from "../../src/contexts/tax-fiscal";
 
 import { ChargeService, type PostChargeResult } from "../../src/contexts/financials";
 import { createPositiveTaxAttributionSnapshot } from "../../src/contexts/tax-fiscal/attribution";
@@ -37,6 +43,8 @@ export interface NativeSourceFixtureOptions {
   readonly serviceProvisionDate?: string;
   readonly supplierBooksEntryDate?: string;
   readonly supplierBankCreditDate?: string;
+  /** Synthetic quote arithmetic; never changes approved production GST rules. */
+  readonly quotedTaxRounding?: "exact_5_percent" | "component_half_up";
 }
 
 export interface NativeSourceCharge {
@@ -93,7 +101,8 @@ function fixtureTimezone(value: string | undefined): string {
   return timezone;
 }
 
-function canonicalAmounts(values: readonly string[] | undefined): {
+function canonicalAmounts(values: readonly string[] | undefined,
+  rounding: NativeSourceFixtureOptions["quotedTaxRounding"] = "exact_5_percent"): {
   readonly values: readonly string[];
   readonly base: bigint;
   readonly tax: bigint;
@@ -113,13 +122,18 @@ function canonicalAmounts(values: readonly string[] | undefined): {
   });
   const base = canonical.reduce((sum, amount) => sum + amount, 0n);
   const taxNumerator = base * 500n;
-  if (base > MAX_INT64 || taxNumerator % 10_000n !== 0n) {
+  if (rounding !== "exact_5_percent" && rounding !== "component_half_up") {
+    throw new Error("Native source fixture quoted tax rounding is unsupported");
+  }
+  if (base > MAX_INT64 || (rounding === "exact_5_percent" && taxNumerator % 10_000n !== 0n)) {
     throw new Error("Native source fixture requires an exact 5% synthetic quoted-tax result");
   }
-  const tax = taxNumerator / 10_000n;
+  const tax = rounding === "component_half_up"
+    ? canonical.reduce((sum, amount) => sum + 2n * ((amount * 250n + 5_000n) / 10_000n), 0n)
+    : taxNumerator / 10_000n;
   const payment = base + tax;
-  if (tax < 1n || payment > MAX_INT64) {
-    throw new Error("Native source fixture quoted-tax total is outside positive int64 bounds");
+  if (tax < 0n || (rounding === "exact_5_percent" && tax < 1n) || payment > MAX_INT64) {
+    throw new Error("Native source fixture quoted-tax total is outside admitted int64 bounds");
   }
   return Object.freeze({ values: Object.freeze([...amounts]), base, tax, payment });
 }
@@ -159,7 +173,7 @@ export async function createNativeSourceFixture(
 ): Promise<NativeSourceFixture> {
   const label = fixtureLabel(options.label);
   const timezone = fixtureTimezone(options.timezone);
-  const amounts = canonicalAmounts(options.roomNightAmounts);
+  const amounts = canonicalAmounts(options.roomNightAmounts, options.quotedTaxRounding);
   const configuredRevenueAccountCount = revenueAccountCount(options.revenueAccountCount);
   const marker = `${label}-${crypto.randomUUID().replaceAll("-", "").slice(0, 12)}`;
   const pathMarker = marker.replaceAll("-", "").toLowerCase();
@@ -481,6 +495,8 @@ export async function createNativeSourceFixture(
 export interface NativeStatutoryFixtureOptions {
   readonly serviceSez?: boolean;
   readonly includeServicePair?: boolean;
+  /** Date of synthetic base registration evidence, not an issue-clock override. */
+  readonly statusAsOfDate?: string;
 }
 function freezeStatutoryFixture<T>(value: T): T {
   if (value && typeof value === "object") {
@@ -513,7 +529,8 @@ export async function createNativeStatutoryFixture(deploy: SQL, fixture: NativeS
   const supplierStatusId = crypto.randomUUID(), supplierSezId = crypto.randomUUID(), recipientSezId = crypto.randomUUID();
   const classificationId = crypto.randomUUID();
   const serviceDate = fixture.serviceResult.serviceProvision.serviceProvisionDate;
-  const tos = fixture.paymentResult.paymentReceipt.paymentReceiptDate;
+  const tos = options.statusAsOfDate ?? fixture.paymentResult.paymentReceipt.paymentReceiptDate;
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(tos)) throw new Error("Synthetic statutory status date must be a civil date");
   if (serviceSez && serviceDate === tos) throw new Error("Distinct service-day SEZ fixture requires different service/TOS dates");
   await deploy`INSERT INTO public.tax_assignment(tenant_id,property_node,jurisdiction_key,effective)
     VALUES(${fixture.tenant}::uuid,${fixture.property}::uuid,'in-gst-lodging',daterange(NULL,NULL,'[)'))`;
@@ -613,4 +630,128 @@ export async function createNativeStatutoryFixture(deploy: SQL, fixture: NativeS
   });
   return { seller, recipient, location, supplierStatusId, supplierStatusHash, supplierSez, recipientSez,
     serviceSupplier, serviceRecipient, classificationId, jurisdiction, gst, tos };
+}
+
+export interface NativeIssuanceFixtureOptions extends NativeSourceFixtureOptions {
+  /** Final consideration may differ from the original booked quote. */
+  readonly chargeAmountMinor?: string;
+  readonly calendarEvidence?: IndiaNativeFiscalInvoiceCalendarEvidence | null;
+}
+
+/** Explicit synthetic calendar, never a production holiday-policy assertion. */
+export const NATIVE_ISSUANCE_TEST_CUTOVER_CALENDAR: IndiaNativeFiscalInvoiceCalendarEvidence = freezeStatutoryFixture({
+  authorityId: "ORDER434_SYNTHETIC_CALENDAR",
+  sourceDigestSha256: "b".repeat(64),
+  throughDate: "2025-09-26",
+  days: ["2025-09-23", "2025-09-24", "2025-09-25", "2025-09-26"].map(date => ({ date, state: "working" as const })),
+});
+
+/** Builds only authentic booking/charge/valuation and base configuration. The
+ * caller must execute the real command; no timing, tax, binding or invoice is
+ * owner-inserted, and this helper never grants itself runtime capabilities. */
+export async function createNativeIssuanceFixture(
+  deploy: SQL,
+  runtime: Database,
+  options: NativeIssuanceFixtureOptions = {},
+) {
+  const label = fixtureLabel(options.label ?? "native-issuance");
+  const amount = options.chargeAmountMinor ?? canonicalAmounts(options.roomNightAmounts, options.quotedTaxRounding).base.toString();
+  if (!/^[1-9][0-9]*$/.test(amount) || BigInt(amount) > MAX_INT64) {
+    throw new Error("Native issuance final consideration must be a positive int64 minor-unit string");
+  }
+  const fixture = await createNativeSourceFixture(deploy, runtime, { ...options, label });
+  const charge = await fixture.postCharge(amount, `${label}-charge`);
+  const valuationService = new IndiaGstAccommodationFinalValuationService({ idempotency: new PostgresIdempotency() });
+  const valuation = await runtime.withTenantTransaction(fixture.tenant, tx => valuationService.finalizeNative(tx, freezeStatutoryFixture({
+    tenantId: fixture.tenant, propertyNode: fixture.property, reservationId: fixture.reservation,
+    folioId: fixture.folio, buyerPartyId: fixture.party,
+    serviceProvisionSnapshotId: fixture.serviceResult.serviceProvision.serviceProvisionSnapshotId,
+    sources: [{ postingRootId: charge.postingRootId, sourceKind: "room_consideration", additionSubtype: null,
+      discountEligibility: null, evidenceSource: "operator_attestation", evidenceReference: `${label}-charge` }],
+    ordinaryAttestation: { relationshipConclusion: "unrelated_not_distinct", considerationConclusion: "money_only",
+      section152Conclusion: "all_additions_enumerated", section153Conclusion: "all_discounts_eligible",
+      sourceCompletenessConclusion: "all_sources_classified", evidenceSource: "operator_attestation",
+      evidenceReference: `${label}-section15` },
+    expectedCurrentValuationId: null, expectedCurrentEvidenceHash: null, approvalRequestId: null,
+    idempotencyKey: `${label}-valuation`,
+    envelope: createAuditEnvelope({ tenantId: fixture.tenant, propertyNode: fixture.property,
+      actorId: fixture.actor, requestId: crypto.randomUUID(), operation: "india_gst.accommodation_final_valuation_recorded" }),
+  })));
+  const serviceDate = fixture.serviceResult.serviceProvision.serviceProvisionDate;
+  const receiptDate = fixture.paymentResult.paymentReceipt.paymentReceiptDate;
+  // Choose base evidence dates from the real property clock. Production timing
+  // is independently recalculated by the candidate inside its own transaction.
+  const [clock] = await deploy<Array<{ status_date: string; issue_date: string }>>`
+    SELECT least(${receiptDate}::date,
+      CASE WHEN (transaction_timestamp() AT TIME ZONE p.timezone)::date <= ${serviceDate}::date + 30
+        THEN (transaction_timestamp() AT TIME ZONE p.timezone)::date ELSE ${serviceDate}::date END)::text AS status_date,
+      (transaction_timestamp() AT TIME ZONE p.timezone)::date::text AS issue_date
+    FROM public.org_node p WHERE p.tenant_id=${fixture.tenant}::uuid AND p.id=${fixture.property}::uuid`;
+  if (!clock) throw new Error("Native issuance fixture property clock is unavailable");
+  const statutory = await createNativeStatutoryFixture(deploy, fixture, { statusAsOfDate: clock.status_date });
+  if (clock.issue_date !== clock.status_date) {
+    // Series configuration independently requires current official registration
+    // evidence; the invoice request retains its historical statutory/TOS row.
+    await deploy`INSERT INTO public.india_gst_supplier_registration_status_snapshot(
+      tenant_id,id,supplier_registration_id,supplier_registration_evidence_hash,status_as_of,
+      gst_registration_status,gst_taxpayer_type,gst_status_source,gst_status_evidence_sha256,legal_rule)
+      VALUES(${fixture.tenant}::uuid,${crypto.randomUUID()}::uuid,${statutory.seller.registrationId}::uuid,
+        ${statutory.seller.evidenceHash},${clock.issue_date}::date,'active','regular','gst_common_portal',
+        ${statutory.gst.evidenceSha256},'CGST_ACT_25_29_30_AND_RULE_21A_REGISTRATION_STATUS')`;
+  }
+  await deploy`INSERT INTO public.role_permission(role_id,permission_code)
+    SELECT ur.role_id,permission.code FROM public.user_role ur CROSS JOIN public.permission permission
+    WHERE ur.tenant_id=${fixture.tenant}::uuid AND ur.user_id=${fixture.actor}::uuid
+      AND permission.code IN ('tax-fiscal.documents:issue','tax-fiscal.series:configure') ON CONFLICT DO NOTHING`;
+  // Configure actual approved history members, not a guessed selected-rate ID.
+  // Genuine cutovers need both service-day and later invoice/receipt-day routes.
+  const extensions = await deploy.begin(async tx => {
+    await tx`SELECT set_config('app.tenant_id',${fixture.tenant},true)`;
+    await tx`SET LOCAL ROLE yellow_owner`;
+    return tx<Array<{ member: { extensionId: string; key: string; version: number; contentHash: string } }>>`
+      SELECT DISTINCT public.read_india_native_rate_history_day(${fixture.tenant}::uuid,
+        ${fixture.property}::uuid,d.day)->'selectedExtension' AS member
+      FROM (VALUES (${serviceDate}::date),(${receiptDate}::date),(${clock.issue_date}::date)) AS d(day)`;
+  });
+  const payableIds: string[] = [];
+  for (const component of ["CGST", "SGST"] as const) {
+    const account = crypto.randomUUID();
+    const code = `N434_${component}_${crypto.randomUUID().replaceAll("-", "").slice(0, 10)}`;
+    payableIds.push(account);
+    await deploy.begin(async tx => {
+      await tx`INSERT INTO public.account(tenant_id,id,property_node,role,name,currency)
+        VALUES(${fixture.tenant}::uuid,${account}::uuid,${fixture.property}::uuid,'tax_payable',${component},'INR')`;
+      await tx`INSERT INTO public.tx_code(code,name,grp,usali_line,default_dr,default_cr)
+        VALUES(${code},${component},'tax','liabilities.tax','guest','tax_payable')`;
+      await tx`INSERT INTO public.tx_code_route(tenant_id,property_node,currency,tx_code,credit_account_id)
+        VALUES(${fixture.tenant}::uuid,${fixture.property}::uuid,'INR',${code},${account}::uuid)`;
+      for (const { member } of extensions) {
+        await tx`INSERT INTO public.tax_semantic_route(tenant_id,property_node,currency,jurisdiction_extension_id,
+          jurisdiction_owner_tenant_id,jurisdiction_key,jurisdiction_version,jurisdiction_content_hash,semantic_kind,semantic_code,tx_code)
+          VALUES(${fixture.tenant}::uuid,${fixture.property}::uuid,'INR',${member.extensionId}::uuid,NULL,
+            ${member.key},${member.version},${member.contentHash},'tax',${component},${code})`;
+      }
+    });
+  }
+  const series = await runtime.withTenantTransaction(fixture.tenant, tx => new IndiaNativeFiscalSeriesConfigurationService().configure(tx, {
+    tenantId: fixture.tenant, propertyNode: fixture.property, supplierRegistrationId: statutory.seller.registrationId,
+    documentKind: "invoice", prefix: "INV/",
+    envelope: createAuditEnvelope({ tenantId: fixture.tenant, propertyNode: fixture.property, actorId: fixture.actor,
+      requestId: crypto.randomUUID(), operation: "document.series.configured" }),
+  }));
+  const request: IndiaNativeFiscalInvoiceIssueNativeInput = freezeStatutoryFixture({
+    tenantId: fixture.tenant, propertyNode: fixture.property, actorId: fixture.actor,
+    reservationId: fixture.reservation, folioId: fixture.folio, valuationId: valuation.valuationId,
+    serviceProvisionSnapshotId: fixture.serviceResult.serviceProvision.serviceProvisionSnapshotId,
+    paymentReceiptSnapshotId: fixture.paymentResult.paymentReceipt.paymentReceiptSnapshotId,
+    ordinaryRegimeEvidenceId: fixture.ordinaryResult.ordinaryRegimeEvidenceId,
+    supplierServiceLocationId: statutory.location.supplierServiceLocationId,
+    supplierRegistrationStatusId: statutory.supplierStatusId, supplierSezStatusId: statutory.supplierSez.supplierSezStatusId,
+    recipientRegistrationId: statutory.recipient.registrationId, recipientSezStatusId: statutory.recipientSez.recipientSezStatusId,
+    classificationId: statutory.classificationId, calendarEvidence: options.calendarEvidence ?? null,
+    idempotencyKey: `${label}-first-invoice`,
+    envelope: createAuditEnvelope({ tenantId: fixture.tenant, propertyNode: fixture.property, actorId: fixture.actor,
+      requestId: crypto.randomUUID(), operation: "document.issued" }),
+  });
+  return Object.freeze({ fixture, valuation, statutory, series, request, payableIds: Object.freeze(payableIds) });
 }

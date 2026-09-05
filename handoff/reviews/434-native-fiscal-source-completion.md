@@ -197,3 +197,141 @@ skips,0 failed,21,296 assertions**,2,665 tests/476 files,88.01s. No test was cha
 to clear the failure. Typecheck,boundaries167,licence policy23,audit and diff checks
 passed. These regression results do not prove the skipped database paths or
 constitute independent Tier3 acceptance of the unfinished invoice flow.
+
+## Independent genuine runtime issuance proof — 2026-09-05
+
+Reviewer: Codex `/root/native_source_sql`, independent of root's new outer
+preparation and `/root/native_fiscal_composition`'s new completion implementation.
+Read PROJECT, Order434 and Question192; inspected the actual candidate source,
+22-argument/five-output preparation, seven-argument completion, permanent receipt
+and TypeScript preimages. The one concrete preparation ordering finding (reject
+an already-held D99 before the first scope0 acquisition) was corrected by root
+before this run. No further concrete mismatch was found in the bounded scan.
+
+Personally executed on the existing PostgreSQL16.15 synthetic database
+`127.0.0.1:55502/yellow_order434_timing`, with no lifecycle changes or new resources:
+
+```powershell
+$env:YELLOW_REQUIRE_ORDER434_NATIVE_ISSUANCE_DATABASE='1'
+$env:YELLOW_ORDER434_NATIVE_ACCOUNTING_DEPLOY_DATABASE_URL='postgres://yellow_deploy@127.0.0.1:55502/yellow_order434_timing'
+$env:YELLOW_ORDER434_NATIVE_ISSUANCE_RUNTIME_DATABASE_URL='postgres://yellow_runtime@127.0.0.1:55502/yellow_order434_timing'
+bun test tests/india-native-fiscal-preparation.integration.test.ts --test-name-pattern 'genuine native invoice transaction'
+```
+
+Result: **exit0; 1 passed, 0 failed, 14 filtered out, 7 assertions; 3.97s**.
+The actual command committed its deferred whole-issuance graph from a real
+10000-minor charge and governed valuation/intake/statutory roots. It returned
+`INV/1`; revenue remained -10000, guest total was10500, two payable balances
+were -250 each, and there were two journals/six lines (original consideration
+plus the tax-only delta). Replay with a new audit request UUID returned the same
+receipt, with unchanged document/event/fact/posting census and series next_no2.
+
+Question192's four exact intended capabilities were temporarily granted to
+app_role with the existing deploy psql, switches before `--dbname`, inside a
+PowerShell try/finally. The finally revoked all four even on test failure:
+prepare22args, consume-accounting2UUID, accounting-source-reader2UUID and
+commit7args. Before and after, catalogue checks showed yellow_owner ownership;
+afterward **app_role, yellow_runtime and PUBLIC EXECUTE were false for all four**.
+Ledger remained75/75, public tables127, and zero other database sessions remained.
+No wrapper, clock override, fabricated derived fiscal row, disabled constraint,
+product/test edit, production migration, retained-local grant or publication.
+
+Candidate file SHA256 at proof:
+
+- Preparation: `7fae5f6d97cb464ebf909f9562b9bfab2a46ea8e311325d0f5306309628bab43`.
+- Accounting: `e6c30d972c12c4dd2999c2d5f269f0ac07944ea8e8431831244919654c7ef754`.
+- Completion: `8af0dafd356f576e274f0f01486542894d480749a8e454644360a62f8730e68e`.
+
+This proves the first ordinary actual-runtime invoice and immediate exact replay,
+not full Order434/Tier3 acceptance. Zero-tax, genuine cutover, authority-change,
+pruned-receipt/event replay, concurrent winner schedules, complete migration and
+standing mandatory gates remain separate proof obligations.
+
+## Independent native runtime variants and concurrency proof — 2026-09-05
+
+Reviewer: Codex `/root/native_runtime_review`, independent of root's outer
+preparation and `/root/native_fiscal_composition`'s completion implementation.
+The reviewer read the governing project/order/question/decision material and
+inspected the current preparation, completion, fixture and tests. In particular,
+the narrow timing repair preserves Order297 branch-B `candidateDates` insertion
+order (`serviceProvisionDate`, then `paymentReceiptDate`) through ordered JSON,
+while retaining the separately canonical JSONB evidence hash. No concrete source
+defect was found.
+
+The first personal execution found one proof-expectation mismatch: preparation
+without completion correctly rolled back at `COMMIT`, but PostgreSQL reported
+`23503` from `india_native_timing_document_fk`, rather than the test's expected
+generic `55000`. Server evidence confirmed the exact deferred FK. The test was
+then corrected by root, without a product or constraint change, to require that
+exact SQLSTATE and constraint, prove preparation returned one row before commit,
+compare the complete pre/post census, and recover with the same-key real command.
+
+The reviewer then personally reran the complete requested dynamic set on the
+existing isolated PostgreSQL 16.15 database
+`127.0.0.1:55502/yellow_order434_timing`:
+
+```powershell
+$env:YELLOW_REQUIRE_ORDER434_NATIVE_ISSUANCE_DATABASE='1'
+$env:YELLOW_ORDER434_NATIVE_ACCOUNTING_DEPLOY_DATABASE_URL='postgres://yellow_deploy@127.0.0.1:55502/yellow_order434_timing'
+$env:YELLOW_ORDER434_NATIVE_ISSUANCE_RUNTIME_DATABASE_URL='postgres://yellow_runtime@127.0.0.1:55502/yellow_order434_timing'
+bun test tests/india-native-fiscal-preparation.integration.test.ts `
+  tests/india-native-fiscal-source-locks.integration.test.ts `
+  tests/india-native-fiscal-completion.integration.test.ts `
+  --test-name-pattern 'genuine native invoice transaction|authorized native issuance concurrency|real candidate variants'
+```
+
+Final result: **8 passed, 0 failed, 28 filtered, 157 assertions**, 17.12 seconds.
+This includes authentic one-minor zero-tax issuance/replay without a tax journal;
+rejection of the deliberately mismatched payment root; genuine Section14 issuance
+across distinct service and selected-rate dates; ordinary charge issuance without
+duplicate revenue; current issue/finalize authority on fresh issue and permanent
+replay; exact preparation-only rollback and same-key recovery; 100 simultaneous
+same-key convergence; and two-key one-folio arbitration with one `23505` loser and
+no numbering gap.
+
+Question192's exact four temporary `app_role` grants were applied only around the
+run and were unconditionally revoked in PowerShell `finally`. A subsequent direct
+catalogue audit used
+`aclexplode(coalesce(proacl,acldefault('f',proowner)))`, including grantee `0` for
+PUBLIC, and proved PUBLIC, `app_role` and `yellow_runtime` EXECUTE false for all
+four exact signatures. Zero other sessions remained. Tests contain no self-grants.
+
+Final reviewed source and proof SHA256 values:
+
+- preparation: `fba38a8c51e63a473dd0fd2344bab38db1781f7683f54b177ec57b069681c741`
+- accounting: `e6c30d972c12c4dd2999c2d5f269f0ac07944ea8e8431831244919654c7ef754`
+- completion: `8af0dafd356f576e274f0f01486542894d480749a8e454644360a62f8730e68e`
+- statutory: `367f83ffe459af5d5099186aa67b0ee207f6614b9e879d8a376046b9ffbddf79`
+- fixture: `c91666d5973c9cd8e024ef85bd93869df8d4a07802378794d5b70b13bfd6ca54`
+- preparation test: `932af4c10083832d29b9f191755d2bfec1effd9680fb0dea5202a0bc05a38ac2`
+- source-lock test: `8eeb4f244507ca2db9f12fe22e0549119f1e32c43dc42a3c010fb60cc56a2479`
+- completion test: `5aa22281beb849a65f17810a7ecde2016c245ca6ef4f3651f785c49f74fcabab`
+
+This is bounded independent executable evidence, not full Order434 or Phase7
+approval. Complete migration/schema/referee, broader compatibility and standing
+gates, pruned-event replay where still required, and fresh final Tier3 acceptance
+remain governed separately.
+
+### Addendum: retained-artifact replay
+
+The same independent reviewer inspected the subsequently added completion test
+that removes only the exact two synthetic issuance events and one completed API
+receipt after verifying their permanent timing/document identities, correlation,
+and absence from `consumer_processed`. It then requires replay to return the
+immutable receipt without recreating those ephemeral rows or changing any census.
+The fixture performs this bounded synthetic retention simulation directly; it
+does not claim a production retention worker, closed-folio behavior or sealed-day
+behavior. No product SQL changed for this addendum.
+
+The reviewer personally repeated the complete three-file dynamic command and
+pattern recorded above. Final result: **9 passed, 0 failed, 28 filtered, 164
+assertions**, 18.71 seconds. The added retained-artifact case passed together
+with all eight previously recorded runtime cases. Temporary grants were again
+revoked unconditionally. A fresh
+`aclexplode(coalesce(proacl,acldefault('f',proowner)))` audit proved PUBLIC,
+`app_role` and `yellow_runtime` EXECUTE false for all four exact capabilities;
+zero other database sessions remained. The final completion-test SHA256 was
+`101a11707a217902089b3baf324a43e9f9a62de8e37591618690f287f6dbdad1`.
+
+This addendum remains bounded proof only and does not approve Order434, Phase7,
+production retention, local promotion, merge or deployment.

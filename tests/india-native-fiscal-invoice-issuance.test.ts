@@ -44,7 +44,7 @@ describe("Order434 private native fiscal document lock context", () => {
       /lock_india_native_document_context\(\s*p_tenant uuid,p_property uuid,p_reservation uuid,p_folio uuid,p_actor uuid,\s*p_supplier_registration uuid\s*\) RETURNS jsonb/,
     );
     expect(complete.indexOf("lock_india_native_document_context(")).toBeLessThan(
-      complete.indexOf("compose_india_native_quoted_tax_source("),
+      complete.indexOf("CREATE OR REPLACE FUNCTION public.compose_india_native_quoted_tax_source("),
     );
     expect(source).toContain(
       "REVOKE ALL ON FUNCTION public.lock_india_native_document_context(uuid,uuid,uuid,uuid,uuid,uuid)",

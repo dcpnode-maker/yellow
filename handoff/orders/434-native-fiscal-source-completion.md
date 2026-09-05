@@ -4,13 +4,16 @@
 **Phase:** 7 · YF-008, YF-009, YF-023
 **Implementation base:** `591ace8` (includes the complete Order432 current-catalogue repair)
 
-**Latest implementation checkpoint:** [D1362 — preparation locks and persisted tax projection](#preparation-locks-and-persisted-tax-projection--d1362).
-The one-transaction command is wired. Private timing/statutory readers, tax-row
-persistence and exact persisted-projection checks have bounded database proof.
-The current-transaction authenticator is now draft code, not positively proved
-through the governed runtime. Complete outer preparation, remaining source locks,
-actual accounting/commit/replay and final independent acceptance are unfinished.
-This checkpoint is not enabled in the retained local app.
+**Latest implementation checkpoint:** [Genuine native invoice execution](#genuine-native-invoice-execution--d1363).
+The actual runtime command now commits an ordinary, rounded-zero-tax or genuine
+rate-change invoice from real charge, intake and valuation sources, without
+reposting revenue. Source locks, preparation authentication, accounting and final
+document/receipt commit execute together. A non-implementer personally passed
+nine runtime cases, including current permission checks, partial-COMMIT rollback,
+100 identical-key requests, two-key arbitration and replay after ephemeral
+receipt/event removal. This is bounded proof, not
+complete Order434 acceptance. Remaining acceptance and migration integration are
+listed below. The retained local app is unchanged.
 
 **Date:** 2026-09-05
 
@@ -648,6 +651,22 @@ existing quoted-tax composer; root appends source-basis/authentication helpers.
 Each uses targeted patches, never edits another worker's function body and
 never rewrites the whole file.
 
+Question192 additionally admits `0076-native-completion.sql` in the same draft
+directory, and `tests/india-native-fiscal-source-locks.integration.test.ts` plus
+`tests/india-native-fiscal-completion.integration.test.ts`. These separate the
+remaining source-lock and final-commit workers from root-owned outer preparation
+without changing the single outcome, schema, authority or acceptance boundary.
+The completion fragment remains outside the migration runner; source publication
+does not enable runtime issuance. Each worker patches only its assigned functions
+and tests. All high-risk independent executable proof remains mandatory.
+
+Question192's integrated-candidate proof may temporarily enable only the four
+intended runtime entry points in the existing synthetic database after all real
+functions compile, execute the actual command, then revoke those grants even on
+failure. No test wrapper, derived-source substitution, disabled constraint or
+retained-local/production promotion is allowed. This resolves the difference
+between private draft storage and testing the real governed application path.
+
 D1346 / Question190 also admits two exclusive, non-runnable0076 implementation
 fragments: `handoff/drafts/order434/0076-native-preparation.sql` and
 `handoff/drafts/order434/0076-native-accounting.sql`. The D1350 checkpoint explicitly
@@ -704,6 +723,8 @@ proof targets; attach authoritative guards in the new migrations.
 tests/india-native-fiscal-source-completion.test.ts
 tests/india-native-fiscal-source-completion.integration.test.ts
 tests/india-native-fiscal-preparation.integration.test.ts
+tests/india-native-fiscal-source-locks.integration.test.ts
+tests/india-native-fiscal-completion.integration.test.ts
 tests/india-native-fiscal-invoice-issuance.test.ts
 tests/india-gst-accommodation-ordinary-regime-evidence.integration.test.ts
 tests/india-gst-accommodation-source-intake.test.ts
@@ -1642,3 +1663,70 @@ boundaries,23-package licence policy,audit and diff checks passed. The first ful
 run hit one Windows Chromium `DevToolsActivePort` EBUSY (1,534 passes); root's
 unchanged complete rerun above passed. The failure remains disclosed, not counted
 as an initial green result. No browser test or assertion was weakened.
+
+## Genuine native invoice execution — D1363
+
+Root completed the outer22-argument preparation and remaining source/configuration
+lock graph; the completion worker implemented canonical413/426/429 reconstruction,
+final document/number/accounting-origin/receipt commit and permanent receipt read.
+All are non-runnable0076 fragments under this order; the actual runtime command
+uses the four intended candidate entry points only during the explicitly admitted
+isolated proof window, with unconditional grant revocation afterward.
+
+Executed behavior, using real ChargeService, governed source intake and valuation:
+
+- A10000-minor charge produces one10500 invoice, with original revenue-10000
+  unchanged and only500 incremental tax. Exact retries do not write again.
+- A genuine one-minor booked quote/payment/charge rounds its two approved tax
+  components to zero. Issuance succeeds with a null incremental tax journal and
+  no extra financial lines; replay remains identical.
+- A genuine2025-09-22 rate change preserves native/statutory TOS2025-09-20 and
+  selected-rate TOS2025-09-25 as different facts, selecting successor version2.
+- Removing either current issue or valuation permission denies both new issue
+  and completed replay, leaving fiscal/audit/number state unchanged.
+- Real preparation returns, but a partial COMMIT fails on the deferred
+  `india_native_timing_document_fk` with23503. Every attempted write rolls back,
+  and the same key can subsequently issue invoice1 successfully.
+-100 application requests with one identical key, through a bounded six-connection
+  runtime pool, produce one fresh receipt and99 identical replays. Two different
+  keys competing for the same folio produce one invoice and one23505 conflict,
+  without an extra number or duplicate effects. This is not the separate
+ 100-distinct-sources/one-series acceptance case.
+
+Independent `/root/native_runtime_review` personally executed **8 passed,0 failed,
+157 assertions,28 filtered,17.12s** across the three dynamic suites. Its preceding
+7-pass/1-failure run found the rollback test expected custom55000 before the earlier
+deferred FK23503; the corrected test requires the exact FK name, successful
+preparation return, complete rollback census and successful same-key recovery.
+No production guard or constraint was weakened. Earlier independent
+`/root/native_source_sql` also executed the ordinary issue/replay path (1/0,7).
+
+Actual execution exposed and repaired a branch-B canonical source serialization
+defect: JSONB reordered `candidateDates` while Order297 replays its original
+insertion order. Ordered JSON now preserves service-date then payment-date;
+semantic dates and sorted-hash domains are unchanged. Aggregate numeric formatting
+and millisecond receipt serialization were also corrected during genuine runtime
+integration; stored document timestamps and hash preimages are not rewritten.
+
+Still required: permanent replay after closed-day/folio changes;
+the full tax-family/source-bound matrix;100 distinct sources sharing one series;
+deterministic correction/transfer/seal winner schedules; generic approval creation;
+complete0076 migration assembly, fresh/upgrade schema/referee and legacy integration;
+and full independent Tier3 acceptance. These remain this order's requirements.
+No order/phase completion, main merge, local refresh, IRP or provider activation.
+
+Final publication evidence — D1364: the same non-implementer personally reran
+all nine dynamic cases, **9 passed,0 failed,164 assertions,28 filtered,18.71s**.
+The added retention proof removes exactly the synthetic invoice's two issuance
+outbox events and one completed API receipt, after validating their permanent
+identities and absence of consumer dependencies. A new-request-UUID replay reads
+the permanent invoice and creates no cache, event, fact, posting, document or
+number effects. This does not implement or approve a production retention worker.
+
+Final general regression: **1,551 passed,1,148 explicit database/environment skips,
+0 failed,21,510 assertions**,2,699 tests/478 files,77.80s. Typecheck,167-file
+boundaries,23-package licence policy,audit and diff checks pass. The skipped
+database paths are not counted as proof. All four temporary privileges were
+independently verified revoked using default-aware ACL inspection; zero other
+database sessions remained. The single existing isolated75-record/127-table
+test database is retained for further acceptance, separate from the local app.

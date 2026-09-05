@@ -2118,15 +2118,15 @@ different fresh Tier3 review remain required. Order434 is not built or approved;
 neither order establishes provider readiness, IRP completion, a local refresh or
 Phase7 completion.
 
-The latest [Order434/D1362 checkpoint](handoff/orders/434-native-fiscal-source-completion.md#preparation-locks-and-persisted-tax-projection--d1362)
-adds private source/authority/day-series locks, canonical source-basis binding,
-timing/applicability/tax persistence and exact persisted-projection checking.
-Ordinary and genuine rate-change write sets have rollback-only database proof.
-The source authenticator is implemented as a private draft but its governed
-positive invocation is unproved. Outer preparation, remaining source locks,
-accounting/commit/replay and final independent acceptance remain open. All draft
-fragments stay outside the migration runner; the18-phase scope and dependency-gated
-11→13→17 priority are unchanged.
+The latest [Order434 execution checkpoint](handoff/orders/434-native-fiscal-source-completion.md#genuine-native-invoice-execution--d1363)
+proves real charge-to-invoice COMMIT and no-write replay for ordinary, rounded-zero
+and genuine rate-change cases. A non-implementer executed9 dynamic cases, including
+current permission checks, partial-COMMIT rollback,100 identical-key requests
+and replay after exact temporary receipt/event removal.
+Full source/race/closed-state coverage,0076 migration integration and complete Tier3
+acceptance remain open; this is not Phase7 completion. All draft fragments stay
+outside the migration runner; the18-phase scope and dependency-gated11→13→17
+priority are unchanged. The retained local app is not promoted by these proofs.
 
 ## Current cross-phase requirements index — Order433, 2026-09-05
 

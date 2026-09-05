@@ -1257,7 +1257,7 @@ SET search_path=pg_catalog,public SET timezone='UTC' SET datestyle='ISO,YMD' AS 
 DECLARE
   v_intake jsonb;v_service json;v_payment json;v_ordinary jsonb;v_timezone text;v_context jsonb;
   v_invoice date;v_service_date date;v_books date;v_bank date;v_receipt date;v_supply date;v_deadline date;
-  v_change date:=DATE '2025-09-22';v_projection jsonb;v_projection_preimage jsonb;v_timing jsonb;
+  v_change date:=DATE '2025-09-22';v_projection jsonb;v_projection_preimage jsonb;v_timing json;
   v_histories jsonb:='{}';v_history_hashes jsonb:='{}';v_history jsonb;v_pair jsonb;v_keys text[];
   v_dates date[];v_i integer;v_member_count integer;v_selected jsonb;v_identity json;
   v_rate_date json;v_proviso json;v_calendar json;v_governed json;v_section14 json;v_payment_evidence json;
@@ -1320,20 +1320,24 @@ BEGIN
     RAISE EXCEPTION USING ERRCODE='22023',MESSAGE='native timing exceeds admitted civil dates';
   END IF;
   v_supply:=LEAST(CASE WHEN v_invoice<=v_deadline THEN v_invoice ELSE v_service_date END,v_receipt);
-  v_timing:=pg_catalog.jsonb_build_object('kind','native_current_transaction','nativeTimingId',p_native_timing,
+  -- Order297 compares candidateDates in the domain's original insertion order.
+  -- JSONB would reverse branch B's service/payment keys; hash through JSONB but
+  -- retain ordered JSON for the canonical TypeScript replay source.
+  v_timing:=pg_catalog.json_build_object('kind','native_current_transaction','nativeTimingId',p_native_timing,
     'prospectiveDocumentId',p_document,'serviceProvisionSnapshotId',p_service,'paymentReceiptSnapshotId',p_payment,
     'ordinaryRegimeEvidenceId',p_ordinary,'propertyNode',p_property,'reservationId',p_reservation,
     'serviceProvisionDate',v_service_date,'paymentReceiptDate',v_receipt,'invoiceIssueDate',v_invoice,
     'supplierBooksEntryDate',v_books,'supplierBankCreditDate',v_bank,'deadlineDate',v_deadline,
-    'candidateDates',CASE WHEN v_invoice<=v_deadline THEN pg_catalog.jsonb_build_object('invoiceIssueDate',v_invoice,'paymentReceiptDate',v_receipt)
-      ELSE pg_catalog.jsonb_build_object('serviceProvisionDate',v_service_date,'paymentReceiptDate',v_receipt) END,
+    'candidateDates',CASE WHEN v_invoice<=v_deadline THEN pg_catalog.json_build_object('invoiceIssueDate',v_invoice,'paymentReceiptDate',v_receipt)
+      ELSE pg_catalog.json_build_object('serviceProvisionDate',v_service_date,'paymentReceiptDate',v_receipt) END,
     'branch',CASE WHEN v_invoice<=v_deadline THEN 'section13_2_a_invoice_or_payment' ELSE 'section13_2_b_service_or_payment' END,
     'timeOfSupplyDate',v_supply,'regime','ordinary_rule47_30_day','ordinaryRegimeSource','governed_rule47_ordinary_regime_record',
     'ordinaryRegimeLegalBasis','CGST_RULE_47_ORDINARY_SERVICE_INVOICE_30_DAY_INPUT','amountMinor',v_payment->>'amountMinor','currency','INR',
-    'predecessorHashes',pg_catalog.jsonb_build_object('serviceProvision',v_service->>'evidenceHash',
+    'predecessorHashes',pg_catalog.json_build_object('serviceProvision',v_service->>'evidenceHash',
       'paymentReceipt',v_payment->>'evidenceHash','ordinaryRegime',v_ordinary->>'evidenceHash','nativeTiming',v_projection->>'evidenceHash'));
-  v_timing:=v_timing||pg_catalog.jsonb_build_object('evidenceHash',public.india_native_source_hash(
-    v_timing||pg_catalog.jsonb_build_object('tenantId',p_tenant)));
+  v_hash:=public.india_native_source_hash(v_timing::jsonb||pg_catalog.jsonb_build_object('tenantId',p_tenant));
+  v_text:=public.india_native_insertion_json(v_timing);
+  v_timing:=(pg_catalog.left(v_text,pg_catalog.length(v_text)-1)||',"evidenceHash":"'||v_hash||'"}')::json;
   v_keys:=ARRAY['serviceProvision','invoiceIssue','supplierBooksEntry','supplierBankCredit','paymentReceipt','timeOfSupply'];
   v_dates:=ARRAY[v_service_date,v_invoice,v_books,v_bank];
   FOR v_i IN 1..4 LOOP
@@ -1484,6 +1488,346 @@ END;
 $$;
 ALTER FUNCTION public.read_india_native_invoice_timing_source(uuid,uuid,uuid,uuid,uuid,uuid,uuid,uuid,text,text,date,date[],text[]) OWNER TO yellow_owner;
 REVOKE ALL ON FUNCTION public.read_india_native_invoice_timing_source(uuid,uuid,uuid,uuid,uuid,uuid,uuid,uuid,text,text,date,date[],text[]) FROM PUBLIC,app_role,yellow_runtime;
+
+-- Stage-4 valuation/intake/buyer/rate-configuration lock graph. The enclosing
+-- preparation has already acquired its financial prefix and issue-authority
+-- graph. The three text values are exact private reader originals, not caller
+-- selectors. Statutory rows are deliberately left to the following dedicated
+-- statutory helper. Snapshot only the complete discovered set, lock it in one
+-- deterministic table/key order, then rebuild every genuine reader output;
+-- never chase membership that appears while waiting.
+CREATE OR REPLACE FUNCTION public.lock_india_native_source_configuration_graph(
+  p_tenant uuid,p_property uuid,p_reservation uuid,p_folio uuid,p_valuation uuid,
+  p_native_invoice_source_input text,p_native_invoice_source_result text,
+  p_service_supply_nature text
+) RETURNS jsonb LANGUAGE plpgsql VOLATILE
+SET search_path=pg_catalog,public SET timezone='UTC' SET datestyle='ISO,YMD' AS $$
+DECLARE
+  v_input jsonb;v_result jsonb;v_before_valuation jsonb;v_after_valuation jsonb;
+  v_before_composition jsonb;v_after_composition jsonb;
+  v_before_assignments jsonb;v_after_assignments jsonb;
+  v_before_extensions jsonb;v_after_extensions jsonb;
+  v_before_routes jsonb;v_after_routes jsonb;
+  v_before_buyer_roles jsonb;v_after_buyer_roles jsonb;
+  v_before_relationships jsonb;v_after_relationships jsonb;
+  v_value public.india_gst_accommodation_final_valuation%ROWTYPE;
+  v_reservation public.reservation%ROWTYPE;
+  v_service uuid;v_payment uuid;v_ordinary uuid;v_lineage uuid;v_hold_binding uuid;
+  v_attribution uuid;v_hold uuid;v_segment uuid;v_buyer uuid;v_group uuid;v_approval uuid;
+  v_selected_extension uuid;v_selected_version smallint;v_selected_content_hash text;
+  v_component_family text;v_valuation_ids uuid[];v_history_dates date[];
+  v_extension_ids uuid[];v_component_amounts bigint[];v_route_ids uuid[];v_route_codes text[];
+  v_buyer_roles text[];v_assignment_ranges daterange[];
+  v_expected integer;v_locked integer;
+BEGIN
+  IF EXISTS(SELECT 1 FROM pg_catalog.pg_locks l WHERE l.pid=pg_catalog.pg_backend_pid()
+      AND l.locktype='advisory' AND l.granted AND l.objsubid=1
+      AND l.classid=((6441674055002974568::bigint>>32)&4294967295)::oid
+      AND l.objid=(6441674055002974568::bigint&4294967295)::oid) THEN
+    RAISE EXCEPTION USING ERRCODE='55000',MESSAGE='native source configuration must be locked before publication';
+  END IF;
+  IF p_tenant IS NULL
+      OR p_tenant IS DISTINCT FROM NULLIF(pg_catalog.current_setting('app.tenant_id',true),'')::uuid THEN
+    RAISE EXCEPTION USING ERRCODE='42501',MESSAGE='native source configuration tenant context is unavailable';
+  END IF;
+  IF p_property IS NULL OR p_reservation IS NULL OR p_folio IS NULL OR p_valuation IS NULL
+      OR p_native_invoice_source_input IS NULL OR p_native_invoice_source_result IS NULL
+      OR p_service_supply_nature IS NULL THEN
+    RAISE EXCEPTION USING ERRCODE='22023',MESSAGE='native source configuration identities and originals are required';
+  END IF;
+  BEGIN
+    v_input:=p_native_invoice_source_input::jsonb;
+    v_result:=p_native_invoice_source_result::jsonb;
+  EXCEPTION WHEN invalid_text_representation THEN
+    RAISE EXCEPTION USING ERRCODE='22023',MESSAGE='native source configuration originals are not JSON';
+  END;
+
+  -- The existing composer is the exact discovery boundary. It replays timing,
+  -- valuation, all six whole-day histories and the service-day statutory input.
+  v_before_composition:=public.compose_india_native_quoted_tax_source(
+    p_tenant,p_property,p_reservation,p_folio,p_valuation,
+    p_native_invoice_source_input,p_native_invoice_source_result,p_service_supply_nature);
+  v_service:=(v_result#>>'{timing,serviceProvisionSnapshotId}')::uuid;
+  v_payment:=(v_result#>>'{timing,paymentReceiptSnapshotId}')::uuid;
+  v_ordinary:=(v_result#>>'{timing,ordinaryRegimeEvidenceId}')::uuid;
+  v_before_valuation:=public.read_india_native_valuation_evidence(
+    p_tenant,p_property,p_reservation,p_folio,p_valuation,v_service,v_payment,v_ordinary);
+  v_lineage:=(v_before_valuation#>>'{intake,lineage,id}')::uuid;
+  v_hold_binding:=(v_before_valuation#>>'{intake,lineage,binding_id}')::uuid;
+  v_attribution:=(v_before_valuation#>>'{intake,lineage,attribution_id}')::uuid;
+  v_hold:=(v_before_valuation#>>'{intake,lineage,hold_id}')::uuid;
+  v_segment:=(v_before_valuation#>>'{intake,lineage,segment_id}')::uuid;
+  v_buyer:=(v_before_valuation#>>'{basis,buyerPartyId}')::uuid;
+
+  SELECT value_row.* INTO v_value FROM public.india_gst_accommodation_final_valuation value_row
+    WHERE value_row.tenant_id=p_tenant AND value_row.id=p_valuation
+      AND value_row.property_node=p_property AND value_row.reservation_id=p_reservation
+      AND value_row.folio_id=p_folio AND value_row.evidence_hash=v_before_valuation->>'evidenceHash';
+  IF NOT FOUND THEN
+    RAISE EXCEPTION USING ERRCODE='55000',MESSAGE='native source configuration valuation head is unavailable';
+  END IF;
+  v_approval:=v_value.approval_request_id;
+  v_valuation_ids:=ARRAY[p_valuation];
+  IF v_value.supersedes_valuation_id IS NOT NULL THEN
+    SELECT pg_catalog.array_agg(valuation_id ORDER BY valuation_id) INTO v_valuation_ids
+      FROM pg_catalog.unnest(ARRAY[p_valuation,v_value.supersedes_valuation_id]) valuation(valuation_id);
+  END IF;
+  SELECT reservation_row.* INTO v_reservation FROM public.reservation reservation_row
+    WHERE reservation_row.tenant_id=p_tenant AND reservation_row.id=p_reservation
+      AND reservation_row.property_node=p_property;
+  IF NOT FOUND THEN
+    RAISE EXCEPTION USING ERRCODE='55000',MESSAGE='native source configuration reservation is unavailable';
+  END IF;
+  v_group:=v_reservation.group_id;
+  SELECT COALESCE(pg_catalog.jsonb_agg(pg_catalog.to_jsonb(role_row) ORDER BY role_row.role),'[]'::jsonb),
+    COALESCE(pg_catalog.array_agg(role_row.role ORDER BY role_row.role),'{}'::text[])
+    INTO v_before_buyer_roles,v_buyer_roles FROM public.party_role role_row
+    WHERE role_row.tenant_id=p_tenant AND role_row.party_id=v_buyer
+      AND role_row.role IN ('company','guest');
+  SELECT COALESCE(pg_catalog.jsonb_agg(pg_catalog.to_jsonb(relationship)
+      ORDER BY relationship.from_party,relationship.to_party,relationship.kind),'[]'::jsonb)
+    INTO v_before_relationships FROM public.party_relationship relationship
+    WHERE relationship.tenant_id=p_tenant
+      AND (relationship.from_party=v_buyer OR relationship.to_party=v_buyer);
+  IF pg_catalog.cardinality(v_buyer_roles)<1 OR pg_catalog.jsonb_array_length(v_before_relationships)<>0 THEN
+    RAISE EXCEPTION USING ERRCODE='55000',MESSAGE='native source configuration legal buyer graph is inconsistent';
+  END IF;
+
+  SELECT pg_catalog.array_agg(DISTINCT (history.value#>>'{businessDay,businessDate}')::date
+      ORDER BY (history.value#>>'{businessDay,businessDate}')::date)
+    INTO v_history_dates
+    FROM pg_catalog.jsonb_each(v_input->'historicalResolutions') history;
+  SELECT pg_catalog.array_agg(DISTINCT extension_id ORDER BY extension_id) INTO v_extension_ids
+    FROM pg_catalog.unnest(ARRAY[
+    (v_input#>>'{rateVersionPair,predecessor,extensionId}')::uuid,
+    (v_input#>>'{rateVersionPair,successor,extensionId}')::uuid]) extension(extension_id);
+  v_selected_extension:=(v_before_composition#>>'{taxPreview,selectedExtensionId}')::uuid;
+  v_selected_version:=(v_before_composition#>>'{taxPreview,selectedExtensionVersion}')::smallint;
+  v_selected_content_hash:=v_before_composition#>>'{taxPreview,selectedContentHash}';
+  v_component_family:=v_before_composition#>>'{taxPreview,componentFamily}';
+  SELECT pg_catalog.array_agg(value::bigint ORDER BY ordinality) INTO v_component_amounts
+    FROM pg_catalog.jsonb_array_elements_text(
+      v_before_composition#>'{taxPreview,componentAmountsMinor}') WITH ORDINALITY amount(value,ordinality);
+  SELECT pg_catalog.jsonb_agg(pg_catalog.to_jsonb(route) ORDER BY route.component_ordinal)
+    INTO v_before_routes FROM public.india_native_component_tax_routes(
+      p_tenant,p_property,v_selected_extension,v_selected_version,
+      v_selected_content_hash,v_component_family,v_component_amounts) route;
+  SELECT COALESCE(pg_catalog.array_agg((route->>'mapping_id')::uuid ORDER BY (route->>'mapping_id')::uuid)
+      FILTER (WHERE route->>'mapping_id' IS NOT NULL),'{}'::uuid[]),
+    COALESCE(pg_catalog.array_agg(DISTINCT route->>'tx_code' ORDER BY route->>'tx_code')
+      FILTER (WHERE route->>'tx_code' IS NOT NULL),'{}'::text[])
+    INTO v_route_ids,v_route_codes FROM pg_catalog.jsonb_array_elements(v_before_routes) route;
+  IF pg_catalog.cardinality(v_history_dates) NOT BETWEEN 1 AND 6
+      OR pg_catalog.cardinality(v_extension_ids)<>2 OR v_before_routes IS NULL THEN
+    RAISE EXCEPTION USING ERRCODE='55000',MESSAGE='native source configuration discovered graph is incomplete';
+  END IF;
+
+  SELECT COALESCE(pg_catalog.jsonb_agg(pg_catalog.to_jsonb(assignment)
+      ORDER BY pg_catalog.lower(assignment.effective),pg_catalog.upper(assignment.effective),
+        pg_catalog.lower_inc(assignment.effective),pg_catalog.upper_inc(assignment.effective)),'[]'::jsonb),
+    COALESCE(pg_catalog.array_agg(assignment.effective
+      ORDER BY pg_catalog.lower(assignment.effective),pg_catalog.upper(assignment.effective),
+        pg_catalog.lower_inc(assignment.effective),pg_catalog.upper_inc(assignment.effective)),'{}'::daterange[])
+    INTO v_before_assignments,v_assignment_ranges FROM public.tax_assignment assignment
+    WHERE assignment.tenant_id=p_tenant AND assignment.property_node=p_property
+      AND assignment.jurisdiction_key='in-gst-lodging'
+      AND EXISTS(SELECT 1 FROM pg_catalog.unnest(v_history_dates) day(business_date)
+        WHERE assignment.effective @> day.business_date);
+  SELECT COALESCE(pg_catalog.jsonb_agg(pg_catalog.to_jsonb(extension_row) ORDER BY extension_row.id),'[]'::jsonb)
+    INTO v_before_extensions FROM public.extension extension_row
+    WHERE extension_row.id=ANY(v_extension_ids) AND extension_row.tenant_id IS NULL;
+
+  -- Valuation head/predecessor and every child row consumed by the genuine
+  -- valuation reader. The financial prefix's folio advisory lock prevents a
+  -- concurrent successor; draft-0075 child guards prevent later child inserts.
+  PERFORM 1 FROM public.india_gst_accommodation_final_valuation value_row
+    WHERE value_row.tenant_id=p_tenant AND value_row.id=ANY(v_valuation_ids)
+    ORDER BY value_row.id FOR SHARE;
+  GET DIAGNOSTICS v_locked=ROW_COUNT;
+  IF v_locked<>pg_catalog.cardinality(v_valuation_ids) THEN
+    RAISE EXCEPTION USING ERRCODE='55000',MESSAGE='native source configuration valuation set changed before lock';
+  END IF;
+  SELECT pg_catalog.count(*)::integer INTO v_expected
+    FROM public.india_gst_accommodation_valuation_source source_row
+    WHERE source_row.tenant_id=p_tenant AND source_row.valuation_id=ANY(v_valuation_ids);
+  PERFORM 1 FROM public.india_gst_accommodation_valuation_source source_row
+    WHERE source_row.tenant_id=p_tenant AND source_row.valuation_id=ANY(v_valuation_ids)
+    ORDER BY source_row.valuation_id,source_row.posting_root_id FOR SHARE;
+  GET DIAGNOSTICS v_locked=ROW_COUNT;
+  IF v_locked<>v_expected THEN
+    RAISE EXCEPTION USING ERRCODE='55000',MESSAGE='native source configuration valuation sources changed before lock';
+  END IF;
+  SELECT pg_catalog.count(*)::integer INTO v_expected
+    FROM public.india_gst_accommodation_valuation_room_night night
+    WHERE night.tenant_id=p_tenant AND night.valuation_id=p_valuation;
+  PERFORM 1 FROM public.india_gst_accommodation_valuation_room_night night
+    WHERE night.tenant_id=p_tenant AND night.valuation_id=p_valuation
+    ORDER BY night.ordinal FOR SHARE;
+  GET DIAGNOSTICS v_locked=ROW_COUNT;
+  IF v_locked<>v_expected THEN
+    RAISE EXCEPTION USING ERRCODE='55000',MESSAGE='native source configuration valuation nights changed before lock';
+  END IF;
+  SELECT pg_catalog.count(*)::integer INTO v_expected
+    FROM public.india_gst_accommodation_valuation_allocation allocation
+    WHERE allocation.tenant_id=p_tenant AND allocation.valuation_id=p_valuation;
+  PERFORM 1 FROM public.india_gst_accommodation_valuation_allocation allocation
+    WHERE allocation.tenant_id=p_tenant AND allocation.valuation_id=p_valuation
+    ORDER BY allocation.posting_root_id,allocation.ordinal FOR SHARE;
+  GET DIAGNOSTICS v_locked=ROW_COUNT;
+  IF v_locked<>v_expected THEN
+    RAISE EXCEPTION USING ERRCODE='55000',MESSAGE='native source configuration valuation allocations changed before lock';
+  END IF;
+
+  PERFORM 1 FROM public.india_gst_accommodation_service_provision_snapshot source_row
+    WHERE source_row.tenant_id=p_tenant AND source_row.id=v_service FOR SHARE;
+  IF NOT FOUND THEN RAISE EXCEPTION USING ERRCODE='55000',MESSAGE='native service source disappeared before lock'; END IF;
+  PERFORM 1 FROM public.india_gst_accommodation_payment_receipt_snapshot source_row
+    WHERE source_row.tenant_id=p_tenant AND source_row.id=v_payment FOR SHARE;
+  IF NOT FOUND THEN RAISE EXCEPTION USING ERRCODE='55000',MESSAGE='native payment source disappeared before lock'; END IF;
+  PERFORM 1 FROM public.india_gst_accommodation_ordinary_regime_evidence source_row
+    WHERE source_row.tenant_id=p_tenant AND source_row.id=v_ordinary FOR SHARE;
+  IF NOT FOUND THEN RAISE EXCEPTION USING ERRCODE='55000',MESSAGE='native ordinary source disappeared before lock'; END IF;
+  PERFORM 1 FROM public.tax_attribution_reservation_binding lineage
+    WHERE lineage.tenant_id=p_tenant AND lineage.id=v_lineage FOR SHARE;
+  IF NOT FOUND THEN RAISE EXCEPTION USING ERRCODE='55000',MESSAGE='native reservation lineage disappeared before lock'; END IF;
+  PERFORM 1 FROM public.tax_attribution_hold_binding binding
+    WHERE binding.tenant_id=p_tenant AND binding.id=v_hold_binding FOR SHARE;
+  IF NOT FOUND THEN RAISE EXCEPTION USING ERRCODE='55000',MESSAGE='native hold lineage disappeared before lock'; END IF;
+  PERFORM 1 FROM public.tax_attribution_snapshot attribution
+    WHERE attribution.tenant_id=p_tenant AND attribution.id=v_attribution FOR SHARE;
+  IF NOT FOUND THEN RAISE EXCEPTION USING ERRCODE='55000',MESSAGE='native attribution source disappeared before lock'; END IF;
+  PERFORM 1 FROM public.hold hold_row
+    WHERE hold_row.tenant_id=p_tenant AND hold_row.id=v_hold FOR SHARE;
+  IF NOT FOUND THEN RAISE EXCEPTION USING ERRCODE='55000',MESSAGE='native hold disappeared before lock'; END IF;
+  PERFORM 1 FROM public.reservation_segment segment
+    WHERE segment.tenant_id=p_tenant AND segment.id=v_segment FOR SHARE;
+  IF NOT FOUND THEN RAISE EXCEPTION USING ERRCODE='55000',MESSAGE='native reservation segment disappeared before lock'; END IF;
+  PERFORM 1 FROM public.reservation reservation_row
+    WHERE reservation_row.tenant_id=p_tenant AND reservation_row.id=p_reservation FOR SHARE;
+  IF NOT FOUND THEN RAISE EXCEPTION USING ERRCODE='55000',MESSAGE='native reservation disappeared before lock'; END IF;
+  IF v_group IS NOT NULL THEN
+    PERFORM 1 FROM public.reservation_group group_row
+      WHERE group_row.tenant_id=p_tenant AND group_row.id=v_group FOR SHARE;
+    IF NOT FOUND THEN RAISE EXCEPTION USING ERRCODE='55000',MESSAGE='native reservation group disappeared before lock'; END IF;
+  END IF;
+  PERFORM 1 FROM public.party party_row
+    WHERE party_row.tenant_id=p_tenant AND party_row.id=v_buyer FOR SHARE;
+  IF NOT FOUND THEN RAISE EXCEPTION USING ERRCODE='55000',MESSAGE='native legal buyer disappeared before lock'; END IF;
+  PERFORM 1 FROM public.party_role role_row
+    WHERE role_row.tenant_id=p_tenant AND role_row.party_id=v_buyer
+      AND role_row.role=ANY(v_buyer_roles) ORDER BY role_row.role FOR SHARE;
+  GET DIAGNOSTICS v_locked=ROW_COUNT;
+  IF v_locked<>pg_catalog.cardinality(v_buyer_roles) THEN
+    RAISE EXCEPTION USING ERRCODE='55000',MESSAGE='native legal buyer role set changed before lock';
+  END IF;
+  PERFORM 1 FROM public.party_relationship relationship
+    JOIN pg_catalog.jsonb_to_recordset(v_before_relationships)
+      expected(from_party uuid,to_party uuid,kind text)
+      ON expected.from_party=relationship.from_party AND expected.to_party=relationship.to_party
+        AND expected.kind=relationship.kind
+    WHERE relationship.tenant_id=p_tenant
+    ORDER BY relationship.from_party,relationship.to_party,relationship.kind FOR SHARE OF relationship;
+  GET DIAGNOSTICS v_locked=ROW_COUNT;
+  IF v_locked<>pg_catalog.jsonb_array_length(v_before_relationships) THEN
+    RAISE EXCEPTION USING ERRCODE='55000',MESSAGE='native buyer relationship set changed before lock';
+  END IF;
+  IF v_approval IS NOT NULL THEN
+    PERFORM 1 FROM public.approval_request approval
+      WHERE approval.tenant_id=p_tenant AND approval.id=v_approval FOR SHARE;
+    IF NOT FOUND THEN RAISE EXCEPTION USING ERRCODE='55000',MESSAGE='native buyer approval disappeared before lock'; END IF;
+  END IF;
+
+  SELECT pg_catalog.jsonb_array_length(v_before_assignments) INTO v_expected;
+  PERFORM 1 FROM public.tax_assignment assignment
+    WHERE assignment.tenant_id=p_tenant AND assignment.property_node=p_property
+      AND assignment.jurisdiction_key='in-gst-lodging'
+      AND assignment.effective=ANY(v_assignment_ranges)
+    ORDER BY pg_catalog.lower(assignment.effective),pg_catalog.upper(assignment.effective),
+      pg_catalog.lower_inc(assignment.effective),pg_catalog.upper_inc(assignment.effective) FOR SHARE;
+  GET DIAGNOSTICS v_locked=ROW_COUNT;
+  IF v_locked<>v_expected THEN
+    RAISE EXCEPTION USING ERRCODE='55000',MESSAGE='native rate assignment set changed before lock';
+  END IF;
+  PERFORM 1 FROM public.extension extension_row
+    WHERE extension_row.id=ANY(v_extension_ids) AND extension_row.tenant_id IS NULL
+    ORDER BY extension_row.id FOR SHARE;
+  GET DIAGNOSTICS v_locked=ROW_COUNT;
+  IF v_locked<>pg_catalog.cardinality(v_extension_ids) THEN
+    RAISE EXCEPTION USING ERRCODE='55000',MESSAGE='native rate extension set changed before lock';
+  END IF;
+  IF pg_catalog.cardinality(v_route_ids)>0 THEN
+    PERFORM 1 FROM public.tax_semantic_route route
+      WHERE route.tenant_id=p_tenant AND route.id=ANY(v_route_ids)
+      ORDER BY route.id FOR SHARE;
+    GET DIAGNOSTICS v_locked=ROW_COUNT;
+    IF v_locked<>pg_catalog.cardinality(v_route_ids) THEN
+      RAISE EXCEPTION USING ERRCODE='55000',MESSAGE='native semantic route set changed before lock';
+    END IF;
+    PERFORM 1 FROM public.tx_code code WHERE code.code=ANY(v_route_codes)
+      ORDER BY code.code FOR SHARE;
+    GET DIAGNOSTICS v_locked=ROW_COUNT;
+    IF v_locked<>pg_catalog.cardinality(v_route_codes) THEN
+      RAISE EXCEPTION USING ERRCODE='55000',MESSAGE='native tax code set changed before lock';
+    END IF;
+    PERFORM 1 FROM public.tx_code_route route
+      WHERE route.tenant_id=p_tenant AND route.property_node=p_property
+        AND route.currency='INR' AND route.tx_code=ANY(v_route_codes)
+      ORDER BY route.tenant_id,route.property_node,route.currency,route.tx_code FOR SHARE;
+    GET DIAGNOSTICS v_locked=ROW_COUNT;
+    IF v_locked<>pg_catalog.cardinality(v_route_codes) THEN
+      RAISE EXCEPTION USING ERRCODE='55000',MESSAGE='native configured tax route set changed before lock';
+    END IF;
+  END IF;
+
+  -- Fresh statements after every wait observe READ COMMITTED drift. Exact reader
+  -- outputs plus raw selected configuration rows and routes must all remain equal.
+  v_after_valuation:=public.read_india_native_valuation_evidence(
+    p_tenant,p_property,p_reservation,p_folio,p_valuation,v_service,v_payment,v_ordinary);
+  v_after_composition:=public.compose_india_native_quoted_tax_source(
+    p_tenant,p_property,p_reservation,p_folio,p_valuation,
+    p_native_invoice_source_input,p_native_invoice_source_result,p_service_supply_nature);
+  SELECT COALESCE(pg_catalog.jsonb_agg(pg_catalog.to_jsonb(role_row) ORDER BY role_row.role),'[]'::jsonb)
+    INTO v_after_buyer_roles FROM public.party_role role_row
+    WHERE role_row.tenant_id=p_tenant AND role_row.party_id=v_buyer
+      AND role_row.role IN ('company','guest');
+  SELECT COALESCE(pg_catalog.jsonb_agg(pg_catalog.to_jsonb(relationship)
+      ORDER BY relationship.from_party,relationship.to_party,relationship.kind),'[]'::jsonb)
+    INTO v_after_relationships FROM public.party_relationship relationship
+    WHERE relationship.tenant_id=p_tenant
+      AND (relationship.from_party=v_buyer OR relationship.to_party=v_buyer);
+  SELECT COALESCE(pg_catalog.jsonb_agg(pg_catalog.to_jsonb(assignment)
+      ORDER BY pg_catalog.lower(assignment.effective),pg_catalog.upper(assignment.effective),
+        pg_catalog.lower_inc(assignment.effective),pg_catalog.upper_inc(assignment.effective)),'[]'::jsonb)
+    INTO v_after_assignments FROM public.tax_assignment assignment
+    WHERE assignment.tenant_id=p_tenant AND assignment.property_node=p_property
+      AND assignment.jurisdiction_key='in-gst-lodging'
+      AND EXISTS(SELECT 1 FROM pg_catalog.unnest(v_history_dates) day(business_date)
+        WHERE assignment.effective @> day.business_date);
+  SELECT COALESCE(pg_catalog.jsonb_agg(pg_catalog.to_jsonb(extension_row) ORDER BY extension_row.id),'[]'::jsonb)
+    INTO v_after_extensions FROM public.extension extension_row
+    WHERE extension_row.id=ANY(v_extension_ids) AND extension_row.tenant_id IS NULL;
+  SELECT pg_catalog.jsonb_agg(pg_catalog.to_jsonb(route) ORDER BY route.component_ordinal)
+    INTO v_after_routes FROM public.india_native_component_tax_routes(
+      p_tenant,p_property,v_selected_extension,v_selected_version,
+      v_selected_content_hash,v_component_family,v_component_amounts) route;
+  IF v_before_valuation IS DISTINCT FROM v_after_valuation
+      OR v_before_composition IS DISTINCT FROM v_after_composition
+      OR v_before_buyer_roles IS DISTINCT FROM v_after_buyer_roles
+      OR v_before_relationships IS DISTINCT FROM v_after_relationships
+      OR v_before_assignments IS DISTINCT FROM v_after_assignments
+      OR v_before_extensions IS DISTINCT FROM v_after_extensions
+      OR v_before_routes IS DISTINCT FROM v_after_routes THEN
+    RAISE EXCEPTION USING ERRCODE='55000',MESSAGE='native source configuration graph changed during ordered locking';
+  END IF;
+  RETURN pg_catalog.jsonb_build_object('valuationEvidence',v_after_valuation,
+    'quotedTaxComposition',v_after_composition,'rateAssignments',v_after_assignments,
+    'extensions',v_after_extensions,'routes',v_after_routes);
+END;
+$$;
+ALTER FUNCTION public.lock_india_native_source_configuration_graph(
+  uuid,uuid,uuid,uuid,uuid,text,text,text) OWNER TO yellow_owner;
+REVOKE ALL ON FUNCTION public.lock_india_native_source_configuration_graph(
+  uuid,uuid,uuid,uuid,uuid,text,text,text) FROM PUBLIC,app_role,yellow_runtime;
 
 -- Stage-5 document context only. The caller must already hold the earlier
 -- financial and source/configuration locks. This helper derives the legal clock,
@@ -2828,3 +3172,188 @@ END;
 $$;
 ALTER FUNCTION public.assert_india_native_preparation_authenticity(uuid,uuid) OWNER TO yellow_owner;
 REVOKE ALL ON FUNCTION public.assert_india_native_preparation_authenticity(uuid,uuid) FROM PUBLIC,app_role,yellow_runtime;
+
+-- The actual first half of the dedicated runtime transaction. There is no
+-- separately committable preparation: draft75's deferred completion requires
+-- the real accounting binding, document, origin, events and receipt at COMMIT.
+-- Execution remains withheld until the complete candidate has its proofs.
+CREATE OR REPLACE FUNCTION public.prepare_india_native_fiscal_invoice_v2(
+  p_tenant uuid,p_property uuid,p_actor uuid,p_reservation uuid,p_folio uuid,p_valuation uuid,
+  p_service uuid,p_payment uuid,p_ordinary uuid,p_supplier_location uuid,p_supplier_status uuid,
+  p_supplier_sez uuid,p_recipient_registration uuid,p_recipient_sez uuid,p_classification uuid,
+  p_calendar_authority text,p_calendar_source_hash text,p_calendar_through date,
+  p_calendar_dates date[],p_calendar_states text[],p_key text,p_request uuid
+) RETURNS TABLE(native_timing_id uuid,request_event_id uuid,posting_binding_id uuid,
+    prepared_source_json text,completed_receipt jsonb)
+LANGUAGE plpgsql VOLATILE SECURITY DEFINER
+SET search_path=pg_catalog,public SET timezone='UTC' SET datestyle='ISO,YMD' AS $$
+DECLARE
+  v_authority jsonb;v_request jsonb;v_timing jsonb;v_valuation jsonb;v_history jsonb;
+  v_composition jsonb;v_prefix jsonb;v_locked jsonb;v_document_context jsonb;
+  v_context jsonb;v_series jsonb;v_basis jsonb;v_payload jsonb;v_result jsonb;
+  v_existing public.india_gst_native_invoice_timing%ROWTYPE;
+  v_statutory record;v_locked_statutory record;
+  v_jurisdiction text;v_key_hash text;v_request_hash text;v_claimed boolean;
+  v_timing_id uuid;v_document_id uuid;v_app_id uuid;v_tax_id uuid;v_binding_id uuid;v_event_id uuid;
+  v_event_seq bigint;v_series_id uuid;v_selected uuid;v_family text;
+BEGIN
+  v_authority:=public.read_india_native_issue_authority(p_tenant,p_property,p_actor,p_reservation,p_folio);
+  v_request:=public.india_native_invoice_request_identity(p_tenant,p_property,p_actor,p_reservation,
+    p_folio,p_valuation,p_service,p_payment,p_ordinary,p_supplier_location,p_supplier_status,
+    p_supplier_sez,p_recipient_registration,p_recipient_sez,p_classification,p_calendar_authority,
+    p_calendar_source_hash,p_calendar_through,p_calendar_dates,p_calendar_states,p_key,p_request);
+  v_key_hash:=v_request->>'keyHash';v_request_hash:=v_request->>'requestHash';
+
+  IF EXISTS(SELECT 1 FROM pg_catalog.pg_locks l WHERE l.pid=pg_catalog.pg_backend_pid()
+      AND l.locktype='advisory' AND l.granted AND l.objsubid=1
+      AND l.classid=((6441674055002974568::bigint>>32)&4294967295)::oid
+      AND l.objid=(6441674055002974568::bigint&4294967295)::oid) THEN
+    RAISE EXCEPTION USING ERRCODE='55000',MESSAGE='native issue requires a transaction without prior publication';
+  END IF;
+
+  -- Scope0 is first, never native430 before financial rows. A same-folio waiter
+  -- must see the permanent winner before running current-date/open-source logic.
+  PERFORM pg_catalog.pg_advisory_xact_lock(pg_catalog.hashtextextended(
+    p_tenant::text||p_reservation::text||p_folio::text,0));
+  SELECT n.* INTO v_existing FROM public.india_gst_native_invoice_timing n
+    WHERE n.tenant_id=p_tenant AND n.request_key_hash=v_key_hash;
+  IF FOUND THEN
+    IF v_existing.request_hash IS DISTINCT FROM v_request_hash
+        OR v_existing.actor_id IS DISTINCT FROM p_actor
+        OR v_existing.property_node IS DISTINCT FROM p_property
+        OR v_existing.reservation_id IS DISTINCT FROM p_reservation
+        OR v_existing.folio_id IS DISTINCT FROM p_folio THEN
+      RAISE EXCEPTION USING ERRCODE='23505',MESSAGE='native invoice key belongs to a different permanent request';
+    END IF;
+    -- Current permission remains mandatory; original clock, open-day, folio
+    -- status, mutable series counter and prunable API/outbox records do not.
+    PERFORM public.lock_india_native_issue_authority(p_tenant,p_property,p_actor,p_reservation,p_folio);
+    v_result:=public.read_india_native_completed_receipt(p_tenant,v_existing.id);
+    RETURN QUERY SELECT v_existing.id,v_existing.request_event_id,v_existing.accounting_binding_id,NULL::text,v_result;
+    RETURN;
+  END IF;
+  IF EXISTS(SELECT 1 FROM public.india_gst_native_invoice_timing n
+      WHERE n.tenant_id=p_tenant AND n.property_node=p_property
+        AND n.reservation_id=p_reservation AND n.folio_id=p_folio)
+      OR EXISTS(SELECT 1 FROM public.india_gst_native_fiscal_document_origin o
+        WHERE o.tenant_id=p_tenant AND o.property_node=p_property
+          AND o.reservation_id=p_reservation AND o.folio_id=p_folio AND o.document_kind='invoice') THEN
+    RAISE EXCEPTION USING ERRCODE='23505',MESSAGE='native invoice consideration window is already consumed';
+  END IF;
+  v_timing_id:=pg_catalog.gen_random_uuid();v_document_id:=pg_catalog.gen_random_uuid();
+  v_app_id:=pg_catalog.gen_random_uuid();v_tax_id:=pg_catalog.gen_random_uuid();
+  v_binding_id:=pg_catalog.gen_random_uuid();v_event_id:=pg_catalog.gen_random_uuid();
+
+  -- Read-only discovery. All identities, dates, rates and amounts below come
+  -- from real recorded roots; none are accepted as caller-calculated artifacts.
+  v_timing:=public.read_india_native_invoice_timing_source(p_tenant,p_property,p_reservation,
+    p_service,p_payment,p_ordinary,v_timing_id,v_document_id,p_calendar_authority,p_calendar_source_hash,
+    p_calendar_through,p_calendar_dates,p_calendar_states);
+  v_valuation:=public.read_india_native_valuation_evidence(p_tenant,p_property,p_reservation,p_folio,
+    p_valuation,p_service,p_payment,p_ordinary);
+  v_history:=public.read_india_native_rate_history_day(p_tenant,p_property,
+    (v_timing#>>'{invoiceSourceResult,timing,serviceProvisionDate}')::date);
+  v_jurisdiction:=public.india_native_insertion_json(pg_catalog.json_build_object(
+    'extensionId',v_history#>'{selectedExtension,extensionId}','ownerTenantId',NULL,
+    'key',v_history#>'{selectedExtension,key}','version',v_history#>>'{selectedExtension,version}',
+    'contentHash',v_history#>'{selectedExtension,contentHash}'));
+  SELECT g.* INTO STRICT v_statutory FROM public.read_india_native_statutory_root_graph(
+    p_tenant,p_property,p_reservation,p_folio,p_valuation,p_supplier_location,p_supplier_status,p_supplier_sez,
+    p_recipient_registration,p_recipient_sez,p_classification,
+    v_timing->>'invoiceSourceResultCanonicalJson',v_jurisdiction) g;
+  v_composition:=public.compose_india_native_quoted_tax_source(p_tenant,p_property,p_reservation,p_folio,
+    p_valuation,v_timing->>'invoiceSourceInputCanonicalJson',v_timing->>'invoiceSourceResultCanonicalJson',
+    v_statutory.service_supply_nature_json);
+  v_selected:=(v_composition#>>'{taxPreview,selectedExtensionId}')::uuid;
+  v_family:=v_composition#>>'{taxPreview,componentFamily}';
+  v_prefix:=public.lock_india_native_invoice_source_prefix(p_tenant,p_property,p_reservation,p_folio,
+    p_valuation,v_selected,v_family,v_tax_id,v_key_hash);
+  -- Cross-folio same-key requests only converge on430 after their financial
+  -- prefixes. Check the winner again; a fresh source may never replace it.
+  IF EXISTS(SELECT 1 FROM public.india_gst_native_invoice_timing n
+      WHERE n.tenant_id=p_tenant AND n.request_key_hash=v_key_hash) THEN
+    RAISE EXCEPTION USING ERRCODE='23505',MESSAGE='native invoice key was consumed while acquiring source locks';
+  END IF;
+  IF v_authority IS DISTINCT FROM public.lock_india_native_issue_authority(
+      p_tenant,p_property,p_actor,p_reservation,p_folio) THEN
+    RAISE EXCEPTION USING ERRCODE='55000',MESSAGE='native issue authority changed while acquiring source locks';
+  END IF;
+  v_locked:=public.lock_india_native_source_configuration_graph(p_tenant,p_property,p_reservation,p_folio,
+    p_valuation,v_timing->>'invoiceSourceInputCanonicalJson',v_timing->>'invoiceSourceResultCanonicalJson',
+    v_statutory.service_supply_nature_json);
+  SELECT g.* INTO STRICT v_locked_statutory FROM public.lock_india_native_statutory_source_graph(
+    p_tenant,p_property,p_reservation,p_folio,p_valuation,p_supplier_location,p_supplier_status,p_supplier_sez,
+    p_recipient_registration,p_recipient_sez,p_classification,
+    v_timing->>'invoiceSourceResultCanonicalJson',v_jurisdiction) g;
+  IF ROW(v_statutory.prepared_source_json,v_statutory.service_supply_nature_json,
+      v_statutory.service_supplier_sez_status_id,v_statutory.service_recipient_sez_status_id)
+      IS DISTINCT FROM ROW(v_locked_statutory.prepared_source_json,v_locked_statutory.service_supply_nature_json,
+      v_locked_statutory.service_supplier_sez_status_id,v_locked_statutory.service_recipient_sez_status_id)
+      OR v_locked->'valuationEvidence' IS DISTINCT FROM v_valuation
+      OR v_locked->'quotedTaxComposition' IS DISTINCT FROM v_composition
+      OR v_timing IS DISTINCT FROM public.read_india_native_invoice_timing_source(
+        p_tenant,p_property,p_reservation,p_service,p_payment,p_ordinary,v_timing_id,v_document_id,
+        p_calendar_authority,p_calendar_source_hash,p_calendar_through,p_calendar_dates,p_calendar_states)
+      OR v_valuation IS DISTINCT FROM public.read_india_native_valuation_evidence(p_tenant,p_property,
+        p_reservation,p_folio,p_valuation,p_service,p_payment,p_ordinary)
+      OR v_composition IS DISTINCT FROM public.compose_india_native_quoted_tax_source(p_tenant,p_property,
+        p_reservation,p_folio,p_valuation,v_timing->>'invoiceSourceInputCanonicalJson',
+        v_timing->>'invoiceSourceResultCanonicalJson',v_statutory.service_supply_nature_json)
+      OR v_prefix->'sourceClosure' IS DISTINCT FROM public.read_india_native_valuation_source_closure(
+        p_tenant,p_property,p_reservation,p_folio,p_valuation)
+      OR v_prefix->'taxPreview' IS DISTINCT FROM v_composition->'taxPreview' THEN
+    RAISE EXCEPTION USING ERRCODE='55000',MESSAGE='native invoice source graph changed while acquiring its complete locks';
+  END IF;
+
+  v_document_context:=public.lock_india_native_document_context(p_tenant,p_property,p_reservation,p_folio,
+    p_actor,(v_statutory.prepared_source_json::json#>>'{sellerRegistration,registrationId}')::uuid);
+  v_series_id:=(v_document_context->>'seriesId')::uuid;
+  v_series:=pg_catalog.jsonb_build_object('tenantId',p_tenant,'propertyNode',p_property,'seriesId',v_series_id,
+    'supplierRegistrationId',v_document_context->'supplierRegistrationId','kind','invoice','fiscal',true,
+    'financialYearStart',v_document_context->>'financialYearStart','prefix',v_document_context->>'prefix');
+  v_context:=(v_timing->'transactionContext')||pg_catalog.jsonb_build_object('tenantId',p_tenant,
+    'propertyNode',p_property,'reservationId',p_reservation,'folioId',p_folio,'actorId',p_actor,
+    'valuationId',p_valuation,'nativeTimingId',v_timing_id,'prospectiveDocumentId',v_document_id,
+    'seriesId',v_series_id,'applicabilityId',v_app_id,'taxId',v_tax_id,'accountingBindingId',v_binding_id,
+    'requestId',p_request,'requestKeyHash',v_key_hash,'requestHash',v_request_hash,'requestEventId',v_event_id);
+  v_basis:=public.india_native_preparation_source_basis(v_context,
+    v_timing->>'invoiceSourceInputCanonicalJson',v_timing->>'invoiceSourceResultCanonicalJson',v_valuation,
+    v_statutory.prepared_source_json,v_statutory.service_supply_nature_json,v_composition,v_series);
+
+  -- Claim any existing API key before publication. Expiry never authorizes
+  -- replacement of a native invoice; permanent timing was checked above.
+  INSERT INTO public.api_idempotency(tenant_id,operation,key_hash,request_hash,created_at,expires_at)
+    VALUES(p_tenant,'document.issued',v_key_hash,v_request_hash,pg_catalog.transaction_timestamp(),
+      pg_catalog.transaction_timestamp()+interval '24 hours')
+    ON CONFLICT(tenant_id,operation,key_hash) DO NOTHING RETURNING true INTO v_claimed;
+  IF NOT COALESCE(v_claimed,false) THEN
+    RAISE EXCEPTION USING ERRCODE='23505',MESSAGE='native invoice API key already exists without its permanent completed origin';
+  END IF;
+  v_payload:=pg_catalog.jsonb_build_object('nativeTimingId',v_timing_id,'documentId',v_document_id,
+    'taxId',v_tax_id,'applicabilityId',v_app_id,'valuationId',p_valuation,'reservationId',p_reservation,
+    'folioId',p_folio,'sourceBasisHash',v_basis->>'sourceBasisHash');
+  -- No pre-existing resource is discovered or newly locked below D99.
+  PERFORM pg_catalog.pg_advisory_xact_lock(6441674055002974568::bigint);
+  INSERT INTO public.outbox(tenant_id,id,property_node,business_date,aggregate_type,aggregate_id,
+      event_type,event_version,actor_id,correlation_id,payload,created_at)
+    VALUES(p_tenant,v_event_id,p_property,(v_document_context->>'issueDate')::date,
+      'india_gst_native_invoice_timing',v_timing_id,'india_gst.native_accommodation_accounting_requested',1,
+      p_actor,p_request,v_payload,pg_catalog.transaction_timestamp()) RETURNING seq INTO v_event_seq;
+  PERFORM public.persist_india_native_quoted_tax_source(p_tenant,p_property,p_reservation,p_folio,p_valuation,
+    p_actor,p_request,v_series_id,v_app_id,v_tax_id,v_binding_id,v_event_seq,v_event_id,v_key_hash,
+    v_request_hash,v_basis->>'sourceBasisHash',v_timing->>'invoiceSourceInputCanonicalJson',
+    v_timing->>'invoiceSourceResultCanonicalJson',v_statutory.prepared_source_json,v_statutory.service_supply_nature_json);
+  v_result:=public.assert_india_native_preparation_authenticity(p_tenant,v_timing_id);
+  IF v_result->>'preparedSourceCanonicalJson' IS DISTINCT FROM v_statutory.prepared_source_json
+      OR v_result#>>'{sourceBasis,sourceBasisHash}' IS DISTINCT FROM v_basis->>'sourceBasisHash' THEN
+    RAISE EXCEPTION USING ERRCODE='55000',MESSAGE='native preparation did not preserve the complete authenticated source';
+  END IF;
+  RETURN QUERY SELECT v_timing_id,v_event_id,v_binding_id,v_statutory.prepared_source_json,NULL::jsonb;
+END;
+$$;
+ALTER FUNCTION public.prepare_india_native_fiscal_invoice_v2(
+  uuid,uuid,uuid,uuid,uuid,uuid,uuid,uuid,uuid,uuid,uuid,uuid,uuid,uuid,uuid,text,text,date,date[],text[],text,uuid)
+  OWNER TO yellow_owner;
+REVOKE ALL ON FUNCTION public.prepare_india_native_fiscal_invoice_v2(
+  uuid,uuid,uuid,uuid,uuid,uuid,uuid,uuid,uuid,uuid,uuid,uuid,uuid,uuid,uuid,text,text,date,date[],text[],text,uuid)
+  FROM PUBLIC,app_role,yellow_runtime;
