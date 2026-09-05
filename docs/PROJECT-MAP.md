@@ -15,8 +15,9 @@ are different counts. None of these numbers alone measures product completion.
 Current work is the paired [Order438](../handoff/orders/438-codex-consolidated-release.md)
 and [Order439](../handoff/orders/439-contained-native-fiscal-release.md) release task.
 [PROJECT-STATUS](PROJECT-STATUS.md) records its exact lifecycle. Order434's native
-invoice work is preserved but unfinished and unreleased; no IRP, Phase7 completion,
-updated local application or cloud deployment is claimed.
+invoice work is preserved but unfinished and unreleased. The operational baseline
+and supported local launcher passed independent CI proof; IRP, Phase7 completion,
+the user's own local refresh and cloud deployment require their separate evidence.
 
 ## First ten minutes
 

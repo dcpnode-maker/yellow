@@ -258,7 +258,7 @@ describe("Order 064 recorded build snapshot", () => {
     const rows = manifestRows(manifest);
     expect(rows.length).toBeGreaterThan(0);
     expect(PROJECT_BUILD_SNAPSHOT.schemaVersion).toBe(2);
-    expect(PROJECT_BUILD_SNAPSHOT.label).toBe("Consolidated release candidate snapshot");
+    expect(PROJECT_BUILD_SNAPSHOT.label).toBe("Consolidated operational baseline");
     expect(PROJECT_BUILD_SNAPSHOT.recordedAt).toBe("2026-09-05");
     expect(PROJECT_BUILD_SNAPSHOT.roadmap.latestBuiltOrder).toBe(438);
     expect(PROJECT_BUILD_SNAPSHOT.review.gate3Debt).toBe(0);
@@ -535,9 +535,9 @@ describe("Order 064 recorded build snapshot", () => {
       },
       {
         order: 438,
-        state: "built_unverified",
-        summary: "Orders 438/439 are the current consolidated operational release candidate. They preserve PR80's working flows and contain the unapproved legacy native-fiscal issue capability at migration frontier 75.",
-        remaining: "Order 434 has substantial bounded invoice/replay and concurrency proof but native issuance remains unreleased pending its full acceptance, 0076/0077 assembly and fresh Tier-3 review. Orders 438/439 still require an exact runtime build receipt, independent review, merge and separate local/cloud release evidence; Phase 7 is not complete.",
+        state: "independently_approved",
+        summary: "Orders 438/439 independently approved the consolidated operational baseline at bb3b8f9. All five CI jobs passed, including real database invariants and the full local launcher; migration 75 contains the unapproved legacy native-fiscal issue capability.",
+        remaining: "Order 434 has substantial bounded invoice/replay and concurrency proof but native issuance remains unreleased pending its full acceptance, 0076/0077 assembly and fresh Tier-3 review. PR82 records final source integration; each local/cloud runtime needs its own serving-revision receipt. No cloud host is connected; Phase 7 is not complete.",
       },
     ]);
     const recordedOrders = PROJECT_BUILD_SNAPSHOT.recordedWork.map(({ order }) => Number(order));
@@ -555,7 +555,7 @@ describe("Order 064 recorded build snapshot", () => {
       .filter(({ state }) => state === "independently_approved").map(({ order }) => Number(order)))
       .toEqual([190, 191, 192, 193, 195]);
     expect(PROJECT_BUILD_SNAPSHOT.recordedWork.slice(0, -1).every(({ state }) => state === "independently_approved")).toBeTrue();
-    expect(PROJECT_BUILD_SNAPSHOT.recordedWork.at(-1)?.state).toBe("built_unverified");
+    expect(PROJECT_BUILD_SNAPSHOT.recordedWork.at(-1)?.state).toBe("independently_approved");
     expect(PROJECT_BUILD_SNAPSHOT.recordedWork.find(({ order }) => order === 199)?.summary).toMatch(/196–199/);
     expect(PROJECT_BUILD_SNAPSHOT.recordedWork.find(({ order }) => order === 199)?.state).toBe("independently_approved");
     const order236: { readonly state: string; readonly summary: string; readonly remaining?: string } | undefined =

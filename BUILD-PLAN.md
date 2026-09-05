@@ -9,9 +9,10 @@ a prior phase's public surface without a written note in `DECISIONS.log`.
 ## Current implementation status — 2026-09-05, Orders438/439
 
 [PROJECT-STATUS](docs/PROJECT-STATUS.md) is the canonical current-state record.
-Orders438/439 are one Codex-owned Phase-7 consolidated release task based on PR80.
-They remain a candidate under implementation and independent review: no merge, local
-promotion or cloud deployment is implied. Historical milestones below preserve the
+Orders438/439 form the Codex-owned Phase-7 consolidated operational baseline through
+PR82. Both have independent acceptance at bb3b8f9 and all five required CI jobs passed,
+including real database invariants and the complete local launcher. Main integration,
+image publication and each deployed runtime retain separate receipts. Historical milestones below preserve the
 evidence available when written and do not compete with PROJECT-STATUS.
 
 The plan retains **18 phases (0–17)** and the existing **13 bounded contexts**.

@@ -3,9 +3,9 @@
 **Order:** 438 with Question 194 and Order 439 containment dependency
 **Reviewed by:** Codex `/root/pr_ancestry_audit`, independent of the release implementation
 **Date:** 2026-09-05
-**Candidate:** `f8743a662cfa13cb235ace4bbed525ca2d06c3cb`
-**Candidate tree:** `a0c9e1aff97c2ad38f7c49a521f736d57b0a5123`
-**Verdict:** CHANGES REQUIRED — EXACT-CANDIDATE CI FAILED
+**Approved candidate:** `bb3b8f933ce344f9325445dac1e6fc77d646c9de`
+**Approved candidate tree:** `beed050d5e6cd4c1f3be1db9c905bec383d3faaf`
+**Verdict:** APPROVED — ORDER 438 RELEASE SURFACE; ORDER 439 AND FINAL-DELTA GATES REMAIN
 
 ## Scope and source binding
 
@@ -16,12 +16,15 @@ workflows, and their build/readiness/release tests. It does not review the
 reviewer's own consolidation manifest, approve Order 434, claim a cloud deployment,
 or act as the independent fiscal acceptance for Order 439.
 
-The local ref had not moved when the candidate was frozen. Before writing this
-receipt, the reviewer proved that there were no unstaged tracked differences and
-that `git write-tree` returned the exact supplied/API-verified candidate tree
-`a0c9e1aff97c2ad38f7c49a521f736d57b0a5123`. The local proof below is therefore
-bound to the content of candidate `f8743a662cfa13cb235ace4bbed525ca2d06c3cb`,
-not to a later moving working tree.
+The local ref had not moved when the first candidate was frozen. The reviewer
+proved that there were no unstaged tracked differences and that `git write-tree`
+returned its exact supplied/API-verified tree
+`a0c9e1aff97c2ad38f7c49a521f736d57b0a5123`. After the first CI rejection and
+the two bounded harness repairs, the reviewer inspected the complete release-file
+delta, repeated the local proof, and verified `git write-tree` returned the exact
+candidate-2 tree `beed050d5e6cd4c1f3be1db9c905bec383d3faaf`. The approval below is
+therefore bound to candidate `bb3b8f933ce344f9325445dac1e6fc77d646c9de`, not
+to a later moving working tree.
 
 ## Findings resolved before the frozen candidate
 
@@ -77,7 +80,8 @@ exact-candidate CI then exposed two additional harness defects, recorded below.
 
 ## Personally executed proof
 
-On the exact staged candidate tree, using Bun 1.3.14:
+On both frozen trees, including a final rerun on exact candidate-2 tree
+`beed050d5e6cd4c1f3be1db9c905bec383d3faaf`, using Bun 1.3.14:
 
 ```text
 bun test tests/build-readiness.test.ts tests/build-readiness.integration.test.ts tests/release-workflow.test.ts
@@ -104,11 +108,12 @@ stubbed external commands: it exited 1 with the intended refusal and did not cre
 `.env.local-review`.
 
 Docker, a usable PostgreSQL server and PowerShell are unavailable in this reviewer
-executor. Accordingly, the five database-dependent readiness cases, image build,
-full local launcher and native Windows execution are reported as unexecuted here,
-not converted into a pass. Candidate CI is required to execute those environments.
+executor. Accordingly, the database-dependent readiness integration suite (reported
+locally as five skips), image build, full local launcher and native Windows execution
+are reported as unexecuted here, not converted into a pass. Candidate CI is required
+to execute those environments.
 
-## Pending exact-candidate gate
+## Exact-candidate CI
 
 ### First exact-candidate CI — failed
 
@@ -136,10 +141,39 @@ This failed run is evidence that the release gate rejects an incomplete build. I
 is not approval. Any repair changes the candidate SHA/tree and requires a new
 diff-bound review plus a fresh successful five-job run.
 
-### Required green rerun
+### Candidate-2 rerun — passed
 
-Final approval remains pending until a repaired exact candidate is frozen and all
-five required jobs are successful. The receipt must then record its SHA/tree, run identity and database
-transcript, including the required direct-runtime/deploy/role-assumption readiness
-cases and the 11/11 referee. Until that evidence exists, this review authorizes no
-merge, image-success claim, local refresh or cloud deployment.
+[CI run 33986577250](https://github.com/dcpnode-maker/yellow/actions/runs/33986577250)
+executed exact candidate `bb3b8f933ce344f9325445dac1e6fc77d646c9de`.
+The reviewer independently read all five job states and the relevant local-review,
+quality, container and database transcripts:
+
+- `windows-state`, `quality`, `container-smoke`, `database` and `local-review`
+  completed successfully with no failed step.
+- Quality passed 1,569 tests with 1,174 explicit environment skips, zero failures
+  and 21,628 assertions, in addition to its type, licence and audit gates.
+- The supported local launcher ran the real 11/11 invariant referee, loaded the
+  canonical seed before the review seed, built the corrected tools/runtime images,
+  checked a real local login, and returned
+  `{"status":"ready","target":"yellow_runtime_database","build":{"schemaVersion":1,"revision":"bb3b8f933ce344f9325445dac1e6fc77d646c9de","expectedMigrationFrontier":75}}`.
+  Its stop path preserved the PostgreSQL volume. No credential value appeared in
+  the inspected receipt.
+- Database migration and seed suites passed. The Order 439/readiness group passed
+  five tests and 29 assertions: fresh-75 containment, 74-to-75 forward containment,
+  direct `yellow_runtime` readiness, deployment-login rejection, and deployment
+  plus `SET LOCAL ROLE yellow_runtime` rejection.
+- All ten compatibility files ran in isolated databases and passed with zero
+  failures: respectively 6, 8, 8, 7, 8, 8, 6, 3, 18 and 17 tests. The two fiscal
+  fixture owners used migrated-but-unseeded copies; the other eight used isolated
+  copies of the canonical seeded baseline. Deployment acceptance passed 23 tests,
+  the separate canonical referee reported 11/11, and the database-backed runtime
+  readiness/login step passed.
+- Container smoke built the exact SHA-tagged application image and preserved the
+  exact `/health` compatibility check.
+
+This satisfies the Order 438 release-surface gate for candidate 2. Because the run
+was a development-branch push, it correctly published no release image and
+performed no cloud deployment. Overall integration still requires the independent
+Order 439 fiscal verdict. Any subsequent status/review-only publication delta must
+be rebound to its exact tree and pass the repository's required final checks; this
+review does not pre-approve an unknown delta or authorize self-merge.

@@ -1,6 +1,7 @@
 # Order 439 — Contain unapproved native fiscal issuance before integration
 
-Status: ACTIVE — companion to Order438.
+Status: IMPLEMENTED AND INDEPENDENTLY APPROVED at bb3b8f9; companion to Order438.
+Review439 records the executed containment proof; PR82 owns exact final integration.
 
 ## Evidence and authority
 

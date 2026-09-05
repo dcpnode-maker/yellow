@@ -4,10 +4,10 @@
 <!-- current-phase: 7 -->
 <!-- current-task: Orders 438 + 439 — consolidated operational release -->
 <!-- current-order-files: handoff/orders/438-codex-consolidated-release.md;handoff/orders/439-contained-native-fiscal-release.md -->
-<!-- current-lifecycle: candidate under implementation and independent review -->
+<!-- current-lifecycle: independently reviewed operational baseline; main CI gates publication -->
 
-This is the canonical current-state record. It tells a reader which source is being
-integrated, what is actually released, and what work is active. Historical orders,
+This is the canonical current-state record. It identifies the consolidated source,
+verified behavior, release boundaries and active work. Historical orders,
 reviews, decisions and ledger entries remain evidence; their filenames are not an
 active backlog. `state.sh` and `state.ps1` read the machine-readable comments above.
 
@@ -15,22 +15,22 @@ active backlog. `state.sh` and `state.ps1` read the machine-readable comments ab
 
 **Orders 438 and 439 form one Phase 7 release task.** Order438 consolidates the
 working operational application, documentation, local workflow and Git-to-cloud
-release controls. Order439 contains the unapproved legacy native-fiscal capability
-before that candidate can be integrated. Both require independent review. Codex
+release controls. Order439 contains the unapproved legacy native-fiscal capability.
+Both have independent approval at the exact source recorded below. Codex
 owns implementation and coordination and may use internal models as bounded builders
 or independent reviewers. There is no operational dependency on another vendor or
 person for ordinary development.
 
 ## Source and release truth
 
-| Surface | Current candidate truth | Required next evidence |
+| Surface | Verified baseline | Release boundary |
 |---|---|---|
-| GitHub `main` | Older integrated application at `2e55b884`; its newer status documentation points to development work | Reviewed merge commit and post-merge CI |
-| Consolidation branch | Preserves PR80 through `6a7cd8a4`; Orders438/439 are verified on `phase-7/codex-consolidated-release` | Exact reviewed head, green required suites and reviewer verdict; first CI found launcher/fixture setup failures, which remain recorded |
-| GitHub work queue | 57 superseded or archived PRs were closed during consolidation; PRs 75, 76, 78, 79 and 80 remain, with the consolidation branch carrying the candidate | Preserve distinct refs/evidence and reconcile the four non-current PRs without discarding unique work |
-| Database migrations | Candidate now includes proposed forward migration `0075`, which revokes the unapproved `0074` issue capability; the expected public-table census remains 125 | Fresh/upgrade/no-op proof, exact ACL denial, normalized schema and independent 125-table verification |
-| Local app | A desired endpoint and historical receipts exist; this workspace does not prove the founder's retained app serves the candidate | Serving commit/build receipt, health, authentication and usable synthetic journey |
-| Cloud app | No approved target, credential, immutable image digest, deployment receipt or public URL has been established | Green release workflow plus an explicitly configured target and deployment receipt |
+| Source and integration | This revision consolidates the operational application and PR80 history through `6a7cd8a4`; `main` is the sole release branch | [PR82](https://github.com/dcpnode-maker/yellow/pull/82) records the exact reviewed integration; only successful post-merge main CI permits image publication |
+| Independent acceptance | Both reviews approve operational candidate `bb3b8f933ce344f9325445dac1e6fc77d646c9de`; all five jobs in [CI33986577250](https://github.com/dcpnode-maker/yellow/actions/runs/33986577250) passed | Final receipt/status changes require review and green CI on their exact head; the earlier failed run is retained in the review history |
+| GitHub work queue | All 62 PRs in the original audit are closed with exact source preservation; the working lineage is consolidated in PR82, while five unique research/worker lines remain preserved as archives | [The manifest](../handoff/CONSOLIDATION-MANIFEST.json) records each disposition; [GitHub](https://github.com/dcpnode-maker/yellow/pulls) is authoritative for the live open queue |
+| Database migrations | 75 runnable migrations, 125 public tables; migration `0075` revokes the unapproved `0074` issue capability | Fresh/upgrade/no-op, default-aware ACL denial, normalized schema, compatibility suites and genuine PostgreSQL 11/11 referee passed; native issuance stays disabled |
+| Local app | The complete supported launcher passed in clean CI: real database, canonical/review seeds, exact-SHA readiness, authentication and volume-preserving stop | Run [the same launcher](RELEASE.md) on the user's supported machine for `http://127.0.0.1:3000`; CI does not prove that machine has been refreshed |
+| Cloud app | Main CI automatically gates immutable runtime/migration image publication | No approved host, ingress, production credential or serving URL is connected; image publication is not cloud deployment |
 
 These rows must be updated when evidence changes. A branch, document, green unit test,
 container build, merge and deployment are separate events.
@@ -41,7 +41,7 @@ container build, merge and deployment are separate events.
 |---|---|---|
 | Phases 0–3, 5 and 6 | Independently reviewed | Recorded review exists for their accepted scopes; later changes still need regression proof |
 | Phase 4 | Built; integration review outstanding | Preserve the implementation and close its remaining integration evidence |
-| Phase 7 operational flows | Release candidate | PR80 contains substantial working PMS, stay, folio, payment, approval and fiscal-support flows; Orders438/439 determine release eligibility |
+| Phase 7 operational flows | Consolidated and independently approved baseline | Working PMS, stay, folio, payment, approval and fiscal-support flows are preserved; source acceptance does not complete the entire phase |
 | Order434 native fiscal issuance | Preserved, unfinished and unreleased | D1371 and the Order434 D1372 checkpoint include large invoice/replay, correction/transfer concurrency, tax-history and durable-delivery evidence; inverse schedules, other authority/history cases, full 0076/0077 assembly, fresh/upgrade proof and independent Tier-3 acceptance remain |
 | Phases 8–17 | Planned | Requirements and architecture are retained; documentation is not shipped behavior |
 

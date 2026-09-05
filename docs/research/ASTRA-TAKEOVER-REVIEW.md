@@ -1,21 +1,22 @@
 # Astra — Yellow takeover findings and independent research
 
-**5 September 2026 · Order438/439 · Implementation candidate; final acceptance recorded in the release review**
+**5 September 2026 · Orders438/439 · Independently verified operational baseline; integration tracked in PR82**
 
 The shared conversation is now incorporated into the canonical Yellow task. Its
 full visible text was read, including every user request; four redacted plugin
 entries remain unavailable. The research below was completed before implementation
 and is retained with its original snapshot and limits. This addendum records what
-the subsequent repository audit found and what the takeover is changing.
+the subsequent repository audit found and what the takeover changed.
 
 ## Findings that determine the build
 
 | Finding | Evidence | Action in this consolidation |
 |---|---|---|
-| Documentation and the usable application describe different revisions | Main2e55b884 holds an older integrated app; PR80 contains the newer operational flows | Consolidate a reviewed application candidate and show its exact source revision/readiness |
-| Open PR count greatly exaggerates unfinished independent implementation | 62 open PRs; 52 already preserved in main, 5 unique historical prototypes/foundations, 4 superseded by the development stack, 1 current integration | Close superseded and archived PRs with exact source retention in the consolidation manifest |
+| Documentation and the usable application described different revisions | At the audit, main2e55b884 held an older integrated app while PR80 carried newer operational flows | Consolidated the operational source through6a7cd8a4 in PR82; the app now exposes exact source revision/readiness |
+| Open PR count greatly exaggerated unfinished independent implementation | The original62-PR audit found52 already preserved in main,5 unique historical prototypes/foundations,4 superseded lineages and1 current integration | All62 original PRs are closed with exact source retention; PR82 carries the single reviewed integration |
 | The fiscal draft boundary is incomplete | Applied0074 grants the runtime a native issue capability while Review430 remains CHANGES REQUIRED | Forward migration0075 revokes that exact capability; preserve history and all unfinished434 work |
 | Development434 contains substantial genuine invoice proof but is not accepted as a release | D1371 records native maximum-bound and winner evidence; complete integration/concurrency/independent acceptance remains unfinished | Reserve future evidence/completion migrations76/77 and keep them outside the production runner |
+| Correctness proof does not establish acceptable latency | The500-source/366-night draft invoice case used183,000 allocations; issuance alone took233,912ms, and the full case276,788.87ms | Keep native issuance unreleased; optimize and measure this workload before setting or claiming a usable latency target |
 | Core project and status files are stale | PROJECT describes81 tables, native Windows setup asserts89, shell frontier is125; the state parser mistakes historical phase references for current work | Current project status, explicit task and accurate75-migration/125-table catalogue references |
 | No connected Yellow cloud app was found | No repository deployment workflow or existing Sites origin; no supplied OCI host/DNS/credentials | Build traceable release images after green main CI; require a concrete private preview target before claiming cloud deployment |
 | A simple health response is insufficient | Existing /health only proves the process responds | Add build identity and database readiness while preserving /health compatibility |
@@ -55,11 +56,30 @@ those foundations have been shipped or deleting their source branches.
 
 ## Verification record and limits
 
-The final executable release decision belongs in the Order438/439 independent
-reviews and the exact GitHub Actions run, not in a prediction here. The managed
-executor supplies Bun1.3.14 but cannot launch a supported nonroot PostgreSQL/Docker
-server; full DB acceptance must run in genuine CI PostgreSQL16 containers or the
-supported user-local Docker/WSL environment. No skipped database test is a pass.
+Independent non-implementers approved candidate
+`bb3b8f933ce344f9325445dac1e6fc77d646c9de` after personally initiated real CI proof
+and review of the logs. [CI33986577250](https://github.com/dcpnode-maker/yellow/actions/runs/33986577250)
+passed all five jobs: Windows state, application quality, container, database and
+the complete local launcher. [Review438](../../handoff/reviews/438-codex-consolidated-release.md)
+and [Review439](../../handoff/reviews/439-contained-native-fiscal-release.md) retain
+the exact evidence and the first failed run, including the repaired seed-order and
+fixture-isolation defects. [PR82](https://github.com/dcpnode-maker/yellow/pull/82)
+owns the final reviewed integration and subsequent main/release receipts.
+
+| Executed proof | Result |
+|---|---|
+| Application quality |1,569 passed,1,174 explicit database/environment skips,0 failed;21,628 assertions |
+| Real PostgreSQL migration and seed suites |39/39 migrations;10/10 seed tests |
+| Fiscal containment and runtime authority |5/5 tests;29 assertions; constrained runtime accepted, deployment identity rejected |
+| Ten isolated operational/financial/tax compatibility suites |89 passed,0 failed;2,384 assertions |
+| Deployment acceptance and schema |23/23 acceptance tests; normalized schema exact |
+| Canonical invariant referee |11 passed,0 failed of11 on genuine PostgreSQL16 |
+| Full local launcher |Canonical/review seeds, exact-SHA readiness at frontier75, real login and volume-preserving stop passed |
+
+The managed executor supplies Bun1.3.14 but cannot launch a supported nonroot
+PostgreSQL/Docker server. The local app was therefore proved in clean CI using the
+same supported launcher; the founder's own Windows/WSL machine still requires that
+launcher and a serving-revision check. No skipped database test is counted as a pass.
 
 No public/customer production deployment is claimed. A configured private preview
 still needs TLS/access control, a concrete host and database destination, separate

@@ -1,6 +1,7 @@
 # Order 438 — Codex-owned consolidated release and current project record
 
-Status: ACTIVE — implementation and independent verification in progress.
+Status: IMPLEMENTED AND INDEPENDENTLY APPROVED at bb3b8f9; exact final integration
+and publication gates are tracked in PR82 and the release reviews.
 
 ## Authority and intent
 

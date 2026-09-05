@@ -49,7 +49,11 @@ database volumes and machine caches outside Git.
 Local speed comes from the same source and build inputs used by CI. A local process is
 current only when its health and build receipt name the serving commit. A Git push does
 not refresh a local process, and a merged commit does not prove cloud deployment.
-`docs/RELEASE.md` owns exact build, local and cloud commands when Order438 lands.
+`docs/RELEASE.md` owns the exact build, local and cloud commands for the consolidated
+baseline. `./scripts/local-review.sh` accepts `start`, `status` or `stop`; do not
+recreate its seed, credential or Compose sequence manually. A valid readiness receipt
+names the exact Git SHA, `yellow_runtime_database` target and expected migration
+frontier 75.
 
 ## Proof and review
 

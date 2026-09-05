@@ -4,14 +4,16 @@
   "generated_at": "2026-09-05",
   "repository": "dcpnode-maker/yellow",
   "audited_main": "main@2e55b88488300b1d4efb551f8ec79698dbb52dad",
-  "release_base": "refs/heads/phase-7/persisted-india-final-component-tax-evidence@6a981cce0672a6018fa79872e828e3c003fd3f71",
+  "release_base": "refs/heads/phase-7/persisted-india-final-component-tax-evidence@6a7cd8a4bc8b58ffe4a4cc94957ef7ff83558bea",
   "summary": {
     "source_open_pr_snapshot_count": 62,
     "already_in_main_closed_count": 52,
     "archived_unique_closed_count": 5,
-    "pending_integration_count": 4,
-    "active_candidate_count": 1,
-    "standalone_open_issue_count_at_audit": 0
+    "pending_integration_count": 0,
+    "active_candidate_count": 0,
+    "standalone_open_issue_count_at_audit": 0,
+    "consolidated_closed_count": 5,
+    "closed_source_pr_count": 62
   },
   "preservation_policy": "Closing a pull request does not claim its unique content was merged. Exact source branches and heads remain retained; no branch was deleted or rewritten.",
   "pull_requests": [
@@ -427,7 +429,7 @@
     },
     {
       "number": 59,
-      "title": "[codex] Order 078 — reproducible local-review published rate",
+      "title": "[codex] Order 078 \u2014 reproducible local-review published rate",
       "source_ref": "refs/heads/phase-3/local-review-published-rate",
       "head": "12ba636ff64f2ee8457f626d8ffcf6d2779d58a0",
       "disposition": "closed_exact_main_ancestor",
@@ -590,50 +592,55 @@
       "title": "Order 104: balanced charge posting",
       "source_ref": "refs/heads/phase-5/balanced-charge-posting",
       "head": "52f8b0c61db23d0faf3f232527881083bf8040e2",
-      "disposition": "open_pending_pr80_integration",
+      "disposition": "closed_consolidated_into_pr82",
       "preservation_ref": "refs/heads/phase-5/balanced-charge-posting@52f8b0c61db23d0faf3f232527881083bf8040e2",
-      "evidence": "Financial core is present in current lineage; PR 80 carries the corrected Order 121 actor-bound idempotency implementation and independent review.",
-      "current_working_flow_impact": "Wait for PR 80 integration before closing this historical lineage."
+      "evidence": "Financial core is present in current lineage; PR 80 carries the corrected Order 121 actor-bound idempotency implementation and independent review. Source ref retained; PR82 owns final integration of the corrected lineage.",
+      "current_working_flow_impact": "Operational source is preserved in the consolidated baseline. Closure does not claim cloud deployment or completion of unfinished native fiscal issuance."
     },
     {
       "number": 76,
       "title": "Order 113: contain SECURITY DEFINER shadow paths",
       "source_ref": "refs/heads/phase-5/security-definer-containment",
       "head": "0ec1b77faea0f100b05bb051dc7c71b3c124a48b",
-      "disposition": "open_pending_pr80_integration",
+      "disposition": "closed_consolidated_into_pr82",
       "preservation_ref": "refs/heads/phase-5/security-definer-containment@0ec1b77faea0f100b05bb051dc7c71b3c124a48b",
-      "evidence": "Migrations 0010/0011 are byte-identical in main and PR 80; current lineage carries independently reviewed Orders 108 and 121.",
-      "current_working_flow_impact": "Wait for PR 80 integration before closing this historical lineage."
+      "evidence": "Migrations 0010/0011 are byte-identical in main and PR 80; current lineage carries independently reviewed Orders 108 and 121. Source ref retained; PR82 owns final integration of the corrected lineage.",
+      "current_working_flow_impact": "Operational source is preserved in the consolidated baseline. Closure does not claim cloud deployment or completion of unfinished native fiscal issuance."
     },
     {
       "number": 78,
       "title": "Order 148: integrate approved runtime database authority",
       "source_ref": "refs/heads/phase-5/post127-approved-integration",
       "head": "4748ded0868a35434bbf9bbfd10b87294dc73301",
-      "disposition": "open_pending_pr80_integration",
-      "preservation_ref": "PR-80@6a981cce0672a6018fa79872e828e3c003fd3f71",
-      "evidence": "Exact ancestry verified: 4748ded0868a35434bbf9bbfd10b87294dc73301 is an ancestor of PR 80 head 6a981cce0672a6018fa79872e828e3c003fd3f71.",
-      "current_working_flow_impact": "Present in the release candidate; close after PR 80 integration."
+      "disposition": "closed_consolidated_into_pr82",
+      "preservation_ref": "refs/heads/phase-5/post127-approved-integration@4748ded0868a35434bbf9bbfd10b87294dc73301",
+      "evidence": "Exact source head 4748ded0868a35434bbf9bbfd10b87294dc73301 is an ancestor of independently tested Order438 candidate bb3b8f933ce344f9325445dac1e6fc77d646c9de. Source ref retained; PR82 owns final integration.",
+      "current_working_flow_impact": "Operational source is preserved in the consolidated baseline. Closure does not claim cloud deployment or completion of unfinished native fiscal issuance."
     },
     {
       "number": 79,
       "title": "Order 149: show approved integration status",
       "source_ref": "refs/heads/phase-5/founder-status-approved-integration",
       "head": "ebce025b496757f6b011c6b071a6fe9287840fc2",
-      "disposition": "open_pending_pr80_integration",
-      "preservation_ref": "PR-80@6a981cce0672a6018fa79872e828e3c003fd3f71",
-      "evidence": "Exact ancestry verified: ebce025b496757f6b011c6b071a6fe9287840fc2 is an ancestor of PR 80 head 6a981cce0672a6018fa79872e828e3c003fd3f71.",
-      "current_working_flow_impact": "Present in the release candidate; close after PR 80 integration."
+      "disposition": "closed_consolidated_into_pr82",
+      "preservation_ref": "refs/heads/phase-5/founder-status-approved-integration@ebce025b496757f6b011c6b071a6fe9287840fc2",
+      "evidence": "Exact source head ebce025b496757f6b011c6b071a6fe9287840fc2 is an ancestor of independently tested Order438 candidate bb3b8f933ce344f9325445dac1e6fc77d646c9de. Source ref retained; PR82 owns final integration.",
+      "current_working_flow_impact": "Operational source is preserved in the consolidated baseline. Closure does not claim cloud deployment or completion of unfinished native fiscal issuance."
     },
     {
       "number": 80,
       "title": "Yellow current build: 18-phase roadmap and Phase 7 progress",
       "source_ref": "refs/heads/phase-7/persisted-india-final-component-tax-evidence",
-      "head": "6a981cce0672a6018fa79872e828e3c003fd3f71",
-      "disposition": "open_active_integration_candidate",
-      "preservation_ref": "refs/heads/phase-7/persisted-india-final-component-tax-evidence@6a981cce0672a6018fa79872e828e3c003fd3f71",
-      "evidence": "Current application candidate used as the Order 438 release base.",
-      "current_working_flow_impact": "Active integration target; verification and contained fiscal release work remain required."
+      "head": "6a7cd8a4bc8b58ffe4a4cc94957ef7ff83558bea",
+      "disposition": "closed_consolidated_into_pr82",
+      "preservation_ref": "refs/heads/phase-7/persisted-india-final-component-tax-evidence@6a7cd8a4bc8b58ffe4a4cc94957ef7ff83558bea",
+      "evidence": "Exact source head 6a7cd8a4bc8b58ffe4a4cc94957ef7ff83558bea is an ancestor of independently tested Order438 candidate bb3b8f933ce344f9325445dac1e6fc77d646c9de. Source ref retained; PR82 owns final integration.",
+      "current_working_flow_impact": "Operational source is preserved in the consolidated baseline. Closure does not claim cloud deployment or completion of unfinished native fiscal issuance.",
+      "initial_audited_head": "6a981cce0672a6018fa79872e828e3c003fd3f71"
     }
-  ]
+  ],
+  "initial_release_base": "refs/heads/phase-7/persisted-india-final-component-tax-evidence@6a981cce0672a6018fa79872e828e3c003fd3f71",
+  "tested_release_commit": "bb3b8f933ce344f9325445dac1e6fc77d646c9de",
+  "integration_pr": 82,
+  "source_pr_closure_complete": true
 }

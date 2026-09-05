@@ -8,12 +8,12 @@ for current branch, scope and proof requirements.
 
 ## Current workstation boundary
 
-**2026-09-05:** native Windows Git/Bun/source checks are being used while WSL Bun
-crash-dump recurrence is unresolved. The original WSL-only onboarding is not today's
-resumption procedure. This does not claim native full setup is CI-equivalent:
-`state.ps1` has Windows CI coverage, while `setup.ps1` still contains a stale
-89-table expectation and has not been validated against the current 74-migration /
-125-table development frontier. Skipped or failed setup is not green database proof.
+**2026-09-05:** native Windows Git/Bun/source checks remain the safe orientation path
+while the recorded WSL Bun crash-dump recurrence is unresolved. This documentation
+does not claim the user's WSL incident is fixed. `state.ps1` has Windows CI coverage;
+`setup.ps1 -DbOnly` now checks the migration-75 / 125-public-table catalogue. A native
+run, the Linux local-review launcher and CI are separate environments. Skipped or
+failed setup is not green database proof.
 
 ## Read-only orientation in PowerShell
 
@@ -63,17 +63,18 @@ proof, but cluster ownership, roles, paths, ports and teardown must be establish
 first. Do not repurpose a running PostgreSQL process or live hotel database simply
 because it is available.
 
-The checked Unix `setup.sh` and GitHub database workflow remain separate verification
-environments. Setup migrates development data and recreates a disposable test database;
-it is not read-only. Avoid the affected WSL path until diagnosed. Do not start Docker
-or another cluster for documentation-only work.
+`setup.ps1 -DbOnly`, the checked Unix database gate and GitHub database workflow are
+separate verification environments. Setup migrates development data and recreates a
+disposable test database; it is not read-only. Do not repurpose a live hotel database.
 
-For an authorized refresh, identify the one retained Compose project and protected
-runtime configuration. The desired founder endpoint is `http://127.0.0.1:3000`;
-verify the serving commit and real login before calling it current. Read
-[LOCAL-REVIEW](docs/LOCAL-REVIEW.md) for mechanisms, but its historical alternate-port
-and seed examples are not the current runtime receipt. Passwords/local prefill stay
-in protected development storage, never Git.
+The single full local-review workflow is `./scripts/local-review.sh`, accepting one
+of `start`, `status` or `stop`, at `http://127.0.0.1:3000`, as specified in [RELEASE](docs/RELEASE.md) and
+[LOCAL-REVIEW](docs/LOCAL-REVIEW.md). It requires the supported Bash/Docker environment
+and refuses a dirty checkout. On the affected Windows machine, do not assume that
+script is safe inside WSL until the crash recurrence is diagnosed. When it is run in
+an approved environment, verify `/ready` reports the selected 40-character Git SHA,
+target `yellow_runtime_database` and migration frontier 75. Passwords and local prefill
+remain in protected ignored storage, never Git.
 
 ## Disk and synchronization safety
 

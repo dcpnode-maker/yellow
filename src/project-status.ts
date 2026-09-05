@@ -49,7 +49,7 @@ export const DEFAULT_OPERATOR_RUNTIME_STATUS: OperatorRuntimeStatus = Object.fre
 export const PROJECT_BUILD_SNAPSHOT = Object.freeze({
   schemaVersion: 2,
   recordedAt: "2026-09-05",
-  label: "Consolidated release candidate snapshot",
+  label: "Consolidated operational baseline",
   roadmap: Object.freeze({
     phaseCount: 18,
     latestBuiltOrder: 438,
@@ -321,9 +321,9 @@ export const PROJECT_BUILD_SNAPSHOT = Object.freeze({
     }),
     Object.freeze({
       order: 438,
-      state: "built_unverified" as const,
-      summary: "Orders 438/439 are the current consolidated operational release candidate. They preserve PR80's working flows and contain the unapproved legacy native-fiscal issue capability at migration frontier 75.",
-      remaining: "Order 434 has substantial bounded invoice/replay and concurrency proof but native issuance remains unreleased pending its full acceptance, 0076/0077 assembly and fresh Tier-3 review. Orders 438/439 still require an exact runtime build receipt, independent review, merge and separate local/cloud release evidence; Phase 7 is not complete.",
+      state: "independently_approved" as const,
+      summary: "Orders 438/439 independently approved the consolidated operational baseline at bb3b8f9. All five CI jobs passed, including real database invariants and the full local launcher; migration 75 contains the unapproved legacy native-fiscal issue capability.",
+      remaining: "Order 434 has substantial bounded invoice/replay and concurrency proof but native issuance remains unreleased pending its full acceptance, 0076/0077 assembly and fresh Tier-3 review. PR82 records final source integration; each local/cloud runtime needs its own serving-revision receipt. No cloud host is connected; Phase 7 is not complete.",
     }),
   ] satisfies readonly ProjectRecordedWorkSnapshot[]),
   phases: Object.freeze([

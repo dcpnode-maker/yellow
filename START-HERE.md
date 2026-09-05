@@ -23,12 +23,11 @@ git clone https://github.com/dcpnode-maker/yellow.git
 cd yellow
 ```
 
-**Consolidation checkpoint, 2026-09-05:** GitHub's default `main` still holds the older
-integrated baseline. Orders438/439 form the current release task based on
-[PR #80](https://github.com/dcpnode-maker/yellow/pull/80). Read
-[PROJECT-STATUS](docs/PROJECT-STATUS.md) for the exact source and lifecycle before
-selecting a ref. A clone of `main` does not yet contain every candidate feature.
-Preserve existing uncommitted work; never reset or merge unapproved code to hide a gap.
+**Consolidated baseline, 2026-09-05:** Orders438/439 unify the operational application
+through [PR #82](https://github.com/dcpnode-maker/yellow/pull/82). Use a clean reviewed
+`main` and [the local launcher](docs/RELEASE.md) for one app on port3000. Read
+[PROJECT-STATUS](docs/PROJECT-STATUS.md) for the source acceptance and remaining
+product/deployment boundaries. Preserve existing uncommitted work when updating.
 
 ## 2. Read the canonical entry points
 

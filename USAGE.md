@@ -18,10 +18,12 @@ distinction between candidate, merged, local and cloud state.
 - Phases 8–17: planned. Founder priority is 11 → 13 → 17, subject to dependencies.
 
 Follow [BUILD-PLAN](BUILD-PLAN.md) and [roadmap](handoff/ROADMAP.md) for later changes.
-“Built,” “reviewed,” “merged” and “running locally” are separate states. GitHub
-`main` remains the older integrated baseline at this checkpoint;
-[PR #80](https://github.com/dcpnode-maker/yellow/pull/80) carries development.
-Neither the browser nor the default branch necessarily contains every built order.
+“Built,” “reviewed,” “integrated” and “running locally” are separate states. The
+consolidated baseline has a green five-job CI receipt in run `33986577250` and
+independent approval in Reviews438/439. That receipt applies only to the
+exact SHA tested by the run; every later revision needs its own result. Use the exact
+checked-out revision and current release evidence rather than an old branch or PR
+description.
 
 The [24-ID feature register](docs/FEATURE-REGISTER.md) records the expanded ecosystem,
 staff/STR journeys, regions, voice, RMS and channels. A specification is not completed
@@ -60,23 +62,25 @@ for database proof.
 
 ## Runtime and synthetic data
 
-The desired retained app is one loopback endpoint on port 3000. Compose defaults are
-app 3000, PostgreSQL 5442 and Valkey 6389; an approved runtime may have recorded
-overrides. Identify it before starting services. Do not create an alternate-port stack
-when the task is to update the retained app.
+The retained app is one loopback endpoint on port 3000. Use the one launcher described
+in [RELEASE](docs/RELEASE.md) and [LOCAL-REVIEW](docs/LOCAL-REVIEW.md):
 
-`./setup.sh --db-only` mutates development state: it migrates `yellow_dev` and
-recreates disposable `yellow_test` for the referee. Full setup also starts the app.
-Read the exact script and [setup guide](START-HERE.md) before running it; never target
-data to preserve. Native `setup.ps1` has stale catalogue expectations and is not
-equivalent evidence to the checked Unix setup path.
+```bash
+./scripts/local-review.sh start
+./scripts/local-review.sh status
+./scripts/local-review.sh stop
+```
 
-Synthetic founder review data is separately scoped; see
-[LOCAL-REVIEW.md](docs/LOCAL-REVIEW.md) and the runtime order. Historical alternate-port
-and seed examples are not authority to duplicate today's stack or restore deleted
-hotel data. Credentials stay in protected ignored local files. Local prefill may
-populate the real synthetic account's fields; it is never a production credential
-publication mechanism.
+It refuses a dirty checkout, applies the migration-75 / 125-public-table catalogue,
+runs the 11/11 referee, loads the canonical synthetic seeds, builds the exact revision
+and proves login plus `/ready`. The readiness receipt must contain the same 40-character
+Git SHA and expected migration frontier 75. `stop` preserves the PostgreSQL volume.
+
+The underlying `setup.sh --db-only` and `setup.ps1 -DbOnly` paths mutate development
+state and recreate disposable `yellow_test`; they are database proof workflows, not
+an alternative manual app launch. Never target data to preserve. Credentials stay in
+protected ignored local files. Local prefill uses the real synthetic account and is
+never a production credential publication mechanism.
 
 Project status separates recorded delivery evidence from live service checks.
 Database health does not establish feature completion. The status model does not
@@ -87,7 +91,7 @@ history remains a requirement until its UI proof exists (YF-021).
 
 | Symptom | Check first |
 |---|---|
-| GitHub shows an old README or 13 phases | Selected branch and integration PR. Do not fake integration by changing timestamps or the default branch. |
+| Remote documentation differs from the checkout | Compare exact Git revisions and current release evidence; do not infer state from a stale browser tab or branch name. |
 | Local app differs from source | Serving process/image commit, migration ledger and runtime receipt. A push does not update a local process. |
 | Invalid local login | Approved synthetic account and protected prefill configuration agree; do not expose secrets or bypass authentication. |
 | Port already in use | Identify the owner and reuse the retained runtime or its approved restart procedure. |

@@ -17,13 +17,14 @@ remaining acceptance work. [START-HERE.md](START-HERE.md),
 [Windows setup](START-HERE-WINDOWS.md) and [USAGE.md](USAGE.md) describe working on
 this existing repository—not creating another package or database.
 
-**Consolidation checkpoint: 2026-09-05.** Orders438/439 are one Codex-owned Phase-7
-release task based on [PR #80](https://github.com/dcpnode-maker/yellow/pull/80).
-GitHub's default `main` still represents the older integrated baseline until the
-candidate passes independent review and is merged. The exact source, migration,
-local and cloud state lives in [PROJECT-STATUS](docs/PROJECT-STATUS.md). A development
-commit, green CI, independent approval, merge, local refresh and cloud deployment are
-separate evidence events.
+**Consolidated baseline: 2026-09-05.** Orders438/439 bring the operational application,
+current project records and repeatable local setup into one Codex-owned release in
+[PR #82](https://github.com/dcpnode-maker/yellow/pull/82). Independent reviewers verified
+all five CI jobs, including the real database and complete local launcher. All 62 PRs
+in the original audit have recorded closure and source-preservation evidence.
+Use reviewed `main` for the app and [RELEASE](docs/RELEASE.md) to start or update it.
+[PROJECT-STATUS](docs/PROJECT-STATUS.md) distinguishes source acceptance, merge, the
+user's local runtime and cloud deployment. No cloud host is connected yet.
 
 ## Current build snapshot
 
@@ -39,7 +40,7 @@ The roadmap has **18 phases, numbered 0–17**:
 Order430 was rejected for incomplete canonical provenance (D1323).
 [Order434](handoff/orders/434-native-fiscal-source-completion.md) preserves substantial
 native-fiscal work but remains unfinished and unreleased. The current release task
-contains that capability before integration. Founder priority is
+contains that capability with forward migration0075. Founder priority is
 **11 → 13 → 17**, subject to mandatory dependencies. From the active phase:
 `7 → 8 → 9 → 10 → 11 → 12 → 13 → 17 → 14 → 15 → 16`.
 
