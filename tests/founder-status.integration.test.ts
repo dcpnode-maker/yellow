@@ -536,7 +536,7 @@ describe("Order 064 recorded build snapshot", () => {
       {
         order: 434,
         state: "independently_approved",
-        summary: "Order 434 independently accepted native fiscal issuance at exact source 92346674c784b552356934e168d60e4b9650497a; PR83 CI33993977811 passed native116/116, migrations41/41, compatibility89/89, catalogue23/23, exact schema and referee11/11, and merged source is 443e3826b47025106d1829fcbb406ce6302fbbba.",
+        summary: "Order 434 independently accepted native fiscal issuance at exact source 92346674c784b552356934e168d60e4b9650497a; PR83 CI33993977811 passed native116/116, migrations41/41, compatibility89/89, catalogue23/23, exact schema and referee11/11, and merged source is 443e3826b47025106d1829fcbb406ce6302fbbba with 77 migrations and 127 public tables.",
         remaining: "Acceptance is unreleased native proof: provider submission, durable attempt/receipt integration, authenticated provider normalization, runtime activation and Phase-7 completion remain separate.",
       },
       {
@@ -548,8 +548,8 @@ describe("Order 064 recorded build snapshot", () => {
       {
         order: 440,
         state: "proof_in_progress",
-        summary: "Order 440 is the current Phase-7 work: provider-neutral durable fiscal submission and reconciliation integration after accepted native issuance.",
-        remaining: "Private Lane A is independently approved only; durable persistence, claim/reconciliation worker, canonical issued payload assembly, authenticated provider normalization, runtime activation and live sandbox evidence remain outstanding.",
+        summary: "Order 440 is the current Phase-7 work: provider-neutral durable fiscal submission and reconciliation after accepted native issuance; the separately descriptive Order 440 hotel journeys and fictional design study are merged as design input with a fictional in-memory prototype only. The separate Order 441 Astra Ultra RMS paper is documented research only, with no algorithm runtime or measured uplift.",
+        remaining: "Private fiscal reducer and issued-wire projection are independently verified; durable persistence, claim/reconciliation worker, canonical issued payload assembly and authenticated provider normalization remain unfinished. IRP provider activation and operator invoice UI remain separate; new-department release, local refresh, cloud deployment and live sandbox evidence remain outstanding; the hotel prototype is not production and Phase 7 is not complete.",
       },
     ]);
     const recordedOrders = PROJECT_BUILD_SNAPSHOT.recordedWork.map(({ order }) => Number(order));

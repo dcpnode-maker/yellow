@@ -2,88 +2,95 @@
 
 <!-- status-schema: yellow-project-status/v1 -->
 <!-- current-phase: 7 -->
-<!-- current-task: Order 440 — durable fiscal submission and reconciliation -->
-<!-- current-order-files: handoff/orders/440-fiscal-submission-lifecycle.md -->
-<!-- current-lifecycle: private provider-neutral contract accepted; durable integration in progress; no provider or runtime activation -->
+<!-- current-task: Codex Yellow — fiscal submission with hotel journey and RMS research integration -->
+<!-- current-order-files: handoff/orders/440-fiscal-submission-lifecycle.md;handoff/orders/440-hotel-journeys-and-schema-guide.md -->
+<!-- current-lifecycle: native fiscal source and journey study merged; private fiscal state and issued-wire proof accepted; durable integration in progress; no provider or runtime activation -->
 
 This is the canonical current-state record. It identifies the consolidated source,
-verified behavior, release boundaries and active work. Historical orders,
-reviews, decisions and ledger entries remain evidence; their filenames are not an
-active backlog. `state.sh` and `state.ps1` read the machine-readable comments above.
+verified behavior, release boundaries and active work. Historical orders, reviews,
+decisions and ledger entries remain evidence; their filenames are not an active
+backlog. `state.sh` and `state.ps1` read the machine-readable comments above.
 
 ## Current task
 
-**Order440 is the current Phase7 development task.** The operational baseline from
-Orders438/439 merged through PR82 as main5879e2b719db18077e00556477ba34bdb9b9991c.
-The accepted Order434 candidate is92346674c784b552356934e168d60e4b9650497a;
-PR83 CI33993977811 passed all five jobs and merged as443e3826b47025106d1829fcbb406ce6302fbbba.
-Neither the candidate nor the merge is a deployed native-fiscal release. Development
-contains the complete 77-migration candidate and its derived 127-table schema
-snapshot. The full migration suite passed 41/41,
-including production-75 upgrade, rollback, checksum protection and fresh-install
-equivalence. Independent native acceptance now passes all six suites (116 tests),
-the 11-invariant referee, canonical database acceptance (23 tests) and exact schema
-comparison. Consolidated Tier-3 inspection has no unresolved findings and the reviewer
-discharged its conditional approval against PR83. Question195 records the numbering,
-scope and strict separation from the retained hotel database.
+**One Codex Yellow project preserves both reviewed development streams.**
+Orders438/439 consolidated the operational app through PR82. Order434's native
+fiscal source passed independent whole-candidate Tier-3 review and all five jobs in
+[CI178](https://github.com/dcpnode-maker/yellow/actions/runs/33993977811) at
+`92346674c784b552356934e168d60e4b9650497a`, then merged through
+[PR83](https://github.com/dcpnode-maker/yellow/pull/83) as`443e3826`.
+[PR84](https://github.com/dcpnode-maker/yellow/pull/84) subsequently merged the
+independently reviewed hotel-journey/schema/design study as
+`7829eae47d4281efa117c8d3c788c3be52d10d06`. Main contains77 migrations and127 public
+base tables, including the runner ledger; [SCHEMA-GUIDE](SCHEMA-GUIDE.md) explains
+the immutable80-table baseline and historical125-table frontier.
 
-Order440's subsequent private issued-wire candidate is now independently verified:
-10 unit tests and4 genuine-issued PostgreSQL tests pass, including all three supported
-GST component combinations, two-tenant source isolation and exact unchanged financial
-rows. It verifies the immutable source hash and derives a distinct deterministic wire
-hash without floating-point money conversion. Canonical0077's issued content already
-includes the Qty1.000/UnitOTH compatibility pair; the ordinary intermediate candidate
-does not. Q197 corrects the earlier description and limits this work to a private,
-uncertified projection. Durable submission writers, delivery/reconciliation and live
-provider evidence remain unfinished. The new required CI proof is wired but has not
-yet run on this revision. The prior440/441 checkpoint13737a7 passed all five jobs in
-CI33996041604 and is under PR85; neither result refreshes the founder's local app.
+**Order440 fiscal submission** continues the durable request/delivery/reconciliation
+implementation. Its private state contract passes14 tests; the new private issued-wire
+candidate independently passes10 unit tests and4 genuine-issued PostgreSQL tests.
+Those prove the supported GST component combinations, two-tenant source isolation and
+unchanged financial rows. The source hash remains distinct from the deterministic
+wire hash; money never passes through floating-point conversion. Canonical0077's final
+issued content includes Qty1.000/UnitOTH; the ordinary intermediate candidate does
+not. Q197 corrects that description. The candidate remains uncertified; durable
+writers, provider authentication and live sandbox evidence are unfinished.
 
-CI33992123191 at6bb7ba6 passed four of five jobs, including the real local launcher.
-Its database job passed migration41/41, native116/116, containment/readiness7/7 and
-operational/tax compatibility89/89 before four stale catalogue expectations failed.
-Those exact assertions are repaired and independently pass23/23. D1375 records the
-proof and failure history. PR83 is the subsequent exact-head green CI receipt; the
-earlier failed run remains historical evidence and is not current acceptance.
+**Order440 hotel journeys** preserves cross-department guest/staff research,
+16 synthetic cases and a14-case interactive design study. Its fictional in-memory
+workbench does not release event, outlet, spa or purchasing capabilities. Functional
+review, reference-matched visual review and actual laptop execution have separate
+receipts. **Order441 RMS research** records the founder-selected Astra Ultra algorithm
+portfolio; proposals are not implemented algorithms or measured revenue uplift.
+[Question198](../handoff/questions/198-concurrent-reviewed-source-integration.md)
+disambiguates the concurrent Order440/Question196 identifiers without losing history.
 
-Order438 consolidates the working operational application, documentation, local
-workflow and Git-to-cloud release controls; Order439 is the highest completed order
-identifier and contains the rejected legacy fiscal capability through migration0075.
-Both have independent approval at
-the exact source recorded below. Codex
-owns implementation and coordination and may use internal models as bounded builders
-or independent reviewers. There is no operational dependency on another vendor or
-person for ordinary development.
+Prior fiscal/research checkpoint13737a7 passed all five jobs inCI33996041604 and
+PR85 CI33996882192. PR85 then required integration because main advanced through
+PR84. The combined source passes1597 local standing tests with1195 explicit database
+skips, typecheck and independent status-preservation proof. Its newly wired required
+issued-wire CI proof still needs exact-head execution; previous green checks do not
+approve a changed revision.
+No retained hotel database or founder-local app was refreshed by this work.
+
+Earlier failure CI33992123191 at6bb7ba6 remains evidence: migration41/41,
+native116/116, containment7/7 and compatibility89/89 passed before four stale
+catalogue expectations failed. Those were repaired and independently passed23/23;
+PR83's subsequent exact-head green CI discharged the native acceptance condition.
+Codex owns implementation and coordination; ordinary development has no separate
+vendor/person dependency. Independent high-risk proof remains required.
 
 ## Source and release truth
 
 | Surface | Verified baseline | Release boundary |
 |---|---|---|
-| Source and integration | Accepted Order434 source `92346674c784b552356934e168d60e4b9650497a` is incorporated by merged PR83 commit `443e3826b47025106d1829fcbb406ce6302fbbba`; Order440 remains private integration work | No provider, runtime or cloud activation is claimed; the current work is not Phase-7 completion |
-| Independent acceptance | Order434 review and [PR83 CI33993977811](https://github.com/dcpnode-maker/yellow/actions/runs/33993977811) passed native116/116, migrations41/41, compatibility89/89, catalogue23/23, exact schema and referee11/11 | Order440's private Lane A contract is independently approved; durable integration requires its own review and proof |
-| GitHub work queue | All 62 PRs in the original audit are closed with exact source preservation; the working lineage is consolidated in PR82, while five unique research/worker lines remain preserved as archives | [The manifest](../handoff/CONSOLIDATION-MANIFEST.json) records each disposition; [GitHub](https://github.com/dcpnode-maker/yellow/pulls) is authoritative for the live open queue |
-| Main database source | PR83 brings main to77 migrations and127 public tables; immutable0075 still revokes the rejected legacy entry point, while accepted0076/0077 implement the replacement | Exact-candidate fresh/upgrade/schema/native/ACL and referee proof passed; source integration does not migrate any retained hotel database |
-| Development database | The isolated synthetic77/127 catalogue exactly matches the derived main schema; Order440 has no additional database migration | Independent migration41/41, native116/116, catalogue23/23 and referee11/11 plus final PR83 CI passed. No retained hotel database was migrated |
-| Local app | The complete supported launcher passed in clean CI: real database, canonical/review seeds, exact-SHA readiness, authentication and volume-preserving stop | Run [the same launcher](RELEASE.md) on the user's supported machine for `http://127.0.0.1:3000`; CI does not prove that machine has been refreshed |
-| Cloud app | Main CI33994717854 and image publication33995471357 succeeded at443e3826; immutable runtime and migration amd64 tags were published for that SHA with frontier77 | The reviewer personally read successful publication logs, but registry digests were not retrieved. No approved host, ingress, production credential or serving URL is connected; image publication is not deployment |
+| Source and integration | Reviewed native fiscal PR83 at443e3826, then hotel-journey/schema/design PR84 at7829eae; fiscal440 and RMS441 are being combined in PR85 | Main is the sole release branch; the combined candidate requires its own exact-head CI and independent integration |
+| Native fiscal acceptance | Independent migration41/41, native116/116, compatibility89/89, catalogue23/23, exact schema and referee11/11; all five [PR83 CI jobs](https://github.com/dcpnode-maker/yellow/actions/runs/33993977811) passed | [Review434](../handoff/reviews/434-native-fiscal-source-completion.md) approves bounded native issuance, not provider activation or a retained hotel database |
+| GitHub work queue | All62 PRs in the original audit are closed with source preservation; PR82/83/84 are merged and PR85 carries the combined follow-up | [The manifest](../handoff/CONSOLIDATION-MANIFEST.json) preserves dispositions; [GitHub](https://github.com/dcpnode-maker/yellow/pulls) is authoritative for the live queue |
+| Database schema | Main has77 migrations /127 public tables;0076 adds two tables and0077 adds no table. Order440 projection adds no migration | Immutable0001 declares80 application tables;0075's legacy containment stays intact. No retained hotel database was migrated |
+| Private issued-wire proof | Independent10/10 unit and4/4 real-issued tests, including exact unchanged financial rows and cross-tenant isolation | Source/wire hashes differ deliberately; no certified provider, durable submission writer or fiscal acceptance is claimed |
+| Hotel journey design | [Workbench specification](design/STAFF-WORKBENCH-SPEC.md), [casebook](design/HOTEL-CASEBOOK.md) and [research](research/HOTEL-OPERATIONS-REVIEW.md) are preserved from PR84 | Fictional interaction study; final visual fidelity needs an accessible reference and matched screenshot evidence |
+| Local app | The supported launcher passed clean CI with real database, canonical/review seeds, exact-SHA readiness, authentication and volume-preserving stop | [Local instructions](RELEASE.md) provide127.0.0.1:3000; CI does not prove the user's machine was refreshed |
+| Main verification and cloud | Last explicitly verified publication here is443e3826: mainCI33994717854 and immutable runtime/migration image publication33995471357 succeeded | Registry digests were not retrieved; no approved cloud host, ingress or serving URL is connected. Publication is not deployment |
 
-These rows must be updated when evidence changes. A branch, document, green unit test,
-container build, merge and deployment are separate events.
+A branch, document, test, container build, merge and deployment are separate evidence
+states. The runtime must identify its exact source and applied migration frontier.
 
 ## Product status
 
 | Scope | Status | Meaning |
 |---|---|---|
-| Phases 0–3, 5 and 6 | Independently reviewed | Recorded review exists for their accepted scopes; later changes still need regression proof |
-| Phase 4 | Built; integration review outstanding | Preserve the implementation and close its remaining integration evidence |
-| Phase 7 operational flows | Consolidated and independently approved baseline | Working PMS, stay, folio, payment, approval and fiscal-support flows are preserved; source acceptance does not complete the entire phase |
-| Order434 native fiscal issuance | Native acceptance passed; merged and unreleased | Real source-to-invoice, tax-only accounting, immutable replay, concurrency, tenant isolation, maximum bounds and migration proofs pass; provider registration and runtime activation remain separate |
-| Order440 durable fiscal submission | Private state contract and issued-wire projection accepted; durable integration in progress | State reducer and genuine-issued projection proof pass; durable persistence, reconciliation, authenticated provider normalization, runtime activation and live sandbox evidence remain outstanding |
-| Phases 8–17 | Planned | Requirements and architecture are retained; documentation is not shipped behavior |
+| Phases0–3,5 and6 | Independently reviewed | Later changes still require regression proof |
+| Phase4 | Built; integration review outstanding | Preserve implementation and close remaining integration evidence |
+| Phase7 operational flows | Consolidated and independently approved baseline | PMS, stay, folio, payment, approval and fiscal-support flows remain preserved; this does not complete the whole phase |
+| Order434 native fiscal issuance | Independently approved and merged through PR83 | Real source-to-invoice, accounting, replay, concurrency, tenant isolation, bounds and migration proofs pass; no provider registration or operator invoice screen is implied |
+| Order440 fiscal submission | Private state and issued-wire projection accepted; durable integration in progress | Persistence, delivery/reconciliation, provider authentication, runtime activation and live sandbox evidence remain outstanding |
+| Order440 hotel journeys | Reviewed study merged through PR84 | Cross-department research and a fictional prototype; final reference-matched visual QA and laptop execution remain separate |
+| Order441 RMS research | Astra Ultra portfolio documented | Known methods, falsifiable proposals and experiment design; no live algorithm or measured uplift |
+| Phases8–17 | Planned | Requirements, research and department studies are preserved; documentation is not shipped behavior |
 
-The roadmap contains **18 phases, numbered 0–17**. The founder's highlighted feature
-priority remains **11 → 13 → 17**, with mandatory dependencies. From the active phase,
-the executable sequence is `7 → 8 → 9 → 10 → 11 → 12 → 13 → 17 → 14 → 15 → 16`.
+The roadmap contains **18 phases, numbered 0–17**. Founder priority remains
+**11 → 13 → 17**, with mandatory dependencies. From the active phase, the executable
+sequence is `7 → 8 → 9 → 10 → 11 → 12 → 13 → 17 → 14 → 15 → 16`.
 
 ## Preserved product destination
 
@@ -102,7 +109,8 @@ The consolidation keeps the full hospitality OS goal from the founder conversati
   with no claim of zero cost or unmeasured latency/performance superiority.
 
 The independent analysis behind these choices is recorded in
-`docs/research/ASTRA-TAKEOVER-REVIEW.md`. Capability claims require executable or
+`docs/research/ASTRA-TAKEOVER-REVIEW.md` and
+`docs/research/HOTEL-OPERATIONS-REVIEW.md`. Capability claims require executable or
 measured evidence; model benchmark results do not waive Yellow's review gates.
 
 ## Updating this record

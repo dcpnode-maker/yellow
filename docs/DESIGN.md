@@ -1,6 +1,6 @@
 # Yellow interface atlas
 
-## Current direction — 2026-09-05, Order433
+## Current direction — 2026-09-05, Orders433/440
 
 The founder now explicitly requires **different hotel and STR workspaces**, with
 PriceLabs informing STR revenue workflows and Beds24/other PMSs informing operations.
@@ -8,6 +8,14 @@ See [staff journeys](design/STAFF-JOURNEYS.md), [feature IDs](FEATURE-REGISTER.m
 [regional packs](architecture/REGIONAL-PACKS.md). One domain core does not require
 identical screen arrangements. Property experience, visual material, locale and
 authorization are independent dimensions.
+
+The [Order440 staff workbench](design/STAFF-WORKBENCH-SPEC.md) is a concrete
+interaction study grounded in the existing operator Apple tokens and materials.
+Desktop keeps the work queue beside its context; phone presents one focused task.
+Its [research](research/HOTEL-OPERATIONS-REVIEW.md) and
+[casebook](design/HOTEL-CASEBOOK.md) make ownership, acknowledgement, freshness,
+privacy and guest follow-up part of visual acceptance. This prototype implements
+one appearance for review; it does not retire the other five or claim new live modules.
 
 For the next scoped redesign, replace the global Simple/Advanced/Expert selector
 with contextual progressive disclosure and role-aware next actions. Preserve six

@@ -6,14 +6,25 @@ Read [the common guide](START-HERE.md), [PROJECT](PROJECT.md),
 [PROJECT-STATUS](docs/PROJECT-STATUS.md) and [USAGE](USAGE.md)
 for current branch, scope and proof requirements.
 
+For a fresh clone, run `bun install --frozen-lockfile` from the repository root.
+The tracked `package.json` and `bun.lock` already define Yellow; `bun init` is a
+project-scaffolding command and is not part of setup.
+
 ## Current workstation boundary
 
 **2026-09-05:** native Windows Git/Bun/source checks remain the safe orientation path
 while the recorded WSL Bun crash-dump recurrence is unresolved. This documentation
 does not claim the user's WSL incident is fixed. `state.ps1` has Windows CI coverage;
-`setup.ps1 -DbOnly` now checks the migration-75 / 125-public-table catalogue. A native
+`setup.ps1 -DbOnly` now checks the migration-77 / 127-public-table catalogue. A native
 run, the Linux local-review launcher and CI are separate environments. Skipped or
 failed setup is not green database proof.
+
+The 127 count includes the migration runner's `schema_migration` ledger: 126
+application tables across migrations1–77 plus that ledger. Reviewed main `443e3826`
+contains PR83's independently approved native source, with all five CI jobs green
+at exact source `92346674`. Earlier main `5879e2b7` had 75 migrations / 125 tables.
+See [SCHEMA-GUIDE](docs/SCHEMA-GUIDE.md). No Windows runtime refresh is implied
+by a Git merge or CI result.
 
 ## Read-only orientation in PowerShell
 
@@ -73,7 +84,7 @@ of `start`, `status` or `stop`, at `http://127.0.0.1:3000`, as specified in [REL
 and refuses a dirty checkout. On the affected Windows machine, do not assume that
 script is safe inside WSL until the crash recurrence is diagnosed. When it is run in
 an approved environment, verify `/ready` reports the selected 40-character Git SHA,
-target `yellow_runtime_database` and migration frontier 75. Passwords and local prefill
+target `yellow_runtime_database` and migration frontier 77. Passwords and local prefill
 remain in protected ignored storage, never Git.
 
 ## Disk and synchronization safety

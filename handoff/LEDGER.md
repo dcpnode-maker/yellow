@@ -1385,3 +1385,37 @@ Independent non-implementers approved operational candidate bb3b8f933ce344f93254
 2026-09-06 | Order440/441 | PRIVATE-CONTRACT-STATUS-RESEARCH-CHECKPOINT-D1379 | Independent pure contract14/0(66); root final standing1585/0+1189explicit skips(21719),types/170boundaries/23licences/audit/diff/25localtargets green. Two stale status oracles repaired narrowly, later two timeouts preserved then isolated/full unchanged reruns pass. New currentstatus439built/440current/18phases/Phase7active/91reviewed-through; immutable financial DB unchanged. AstraUltra paper documented, no runtime implementation or measured profit. Development publication/CI next, not new main/local/provider promotion.
 
 2026-09-06 | Order440 | ISSUED-SOURCE-WIRE-CANDIDATE-Q197-D1380 | Strict private projection preserves canonical issued content, fiscal identity and exact decimal lexemes; separate wire digest, no tax recomputation or certification claim. Corrected source-description error: final0077 includes compatibility Qty/Unit. Root real4/0(230); non-implementer final unit10/0(52),real4/0(230),types and require/skip gating; whole1595/0+1195explicit skips(21771),171boundaries,23licences,audit0,YAML/releaseworkflow4/0. Exact financial/document/origin/fact/outbox rows unchanged acrossthree genuine GST family invoices; two-tenant isolation passes. Required CI clone proof wired, exact-revisionCI pending; no durable writer/provider/runtime activation. Prior13737a7 all5greenCI33996041604/referee11/11 underPR85. Nextdurablehead/history/permissions/claim/reconcile admission must preserve seal readiness and issued-source authority.
+## Order440 — hotel journey study and reviewed schema frontier (2026-09-05)
+
+Root Codex integrates independently researched department journeys,16 synthetic cases,
+14 playable fictional scenarios across16 department views, the workbench contract,
+and current schema/startup guidance. Baseline80 remains immutable; earlier main5879
+was75/125; independently approved PR83 merged92346674 as main443e3826 with77/127.
+CI17833993977811 and post-mergeCI17933994717854 passed all5 jobs; root read main
+DBjob101383330884: catalogue23/23, exactschema,referee11/11, authenticated runtime.
+Image publication33995471357 passed; no connected cloud host is claimed.
+
+Root checks: typecheck, boundaries168files, focusedstatus/setup/release8pass/0fail
+(83assertions), shell/JSsyntax and diff pass. Browser personally completed six-step
+FO→HK→inspection→FO flow; independent reviewer found and re-executed the repaired
+exact-payer outlet scenario and BEO acknowledgements. Actual desktop/phone-layout
+screenshots are preserved. Full source-image comparison remains blocked: no selected
+workbench reference image and attempted cloud source page was policy-denied without
+workaround. User requested a laptop-session handoff and is arranging its connection;
+prepared instructions do not claim dispatch. Exact final-candidate CI and independent
+review/merge are still required for this Order440 change.
+
+Order440 continuation: the founder expands UI/UX benchmarking and asks for naming
+proposals. Six hospitality vendors plus Linear/Carbon/Fluent/W3C inform the scoped
+research and UIUX-DIRECTION. Seven preliminary names are screened; no brand rename,
+domain purchase or third-party asset import occurred. Question196 additionally
+reconciles current local guides, source-contract headings and the app's recorded
+status. Root intentional status test failed0/1 before metadata correction; exact
+snapshot then passed7/0 with2explicit database skips(143assertions). Typecheck exposed
+an omitted434 union literal, which was corrected; final typecheck/boundaries168 and
+combinedstatus/release/setup15/0 with2explicit database skips(226assertions) pass.
+Comparator numeric proof2/2 passes; its cloud page was blocked before load, without
+retry. Founder reports a laptop remote connection, but no callable laptop surface
+appears here; dispatch/execution remain unverified.
+
+2026-09-06 | Order440/441 | CONCURRENT-REVIEWED-SOURCE-INTEGRATION-Q198-D1381 | Local296d8db plus reviewed main7829eae preserve native fiscal, private Q197, AstraUltra RMS research and hotel/STR journey study. Both descriptive440/196 histories retained, no renumbering or lost branch. Root1597/0+1195DBskips(21785),types/boundaries171/licences23/audit0/YAML/releaseworkflow4/0; independent native_migration_assembly personally status11/0+2DBskips(186),types and byte-identity checks. Exact Q197/paper hashes unchanged; no applied SQL/runtime/provider change. New combined-headCI including required genuine-issued wire proof remains required before independent PR85 integration. Prior13737a7 green CI cannot approve changed source.

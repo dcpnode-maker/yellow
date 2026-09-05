@@ -4,11 +4,15 @@
 
 **Current coordination:** Codex under PROJECT and the applicable agent adapter.
 
-**Status reconciled:** 2026-09-06 · Order434 native acceptance passed PR83 CI
-33993977811 and merged; Order440 is the current durable fiscal submission work.
-Its private provider-neutral Lane A is accepted, while durable integration remains in
-progress and native issuance is unreleased. Historical sections below retain their
-original evidence; PROJECT-STATUS is the current record.
+**Status reconciled:** 2026-09-06. Orders438/439 merged through PR82; independently
+reviewed native fiscal Order434 passed exact CI178 and merged through PR83 as443e3826
+(77 migrations /127 public tables). Post-merge CI179 and image publication passed.
+PR84 then merged hotel/staff journeys, schema guidance and the fictional design study
+as7829eae. Concurrent Order440 fiscal submission work has private state/projection
+proof and continues durable integration; the hotel-journey Order440 history and
+Astra Ultra RMS research Order441 are preserved. Q198 records their consolidation.
+Retained local runtimes and cloud deployment require separate evidence. Historical
+sections below retain their original meaning; PROJECT-STATUS is current.
 
 [PROJECT-STATUS](../docs/PROJECT-STATUS.md) records what is current now.
 [BUILD-PLAN.md](../BUILD-PLAN.md) says what each phase contains. This file records

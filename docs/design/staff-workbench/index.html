@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en" data-theme="apple">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>Yellow · A hotel shift, connected</title>
+  <link rel="stylesheet" href="workbench.css">
+</head>
+<body>
+  <a class="skip" href="#workspace">Skip to work queue</a>
+  <div class="review-bar">
+    <span><strong>Yellow design review</strong><span class="review-description"> · Fictional hotel. Actions stay in this page.</span></span>
+    <div class="review-actions"><button id="phone-toggle" aria-pressed="false">Phone layout</button><button id="notes-open">Design notes</button><button id="reset">Reset scenario</button></div>
+  </div>
+  <div class="app-shell" id="app-shell">
+    <aside class="sidebar" aria-label="Department navigation">
+      <div class="wordmark"><span class="brand-mark">Y</span><strong>yellow</strong></div>
+      <div class="property"><strong>Harbour House</strong><span>Mumbai · Fictional review property</span></div>
+      <label class="mobile-department" for="mobile-department">Explore a department<select id="mobile-department"></select></label>
+      <p class="nav-label">EXPLORE A DEPARTMENT</p>
+      <nav id="departments" aria-label="Explore a department"></nav>
+      <div class="sidebar-footer"><strong>A connected shift.</strong><p>Every request has an owner.<br>Every handoff has a receipt.</p></div>
+    </aside>
+    <main id="workspace" tabindex="-1">
+      <header class="workspace-header">
+        <div><p class="eyebrow">SATURDAY, 5 SEPTEMBER 2026 · 13:40 IST</p><h1 id="department-heading">Front office</h1><p id="department-description" class="muted"></p></div>
+        <span class="shift-badge">Afternoon shift · sample data</span>
+      </header>
+      <nav class="view-tabs" aria-label="Workspace view">
+        <button data-view="shift" class="active" aria-current="page">My shift</button>
+        <button data-view="journey">Guest journey</button>
+        <button data-view="cases">Casebook</button>
+      </nav>
+      <section id="shift-view">
+        <div class="metric-row" id="metrics" aria-label="Current department scenario counts"></div>
+        <div class="work-layout">
+          <section class="queue-panel" aria-labelledby="queue-heading">
+            <div class="queue-heading"><div><h2 id="queue-heading">What needs attention</h2><p class="muted">Guest impact first. Ownership always visible.</p></div><span class="count" id="queue-count"></span></div>
+            <label class="search-label" for="search">Find a guest, room or task<input id="search" type="search" placeholder="Search this department…" autocomplete="off"></label>
+            <div class="filter-row" aria-label="Queue filter"><button data-filter="all" aria-pressed="true">All</button><button data-filter="mine" aria-pressed="false">Needs my team</button><button data-filter="waiting" aria-pressed="false">With another team</button><button data-filter="done" aria-pressed="false">Completed</button></div>
+            <div id="queue" class="queue"></div>
+          </section>
+          <section id="detail" class="detail-panel" aria-label="Selected task"></section>
+        </div>
+      </section>
+      <section id="journey-view" hidden aria-labelledby="journey-heading"></section>
+      <section id="cases-view" hidden aria-labelledby="cases-heading"></section>
+      <footer class="workspace-footer">Business date: 5 Sep 2026 · Asia/Kolkata <span>Order 440 · Interaction study</span></footer>
+    </main>
+  </div>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <dialog id="notes-dialog" aria-labelledby="notes-title">
+    <div class="dialog-head"><h2 id="notes-title">A hotel shift, connected</h2><button id="notes-close">Close</button></div>
+    <p>This is a working interaction study for Yellow, using fictional people and hotel operations. It does not connect to the hotel database, send messages, post charges, issue keys or invoices, or change a real booking. Reloading resets all actions.</p>
+    <p><strong>Try the early arrival:</strong> Front office requests preparation. Switch to Housekeeping, accept the handoff, complete cleaning and inspection. Switch back to Front office, acknowledge readiness and complete the arrival review.</p>
+    <p>Department selection explores a design role; it is not authentication. The production app must authorize every query and command on the server. Event, F&amp;B and spa workflows here are planned scope.</p>
+    <p>The design extends Yellow’s existing Apple appearance: solid work surfaces, blue primary actions, restrained yellow identity and contextual detail. Other appearance families remain in the product roadmap.</p>
+    <p><a href="compare.html">Compare local screenshots</a> for matched-image review. This requires an independently selected source; it does not establish a reference automatically.</p>
+    <p>Specifications live beside this prototype: <code>STAFF-JOURNEYS.md</code>, <code>HOTEL-CASEBOOK.md</code> and <code>STAFF-WORKBENCH-SPEC.md</code>. Research and schema-count evidence are linked from the repository README.</p>
+  </dialog>
+  <script src="workbench.js"></script>
+</body>
+</html>

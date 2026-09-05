@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <meta http-equiv="Content-Security-Policy" content="connect-src 'none'; object-src 'none'; frame-src 'none'; media-src 'none'; font-src 'none'; img-src 'self' blob: data:">
+  <title>Yellow · Offline screenshot comparator</title>
+  <link rel="stylesheet" href="compare.css">
+</head>
+<body>
+  <a class="skip-link" href="#comparison">Skip to comparison</a>
+  <main>
+    <header class="page-header">
+      <div>
+        <p class="eyebrow">LOCAL DESIGN QA</p>
+        <h1>Offline screenshot comparator</h1>
+        <p class="intro">Choose a source screenshot and a current implementation screenshot from this device. Files stay in this browser page.</p>
+      </div>
+      <span class="offline-badge">Offline · no URL access</span>
+    </header>
+
+    <section class="boundary" aria-labelledby="boundary-title">
+      <h2 id="boundary-title">What this comparison proves</h2>
+      <p>This page does not navigate to, capture, fetch or re-render any source URL. It compares only the two local image files you supply. A strict decoded-pixel match is meaningful only when both artifacts were captured with the same viewport, state, fonts, device-pixel ratio and browser. A match does not prove that either input is an approved reference, and no target equality has been established in advance.</p>
+    </section>
+
+    <section class="inputs" aria-label="Screenshot files">
+      <label class="file-card" for="source-file">
+        <span class="file-label">Source screenshot</span>
+        <input id="source-file" type="file" accept="image/png,image/jpeg,image/webp,image/avif,image/gif,image/bmp">
+        <span id="source-meta" class="file-meta">No source selected</span>
+      </label>
+      <label class="file-card" for="current-file">
+        <span class="file-label">Current implementation</span>
+        <input id="current-file" type="file" accept="image/png,image/jpeg,image/webp,image/avif,image/gif,image/bmp">
+        <span id="current-meta" class="file-meta">No implementation selected</span>
+      </label>
+    </section>
+    <div class="input-foot">
+      <p>Maximum per file: 20 MiB and 8,500,000 decoded pixels. Images must have exactly equal decoded dimensions. The comparison never resizes, crops, masks or applies a tolerance.</p>
+      <button id="clear" type="button">Clear both</button>
+    </div>
+
+    <section id="comparison" class="comparison" aria-labelledby="comparison-title">
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">STRICT RGBA EQUALITY</p>
+          <h2 id="comparison-title">Comparison result</h2>
+        </div>
+        <output id="status" class="status waiting" aria-live="polite">Choose both images. No result yet.</output>
+      </div>
+
+      <dl class="metrics" aria-label="Pixel comparison totals">
+        <div><dt>Changed pixels</dt><dd id="changed-count">—</dd></div>
+        <div><dt>Changed percent</dt><dd id="changed-percent">—</dd></div>
+        <div><dt>Compared pixels</dt><dd id="total-count">—</dd></div>
+        <div><dt>Alpha differences</dt><dd id="alpha-count">—</dd></div>
+      </dl>
+      <p id="channel-detail" class="channel-detail">RGBA channel counts will appear after a valid comparison.</p>
+
+      <div class="side-by-side" aria-label="Selected screenshot previews">
+        <figure>
+          <figcaption>Source</figcaption>
+          <div class="canvas-frame"><canvas id="source-canvas" role="img" aria-label="Selected source screenshot preview"></canvas><span class="empty-canvas">Choose source image</span></div>
+        </figure>
+        <figure>
+          <figcaption>Current implementation</figcaption>
+          <div class="canvas-frame"><canvas id="current-canvas" role="img" aria-label="Selected current implementation screenshot preview"></canvas><span class="empty-canvas">Choose implementation image</span></div>
+        </figure>
+      </div>
+      <p class="preview-note">Previews may fit the available screen. Their decoded pixels are compared at original dimensions.</p>
+
+      <div id="inspection" class="inspection" hidden>
+        <figure>
+          <figcaption>
+            <span>Overlay</span>
+            <label for="overlay-opacity">Current image <output id="opacity-value" for="overlay-opacity">50%</output>
+              <input id="overlay-opacity" type="range" min="0" max="100" value="50" step="1">
+            </label>
+          </figcaption>
+          <div id="overlay-frame" class="canvas-frame overlay-frame">
+            <canvas id="overlay-source" role="img" aria-label="Source screenshot beneath adjustable current screenshot"></canvas>
+            <canvas id="overlay-current" aria-hidden="true"></canvas>
+          </div>
+        </figure>
+        <figure>
+          <figcaption>Pixel difference</figcaption>
+          <div class="canvas-frame difference-frame"><canvas id="difference-canvas" role="img" aria-label="Strict binary pixel difference map"></canvas></div>
+          <p class="legend"><span aria-hidden="true"></span> Magenta marks a pixel where any red, green, blue or alpha value differs. Transparent pixels are equal.</p>
+        </figure>
+      </div>
+    </section>
+  </main>
+  <script src="compare-core.js"></script>
+  <script src="compare.js"></script>
+</body>
+</html>

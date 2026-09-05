@@ -21,7 +21,12 @@ For a genuinely new machine without a checkout:
 ```bash
 git clone https://github.com/dcpnode-maker/yellow.git
 cd yellow
+bun install --frozen-lockfile
 ```
+
+The checkout already contains `package.json` and `bun.lock`. The command
+`bun install --frozen-lockfile` installs that exact dependency graph; `bun init` would
+scaffold a different project and is not a Yellow setup step.
 
 **Consolidated baseline, 2026-09-05:** Orders438/439 unify the operational application
 through [PR #82](https://github.com/dcpnode-maker/yellow/pull/82). Use a clean reviewed
@@ -51,7 +56,11 @@ described in the Windows guide.
 
 The roadmap has **18 phases (0–17)**. The architecture still has **13 bounded
 contexts**. The first migration's 80 tables plus migration ledger are an immutable
-historical baseline, not the current schema census.
+historical baseline, not the current schema census. Reviewed `main` at `443e3826`
+has 77 migrations and 127 public base tables including the ledger. PR83 merged
+Order434 after independent approval and five green CI jobs at `92346674`. The earlier
+main `5879e2b7` had 75 migrations / 125 tables; that count is historical. Read [SCHEMA-GUIDE](docs/SCHEMA-GUIDE.md) before interpreting or updating
+a count.
 
 ## 3. Verify the existing toolchain
 
@@ -131,6 +140,7 @@ Do not commit local credentials or send them to another model.
 | Need | Source |
 |---|---|
 | Scope and phase status | [BUILD-PLAN](BUILD-PLAN.md), [roadmap](handoff/ROADMAP.md) |
+| Schema definitions and counts | [Schema guide](docs/SCHEMA-GUIDE.md), ordered [migrations](migrations) |
 | Current requirements | [Feature register](docs/FEATURE-REGISTER.md) |
 | Staff/STR journeys | [UI specification](docs/UI-SPEC.md), [staff journeys](docs/design/STAFF-JOURNEYS.md) |
 | Domain, API and events | [Domain model](docs/DOMAIN-MODEL-V1.md), [contracts](docs/CONTRACTS.md), [events](docs/EVENTS.md) |

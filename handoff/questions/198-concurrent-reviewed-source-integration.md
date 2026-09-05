@@ -1,6 +1,6 @@
 # Question198 — Integrate concurrent reviewed Yellow work
 
-**Status:** RESOLVED technical scope admission; integration proof pending.
+**Status:** RESOLVED; local integration proof passed, exact-head GitHub CI pending.
 **Date:** 2026-09-06
 **Owner:** Codex implementation coordinator.
 
@@ -58,3 +58,28 @@ documented RMS research, without portraying proposed algorithms as revenue uplif
 Root may create the local integration commit and push the combined PR candidate.
 Root must not merge its own PR; a non-implementing coordinator must verify final
 exact-head proof and perform any authorized PR integration.
+
+## Executed local integration proof
+
+Root combined upstream7829eae47d4281efa117c8d3c788c3be52d10d06 with local296d8db
+(including separately preserved Q197 checkpointbb48246). Eight overlapping status,
+plan and research files retain both workstreams; no applied migration or upstream
+prototype behavior changed. The status test initially omitted `summary` from its
+local result type; root added that field without weakening the new assertions.
+
+Final root `bun run typecheck` and `bun test` pass:1597/0 with1195 explicit database
+skips,21785 assertions,2792 tests/488 files,90.93 seconds. The log is retained outside
+Git at `D:\Yellow\temp\order440-integrated-standing-20260906.log`. Boundaries171,
+licences23, audit0, five-job YAML parse, release-workflow4/0(53) and diff checks pass.
+The three Q197 implementation/test hashes and Astra Ultra paper hash are unchanged
+from their accepted receipts. This local standing run is not a database acceptance run.
+
+Non-implementing `/root/native_migration_assembly` personally ran
+`bun test tests/project-status.test.ts tests/current-management-demo-status.intentional-red.test.ts tests/founder-status.integration.test.ts`
+(11pass,2explicit database skips,0fail,186 assertions) and `bun run typecheck` (pass).
+It independently checked status/provenance boundaries and compared upstream hotel,
+design and research artifacts byte-for-byte with origin/main; no loss or substantive
+misleading claim was found. It made no edits and exercised no database/runtime.
+
+Publish this combined revision for its own mandatory CI, including Q197's newly
+required genuine-issued proof. Old13737a7 green checks do not approve the new head.

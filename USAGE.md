@@ -7,14 +7,20 @@ with [the project map](docs/PROJECT-MAP.md). Setup guidance:
 Read [PROJECT-STATUS](docs/PROJECT-STATUS.md) for the one current task and the exact
 distinction between candidate, merged, local and cloud state.
 
+This checkout is already initialized. Install its pinned dependencies with
+`bun install --frozen-lockfile`; do not run `bun init` or recreate
+`package.json`/`bun.lock`.
+For the exact 80/81/125/127 meanings, use [SCHEMA-GUIDE](docs/SCHEMA-GUIDE.md).
+
 ## Current build versus the app you are running
 
 **Recorded checkpoint: 2026-09-05.** There are 18 phases, numbered 0–17:
 
 - Phases 0–3, 5 and 6: independently reviewed.
 - Phase 4: built; final integration/review outstanding.
-- Phase 7: active. Orders438/439 form one consolidated release task. Order434's
-  native-fiscal work is preserved but remains unfinished and unreleased.
+- Phase 7: active. Orders438/439 consolidated the operational app; Order434's
+  independently approved native fiscal source merged through PR83. Provider and
+  operator completion remain separately scoped work.
 - Phases 8–17: planned. Founder priority is 11 → 13 → 17, subject to dependencies.
 
 Follow [BUILD-PLAN](BUILD-PLAN.md) and [roadmap](handoff/ROADMAP.md) for later changes.
@@ -25,7 +31,7 @@ exact SHA tested by the run; every later revision needs its own result. Use the 
 checked-out revision and current release evidence rather than an old branch or PR
 description.
 
-The [24-ID feature register](docs/FEATURE-REGISTER.md) records the expanded ecosystem,
+The [feature register](docs/FEATURE-REGISTER.md) records the expanded ecosystem,
 staff/STR journeys, regions, voice, RMS and channels. A specification is not completed
 functionality merely because its document exists.
 
@@ -71,10 +77,14 @@ in [RELEASE](docs/RELEASE.md) and [LOCAL-REVIEW](docs/LOCAL-REVIEW.md):
 ./scripts/local-review.sh stop
 ```
 
-It refuses a dirty checkout, applies the migration-75 / 125-public-table catalogue,
+It refuses a dirty checkout, applies the migration-77 / 127-public-table catalogue,
 runs the 11/11 referee, loads the canonical synthetic seeds, builds the exact revision
 and proves login plus `/ready`. The readiness receipt must contain the same 40-character
-Git SHA and expected migration frontier 75. `stop` preserves the PostgreSQL volume.
+Git SHA and expected migration frontier 77. `stop` preserves the PostgreSQL volume.
+The 127 tables are 126 migration-declared application tables plus the runner ledger.
+Main `443e3826` integrates that reviewed frontier through PR83; all five jobs passed
+in CI33993977811 at exact source `92346674`. Earlier main `5879e2b7` had 75 migrations
+and 125 tables. Updating Git does not itself refresh a running database.
 
 The underlying `setup.sh --db-only` and `setup.ps1 -DbOnly` paths mutate development
 state and recreate disposable `yellow_test`; they are database proof workflows, not
@@ -96,7 +106,7 @@ history remains a requirement until its UI proof exists (YF-021).
 | Invalid local login | Approved synthetic account and protected prefill configuration agree; do not expose secrets or bypass authentication. |
 | Port already in use | Identify the owner and reuse the retained runtime or its approved restart procedure. |
 | Database tests skipped | The required environment was not exercised. Record the gap and execute the scoped proof in its approved environment. |
-| Schema count differs from an old guide | Exact migration frontier/catalogue. Never delete schema or weaken checks to match the 80/81-table baseline. |
+| Schema count differs from an old guide | Use the read-only queries and count definitions in [SCHEMA-GUIDE](docs/SCHEMA-GUIDE.md), then compare exact source revision and migration ledger. Never delete schema or weaken checks to match another frontier. |
 | Drive fills or files lock | Exact owners, dumps and caches; preserve Git history, active work, dependencies and live disks. |
 | Vendor API/model unavailable | Defined provider boundary and supported fallback; external access/spending still needs authority. |
 

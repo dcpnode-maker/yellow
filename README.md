@@ -7,6 +7,25 @@ The domain core is a TypeScript/Bun/Elysia modular monolith over PostgreSQL 16.
 Use open-source infrastructure, measured latency and replaceable integrations rather
 than speculative rewrites or a separate app fork for every country.
 
+## GitHub checkout and schema count
+
+This is an existing Bun project. Clone or open the repository, then install the locked
+dependency graph with `bun install --frozen-lockfile`. Do **not** run `bun init`: that
+command scaffolds package metadata, while this repository already has the authoritative
+[`package.json`](package.json) and [`bun.lock`](bun.lock).
+
+| Source line | Exact commit | Runnable migrations | Public base tables | Acceptance state |
+|---|---|---:|---:|---|
+| Reviewed `main` | [`443e3826b47025106d1829fcbb406ce6302fbbba`](https://github.com/dcpnode-maker/yellow/commit/443e3826b47025106d1829fcbb406ce6302fbbba) | 77 | 127, including `schema_migration` | [PR83](https://github.com/dcpnode-maker/yellow/pull/83) merged independently reviewed source `92346674`; all five jobs in [CI178](https://github.com/dcpnode-maker/yellow/actions/runs/33993977811) passed, including database acceptance23/23 and referee11/11 |
+| Earlier operational baseline | [`5879e2b719db18077e00556477ba34bdb9b9991c`](https://github.com/dcpnode-maker/yellow/commit/5879e2b719db18077e00556477ba34bdb9b9991c) | 75 | 125, including `schema_migration` | Historical PR82 release; later forward migrations preserve this history |
+
+The historical **80** is the number of application tables declared by immutable
+`migrations/0001_init.sql`. The migration runner creates the ledger as table 81, and
+later forward migrations expand the catalogue. Migration 76 in reviewed main
+adds two tables; migration 77 adds no table. See the [schema guide](docs/SCHEMA-GUIDE.md)
+for definitions, arithmetic and read-only catalogue queries. A source count does not
+prove that an existing local or cloud database has applied those migrations.
+
 ## Start with the actual project
 
 Read [PROJECT.md](PROJECT.md), your [role adapter](AGENTS.md), then
@@ -26,6 +45,23 @@ Use reviewed `main` for the app and [RELEASE](docs/RELEASE.md) to start or updat
 [PROJECT-STATUS](docs/PROJECT-STATUS.md) distinguishes source acceptance, merge, the
 user's local runtime and cloud deployment. No cloud host is connected yet.
 
+## Guest and staff journeys — Astra review
+
+Order440 connects the hotel guest lifecycle to work across FO, HK, finance, sales,
+banquets, F&B, spa, engineering, concierge, security, stores and management.
+
+- [Independent findings](docs/research/HOTEL-OPERATIONS-REVIEW.md)
+- [Hospitality UX benchmark](docs/research/HOSPITALITY-UX-BENCHMARK.md) and [UI/UX direction](docs/design/UIUX-DIRECTION.md)
+- [App name shortlist](docs/research/APP-NAME-SHORTLIST.md) — preliminary, no rename yet
+- [Guest and department journeys](docs/design/STAFF-JOURNEYS.md)
+- [16 synthetic case studies](docs/design/HOTEL-CASEBOOK.md)
+- [Interactive workbench and local viewing instructions](docs/design/STAFF-WORKBENCH-SPEC.md)
+
+The prototype has 16 department views and 14 playable fictional scenarios. It is a
+reviewable design inside this repository; the main hotel's domain commands and
+future-phase acceptance remain authoritative. This work is part of the same Codex
+Yellow task, with no separate development owner or app backend.
+
 ## Current build snapshot
 
 The roadmap has **18 phases, numbered 0–17**:
@@ -34,13 +70,14 @@ The roadmap has **18 phases, numbered 0–17**:
 |---|---|
 | 0–3, 5, 6 | Independently reviewed |
 | 4 | Built; final integration/review outstanding |
-| 7 | Active; native fiscal issuance remains incomplete |
+| 7 | Active; Order434 native fiscal source approved and merged; provider/operator completion remains |
 | 8–17 | Planned |
 
 Order430 was rejected for incomplete canonical provenance (D1323).
-[Order434](handoff/orders/434-native-fiscal-source-completion.md) preserves substantial
-native-fiscal work but remains unfinished and unreleased. The current release task
-contains that capability with forward migration0075. Founder priority is
+[Order434](handoff/orders/434-native-fiscal-source-completion.md) completed the governed native source repair and merged through PR83. Forward
+migration0075 still contains the rejected legacy capability; reviewed0076/0077 add
+the new source path. Main integration does not claim IRP provider activation or a
+refreshed hotel runtime. Founder priority is
 **11 → 13 → 17**, subject to mandatory dependencies. From the active phase:
 `7 → 8 → 9 → 10 → 11 → 12 → 13 → 17 → 14 → 15 → 16`.
 
@@ -76,6 +113,7 @@ Simple/Advanced/Expert selector is not the final contextual-disclosure design.
 - [migrations/0001_init.sql](migrations/0001_init.sql) is the immutable **80-table,
   13-context baseline**. The migration runner adds its ledger; later forward migrations
   expand the schema. **13 contexts is not 13 phases**, and 81 is not today's table census.
+  Use the [schema guide](docs/SCHEMA-GUIDE.md) for the branch-specific catalogue.
 - [src/contexts](src/contexts), [kernel](src/kernel), [contracts](docs/CONTRACTS.md),
   [events](docs/EVENTS.md) and [security](docs/SECURITY.md) define executable boundaries.
 - [Orders](handoff/orders), [reviews](handoff/reviews), decisions and ledger preserve
