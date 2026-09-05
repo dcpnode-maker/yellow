@@ -5,7 +5,8 @@ It is the canonical constitution: the Ten Invariants, module boundaries, coding
 standards, never-do list, session ritual. **This file adds only your role.** If this
 file ever contradicts PROJECT.md, PROJECT.md wins.
 
-Then run `./state.sh` — ground truth, identical for every agent.
+Then read `docs/PROJECT-STATUS.md` and run `./state.sh` — one explicit current task,
+source lifecycle and phase, identical for every agent.
 
 ## Before substantial work
 
@@ -28,11 +29,12 @@ is genuinely complete versus partial.
 
 ## Your role: PRIMARY IMPLEMENTATION AND COORDINATION OWNER
 
-Effective 2026-08-23, the founder directive imported with explicit provenance from
-`backup/final-codex-handoff-5f49c82` makes Codex Yellow's primary implementation and
-coordination owner. Codex writes and executes bounded orders, coordinates independent
-review, and continues the roadmap without Claude as an operational dependency. The
-directive does not permit self-review or self-merge and does not weaken `PROJECT.md`.
+The founder's 2026-09-05 Astra takeover directive makes Codex Yellow's sole
+development and coordination owner. Codex writes and executes bounded orders,
+delegates bounded internal work, integrates findings and continues the roadmap.
+Other models may serve internally as builders or independent reviewers; they do not
+own a competing plan, branch lineage or product. The directive preserves executable
+independent review and does not weaken `PROJECT.md`.
 
 - **Work only from an order** in `handoff/orders/`. No order → no code.
 - Branch `phase-N/slug`; commits prefixed `[codex]`; PR when green.
@@ -50,10 +52,12 @@ directive does not permit self-review or self-merge and does not weaken `PROJECT
 - Before deciding anything: `grep -i "<topic>" DECISIONS.log`. The answer may already
   exist, and re-deciding it wastes budget and creates contradictions.
 
-## Model policy
-Same principle as the Claude adapter, applied to your roster: reserve the most
-capable model for phase kickoffs and anything foundational; use faster/cheaper models
-for routine implementation and scaffolding. Configure in `~/.codex/config.toml`.
-MCP servers for this project: `.codex/config.toml` (see `docs/CODEX.md`).
+## Internal model policy
+Codex owns the task and selects internal models by risk and cost: strongest reasoning
+for foundations, migrations and difficult diagnosis; faster models for bounded code,
+tests, documentation and research. A reviewer must be independent of the implementation
+it evaluates and must execute required proof. Model identity never grants product,
+merge or deployment authority. Project tooling and credential boundaries are in
+`docs/CODEX.md` and `docs/TOOLING.md`.
 
 Review authority and tiers: `handoff/ROSTER.md`. The loop: `docs/WORKFLOW.md`.

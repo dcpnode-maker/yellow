@@ -1,0 +1,124 @@
+name: Release images
+
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+
+permissions:
+  actions: read
+  contents: read
+  packages: write
+
+concurrency:
+  group: release-image-${{ github.event.workflow_run.head_sha }}
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    if: >-
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'push' &&
+      github.event.workflow_run.head_branch == 'main' &&
+      github.event.workflow_run.head_repository.full_name == github.repository
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Require the release CI proof jobs
+        shell: bash
+        env:
+          CI_RUN_ID: ${{ github.event.workflow_run.id }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          jobs_file="$(mktemp)"
+          trap 'rm -f "$jobs_file"' EXIT
+          gh api \
+            --header 'X-GitHub-Api-Version: 2022-11-28' \
+            "repos/$GITHUB_REPOSITORY/actions/runs/$CI_RUN_ID/jobs?per_page=100" \
+            > "$jobs_file"
+          JOBS_FILE="$jobs_file" python3 - <<'PY'
+          import json
+          import os
+
+          with open(os.environ["JOBS_FILE"], encoding="utf-8") as source:
+              jobs = json.load(source)["jobs"]
+
+          conclusions = {job["name"]: job["conclusion"] for job in jobs}
+          required = (
+              "windows-state",
+              "quality",
+              "container-smoke",
+              "database",
+              "local-review",
+          )
+          missing_or_failed = [
+              name for name in required if conclusions.get(name) != "success"
+          ]
+          if missing_or_failed:
+              raise SystemExit(
+                  "release CI proof incomplete: " + ", ".join(missing_or_failed)
+              )
+          PY
+
+      - name: Check out the exact green main revision
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+          persist-credentials: false
+
+      - name: Verify release identity
+        shell: bash
+        env:
+          RELEASE_SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$RELEASE_SHA"
+          test "$(git branch --show-current)" = ""
+          test -z "$(git status --short)"
+          case "$RELEASE_SHA" in
+            ''|*[!0-9a-f]*) exit 1 ;;
+          esac
+          test "${#RELEASE_SHA}" -eq 40
+
+      - name: Authenticate to GitHub Container Registry
+        shell: bash
+        env:
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: echo "$GHCR_TOKEN" | docker login ghcr.io --username "${{ github.actor }}" --password-stdin
+
+      - name: Build and publish immutable amd64 images
+        id: publish
+        shell: bash
+        env:
+          RELEASE_SHA: ${{ github.event.workflow_run.head_sha }}
+          MIGRATION_FRONTIER: '75'
+          IMAGE: ghcr.io/${{ github.repository }}
+        run: |
+          set -euo pipefail
+          runtime_tag="$IMAGE:$RELEASE_SHA-amd64"
+          migration_tag="$IMAGE:$RELEASE_SHA-migrations-amd64"
+          docker build --pull --target runtime --build-arg "YELLOW_BUILD_SHA=$RELEASE_SHA" --tag "$runtime_tag" .
+          docker build --pull --target database-tools --build-arg "YELLOW_BUILD_SHA=$RELEASE_SHA" --tag "$migration_tag" .
+          runtime_push="$(docker push "$runtime_tag")"
+          migration_push="$(docker push "$migration_tag")"
+          runtime_digest="$(printf '%s\n' "$runtime_push" | awk '/digest: sha256:/{print $3}' | tail -n 1)"
+          migration_digest="$(printf '%s\n' "$migration_push" | awk '/digest: sha256:/{print $3}' | tail -n 1)"
+          [[ "$runtime_digest" =~ ^sha256:[0-9a-f]{64}$ ]] || {
+            echo 'Registry did not return the runtime digest.' >&2
+            exit 1
+          }
+          [[ "$migration_digest" =~ ^sha256:[0-9a-f]{64}$ ]] || {
+            echo 'Registry did not return the migration digest.' >&2
+            exit 1
+          }
+          {
+            echo "### Yellow immutable release images"
+            echo
+            echo "- Source: \`$RELEASE_SHA\`"
+            echo "- Expected migration frontier: \`$MIGRATION_FRONTIER\`"
+            echo "- Runtime: \`$runtime_tag@$runtime_digest\`"
+            echo "- Migrations: \`$migration_tag@$migration_digest\`"
+            echo
+            echo "No cloud deployment was performed."
+          } >> "$GITHUB_STEP_SUMMARY"

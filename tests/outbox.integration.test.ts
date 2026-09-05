@@ -11,9 +11,12 @@ import {
   type PublishEventInput,
 } from "../src/kernel";
 
-const DATABASE_URL = process.env.YELLOW_OUTBOX_URL;
+const DEPLOY_DATABASE_URL = process.env.YELLOW_DEPLOY_DATABASE_URL ?? process.env.YELLOW_OUTBOX_URL;
+const RUNTIME_DATABASE_URL = process.env.YELLOW_RUNTIME_DATABASE_URL ?? process.env.YELLOW_OUTBOX_URL;
 const REQUIRE_DATABASE = process.env.YELLOW_REQUIRE_OUTBOX === "1";
 const TENANT_A = "00000000-0000-0000-0000-000000000001";
+const GROUP_A = "00000000-0000-0000-0000-000000000010";
+const REGION_A = "00000000-0000-0000-0000-000000000011";
 const PROPERTY_A = "00000000-0000-0000-0000-000000000012";
 const ACTOR = "00000000-0000-0000-0000-000000000960";
 const COMMITTED_TASK = "00000000-0000-0000-0000-000000000973";
@@ -28,15 +31,17 @@ const TEST_CONSUMERS = [
   "order-022-consumer-b",
 ] as const;
 
-if (REQUIRE_DATABASE && !DATABASE_URL) {
-  throw new Error("YELLOW_OUTBOX_URL is required by the Order 022 proof");
+if (REQUIRE_DATABASE && (!DEPLOY_DATABASE_URL || !RUNTIME_DATABASE_URL)) {
+  throw new Error("YELLOW_DEPLOY_DATABASE_URL and YELLOW_RUNTIME_DATABASE_URL are required by the Order 022 proof");
 }
 
-const databaseDescribe = DATABASE_URL ? describe.serial : describe.skip;
+const databaseDescribe = DEPLOY_DATABASE_URL && RUNTIME_DATABASE_URL ? describe.serial : describe.skip;
 let database: Database | undefined;
 let admin: SQL | undefined;
 let consumerPool: SQL | undefined;
 let bus: PostgresEventBus | undefined;
+const createdFixtureNodes: string[] = [];
+let createdFixtureTenant = false;
 const testAggregateIds = new Set<string>([COMMITTED_TASK, ROLLED_BACK_TASK]);
 
 function event(aggregateId: string, correlationId = crypto.randomUUID()): PublishEventInput {
@@ -54,12 +59,45 @@ function event(aggregateId: string, correlationId = crypto.randomUUID()): Publis
   };
 }
 
-beforeAll(() => {
-  if (!DATABASE_URL) return;
-  database = Database.connect(DATABASE_URL, { maxConnections: 24 });
-  admin = new SQL(DATABASE_URL, { max: 4 });
-  consumerPool = new SQL(DATABASE_URL, { max: 8 });
+beforeAll(async () => {
+  if (!DEPLOY_DATABASE_URL || !RUNTIME_DATABASE_URL) return;
+  database = Database.connect(RUNTIME_DATABASE_URL, { maxConnections: 24 });
+  admin = new SQL(DEPLOY_DATABASE_URL, { max: 4 });
+  consumerPool = new SQL(RUNTIME_DATABASE_URL, { max: 8, prepare: false });
   bus = new PostgresEventBus(consumerPool);
+
+  const tenant = await admin<{ id: string }[]>`SELECT id::text AS id FROM tenant WHERE id = ${TENANT_A}::uuid`;
+  if (tenant.length === 0) {
+    await admin`INSERT INTO tenant (id, slug, name) VALUES (${TENANT_A}::uuid, 'acme', 'Acme Hotels')`;
+    createdFixtureTenant = true;
+  }
+  const fixtureNodes = [
+    { id: GROUP_A, path: "acme", kind: "group", name: "Acme Group", timezone: null, currency: null },
+    { id: REGION_A, path: "acme.gulf", kind: "region", name: "Gulf Region", timezone: null, currency: null },
+    { id: PROPERTY_A, path: "acme.gulf.dxb01", kind: "property", name: "Acme Downtown Dubai", timezone: "Asia/Dubai", currency: "AED" },
+  ] as const;
+  for (const node of fixtureNodes) {
+    const existing = await admin<{ id: string }[]>`SELECT id::text AS id FROM org_node WHERE id = ${node.id}::uuid`;
+    if (existing.length === 0) {
+      await admin`
+        INSERT INTO org_node (id, tenant_id, path, kind, name, timezone, currency)
+        VALUES (${node.id}::uuid, ${TENANT_A}::uuid, ${node.path}::ltree, ${node.kind}, ${node.name}, ${node.timezone}, ${node.currency})
+      `;
+      createdFixtureNodes.push(node.id);
+    }
+  }
+  const authoritativeProperty = await admin<{ tenant_id: string; path: string; kind: string; parent_path: string | null }[]>`
+    SELECT tenant_id::text AS tenant_id, path::text AS path, kind,
+           subpath(path, 0, nlevel(path) - 1)::text AS parent_path
+      FROM org_node
+     WHERE id = ${PROPERTY_A}::uuid
+  `;
+  expect(authoritativeProperty).toEqual([{
+    tenant_id: TENANT_A,
+    path: "acme.gulf.dxb01",
+    kind: "property",
+    parent_path: "acme.gulf",
+  }]);
 });
 
 afterAll(async () => {
@@ -67,7 +105,13 @@ afterAll(async () => {
     await admin`DELETE FROM consumer_processed WHERE consumer IN ${admin(TEST_CONSUMERS)}`;
     await admin`DELETE FROM consumer_cursor WHERE consumer IN ${admin(TEST_CONSUMERS)}`;
     await admin`DELETE FROM outbox WHERE aggregate_id IN ${admin([...testAggregateIds])}`;
-    await admin`DELETE FROM task WHERE id IN (${COMMITTED_TASK}::uuid, ${ROLLED_BACK_TASK}::uuid)`;
+    await admin`DELETE FROM fact_log WHERE entity_id IN (${COMMITTED_TASK}::uuid, ${ROLLED_BACK_TASK}::uuid)`;
+    for (const nodeId of [PROPERTY_A, REGION_A, GROUP_A]) {
+      if (createdFixtureNodes.includes(nodeId)) {
+        await admin`DELETE FROM org_node WHERE id = ${nodeId}::uuid`;
+      }
+    }
+    if (createdFixtureTenant) await admin`DELETE FROM tenant WHERE id = ${TENANT_A}::uuid`;
     await admin.close();
   }
   await consumerPool?.close();
@@ -82,6 +126,7 @@ databaseDescribe("Order 022 EventBus and durable consumer", () => {
       current_name: string;
       relrowsecurity: boolean;
       app_privileges: boolean;
+      runtime_privileges: boolean;
       public_privileges: boolean;
     }>>`
       SELECT
@@ -90,6 +135,7 @@ databaseDescribe("Order 022 EventBus and durable consumer", () => {
         current_user AS current_name,
         c.relrowsecurity,
         has_table_privilege('app_role', c.oid, 'SELECT,INSERT,UPDATE,DELETE,TRUNCATE,REFERENCES,TRIGGER') AS app_privileges,
+        has_table_privilege('yellow_runtime', c.oid, 'SELECT,INSERT,UPDATE,DELETE,TRUNCATE,REFERENCES,TRIGGER') AS runtime_privileges,
         EXISTS (
           SELECT 1
           FROM aclexplode(COALESCE(c.relacl, acldefault('r', c.relowner))) AS acl
@@ -102,26 +148,29 @@ databaseDescribe("Order 022 EventBus and durable consumer", () => {
       ORDER BY c.relname
     `;
 
-    expect(rows).toHaveLength(2);
-    expect(rows.every((row) => row.owner === row.current_name)).toBe(true);
+    expect(rows).toEqual([
+      { relname: "consumer_cursor", owner: "yellow_owner", current_name: "yellow_deploy", relrowsecurity: false, app_privileges: false, runtime_privileges: false, public_privileges: false },
+      { relname: "consumer_processed", owner: "yellow_owner", current_name: "yellow_deploy", relrowsecurity: false, app_privileges: false, runtime_privileges: false, public_privileges: false },
+    ]);
     expect(rows.every((row) => row.relrowsecurity === false)).toBe(true);
     expect(rows.every((row) => row.app_privileges === false)).toBe(true);
+    expect(rows.every((row) => row.runtime_privileges === false)).toBe(true);
     expect(rows.every((row) => row.public_privileges === false)).toBe(true);
   });
 
   test("P1: mutation and event commit together while rollback publishes neither", async () => {
     const committed = await database!.withTenantTransaction(TENANT_A, async (tx) => {
       await tx`
-        INSERT INTO task (id, tenant_id, property_node, kind, payload)
-        VALUES (${COMMITTED_TASK}::uuid, ${TENANT_A}::uuid, ${PROPERTY_A}::uuid, 'trace', '{}'::jsonb)
+        INSERT INTO fact_log (tenant_id, entity_type, entity_id, fact_type, valid_from, business_date, actor_id, payload)
+        VALUES (${TENANT_A}::uuid, 'task', ${COMMITTED_TASK}::uuid, 'order022.effect', now(), ${BUSINESS_DATE}::date, ${ACTOR}::uuid, '{"proof":"order-022"}'::jsonb)
       `;
       return bus!.publish(tx, event(COMMITTED_TASK, COMMITTED_CORRELATION));
     });
 
     await expect(database!.withTenantTransaction(TENANT_A, async (tx) => {
       await tx`
-        INSERT INTO task (id, tenant_id, property_node, kind, payload)
-        VALUES (${ROLLED_BACK_TASK}::uuid, ${TENANT_A}::uuid, ${PROPERTY_A}::uuid, 'trace', '{}'::jsonb)
+        INSERT INTO fact_log (tenant_id, entity_type, entity_id, fact_type, valid_from, business_date, actor_id, payload)
+        VALUES (${TENANT_A}::uuid, 'task', ${ROLLED_BACK_TASK}::uuid, 'order022.effect', now(), ${BUSINESS_DATE}::date, ${ACTOR}::uuid, '{"proof":"order-022"}'::jsonb)
       `;
       await bus!.publish(tx, event(ROLLED_BACK_TASK, ROLLED_BACK_CORRELATION));
       throw new Error("controlled event rollback");
@@ -129,9 +178,9 @@ databaseDescribe("Order 022 EventBus and durable consumer", () => {
 
     const rows = await admin!<Array<{ committed_tasks: number; committed_events: number; rolled_tasks: number; rolled_events: number }>>`
       SELECT
-        (SELECT count(*)::int FROM task WHERE id = ${COMMITTED_TASK}::uuid) AS committed_tasks,
+        (SELECT count(*)::int FROM fact_log WHERE entity_id = ${COMMITTED_TASK}::uuid) AS committed_tasks,
         (SELECT count(*)::int FROM outbox WHERE aggregate_id = ${COMMITTED_TASK}::uuid) AS committed_events,
-        (SELECT count(*)::int FROM task WHERE id = ${ROLLED_BACK_TASK}::uuid) AS rolled_tasks,
+        (SELECT count(*)::int FROM fact_log WHERE entity_id = ${ROLLED_BACK_TASK}::uuid) AS rolled_tasks,
         (SELECT count(*)::int FROM outbox WHERE aggregate_id = ${ROLLED_BACK_TASK}::uuid) AS rolled_events
     `;
     expect(rows).toEqual([{ committed_tasks: 1, committed_events: 1, rolled_tasks: 0, rolled_events: 0 }]);
@@ -207,7 +256,7 @@ databaseDescribe("Order 022 EventBus and durable consumer", () => {
       SELECT seq::int AS seq, id FROM outbox ORDER BY seq
     `;
     const observed: string[] = [];
-    const poolA = new SQL(DATABASE_URL!, { max: 1 });
+    const poolA = new SQL(RUNTIME_DATABASE_URL!, { max: 1, prepare: false });
     const firstBus = new PostgresEventBus(poolA);
     const first = await firstBus.consumeBatch(
       "order-022-resume",
@@ -218,7 +267,7 @@ databaseDescribe("Order 022 EventBus and durable consumer", () => {
     );
     await poolA.close();
 
-    const poolB = new SQL(DATABASE_URL!, { max: 1 });
+    const poolB = new SQL(RUNTIME_DATABASE_URL!, { max: 1, prepare: false });
     const restartedBus = new PostgresEventBus(poolB);
     const second = await restartedBus.consumeBatch(
       "order-022-resume",
@@ -240,8 +289,8 @@ databaseDescribe("Order 022 EventBus and durable consumer", () => {
     const expected = await admin!<Array<{ seq: number }>>`SELECT seq::int AS seq FROM outbox ORDER BY seq`;
     const observedA: number[] = [];
     const observedB: number[] = [];
-    const poolA = new SQL(DATABASE_URL!, { max: 1 });
-    const poolB = new SQL(DATABASE_URL!, { max: 1 });
+    const poolA = new SQL(RUNTIME_DATABASE_URL!, { max: 1, prepare: false });
+    const poolB = new SQL(RUNTIME_DATABASE_URL!, { max: 1, prepare: false });
 
     await Promise.all([
       new PostgresEventBus(poolA).consumeBatch(

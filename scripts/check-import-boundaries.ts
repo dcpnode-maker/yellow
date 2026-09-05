@@ -23,7 +23,8 @@ export interface BoundaryCheckResult {
 
 type SourceArea =
   | { readonly kind: "context"; readonly name: string; readonly root: string }
-  | { readonly kind: "kernel"; readonly root: string };
+  | { readonly kind: "kernel"; readonly root: string }
+  | { readonly kind: "command"; readonly root: string };
 
 function pathSegmentsWithin(projectRoot: string, candidate: string): string[] | undefined {
   const pathFromRoot = relative(resolve(projectRoot), resolve(candidate));
@@ -52,6 +53,10 @@ function classifyPath(projectRoot: string, candidate: string): SourceArea | unde
 
   if (segments[1] === "kernel") {
     return { kind: "kernel", root: resolve(projectRoot, "src", "kernel") };
+  }
+
+  if (segments[1] === "commands") {
+    return { kind: "command", root: resolve(projectRoot, "src", "commands") };
   }
 
   return undefined;
@@ -107,6 +112,18 @@ function violationForSpecifier(
     };
   }
 
+  if (sourceArea.kind === "command" && targetArea.kind === "context") {
+    const targetWithinContext = relative(targetArea.root, targetPath).split(sep).join("/");
+    if (targetWithinContext === "" || targetWithinContext === "index" || targetWithinContext === "index.ts") {
+      return undefined;
+    }
+    return {
+      sourceFile: displaySource,
+      specifier,
+      reason: `command must import context '${targetArea.name}' through its public index`,
+    };
+  }
+
   if (
     sourceArea.kind !== "context" ||
     targetArea.kind !== "context" ||
@@ -133,7 +150,7 @@ function violationForSpecifier(
 
 async function sourceFilesUnder(projectRoot: string): Promise<string[]> {
   const files = new Set<string>();
-  const patterns = ["src/contexts/**/*.ts", "src/kernel/**/*.ts"];
+  const patterns = ["src/commands/**/*.ts", "src/contexts/**/*.ts", "src/kernel/**/*.ts"];
 
   for (const pattern of patterns) {
     const glob = new Bun.Glob(pattern);

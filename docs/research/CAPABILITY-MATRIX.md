@@ -1,5 +1,12 @@
 # Capability Matrix
 
+> Historical assessment, not today's feature status. For the 2026-09-05 founder
+> requirements and their observed/proposed distinctions, use the
+> [feature register](../FEATURE-REGISTER.md) and
+> [current research](STAFF-STR-ECOSYSTEM-2026-09.md). Current phase state is in
+> [BUILD-PLAN.md](../../BUILD-PLAN.md); exact implementation/review evidence remains
+> in orders, reviews and the ledger. The assessment below is preserved unchanged.
+
 **Assessment date:** 2026-08-21
 **Method:** Source, tests, live catalog, runtime probe, and decisions were inspected.
 A filename or table alone never earns “implemented.”
@@ -52,8 +59,8 @@ into a product capability.
 | Shared-schema tenant isolation | IMPLEMENTED | RLS, transaction-local GUC, two-tenant tests | Review/merge Phase 1 and enforce on every future route |
 | Tenant request middleware | IMPLEMENTED | fail-before-checkout, rollback/reuse/interleaving proofs | production composition root |
 | Organization hierarchy reads | IMPLEMENTED | `ltree` ancestor/descendant/sibling queries/tests | org CRUD/reparent commands and authorization |
-| Local password primitive | IMPLEMENTED | Bun Argon2id helpers/tests | login, recovery, credential lifecycle |
-| JWT issue/verify | IMPLEMENTED | exact claims/signature/skew/scope tests | key rotation, revocation, sessions, deployment secret |
+| Local password and loopback login | PARTIAL | Bun Argon2id, database-backed generic login, per-process source/account budgets, capped failure backoff, zero-queue four-slot hash bound, bounded state and authoritative peer-key proofs | shared multi-process/public limiter, trusted-proxy topology, recovery and credential lifecycle |
+| JWT issue/verify | IMPLEMENTED | exact claims/signature/skew/scope tests; enabled runtime rejects repository-known fallback and local setup generates an ephemeral CSPRNG key | key rotation, revocation and sessions |
 | Bearer identity resolution | IMPLEMENTED | resolver + auth integration tests | production wiring |
 | Staff/user administration | FOUNDATION EXISTS | `app_user`/role/permission tables | CRUD, invitations, deactivation, audit, UI |
 | RBAC | FOUNDATION EXISTS | role/permission/user_role schema | evaluation and management |
@@ -150,9 +157,9 @@ into a product capability.
 | Business day/seal | FOUNDATION EXISTS | table/functions/invariant tests | roll/readiness/exceptions workflow |
 | Cashier sessions | FOUNDATION EXISTS | table | lifecycle, over/short, permissions |
 | Routing/transfers/allowances | FOUNDATION EXISTS | contracts/automation | deterministic commands |
-| Payments | FOUNDATION EXISTS | token-only tables/provider port | PSP adapter, webhooks, journals |
-| Deposits/preauth/incremental auth | FOUNDATION EXISTS | model/docs | provider behavior and workflows |
-| Refunds/chargebacks | FOUNDATION EXISTS | payment state docs | commands, dispute evidence, accounting |
+| Payments | PARTIAL | immutable operation/attempt/receipt model, deterministic token-only provider, one balance-capped capture, exact journals, signed bounded synthetic callback and replay proof | real remote PSP adapter/certification, settlement UX and chargebacks |
+| Deposits/preauth/incremental auth | PARTIAL | journal-free authorization/increment chain plus expiring hosted deposit request, liability capture and capped immutable partial/full folio application | guarantee policy automation, deposit refunds, delivery channels and remote provider certification |
+| Refunds/chargebacks | PARTIAL | bounded partial-refund commands with capture payment/journal lineage | disputes, chargebacks, permissions and operational UX |
 | Accounts receivable | FOUNDATION EXISTS | accounts/ar allocation | invoicing, allocation, aging, statements |
 | Owner accounting/statements | MISSING | vertical flags/product destination | separate owner ledger/payout model |
 | Multi-currency settlement | RESEARCH REQUIRED | single-currency journals + FX concept | explicit product/provider/jurisdiction design |

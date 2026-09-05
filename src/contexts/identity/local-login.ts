@@ -1,5 +1,6 @@
 import type { ConnectionPool, Tx } from "../../kernel";
 
+import { LocalLoginGuard, LocalLoginLimitedError } from "./login-guard";
 import { verifyLocalPassword, type LocalAuthRecord } from "./password";
 import { isValidScope, type TokenSigner } from "./token";
 
@@ -56,15 +57,12 @@ function normalize(input: LocalLoginInput): NormalizedLogin | null {
 }
 
 async function loadUser(tx: Tx, tenant: string, email: string): Promise<UserRow | null> {
-  await tx.unsafe("SET LOCAL ROLE app_role");
-  const tenants = await tx<{ id: string }[]>`
-    SELECT id
-    FROM tenant
-    WHERE slug = ${tenant}
-      AND status = 'active'
+  const tenants = await tx<{ id: string | null }[]>`
+    SELECT runtime_resolve_active_tenant(${tenant})::text AS id
   `;
   const tenantId = tenants[0]?.id ?? NIL_TENANT;
   await tx`SELECT set_config('app.tenant_id', ${tenantId}, true)`;
+  await tx.unsafe("SET LOCAL ROLE app_role");
 
   const users = await tx<UserRow[]>`
     SELECT
@@ -96,18 +94,29 @@ async function loadUser(tx: Tx, tenant: string, email: string): Promise<UserRow 
 export class LocalLoginService {
   readonly #pool: ConnectionPool;
   readonly #tokens: Pick<TokenSigner, "issue">;
+  readonly #guard: LocalLoginGuard;
 
-  constructor(pool: ConnectionPool, tokens: Pick<TokenSigner, "issue">) {
+  constructor(
+    pool: ConnectionPool,
+    tokens: Pick<TokenSigner, "issue">,
+    guard = new LocalLoginGuard(),
+  ) {
     this.#pool = pool;
     this.#tokens = tokens;
+    this.#guard = guard;
   }
 
-  async authenticate(input: LocalLoginInput): Promise<LocalLoginResult | null> {
+  async authenticate(input: LocalLoginInput, sourceKey = "unknown"): Promise<LocalLoginResult | null> {
     const normalized = normalize(input);
     if (!normalized) {
-      await verifyLocalPassword("invalid", DUMMY_AUTH);
+      const verification = await this.#guard.verify(() => verifyLocalPassword("invalid", DUMMY_AUTH));
+      if (!verification.allowed) throw new LocalLoginLimitedError(verification.retryAfterSeconds);
       return null;
     }
+
+    const accountKey = `${normalized.tenant}\0${normalized.email}`;
+    const gate = this.#guard.consume(sourceKey, accountKey);
+    if (!gate.allowed) throw new LocalLoginLimitedError(gate.retryAfterSeconds);
 
     const connection = await this.#pool.reserve();
     let began = false;
@@ -127,14 +136,21 @@ export class LocalLoginService {
       connection.release();
     }
 
-    const validPassword = await verifyLocalPassword(normalized.password, user?.auth ?? DUMMY_AUTH);
-    if (!user || !validPassword) return null;
+    const verification = await this.#guard.verify(
+      () => verifyLocalPassword(normalized.password, user?.auth ?? DUMMY_AUTH),
+    );
+    if (!verification.allowed) throw new LocalLoginLimitedError(verification.retryAfterSeconds);
+    if (!user || !verification.value) {
+      this.#guard.recordFailure(accountKey);
+      return null;
+    }
     const scopes = [...new Set(user.scopes.filter(isValidScope))].sort();
     const accessToken = await this.#tokens.issue({
       userId: user.id,
       tenantId: user.tenant_id,
       scopes,
     });
+    this.#guard.recordSuccess(accountKey);
     return {
       accessToken,
       tokenType: "Bearer",

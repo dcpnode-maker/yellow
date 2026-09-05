@@ -20,7 +20,30 @@ try {
     $orderFiles = @(Get-ChildItem 'handoff/orders' -Filter '*.md' -File -ErrorAction SilentlyContinue | Sort-Object Name)
     $reviewFiles = @(Get-ChildItem 'handoff/reviews' -Filter '*.md' -File -ErrorAction SilentlyContinue | Sort-Object Name)
     $questionFiles = @(Get-ChildItem 'handoff/questions' -Filter '*.md' -File -ErrorAction SilentlyContinue | Sort-Object Name)
-    $openOrders = @($orderFiles | Where-Object { -not (Select-String -Path $_.FullName -Pattern '^## MERGED' -Quiet) })
+    $historicalUnclosed = @($orderFiles | Where-Object { -not (Select-String -Path $_.FullName -Pattern '^## MERGED' -Quiet) })
+    $statusPath = if ($env:YELLOW_PROJECT_STATUS_FILE) { $env:YELLOW_PROJECT_STATUS_FILE } else { 'docs/PROJECT-STATUS.md' }
+    $statusText = Get-Content -LiteralPath $statusPath -Raw
+    function Read-StatusField([string]$Name) {
+        $match = [regex]::Match($statusText, "(?m)^<!-- $([regex]::Escape($Name)): (.*) -->$")
+        if (-not $match.Success) { throw "Missing project status field: $Name" }
+        return $match.Groups[1].Value
+    }
+    $statusSchema = Read-StatusField 'status-schema'
+    $currentPhase = Read-StatusField 'current-phase'
+    $currentTask = Read-StatusField 'current-task'
+    $currentLifecycle = Read-StatusField 'current-lifecycle'
+    $parsedPhase = 0
+    if ($statusSchema -ne 'yellow-project-status/v1' -or
+        -not [int]::TryParse($currentPhase, [ref]$parsedPhase) -or
+        -not $currentTask -or -not $currentLifecycle) {
+        throw 'Invalid docs/PROJECT-STATUS.md metadata'
+    }
+    $currentOrderFiles = @((Read-StatusField 'current-order-files').Split(';'))
+    foreach ($currentOrderFile in $currentOrderFiles) {
+        if (-not $currentOrderFile -or -not (Test-Path -LiteralPath $currentOrderFile)) {
+            throw "Current order file is missing: $currentOrderFile"
+        }
+    }
     $openQuestions = @($questionFiles | Where-Object {
         $isResponse = $_.Name -match '^\d+-ARCHITECT-RESPONSE\.md$'
         $number = $_.BaseName.Split('-')[0]
@@ -29,15 +52,11 @@ try {
             -not (Select-String -Path $_.FullName -Pattern '^## RESOLVED','^## RATIFIED' -Quiet) -and
             -not (Test-Path -LiteralPath $response)
     })
-    Write-Host "Open work: orders=$($openOrders.Count) open ($($orderFiles.Count) total) reviews=0 open ($($reviewFiles.Count) total) questions=$($openQuestions.Count) open ($($questionFiles.Count) total)"
-    if ($openOrders.Count) {
-        Write-Host 'Open orders:'
-        $openOrders | ForEach-Object { Write-Host "  handoff/orders/$($_.Name)" }
-    }
-    if ($openQuestions.Count) {
-        Write-Host 'Open questions:'
-        $openQuestions | ForEach-Object { Write-Host "  handoff/questions/$($_.Name)" }
-    }
+    Write-Host "Current task: $currentTask"
+    Write-Host "Lifecycle: $currentLifecycle"
+    Write-Host 'Current order files:'
+    $currentOrderFiles | ForEach-Object { Write-Host "  $_" }
+    Write-Host "Historical records: orders=$($orderFiles.Count) total ($($historicalUnclosed.Count) lack legacy MERGED marker) reviews=$($reviewFiles.Count) total questions=$($openQuestions.Count) without legacy resolution marker ($($questionFiles.Count) total)"
 
     $running = @()
     if ((Get-Command docker -ErrorAction SilentlyContinue) -and (docker info 2>$null)) {
@@ -47,22 +66,11 @@ try {
         Write-Host "Service $service`: $(if ($running -contains $service) { 'up' } else { 'down' })"
     }
     if ($running -contains 'postgres') {
-        $tables = docker compose exec -T postgres psql -U yellow -d yellow_test -tAc "SELECT count(*) FROM pg_tables WHERE schemaname='public';" 2>$null
-        if ($LASTEXITCODE -eq 0) { Write-Host "yellow_test tables: $($tables.Trim()) (80 baseline + tx_code_route + 2 kernel consumer + api_idempotency + schema_migration; expected 85)" }
+        $tables = docker compose exec -T postgres psql -U yellow_deploy -d yellow_test -tAc "SELECT count(*) FROM pg_tables WHERE schemaname='public';" 2>$null
+        if ($LASTEXITCODE -eq 0) { Write-Host "yellow_test public tables: $($tables.Trim()) (validate against the PROJECT-STATUS migration frontier)" }
     }
 
-    $phase = 0
-    foreach ($orderFile in $orderFiles) {
-        $match = Select-String -Path $orderFile.FullName -Pattern '^\*\*Phase:\*\*\s*(\d+)' | Select-Object -First 1
-        if ($match -and [int]$match.Matches[0].Groups[1].Value -gt $phase) {
-            $phase = [int]$match.Matches[0].Groups[1].Value
-        }
-    }
-    if ($phase -eq 0 -and $openOrders.Count -eq 0) {
-        Write-Host 'Phase: 0 · merged baseline'
-    } else {
-        Write-Host "Phase: $phase · descendant stack pending independent review"
-    }
+    Write-Host "Phase: $currentPhase · $currentLifecycle"
     Write-Host 'Reading: PROJECT.md -> AGENTS.md -> BUILD-PLAN.md -> handoff/ROSTER.md -> docs/WORKFLOW.md'
     Write-Host 'Referee: .\setup.ps1 -DbOnly -> 11 passed, 0 failed of 11'
     $reportComplete = $true

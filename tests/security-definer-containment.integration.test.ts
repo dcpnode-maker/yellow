@@ -1,14 +1,20 @@
 import { afterAll, describe, expect, test } from "bun:test";
 import { SQL } from "bun";
 
-const URL = process.env.YELLOW_SECURITY_DEFINER_URL;
+const URL = process.env.YELLOW_DEPLOY_DATABASE_URL ?? process.env.YELLOW_SECURITY_DEFINER_URL;
 if (process.env.YELLOW_REQUIRE_SECURITY_DEFINER === "1" && !URL) {
-  throw new Error("YELLOW_SECURITY_DEFINER_URL is required by the Order 108 proof");
+  throw new Error("YELLOW_DEPLOY_DATABASE_URL is required by the Order 108 proof");
 }
 
 const TENANT = "00000000-0000-0000-0000-000000011301";
 const PROPERTY = "00000000-0000-0000-0000-000000011311";
 const ACTOR = "00000000-0000-0000-0000-000000011321";
+const PARTY = "00000000-0000-0000-0000-000000011322";
+const UNIT_TYPE = "00000000-0000-0000-0000-000000011323";
+const SELLABLE = "00000000-0000-0000-0000-000000011324";
+const RATE_PLAN = "00000000-0000-0000-0000-000000011325";
+const RESERVATION = "00000000-0000-0000-0000-000000011326";
+const SEGMENT = "00000000-0000-0000-0000-000000011327";
 
 const dbDescribe = URL ? describe.serial : describe.skip;
 const admin = URL ? new SQL(URL, { max: 1 }) : undefined;
@@ -122,7 +128,7 @@ dbDescribe("Order 108 SECURITY DEFINER shadow-path containment", () => {
       `;
 
       expect(pruneState).toBe("42501");
-      expect(sealState).toBe("P0012");
+      expect(sealState).toBe("42501");
       expect(markers).toEqual([]);
       expect(shadowState).toEqual([{ outboxRows: 1, daySealed: false }]);
     } finally {
@@ -156,7 +162,18 @@ dbDescribe("Order 108 SECURITY DEFINER shadow-path containment", () => {
        WHERE n.nspname = 'public'
          AND p.proname = ANY(ARRAY[
            'record_occupancy', 'release_occupancy', 'expire_holds',
-           'prune_outbox', 'assert_day_open', 'seal_business_day'
+           'prune_outbox', 'assert_day_open', 'seal_business_day', 'lock_financial_rows',
+           'lock_financial_business_days',
+           'create_charge_correction_header',
+           'create_positive_tax_correction_header', 'record_positive_tax_correction_root',
+           'create_folio_transfer', 'create_receivable_transfer',
+           'govern_arrival_pickup_task', 'govern_housekeeping_task_sheet',
+           'open_cashier_session', 'append_cashier_count', 'close_cashier_session',
+           'register_extension_type', 'transition_housekeeping_task',
+           'initialize_unit_condition', 'transition_arrival_pickup_task',
+           'create_arrival_room_cleaning_task', 'assign_due_in_room',
+           'report_room_discrepancy', 'prepare_business_day_discrepancy_carry',
+           'carry_business_day_discrepancy', 'seal_business_day_audited'
          ]::name[])
        ORDER BY signature
     `;
@@ -164,34 +181,220 @@ dbDescribe("Order 108 SECURITY DEFINER shadow-path containment", () => {
     expect(functions.map(({ signature, securityDefiner, config, appExecute, publicDenied }) => ({
       signature, securityDefiner, config, appExecute, publicDenied,
     }))).toEqual([
+      { signature: "append_cashier_count(uuid,uuid,uuid,uuid,bigint[],bigint[])", securityDefiner: true,
+        config: ["search_path=pg_catalog, public, pg_temp"], appExecute: true, publicDenied: true },
       { signature: "assert_day_open()", securityDefiner: true,
         config: ["search_path=pg_catalog, public, pg_temp"], appExecute: false, publicDenied: true },
+      { signature: "assign_due_in_room(uuid,uuid,uuid,uuid,uuid,tstzrange,uuid,uuid,uuid)", securityDefiner: true,
+        config: ["search_path=pg_catalog, public, pg_temp"], appExecute: true, publicDenied: true },
+      { signature: "carry_business_day_discrepancy(uuid,uuid,text,uuid,uuid)", securityDefiner: true,
+        config: ["search_path=pg_catalog, public"], appExecute: true, publicDenied: true },
+      { signature: "close_cashier_session(uuid,uuid,uuid,uuid,uuid,uuid,text,boolean)", securityDefiner: true,
+        config: ["search_path=pg_catalog, public, pg_temp"], appExecute: true, publicDenied: true },
+      { signature: "create_arrival_room_cleaning_task(uuid,uuid,uuid,uuid,uuid)", securityDefiner: true,
+        config: ["search_path=pg_catalog, public, pg_temp"], appExecute: true, publicDenied: true },
+      { signature: "create_charge_correction_header(uuid,uuid,uuid,character,text,uuid)", securityDefiner: true,
+        config: ["search_path=pg_catalog, public, pg_temp"], appExecute: true, publicDenied: true },
+      { signature: "create_folio_transfer(uuid,uuid,uuid,uuid[],uuid,text)", securityDefiner: true,
+        config: ["search_path=pg_catalog, public, pg_temp"], appExecute: true, publicDenied: true },
+      { signature: "create_positive_tax_correction_header(uuid,uuid,uuid,text,uuid)", securityDefiner: true,
+        config: ["search_path=pg_catalog, public, pg_temp"], appExecute: true, publicDenied: true },
+      { signature: "create_receivable_transfer(uuid,uuid,uuid,uuid,uuid,uuid,text)", securityDefiner: true,
+        config: ["search_path=pg_catalog, public, pg_temp"], appExecute: true, publicDenied: true },
       { signature: "expire_holds()", securityDefiner: true,
         config: ["search_path=pg_catalog, public, pg_temp"], appExecute: false, publicDenied: true },
+      { signature: "govern_arrival_pickup_task(uuid,uuid,uuid,uuid)", securityDefiner: true,
+        config: ["search_path=pg_catalog, public, pg_temp"], appExecute: true, publicDenied: true },
+      { signature: "govern_housekeeping_task_sheet(uuid,uuid,date,uuid,uuid,text,integer)", securityDefiner: true,
+        config: ["search_path=pg_catalog, public, pg_temp"], appExecute: true, publicDenied: true },
+      { signature: "initialize_unit_condition(uuid,uuid,uuid,text,uuid)", securityDefiner: true,
+        config: ["search_path=pg_catalog, public, pg_temp"], appExecute: true, publicDenied: true },
+      { signature: "lock_financial_business_days(uuid,uuid,date[])", securityDefiner: true,
+        config: ["search_path=pg_catalog, public, pg_temp"], appExecute: true, publicDenied: true },
+      { signature: "lock_financial_rows(uuid,uuid[],uuid)", securityDefiner: true,
+        config: ["search_path=pg_catalog, public, pg_temp"], appExecute: true, publicDenied: true },
+      { signature: "open_cashier_session(uuid,uuid,uuid,uuid,bigint[],bigint[])", securityDefiner: true,
+        config: ["search_path=pg_catalog, public, pg_temp"], appExecute: true, publicDenied: true },
+      { signature: "prepare_business_day_discrepancy_carry(uuid,uuid,uuid,date,date,text,uuid,uuid)", securityDefiner: true,
+        config: ["search_path=pg_catalog, public"], appExecute: true, publicDenied: true },
       { signature: "prune_outbox(interval)", securityDefiner: true,
         config: ["search_path=pg_catalog, public, pg_temp"], appExecute: false, publicDenied: true },
       { signature: "record_occupancy(uuid,uuid,tstzrange,uuid,text,boolean)", securityDefiner: true,
         config: ["search_path=pg_catalog, public, pg_temp"], appExecute: true, publicDenied: true },
+      { signature: "record_occupancy(uuid,uuid,tstzrange,uuid,text,boolean,uuid)", securityDefiner: true,
+        config: ["search_path=pg_catalog, public, pg_temp"], appExecute: false, publicDenied: true },
+      { signature: "record_positive_tax_correction_root(uuid,uuid,uuid,uuid)", securityDefiner: true,
+        config: ["search_path=pg_catalog, public, pg_temp"], appExecute: true, publicDenied: true },
+      { signature: "register_extension_type(uuid,text,jsonb,uuid,uuid,uuid)", securityDefiner: true,
+        config: ["search_path=pg_catalog, public, pg_temp"], appExecute: false, publicDenied: true },
       { signature: "release_occupancy(uuid,uuid)", securityDefiner: true,
         config: ["search_path=pg_catalog, public, pg_temp"], appExecute: true, publicDenied: true },
+      { signature: "report_room_discrepancy(uuid,uuid,uuid,text,integer,uuid)", securityDefiner: true,
+        config: ["search_path=pg_catalog, public"], appExecute: true, publicDenied: true },
       { signature: "seal_business_day(uuid,uuid,date,uuid)", securityDefiner: true,
+        config: ["search_path=pg_catalog, public, pg_temp"], appExecute: false, publicDenied: true },
+      { signature: "seal_business_day_audited(uuid,uuid,date,uuid)", securityDefiner: true,
+        config: ["search_path=pg_catalog, public, pg_temp"], appExecute: true, publicDenied: true },
+      { signature: "transition_arrival_pickup_task(uuid,uuid,uuid,uuid,text,text,uuid,uuid,uuid)", securityDefiner: true,
+        config: ["search_path=pg_catalog, public, pg_temp"], appExecute: true, publicDenied: true },
+      { signature: "transition_housekeeping_task(uuid,uuid,uuid,text,text,text,timestamp with time zone,uuid)", securityDefiner: true,
         config: ["search_path=pg_catalog, public, pg_temp"], appExecute: true, publicDenied: true },
     ]);
 
     const expectedQualifiedObjects = new Map<string, readonly string[]>([
+      ["assign_due_in_room(uuid,uuid,uuid,uuid,uuid,tstzrange,uuid,uuid,uuid)",
+        ["public.app_user", "public.reservation", "public.reservation_segment",
+          "public.space_occupancy", "public.sellable_unit", "public.unit_type",
+          "public.sellable_unit_space", "public.space"]],
+      ["append_cashier_count(uuid,uuid,uuid,uuid,bigint[],bigint[])",
+        ["public.org_node", "public.cashier_session", "public.business_day", "public.cash_drawer",
+          "public.app_user", "public.cash_drawer_denomination", "public.cashier_count",
+          "public.cashier_count_line"]],
       ["assert_day_open()", ["public.business_day"]],
+      ["close_cashier_session(uuid,uuid,uuid,uuid,uuid,uuid,text,boolean)",
+        ["public.org_node", "public.cashier_session", "public.business_day", "public.cash_drawer",
+          "public.app_user", "public.cashier_count", "public.approval_request"]],
+      ["carry_business_day_discrepancy(uuid,uuid,text,uuid,uuid)",
+        ["public.approval_request", "public.app_user", "public.user_role", "public.role_permission",
+          "public.org_node", "public.discrepancy", "public.space", "public.outbox", "public.business_day",
+          "public.business_day_discrepancy_carry"]],
+      ["create_charge_correction_header(uuid,uuid,uuid,character,text,uuid)",
+        ["public.org_node", "public.app_user", "public.journal"]],
+      ["create_positive_tax_correction_header(uuid,uuid,uuid,text,uuid)",
+        ["public.tenant", "public.tax_attribution_journal_binding", "public.journal",
+          "public.app_user", "public.org_node"]],
+      ["create_arrival_room_cleaning_task(uuid,uuid,uuid,uuid,uuid)",
+        ["public.app_user", "public.party", "public.party_role", "public.reservation",
+          "public.reservation_segment", "public.sellable_unit_space", "public.space",
+          "public.unit_condition", "public.task"]],
+      ["create_folio_transfer(uuid,uuid,uuid,uuid[],uuid,text)",
+        ["public.account", "public.folio", "public.reservation", "public.org_node",
+          "public.app_user", "public.posting_line", "public.journal", "public.business_day"]],
+      ["create_receivable_transfer(uuid,uuid,uuid,uuid,uuid,uuid,text)",
+        ["public.app_user", "public.folio", "public.lock_financial_rows", "public.account",
+          "public.org_node", "public.party", "public.party_role", "public.folio_balance",
+          "public.posting_line", "public.approval_request", "public.journal", "public.business_day"]],
       ["expire_holds()", ["public.hold", "public.release_occupancy"]],
+      ["govern_arrival_pickup_task(uuid,uuid,uuid,uuid)",
+        ["public.app_user", "public.org_node", "public.reservation", "public.travel_detail", "public.task"]],
+      ["govern_housekeeping_task_sheet(uuid,uuid,date,uuid,uuid,text,integer)",
+        ["public.org_node", "public.app_user", "public.party", "public.party_role",
+          "public.space", "public.space_occupancy", "public.reservation_segment",
+          "public.reservation", "public.extension", "public.task_sheet", "public.task"]],
+      ["initialize_unit_condition(uuid,uuid,uuid,text,uuid)",
+        ["public.app_user", "public.org_node", "public.space", "public.unit_condition"]],
+      ["lock_financial_rows(uuid,uuid[],uuid)", ["public.account", "public.folio"]],
+      ["lock_financial_business_days(uuid,uuid,date[])", ["public.business_day"]],
+      ["open_cashier_session(uuid,uuid,uuid,uuid,bigint[],bigint[])",
+        ["public.org_node", "public.business_day", "public.cash_drawer", "public.account",
+          "public.app_user", "public.cash_drawer_denomination", "public.cashier_session",
+          "public.cashier_count", "public.cashier_count_line"]],
       ["prune_outbox(interval)", ["public.outbox"]],
+      ["prepare_business_day_discrepancy_carry(uuid,uuid,uuid,date,date,text,uuid,uuid)",
+        ["public.app_user", "public.user_role", "public.role_permission", "public.org_node",
+          "public.discrepancy", "public.space", "public.outbox", "public.business_day"]],
+      ["record_positive_tax_correction_root(uuid,uuid,uuid,uuid)",
+        ["public.tax_attribution_journal_binding", "public.tax_attribution_reservation_binding",
+          "public.tax_attribution_snapshot", "public.journal", "public.app_user",
+          "public.posting_line", "public.account"]],
       ["record_occupancy(uuid,uuid,tstzrange,uuid,text,boolean)",
         ["public.space_occupancy", "public.space"]],
-      ["release_occupancy(uuid,uuid)", ["public.space_occupancy"]],
+      ["record_occupancy(uuid,uuid,tstzrange,uuid,text,boolean,uuid)",
+        ["public.reservation_segment", "public.reservation", "public.vehicle",
+          "public.space", "public.space_occupancy"]],
+      ["register_extension_type(uuid,text,jsonb,uuid,uuid,uuid)",
+        ["public.tenant", "public.org_node", "public.app_user", "public.extension_type", "public.fact_log"]],
+      ["release_occupancy(uuid,uuid)",
+        ["public.space_occupancy", "public.space", "public.reservation_segment",
+          "public.reservation", "public.vehicle", "public.release_occupancy_typed_parent"]],
+      ["report_room_discrepancy(uuid,uuid,uuid,text,integer,uuid)",
+        ["public.app_user", "public.org_node", "public.space", "public.unit_type",
+          "public.sellable_unit", "public.sellable_unit_space", "public.unit_condition",
+          "public.space_occupancy", "public.reservation_segment", "public.reservation",
+          "public.discrepancy"]],
       ["seal_business_day(uuid,uuid,date,uuid)", ["public.business_day"]],
+      ["seal_business_day_audited(uuid,uuid,date,uuid)",
+        ["public.app_user", "public.business_day", "public.business_day_discrepancy_carry",
+          "public.cashier_session", "public.discrepancy", "public.document",
+          "public.fiscal_submission", "public.inbound_message", "public.org_node",
+          "public.outbox", "public.payment", "public.payment_operation", "public.reservation",
+          "public.role_permission", "public.space", "public.statutory_submission", "public.tenant",
+          "public.user_role"]],
+      ["transition_housekeeping_task(uuid,uuid,uuid,text,text,text,timestamp with time zone,uuid)",
+        ["public.app_user", "public.org_node", "public.task", "public.space", "public.unit_condition"]],
+      ["transition_arrival_pickup_task(uuid,uuid,uuid,uuid,text,text,uuid,uuid,uuid)",
+        ["public.app_user", "public.org_node", "public.reservation", "public.travel_detail",
+          "public.task", "public.party", "public.party_role"]],
     ]);
     for (const definition of functions) {
       for (const object of expectedQualifiedObjects.get(definition.signature) ?? []) {
         expect(definition.source).toContain(object);
       }
     }
+
+    const headerAuthority = await admin!<Array<{
+      owner: string; runtimeExecute: boolean; volatility: string;
+    }>>`
+      SELECT pg_get_userbyid(p.proowner) AS owner,
+             has_function_privilege('yellow_runtime',p.oid,'EXECUTE') AS "runtimeExecute",
+             p.provolatile::text AS volatility
+        FROM pg_proc p
+       WHERE p.oid = 'public.create_charge_correction_header(uuid,uuid,uuid,character,text,uuid)'::regprocedure
+    `;
+    expect(headerAuthority).toEqual([{
+      owner: "yellow_owner", runtimeExecute: false, volatility: "v",
+    }]);
+
+    const transferAuthority = await admin!<Array<{
+      owner: string; runtimeExecute: boolean; volatility: string;
+    }>>`
+      SELECT pg_get_userbyid(p.proowner) AS owner,
+             has_function_privilege('yellow_runtime',p.oid,'EXECUTE') AS "runtimeExecute",
+             p.provolatile::text AS volatility
+        FROM pg_proc p
+       WHERE p.oid = 'public.create_folio_transfer(uuid,uuid,uuid,uuid[],uuid,text)'::regprocedure
+    `;
+    expect(transferAuthority).toEqual([{
+      owner: "yellow_owner", runtimeExecute: false, volatility: "v",
+    }]);
+
+    const receivableAuthority = await admin!<Array<{
+      owner: string; runtimeExecute: boolean; volatility: string;
+    }>>`
+      SELECT pg_get_userbyid(p.proowner) AS owner,
+             has_function_privilege('yellow_runtime',p.oid,'EXECUTE') AS "runtimeExecute",
+             p.provolatile::text AS volatility
+        FROM pg_proc p
+       WHERE p.oid =
+         'public.create_receivable_transfer(uuid,uuid,uuid,uuid,uuid,uuid,text)'::regprocedure
+    `;
+    expect(receivableAuthority).toEqual([{
+      owner: "yellow_owner", runtimeExecute: false, volatility: "v",
+    }]);
+
+    const cashierAuthority = await admin!<Array<{
+      signature: string; owner: string; runtimeExecute: boolean; volatility: string;
+    }>>`
+      SELECT p.oid::regprocedure::text AS signature,
+             pg_get_userbyid(p.proowner) AS owner,
+             has_function_privilege('yellow_runtime',p.oid,'EXECUTE') AS "runtimeExecute",
+             p.provolatile::text AS volatility
+        FROM pg_proc p
+       WHERE p.oid = ANY(ARRAY[
+         'public.open_cashier_session(uuid,uuid,uuid,uuid,bigint[],bigint[])'::regprocedure,
+         'public.append_cashier_count(uuid,uuid,uuid,uuid,bigint[],bigint[])'::regprocedure,
+         'public.close_cashier_session(uuid,uuid,uuid,uuid,uuid,uuid,text,boolean)'::regprocedure
+       ])
+       ORDER BY signature
+    `;
+    expect(cashierAuthority).toEqual([
+      { signature: "append_cashier_count(uuid,uuid,uuid,uuid,bigint[],bigint[])",
+        owner: "yellow_owner", runtimeExecute: false, volatility: "v" },
+      { signature: "close_cashier_session(uuid,uuid,uuid,uuid,uuid,uuid,text,boolean)",
+        owner: "yellow_owner", runtimeExecute: false, volatility: "v" },
+      { signature: "open_cashier_session(uuid,uuid,uuid,uuid,bigint[],bigint[])",
+        owner: "yellow_owner", runtimeExecute: false, volatility: "v" },
+    ]);
 
     const connection = await admin!.reserve();
     let began = false;
@@ -201,6 +404,76 @@ dbDescribe("Order 108 SECURITY DEFINER shadow-path containment", () => {
       for (const statement of [
         "SELECT public.prune_outbox(interval '30 days')",
         "SELECT public.expire_holds()",
+        `SELECT public.seal_business_day(
+          '${TENANT}'::uuid, '${PROPERTY}'::uuid, DATE '2026-08-24', '${ACTOR}'::uuid
+        )`,
+        `SELECT * FROM public.create_folio_transfer(
+          '${TENANT}'::uuid,
+          '00000000-0000-0000-0000-000000011351'::uuid,
+          '00000000-0000-0000-0000-000000011352'::uuid,
+          ARRAY['00000000-0000-0000-0000-000000011353'::uuid],
+          '${ACTOR}'::uuid,
+          'hostile direct app-role call'
+        )`,
+        `SELECT * FROM public.create_receivable_transfer(
+          '${TENANT}'::uuid, '${PROPERTY}'::uuid,
+          '00000000-0000-0000-0000-000000011354'::uuid,
+          '00000000-0000-0000-0000-000000011355'::uuid,
+          '${ACTOR}'::uuid, NULL, 'hostile direct app-role call'
+        )`,
+        `SELECT * FROM public.open_cashier_session(
+          '${TENANT}'::uuid, '${PROPERTY}'::uuid,
+          '00000000-0000-0000-0000-000000011361'::uuid, '${ACTOR}'::uuid,
+          ARRAY[1]::bigint[], ARRAY[0]::bigint[]
+        )`,
+        `SELECT * FROM public.append_cashier_count(
+          '${TENANT}'::uuid, '${PROPERTY}'::uuid,
+          '00000000-0000-0000-0000-000000011362'::uuid, '${ACTOR}'::uuid,
+          ARRAY[1]::bigint[], ARRAY[0]::bigint[]
+        )`,
+        `SELECT * FROM public.close_cashier_session(
+          '${TENANT}'::uuid, '${PROPERTY}'::uuid,
+          '00000000-0000-0000-0000-000000011362'::uuid, '${ACTOR}'::uuid,
+          '00000000-0000-0000-0000-000000011363'::uuid, NULL, NULL, false
+        )`,
+        `SELECT * FROM public.transition_housekeeping_task(
+          '${TENANT}'::uuid, '${PROPERTY}'::uuid,
+          '00000000-0000-0000-0000-000000011364'::uuid,
+          'start', 'assigned', 'dirty', now(), '${ACTOR}'::uuid
+        )`,
+        `SELECT * FROM public.transition_arrival_pickup_task(
+          '${TENANT}'::uuid, '${PROPERTY}'::uuid,
+          '00000000-0000-0000-0000-000000011366'::uuid,
+          '00000000-0000-0000-0000-000000011367'::uuid,
+          'assign', 'open', NULL,
+          '00000000-0000-0000-0000-000000011368'::uuid,
+          '${ACTOR}'::uuid
+        )`,
+        `SELECT * FROM public.create_arrival_room_cleaning_task(
+          '${TENANT}'::uuid, '${PROPERTY}'::uuid,
+          '00000000-0000-0000-0000-000000011369'::uuid,
+          '00000000-0000-0000-0000-00000001136a'::uuid,
+          '${ACTOR}'::uuid
+        )`,
+        `SELECT * FROM public.assign_due_in_room(
+          '${TENANT}'::uuid, '${PROPERTY}'::uuid,
+          '00000000-0000-0000-0000-00000001136b'::uuid,
+          '00000000-0000-0000-0000-00000001136c'::uuid,
+          '00000000-0000-0000-0000-00000001136d'::uuid,
+          tstzrange(now(), now() + interval '1 day', '[)'), NULL,
+          '00000000-0000-0000-0000-00000001136e'::uuid,
+          '${ACTOR}'::uuid
+        )`,
+        `SELECT * FROM public.initialize_unit_condition(
+          '${TENANT}'::uuid, '${PROPERTY}'::uuid,
+          '00000000-0000-0000-0000-000000011365'::uuid,
+          'clean', '${ACTOR}'::uuid
+        )`,
+        `SELECT * FROM public.report_room_discrepancy(
+          '${TENANT}'::uuid, '${PROPERTY}'::uuid,
+          '00000000-0000-0000-0000-00000001136f'::uuid,
+          'vacant', NULL, '${ACTOR}'::uuid
+        )`,
       ]) {
         await connection.unsafe("SAVEPOINT denied_call");
         let state: string | undefined;
@@ -277,10 +550,33 @@ dbDescribe("Order 108 SECURITY DEFINER shadow-path containment", () => {
         VALUES
           ('00000000-0000-0000-0000-000000011331', '${TENANT}', '${PROPERTY}',
            'SEC-1', 'room', 1);
+        INSERT INTO public.party(id, tenant_id, kind, display_name, status)
+          VALUES ('${PARTY}', '${TENANT}', 'person', 'Order 108 Guest', 'active');
+        INSERT INTO public.unit_type(id, tenant_id, property_node, code, name, profile_key)
+          VALUES ('${UNIT_TYPE}', '${TENANT}', '${PROPERTY}', 'SEC', 'Security Room', 'room');
+        INSERT INTO public.sellable_unit(id, tenant_id, unit_type_id, name)
+          VALUES ('${SELLABLE}', '${TENANT}', '${UNIT_TYPE}', 'Security Sellable');
+        INSERT INTO public.sellable_unit_space(tenant_id, sellable_unit_id, space_id, claim_mode)
+          VALUES ('${TENANT}', '${SELLABLE}', '00000000-0000-0000-0000-000000011331', 'exclusive');
+        INSERT INTO public.rate_plan(id, tenant_id, property_node, code, name, currency, status)
+          VALUES ('${RATE_PLAN}', '${TENANT}', '${PROPERTY}', 'SEC', 'Security Rate', 'USD', 'active');
+        INSERT INTO public.reservation(
+          id, tenant_id, property_node, confirmation_no, status, primary_party, channel_code, currency
+        ) VALUES (
+          '${RESERVATION}', '${TENANT}', '${PROPERTY}', 'SEC-EXACT', 'reserved', '${PARTY}', 'direct', 'USD'
+        );
+        INSERT INTO public.reservation_segment(
+          id, tenant_id, reservation_id, seq, unit_type_id, sellable_unit_id, period,
+          adults, children, rate_plan_id, status
+        ) VALUES (
+          '${SEGMENT}', '${TENANT}', '${RESERVATION}', 1, '${UNIT_TYPE}', '${SELLABLE}',
+          tstzrange('2026-08-24T12:00:00Z', '2026-08-25T12:00:00Z', '[)'),
+          1, '[]'::jsonb, '${RATE_PLAN}', 'booked'
+        );
         SET LOCAL ROLE app_role;
         SELECT set_config('app.tenant_id', '${TENANT}', true);
       `);
-      const slot = "00000000-0000-0000-0000-000000011341";
+      const slot = SEGMENT;
       const claims = await connection<Array<{ id: string }>>`
         SELECT public.record_occupancy(
           ${TENANT}::uuid,

@@ -1,18 +1,17 @@
-# WORKFLOW.md — Codex owns delivery; independent agents review high risk
+# WORKFLOW.md — Codex owns delivery; independent internal reviewers verify high risk
 
-Two agents, one repo, one referee (`tests/run_invariants.py`). This file is the
-contract between them. Both `CLAUDE.md` and `AGENTS.md` point here.
+One Codex-owned plan, one repository lineage and one referee
+(`tests/run_invariants.py`). Internal models may execute bounded lanes; this file is
+the contract between coordinator, builder and reviewer assignments.
 
 ## Roles
 
-Codex is the primary implementation and coordination owner: it writes bounded orders,
+Codex is the sole implementation and coordination owner: it writes bounded orders,
 implements, proves, integrates review findings and continues between phases. Routine
 work closes when its relevant gates pass. High-risk work requires an independent agent
 that did not implement it to inspect the change and personally execute the relevant
-proof. Claude is optional and participates only if the founder explicitly asks.
-
-The split exists because ambiguity is where money is worth spending. Nine research
-rounds removed ambiguity from most of this build; what's left is execution.
+proof. A specific vendor is never an operational dependency. The coordinator chooses
+internal models by the risk, ambiguity and cost of each bounded assignment.
 
 ## The loop
 
@@ -21,7 +20,7 @@ rounds removed ambiguity from most of this build; what's left is execution.
 2. BUILD    Codex implements on branch phase-N/slug     (commits [codex] prefix)
 3. PROVE    Codex runs ./setup.sh --db-only             (battery must be 11/11)
 4. PR       Codex opens PR, body references the order + pastes test output
-5. REVIEW   independent non-implementer reads diff and writes handoff/reviews/NNN-slug.md
+5. REVIEW   independent internal non-implementer reads diff, executes proof and records review
               → APPROVED         → eligible for integration by someone other than the author
               → CHANGES-REQUIRED → precise directions, back to step 2
 6. LOG      One line in handoff/LEDGER.md, always
@@ -39,23 +38,23 @@ git checkout -b phase-2/occupancy-claims
 # Codex commits — prefix makes attribution visible in git log forever
 git commit -m "[codex] implement record_occupancy port + T1-T5 integration tests"
 
-# Fable commits (orders, reviews, decisions)
-git commit -m "[claude] order 004: occupancy claim port"
+# An independent reviewer records proof on the review branch/PR
+git commit -m "[codex] record independent occupancy proof"
 
 # Codex opens the PR
 gh pr create --fill --base main
 ```
 
 Rules:
-- **`main` is only reached through a reviewed PR.** No direct pushes, either agent.
+- **`main` is only reached through a reviewed PR.** No internal worker pushes directly.
 - **Branch = `phase-N/slug`.** One phase concern per branch; if it spans phases, the
   order was written wrong.
-- **Commit prefix `[codex]` or `[claude]`.** Six months from now, `git log --grep`
+- **Commit prefix `[codex]`.** Six months from now, `git log --grep`
   answers "which agent wrote this?" — that matters when a bug is found.
 - **`DECISIONS.log` and `handoff/LEDGER.md` use union merge** (`.gitattributes`), so
-  parallel appends from both agents don't conflict. Append at the end, never edit
+  parallel internal appends don't conflict. Append at the end, never edit
   existing lines.
-- **Pull before starting anything.** Both agents work on the same repo; stale
+- **Pull before starting anything.** Internal workers share one repo; stale
   branches are the most likely source of duplicated work.
 
 ## Who decides what
@@ -77,11 +76,12 @@ proof to a non-implementing reviewer.
 
 ## Reading order for either agent, every session
 
-1. `CLAUDE.md` (Claude) or `AGENTS.md` (Codex) — the constitution
-2. `BUILD-PLAN.md` — current phase only
-3. `handoff/LEDGER.md` tail — what just happened
-4. `grep` `DECISIONS.log` for the topic at hand — **before deciding, not after**
-5. The relevant `docs/*.md` and `.claude/skills/yellow-*/SKILL.md`
+1. `PROJECT.md` — the constitution
+2. `docs/PROJECT-STATUS.md` and the applicable thin adapter
+3. `BUILD-PLAN.md` — current phase only
+4. `handoff/LEDGER.md` tail — what just happened
+5. `grep` `DECISIONS.log` for the topic at hand — **before deciding, not after**
+6. The relevant contracts, domain documentation and existing implementation
 
 ## The referee
 

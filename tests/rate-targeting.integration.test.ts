@@ -316,7 +316,7 @@ databaseDescribe("Order 066 immutable targeting drafts", () => {
     const type = LAUNCH_EXTENSION_TYPES.find(({ type }) => type === "rate_plan_target");
     expect(type?.jsonSchema).toEqual(RATE_PLAN_TARGET_EXTENSION_SCHEMA);
     expect(LAUNCH_EXTENSION_TYPES).toHaveLength(10);
-    expect(LAUNCH_EXTENSIONS).toHaveLength(40);
+    expect(LAUNCH_EXTENSIONS).toHaveLength(41);
     expect((await admin`SELECT type FROM extension_type WHERE type = 'rate_plan_target'`)).toHaveLength(1);
     const beforeFacts = Number((await admin`SELECT count(*)::int AS count FROM fact_log`)[0]?.count);
     expect((await runSeed({ databaseUrl: DATABASE_URL!, logger: () => undefined })).registry).toBe("already exact");

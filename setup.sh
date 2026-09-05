@@ -21,6 +21,78 @@ python3 -c 'import psycopg2' >/dev/null 2>&1 || {
   exit 1
 }
 
+authority_dir='.yellow'
+authority_file="$authority_dir/runtime-database-authority.env"
+authority_tmp=''
+trap 'if [ -n "$authority_tmp" ] && [ -f "$authority_tmp" ]; then rm -f -- "$authority_tmp"; fi' EXIT
+mkdir -p "$authority_dir"
+if [ ! -e "$authority_file" ]; then
+  deploy_password=$(bun -e 'const b=crypto.getRandomValues(new Uint8Array(48));process.stdout.write(Buffer.from(b).toString("base64url"));')
+  runtime_password=$(bun -e 'const b=crypto.getRandomValues(new Uint8Array(48));process.stdout.write(Buffer.from(b).toString("base64url"));')
+  registrar_password=$(bun -e 'const b=crypto.getRandomValues(new Uint8Array(48));process.stdout.write(Buffer.from(b).toString("base64url"));')
+  authority_tmp=$(mktemp "$authority_dir/runtime-database-authority.XXXXXX")
+  chmod 600 "$authority_tmp"
+  printf 'YELLOW_DEPLOY_DATABASE_PASSWORD=%s\nYELLOW_RUNTIME_DATABASE_PASSWORD=%s\nYELLOW_EXTENSION_REGISTRAR_DATABASE_PASSWORD=%s\n' \
+    "$deploy_password" "$runtime_password" "$registrar_password" > "$authority_tmp"
+  mv -n "$authority_tmp" "$authority_file"
+  rm -f -- "$authority_tmp"
+  authority_tmp=''
+  unset deploy_password runtime_password registrar_password
+fi
+[ -f "$authority_file" ] && [ ! -L "$authority_file" ] || {
+  echo 'Local database authority path must be one regular, non-symlink file.' >&2; exit 1;
+}
+[ "$(stat -c '%u' "$authority_file")" = "$(id -u)" ] || {
+  echo 'Local database authority file is not owned by the current user.' >&2; exit 1;
+}
+chmod 600 "$authority_file"
+deploy_password=''
+runtime_password=''
+registrar_password=''
+authority_lines=0
+while IFS='=' read -r key value; do
+  authority_lines=$((authority_lines + 1))
+  case "$key" in
+    YELLOW_DEPLOY_DATABASE_PASSWORD) deploy_password="$value" ;;
+    YELLOW_RUNTIME_DATABASE_PASSWORD) runtime_password="$value" ;;
+    YELLOW_EXTENSION_REGISTRAR_DATABASE_PASSWORD) registrar_password="$value" ;;
+    *) echo 'Local database authority file has an unexpected key.' >&2; exit 1 ;;
+  esac
+done < "$authority_file"
+[ "$authority_lines" -eq 2 ] || [ "$authority_lines" -eq 3 ] || {
+  echo 'Local database authority file is malformed.' >&2; exit 1;
+}
+[[ "$deploy_password" =~ ^[A-Za-z0-9_-]{43,256}$ ]] \
+  && [[ "$runtime_password" =~ ^[A-Za-z0-9_-]{43,256}$ ]] \
+  && [ "$deploy_password" != "$runtime_password" ] || {
+  echo 'Local database authority file is malformed.' >&2; exit 1;
+}
+if [ "$authority_lines" -eq 2 ]; then
+  registrar_password=$(bun -e 'const b=crypto.getRandomValues(new Uint8Array(48));process.stdout.write(Buffer.from(b).toString("base64url"));')
+  authority_tmp=$(mktemp "$authority_dir/runtime-database-authority.XXXXXX")
+  chmod 600 "$authority_tmp"
+  printf 'YELLOW_DEPLOY_DATABASE_PASSWORD=%s\nYELLOW_RUNTIME_DATABASE_PASSWORD=%s\nYELLOW_EXTENSION_REGISTRAR_DATABASE_PASSWORD=%s\n' \
+    "$deploy_password" "$runtime_password" "$registrar_password" > "$authority_tmp"
+  mv -f "$authority_tmp" "$authority_file"
+  authority_tmp=''
+fi
+[ "$authority_lines" -eq 2 ] || [ "$authority_lines" -eq 3 ]
+[[ "$deploy_password" =~ ^[A-Za-z0-9_-]{43,256}$ ]] \
+  && [[ "$runtime_password" =~ ^[A-Za-z0-9_-]{43,256}$ ]] \
+  && [[ "$registrar_password" =~ ^[A-Za-z0-9_-]{43,256}$ ]] \
+  && [ "$deploy_password" != "$runtime_password" ] \
+  && [ "$deploy_password" != "$registrar_password" ] \
+  && [ "$runtime_password" != "$registrar_password" ] || {
+  echo 'Local database authority file is malformed.' >&2; exit 1;
+}
+
+compose() {
+  YELLOW_DEPLOY_DATABASE_PASSWORD="$deploy_password" \
+  YELLOW_RUNTIME_DATABASE_PASSWORD="$runtime_password" \
+  YELLOW_EXTENSION_REGISTRAR_DATABASE_PASSWORD="$registrar_password" \
+    docker compose "$@"
+}
+
 default_project=$(basename "$PWD" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9_-]/-/g')
 export COMPOSE_PROJECT_NAME="${COMPOSE_PROJECT_NAME:-$default_project}"
 export YELLOW_APP_PORT="${YELLOW_APP_PORT:-3000}"
@@ -29,12 +101,12 @@ export YELLOW_VALKEY_PORT="${YELLOW_VALKEY_PORT:-6389}"
 printf 'Compose project %s · ports app=%s postgres=%s valkey=%s\n' \
   "$COMPOSE_PROJECT_NAME" "$YELLOW_APP_PORT" "$YELLOW_POSTGRES_PORT" "$YELLOW_VALKEY_PORT"
 
-docker compose up -d postgres valkey
+compose up -d postgres valkey
 ready=0
 for _ in $(seq 1 40); do
-  postmaster=$(docker compose exec -T postgres cat /proc/1/comm 2>/dev/null | tr -d '\r\n' || true)
+  postmaster=$(compose exec -T postgres cat /proc/1/comm 2>/dev/null | tr -d '\r\n' || true)
   if [ "$postmaster" = 'postgres' ] \
-    && docker compose exec -T postgres pg_isready -U yellow -d yellow_dev >/dev/null 2>&1; then
+    && compose exec -T postgres pg_isready -U yellow_deploy -d yellow_dev >/dev/null 2>&1; then
     ready=1
     break
   fi
@@ -42,27 +114,40 @@ for _ in $(seq 1 40); do
 done
 [ "$ready" -eq 1 ] || { echo 'PostgreSQL did not become ready. Run: docker compose logs postgres' >&2; exit 1; }
 
-dev_url="postgres://yellow:yellow@127.0.0.1:${YELLOW_POSTGRES_PORT}/yellow_dev"
-test_url="postgres://yellow:yellow@127.0.0.1:${YELLOW_POSTGRES_PORT}/yellow_test"
-DATABASE_URL="$dev_url" bun scripts/migrate.ts
-DATABASE_URL="$dev_url" bun scripts/seed.ts
+dev_url="postgres://yellow_deploy:${deploy_password}@127.0.0.1:${YELLOW_POSTGRES_PORT}/yellow_dev"
+test_url="postgres://yellow_deploy:${deploy_password}@127.0.0.1:${YELLOW_POSTGRES_PORT}/yellow_test"
+YELLOW_DEPLOY_DATABASE_URL="$dev_url" YELLOW_RUNTIME_DATABASE_PASSWORD="$runtime_password" \
+  YELLOW_EXTENSION_REGISTRAR_DATABASE_PASSWORD="$registrar_password" \
+  bun scripts/provision-local-database-authority.ts
+YELLOW_DEPLOY_DATABASE_URL="$dev_url" bun scripts/migrate.ts
 
-docker compose exec -T postgres psql -U yellow -d postgres -v ON_ERROR_STOP=1 \
-  -c 'DROP DATABASE IF EXISTS yellow_test WITH (FORCE)' -c 'CREATE DATABASE yellow_test'
-DATABASE_URL="$test_url" bun scripts/migrate.ts
-docker compose exec -T postgres psql -U yellow -d yellow_test -v ON_ERROR_STOP=1 < tests/seed_fixture.sql
+compose exec -T postgres psql -U yellow_deploy -d postgres -v ON_ERROR_STOP=1 \
+  -c 'DROP DATABASE IF EXISTS yellow_test WITH (FORCE)' \
+  -c 'CREATE DATABASE yellow_test OWNER yellow_deploy'
+YELLOW_DEPLOY_DATABASE_URL="$test_url" bun scripts/migrate.ts
+compose exec -T postgres psql -U yellow_deploy -d yellow_test -v ON_ERROR_STOP=1 < tests/seed_fixture.sql
 
-tables=$(docker compose exec -T postgres psql -U yellow -d yellow_test -tAc \
+tables=$(compose exec -T postgres psql -U yellow_deploy -d yellow_test -tAc \
   "SELECT count(*) FROM pg_tables WHERE schemaname='public';" | tr -d '[:space:]')
-[ "$tables" = '85' ] || { printf 'yellow_test has %s public tables; expected 85 (80 baseline + tx_code_route + 2 kernel consumer + api_idempotency + schema_migration).\n' "$tables" >&2; exit 1; }
-echo 'yellow_test tables: 85 (80 baseline + tx_code_route + 2 kernel consumer + api_idempotency + schema_migration)'
+[ "$tables" = '125' ] || { printf 'yellow_test has %s public tables; expected 125 after migrations 1-75.\n' "$tables" >&2; exit 1; }
+echo 'yellow_test tables: 125 after migrations 1-75'
 
-YELLOW_DSN="dbname=yellow_test user=yellow password=yellow host=127.0.0.1 port=${YELLOW_POSTGRES_PORT}" \
+YELLOW_DSN="dbname=yellow_test user=yellow_deploy password=${deploy_password} host=127.0.0.1 port=${YELLOW_POSTGRES_PORT}" \
 PYTHONIOENCODING=utf-8 python3 tests/run_invariants.py yellow_test
+
+compose exec -T postgres psql -U yellow_deploy -d postgres -v ON_ERROR_STOP=1 \
+  -c 'DROP DATABASE IF EXISTS yellow_test WITH (FORCE)'
+echo 'Removed disposable yellow_test proof database.'
 
 if [ "$DB_ONLY" -eq 0 ]; then
   need curl 'Install curl to run the application health check.'
-  docker compose up -d app
+  if [ "$DB_ONLY" -eq 0 ] && [ -z "${YELLOW_TOKEN_SECRET:-}" ]; then
+    generated_token_secret=$(bun -e 'const bytes = crypto.getRandomValues(new Uint8Array(48)); process.stdout.write(Buffer.from(bytes).toString("base64"));')
+    export YELLOW_TOKEN_SECRET="$generated_token_secret"
+    unset generated_token_secret
+    echo 'Generated an ephemeral local JWT signing secret for this setup invocation.'
+  fi
+  compose up -d app
   healthy=0
   for _ in $(seq 1 30); do
     status=$(curl -sS -o /tmp/yellow-health-body -w '%{http_code}' "http://127.0.0.1:${YELLOW_APP_PORT}/health" || true)

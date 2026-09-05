@@ -24,6 +24,16 @@ export interface ClaimReservationSegmentInput {
   readonly envelope: AuditEnvelope;
 }
 
+export type PrepareReservationSegmentClaimInput = Omit<ClaimReservationSegmentInput, "segmentId">;
+
+export interface PreparedReservationSegmentClaim {
+  readonly sellableUnitId: string;
+  readonly unitTypeId: string;
+  readonly from: Date;
+  readonly to: Date;
+  readonly claimCount: number;
+}
+
 export interface ReleaseReservationSegmentInput {
   readonly segmentId: string;
   readonly envelope: AuditEnvelope;
@@ -68,6 +78,11 @@ interface OccupancyRow {
   readonly period: string;
   readonly claim: string;
   readonly exclusive: boolean;
+}
+
+interface ResolvedReservationSegmentClaim {
+  readonly preparation: PreparedReservationSegmentClaim;
+  readonly mappings: readonly MappingRow[];
 }
 
 function freezeClaims(rows: readonly OccupancyRow[]): readonly ReservationSegmentOccupancyClaim[] {
@@ -172,13 +187,20 @@ export class ReservationOccupancyService {
     this.#events = events;
   }
 
+  async prepareClaimForSegment(
+    tx: Tx,
+    input: PrepareReservationSegmentClaimInput,
+  ): Promise<PreparedReservationSegmentClaim> {
+    return (await this.#resolveClaim(tx, input)).preparation;
+  }
+
   async claimForSegment(tx: Tx, input: ClaimReservationSegmentInput): Promise<ReservationSegmentClaim> {
     if (input.envelope.operation !== "occupancy.recorded") {
       throw new InventoryValidationError("audit operation must be occupancy.recorded");
     }
-    const sellableUnitId = requireUuid("sellableUnitId", input.sellableUnitId);
+    requireUuid("sellableUnitId", input.sellableUnitId);
     const segmentId = requireUuid("segmentId", input.segmentId);
-    const period = requirePeriod(input.from, input.to);
+    requirePeriod(input.from, input.to);
     await tx`
       SELECT pg_advisory_xact_lock(hashtextextended(${segmentId}::text, 85))
     `;
@@ -193,6 +215,84 @@ export class ReservationOccupancyService {
     if (Number(existingClaims[0]?.count) !== 0) {
       throw new InventoryConflictError("Reservation segment already owns occupancy claims");
     }
+    const { preparation, mappings } = await this.#resolveClaim(tx, input);
+    const sellableUnitId = preparation.sellableUnitId;
+    const period = Object.freeze({ from: preparation.from, to: preparation.to });
+
+    const occupancies: OccupancyRow[] = [];
+    for (const mapping of mappings) {
+      const occupancyId = await recordClaim(tx, input.envelope.tenantId, mapping, period, segmentId);
+      const rows = await tx<OccupancyRow[]>`
+        SELECT id, space_id, period::text AS period, claim::text AS claim, exclusive
+        FROM space_occupancy
+        WHERE id = ${occupancyId}::uuid
+          AND tenant_id = ${input.envelope.tenantId}::uuid
+          AND slot_ref = ${segmentId}::uuid
+          AND slot_kind = 'segment'
+          AND space_id = ${mapping.space_id}::uuid
+          AND period = tstzrange(${period.from.toISOString()}::timestamptz, ${period.to.toISOString()}::timestamptz, '[)')
+          AND exclusive = ${mapping.claim_mode === "exclusive"}
+      `;
+      const occupancy = rows[0];
+      if (!occupancy) throw new Error("PostgreSQL did not return the exact segment occupancy claim");
+      occupancies.push(occupancy);
+    }
+    if (occupancies.length !== mappings.length) {
+      throw new Error("Created occupancy count did not match the sellable mappings");
+    }
+
+    const fact = await recordFact(tx, {
+      entityType: "reservation_segment",
+      entityId: segmentId,
+      envelope: input.envelope,
+      payload: {
+        sellable_unit_id: sellableUnitId,
+        unit_type_id: preparation.unitTypeId,
+        period: { from: period.from.toISOString(), to: period.to.toISOString() },
+        claim_count: occupancies.length,
+      },
+    });
+    for (const occupancy of occupancies) {
+      await this.#events.publish(tx, {
+        tenantId: input.envelope.tenantId,
+        propertyNode: input.envelope.propertyNode,
+        businessDate: fact.businessDate,
+        aggregateType: "space_occupancy",
+        aggregateId: occupancy.id,
+        eventType: "occupancy.recorded",
+        actorId: input.envelope.actorId,
+        correlationId: input.envelope.requestId,
+        payload: {
+          occupancy_id: occupancy.id,
+          slot_ref: segmentId,
+          slot_kind: "segment",
+          segment_id: segmentId,
+          space_id: occupancy.space_id,
+          period: occupancy.period,
+          claim: occupancy.claim,
+          exclusive: occupancy.exclusive,
+        },
+      });
+    }
+
+    return Object.freeze({
+      ...preparation,
+      from: new Date(preparation.from),
+      to: new Date(preparation.to),
+      claimCount: occupancies.length,
+      claims: freezeClaims(occupancies),
+    });
+  }
+
+  async #resolveClaim(
+    tx: Tx,
+    input: PrepareReservationSegmentClaimInput,
+  ): Promise<ResolvedReservationSegmentClaim> {
+    if (input.envelope.operation !== "occupancy.recorded") {
+      throw new InventoryValidationError("audit operation must be occupancy.recorded");
+    }
+    const sellableUnitId = requireUuid("sellableUnitId", input.sellableUnitId);
+    const period = requirePeriod(input.from, input.to);
     const mappings = await tx<MappingRow[]>`
       SELECT
         su.unit_type_id,
@@ -227,70 +327,15 @@ export class ReservationOccupancyService {
     )) {
       throw new InventoryNotFoundError("Active sellable unit was not found in the active property");
     }
-
-    const occupancies: OccupancyRow[] = [];
-    for (const mapping of mappings) {
-      const occupancyId = await recordClaim(tx, input.envelope.tenantId, mapping, period, segmentId);
-      const rows = await tx<OccupancyRow[]>`
-        SELECT id, space_id, period::text AS period, claim::text AS claim, exclusive
-        FROM space_occupancy
-        WHERE id = ${occupancyId}::uuid
-          AND tenant_id = ${input.envelope.tenantId}::uuid
-          AND slot_ref = ${segmentId}::uuid
-          AND slot_kind = 'segment'
-          AND space_id = ${mapping.space_id}::uuid
-          AND period = tstzrange(${period.from.toISOString()}::timestamptz, ${period.to.toISOString()}::timestamptz, '[)')
-          AND exclusive = ${mapping.claim_mode === "exclusive"}
-      `;
-      const occupancy = rows[0];
-      if (!occupancy) throw new Error("PostgreSQL did not return the exact segment occupancy claim");
-      occupancies.push(occupancy);
-    }
-    if (occupancies.length !== mappings.length) {
-      throw new Error("Created occupancy count did not match the sellable mappings");
-    }
-
-    const fact = await recordFact(tx, {
-      entityType: "reservation_segment",
-      entityId: segmentId,
-      envelope: input.envelope,
-      payload: {
-        sellable_unit_id: sellableUnitId,
-        unit_type_id: first.unit_type_id,
-        period: { from: period.from.toISOString(), to: period.to.toISOString() },
-        claim_count: occupancies.length,
-      },
-    });
-    for (const occupancy of occupancies) {
-      await this.#events.publish(tx, {
-        tenantId: input.envelope.tenantId,
-        propertyNode: input.envelope.propertyNode,
-        businessDate: fact.businessDate,
-        aggregateType: "space_occupancy",
-        aggregateId: occupancy.id,
-        eventType: "occupancy.recorded",
-        actorId: input.envelope.actorId,
-        correlationId: input.envelope.requestId,
-        payload: {
-          occupancy_id: occupancy.id,
-          slot_ref: segmentId,
-          slot_kind: "segment",
-          segment_id: segmentId,
-          space_id: occupancy.space_id,
-          period: occupancy.period,
-          claim: occupancy.claim,
-          exclusive: occupancy.exclusive,
-        },
-      });
-    }
-
     return Object.freeze({
-      sellableUnitId,
-      unitTypeId: first.unit_type_id,
-      from: new Date(period.from),
-      to: new Date(period.to),
-      claimCount: occupancies.length,
-      claims: freezeClaims(occupancies),
+      preparation: Object.freeze({
+        sellableUnitId,
+        unitTypeId: first.unit_type_id,
+        from: new Date(period.from),
+        to: new Date(period.to),
+        claimCount: mappings.length,
+      }),
+      mappings: Object.freeze([...mappings]),
     });
   }
 

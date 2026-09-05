@@ -26,6 +26,16 @@ export {
   ReservationOfferValidationError,
 } from "./offers";
 export {
+  ReservationBoardConflictError,
+  ReservationBoardService,
+  ReservationBoardValidationError,
+} from "./board";
+export type {
+  ReservationBoardInput,
+  ReservationBoardPage,
+  ReservationBoardRow,
+} from "./board";
+export {
   ReservationGuestConflictError,
   ReservationGuestNotFoundError,
   ReservationGuestService,
@@ -43,11 +53,32 @@ export type {
   ReservationGuestRole,
   ReservationGuestServiceOptions,
 } from "./guests";
+export {
+  ReservationTravelConflictError,
+  ReservationTravelNotFoundError,
+  ReservationTravelService,
+  ReservationTravelValidationError,
+} from "./travel";
+export type {
+  PutReservationTravelInput,
+  PutReservationTravelResult,
+  ReservationTravelDirection,
+  ReservationTravelMode,
+  ReservationTravelServiceOptions,
+  ReservationTravelTuple,
+  TravelEditableReservationStatus,
+} from "./travel";
 export { ReservationSegmentService } from "./segments";
 export type {
+  AssignDueInRoomInput,
+  AssignDueInRoomResult,
   ChangeReservationDepartureInput,
   ChangeReservationDepartureResult,
+  DueInRoomAssignmentCandidate,
+  DueInRoomAssignmentCandidatesResult,
+  DueInRoomCondition,
   ExpectedSegmentPeriod,
+  FindDueInRoomAssignmentCandidatesInput,
   FindReservationSegmentsInput,
   MoveReservationRoomInput,
   MoveReservationRoomResult,
@@ -88,6 +119,26 @@ export type {
   FrozenCancellationPolicyEvidence,
   StoredCancellationPolicyEvidence,
 } from "./policy-evidence";
+export {
+  ReservationDetailConflictError,
+  ReservationDetailNotFoundError,
+  ReservationDetailService,
+  ReservationDetailValidationError,
+} from "./detail";
+export type {
+  FindReservationDetailByIdInput,
+  FindReservationDetailInput,
+  FindReservationPickupTaskDetailInput,
+  ReservationDetailAlert,
+  ReservationDetailFact,
+  ReservationDetailFolio,
+  ReservationDetailGuest,
+  ReservationDetailResult,
+  ReservationDetailSegment,
+  ReservationDetailTravel,
+  ReservationPickupTaskDetail,
+  ReservationPickupTaskStatus,
+} from "./detail";
 export type {
   ReservationOffer,
   ReservationOfferIssue,
@@ -97,3 +148,41 @@ export type {
   ReservationOfferSearchResult,
   ReservationOfferSearchSummary,
 } from "./offers";
+export {
+  RESERVATION_ARRIVAL_ROLL_ACTOR_ID,
+  ReservationArrivalRollConflictError,
+  ReservationArrivalRollService,
+  ReservationArrivalRollValidationError,
+  ReservationArrivalRollWorker,
+} from "./arrival-roll";
+export type {
+  DueArrivalScope,
+  DueArrivalScopeSource,
+  ReservationArrivalRollDrainResult,
+  ReservationArrivalRollFailure,
+  ReservationArrivalRollResult,
+  ReservationArrivalRollRunOptions,
+  ReservationArrivalRollServiceOptions,
+  ReservationArrivalRollWorkerOptions,
+  RolledDueArrival,
+  RollDueArrivalsInput,
+} from "./arrival-roll";
+export {
+  RESERVATION_DEPARTURE_ROLL_ACTOR_ID,
+  ReservationDepartureRollConflictError,
+  ReservationDepartureRollService,
+  ReservationDepartureRollValidationError,
+  ReservationDepartureRollWorker,
+} from "./departure-roll";
+export type {
+  DueDepartureScope,
+  DueDepartureScopeSource,
+  ReservationDepartureRollDrainResult,
+  ReservationDepartureRollFailure,
+  ReservationDepartureRollResult,
+  ReservationDepartureRollRunOptions,
+  ReservationDepartureRollServiceOptions,
+  ReservationDepartureRollWorkerOptions,
+  RolledDueDeparture,
+  RollDueDeparturesInput,
+} from "./departure-roll";

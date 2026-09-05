@@ -229,6 +229,59 @@ test("Order 098 correction: loaded departure round-trips through a DST fold", as
   }
 });
 
+test("Order 165: reservation dates initialize as one editable near-future UTC stay", async () => {
+  const script = await Bun.file(new URL("../src/http/operator/operator.js", import.meta.url)).text();
+  const start = script.indexOf("  function localInputValue(date) {");
+  const end = script.indexOf("  async function request(path, options = {}) {", start);
+  expect(start).toBeGreaterThanOrEqual(0);
+  expect(end).toBeGreaterThan(start);
+  const helpers = script.slice(start, end);
+  const field = () => ({ value: "" });
+  const form = (...names: string[]) => ({
+    elements: Object.fromEntries(names.map((name) => [name, field()])),
+  });
+  const availabilityForm = form("from", "to");
+  const reservationBookingForm = form("from", "to");
+  const restrictionForm = form("stayStart", "stayEnd");
+  const ratePriceForm = form("stayStart", "stayEnd");
+  const currentPriceForm = form("stayDate");
+  const operationalBlockForm = form("from", "to");
+  const builderStayStart = field();
+  const builderStayEnd = field();
+  const builderPreviewDates = field();
+  const builderQuoteStart = field();
+  const builderQuoteEnd = field();
+  const execute = Function(
+    "availabilityForm", "reservationBookingForm", "restrictionForm", "ratePriceForm",
+    "currentPriceForm", "operationalBlockForm", "builderStayStart", "builderStayEnd",
+    "builderPreviewDates", "builderQuoteStart", "builderQuoteEnd",
+    `${helpers}\ninitializeDates();`,
+  ) as (...inputs: unknown[]) => void;
+
+  expect(reservationBookingForm.elements.from!.value).toBe("");
+  expect(reservationBookingForm.elements.to!.value).toBe("");
+  const before = Date.now();
+  execute(
+    availabilityForm, reservationBookingForm, restrictionForm, ratePriceForm,
+    currentPriceForm, operationalBlockForm, builderStayStart, builderStayEnd,
+    builderPreviewDates, builderQuoteStart, builderQuoteEnd,
+  );
+  const after = Date.now();
+  const fromValue = reservationBookingForm.elements.from!.value;
+  const toValue = reservationBookingForm.elements.to!.value;
+  expect(fromValue).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}$/);
+  expect(toValue).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}$/);
+  const from = new Date(`${fromValue}Z`).getTime();
+  const to = new Date(`${toValue}Z`).getTime();
+  expect(from).toBeGreaterThan(before);
+  expect(from).toBeLessThanOrEqual(after + 2 * 86_400_000);
+  expect(to).toBeGreaterThan(from);
+  expect(to - from).toBeGreaterThanOrEqual(47 * 3_600_000);
+  expect(to - from).toBeLessThanOrEqual(49 * 3_600_000);
+  expect(script).toContain("reservationBookingForm.elements.from.value = utcInstantInputValue(from)");
+  expect(script).toContain("reservationBookingForm.elements.to.value = utcInstantInputValue(to)");
+});
+
 test("Order 099 P1/P4: booking journey renders server truth without browser promise authority", async () => {
   const html = await Bun.file(new URL("../src/http/operator/index.html", import.meta.url)).text();
   const css = await Bun.file(new URL("../src/http/operator/operator.css", import.meta.url)).text();

@@ -1,6 +1,13 @@
 export { createAuditEnvelope } from "./audit";
 export type { AuditEnvelope, AuditEnvelopeInput } from "./audit";
 export {
+  assertRuntimeReleaseReadiness,
+  buildInfoFromEnvironment,
+  CURRENT_MIGRATION_FRONTIER,
+  UNKNOWN_BUILD_INFO,
+} from "./build-info";
+export type { BuildInfo } from "./build-info";
+export {
   APPROVAL_STATUSES,
   APPROVAL_TRANSITIONS,
   ApprovalConflictError,

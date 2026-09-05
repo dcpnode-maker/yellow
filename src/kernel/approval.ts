@@ -38,6 +38,10 @@ export interface RequestApprovalInput {
   readonly requestedBy: string;
   readonly payload: Readonly<Record<string, unknown>>;
   readonly envelope: AuditEnvelope;
+  /** Internal callers may preallocate the identity needed by a canonical payload. */
+  readonly approvalId?: string;
+  /** Explicit policy-derived expiry; no lifetime is inferred here. */
+  readonly validUntil?: Date;
 }
 
 export interface DecideApprovalInput {
@@ -118,23 +122,50 @@ export class ApprovalService {
     if (typeof input.payload !== "object" || input.payload === null || Array.isArray(input.payload)) {
       throw new Error("approval payload must be an object of facts");
     }
-    const rows = await tx<ApprovalRow[]>`
-      INSERT INTO approval_request (
-        tenant_id, kind, subject_type, subject_id, requested_by, payload
-      )
-      VALUES (
-        ${input.envelope.tenantId}::uuid,
-        ${input.kind},
-        ${input.subjectType},
-        ${input.subjectId}::uuid,
-        ${input.requestedBy}::uuid,
-        ${JSON.stringify(input.payload)}::text::jsonb
-      )
-      RETURNING id, tenant_id, kind, subject_type, subject_id, requested_by,
-                payload, status, decided_by, decided_at, created_at
-    `;
+    if (input.approvalId !== undefined && !UUID.test(input.approvalId)) {
+      throw new Error("approvalId must be a UUID");
+    }
+    if (input.validUntil !== undefined &&
+        (!(input.validUntil instanceof Date) || !Number.isFinite(input.validUntil.getTime()))) {
+      throw new Error("validUntil must be a finite Date");
+    }
+    const validUntilIso = input.validUntil?.toISOString();
+    const legacyRequest = input.approvalId === undefined && input.validUntil === undefined;
+    const rows = input.approvalId === undefined && input.validUntil === undefined
+      ? await tx<ApprovalRow[]>`
+          INSERT INTO approval_request (
+            tenant_id, kind, subject_type, subject_id, requested_by, payload
+          )
+          VALUES (
+            ${input.envelope.tenantId}::uuid,
+            ${input.kind},
+            ${input.subjectType},
+            ${input.subjectId}::uuid,
+            ${input.requestedBy}::uuid,
+            ${JSON.stringify(input.payload)}::text::jsonb
+          )
+          RETURNING id, tenant_id, kind, subject_type, subject_id, requested_by,
+                    payload, status, decided_by, decided_at, created_at
+        `
+      : await tx<ApprovalRow[]>`
+          SELECT id, tenant_id, kind, subject_type, subject_id, requested_by,
+                 payload, status, decided_by, decided_at, created_at
+          FROM public.create_approval_request_with_options(
+            ${input.envelope.tenantId}::uuid,
+            ${input.envelope.propertyNode}::uuid,
+            ${input.envelope.actorId}::uuid,
+            ${input.approvalId ?? null}::uuid,
+            ${input.kind},
+            ${input.subjectType},
+            ${input.subjectId}::uuid,
+            ${JSON.stringify(input.payload)}::text::jsonb,
+            ${validUntilIso ?? null}::timestamptz
+          )
+        `;
     const row = rows[0];
-    if (!row) throw new Error("PostgreSQL did not return the approval request");
+    if (!row) throw new Error(legacyRequest
+      ? "PostgreSQL did not return the approval request"
+      : "approval validUntil must be later than the PostgreSQL transaction timestamp");
     const fact = await recordFact(tx, {
       entityType: "approval_request",
       entityId: row.id,
@@ -147,6 +178,7 @@ export class ApprovalService {
         requested_by: row.requested_by,
         status: row.status,
         payload: row.payload,
+        ...(validUntilIso === undefined ? {} : { valid_until: validUntilIso }),
       },
     });
     await this.#events.publish(tx, {

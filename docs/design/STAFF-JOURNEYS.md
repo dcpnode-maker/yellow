@@ -1,13 +1,5 @@
 # Staff journeys: hotel and STR
 
-> **Development documentation snapshot — 2026-09-05.** Source:
-> [`61dbeea`](https://github.com/dcpnode-maker/yellow/commit/61dbeea6f2e0eac764ff177d33d8a6f8ac36103e).
-> This updates the original project documentation on main; main's executable code
-> is still an older integrated baseline. Implemented contracts, setup behavior and
-> proof described below refer to that development revision, not a claim that main
-> or the local app already runs them. Planned capabilities remain planned.
-
-
 **Status:** specified under Order433, not a claim of implemented UI · 2026-09-05.
 Requirements: [YF-002–015](../FEATURE-REGISTER.md). Research:
 [PMS/STR benchmark](../research/STAFF-STR-ECOSYSTEM-2026-09.md).

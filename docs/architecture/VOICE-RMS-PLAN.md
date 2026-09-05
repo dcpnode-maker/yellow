@@ -1,13 +1,5 @@
 # Voice and RMS plan (proposal)
 
-> **Development documentation snapshot — 2026-09-05.** Source:
-> [`61dbeea`](https://github.com/dcpnode-maker/yellow/commit/61dbeea6f2e0eac764ff177d33d8a6f8ac36103e).
-> This updates the original project documentation on main; main's executable code
-> is still an older integrated baseline. Implemented contracts, setup behavior and
-> proof described below refer to that development revision, not a claim that main
-> or the local app already runs them. Planned capabilities remain planned.
-
-
 **Order 433 · 2026-09-05 · design only**
 
 This is a durable research and architecture proposal for Yellow staff voice and

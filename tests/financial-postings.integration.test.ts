@@ -191,7 +191,7 @@ describe("Order 104 balanced charge posting", () => {
 
 dbDescribe("Order 104 fresh-PostgreSQL financial posting proof", () => {
   test("P1: exact migration truth, ACL, composite constraints and database guards", async () => {
-    expect((await admin!<Array<{ n: number }>>`SELECT count(*)::int n FROM information_schema.tables WHERE table_schema='public' AND table_type='BASE TABLE'`)[0]!.n).toBe(85);
+    expect((await admin!<Array<{ n: number }>>`SELECT count(*)::int n FROM information_schema.tables WHERE table_schema='public' AND table_type='BASE TABLE'`)[0]!.n).toBe(125);
     const acl = (await admin!<Array<{ rls: boolean; select_ok: boolean; insert_ok: boolean; tx_mutate: boolean }>>`
       SELECT c.relrowsecurity rls,has_table_privilege('app_role','tx_code_route','SELECT') select_ok,
         has_table_privilege('app_role','tx_code_route','INSERT') insert_ok,
@@ -284,8 +284,8 @@ dbDescribe("Order 104 fresh-PostgreSQL financial posting proof", () => {
     const pause = new PausingPublish(events!);
     const chargedPromise = post(request("order104-charge-before-seal", HOSTILE_FOLIO, "17"), makeService(pause));
     await pause.published;
-    const waitingSeal = database!.withTenantTransaction(TENANT_A, (tx) => tx.unsafe(
-      "SELECT seal_business_day($1,$2,$3::date,$4)", [TENANT_A, PROPERTY_A, day, ACTOR_A]));
+    const waitingSeal = admin!.unsafe(
+      "SELECT seal_business_day($1,$2,$3::date,$4)", [TENANT_A, PROPERTY_A, day, ACTOR_A]);
     pause.release(); const charged = await chargedPromise; await waitingSeal;
     expect(charged.replayed).toBeFalse();
     await expect(post(request("order104-after-seal", HOSTILE_FOLIO, "19"))).rejects.toBeInstanceOf(ChargeConflictError);

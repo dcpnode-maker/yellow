@@ -23,6 +23,8 @@ export type {
   HoldStatus,
   PlaceCartHoldInput,
   PlaceOfflineLeaseInput,
+  PrepareCartHoldForSegmentInput,
+  PreparedCartHoldForSegment,
   TransitionHoldInput,
 } from "./holds";
 export { HOLD_EXPIRY_ACTOR_ID, HoldExpiryWorker } from "./hold-expiry-worker";
@@ -78,6 +80,8 @@ export type {
 export { ReservationOccupancyService } from "./reservation-occupancy";
 export type {
   ClaimReservationSegmentInput,
+  PrepareReservationSegmentClaimInput,
+  PreparedReservationSegmentClaim,
   ReleaseReservationSegmentInput,
   ReservationSegmentClaim,
   ReservationSegmentOccupancyClaim,

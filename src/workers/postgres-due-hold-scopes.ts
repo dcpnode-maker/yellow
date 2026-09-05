@@ -19,15 +19,10 @@ export class PostgresDueHoldScopeSource implements DueHoldScopeSource {
     if (!Number.isSafeInteger(limit) || limit < 1 || limit > MAX_SCOPE_BATCH_SIZE) {
       throw new Error(`limit must be between 1 and ${MAX_SCOPE_BATCH_SIZE}`);
     }
-    const rows = await this.#pool.unsafe<DueHoldScopeRow[]>(`
+    const rows = await this.#pool<DueHoldScopeRow[]>`
       SELECT tenant_id, property_node
-      FROM hold
-      WHERE status = 'active'
-        AND expires_at <= transaction_timestamp()
-      GROUP BY tenant_id, property_node
-      ORDER BY min(expires_at), tenant_id, property_node
-      LIMIT $1
-    `, [limit]);
+      FROM runtime_due_hold_scopes(${limit})
+    `;
     return rows.map(({ tenant_id, property_node }) => ({ tenantId: tenant_id, propertyNode: property_node }));
   }
 }

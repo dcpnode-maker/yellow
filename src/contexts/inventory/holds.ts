@@ -48,6 +48,17 @@ export interface ConsumeCartHoldInput extends TransitionHoldInput {
   readonly segmentId: string;
 }
 
+export type PrepareCartHoldForSegmentInput = TransitionHoldInput;
+
+export interface PreparedCartHoldForSegment {
+  readonly holdId: string;
+  readonly sellableUnitId: string;
+  readonly unitTypeId: string;
+  readonly from: Date;
+  readonly to: Date;
+  readonly claimCount: number;
+}
+
 export interface ConsumedCartHold {
   readonly hold: CartHold;
   readonly segmentId: string;
@@ -398,32 +409,7 @@ export class HoldService {
     requireUuid("holdId", input.holdId);
     requireUuid("segmentId", input.segmentId);
 
-    const rows = await tx.unsafe<ConsumableHoldRow[]>(`
-      SELECT
-        h.id, h.tenant_id, h.property_node, h.sellable_unit_id,
-        lower(h.period) AS from_at, upper(h.period) AS to_at,
-        h.holder, h.expires_at, h.kind, h.status,
-        su.unit_type_id
-      FROM hold AS h
-      JOIN sellable_unit AS su
-        ON su.id = h.sellable_unit_id
-       AND su.tenant_id = h.tenant_id
-      WHERE h.tenant_id = $1::uuid
-        AND h.tenant_id = current_setting('app.tenant_id', true)::uuid
-        AND h.property_node = $2::uuid
-        AND h.id = $3::uuid
-        AND h.kind = 'cart'
-        AND h.status = 'active'
-        AND h.expires_at > transaction_timestamp()
-      FOR UPDATE OF h
-    `, [input.envelope.tenantId, input.envelope.propertyNode, input.holdId]);
-    const existing = rows[0];
-    if (!existing) throw new HoldConflictError("Active unexpired cart hold was not found");
-
-    const occupancies = await occupancyRows(tx, existing.id);
-    if (occupancies.length === 0) {
-      throw new HoldConflictError("Active cart hold has no occupancy claims");
-    }
+    const { existing, occupancies } = await this.#loadConsumableHold(tx, input);
     const released = await tx<Array<{ count: number }>>`
       SELECT release_occupancy(${existing.tenant_id}::uuid, ${existing.id}::uuid) AS count
     `;
@@ -532,6 +518,56 @@ export class HoldService {
       unitTypeId: existing.unit_type_id,
       claimCount: replacements.length,
     });
+  }
+
+  async prepareForSegment(
+    tx: Tx,
+    input: PrepareCartHoldForSegmentInput,
+  ): Promise<PreparedCartHoldForSegment> {
+    requireOperation(input.envelope, "hold.consumed");
+    requireUuid("holdId", input.holdId);
+    const { existing, occupancies } = await this.#loadConsumableHold(tx, input);
+    return Object.freeze({
+      holdId: existing.id,
+      sellableUnitId: existing.sellable_unit_id,
+      unitTypeId: existing.unit_type_id,
+      from: new Date(existing.from_at),
+      to: new Date(existing.to_at),
+      claimCount: occupancies.length,
+    });
+  }
+
+  async #loadConsumableHold(
+    tx: Tx,
+    input: PrepareCartHoldForSegmentInput,
+  ): Promise<Readonly<{ existing: ConsumableHoldRow; occupancies: readonly OccupancyRow[] }>> {
+    const rows = await tx.unsafe<ConsumableHoldRow[]>(`
+      SELECT
+        h.id, h.tenant_id, h.property_node, h.sellable_unit_id,
+        lower(h.period) AS from_at, upper(h.period) AS to_at,
+        h.holder, h.expires_at, h.kind, h.status,
+        su.unit_type_id
+      FROM hold AS h
+      JOIN sellable_unit AS su
+        ON su.id = h.sellable_unit_id
+       AND su.tenant_id = h.tenant_id
+      WHERE h.tenant_id = $1::uuid
+        AND h.tenant_id = current_setting('app.tenant_id', true)::uuid
+        AND h.property_node = $2::uuid
+        AND h.id = $3::uuid
+        AND h.kind = 'cart'
+        AND h.status = 'active'
+        AND h.expires_at > transaction_timestamp()
+      FOR UPDATE OF h
+    `, [input.envelope.tenantId, input.envelope.propertyNode, input.holdId]);
+    const existing = rows[0];
+    if (!existing) throw new HoldConflictError("Active unexpired cart hold was not found");
+
+    const occupancies = await occupancyRows(tx, existing.id);
+    if (occupancies.length === 0) {
+      throw new HoldConflictError("Active cart hold has no occupancy claims");
+    }
+    return Object.freeze({ existing, occupancies: Object.freeze([...occupancies]) });
   }
 
   async expireDue(tx: Tx, envelope: AuditEnvelope, limit = 100): Promise<readonly CartHold[]> {

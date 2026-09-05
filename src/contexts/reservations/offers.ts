@@ -103,6 +103,7 @@ export interface ReservationOffer {
   readonly total: Readonly<{ amountMinor: bigint; currency: string; kind: "pre_tax" }> | null;
   readonly taxes: readonly RateQuoteTaxAssignmentEvidence[];
   readonly taxAssignmentState: RateQuote["taxAssignmentState"];
+  readonly taxPreview: RateQuote["taxPreview"];
   readonly policies: Readonly<Record<PolicyKind, ReservationOfferPolicyEvidence | null>>;
   readonly package: RatePackageEvidence | null;
   readonly selectedPromotionCodes: readonly string[];
@@ -383,6 +384,7 @@ function toOffer(plan: RatePlan, quote: RateQuote, input: NormalizedOfferSearchI
     total,
     taxes: quote.taxAssignments,
     taxAssignmentState: quote.taxAssignmentState,
+    taxPreview: quote.taxPreview,
     policies: policyEvidence(quote),
     package: quote.result.packageEvidence,
     selectedPromotionCodes: quote.result.selectedPromotionCodes,

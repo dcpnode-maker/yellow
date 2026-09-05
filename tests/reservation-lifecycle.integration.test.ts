@@ -28,7 +28,8 @@ import {
   type Tx,
 } from "../src/kernel";
 
-const DATABASE_URL = process.env.YELLOW_RESERVATION_LIFECYCLE_URL;
+const DEPLOY_DATABASE_URL = process.env.YELLOW_DEPLOY_DATABASE_URL ?? process.env.YELLOW_RESERVATION_LIFECYCLE_URL;
+const RUNTIME_DATABASE_URL = process.env.YELLOW_RUNTIME_DATABASE_URL ?? process.env.YELLOW_RESERVATION_LIFECYCLE_URL;
 const REQUIRE_DATABASE = process.env.YELLOW_REQUIRE_RESERVATION_LIFECYCLE === "1";
 
 const TENANT_A = "00000000-0000-0000-0000-000000008501";
@@ -64,11 +65,30 @@ const ZERO_CONTENT = Object.freeze({
   ]),
 });
 
-if (REQUIRE_DATABASE && !DATABASE_URL) {
+if (REQUIRE_DATABASE && (!DEPLOY_DATABASE_URL || !RUNTIME_DATABASE_URL)) {
   throw new Error("YELLOW_RESERVATION_LIFECYCLE_URL is required by the Order 085 proof");
 }
 
-const databaseDescribe = DATABASE_URL ? describe.serial : describe.skip;
+test("Order 144 P0/P1: reinstatement restores live segment parents before occupancy", async () => {
+  const source = await Bun.file(
+    new URL("../src/contexts/reservations/lifecycle.ts", import.meta.url),
+  ).text();
+  const reinstateStart = source.indexOf("async reinstate(");
+  const reinstate = source.slice(reinstateStart);
+  const parentUpdate = reinstate.indexOf("const updatedSegments = await commandTx");
+  const occupancyClaim = reinstate.indexOf("const claimed = await this.#occupancy.claimForSegment");
+
+  expect({
+    surfacePresent: reinstateStart >= 0,
+    liveParentBeforeClaim:
+      parentUpdate >= 0 && occupancyClaim >= 0 && parentUpdate < occupancyClaim,
+  }).toEqual({
+    surfacePresent: true,
+    liveParentBeforeClaim: true,
+  });
+});
+
+const databaseDescribe = DEPLOY_DATABASE_URL && RUNTIME_DATABASE_URL ? describe.serial : describe.skip;
 let admin: SQL | undefined;
 let eventPool: SQL | undefined;
 let database: Database | undefined;
@@ -201,6 +221,22 @@ async function failedArtifacts(requestId: string): Promise<Readonly<{ facts: num
   return rows[0] ?? { facts: -1, events: -1 };
 }
 
+async function liveParentObservations(segmentId: string): Promise<Array<{
+  segmentStatus: string;
+  exactPeriod: boolean;
+}>> {
+  return admin!`
+    SELECT observation.segment_status AS "segmentStatus",
+           observation.period = segment.period AS "exactPeriod"
+      FROM order144_parent_observation AS observation
+      JOIN reservation_segment AS segment
+        ON segment.id = observation.segment_id
+       AND segment.tenant_id = observation.tenant_id
+     WHERE observation.segment_id = ${segmentId}::uuid
+     ORDER BY observation.observed_at, observation.id
+  `;
+}
+
 class FailAtEventBus implements EventBus {
   calls = 0;
 
@@ -218,10 +254,10 @@ class FailAtEventBus implements EventBus {
 }
 
 beforeAll(async () => {
-  if (!DATABASE_URL) return;
-  admin = new SQL(DATABASE_URL, { max: 16 });
-  eventPool = new SQL(DATABASE_URL, { max: 32 });
-  database = Database.connect(DATABASE_URL, { maxConnections: 64 });
+  if (!DEPLOY_DATABASE_URL || !RUNTIME_DATABASE_URL) return;
+  admin = new SQL(DEPLOY_DATABASE_URL, { max: 16 });
+  eventPool = new SQL(RUNTIME_DATABASE_URL, { max: 32 });
+  database = Database.connect(RUNTIME_DATABASE_URL, { maxConnections: 64 });
   events = new PostgresEventBus(eventPool);
   occupancy = new ReservationOccupancyService(events);
   commits = new ReservationCommitService({
@@ -300,9 +336,79 @@ beforeAll(async () => {
       (${TENANT_A}::uuid, ${SELLABLE_COMPOSITE}::uuid, ${SPACE_COMPOSITE_B}::uuid, 'exclusive'),
       (${TENANT_A}::uuid, ${SELLABLE_POSITIONAL}::uuid, ${SPACE_POSITIONAL}::uuid, 'positional')
   `;
+  await admin.unsafe(`
+    CREATE TABLE order144_parent_observation (
+      id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+      observed_at timestamptz NOT NULL DEFAULT transaction_timestamp(),
+      tenant_id uuid NOT NULL,
+      reservation_id uuid NOT NULL,
+      segment_id uuid NOT NULL,
+      segment_status text NOT NULL,
+      period tstzrange NOT NULL
+    );
+    ALTER TABLE order144_parent_observation OWNER TO yellow_owner;
+    CREATE FUNCTION order144_require_live_segment_parent() RETURNS trigger
+    LANGUAGE plpgsql AS $$
+    BEGIN
+      IF NEW.slot_kind <> 'segment' THEN
+        RETURN NEW;
+      END IF;
+
+      INSERT INTO order144_parent_observation (
+        tenant_id, reservation_id, segment_id, segment_status, period
+      )
+      SELECT segment.tenant_id, segment.reservation_id, segment.id,
+             segment.status, segment.period
+        FROM reservation_segment AS segment
+        JOIN reservation
+          ON reservation.id = segment.reservation_id
+         AND reservation.tenant_id = segment.tenant_id
+        JOIN sellable_unit
+          ON sellable_unit.id = segment.sellable_unit_id
+         AND sellable_unit.tenant_id = segment.tenant_id
+         AND sellable_unit.unit_type_id = segment.unit_type_id
+         AND sellable_unit.status = 'active'
+        JOIN unit_type
+          ON unit_type.id = segment.unit_type_id
+         AND unit_type.tenant_id = segment.tenant_id
+         AND unit_type.property_node = reservation.property_node
+        JOIN sellable_unit_space AS mapping
+          ON mapping.tenant_id = segment.tenant_id
+         AND mapping.sellable_unit_id = segment.sellable_unit_id
+         AND mapping.space_id = NEW.space_id
+         AND mapping.claim_mode =
+             CASE WHEN NEW.exclusive THEN 'exclusive' ELSE 'positional' END
+        JOIN space
+          ON space.id = mapping.space_id
+         AND space.tenant_id = segment.tenant_id
+         AND space.property_node = reservation.property_node
+         AND space.status = 'active'
+       WHERE segment.id = NEW.slot_ref
+         AND segment.tenant_id = NEW.tenant_id
+         AND segment.status IN ('booked', 'in_house')
+         AND segment.period = NEW.period;
+
+      IF NOT FOUND THEN
+        RAISE EXCEPTION USING
+          ERRCODE = 'P0144',
+          MESSAGE = 'order144 exact live segment parent missing before occupancy';
+      END IF;
+      RETURN NEW;
+    END $$;
+    CREATE TRIGGER order144_require_live_segment_parent
+      BEFORE INSERT ON space_occupancy
+      FOR EACH ROW EXECUTE FUNCTION order144_require_live_segment_parent();
+  `);
 });
 
 afterAll(async () => {
+  if (admin) {
+    await admin.unsafe(`
+      DROP TRIGGER IF EXISTS order144_require_live_segment_parent ON space_occupancy;
+      DROP FUNCTION IF EXISTS order144_require_live_segment_parent();
+      DROP TABLE IF EXISTS order144_parent_observation;
+    `).catch(() => undefined);
+  }
   await database?.close();
   await eventPool?.close();
   await admin?.close();
@@ -533,10 +639,12 @@ databaseDescribe("Order 085 reservation lifecycle commands", () => {
       idempotencyKey: "order085-reinstate-blocked",
       envelope: envelope("reservation.reinstated"),
     } as const;
+    await admin!`DELETE FROM order144_parent_observation WHERE segment_id = ${original.segmentId}::uuid`;
     const before = await snapshot(original.reservationId);
     await expect(reinstate(lifecycle!, reinstateInput)).rejects.toBeInstanceOf(ReservationLifecycleConflictError);
     expect(await snapshot(original.reservationId)).toEqual(before);
     expect(await failedArtifacts(reinstateInput.envelope.requestId)).toEqual({ facts: 0, events: 0 });
+    expect(await liveParentObservations(original.segmentId)).toEqual([]);
 
     await cancel(lifecycle!, {
       reservationId: competitor.reservationId,
@@ -550,6 +658,9 @@ databaseDescribe("Order 085 reservation lifecycle commands", () => {
       envelope: envelope("reservation.reinstated"),
     });
     expect(reinstated).toMatchObject({ status: "reserved", reclaimedClaimCount: 1, replayed: false });
+    expect(await liveParentObservations(original.segmentId)).toEqual([
+      { segmentStatus: "booked", exactPeriod: true },
+    ]);
     await cancel(lifecycle!, {
       reservationId: original.reservationId,
       reason: "Prepare concurrent reinstatement",
@@ -587,7 +698,12 @@ databaseDescribe("Order 085 reservation lifecycle commands", () => {
     `;
     expect(positionalClaims).toEqual([{ count: 1 }]);
 
-    const racingSegmentId = crypto.randomUUID();
+    const racing = await createReservation(19, RATE_NONE, SELLABLE_POSITIONAL);
+    await database!.withTenantTransaction(TENANT_A, (tx) => occupancy!.releaseForSegment(tx, {
+      segmentId: racing.segmentId,
+      envelope: envelope("occupancy.released"),
+    }));
+    const racingSegmentId = racing.segmentId;
     const racingClaim = () => database!.withTenantTransaction(TENANT_A, (tx) => occupancy!.claimForSegment(tx, {
       sellableUnitId: SELLABLE_POSITIONAL,
       segmentId: racingSegmentId,

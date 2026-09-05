@@ -8,7 +8,9 @@ import {
   type Phase3GateProcess,
 } from "../scripts/run-phase-3-gate";
 
-const ADMIN_URL = "postgres://yellow:yellow@127.0.0.1:55432/postgres";
+const DEPLOY_URL = "postgres://yellow_deploy:deploy-proof@127.0.0.1:55432/postgres";
+const RUNTIME_URL = "postgres://yellow_runtime:runtime-proof@127.0.0.1:55432/postgres";
+const REGISTRAR_URL = "postgres://yellow_extension_registrar:registrar-proof@127.0.0.1:55432/postgres";
 const PASSWORD = "Order079-Proof-Only!";
 
 function fakeHarness(exitFor: (process: Phase3GateProcess) => number = () => 0) {
@@ -28,7 +30,7 @@ function fakeHarness(exitFor: (process: Phase3GateProcess) => number = () => 0) 
   return { events, harness };
 }
 
-describe("Orders 079/083/104/108 reproducible cumulative database proof runner", () => {
+describe("Orders 079/083/104/108/118/121/123/124/129/150/151 reproducible cumulative database proof runner", () => {
   test("P1: matrix pins every Phase-3 and inherited F11 database proof with exact environment mapping", () => {
     expect(PHASE_3_DATABASE_PROOFS).toEqual([
       {
@@ -136,38 +138,104 @@ describe("Orders 079/083/104/108 reproducible cumulative database proof runner",
         urlEnv: "YELLOW_SECURITY_DEFINER_URL",
         passwordEnv: null,
       },
+      {
+        databaseName: "yellow_ci_p5_app_role_nonlogin",
+        testFile: "tests/app-role-nonlogin.integration.test.ts",
+        requireEnv: "YELLOW_REQUIRE_APP_ROLE_NONLOGIN",
+        urlEnv: "YELLOW_APP_ROLE_NONLOGIN_URL",
+        passwordEnv: null,
+      },
+      {
+        databaseName: "yellow_ci_p5_actor_idempotency",
+        testFile: "tests/operator-idempotency-actor.integration.test.ts",
+        requireEnv: "YELLOW_REQUIRE_OPERATOR_IDEMPOTENCY_ACTOR",
+        urlEnv: "YELLOW_OPERATOR_IDEMPOTENCY_ACTOR_URL",
+        passwordEnv: "YELLOW_OPERATOR_IDEMPOTENCY_ACTOR_PASSWORD",
+      },
+      {
+        databaseName: "yellow_ci_p5_business_day_seal",
+        testFile: "tests/business-day-seal-authority.integration.test.ts",
+        requireEnv: "YELLOW_REQUIRE_BUSINESS_DAY_SEAL",
+        urlEnv: "YELLOW_BUSINESS_DAY_SEAL_URL",
+        passwordEnv: null,
+      },
+      {
+        databaseName: "yellow_ci_p5_reservation_parent",
+        testFile: "tests/reservation-parent-before-occupancy.integration.test.ts",
+        requireEnv: "YELLOW_REQUIRE_RESERVATION_PARENT",
+        urlEnv: "YELLOW_RESERVATION_PARENT_URL",
+        passwordEnv: null,
+      },
+      {
+        databaseName: "yellow_ci_p5_runtime_database_authority",
+        testFile: "tests/runtime-database-authority.integration.test.ts",
+        requireEnv: "YELLOW_REQUIRE_RUNTIME_AUTHORITY_P0",
+        urlEnv: "YELLOW_RUNTIME_AUTHORITY_P0_URL",
+        passwordEnv: null,
+        registrarUrlEnv: "YELLOW_EXTENSION_REGISTRAR_DATABASE_URL",
+      },
+      {
+        databaseName: "yellow_ci_p5_runtime_dml_authority",
+        testFile: "tests/runtime-dml-authority.integration.test.ts",
+        requireEnv: "YELLOW_REQUIRE_RUNTIME_DML",
+        urlEnv: "YELLOW_RUNTIME_DML_URL",
+        passwordEnv: null,
+      },
+      {
+        databaseName: "yellow_ci_p5_financial_row_lock",
+        testFile: "tests/financial-row-lock-authority.integration.test.ts",
+        requireEnv: "YELLOW_REQUIRE_FINANCIAL_ROW_LOCK",
+        urlEnv: "YELLOW_FINANCIAL_ROW_LOCK_URL",
+        passwordEnv: null,
+      },
+      {
+        databaseName: "yellow_ci_p5_extension_registration",
+        testFile: "tests/extension-type-registration-capability.integration.test.ts",
+        requireEnv: "YELLOW_REQUIRE_EXTENSION_REGISTRATION",
+        urlEnv: "YELLOW_EXTENSION_REGISTRATION_URL",
+        passwordEnv: null,
+        registrarUrlEnv: "YELLOW_EXTENSION_REGISTRAR_DATABASE_URL",
+      },
     ]);
-    expect(new Set(PHASE_3_DATABASE_PROOFS.map(({ databaseName }) => databaseName)).size).toBe(15);
+    expect(new Set(PHASE_3_DATABASE_PROOFS.map(({ databaseName }) => databaseName)).size).toBe(23);
   });
 
   test("P1: inputs fail closed before orchestration", () => {
-    expect(() => validatePhase3GateInputs("", PASSWORD)).toThrow("admin URL");
-    expect(() => validatePhase3GateInputs("https://example.test/postgres", PASSWORD)).toThrow(
+    expect(() => validatePhase3GateInputs("", RUNTIME_URL, REGISTRAR_URL, PASSWORD)).toThrow("exact URL");
+    expect(() => validatePhase3GateInputs(DEPLOY_URL, "https://example.test/postgres", REGISTRAR_URL, PASSWORD)).toThrow(
       "PostgreSQL",
     );
-    expect(() => validatePhase3GateInputs(ADMIN_URL, "short")).toThrow("password");
-    expect(validatePhase3GateInputs(ADMIN_URL, PASSWORD)).toEqual({
-      adminUrl: ADMIN_URL,
+    expect(() => validatePhase3GateInputs(DEPLOY_URL, RUNTIME_URL, REGISTRAR_URL, "short")).toThrow("password");
+    expect(() => validatePhase3GateInputs(DEPLOY_URL, DEPLOY_URL, REGISTRAR_URL, PASSWORD)).toThrow("distinct exact credentials");
+    expect(validatePhase3GateInputs(DEPLOY_URL, RUNTIME_URL, REGISTRAR_URL, PASSWORD)).toEqual({
+      deployUrl: DEPLOY_URL,
+      runtimeUrl: RUNTIME_URL,
+      registrarUrl: REGISTRAR_URL,
       password: PASSWORD,
     });
   });
 
   test("P1: every suite runs migrate then proof sequentially and is force-cleaned", async () => {
     const { events, harness } = fakeHarness();
-    await runPhase3Gate({ adminUrl: ADMIN_URL, password: PASSWORD, harness });
+    await runPhase3Gate({ deployUrl: DEPLOY_URL, runtimeUrl: RUNTIME_URL, registrarUrl: REGISTRAR_URL, password: PASSWORD, harness });
 
     expect(events).toHaveLength(PHASE_3_DATABASE_PROOFS.length * 4);
     for (const [index, proof] of PHASE_3_DATABASE_PROOFS.entries()) {
       const event = events.slice(index * 4, index * 4 + 4);
-      expect(event[0]).toBe(`create:${ADMIN_URL}:${proof.databaseName}`);
+      expect(event[0]).toBe(`create:${DEPLOY_URL}:${proof.databaseName}`);
       expect(event[1]).toContain(`run:migrate ${proof.testFile}:bun run db:migrate:`);
       expect(event[2]).toContain(`run:${proof.testFile}:bun test ${proof.testFile}:`);
       expect(event[2]).toContain(`\"${proof.requireEnv}\":\"1\"`);
-      expect(event[2]).toContain(`\"${proof.urlEnv}\":\"postgres://yellow:yellow@127.0.0.1:55432/${proof.databaseName}\"`);
+      expect(event[2]).toContain(`\"${proof.urlEnv}\":\"postgres://yellow_deploy:deploy-proof@127.0.0.1:55432/${proof.databaseName}\"`);
+      expect(event[2]).toContain(`\"YELLOW_DEPLOY_DATABASE_URL\":\"postgres://yellow_deploy:deploy-proof@127.0.0.1:55432/${proof.databaseName}\"`);
+      expect(event[2]).toContain(`\"YELLOW_RUNTIME_DATABASE_URL\":\"postgres://yellow_runtime:runtime-proof@127.0.0.1:55432/${proof.databaseName}\"`);
+      if (proof.registrarUrlEnv) {
+        expect(event[2]).toContain(`\"${proof.registrarUrlEnv}\":\"postgres://yellow_extension_registrar:registrar-proof@127.0.0.1:55432/${proof.databaseName}\"`);
+      }
       if (proof.passwordEnv) {
         expect(event[2]).toContain(`\"${proof.passwordEnv}\":\"${PASSWORD}\"`);
       }
-      expect(event[3]).toBe(`drop:${ADMIN_URL}:${proof.databaseName}`);
+      expect(event[3]).toBe(`drop:${DEPLOY_URL}:${proof.databaseName}`);
     }
   });
 
@@ -177,11 +245,11 @@ describe("Orders 079/083/104/108 reproducible cumulative database proof runner",
       process.kind === "test" && process.testFile === failedFile ? 7 : 0
     );
 
-    await expect(runPhase3Gate({ adminUrl: ADMIN_URL, password: PASSWORD, harness })).rejects.toThrow(
+    await expect(runPhase3Gate({ deployUrl: DEPLOY_URL, runtimeUrl: RUNTIME_URL, registrarUrl: REGISTRAR_URL, password: PASSWORD, harness })).rejects.toThrow(
       `${failedFile} failed with exit code 7`,
     );
     expect(events.at(-1)).toBe(
-      `drop:${ADMIN_URL}:${PHASE_3_DATABASE_PROOFS[1]!.databaseName}`,
+      `drop:${DEPLOY_URL}:${PHASE_3_DATABASE_PROOFS[1]!.databaseName}`,
     );
     expect(events.some((event) => event.includes(PHASE_3_DATABASE_PROOFS[2]!.testFile))).toBeFalse();
   });
@@ -190,12 +258,12 @@ describe("Orders 079/083/104/108 reproducible cumulative database proof runner",
     const failedFile = PHASE_3_DATABASE_PROOFS[0]!.testFile;
     const { events, harness } = fakeHarness((process) => process.kind === "migrate" ? 9 : 0);
 
-    await expect(runPhase3Gate({ adminUrl: ADMIN_URL, password: PASSWORD, harness })).rejects.toThrow(
+    await expect(runPhase3Gate({ deployUrl: DEPLOY_URL, runtimeUrl: RUNTIME_URL, registrarUrl: REGISTRAR_URL, password: PASSWORD, harness })).rejects.toThrow(
       `${failedFile} failed with exit code 9 during migrate`,
     );
     expect(events).toHaveLength(3);
     expect(events[1]).toContain(`run:migrate ${failedFile}`);
-    expect(events[2]).toBe(`drop:${ADMIN_URL}:${PHASE_3_DATABASE_PROOFS[0]!.databaseName}`);
+    expect(events[2]).toBe(`drop:${DEPLOY_URL}:${PHASE_3_DATABASE_PROOFS[0]!.databaseName}`);
     expect(events.some((event) => event.startsWith(`run:${failedFile}:bun test`))).toBeFalse();
   });
 
@@ -203,9 +271,11 @@ describe("Orders 079/083/104/108 reproducible cumulative database proof runner",
     const packageJson = await Bun.file(new URL("../package.json", import.meta.url)).json();
     const workflow = await Bun.file(new URL("../.github/workflows/ci.yml", import.meta.url)).text();
     expect(packageJson.scripts["test:phase3-gate"]).toBe("bun scripts/run-phase-3-gate.ts");
-    expect(workflow).toContain("YELLOW_PHASE3_GATE_ADMIN_URL: ${{ env.ADMIN_URL }}");
-    expect(workflow).toContain("YELLOW_PHASE3_GATE_PASSWORD: Order079-CI-Proof-Only!");
-    const commandIndex = workflow.indexOf("run: bun run test:phase3-gate");
+    expect(workflow).toContain('YELLOW_PHASE3_GATE_DEPLOY_URL="$ADMIN_URL"');
+    expect(workflow).toContain('YELLOW_PHASE3_GATE_RUNTIME_URL="postgres://yellow_runtime:${YELLOW_RUNTIME_DATABASE_PASSWORD}@${POSTGRES_ADDRESS}/postgres"');
+    expect(workflow).toContain('YELLOW_PHASE3_GATE_REGISTRAR_URL="postgres://yellow_extension_registrar:${YELLOW_EXTENSION_REGISTRAR_DATABASE_PASSWORD}@${POSTGRES_ADDRESS}/postgres"');
+    expect(workflow).toContain("YELLOW_PHASE3_GATE_PASSWORD='Order079-CI-Proof-Only!'");
+    const commandIndex = workflow.indexOf("bun run test:phase3-gate");
     expect(commandIndex).toBeGreaterThan(workflow.indexOf("Resolve PostgreSQL address through Compose"));
     expect(commandIndex).toBeLessThan(workflow.indexOf("Start application and verify exact health"));
   });

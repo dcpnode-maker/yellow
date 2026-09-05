@@ -1,11 +1,13 @@
 import { SQL } from "bun";
 
-import { app, createApp } from "./app";
-import { BearerTenantResolver, Hs256TokenSigner, LocalLoginService } from "./contexts/identity";
+import { createApp } from "./app";
+import { BearerTenantResolver, Hs256TokenSigner, LocalLoginGuard, LocalLoginService } from "./contexts/identity";
 import { PartyProfileService } from "./contexts/crm";
-import { ChargeService, FolioStatementService } from "./contexts/financials";
+import { BusinessDayDiscrepancyCarryOperatorService, BusinessDayRollService, BusinessDayRollWorker, BusinessDaySealService, CashierService, ChargeCorrectionService, ChargeService, FolioService, FolioSettlementService, FolioStatementService, FolioTransferService, HostedDepositService, LocalPaymentProvider, OwnerTrustExpenseWorkbenchService, PaymentService, ReceivableService } from "./contexts/financials";
 import { AvailabilityProjectionConsumer, AvailabilityProjectionService, AvailabilityService, HoldExpiryWorker, HoldService, InventoryPolicyService, InventoryService, OperationalBlockService, ReservationOccupancyService, RestrictionService } from "./contexts/inventory";
-import { ReservationCommitService, ReservationGuestService, ReservationLifecycleService, ReservationOfferSearchService, ReservationSegmentService } from "./contexts/reservations";
+import { ReservationArrivalRollService, ReservationArrivalRollWorker, ReservationBoardService, ReservationCommitService, ReservationDepartureRollService, ReservationDepartureRollWorker, ReservationDetailService, ReservationGuestService, ReservationLifecycleService, ReservationOfferSearchService, ReservationSegmentService, ReservationTravelService } from "./contexts/reservations";
+import { ArrivalPickupTaskAutomationConsumer, ArrivalPickupTaskDispatchService, CheckInService, CheckoutReadinessService, CheckoutService, VehicleParkingAssignmentService, VehicleRegisterService } from "./contexts/stay-operations";
+import { ArrivalRoomCleaningTaskService, HousekeepingDiscrepancyService, HousekeepingSheetService, HousekeepingTaskService } from "./contexts/housekeeping";
 import {
   createRateIntentProposalAdapterFromEnvironment,
   RateConfigurationService,
@@ -16,17 +18,37 @@ import {
   RateQuoteService,
   RateTargetService,
 } from "./contexts/rates";
-import { OperatorHttpApi } from "./http/operator";
-import { ApprovalService, Database, ExtensionRegistry, PostgresEventBus, PostgresIdempotency } from "./kernel";
+import { TaxJurisdictionResolutionService } from "./contexts/tax-fiscal";
+import { OperatorHttpApi, type OperatorLocalReviewCredentials } from "./http/operator";
+import { HostedDepositProviderHttpApi } from "./http/provider";
+import {
+  ApprovalService,
+  assertRuntimeReleaseReadiness,
+  buildInfoFromEnvironment,
+  Database,
+  ExtensionRegistry,
+  PostgresEventBus,
+  PostgresIdempotency,
+} from "./kernel";
 import type { OperatorRuntimeStatus } from "./project-status";
+import { PostgresDueArrivalScopeSource } from "./workers/postgres-due-arrival-scopes";
+import { PostgresDueDepartureScopeSource } from "./workers/postgres-due-departure-scopes";
 import { PostgresDueHoldScopeSource } from "./workers/postgres-due-hold-scopes";
+import { PostgresDueBusinessDayScopeSource } from "./workers/postgres-due-business-day-scopes";
 
 const port = Bun.env.PORT === undefined ? 3000 : Number(Bun.env.PORT);
 const workbenchEnabled = Bun.env.YELLOW_OPERATOR_WORKBENCH === "1";
+const hostedDepositEnabled = Bun.env.YELLOW_HOSTED_DEPOSIT_WORKBENCH === "1";
+const hostedProviderOnly = Bun.env.YELLOW_HOSTED_PROVIDER_ONLY === "1";
 const holdExpiryEnabled = workbenchEnabled && Bun.env.YELLOW_HOLD_EXPIRY_WORKER === "1";
 const projectionWorkerEnabled = workbenchEnabled && Bun.env.YELLOW_AVAILABILITY_PROJECTION_WORKER === "1";
+const pickupTaskWorkerEnabled = workbenchEnabled && Bun.env.YELLOW_PICKUP_TASK_WORKER === "1";
+const reservationArrivalRollEnabled = workbenchEnabled && Bun.env.YELLOW_RESERVATION_ARRIVAL_ROLL_WORKER === "1";
+const reservationDepartureRollEnabled = workbenchEnabled && Bun.env.YELLOW_RESERVATION_DEPARTURE_ROLL_WORKER === "1";
+const businessDayRollEnabled = workbenchEnabled && Bun.env.YELLOW_BUSINESS_DAY_ROLL_WORKER === "1";
 const maxRequestBodySize = 16 * 1024;
 const processStartedAt = new Date().toISOString();
+const buildInfo = buildInfoFromEnvironment(Bun.env);
 
 function runtimeHostname(): string {
   const requested = Bun.env.HOST;
@@ -38,23 +60,86 @@ function runtimeHostname(): string {
   throw new Error("non-loopback operator binding requires YELLOW_OPERATOR_ALLOW_NON_LOOPBACK=1");
 }
 
-function required(name: "DATABASE_URL" | "YELLOW_TOKEN_SECRET"): string {
+function localReviewCredentials(): OperatorLocalReviewCredentials | undefined {
+  if (Bun.env.YELLOW_LOCAL_REVIEW_PREFILL !== "1") return undefined;
+  if (!workbenchEnabled || hostedProviderOnly) {
+    throw new Error("local review prefill requires the operator workbench");
+  }
+  const credentials = {
+    tenant: Bun.env.YELLOW_LOCAL_REVIEW_TENANT ?? "",
+    email: Bun.env.YELLOW_LOCAL_REVIEW_EMAIL ?? "",
+    password: Bun.env.YELLOW_LOCAL_REVIEW_PASSWORD ?? "",
+  };
+  if (Object.values(credentials).some((value) => value.length === 0)) {
+    throw new Error("local review prefill requires tenant, email and password");
+  }
+  return credentials;
+}
+
+function required(name: "YELLOW_RUNTIME_DATABASE_URL" | "YELLOW_EXTENSION_REGISTRAR_DATABASE_URL" | "YELLOW_TOKEN_SECRET" |
+  "YELLOW_HOSTED_DEPOSIT_CALLBACK_SECRET"): string {
   const value = Bun.env[name];
   if (!value) throw new Error(`${name} is required when YELLOW_OPERATOR_WORKBENCH=1`);
   return value;
 }
 
+function registrarDatabaseUrl(): string {
+  const value = required("YELLOW_EXTENSION_REGISTRAR_DATABASE_URL");
+  let parsed: URL;
+  try { parsed = new URL(value); } catch { throw new Error("YELLOW_EXTENSION_REGISTRAR_DATABASE_URL must be a valid URL"); }
+  if (!new Set(["postgres:", "postgresql:"]).has(parsed.protocol)
+      || decodeURIComponent(parsed.username) !== "yellow_extension_registrar"
+      || parsed.password === "" || parsed.hash !== "") {
+    throw new Error("YELLOW_EXTENSION_REGISTRAR_DATABASE_URL must authenticate the exact registrar role");
+  }
+  return value;
+}
+
 function runtimeApp() {
-  if (!workbenchEnabled) return app;
-  const databaseUrl = required("DATABASE_URL");
-  const tokens = new Hs256TokenSigner(required("YELLOW_TOKEN_SECRET"));
-  const database = Database.connect(databaseUrl, { maxConnections: 12 });
-  const loginPool = new SQL(databaseUrl, { max: 4 });
-  const eventPool = new SQL(databaseUrl, { max: 4 });
-  const extensionPool = new SQL(databaseUrl, { max: 4 });
-  const login = new LocalLoginService(loginPool, tokens);
+  if (!workbenchEnabled && !hostedProviderOnly) return createApp({ buildInfo });
+  if (hostedProviderOnly) {
+    const routes = new HostedDepositProviderHttpApi({
+      callbackSecret: required("YELLOW_HOSTED_DEPOSIT_CALLBACK_SECRET"),
+      providerOrigin: Bun.env.YELLOW_HOSTED_PROVIDER_ORIGIN ?? "http://127.0.0.1:3001",
+      guestOrigin: Bun.env.YELLOW_HOSTED_GUEST_ORIGIN ?? "http://127.0.0.1:3000",
+      callbackOrigin: Bun.env.YELLOW_HOSTED_CALLBACK_ORIGIN,
+    });
+    return createApp({
+      buildInfo,
+      readinessProbe: async () => undefined,
+      readinessTarget: "synthetic_provider",
+      hostedDepositRoutes: routes,
+      hostedDepositSurface: "provider",
+    });
+  }
+  const databaseUrl = required("YELLOW_RUNTIME_DATABASE_URL");
+  const database = Database.connect(databaseUrl, { maxConnections: 12, prepare: false });
+  const eventPool = new SQL(databaseUrl, { max: 4, prepare: false });
+  const readinessPool = new SQL(databaseUrl, { max: 1, prepare: false });
+  const readinessProbe = (): Promise<void> => assertRuntimeReleaseReadiness(readinessPool);
   const events = new PostgresEventBus(eventPool);
-  const registry = new ExtensionRegistry(extensionPool);
+  const hostedRuntime = hostedDepositEnabled ? (() => {
+    const paymentProvider = new LocalPaymentProvider({ decide: (request) =>
+      request.phase === "capture" ? "indeterminate" : "approved" });
+    const payments = new PaymentService({ database, events, provider: paymentProvider });
+    const hostedDeposits = new HostedDepositService({ database, payments, events });
+    const routes = new HostedDepositProviderHttpApi({
+      hostedDeposits,
+      payments,
+      callbackSecret: required("YELLOW_HOSTED_DEPOSIT_CALLBACK_SECRET"),
+      providerOrigin: Bun.env.YELLOW_HOSTED_PROVIDER_ORIGIN ?? "http://127.0.0.1:3001",
+      guestOrigin: Bun.env.YELLOW_HOSTED_GUEST_ORIGIN ?? "http://127.0.0.1:3000",
+      callbackOrigin: Bun.env.YELLOW_HOSTED_CALLBACK_ORIGIN,
+    });
+    return { hostedDeposits, routes };
+  })() : undefined;
+  const registrarUrl = registrarDatabaseUrl();
+  const tokens = new Hs256TokenSigner(required("YELLOW_TOKEN_SECRET"));
+  const loginPool = new SQL(databaseUrl, { max: 4 });
+  const extensionPool = new SQL(databaseUrl, { max: 4, prepare: false });
+  const registrarPool = new SQL(registrarUrl, { max: 2, prepare: false });
+  const login = new LocalLoginService(loginPool, tokens, new LocalLoginGuard());
+  const registry = new ExtensionRegistry(extensionPool, registrarPool);
   const approvals = new ApprovalService(events);
   const inventory = new InventoryService(events);
   const restrictions = new RestrictionService(events);
@@ -77,24 +162,86 @@ function runtimeApp() {
   const reservationSegments = new ReservationSegmentService({
     events, idempotency: new PostgresIdempotency(), occupancy: reservationOccupancy,
   });
+  const reservationTravel = new ReservationTravelService({ events, idempotency: new PostgresIdempotency() });
+  const reservationArrivalRolls = new ReservationArrivalRollService({
+    database,
+    events,
+    idempotency: new PostgresIdempotency(),
+  });
+  const reservationDepartureRolls = new ReservationDepartureRollService({
+    database,
+    events,
+    idempotency: new PostgresIdempotency(),
+  });
+  const businessDayRolls = new BusinessDayRollService({ database, events });
   const parties = new PartyProfileService({ events, idempotency: new PostgresIdempotency() });
   const folioStatements = new FolioStatementService();
   const charges = new ChargeService({ events, idempotency: new PostgresIdempotency() });
+  const chargeCorrections = new ChargeCorrectionService({ events, idempotency: new PostgresIdempotency() });
+  const folios = new FolioService({ events, idempotency: new PostgresIdempotency() });
+  const folioTransfers = new FolioTransferService({ events, idempotency: new PostgresIdempotency(), folios });
+  const folioSettlements = new FolioSettlementService({
+    database,
+    events,
+    idempotency: new PostgresIdempotency(),
+  });
+  const cashiers = new CashierService({ database, events, idempotency: new PostgresIdempotency(), approvals });
+  const receivables = new ReceivableService({ database, events, idempotency: new PostgresIdempotency(), approvals });
+  const businessDayCarry = new BusinessDayDiscrepancyCarryOperatorService({ events, idempotency: new PostgresIdempotency() });
+  const businessDaySeal = new BusinessDaySealService({ events, idempotency: new PostgresIdempotency() });
+  const ownerTrustExpenses = new OwnerTrustExpenseWorkbenchService({ events, idempotency: new PostgresIdempotency() });
+  const checkIns = new CheckInService({ database, events, idempotency: new PostgresIdempotency() });
+  const checkoutReadiness = new CheckoutReadinessService({ database });
+  const checkouts = new CheckoutService({
+    database,
+    events,
+    idempotency: new PostgresIdempotency(),
+    occupancy: reservationOccupancy,
+  });
+  const vehicleRegister = new VehicleRegisterService({ database });
+  const vehicleParking = new VehicleParkingAssignmentService({
+    database,
+    events,
+    idempotency: new PostgresIdempotency(),
+  });
+  const pickupTaskDispatch = new ArrivalPickupTaskDispatchService({
+    database,
+    events,
+    idempotency: new PostgresIdempotency(),
+  });
+  const housekeeping = new HousekeepingTaskService({ database, events, idempotency: new PostgresIdempotency() });
+  const housekeepingSheets = new HousekeepingSheetService({ database, events, idempotency: new PostgresIdempotency() });
+  const arrivalRoomCleaning = new ArrivalRoomCleaningTaskService({
+    database,
+    events,
+    idempotency: new PostgresIdempotency(),
+  });
+  const housekeepingDiscrepancies = new HousekeepingDiscrepancyService({
+    database,
+    events,
+    idempotency: new PostgresIdempotency(),
+  });
   const projection = new AvailabilityProjectionService();
   const availability = new AvailabilityService();
   const publication = new RatePublicationService(registry, approvals, events);
+  const taxJurisdictionResolver = new TaxJurisdictionResolutionService(registry);
   const rateBuilder = {
     models: new RateModelService(registry),
     targets: new RateTargetService(registry),
     publication,
-    quote: new RateQuoteService(publication, availability, projection),
+    quote: new RateQuoteService(publication, taxJurisdictionResolver, availability, projection),
     intent: new RateIntentService(createRateIntentProposalAdapterFromEnvironment(Bun.env)),
   };
   const reservationOffers = new ReservationOfferSearchService(rates, rateBuilder.quote, availability);
   const runtimeStatus: OperatorRuntimeStatus = {
+    build: buildInfo,
     workbenchEnabled,
     holdExpiryWorkerEnabled: holdExpiryEnabled,
     availabilityProjectionWorkerEnabled: projectionWorkerEnabled,
+    pickupTaskWorkerEnabled,
+    reservationArrivalRollWorkerEnabled: reservationArrivalRollEnabled,
+    reservationDepartureRollWorkerEnabled: reservationDepartureRollEnabled,
+    businessDayRollWorkerEnabled: businessDayRollEnabled,
     processStartedAt,
   };
   if (projectionWorkerEnabled) {
@@ -114,10 +261,66 @@ function runtimeApp() {
       },
     }).catch(() => console.error("hold expiry worker stopped unexpectedly"));
   }
+  if (pickupTaskWorkerEnabled) {
+    const pickupTasks = new ArrivalPickupTaskAutomationConsumer(events);
+    pickupTasks.run({
+      onError() { console.error("arrival pickup task consumer failed"); },
+    }).catch(() => console.error("arrival pickup task consumer stopped unexpectedly"));
+  }
+  if (reservationArrivalRollEnabled) {
+    const discoveryPool = new SQL(databaseUrl, { max: 2, prepare: false });
+    const worker = new ReservationArrivalRollWorker(
+      reservationArrivalRolls,
+      new PostgresDueArrivalScopeSource(discoveryPool),
+    );
+    worker.run({
+      onError() { console.error("reservation arrival-roll worker discovery failed"); },
+      onResult(result) {
+        if (result.failures.length > 0) {
+          console.error(`reservation arrival-roll worker failed for ${result.failures.length} scope(s)`);
+        }
+      },
+    }).catch(() => console.error("reservation arrival-roll worker stopped unexpectedly"));
+  }
+  if (reservationDepartureRollEnabled) {
+    const discoveryPool = new SQL(databaseUrl, { max: 2, prepare: false });
+    const worker = new ReservationDepartureRollWorker(
+      reservationDepartureRolls,
+      new PostgresDueDepartureScopeSource(discoveryPool),
+    );
+    worker.run({
+      onError() { console.error("reservation departure-roll worker discovery failed"); },
+      onResult(result) {
+        if (result.failures.length > 0) {
+          console.error(`reservation departure-roll worker failed for ${result.failures.length} scope(s)`);
+        }
+      },
+    }).catch(() => console.error("reservation departure-roll worker stopped unexpectedly"));
+  }
+  if (businessDayRollEnabled) {
+    const discoveryPool = new SQL(databaseUrl, { max: 2, prepare: false });
+    const worker = new BusinessDayRollWorker(
+      businessDayRolls,
+      new PostgresDueBusinessDayScopeSource(discoveryPool),
+    );
+    worker.run({
+      onError() { console.error("business-day roll worker discovery failed"); },
+      onResult(result) {
+        if (result.failures.length > 0) {
+          console.error(`business-day roll worker failed for ${result.failures.length} scope(s)`);
+        }
+      },
+    }).catch(() => console.error("business-day roll worker stopped unexpectedly"));
+  }
   return createApp({
+    buildInfo,
+    readinessProbe,
+    readinessTarget: "yellow_runtime_database",
     database,
     tenantResolver: new BearerTenantResolver(tokens),
-    operatorApi: new OperatorHttpApi(login, availability, inventory, new PostgresIdempotency(), restrictions, rates, pricing, blocks, policy, holds, projection, runtimeStatus, rateBuilder, reservations, reservationOffers, reservationGuests, reservationLifecycle, reservationSegments, parties, folioStatements, charges),
+    operatorApi: new OperatorHttpApi(login, availability, inventory, new PostgresIdempotency(), restrictions, rates, pricing, blocks, policy, holds, projection, runtimeStatus, rateBuilder, reservations, reservationOffers, reservationGuests, reservationLifecycle, reservationSegments, parties, folioStatements, charges, new ReservationBoardService(), new ReservationDetailService(), folios, chargeCorrections, folioTransfers, hostedRuntime?.hostedDeposits, folioSettlements, cashiers, receivables, checkIns, housekeeping, housekeepingSheets, checkoutReadiness, checkouts, vehicleRegister, reservationTravel, pickupTaskDispatch, arrivalRoomCleaning, housekeepingDiscrepancies, vehicleParking, undefined, undefined, businessDayCarry, businessDaySeal, ownerTrustExpenses),
+    operatorLocalReviewCredentials: localReviewCredentials(),
+    ...(hostedRuntime ? { hostedDepositRoutes: hostedRuntime.routes, hostedDepositSurface: "guest" as const } : {}),
   });
 }
 

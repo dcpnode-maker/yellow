@@ -7,9 +7,50 @@ export {
 export type {
   FolioEligibleReservationStatus,
   FolioServiceOptions,
+  OpenAdditionalFolioInput,
+  OpenAdditionalFolioResult,
   OpenPrimaryFolioInput,
   OpenPrimaryFolioResult,
 } from "./folios";
+
+export { TrustAccountingConflictError, TrustAccountingNotFoundError, TrustAccountingService, TrustAccountingValidationError } from "./trust";
+export type { PostOwnerExpenseInput, PostOwnerExpenseResult, TrustAccountingServiceOptions } from "./trust";
+export {
+  MAX_OWNER_TRUST_ACCOUNTS,
+  MAX_OWNER_TRUST_APPROVALS,
+  OwnerTrustExpenseWorkbenchNotFoundError,
+  OwnerTrustExpenseWorkbenchService,
+  OwnerTrustExpenseWorkbenchUnavailableError,
+  OwnerTrustExpenseWorkbenchValidationError,
+} from "./trust-workbench";
+export type {
+  DecideOwnerTrustApprovalInput,
+  ListOwnerTrustAccountsInput,
+  ListOwnerTrustApprovalsInput,
+  OwnerTrustAccountView,
+  OwnerTrustApprovalDecisionResult,
+  OwnerTrustApprovalRequestResult,
+  OwnerTrustApprovalView,
+  OwnerTrustExpensePreview,
+  OwnerTrustExpenseWorkbenchServiceOptions,
+  PostOwnerTrustExpenseWorkbenchInput,
+  PreviewOwnerTrustExpenseInput,
+  RequestOwnerTrustApprovalInput,
+} from "./trust-workbench";
+
+export {
+  FolioTransferConflictError,
+  FolioTransferNotFoundError,
+  FolioTransferService,
+  FolioTransferValidationError,
+} from "./transfers";
+export type {
+  FolioTransferInput,
+  FolioTransferMemberEffect,
+  FolioTransferPreviewResult,
+  FolioTransferResult,
+  FolioTransferServiceOptions,
+} from "./transfers";
 
 export {
   ChargeConflictError,
@@ -24,10 +65,64 @@ export type {
 } from "./postings";
 
 export {
+  ChargeCorrectionAuthorizationError,
+  ChargeCorrectionConflictError,
+  ChargeCorrectionNotFoundError,
+  ChargeCorrectionService,
+  ChargeCorrectionValidationError,
+} from "./corrections";
+export type {
+  ChargeCorrectionServiceOptions,
+  ReverseChargeInput,
+  ReverseChargeResult,
+} from "./corrections";
+
+export {
   FolioStatementNotFoundError,
   FolioStatementService,
   FolioStatementValidationError,
 } from "./statements";
+
+export { LocalPaymentProvider } from "./payment-provider";
+export type {
+  LocalPaymentProviderOptions,
+  PaymentProvider,
+  PaymentProviderOutcome,
+  PaymentProviderOutcomeKind,
+  PaymentProviderPhase,
+  PaymentProviderRequest,
+} from "./payment-provider";
+
+export {
+  PaymentConflictError,
+  PaymentNotFoundError,
+  PaymentService,
+  PaymentValidationError,
+} from "./payments";
+export type {
+  CreatePaymentOperationInput,
+  PaymentCommandResult,
+  PaymentServiceOptions,
+  PaymentTransitionInput,
+  ReconcilePaymentInput,
+  VoidPaymentInput,
+} from "./payments";
+export type { PaymentOperationPurpose } from "./payments";
+
+export {
+  HostedDepositConflictError,
+  HostedDepositNotFoundError,
+  HostedDepositService,
+  HostedDepositValidationError,
+  assertHostedCallbackHash,
+} from "./hosted-deposits";
+export type {
+  ApplyDepositInput,
+  CreateHostedDepositInput,
+  DepositApplicationResult,
+  HostedDepositLink,
+  HostedDepositStatus,
+} from "./hosted-deposits";
 export type {
   FolioChargeAvailability,
   FolioChargeOption,
@@ -35,4 +130,208 @@ export type {
   FolioStatementMetadata,
   FolioStatementResult,
   FolioStatementRow,
+  FolioSiblingWindow,
+  FolioTransferGroup,
 } from "./statements";
+
+export {
+  FolioSettlementConflictError,
+  FolioSettlementNotFoundError,
+  FolioSettlementService,
+  FolioSettlementValidationError,
+} from "./settlements";
+export type {
+  FolioSettlementInput,
+  FolioSettlementResult,
+  FolioSettlementServiceOptions,
+  FolioSettlementStatus,
+} from "./settlements";
+
+export {
+  CashierAuthorizationError,
+  CashierConflictError,
+  CashierNotFoundError,
+  CashierService,
+  CashierValidationError,
+} from "./cashiers";
+
+export {
+  BUSINESS_DAY_ROLL_ACTOR_ID,
+  BusinessDayRollNotFoundError,
+  BusinessDayRollService,
+  BusinessDayRollValidationError,
+  BusinessDayRollWorker,
+} from "./business-day-roll";
+
+export {
+  BusinessDayCloseReadinessService,
+  BusinessDayCloseReadinessUnavailableError,
+  BusinessDayCloseReadinessValidationError,
+} from "./business-day-close-readiness";
+export {
+  BusinessDayCloseWorkbenchService,
+  BusinessDayCloseWorkbenchUnavailableError,
+  BusinessDayCloseWorkbenchValidationError,
+  MAX_CARRY_CANDIDATES,
+  MAX_OPEN_DAYS,
+  loadBusinessDayCloseWorkbench,
+  loadBusinessDayCloseWorkbenchEntry,
+} from "./business-day-close-workbench";
+export type {
+  BusinessDayCloseWorkbench,
+  BusinessDayCloseWorkbenchEntry,
+  BusinessDayCloseWorkbenchEntryInput,
+  BusinessDayCloseWorkbenchCarryCandidate,
+  BusinessDayCloseWorkbenchDay,
+  BusinessDayCloseWorkbenchInput,
+  BusinessDayCloseWorkbenchServiceOptions,
+} from "./business-day-close-workbench";
+export { BusinessDayDiscrepancyCarryConflictError, BusinessDayDiscrepancyCarryService, BusinessDayDiscrepancyCarryValidationError } from "./business-day-discrepancy-carry";
+export type { BusinessDayDiscrepancyCarryApproval, BusinessDayDiscrepancyCarryResult, BusinessDayDiscrepancyCarryServiceOptions, ConsumeBusinessDayDiscrepancyCarryInput, RequestBusinessDayDiscrepancyCarryApprovalInput } from "./business-day-discrepancy-carry";
+export {
+  BusinessDayDiscrepancyCarryOperatorConflictError,
+  BusinessDayDiscrepancyCarryOperatorService,
+  BusinessDayDiscrepancyCarryOperatorUnavailableError,
+  BusinessDayDiscrepancyCarryOperatorValidationError,
+} from "./business-day-discrepancy-carry-operator";
+export type {
+  CarryApprovalDecisionResult,
+  CarryApprovalOperatorPage,
+  CarryApprovalOperatorView,
+  ConsumeCarryApprovalOperatorInput,
+  DecideCarryApprovalOperatorInput,
+  ListCarryApprovalsOperatorInput,
+  RequestCarryApprovalOperatorInput,
+} from "./business-day-discrepancy-carry-operator";
+export {
+  BusinessDaySealConflictError,
+  BusinessDaySealService,
+  BusinessDaySealValidationError,
+} from "./business-day-seal";
+export type {
+  BusinessDaySealInput,
+  BusinessDaySealResult,
+  BusinessDaySealServiceOptions,
+} from "./business-day-seal";
+export type {
+  BusinessDayCloseReadiness,
+  BusinessDayCloseReadinessInput,
+  BusinessDayCloseReadinessServiceOptions,
+  OutboxLag,
+  ReadinessReason,
+  ReadinessReasonCode,
+  ReadinessSource,
+} from "./business-day-close-readiness";
+export type {
+  BusinessDayRollDrainResult,
+  BusinessDayRollFailure,
+  BusinessDayRollResult,
+  BusinessDayRollRunOptions,
+  BusinessDayRollServiceOptions,
+  BusinessDayRollWorkerOptions,
+  DueBusinessDayScope,
+  DueBusinessDayScopeSource,
+  OpenCurrentBusinessDayInput,
+} from "./business-day-roll";
+
+export {
+  PositiveTaxPostingConflictError,
+  PositiveTaxPostingNotFoundError,
+  PositiveTaxPostingService,
+  PositiveTaxPostingValidationError,
+} from "./positive-tax-postings";
+export type {
+  PositiveTaxPostingInput,
+  PositiveTaxPostingPolicyBlockedResult,
+  PositiveTaxPostingReceipt,
+  PositiveTaxPostingResult,
+  PositiveTaxPostingServiceOptions,
+} from "./positive-tax-postings";
+
+export {
+  IndiaFinalComponentTaxPostingConflictError,
+  IndiaFinalComponentTaxPostingNotFoundError,
+  IndiaFinalComponentTaxPostingService,
+  IndiaFinalComponentTaxPostingValidationError,
+} from "./india-final-component-tax-postings";
+export type {
+  IndiaFinalComponentTaxPostingInput,
+  IndiaFinalComponentTaxPostingReceipt,
+  IndiaFinalComponentTaxPostingResult,
+  IndiaFinalComponentTaxPostingServiceOptions,
+} from "./india-final-component-tax-postings";
+
+export {
+  IndiaFinalComponentTaxCorrectionAuthorizationError,
+  IndiaFinalComponentTaxCorrectionConflictError,
+  IndiaFinalComponentTaxCorrectionNotFoundError,
+  IndiaFinalComponentTaxCorrectionService,
+  IndiaFinalComponentTaxCorrectionValidationError,
+} from "./india-final-component-tax-corrections";
+export type {
+  IndiaFinalComponentTaxCorrectionInput,
+  IndiaFinalComponentTaxCorrectionResult,
+  IndiaFinalComponentTaxCorrectionServiceOptions,
+} from "./india-final-component-tax-corrections";
+
+export {
+  IndiaFinalComponentTaxFiscalSourceConflictError,
+  IndiaFinalComponentTaxFiscalSourceNotFoundError,
+  IndiaFinalComponentTaxFiscalSourceService,
+  IndiaFinalComponentTaxFiscalSourceValidationError,
+} from "./india-final-component-tax-fiscal-source";
+export type {
+  IndiaFinalComponentTaxFiscalSourceComponent,
+  IndiaFinalComponentTaxFiscalSourceInput,
+  IndiaFinalComponentTaxFiscalSourceJournalLine,
+  IndiaFinalComponentTaxNativeConsiderationSource,
+  IndiaFinalComponentTaxNativeFiscalSourceInput,
+  IndiaFinalComponentTaxNativeFiscalSourceResult,
+  IndiaFinalComponentTaxFiscalSourceResult,
+  IndiaFinalComponentTaxFiscalSourceRoomNight,
+} from "./india-final-component-tax-fiscal-source";
+
+export {
+  IndiaNativeFiscalAccountingConflictError,
+  IndiaNativeFiscalAccountingEventHandler,
+  IndiaNativeFiscalAccountingNotFoundError,
+  IndiaNativeFiscalAccountingValidationError,
+} from "./india-native-fiscal-accounting";
+export type {
+  IndiaNativeFiscalAccountingEventInput,
+  IndiaNativeFiscalAccountingEventResult,
+} from "./india-native-fiscal-accounting";
+
+export {
+  PositiveTaxCorrectionAuthorizationError,
+  PositiveTaxCorrectionConflictError,
+  PositiveTaxCorrectionNotFoundError,
+  PositiveTaxCorrectionService,
+  PositiveTaxCorrectionValidationError,
+} from "./positive-tax-corrections";
+export type {
+  PositiveTaxCorrectionInput,
+  PositiveTaxCorrectionResult,
+  PositiveTaxCorrectionServiceOptions,
+} from "./positive-tax-corrections";
+
+export { ReceivableConflictError, ReceivableNotFoundError, ReceivableService, ReceivableValidationError } from "./receivables";
+export type { DecideReceivableApprovalInput, ReceivableApprovalResult, ReceivablePreview, ReceivablePreviewInput, ReceivableServiceOptions, ReceivableTarget, ReceivableTargetListInput, ReceivableTransferInput, ReceivableTransferResult, RequestReceivableApprovalInput } from "./receivables";
+export type {
+  AppendCashierCountInput,
+  AppendCashierCountResult,
+  CashierActiveSession,
+  CashierCountAttempt,
+  CashierDenominationQuantity,
+  CashierListInput,
+  CashierOverShortApprovalResult,
+  CashierReadInput,
+  CashierReadResult,
+  CashierServiceOptions,
+  CloseCashierSessionInput,
+  CloseCashierSessionResult,
+  DecideCashierOverShortApprovalInput,
+  OpenCashierSessionInput,
+  OpenCashierSessionResult,
+  RequestCashierOverShortApprovalInput,
+} from "./cashiers";

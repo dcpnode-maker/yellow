@@ -1,13 +1,5 @@
 # Yellow interface atlas
 
-> **Development documentation snapshot — 2026-09-05.** Source:
-> [`61dbeea`](https://github.com/dcpnode-maker/yellow/commit/61dbeea6f2e0eac764ff177d33d8a6f8ac36103e).
-> This updates the original project documentation on main; main's executable code
-> is still an older integrated baseline. Implemented contracts, setup behavior and
-> proof described below refer to that development revision, not a claim that main
-> or the local app already runs them. Planned capabilities remain planned.
-
-
 ## Current direction — 2026-09-05, Order433
 
 The founder now explicitly requires **different hotel and STR workspaces**, with
@@ -42,7 +34,7 @@ This documentation does not change the running UI or existing executable gates.
 **Status:** Order 195 implementation contract · D-493–D-526
 **Catalogue:** Apple iOS · Android 17 / native Pixel · Windows 95/98 ·
 Glassmorphism · Neomorphism · Enterprise ERP
-**Default:** Apple iOS
+**Default:** Apple iOS  
 **Historical constraints:** the same authenticated Yellow application, server truth,
 ordered semantic DOM and global detail selector in every appearance. These are
 retained for existing review evidence only; they are not the new desired UX.

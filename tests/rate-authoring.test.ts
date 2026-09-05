@@ -263,7 +263,7 @@ describe("Order 071 canonical rate authoring", () => {
     expect(script).toContain("Run a fresh server preview");
     expect(script).not.toMatch(/localStorage|sessionStorage|document\.cookie|console\.(?:log|debug|info)/);
     expect(css).toContain("@media (max-width: 560px)");
-    expect(css).toContain(':root[data-theme="pixel"]');
+    expect(css).toContain(':root[data-theme="android"]');
   });
 });
 

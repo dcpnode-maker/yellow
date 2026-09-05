@@ -1,23 +1,18 @@
 # ROADMAP — how Yellow gets built, and how it gets reviewed
 
-> **Development documentation snapshot — 2026-09-05.** Source:
-> [`61dbeea`](https://github.com/dcpnode-maker/yellow/commit/61dbeea6f2e0eac764ff177d33d8a6f8ac36103e).
-> This updates the original project documentation on main; main's executable code
-> is still an older integrated baseline. Implemented contracts, setup behavior and
-> proof described below refer to that development revision, not a claim that main
-> or the local app already runs them. Planned capabilities remain planned.
-
-
 **Historical authorship:** Claude (architect role) · 2026-08-15 · D-87, D-83
 
 **Current coordination:** Codex under PROJECT and the applicable agent adapter.
 
-**Status reconciled:** 2026-09-05 · Order435 · active fiscal repair Order434/D1330.
+**Status reconciled:** 2026-09-05 · Orders438/439 form the current consolidated
+release task; Order434 is preserved, unfinished and unreleased.
 
+[PROJECT-STATUS](../docs/PROJECT-STATUS.md) records what is current now.
 [BUILD-PLAN.md](../BUILD-PLAN.md) says what each phase contains. This file records
 delivery/review practice and its historical milestones. Current authority is
-[PROJECT.md](https://github.com/dcpnode-maker/yellow/blob/61dbeea6f2e0eac764ff177d33d8a6f8ac36103e/PROJECT.md), [AGENTS.md](https://github.com/dcpnode-maker/yellow/blob/61dbeea6f2e0eac764ff177d33d8a6f8ac36103e/AGENTS.md) and the active scoped order;
-older cadence text cannot waive required independent high-risk proof.
+[PROJECT.md](../PROJECT.md), [AGENTS.md](../AGENTS.md) and the active scoped order;
+older cadence text cannot waive required independent high-risk proof. Codex is the
+sole development and coordination owner and may assign independent internal reviewers.
 
 ---
 
@@ -113,8 +108,8 @@ proves nothing regressed.
    `handoff/reviews/`, and records exact commands/results.
 4. Codex repairs findings under a new bounded order or integrates approved work.
 
-Routine work does not wait for a review cycle once its relevant gates pass. Claude is
-used only if the founder explicitly invokes Claude.
+Routine work does not wait for a review cycle once its relevant gates pass. Codex may
+assign internal models; no particular vendor is an operational dependency.
 
 ## What Codex decides alone, and what it must ask
 
@@ -144,24 +139,41 @@ executable sequence from active Phase 7 is `7 → 8 → 9 → 10 → 11 → 12 �
 → 15 → 16`. Every declared prerequisite and exit gate still applies; this is
 sequencing, not authority to skip work.
 
-## Current status — Order434/D1330, reconciled by Order435
+## Release source history — Order434/D1330, superseded as current status
+
+This section preserves the development evidence that Orders438/439 inherit. The
+canonical current task and lifecycle are in
+[PROJECT-STATUS](../docs/PROJECT-STATUS.md).
 
 Order 429 is independently approved and closed under D1300 as a read-only India IRP
 fiscal-action readiness boundary. Independent review D1323 **rejected Order430**:
 its complete canonical database provenance was not authenticated.
-[Order434](https://github.com/dcpnode-maker/yellow/blob/61dbeea6f2e0eac764ff177d33d8a6f8ac36103e/handoff/orders/434-native-fiscal-source-completion.md) is the active complete
-repair under D1330 and the unchanged D1302/D1304 policy. Its outcome is the first
+[Order434](orders/434-native-fiscal-source-completion.md) is the preserved unfinished
+repair under D1330 and the unchanged D1302/D1304 policy. Its intended outcome is the first
 native invoice without a prior external invoice, with governed original evidence,
 actual-date atomic issuance, immutable accounting and no duplicate revenue.
-It is not built or independently approved; fresh implementation/proof and a
+It is not fully accepted or released; remaining implementation/proof and a
 different non-implementing Tier3 review remain required.
+
+Latest implementation evidence is [Order434 genuine execution](orders/434-native-fiscal-source-completion.md#genuine-native-invoice-execution--d1363):
+the real runtime now commits charge-to-invoice accounting without duplicate revenue
+and permanently replays the receipt. Ordinary, rounded-zero and genuine rate-change
+cases pass, along with current authority, partial-COMMIT rollback,100 same-key
+requests and replay after temporary receipt/event removal. Independent bounded
+proof is now11/0,897 assertions: real payment/settle/close/audited-seal replay and
+100 distinct sources on one series add to the preceding cases. All100 invoices
+have contiguous1..100 numbers, counter101, a recomputable chain and effect-free
+replays. Remaining source-family/bounds/winner-schedule coverage,0076 migration
+integration and complete Tier3 acceptance remain outstanding.
+Fragments remain outside the migration runner; no new phase, main integration or
+local-app promotion is claimed.
 
 The existing 18-phase vector is unchanged: 0–3, 5 and 6 reviewed; 4 built pending final
 integration/review; 7 active; 8–17 planned. The 13 bounded contexts and all phase
-dependencies remain unchanged. Order435 reconciles living documentation; it does
-not approve native issuance, complete a phase, merge development into main or
-refresh the local application. [The project map](../docs/PROJECT-MAP.md) distinguishes
-those separate evidence states and the state script's parsing limitations.
+dependencies remain unchanged. Orders438/439 consolidate the releasable operational
+application while containing this unfinished capability; they do not approve native
+issuance or complete Phase7. [The project map](../docs/PROJECT-MAP.md) distinguishes
+the separate evidence states.
 
 ## Historical order-budget estimates and gate map
 
@@ -274,7 +286,7 @@ The entries below preserve successive order checkpoints, including then-current
 product, review, catalogue and local-promotion observations. “Current,” “next,”
 “pending” and “built-unreviewed” in this chronology are relative to the cited
 order/decision, not today's status or a new runtime receipt. For present work use
-the Order434/D1330 current-status section above and the latest decision/ledger.
+the PROJECT-STATUS current-task record and the latest decision/ledger.
 
 Order252 has independently approved exact quoted-tax hold-to-reservation/segment lineage.
 

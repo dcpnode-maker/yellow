@@ -10,6 +10,7 @@ import {
   RateQuoteService,
   RateTargetService,
 } from "../src/contexts/rates";
+import { TaxJurisdictionResolutionService } from "../src/contexts/tax-fiscal";
 import { OperatorHttpApi } from "../src/http/operator";
 import {
   ApprovalService,
@@ -22,10 +23,15 @@ import { REVIEW_EMAIL, runReviewSeed } from "../scripts/seed-review";
 import { runSeed, SEED_PROPERTY, SEED_TENANT } from "../scripts/seed";
 
 const DATABASE_URL = process.env.YELLOW_OPERATOR_RATE_BUILDER_URL;
+const RUNTIME_DATABASE_URL = process.env.YELLOW_RUNTIME_DATABASE_URL;
 const PASSWORD = process.env.YELLOW_OPERATOR_RATE_BUILDER_PASSWORD;
 const APPROVER_PASSWORD = PASSWORD ? `${PASSWORD}-approver` : undefined;
 const REQUIRE_DATABASE = process.env.YELLOW_REQUIRE_OPERATOR_RATE_BUILDER === "1";
 const SECRET = "yellow-order-071-test-token-secret-exactly-long-enough";
+let BOOKING_DATE = "";
+let STAY_START_DATE = "";
+let STAY_END_DATE = "";
+let TAX_ASSIGNMENT_END_DATE = "";
 const FOREIGN_PROPERTY = "00000000-0000-0000-0000-000000007191";
 const POLICY = Object.freeze({
   cancellation: "00000000-0000-0000-0000-000000007161",
@@ -50,8 +56,8 @@ const FULL_SCOPES = Object.freeze([
 ]);
 type RateBuilderTestOperations = NonNullable<ConstructorParameters<typeof OperatorHttpApi>[12]>;
 
-if (REQUIRE_DATABASE && (!DATABASE_URL || !PASSWORD)) {
-  throw new Error("YELLOW_OPERATOR_RATE_BUILDER_URL and YELLOW_OPERATOR_RATE_BUILDER_PASSWORD are required by Order 071");
+if ((REQUIRE_DATABASE || DATABASE_URL) && (!DATABASE_URL || !RUNTIME_DATABASE_URL || !PASSWORD)) {
+  throw new Error("YELLOW_OPERATOR_RATE_BUILDER_URL, YELLOW_RUNTIME_DATABASE_URL and YELLOW_OPERATOR_RATE_BUILDER_PASSWORD are required by Order 071");
 }
 
 const databaseDescribe = DATABASE_URL && PASSWORD ? describe.serial : describe.skip;
@@ -59,6 +65,7 @@ let admin: SQL;
 let loginPool: SQL;
 let eventPool: SQL;
 let extensionPool: SQL;
+let resolutionPool: SQL;
 let database: Database;
 let tokens: Hs256TokenSigner;
 let approvals: ApprovalService;
@@ -138,20 +145,20 @@ function policyEvidence() {
   ];
 }
 
-function previewCell(key = "cell-2026-09-10") {
+function previewCell(key = `cell-${STAY_START_DATE}`) {
   return {
     key,
     evaluationContext: {
       propertyTimeZone: "UTC",
-      bookingInstant: "2026-09-01T00:00:00.000Z",
-      stayStartInstant: "2026-09-10T15:00:00.000Z",
-      stayEndInstant: "2026-09-11T11:00:00.000Z",
-      nightDate: "2026-09-10",
+      bookingInstant: `${BOOKING_DATE}T00:00:00.000Z`,
+      stayStartInstant: `${STAY_START_DATE}T15:00:00.000Z`,
+      stayEndInstant: `${STAY_END_DATE}T11:00:00.000Z`,
+      nightDate: STAY_START_DATE,
     },
     targetContext: { unitTypeId, sellableUnitId, commercial: {} },
     guests: { adults: 2, childAges: [] },
     selectedPromotionCodes: [],
-    mandatoryPolicyEvidence: [{ key: "tax-assignment", evidenceRef: "tax:in-gst-lodging" }],
+    mandatoryPolicyEvidence: [{ key: "tax-assignment", evidenceRef: "tax:ae-vat" }],
     availabilityEvidence: {
       sellableUnitId,
       availableCount: 1,
@@ -220,6 +227,29 @@ beforeAll(async () => {
   loginPool = new SQL(DATABASE_URL, { max: 4 });
   eventPool = new SQL(DATABASE_URL, { max: 8 });
   extensionPool = new SQL(DATABASE_URL, { max: 8 });
+  resolutionPool = new SQL(RUNTIME_DATABASE_URL!, { max: 8 });
+  const fixtureDates = await admin<Array<{
+    booking_date: string;
+    stay_start_date: string;
+    stay_end_date: string;
+    tax_assignment_end_date: string;
+  }>>`
+    SELECT
+      to_char((transaction_timestamp() AT TIME ZONE timezone)::date, 'YYYY-MM-DD') AS booking_date,
+      to_char((transaction_timestamp() AT TIME ZONE timezone)::date + 9, 'YYYY-MM-DD') AS stay_start_date,
+      to_char((transaction_timestamp() AT TIME ZONE timezone)::date + 10, 'YYYY-MM-DD') AS stay_end_date,
+      to_char((transaction_timestamp() AT TIME ZONE timezone)::date + 30, 'YYYY-MM-DD') AS tax_assignment_end_date
+    FROM org_node
+    WHERE id = ${SEED_PROPERTY.id}::uuid
+      AND tenant_id = ${SEED_TENANT.id}::uuid
+      AND kind = 'property'
+  `;
+  const fixtureClock = fixtureDates[0];
+  if (!fixtureClock) throw new Error("Order 071 property-local fixture clock was not found once");
+  BOOKING_DATE = fixtureClock.booking_date;
+  STAY_START_DATE = fixtureClock.stay_start_date;
+  STAY_END_DATE = fixtureClock.stay_end_date;
+  TAX_ASSIGNMENT_END_DATE = fixtureClock.tax_assignment_end_date;
   database = Database.connect(DATABASE_URL, { maxConnections: 24 });
   tokens = new Hs256TokenSigner(SECRET);
   const events = new PostgresEventBus(eventPool);
@@ -228,18 +258,23 @@ beforeAll(async () => {
   models = new RateModelService(registry);
   targets = new RateTargetService(registry);
   publication = new RatePublicationService(registry, approvals, events);
-  quote = new RateQuoteService(publication);
+  quote = new RateQuoteService(
+    publication,
+    new TaxJurisdictionResolutionService(new ExtensionRegistry(resolutionPool)),
+  );
 
-  const inventory = await admin<Array<{ unit_type_id: string; sellable_unit_id: string }>>`
-    SELECT unit.id AS unit_type_id, sellable.id AS sellable_unit_id
-    FROM unit_type AS unit
-    JOIN sellable_unit AS sellable ON sellable.unit_type_id = unit.id AND sellable.tenant_id = unit.tenant_id
-    WHERE unit.tenant_id = ${SEED_TENANT.id}::uuid AND unit.property_node = ${SEED_PROPERTY.id}::uuid
-    ORDER BY unit.code, sellable.id
-    LIMIT 1
-  `;
-  unitTypeId = inventory[0]!.unit_type_id;
-  sellableUnitId = inventory[0]!.sellable_unit_id;
+  const bookableFixtures = await database.withTenantTransaction(SEED_TENANT.id, (tx) =>
+    new AvailabilityService().search(tx, {
+      propertyNode: SEED_PROPERTY.id,
+      from: new Date(`${STAY_START_DATE}T15:00:00.000Z`),
+      to: new Date(`${STAY_END_DATE}T11:00:00.000Z`),
+      partySize: 2,
+    }),
+  );
+  const fixture = bookableFixtures.find((option) => option.bookable && option.availableCount > 0);
+  if (!fixture) throw new Error("Order 071 disposable quote fixture has no canonical bookable sellable");
+  unitTypeId = fixture.unitTypeId;
+  sellableUnitId = fixture.sellableUnitId;
   await admin`
     INSERT INTO policy (id, tenant_id, kind, name, content)
     VALUES
@@ -260,7 +295,8 @@ beforeAll(async () => {
   `;
   await admin`
     INSERT INTO tax_assignment (tenant_id, property_node, jurisdiction_key, effective)
-    VALUES (${SEED_TENANT.id}::uuid, ${SEED_PROPERTY.id}::uuid, 'in-gst-lodging', daterange('2026-09-01', '2026-10-01', '[)'))
+    VALUES (${SEED_TENANT.id}::uuid, ${SEED_PROPERTY.id}::uuid, 'ae-vat',
+            daterange(${BOOKING_DATE}::date, ${TAX_ASSIGNMENT_END_DATE}::date, '[)'))
   `;
   requesterToken = await tokens.issue({ userId: requester, tenantId: SEED_TENANT.id, scopes: FULL_SCOPES });
   approverToken = await tokens.issue({ userId: approver, tenantId: SEED_TENANT.id, scopes: FULL_SCOPES });
@@ -270,6 +306,7 @@ beforeAll(async () => {
 afterAll(async () => {
   if (!DATABASE_URL || !PASSWORD) return;
   await database.close();
+  await resolutionPool.close();
   await extensionPool.close();
   await eventPool.close();
   await loginPool.close();
@@ -573,8 +610,8 @@ databaseDescribe("Order 071 operator universal rate builder", () => {
       headers: headers(approverToken),
       body: JSON.stringify({
         sellableUnitId,
-        stayStart: "2026-09-10T15:00:00.000Z",
-        stayEnd: "2026-09-11T11:00:00.000Z",
+        stayStart: `${STAY_START_DATE}T15:00:00.000Z`,
+        stayEnd: `${STAY_END_DATE}T11:00:00.000Z`,
         guests: { adults: 2, childAges: [] },
         selectedPromotionCodes: [],
         commercial: {},
@@ -584,7 +621,15 @@ databaseDescribe("Order 071 operator universal rate builder", () => {
     expect(quoteResponse.status).toBe(200);
     const quoteBody = (await quoteResponse.json() as { quote: Record<string, unknown> }).quote;
     expect(quoteBody.taxAssignmentState).toBe("configured");
-    expect((quoteBody.result as Record<string, unknown>).preTaxSubtotalMinor).toBe("12500");
+    expect(quoteBody.taxAssignments).toEqual([
+      expect.objectContaining({ nightDate: STAY_START_DATE, jurisdictionKey: "ae-vat" }),
+    ]);
+    expect(quoteBody.result).toMatchObject({
+      state: "quoted",
+      reason: null,
+      roomAmountMinor: "12500",
+      preTaxSubtotalMinor: "12500",
+    });
 
     const undo = await request(builderPath(PLANS.main, `/releases/${mainReleaseId}/undo`), {
       method: "POST", headers: headers(approverToken, "order071-undo"), body: "{}",

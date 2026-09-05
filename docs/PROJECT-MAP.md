@@ -1,14 +1,6 @@
 # Start here: Yellow for developers and AI agents
 
-> **Development documentation snapshot — 2026-09-05.** Source:
-> [`61dbeea`](https://github.com/dcpnode-maker/yellow/commit/61dbeea6f2e0eac764ff177d33d8a6f8ac36103e).
-> This updates the original project documentation on main; main's executable code
-> is still an older integrated baseline. Implemented contracts, setup behavior and
-> proof described below refer to that development revision, not a claim that main
-> or the local app already runs them. Planned capabilities remain planned.
-
-
-**Updated:** 2026-09-05 · Order435 status reconciliation; Order433 requirements.
+**Updated:** 2026-09-05 · Orders438/439 consolidated release.
 This is a navigation guide, not a second constitution.
 
 Yellow is a modular hospitality ERP built with strict TypeScript, Bun, Elysia and
@@ -20,23 +12,24 @@ The existing architecture has 13 bounded contexts; the delivery plan has 18 phas
 (0–17). The immutable 80-table baseline and the current additive migration catalogue
 are different counts. None of these numbers alone measures product completion.
 
-Current fiscal work is [Order434](https://github.com/dcpnode-maker/yellow/blob/61dbeea6f2e0eac764ff177d33d8a6f8ac36103e/handoff/orders/434-native-fiscal-source-completion.md),
-the active complete native-invoice repair admitted by D1330 after independent
-review D1323 rejected Order430. It must deliver first issuance without an external
-invoice prerequisite, with persisted provenance, actual-date atomic completion and
-no duplicate revenue. It is not built or independently approved; no IRP, Phase7
-completion or updated local application is claimed.
+Current work is the paired [Order438](../handoff/orders/438-codex-consolidated-release.md)
+and [Order439](../handoff/orders/439-contained-native-fiscal-release.md) release task.
+[PROJECT-STATUS](PROJECT-STATUS.md) records its exact lifecycle. Order434's native
+invoice work is preserved but unfinished and unreleased. The operational baseline
+and supported local launcher passed independent CI proof; IRP, Phase7 completion,
+the user's own local refresh and cloud deployment require their separate evidence.
 
 ## First ten minutes
 
-1. Read [PROJECT.md](https://github.com/dcpnode-maker/yellow/blob/61dbeea6f2e0eac764ff177d33d8a6f8ac36103e/PROJECT.md), then the applicable [AGENTS.md](https://github.com/dcpnode-maker/yellow/blob/61dbeea6f2e0eac764ff177d33d8a6f8ac36103e/AGENTS.md).
+1. Read [PROJECT.md](../PROJECT.md), [PROJECT-STATUS](PROJECT-STATUS.md), then the
+   applicable [AGENTS.md](../AGENTS.md).
 2. Run `git status --short`, `git branch --show-current`, `git worktree list` and
    the native state report: `.\state.ps1` on Windows, `./state.sh` in the configured
    POSIX environment. Use native Windows tools while the documented WSL Bun
    crash-dump recurrence is unresolved. Do not print environment files or credentials
    to diagnose configuration; interpret the report with the caveat below.
 3. Read the relevant phase in [BUILD-PLAN.md](../BUILD-PLAN.md), the current scoped
-   order in [handoff/orders](https://github.com/dcpnode-maker/yellow/tree/61dbeea6f2e0eac764ff177d33d8a6f8ac36103e/handoff/orders), and recent decisions/ledger entries.
+   order in [handoff/orders](../handoff/orders/), and recent decisions/ledger entries.
    Search `rg -n -i "topic" DECISIONS.log` before making a new decision.
 4. Find the requested YF ID in [FEATURE-REGISTER.md](FEATURE-REGISTER.md), then follow
    its design, contract, code and evidence links. A model need not ingest every old
@@ -44,32 +37,28 @@ completion or updated local application is claimed.
 5. Establish a baseline with the relevant commands below. Record skipped database
    tests as skipped, not as successful integration verification.
 
-### State-report parsing caveat
+### State-report source
 
-[state.ps1](https://github.com/dcpnode-maker/yellow/blob/61dbeea6f2e0eac764ff177d33d8a6f8ac36103e/state.ps1) is a diagnostic inventory, not the phase/backlog authority.
-Its phase is the **maximum numeric `Phase` field found across order files**, not
-the active phase. Its open-order list counts files lacking an exact `## MERGED`
-heading, so independently closed orders with another status format can remain in
-that list. The observed `Phase: 13` / `302 open orders` reading is therefore a
-parser result, not proof that Phase 13 is active or 302 implementation orders remain.
-The count can also change when a new order is added. The script is unchanged by
-Order435. Use [BUILD-PLAN](../BUILD-PLAN.md), active orders, decisions and actual
-review evidence; the recorded status model is a projection, not an automatic
-replacement for newer admission/review decisions.
+[state.sh](../state.sh) and [state.ps1](../state.ps1) read the explicit current phase,
+task, lifecycle and order files from PROJECT-STATUS. They report files lacking the
+legacy `## MERGED` heading only as a historical-record count. A large historical
+count does not create active implementation work. Update PROJECT-STATUS through a
+reviewed change when the task or lifecycle changes.
 
 ## Authoritative map
 
 | Question | Read here |
 |---|---|
-| What must never change? | [PROJECT.md](https://github.com/dcpnode-maker/yellow/blob/61dbeea6f2e0eac764ff177d33d8a6f8ac36103e/PROJECT.md): tenancy, occupancy, money, immutable records, business dates and atomic outbox |
-| What has the founder requested? | [Feature register](FEATURE-REGISTER.md) → [18-phase plan](../BUILD-PLAN.md) → [decisions](https://github.com/dcpnode-maker/yellow/blob/61dbeea6f2e0eac764ff177d33d8a6f8ac36103e/DECISIONS.log) |
-| What is being done, built or independently verified? | [Orders](https://github.com/dcpnode-maker/yellow/tree/61dbeea6f2e0eac764ff177d33d8a6f8ac36103e/handoff/orders), [reviews](https://github.com/dcpnode-maker/yellow/tree/61dbeea6f2e0eac764ff177d33d8a6f8ac36103e/handoff/reviews), [ledger](https://github.com/dcpnode-maker/yellow/blob/61dbeea6f2e0eac764ff177d33d8a6f8ac36103e/handoff/LEDGER.md), exact commits/CI; [status source](https://github.com/dcpnode-maker/yellow/blob/61dbeea6f2e0eac764ff177d33d8a6f8ac36103e/src/project-status.ts) is a recorded projection |
-| What can a module call? | [CONTRACTS.md](CONTRACTS.md), each context's `index.ts`, [state machines](https://github.com/dcpnode-maker/yellow/blob/61dbeea6f2e0eac764ff177d33d8a6f8ac36103e/docs/STATE-MACHINES.md), [events](https://github.com/dcpnode-maker/yellow/blob/61dbeea6f2e0eac764ff177d33d8a6f8ac36103e/docs/EVENTS.md) |
+| What must never change? | [PROJECT.md](../PROJECT.md): tenancy, occupancy, money, immutable records, business dates and atomic outbox |
+| What has the founder requested? | [Feature register](FEATURE-REGISTER.md) → [18-phase plan](../BUILD-PLAN.md) → [decisions](../DECISIONS.log) |
+| What is current right now? | [PROJECT-STATUS](PROJECT-STATUS.md), then exact commits, CI and release evidence |
+| What has been done or independently verified? | [Orders](../handoff/orders/), [reviews](../handoff/reviews/), [ledger](../handoff/LEDGER.md); [app status](../src/project-status.ts) is a recorded product projection |
+| What can a module call? | [CONTRACTS.md](CONTRACTS.md), each context's `index.ts`, [state machines](STATE-MACHINES.md), [events](EVENTS.md) |
 | How does configuration vary? | [EXTENSIONS.md](EXTENSIONS.md), [regional pack proposal](architecture/REGIONAL-PACKS.md) |
 | What should staff see and do? | [Journeys](design/STAFF-JOURNEYS.md), [design atlas](DESIGN.md), [UI specification](UI-SPEC.md) |
 | Why this direction? | [Current research](research/STAFF-STR-ECOSYSTEM-2026-09.md), [research archive](research/README.md); vendor claims are not implementation proof |
 | Where are OTA, voice and RMS contracts proposed? | [OTA](integrations/OTA-CONNECTIVITY.md), [voice/RMS](architecture/VOICE-RMS-PLAN.md) |
-| How do I run and contribute? | [START-HERE.md](../START-HERE.md), [Windows guide](../START-HERE-WINDOWS.md), [workflow](https://github.com/dcpnode-maker/yellow/blob/61dbeea6f2e0eac764ff177d33d8a6f8ac36103e/docs/WORKFLOW.md), [dependencies](https://github.com/dcpnode-maker/yellow/blob/61dbeea6f2e0eac764ff177d33d8a6f8ac36103e/docs/DEPENDENCIES.md) |
+| How do I run and contribute? | [START-HERE.md](../START-HERE.md), [Windows guide](../START-HERE-WINDOWS.md), [workflow](WORKFLOW.md), [dependencies](DEPENDENCIES.md) |
 
 ## Code navigation and responsibilities
 
@@ -154,11 +143,10 @@ recorded, evidence-backed decision.
 
 ## Main, development, CI and local runtime are separate states
 
-There is one GitHub repository: `dcpnode-maker/yellow`. At this checkpoint the current
-development line is `phase-7/persisted-india-final-component-tax-evidence`, tracked
-through [PR80](https://github.com/dcpnode-maker/yellow/pull/80). Check the PR's exact
-published commit; a local HEAD or documentation edit is not proof of a push or merge.
-`main` is not yet that development line. A worktree shares Git history; it is not a
+There is one GitHub repository: `dcpnode-maker/yellow`. Orders438/439 consolidate the
+PR80 development line on the release-candidate branch. Check PROJECT-STATUS and the
+PR's exact published commit; a local HEAD or documentation edit is not proof of a push
+or merge. `main` is not yet that candidate. A worktree shares Git history; it is not a
 separate product/repository. Do not
 copy files between checkouts to simulate a merge, force-reset a dirty checkout, or
 delete an unintegrated worktree to make folders appear consolidated.
@@ -170,12 +158,10 @@ delete an unintegrated worktree to make folders appear consolidated.
 | CI | Named workflow run and its exact tested commit/results | A different commit is green, a fiscal review passed, or a local app was refreshed |
 | Local runtime | Separately authorized promotion and verified commit/runtime receipt | Automatic equality with main, development, a document or a passing CI run |
 
-The founder's normal `yellow` folder is the `main` checkout; active changes currently
-live in its linked `yellow-order175-folio-responsive-containment` worktree. After
-independent integration and a clean-status check, fast-forward the main checkout and
-promote the verified build to the single approved local runtime. That sync is a
-separate operation with a commit/runtime receipt. The local app is not claimed live
-or updated by this documentation change.
+After independent integration and a clean-status check, update the retained checkout
+and promote the verified build to the single approved local runtime. That sync is a
+separate operation with a commit/runtime receipt. No folder name, worktree link or
+documentation statement proves a local app is current.
 
 Source and non-sensitive evidence belong in Git. Credentials, hotel/guest data,
 database dumps, model weights, `node_modules`, Docker disks and temporary database

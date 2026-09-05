@@ -88,14 +88,23 @@ async function close(blockId: string) {
 
 async function releaseFixtureClaims(): Promise<void> {
   const operational = await admin<Array<{ id: string; tenant_id: string }>>`
-    SELECT id, tenant_id FROM ooo_oos
-    WHERE space_id IN (${SPACE_A}::uuid, ${SPACE_A2}::uuid, ${SPACE_B}::uuid)
+    SELECT DISTINCT ooo.id, ooo.tenant_id
+    FROM ooo_oos AS ooo
+    JOIN space_occupancy AS occupancy
+      ON occupancy.slot_ref = ooo.id
+     AND occupancy.slot_kind = 'ooo'
+    WHERE ooo.space_id IN (${SPACE_A}::uuid, ${SPACE_A2}::uuid, ${SPACE_B}::uuid)
   `;
   for (const row of operational) {
     await admin`SELECT release_occupancy(${row.tenant_id}::uuid, ${row.id}::uuid)`;
   }
   const fixtureHolds = await admin<Array<{ id: string; tenant_id: string }>>`
-    SELECT id, tenant_id FROM hold WHERE sellable_unit_id = ${SELLABLE_A}::uuid
+    SELECT DISTINCT hold.id, hold.tenant_id
+    FROM hold
+    JOIN space_occupancy AS occupancy
+      ON occupancy.slot_ref = hold.id
+     AND occupancy.slot_kind = 'hold'
+    WHERE hold.sellable_unit_id = ${SELLABLE_A}::uuid
   `;
   for (const row of fixtureHolds) {
     await admin`SELECT release_occupancy(${row.tenant_id}::uuid, ${row.id}::uuid)`;

@@ -97,30 +97,138 @@ function batchSize(options: ConsumeBatchOptions): number {
   return limit;
 }
 
-async function runHandlerAsTenant(connection: Tx, event: OutboxEvent, handler: EventHandler): Promise<void> {
-  await connection`SELECT set_config('app.tenant_id', ${event.tenantId}, true)`;
+async function enterHandlerTenant(
+  connection: Tx,
+  event: OutboxEvent,
+  activeTenantId: string | null,
+): Promise<string> {
+  if (activeTenantId === event.tenantId) return activeTenantId;
+  if (activeTenantId !== null) await connection.unsafe("RESET ROLE");
+  const rows = await connection.unsafe<Array<{ tenant_id: string }>>(
+    "SELECT set_config('app.tenant_id', $1, true) AS tenant_id",
+    [event.tenantId],
+  );
+  if (rows.length !== 1 || rows[0]?.tenant_id !== event.tenantId) {
+    throw new Error("PostgreSQL did not establish the required outbox handler tenant");
+  }
   await connection.unsafe("SET LOCAL ROLE app_role");
-  let failure: unknown;
+  return event.tenantId;
+}
 
-  try {
-    await handler(event, connection);
-  } catch (error) {
-    failure = error;
+async function verifyHandlerTenant(connection: Tx, event: OutboxEvent): Promise<void> {
+  const rows = await connection.unsafe<Array<{ current_role: string; tenant_id: string | null }>>(`
+    SELECT current_user::text AS current_role,
+           current_setting('app.tenant_id', true) AS tenant_id
+  `);
+  const context = rows[0];
+  if (rows.length !== 1 || context?.current_role !== "app_role" || context.tenant_id !== event.tenantId) {
+    throw new Error("Outbox handler changed its required database role or tenant context");
   }
+}
 
-  try {
-    await connection.unsafe("RESET ROLE");
-  } catch (resetError) {
-    if (failure === undefined) throw resetError;
+async function scrubHandlerSession(connection: Tx): Promise<void> {
+  await connection.unsafe("RESET ROLE");
+  await connection.unsafe("RESET app.tenant_id");
+  const rows = await connection.unsafe<Array<{
+    current_user: string;
+    session_user: string;
+    tenant_reset: boolean;
+  }>>(`
+    SELECT current_user::text AS current_user,
+           session_user::text AS session_user,
+           NULLIF(current_setting('app.tenant_id', true), '') IS NULL AS tenant_reset
+  `);
+  const row = rows[0];
+  if (rows.length !== 1 || row?.current_user !== "yellow_runtime" ||
+      row.session_user !== "yellow_runtime" || row.tenant_reset !== true) {
+    throw new Error("Outbox handler session did not return to the runtime tenant baseline");
   }
-  if (failure !== undefined) throw failure;
 }
 
 export class PostgresEventBus implements EventBus {
   readonly #pool: ConnectionPool;
+  #poolFailure: Error | undefined;
+  #failureClose: Promise<void> | undefined;
 
   constructor(pool: ConnectionPool) {
     this.#pool = pool;
+  }
+
+  async #assertSettlement(connection: Tx): Promise<void> {
+    const rows = await connection.unsafe<Array<{
+      session_user: string;
+      current_user: string;
+      tenant_reset: boolean;
+      prepared_count: number;
+    }>>(`
+      SELECT session_user::text AS session_user,
+             current_user::text AS current_user,
+             NULLIF(current_setting('app.tenant_id', true), '') IS NULL AS tenant_reset,
+             (SELECT count(*)::int FROM pg_prepared_statements) AS prepared_count
+    `);
+    const row = rows[0];
+    if (rows.length !== 1 || row?.session_user !== "yellow_runtime" ||
+        row.current_user !== "yellow_runtime" || row.tenant_reset !== true || row.prepared_count !== 0) {
+      throw new Error("Outbox connection did not settle to the unprepared runtime identity");
+    }
+  }
+
+  async #discardAndAssertSettlement(connection: Tx): Promise<void> {
+    await connection.unsafe("DISCARD ALL");
+    await this.#assertSettlement(connection);
+  }
+
+  #assertPoolUsable(): void {
+    if (this.#poolFailure) throw this.#poolFailure;
+  }
+
+  #failClosePool(): void {
+    if (this.#poolFailure) return;
+    this.#poolFailure = new Error("Outbox event pool is irreversibly failed");
+
+    const close = this.#pool.close;
+    if (!close) return;
+    try {
+      // Bun cannot safely release a dead reservation, and its owning pool may
+      // never finish closing while that reservation is retained. Mark the
+      // adapter failed first, then initiate shutdown without awaiting it.
+      const closing = close.call(this.#pool, { timeout: 0 });
+      this.#failureClose = closing;
+      void closing.catch(() => {
+        // Preserve the consumer failure; the adapter is already fail-closed.
+      });
+    } catch {
+      // Preserve the consumer failure; the adapter is already fail-closed.
+    }
+  }
+
+  async #markBatch(
+    connection: Tx,
+    consumer: string,
+    rows: readonly OutboxRow[],
+  ): Promise<readonly boolean[]> {
+    if (rows.length === 0) return [];
+    const encodedIds = JSON.stringify(rows.map(({ id }) => id));
+    const marked = await connection<Array<{ ordinality: number | bigint; inserted: boolean }>>`
+      WITH input AS MATERIALIZED (
+        SELECT value::uuid AS id, ordinality
+        FROM jsonb_array_elements_text(${encodedIds}::text::jsonb)
+          WITH ORDINALITY AS values(value, ordinality)
+        ORDER BY ordinality
+      ), marked AS MATERIALIZED (
+        SELECT input.ordinality,
+               runtime_consumer_mark(${consumer}, input.id) AS inserted
+        FROM input
+        ORDER BY input.ordinality
+      )
+      SELECT ordinality, inserted
+      FROM marked
+      ORDER BY ordinality
+    `;
+    if (marked.length !== rows.length || marked.some(({ ordinality }, index) => Number(ordinality) !== index + 1)) {
+      throw new Error("PostgreSQL did not return ordered consumer dedupe markers");
+    }
+    return marked.map(({ inserted }) => inserted);
   }
 
   async publish(tx: Tx, event: PublishEventInput): Promise<OutboxEvent> {
@@ -181,91 +289,8 @@ export class PostgresEventBus implements EventBus {
     handler: EventHandler,
     options: ConsumeBatchOptions = {},
   ): Promise<ConsumeBatchResult> {
-    if (!CONSUMER_NAME.test(consumer)) throw new Error("consumer must be a stable lowercase name");
-    const limit = batchSize(options);
-    const connection = await this.#pool.reserve();
-    let began = false;
-
-    try {
-      await connection.unsafe("BEGIN");
-      began = true;
-      await connection`
-        INSERT INTO consumer_cursor (consumer, last_seq)
-        VALUES (${consumer}, 0)
-        ON CONFLICT (consumer) DO NOTHING
-      `;
-      const cursorRows = await connection<Array<{ last_seq: number | bigint }>>`
-        SELECT last_seq
-        FROM consumer_cursor
-        WHERE consumer = ${consumer}
-        FOR UPDATE
-      `;
-      const initialLastSeq = Number(cursorRows[0]?.last_seq ?? 0);
-      if (!Number.isSafeInteger(initialLastSeq) || initialLastSeq < 0) {
-        throw new Error("Consumer cursor is outside the supported sequence range");
-      }
-
-      const rows = await connection<OutboxRow[]>`
-        SELECT
-          seq,
-          id,
-          tenant_id,
-          property_node,
-          business_date::text,
-          aggregate_type,
-          aggregate_id,
-          event_type,
-          event_version,
-          actor_id,
-          correlation_id,
-          causation_id,
-          created_at,
-          payload
-        FROM outbox
-        WHERE seq > ${initialLastSeq}
-        ORDER BY seq
-        LIMIT ${limit}
-      `;
-
-      let processed = 0;
-      let lastSeq = initialLastSeq;
-      for (const row of rows) {
-        const event = toEvent(row);
-        const inserted = await connection<Array<{ consumer: string }>>`
-          INSERT INTO consumer_processed (consumer, outbox_id)
-          VALUES (${consumer}, ${event.id}::uuid)
-          ON CONFLICT (consumer, outbox_id) DO NOTHING
-          RETURNING consumer
-        `;
-        if (inserted.length === 1) {
-          await runHandlerAsTenant(connection, event, handler);
-          processed += 1;
-        }
-        lastSeq = event.seq;
-      }
-
-      if (lastSeq !== initialLastSeq) {
-        await connection`
-          UPDATE consumer_cursor
-          SET last_seq = ${lastSeq}, updated_at = now()
-          WHERE consumer = ${consumer}
-        `;
-      }
-      await connection.unsafe("COMMIT");
-      began = false;
-      return { consumer, examined: rows.length, processed, lastSeq };
-    } catch (error) {
-      if (began) {
-        try {
-          await connection.unsafe("ROLLBACK");
-        } catch {
-          // Preserve the consumer or handler failure; the broken reservation is discarded.
-        }
-      }
-      throw error;
-    } finally {
-      connection.release();
-    }
+    const { events: _events, ...result } = await this.#consume(consumer, handler, options, false);
+    return result;
   }
 
   /**
@@ -279,24 +304,29 @@ export class PostgresEventBus implements EventBus {
     handler: EventHandler,
     options: ConsumeBatchOptions = {},
   ): Promise<ConsumedOutboxBatch> {
+    return this.#consume(consumer, handler, options, true);
+  }
+
+  async #consume(
+    consumer: string,
+    handler: EventHandler,
+    options: ConsumeBatchOptions,
+    unpublished: boolean,
+  ): Promise<ConsumedOutboxBatch> {
+    this.#assertPoolUsable();
     if (!CONSUMER_NAME.test(consumer)) throw new Error("consumer must be a stable lowercase name");
     const limit = batchSize(options);
     const connection = await this.#pool.reserve();
     let began = false;
+    let settled = false;
+    let reusable = false;
+    let mustClosePool = false;
 
     try {
       await connection.unsafe("BEGIN");
       began = true;
-      await connection`
-        INSERT INTO consumer_cursor (consumer, last_seq)
-        VALUES (${consumer}, 0)
-        ON CONFLICT (consumer) DO NOTHING
-      `;
       const cursorRows = await connection<Array<{ last_seq: number | bigint }>>`
-        SELECT last_seq
-        FROM consumer_cursor
-        WHERE consumer = ${consumer}
-        FOR UPDATE
+        SELECT runtime_consumer_begin(${consumer}) AS last_seq
       `;
       const initialLastSeq = Number(cursorRows[0]?.last_seq ?? 0);
       if (!Number.isSafeInteger(initialLastSeq) || initialLastSeq < 0) {
@@ -319,56 +349,84 @@ export class PostgresEventBus implements EventBus {
           causation_id,
           created_at,
           payload
-        FROM outbox
-        WHERE published_at IS NULL
-        ORDER BY seq
-        LIMIT ${limit}
+        FROM runtime_consumer_read(${consumer}, ${initialLastSeq}::bigint, ${limit}, ${unpublished})
       `;
 
+      const inserted = await this.#markBatch(connection, consumer, rows);
       let processed = 0;
       let lastSeq = initialLastSeq;
       const events: OutboxEvent[] = [];
-      for (const row of rows) {
+      let activeTenantId: string | null = null;
+      for (const [index, row] of rows.entries()) {
         const event = toEvent(row);
         events.push(event);
-        const inserted = await connection<Array<{ consumer: string }>>`
-          INSERT INTO consumer_processed (consumer, outbox_id)
-          VALUES (${consumer}, ${event.id}::uuid)
-          ON CONFLICT (consumer, outbox_id) DO NOTHING
-          RETURNING consumer
-        `;
-        if (inserted.length === 1) {
-          await runHandlerAsTenant(connection, event, handler);
+        if (inserted[index] === true) {
+          activeTenantId = await enterHandlerTenant(connection, event, activeTenantId);
+          await handler(event, connection);
+          await verifyHandlerTenant(connection, event);
           processed += 1;
+        } else if (activeTenantId !== null && activeTenantId !== event.tenantId) {
+          await connection.unsafe("RESET ROLE");
+          activeTenantId = null;
         }
         lastSeq = Math.max(lastSeq, event.seq);
       }
 
-      if (lastSeq !== initialLastSeq) {
-        await connection`
-          UPDATE consumer_cursor
-          SET last_seq = ${lastSeq}, updated_at = now()
-          WHERE consumer = ${consumer}
-        `;
+      try {
+        await scrubHandlerSession(connection);
+      } catch (error) {
+        mustClosePool = true;
+        throw error;
       }
-      await connection.unsafe("COMMIT");
+      if (lastSeq !== initialLastSeq) {
+        await connection.unsafe("SELECT runtime_consumer_advance($1, $2::bigint)", [consumer, lastSeq]);
+      }
+      try {
+        await connection.unsafe("COMMIT");
+      } catch (error) {
+        mustClosePool = true;
+        throw error;
+      }
       began = false;
+      settled = true;
+      await this.#assertSettlement(connection);
+      reusable = true;
       return { consumer, examined: rows.length, processed, lastSeq, events };
     } catch (error) {
       if (began) {
         try {
           await connection.unsafe("ROLLBACK");
+          began = false;
+          settled = true;
+          if (!mustClosePool) {
+            try {
+              await this.#assertSettlement(connection);
+              reusable = true;
+            } catch {
+              // DISCARD ALL and an exact recheck run while the backend remains reserved.
+            }
+          }
         } catch {
-          // Preserve the consumer or handler failure; the broken reservation is discarded.
+          mustClosePool = true;
         }
       }
       throw error;
     } finally {
-      connection.release();
+      if (!reusable && settled && !mustClosePool) {
+        try {
+          await this.#discardAndAssertSettlement(connection);
+          reusable = true;
+        } catch {
+          mustClosePool = true;
+        }
+      }
+      if (!reusable || mustClosePool) this.#failClosePool();
+      if (reusable && !mustClosePool) connection.release();
     }
   }
 
   async markPublished(eventIds: readonly string[]): Promise<number> {
+    this.#assertPoolUsable();
     if (eventIds.length === 0) return 0;
     for (const eventId of eventIds) requiredUuid("eventId", eventId);
     const encodedIds = JSON.stringify(eventIds);
@@ -378,16 +436,12 @@ export class PostgresEventBus implements EventBus {
       await connection.unsafe("BEGIN");
       began = true;
       const result = await connection<Array<{ count: number }>>`
-        WITH ids AS (
-          SELECT value::uuid AS id
-          FROM jsonb_array_elements_text(${encodedIds}::text::jsonb)
-        ), marked AS (
-          UPDATE outbox
-          SET published_at = COALESCE(published_at, now())
-          WHERE id IN (SELECT id FROM ids)
-          RETURNING 1
-        )
-        SELECT count(*)::int AS count FROM marked
+        SELECT runtime_mark_outbox_published(
+          ARRAY(
+            SELECT value::uuid
+            FROM jsonb_array_elements_text(${encodedIds}::text::jsonb)
+          )
+        ) AS count
       `;
       await connection.unsafe("COMMIT");
       began = false;
@@ -401,6 +455,7 @@ export class PostgresEventBus implements EventBus {
   }
 
   async prunePublished(retentionSeconds: number): Promise<{ processed: number; outbox: number }> {
+    this.#assertPoolUsable();
     if (!Number.isSafeInteger(retentionSeconds) || retentionSeconds < 0) {
       throw new Error("retentionSeconds must be a non-negative integer");
     }
@@ -409,25 +464,15 @@ export class PostgresEventBus implements EventBus {
     try {
       await connection.unsafe("BEGIN");
       began = true;
-      const processedRows = await connection<Array<{ count: number }>>`
-        WITH gone AS (
-          DELETE FROM consumer_processed AS processed
-          USING outbox AS event
-          WHERE processed.outbox_id = event.id
-            AND event.published_at IS NOT NULL
-            AND event.published_at < now() - make_interval(secs => ${retentionSeconds})
-          RETURNING 1
-        )
-        SELECT count(*)::int AS count FROM gone
-      `;
-      const outboxRows = await connection<Array<{ count: number | bigint }>>`
-        SELECT prune_outbox(make_interval(secs => ${retentionSeconds})) AS count
+      const rows = await connection<Array<{ processed: number; outbox: number | bigint }>>`
+        SELECT processed, outbox
+        FROM runtime_prune_outbox(${retentionSeconds})
       `;
       await connection.unsafe("COMMIT");
       began = false;
       return {
-        processed: processedRows[0]?.count ?? 0,
-        outbox: Number(outboxRows[0]?.count ?? 0),
+        processed: rows[0]?.processed ?? 0,
+        outbox: Number(rows[0]?.outbox ?? 0),
       };
     } catch (error) {
       if (began) await connection.unsafe("ROLLBACK");

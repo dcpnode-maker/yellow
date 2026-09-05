@@ -21,7 +21,12 @@ import {
 } from "../src/kernel";
 
 const DATABASE_URL = process.env.YELLOW_FINANCIAL_FOLIOS_URL;
+const DEPLOY_DATABASE_URL = process.env.YELLOW_DEPLOY_DATABASE_URL ?? DATABASE_URL;
 const REQUIRE_DATABASE = process.env.YELLOW_REQUIRE_FINANCIAL_FOLIOS === "1";
+
+if (REQUIRE_DATABASE && (!DATABASE_URL || !DEPLOY_DATABASE_URL)) {
+  throw new Error("YELLOW_FINANCIAL_FOLIOS_URL and YELLOW_DEPLOY_DATABASE_URL are required");
+}
 
 const TENANT_A = "00000000-0000-0000-0000-000000010301";
 const TENANT_B = "00000000-0000-0000-0000-000000010302";
@@ -169,7 +174,7 @@ async function cleanFixtures(): Promise<void> {
 
 beforeAll(async () => {
   if (!DATABASE_URL) return;
-  admin = new SQL(DATABASE_URL, { max: 32 });
+  admin = new SQL(DEPLOY_DATABASE_URL!, { max: 32 });
   eventPool = new SQL(DATABASE_URL, { max: 32 });
   database = Database.connect(DATABASE_URL, { maxConnections: 64 });
   events = new PostgresEventBus(eventPool);

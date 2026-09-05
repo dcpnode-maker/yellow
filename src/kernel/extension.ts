@@ -4,7 +4,6 @@ import { recordFact } from "./fact-log";
 
 const TYPE_NAME = /^[a-z][a-z0-9_.-]*$/;
 const INSTANCE_KEY = /^[a-z0-9][a-z0-9_.:-]*$/;
-const URL_NAMESPACE_UUID = "6ba7b811-9dad-11d1-80b4-00c04fd430c8";
 const SUPPORTED_KEYWORDS = new Set([
   "$id",
   "additionalProperties",
@@ -63,6 +62,13 @@ export interface ExtensionInstance {
   readonly status: "draft" | "active" | "retired";
 }
 
+export interface VisibleExtensionEffectivePeriod {
+  readonly extensionId: string;
+  readonly ownerTenantId: string | null;
+  readonly effectiveFromInstant: string | null;
+  readonly effectiveToInstant: string | null;
+}
+
 export interface CompatibilityFailure {
   readonly extensionId: string;
   readonly issues: readonly ValidationIssue[];
@@ -76,6 +82,23 @@ interface ExtensionRow {
   readonly version: number;
   readonly content: JsonObject;
   readonly status: ExtensionInstance["status"];
+}
+
+interface VisibleExtensionEffectivePeriodRow {
+  readonly extension_id: string;
+  readonly owner_tenant_id: string | null;
+  readonly effective_from_instant: unknown;
+  readonly effective_to_instant: unknown;
+}
+
+function canonicalUtcInstant(value: unknown, subject: string): string {
+  if (typeof value !== "string"
+      || !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{6}Z$/.test(value)) {
+    throw new Error(`${subject} is not a valid UTC instant`);
+  }
+  const parsed = new Date(value);
+  if (!Number.isFinite(parsed.getTime())) throw new Error(`${subject} is not a valid UTC instant`);
+  return value;
 }
 
 function isObject(value: unknown): value is JsonObject {
@@ -188,28 +211,6 @@ export function validateJsonSchema(schema: unknown, value: unknown, path = "$"):
   return issues;
 }
 
-function namespaceBytes(namespace: string): Uint8Array {
-  return Uint8Array.from(namespace.replaceAll("-", "").match(/../g) ?? [], (value) => Number.parseInt(value, 16));
-}
-
-function formatUuid(bytes: Uint8Array): string {
-  const hex = Array.from(bytes, (value) => value.toString(16).padStart(2, "0")).join("");
-  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
-}
-
-async function extensionTypeSubjectId(type: string): Promise<string> {
-  const namespace = namespaceBytes(URL_NAMESPACE_UUID);
-  const name = new TextEncoder().encode(`https://yellow.local/extension-type/${type}`);
-  const input = new Uint8Array(namespace.length + name.length);
-  input.set(namespace);
-  input.set(name, namespace.length);
-  const digest = new Uint8Array(await crypto.subtle.digest("SHA-1", input));
-  const uuid = digest.slice(0, 16);
-  uuid[6] = (uuid[6]! & 0x0f) | 0x50;
-  uuid[8] = (uuid[8]! & 0x3f) | 0x80;
-  return formatUuid(uuid);
-}
-
 function toInstance(row: ExtensionRow): ExtensionInstance {
   return {
     id: row.id,
@@ -224,50 +225,126 @@ function toInstance(row: ExtensionRow): ExtensionInstance {
 
 export class ExtensionRegistry {
   readonly #platformPool: ConnectionPool;
+  readonly #registrarPool: ConnectionPool | undefined;
+  #registrarFailure: Error | undefined;
+  #registrarClose: Promise<void> | undefined;
 
-  constructor(platformPool: ConnectionPool) {
+  constructor(platformPool: ConnectionPool, registrarPool?: ConnectionPool) {
     this.#platformPool = platformPool;
+    this.#registrarPool = registrarPool;
+  }
+
+  async #assertRegistrarSettlement(connection: Tx): Promise<void> {
+    const rows = await connection.unsafe<Array<{
+      session_user: string;
+      current_user: string;
+      tenant_reset: boolean;
+      prepared_count: number;
+    }>>(`
+      SELECT session_user::text AS session_user,
+             current_user::text AS current_user,
+             NULLIF(current_setting('app.tenant_id', true), '') IS NULL AS tenant_reset,
+             (SELECT count(*)::int FROM pg_prepared_statements) AS prepared_count
+    `);
+    const row = rows[0];
+    if (rows.length !== 1 || row?.session_user !== "yellow_extension_registrar"
+        || row.current_user !== "yellow_extension_registrar" || row.tenant_reset !== true
+        || row.prepared_count !== 0) {
+      throw new Error("Extension registrar connection did not settle to its unprepared identity");
+    }
+  }
+
+  async #scrubRegistrar(connection: Tx): Promise<void> {
+    await connection.unsafe("DISCARD ALL");
+    await this.#assertRegistrarSettlement(connection);
+  }
+
+  #failRegistrarPool(): void {
+    if (this.#registrarFailure) return;
+    this.#registrarFailure = new Error("Extension registrar pool is irreversibly failed");
+    const close = this.#registrarPool?.close;
+    if (!close) return;
+    try {
+      const closing = close.call(this.#registrarPool, { timeout: 0 });
+      this.#registrarClose = closing;
+      void closing.catch(() => { /* The originating registrar failure remains authoritative. */ });
+    } catch {
+      // The adapter is already fail-closed.
+    }
+  }
+
+  async #withRegistrar<T>(operation: (connection: Tx) => Promise<T>): Promise<T> {
+    if (this.#registrarFailure) throw this.#registrarFailure;
+    const pool = this.#registrarPool;
+    if (!pool) throw new Error("Extension registrar database capability is unavailable");
+    const connection = await pool.reserve();
+    let began = false;
+    let settled = false;
+    let reusable = false;
+    try {
+      try {
+        await this.#assertRegistrarSettlement(connection);
+      } catch {
+        await this.#scrubRegistrar(connection);
+      }
+      await connection.unsafe("BEGIN");
+      began = true;
+      const result = await operation(connection);
+      await connection.unsafe("COMMIT");
+      began = false;
+      settled = true;
+      await this.#assertRegistrarSettlement(connection);
+      reusable = true;
+      return result;
+    } catch (error) {
+      if (began) {
+        try {
+          await connection.unsafe("ROLLBACK");
+          began = false;
+          settled = true;
+          await this.#assertRegistrarSettlement(connection);
+          reusable = true;
+        } catch {
+          // Preserve the registrar command error; settlement is handled below.
+        }
+      }
+      throw error;
+    } finally {
+      if (!reusable && settled) {
+        try {
+          await this.#scrubRegistrar(connection);
+          reusable = true;
+        } catch {
+          // The owning pool is failed below and this backend is never released.
+        }
+      }
+      if (reusable) connection.release();
+      else this.#failRegistrarPool();
+    }
   }
 
   async registerType(input: RegisterExtensionTypeInput): Promise<"inserted" | "already exact"> {
-    if (!TYPE_NAME.test(input.type)) throw new Error("extension type must be a stable lowercase identifier");
+    if (!TYPE_NAME.test(input.type) || input.type.length > 64) {
+      throw new Error("extension type must be a stable lowercase identifier");
+    }
     const definitionIssues = schemaDefinitionIssues(input.jsonSchema);
     if (definitionIssues.length > 0) throw new ExtensionValidationError(definitionIssues);
-    const connection = await this.#platformPool.reserve();
-    let began = false;
-    try {
-      await connection.unsafe("BEGIN");
-      began = true;
-      const existing = await connection<Array<{ json_schema: JsonObject }>>`
-        SELECT json_schema FROM extension_type WHERE type = ${input.type} FOR UPDATE
+    return await this.#withRegistrar(async (connection) => {
+      const rows = await connection<Array<{ inserted: boolean }>>`
+        SELECT public.register_extension_type(
+          ${input.envelope.tenantId}::uuid,
+          ${input.type},
+          ${JSON.stringify(input.jsonSchema)}::text::jsonb,
+          ${input.envelope.actorId}::uuid,
+          ${input.envelope.propertyNode}::uuid,
+          ${input.envelope.requestId}::uuid
+        ) AS inserted
       `;
-      if (existing[0]) {
-        if (!sameJson(existing[0].json_schema, input.jsonSchema)) {
-          throw new Error(`extension type ${input.type} already exists with divergent schema`);
-        }
-        await connection.unsafe("COMMIT");
-        began = false;
-        return "already exact";
+      if (rows.length !== 1 || typeof rows[0]?.inserted !== "boolean") {
+        throw new Error("PostgreSQL did not return an extension registration result");
       }
-      await connection`
-        INSERT INTO extension_type (type, json_schema)
-        VALUES (${input.type}, ${JSON.stringify(input.jsonSchema)}::text::jsonb)
-      `;
-      await recordFact(connection, {
-        entityType: "extension_type",
-        entityId: await extensionTypeSubjectId(input.type),
-        envelope: input.envelope,
-        payload: { type: input.type, json_schema: input.jsonSchema },
-      });
-      await connection.unsafe("COMMIT");
-      began = false;
-      return "inserted";
-    } catch (error) {
-      if (began) await connection.unsafe("ROLLBACK");
-      throw error;
-    } finally {
-      connection.release();
-    }
+      return rows[0].inserted ? "inserted" : "already exact";
+    });
   }
 
   async createInstance(tx: Tx, input: CreateExtensionInput): Promise<ExtensionInstance> {
@@ -361,9 +438,7 @@ export class ExtensionRegistry {
     try {
       const rows = await connection<ExtensionRow[]>`
         SELECT id, tenant_id, type, key, version, content, status
-        FROM extension
-        WHERE tenant_id IS NULL OR tenant_id = ${tenantId}::uuid
-        ORDER BY type, key, version
+        FROM runtime_visible_extensions(${tenantId}::uuid)
       `;
       return rows.map(toInstance);
     } finally {
@@ -371,14 +446,62 @@ export class ExtensionRegistry {
     }
   }
 
-  async checkCompatibility(type: string, proposedSchema: Readonly<JsonObject>): Promise<readonly CompatibilityFailure[]> {
+  async readVisibleEffectivePeriod(
+    tenantId: string,
+    extensionId: string,
+  ): Promise<VisibleExtensionEffectivePeriod> {
+    const connection = await this.#platformPool.reserve();
+    try {
+      const rows = await connection<VisibleExtensionEffectivePeriodRow[]>`
+        SELECT extension_id, owner_tenant_id,
+               CASE WHEN effective_from_instant IS NULL THEN NULL
+                    ELSE pg_catalog.to_char(
+                      effective_from_instant AT TIME ZONE 'UTC',
+                      'YYYY-MM-DD"T"HH24:MI:SS.US"Z"'
+                    ) END AS effective_from_instant,
+               CASE WHEN effective_to_instant IS NULL THEN NULL
+                    ELSE pg_catalog.to_char(
+                      effective_to_instant AT TIME ZONE 'UTC',
+                      'YYYY-MM-DD"T"HH24:MI:SS.US"Z"'
+                    ) END AS effective_to_instant
+        FROM public.runtime_visible_extension_effective_period(
+          ${tenantId}::uuid,
+          ${extensionId}::uuid
+        )
+      `;
+      const row = rows[0];
+      if (rows.length !== 1 || !row) {
+        throw new Error("PostgreSQL did not return one visible extension effective period");
+      }
+      return Object.freeze({
+        extensionId: row.extension_id,
+        ownerTenantId: row.owner_tenant_id,
+        effectiveFromInstant: row.effective_from_instant === null
+          ? null
+          : canonicalUtcInstant(row.effective_from_instant, "extension effective lower bound"),
+        effectiveToInstant: row.effective_to_instant === null
+          ? null
+          : canonicalUtcInstant(row.effective_to_instant, "extension effective upper bound"),
+      });
+    } finally {
+      connection.release();
+    }
+  }
+
+  async checkCompatibility(
+    tenantId: string,
+    type: string,
+    proposedSchema: Readonly<JsonObject>,
+  ): Promise<readonly CompatibilityFailure[]> {
     if (!TYPE_NAME.test(type)) throw new Error("extension type must be a stable lowercase identifier");
     const definitionIssues = schemaDefinitionIssues(proposedSchema);
     if (definitionIssues.length > 0) throw new ExtensionValidationError(definitionIssues);
+    void tenantId;
     const connection = await this.#platformPool.reserve();
     try {
       const rows = await connection<Array<{ id: string; content: JsonObject }>>`
-        SELECT id, content FROM extension WHERE type = ${type} ORDER BY id
+        SELECT id, content
+        FROM runtime_extension_compatibility_inputs(${type})
       `;
       return rows.flatMap(({ id, content }) => {
         const issues = validateJsonSchema(proposedSchema, content);

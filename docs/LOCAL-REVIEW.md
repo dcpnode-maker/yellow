@@ -1,109 +1,137 @@
 # Local founder review
 
-This is a loopback-only development surface. It provisions real tenant-scoped data and
-uses the same inventory, audit and outbox services as the application; it is not a UI
-mock and is not a production deployment.
+Yellow has one supported local-review stack at `http://127.0.0.1:3000`. It runs the
+real tenant-scoped application, PostgreSQL schema, domain services, audit facts and
+outbox. It uses synthetic hotel data and local provider fixtures; it is not a mock,
+public endpoint or production deployment.
 
-## Automated setup
+Read [RELEASE.md](RELEASE.md) first for the exact prerequisites and release boundary.
+The launcher requires a supported Docker Engine/Compose environment, Bun 1.3.14,
+Python 3.12+, `psycopg2-binary==2.9.12`, Git and curl.
 
-From the repository in WSL:
+## Start, inspect and stop
+
+Select the exact clean revision named by the current review evidence, then run:
 
 ```bash
-export COMPOSE_PROJECT_NAME=yellow-review-app
-export YELLOW_APP_PORT=3200
-export YELLOW_POSTGRES_PORT=5642
-export YELLOW_VALKEY_PORT=6589
-export YELLOW_OPERATOR_WORKBENCH=1
-export YELLOW_REVIEW_PASSWORD='<choose a local-only password>'
-export YELLOW_REVIEW_APPROVER_PASSWORD='<choose a different local-only password>'
-./setup.sh --db-only
-DATABASE_URL="postgres://yellow:yellow@127.0.0.1:${YELLOW_POSTGRES_PORT}/yellow_dev" bun run db:seed-review
-docker compose up -d --build app
+./scripts/local-review.sh start
 ```
 
-Open `http://localhost:3200` and sign in with:
+The launcher refuses a dirty checkout. It provisions protected local credentials,
+runs the migration and 11/11 invariant gates, loads the canonical base and founder
+review seeds, builds the app from the exact Git SHA, starts the implemented workers
+and verifies a real login. It uses the single Compose project `yellow-review` and
+the standard local ports: app 3000, PostgreSQL 5442 and Valkey 6389.
 
-- Hotel account: `yellow-demo`
-- Email: `operator@yellow.local`
-- Password: the value supplied through `YELLOW_REVIEW_PASSWORD`
+Check the live receipt:
 
-For the independent rate-publication decision, sign out and use:
+```bash
+./scripts/local-review.sh status
+```
 
-- Hotel account: `yellow-demo`
-- Email: `approver@yellow.local`
-- Password: the distinct value supplied through `YELLOW_REVIEW_APPROVER_PASSWORD`
+The first response is process liveness. The second is release readiness and must name:
 
-The seeder is safe to rerun with the same pair of passwords. It verifies both distinct
-operators and their exact existing property grant, and creates nothing on an identical
-rerun. It also creates or exactly verifies four review policies and one `FLEX` / Flexible
-public rate at USD 125.00 per night. A fresh rate is requested by the operator, approved
-by the distinct approver and published through the normal immutable publication path.
-Shared passwords or conflicting users, roles, inventory, policy, plan or active-release
-data stop the run rather than rewriting hotel configuration.
+- `status: "ready"`;
+- target `yellow_runtime_database`;
+- the exact 40-character Git revision printed by the start command;
+- expected migration frontier `75`.
 
-## Current review surface
+The start command also verifies that this revision can authenticate the synthetic
+operator. A green response establishes the serving source and bounded database
+contract. It does not prove every feature, external CI, provider access or production
+deployment.
 
-- local database-backed staff login;
-- property grant enforcement;
-- Apple-calm and Pixel-expressive interchangeable visual skins;
-- a Project status page with graphical roadmap/review progress, a committed snapshot
-  drift-checked against the Gate-3 manifest, and authenticated live app/database/runtime
-  configuration checks;
-- real inventory configuration lists for room types, physical spaces and sellable units;
-- idempotent, audited creation of room types, spaces and their sellable mappings;
-- atomic creation of 1–200 ordinary exclusive hotel rooms from a reviewed range or pasted
-  code preview, with one physical space and one sellable mapping committed per room;
-- active OOO/OOS cause listing plus idempotent audited open and close actions, with OOO
-  clearly identified as physical removal and OOS as commercial unavailability;
-- audited per-property OOS sellability choice between blocked and allowed-with-warning,
-  with a conservative blocked default and no way to make OOO sellable;
-- deterministic listing and idempotent, audited creation of manual restrictions;
-- configurable property-wide or room-type/channel restriction scope, with half-open
-  stay dates and progressive value guidance for length-of-stay and advance rules;
-- validated cancellation, deposit, guarantee and no-show policy authoring;
-- base rate-plan composition with currency, tax treatment, market/source and exact-kind
-  policy choices;
-- append-only exact-minor-unit price creation with dynamic occupancy tiers and child
-  bands, plus current-price lookup using PostgreSQL date/mask/latest precedence;
-- audited price correction by loading the current row and creating an immutable
-  successor while its plan, room type, dates, weekdays and currency remain locked;
-- a configurable Guided, Expert and AI-assisted universal rate builder with immutable
-  release history, server preview, a bounded two-operator approval inbox, explicit
-  approve/reject decisions and publication restricted to the operator who approved;
-- one reproducible active local-review `FLEX` release over the five seeded rooms, with a
-  real two-night quote at USD 125.00 per night and all four review policies attached;
-- real availability for five physical rooms across Standard and Deluxe types;
-- ten-minute audited cart holds placed only from bookable availability, with active-hold
-  visibility, explicit release and supervised audited due expiry; a hold protects
-  inventory but is not a reservation;
-- visible restriction and operational-block evidence when those domain commands add it.
+Stop while preserving the PostgreSQL volume:
 
-The browser keeps its bearer token, appearance choice and generated idempotency keys in
-memory only. Inventory, restriction, rate-configuration and rate-pricing writes call the same tenant-scoped domain services,
-audit log, outbox and durable replay primitive as any future production client. General
-inventory import, positional dorm/bed generation, inventory update/delete, restriction
-update/delete, tax/FX calculation, hold consumption and reservations require later scoped API/UI orders;
-no direct browser-to-table shortcut is permitted.
+```bash
+./scripts/local-review.sh stop
+```
 
-The local `FLEX` quote deliberately reports `taxAssignmentState: none`. Its USD 250.00
-two-night subtotal is pre-tax review evidence, not a final payable amount. This does not
-constrain hotel-configurable tax treatment or pricing models; tax calculation and each
-country's non-disableable compliance rules remain later governed work.
+To refresh, stop the stack, select the next clean reviewed revision and run the start
+command again. It reruns forward migrations, gates, idempotent seeds, image build,
+readiness and login proof. Never point it at hotel records or a volume that must be
+preserved.
 
-## Reading Project status correctly
+## Authentication and credentials
 
-Open **Project status** after signing in. “Live service checks” come from the running
-process and the active tenant-scoped PostgreSQL transaction. A green app/database card
-means those services answered that request; it does not prove every feature. Worker cards
-say only whether their explicit runtime flags are configured. Valkey and external CI remain
-`not_connected` until governed application integrations exist, so the page never guesses.
+The launcher creates two ignored owner-only files:
 
-“Recorded build snapshot” is committed build evidence, not a network query. Its roadmap
-denominator is the 13 named BUILD-PLAN phases, and its independent-review bar distinguishes
-reviewed Orders 001–044 from later builder-green Gate-3 debt. Read current GitHub Actions on
-the pull request itself; the localhost runtime intentionally carries no GitHub token and does
-not scrape external CI.
+- `.yellow/runtime-database-authority.env` contains distinct deployment, runtime
+  and extension-registrar database passwords;
+- `.env.local-review` contains the operator password, distinct approver password
+  and token-signing secret.
 
-The app is deliberately disabled unless `YELLOW_OPERATOR_WORKBENCH=1` is explicit.
-Hold expiry is independently explicit with `YELLOW_HOLD_EXPIRY_WORKER=1` and starts only
-when the workbench is enabled; local Compose supplies that opt-in.
+Both must be regular, non-symlink files owned by the current user. The launcher
+enforces mode 600 for the review file and never prints the passwords. Do not copy
+their contents into Git, chat, screenshots or another model.
+
+The browser opens at `http://127.0.0.1:3000` and prefills the synthetic operator:
+
+- hotel account: `yellow-demo`;
+- email: `operator@yellow.local`;
+- password: the protected `YELLOW_REVIEW_PASSWORD` value.
+
+Approval journeys use the distinct `approver@yellow.local` identity and its protected
+approver password. Sign out before changing actor. The two-user boundary is part of the
+approval proof; never reuse one password or approve the actor's own request.
+
+Bearer tokens, appearance choices and generated idempotency keys remain in browser
+memory. Reload and sign-out behavior must not publish credentials or tenant data.
+Property grants, scopes and transaction-local tenant context remain enforced by the
+server.
+
+## Implemented review surface
+
+The consolidated application exposes these real, permission-bound workspaces:
+
+- **Today and reservations:** arrivals, departures and in-house visibility; Party
+  search/create; server-owned offers; temporary holds; reservation commit and detail;
+  arrival/departure roll and bounded pickup/cleaning coordination.
+- **Availability and setup:** availability, room types, physical spaces, sellable
+  mappings, room creation, OOO/OOS state, restrictions, policies, rate plans, prices,
+  quotes, corrections and approval-bound rate publication.
+- **Folios and cashiering:** folio statements/windows, charges and immutable
+  corrections, transfers, token-only payment operations, synthetic hosted deposits,
+  settlement/close, receivables and cashier sessions.
+- **Stay operations:** check-in readiness/commit, checkout readiness/commit, vehicle
+  registration and governed parking.
+- **Housekeeping:** room condition, task board/detail/actions, assignment sheets,
+  arrival cleaning and discrepancy reporting.
+- **Finance operations:** business-day readiness, discrepancy carry, audited seal and
+  owner-trust expense preparation/approval/posting.
+- **Project status:** the committed operational baseline plus live app/database/worker
+  state and the embedded build receipt.
+
+These flows use the same application commands, permissions, database transactions,
+facts, outbox and replay controls as another client. The review seed is synthetic and
+idempotent; a conflict fails closed instead of rewriting existing hotel truth.
+
+## Explicit release limits
+
+Local payment and hosted-deposit providers are synthetic. No live PSP, acquiring,
+OTA, IRP/GSP, ZATCA or UAE ASP access is implied. Order434 contains substantial
+native India invoice/replay and concurrency evidence, but native issuance remains
+unreleased while its full source/history/race acceptance, migration 0076/0077 assembly
+and fresh independent Tier-3 review are incomplete. Migration 0075 deliberately
+revokes the unapproved legacy issue capability.
+
+The broader 18-phase destination, including voice, RMS, distribution, native clients,
+CRM/CRS and hotel interfaces, remains planned where PROJECT-STATUS says planned.
+Screens and specifications are not proof that those capabilities are shipped.
+
+## Founder walkthrough
+
+1. Run `status` and match the readiness revision to the SHA printed by `start`.
+2. Sign in as the operator and confirm the granted property and Project status build
+   receipt.
+3. Review Today, a reservation, its room/readiness context and the linked folio.
+4. Exercise one bounded operational path, such as hold → reservation, room condition
+   → housekeeping task, or folio correction. Use the approver identity only when that
+   path explicitly requires independent approval.
+5. Verify replay/idempotency feedback rather than repeating a state change blindly.
+6. Check a representative desktop, tablet and narrow-phone width plus keyboard-only
+   navigation. Sign out when finished.
+
+If a surface is unavailable, verify its role/property scope, seed, worker flag and
+serving SHA. Do not bypass authentication, grant broad database authority or recreate
+the stack on an alternate port to hide the mismatch.

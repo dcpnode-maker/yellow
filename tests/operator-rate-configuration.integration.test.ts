@@ -2,12 +2,24 @@ import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { SQL } from "bun";
 
 import { createApp } from "../src/app";
-import { BearerTenantResolver, Hs256TokenSigner, LocalLoginService } from "../src/contexts/identity";
+import { BearerTenantResolver, Hs256TokenSigner, isValidScope, LocalLoginService } from "../src/contexts/identity";
 import { AvailabilityService } from "../src/contexts/inventory";
 import { RateConfigurationService } from "../src/contexts/rates";
 import { OperatorHttpApi } from "../src/http/operator";
 import { Database, PostgresEventBus, PostgresIdempotency } from "../src/kernel";
-import { runReviewSeed, REVIEW_EMAIL } from "../scripts/seed-review";
+import {
+  runReviewSeed,
+  REVIEW_BUSINESS_DAY_SEAL_PERMISSION,
+  REVIEW_CASHIER_SUPERVISE_PERMISSION,
+  REVIEW_DIRTY_ROOM_OVERRIDE_PERMISSION,
+  REVIEW_DISCREPANCY_CARRY_APPROVE_PERMISSION,
+  REVIEW_EMAIL,
+  REVIEW_HOUSEKEEPING_INSPECT_PERMISSION,
+  REVIEW_PERMISSIONS,
+  REVIEW_POST_SEAL_PERMISSION,
+  REVIEW_RECEIVABLE_APPROVE_PERMISSION,
+  REVIEW_TRUST_NEGATIVE_APPROVE_PERMISSION,
+} from "../scripts/seed-review";
 import { runSeed, SEED_PROPERTY, SEED_TENANT } from "../scripts/seed";
 import { BROWSER_SQL_SYNTAX } from "./helpers/browser-asset-security";
 
@@ -16,6 +28,15 @@ const PASSWORD = process.env.YELLOW_OPERATOR_RATE_PASSWORD;
 const REQUIRE_DATABASE = process.env.YELLOW_REQUIRE_OPERATOR_RATE === "1";
 const SECRET = "yellow-order-050-test-token-secret-exactly-long-enough";
 const FOREIGN_PROPERTY = "00000000-0000-0000-0000-000000005091";
+const APPROVER_ONLY_SCOPES: ReadonlySet<string> = new Set([
+  REVIEW_POST_SEAL_PERMISSION.code,
+  REVIEW_CASHIER_SUPERVISE_PERMISSION.code,
+  REVIEW_RECEIVABLE_APPROVE_PERMISSION.code,
+  REVIEW_TRUST_NEGATIVE_APPROVE_PERMISSION.code,
+  REVIEW_DIRTY_ROOM_OVERRIDE_PERMISSION.code,
+  REVIEW_HOUSEKEEPING_INSPECT_PERMISSION.code,
+  REVIEW_DISCREPANCY_CARRY_APPROVE_PERMISSION.code,
+]);
 
 if (REQUIRE_DATABASE && (!DATABASE_URL || !PASSWORD)) {
   throw new Error("YELLOW_OPERATOR_RATE_URL and YELLOW_OPERATOR_RATE_PASSWORD are required by Order 050");
@@ -283,7 +304,7 @@ databaseDescribe("Order 050 operator rate-plan management", () => {
     expect(retry.headers.get("idempotency-replayed")).toBe("false");
   });
 
-  test("P7/P8: one progressive themed Rates UI and exact twenty-seven-scope login", async () => {
+  test("P7/P8: one progressive themed Rates UI and exact authorized-scope login", async () => {
     const html = await (await request("/")).text();
     const css = await (await request("/assets/operator.css")).text();
     const js = await (await request("/assets/operator.js")).text();
@@ -291,13 +312,20 @@ databaseDescribe("Order 050 operator rate-plan management", () => {
     expect(html).toContain('id="policy-form"');
     expect(html).toContain('id="rate-plan-form"');
     expect(html).toContain("Prices and derived plans are separate steps");
-    expect(css).toContain(':root[data-theme="pixel"]');
+    expect(css).toContain(':root[data-theme="android"]');
     expect(js).toContain('"rates"');
     expect(js).not.toMatch(/localStorage|sessionStorage|document\.cookie/);
     expect(js).not.toMatch(BROWSER_SQL_SYNTAX);
     expect(js).not.toMatch(/postgres(?:ql)?:\/\//i);
-    expect((await tokens.verify(accessToken))?.scp).toBe(
-      "crm.parties:read crm.parties:write financials.charges:write financials.folios:read inventory.availability:read inventory.blocks:read inventory.blocks:write inventory.configuration:read inventory.configuration:write inventory.holds:read inventory.holds:write inventory.offline_leases:read inventory.offline_leases:write inventory.policy:read inventory.policy:write inventory.restriction:read inventory.restriction:write rates.configuration:read rates.configuration:write rates.pricing:read rates.pricing:write reservations.guests:read reservations.guests:write reservations.lifecycle:read reservations.lifecycle:write reservations.segments:read reservations.segments:write",
-    );
+    const configuredScopes = REVIEW_PERMISSIONS.map(({ code }) => code);
+    expect(configuredScopes.filter((scope) => !isValidScope(scope))).toEqual([
+      REVIEW_BUSINESS_DAY_SEAL_PERMISSION.code,
+    ]);
+    const expectedScopes = configuredScopes.filter(isValidScope).sort();
+    const claims = await tokens.verify(accessToken);
+    const actualScopes = claims?.scp === "" ? [] : claims?.scp.split(" ") ?? [];
+    expect(actualScopes).toEqual(expectedScopes);
+    expect(new Set(actualScopes).size).toBe(actualScopes.length);
+    expect(actualScopes.some((scope) => APPROVER_ONLY_SCOPES.has(scope))).toBe(false);
   });
 });

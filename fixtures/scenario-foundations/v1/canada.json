@@ -1,0 +1,79 @@
+{
+  "schemaVersion": 1,
+  "scenarioKey": "canada-harbourlight",
+  "synthetic": true,
+  "property": {
+    "displayName": "Harbourlight Test Lodge",
+    "countryCode": "CA",
+    "currency": "CAD",
+    "timeZone": "America/Toronto"
+  },
+  "roomClasses": [
+    { "code": "STANDARD", "label": "Standard" },
+    { "code": "ACCESSIBLE", "label": "Accessible" },
+    { "code": "FAMILY", "label": "Family" },
+    { "code": "SUITE", "label": "Suite" }
+  ],
+  "roomTypes": [
+    { "code": "QN", "classCode": "STANDARD", "label": "Queen", "quantity": 20, "adultCapacity": 2, "childCapacity": 1, "accessible": false, "connectsToTypeCodes": [] },
+    { "code": "ADA", "classCode": "ACCESSIBLE", "label": "Accessible Queen", "quantity": 4, "adultCapacity": 2, "childCapacity": 1, "accessible": true, "connectsToTypeCodes": [] },
+    { "code": "DBL_Q", "classCode": "FAMILY", "label": "Connecting Two Queen", "quantity": 5, "adultCapacity": 4, "childCapacity": 2, "accessible": false, "connectsToTypeCodes": ["DBL_K"] },
+    { "code": "DBL_K", "classCode": "FAMILY", "label": "Connecting King", "quantity": 5, "adultCapacity": 2, "childCapacity": 2, "accessible": false, "connectsToTypeCodes": ["DBL_Q"] },
+    { "code": "LOFT", "classCode": "SUITE", "label": "Harbour Loft", "quantity": 6, "adultCapacity": 3, "childCapacity": 2, "accessible": false, "connectsToTypeCodes": [] }
+  ],
+  "boardPlans": [
+    { "code": "ROOM_ONLY", "normalized": "room_only", "label": "Room only", "inclusions": [] },
+    { "code": "BREAKFAST", "normalized": "breakfast", "label": "Breakfast included", "inclusions": ["breakfast"] },
+    { "code": "HALF_BOARD", "normalized": "half_board", "label": "Breakfast and dinner", "inclusions": ["breakfast", "dinner"] },
+    { "code": "FULL_BOARD", "normalized": "full_board", "label": "Breakfast, lunch and dinner", "inclusions": ["breakfast", "lunch", "dinner"] }
+  ],
+  "policies": [
+    { "code": "FLEX", "refundability": "refundable", "description": "Synthetic flexible-policy intent; deadlines and charges await configured policy." },
+    { "code": "ADVANCE", "refundability": "non_refundable", "description": "Synthetic advance-purchase intent; collection and legal wording are not asserted." }
+  ],
+  "packages": [
+    { "code": "CITY_WEEKEND", "label": "City weekend", "inclusions": ["breakfast", "late_checkout_request"] },
+    { "code": "WINTER_WORK", "label": "Winter work stay", "inclusions": ["wifi", "workspace"] }
+  ],
+  "sources": [
+    { "code": "direct_web", "capability": "current_intent" },
+    { "code": "front_desk", "capability": "current_intent" },
+    { "code": "phone", "capability": "current_intent" },
+    { "code": "corporate", "capability": "current_intent" },
+    { "code": "ota_a", "capability": "future_phase_9" },
+    { "code": "ota_b", "capability": "future_phase_9" }
+  ],
+  "partyShapes": [
+    { "code": "SOLO", "adults": 1, "childAges": [] },
+    { "code": "COUPLE", "adults": 2, "childAges": [] },
+    { "code": "FAMILY_YOUNG", "adults": 2, "childAges": [3, 8] },
+    { "code": "FAMILY_TEEN", "adults": 2, "childAges": [14, 16] },
+    { "code": "FRIENDS", "adults": 4, "childAges": [] }
+  ],
+  "corporatePatterns": [
+    { "code": "CORP_NEGOTIATED", "syntheticAccount": "Fictional Boreal Analytics", "stayNights": [1, 5] },
+    { "code": "FILM_CREW", "syntheticAccount": "Fictional Lantern Studios", "stayNights": [7, 45] }
+  ],
+  "groupPatterns": [
+    { "code": "CONFERENCE_BLOCK", "kind": "block", "rooms": [15, 32], "authority": "future_scenario_intent", "targetPhase": 11 },
+    { "code": "SPORTS_TEAM", "kind": "group", "rooms": [10, 24], "authority": "future_scenario_intent", "targetPhase": 11 }
+  ],
+  "longStayPatterns": [
+    { "code": "RELOCATION", "nights": [14, 60] },
+    { "code": "SEASONAL_CONTRACT", "nights": [30, 120] }
+  ],
+  "seasons": [
+    { "code": "WINTER", "startMonthDay": "11-01", "endMonthDay": "03-31", "demandBasisPoints": 8500 },
+    { "code": "SHOULDER", "startMonthDay": "04-01", "endMonthDay": "05-31", "demandBasisPoints": 10000 },
+    { "code": "SUMMER_HIGH", "startMonthDay": "06-01", "endMonthDay": "09-30", "demandBasisPoints": 13000 },
+    { "code": "AUTUMN", "startMonthDay": "10-01", "endMonthDay": "10-31", "demandBasisPoints": 10500 }
+  ],
+  "edgeCases": ["leap_day_stay", "spring_forward_local_date", "fall_back_local_date", "child_age_change", "connecting_room_request", "accessible_room_request", "early_arrival_request", "late_checkout_request", "weather_disruption_intent", "overlapping_corporate_and_group_intent"],
+  "authority": {
+    "taxFiscal": "pending_policy",
+    "groupsBlocks": "future_phase",
+    "databaseAuthority": false,
+    "importedReservations": false,
+    "purpose": "future_uat_input"
+  }
+}

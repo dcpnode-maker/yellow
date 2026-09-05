@@ -42,7 +42,20 @@ const mock = {
     beforePeriod: input.expectedPeriod, departedPeriod: { from: input.expectedPeriod.from, to: "2049-01-02T10:00:00.000Z" },
     activePeriod: { from: "2049-01-02T10:00:00.000Z", to: input.expectedPeriod.to }, financialJournalId: null, replayed: false,
   }; },
-} satisfies Pick<ReservationSegmentService, "findByConfirmation" | "changeDeparture" | "moveRoom">;
+  async findDueInRoomAssignmentCandidates(_tx, input) { calls.push({ operation: "assignment-candidates", input: { ...input } }); return {
+    reservationId: input.reservationId, segmentId: SEG, expectedReservationStatus: "due_in" as const,
+    expectedSegmentStatus: "booked" as const, expectedUnitTypeId: UT, expectedSellableUnitId: null,
+    expectedPeriod: period, candidates: [],
+  }; },
+  async assignDueInRoom(_tx, input) { calls.push({ operation: "assign-room", input: { ...input } }); return {
+    reservationId: input.reservationId, segmentId: input.segmentId, unitTypeId: input.expectedUnitTypeId,
+    previousSellableUnitId: null, sellableUnitId: input.sellableUnitId,
+    spaceId: "00000000-0000-0000-0000-000000009862", period: input.expectedPeriod,
+    claimCount: 1 as const, replayed: false,
+  }; },
+} satisfies Pick<ReservationSegmentService,
+  "findByConfirmation" | "changeDeparture" | "moveRoom" |
+  "findDueInRoomAssignmentCandidates" | "assignDueInRoom">;
 
 const call = (path: string, init: RequestInit = {}) => app.handle(new Request(`http://yellow.test${path}`, init));
 const headers = (token: string, key?: string): HeadersInit => ({ "content-type": "application/json", authorization: `Bearer ${token}`,
@@ -100,6 +113,83 @@ beforeAll(async () => {
 afterAll(async () => { await cleanup(); await db?.close(); await pool?.close(); await admin?.close(); });
 
 databaseDescribe("Order 098 strict operator reservation segment adapter", () => {
+  test("Order 210: detail reuse preserves exact server action flags and mutation transport", async () => {
+    calls.length = 0;
+    const history = await call(`/api/v1/properties/${P}/reservation-segments?confirmationNo=O98-EXACT`, {
+      headers: headers(writeToken),
+    });
+    expect(history.status).toBe(200);
+    expect(await history.json()).toMatchObject({
+      reservation: {
+        reservationId: RES,
+        confirmationNo: "O98-EXACT",
+        segments: [{
+          segmentId: SEG,
+          actions: { canChangeDeparture: true, canMoveRoom: false },
+        }],
+      },
+    });
+    expect(calls).toEqual([{
+      operation: "find",
+      input: { tenantId: T, propertyNode: P, confirmationNo: "O98-EXACT" },
+    }]);
+
+    calls.length = 0;
+    const departureBody = { expectedPeriod: period, newDeparture: "2049-01-04T11:00:00.000Z" };
+    const departure = await call(`/api/v1/properties/${P}/reservations/${RES}/segments/${SEG}/departure`, {
+      method: "PATCH",
+      headers: headers(writeToken, "order210-departure-transport"),
+      body: JSON.stringify(departureBody),
+    });
+    expect(departure.status).toBe(200);
+    expect(calls).toEqual([{
+      operation: "departure",
+      input: {
+        reservationId: RES,
+        segmentId: SEG,
+        expectedPeriod: period,
+        newDeparture: departureBody.newDeparture,
+        idempotencyKey: "order210-departure-transport",
+        envelope: {
+          tenantId: T,
+          actorId: U,
+          propertyNode: P,
+          requestId: expect.any(String),
+          operation: "reservation.modified",
+        },
+      },
+    }]);
+
+    calls.length = 0;
+    const destination = "00000000-0000-0000-0000-000000009899";
+    const moveBody = { expectedSellableUnitId: SU, expectedPeriod: period, destinationSellableUnitId: destination };
+    const move = await call(`/api/v1/properties/${P}/reservations/${RES}/segments/${SEG}/move`, {
+      method: "POST",
+      headers: headers(writeToken, "order210-move-transport"),
+      body: JSON.stringify(moveBody),
+    });
+    expect(move.status).toBe(200);
+    expect(calls).toEqual([{
+      operation: "move",
+      input: {
+        reservationId: RES,
+        segmentId: SEG,
+        expectedSellableUnitId: SU,
+        expectedPeriod: period,
+        destinationSellableUnitId: destination,
+        idempotencyKey: "order210-move-transport",
+        envelope: {
+          tenantId: T,
+          actorId: U,
+          propertyNode: P,
+          requestId: expect.any(String),
+          operation: "segment.moved",
+        },
+      },
+    }]);
+    expect(calls[0]?.input).not.toHaveProperty("movedAt");
+  });
+
   test("P1: exact history and departure bind server authority", async () => {
     const stored = await db!.withTenantTransaction(T, (tx) => real.findByConfirmation(tx, { tenantId: T, propertyNode: P, confirmationNo: "O98-EXACT" }));
     expect(stored).toMatchObject({ reservationId: RES, status: "reserved", segments: [{ segmentId: SEG, sequence: 1,

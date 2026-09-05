@@ -185,7 +185,7 @@ databaseDescribe("Order 054 operator OOS sellability policy", () => {
     expect((await setPolicy("allowed", "order054-failure")).status).toBe(200);
   });
 
-  test("P6-P8: typed policy UI and exact twenty-seven-scope role expose no alternate config path", async () => {
+  test("P6-P8: typed policy UI and exact twenty-eight-scope role expose no alternate config path", async () => {
     const html = await Bun.file(new URL("../src/http/operator/index.html", import.meta.url)).text();
     const js = await Bun.file(new URL("../src/http/operator/operator.js", import.meta.url)).text();
     expect(html).toContain('id="oos-policy-form"'); expect(html).toContain("Allowed with warning");
@@ -199,13 +199,14 @@ databaseDescribe("Order 054 operator OOS sellability policy", () => {
     `;
     expect(permissions.map(({ code }) => code)).toEqual([
       "crm.parties:read", "crm.parties:write",
-      "financials.charges:write", "financials.folios:read",
+      "financials.charges:write", "financials.folios:open", "financials.folios:read",
       "inventory.availability:read", "inventory.blocks:read", "inventory.blocks:write",
       "inventory.configuration:read", "inventory.configuration:write", "inventory.holds:read",
       "inventory.holds:write", "inventory.offline_leases:read", "inventory.offline_leases:write",
       "inventory.policy:read",
       "inventory.policy:write", "inventory.restriction:read", "inventory.restriction:write",
       "rates.configuration:read", "rates.configuration:write", "rates.pricing:read", "rates.pricing:write",
+      "reservations.booking:write",
       "reservations.guests:read", "reservations.guests:write",
       "reservations.lifecycle:read", "reservations.lifecycle:write",
       "reservations.segments:read", "reservations.segments:write",

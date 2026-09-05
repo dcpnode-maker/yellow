@@ -4,7 +4,7 @@ import { SQL, type ReservedSQL } from "bun";
 import { createApp } from "../src/app";
 import { Database, type ConnectionPool, type TenantResolver } from "../src/kernel";
 
-const DATABASE_URL = process.env.YELLOW_TENANT_CONTEXT_URL;
+const DATABASE_URL = process.env.YELLOW_RUNTIME_DATABASE_URL ?? process.env.YELLOW_TENANT_CONTEXT_URL;
 const REQUIRE_DATABASE = process.env.YELLOW_REQUIRE_TENANT_CONTEXT === "1";
 const TENANT_A = "00000000-0000-0000-0000-000000000001";
 const TENANT_B = "00000000-0000-0000-0000-000000000002";

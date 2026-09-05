@@ -7,7 +7,9 @@ import { Database, ExtensionRegistry } from "../src/kernel";
 import { validateJsonSchema } from "../src/kernel";
 import { LAUNCH_EXTENSIONS, LAUNCH_EXTENSION_TYPES } from "../scripts/seed";
 
-const DATABASE_URL = process.env.YELLOW_EXTENSION_URL;
+const DEPLOY_DATABASE_URL = process.env.YELLOW_DEPLOY_DATABASE_URL ?? process.env.YELLOW_EXTENSION_URL;
+const RUNTIME_DATABASE_URL = process.env.YELLOW_RUNTIME_DATABASE_URL ?? process.env.YELLOW_EXTENSION_URL;
+const REGISTRAR_DATABASE_URL = process.env.YELLOW_EXTENSION_REGISTRAR_DATABASE_URL;
 const REQUIRE_DATABASE = process.env.YELLOW_REQUIRE_EXTENSION === "1";
 const TENANT_A = "00000000-0000-0000-0000-000000000001";
 const TENANT_B = "00000000-0000-0000-0000-000000000002";
@@ -28,13 +30,14 @@ const SCHEMA = {
   },
 } as const;
 
-if (REQUIRE_DATABASE && !DATABASE_URL) {
-  throw new Error("YELLOW_EXTENSION_URL is required by the Order 024 proof");
+if (REQUIRE_DATABASE && (!DEPLOY_DATABASE_URL || !RUNTIME_DATABASE_URL || !REGISTRAR_DATABASE_URL)) {
+  throw new Error("deploy, runtime and extension registrar database URLs are required by the Order 024 proof");
 }
 
-const databaseDescribe = DATABASE_URL ? describe.serial : describe.skip;
+const databaseDescribe = DEPLOY_DATABASE_URL && RUNTIME_DATABASE_URL && REGISTRAR_DATABASE_URL ? describe.serial : describe.skip;
 let admin: SQL | undefined;
 let platformPool: SQL | undefined;
+let registrarPool: SQL | undefined;
 let database: Database | undefined;
 let registry: ExtensionRegistry | undefined;
 let tokenA = "";
@@ -42,7 +45,7 @@ let tokenB = "";
 let tokenWithoutPlatform = "";
 
 describe("Order 024 launch extension catalogue", () => {
-  test("all ten schemas accept all 40 launch instances", () => {
+  test("all ten schemas accept all 41 launch instances", () => {
     const schemas = new Map<string, (typeof LAUNCH_EXTENSION_TYPES)[number]["jsonSchema"]>(
       LAUNCH_EXTENSION_TYPES.map(({ type, jsonSchema }) => [type, jsonSchema]),
     );
@@ -51,7 +54,7 @@ describe("Order 024 launch extension catalogue", () => {
       return issues.length === 0 ? [] : [{ type, key, issues }];
     });
     expect(schemas.size).toBe(10);
-    expect(LAUNCH_EXTENSIONS).toHaveLength(40);
+    expect(LAUNCH_EXTENSIONS).toHaveLength(41);
     expect(invalid).toEqual([]);
   });
 });
@@ -69,11 +72,12 @@ function request(path: string, token: string, init: RequestInit = {}): Request {
 }
 
 beforeAll(async () => {
-  if (!DATABASE_URL) return;
-  admin = new SQL(DATABASE_URL, { max: 3 });
-  platformPool = new SQL(DATABASE_URL, { max: 6 });
-  database = Database.connect(DATABASE_URL, { maxConnections: 6 });
-  registry = new ExtensionRegistry(platformPool);
+  if (!DEPLOY_DATABASE_URL || !RUNTIME_DATABASE_URL || !REGISTRAR_DATABASE_URL) return;
+  admin = new SQL(DEPLOY_DATABASE_URL, { max: 3 });
+  platformPool = new SQL(RUNTIME_DATABASE_URL, { max: 6, prepare: false });
+  registrarPool = new SQL(REGISTRAR_DATABASE_URL, { max: 2, prepare: false });
+  database = Database.connect(RUNTIME_DATABASE_URL, { maxConnections: 6 });
+  registry = new ExtensionRegistry(platformPool, registrarPool);
   const tokens = new Hs256TokenSigner(SECRET);
   const fullScopes = [
     "identity.extension-type:register",
@@ -97,6 +101,7 @@ afterAll(async () => {
     await admin.close();
   }
   await platformPool?.close();
+  await registrarPool?.close();
   await database?.close();
 });
 
@@ -222,7 +227,7 @@ databaseDescribe("Order 024 runtime extension registry", () => {
   });
 
   test("P5: proposed schema incompatibility identifies existing ids and exact paths", async () => {
-    const failures = await registry!.checkCompatibility(TYPE, {
+    const failures = await registry!.checkCompatibility(TENANT_A, TYPE, {
       ...SCHEMA,
       required: ["name", "capacity", "code"],
       properties: { ...SCHEMA.properties, code: { type: "string" } },

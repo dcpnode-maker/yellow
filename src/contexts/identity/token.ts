@@ -172,6 +172,15 @@ export class Hs256TokenSigner implements TokenSigner {
   constructor(secret: string | Uint8Array, options: Hs256TokenSignerOptions = {}) {
     const secretBytes = typeof secret === "string" ? new TextEncoder().encode(secret) : secret;
     if (secretBytes.byteLength < 32) throw new Error("HS256 secret must contain at least 32 bytes");
+    const repositoryKnownSecrets = [
+      "yellow-local-development-token-secret-change-before-deployment",
+      "change-me-generate-with-openssl-rand-base64-48",
+    ].map((value) => new TextEncoder().encode(value));
+    if (repositoryKnownSecrets.some((known) =>
+      known.byteLength === secretBytes.byteLength && known.every((value, index) => value === secretBytes[index])
+    )) {
+      throw new Error("repository-known HS256 secret is forbidden");
+    }
 
     this.#algorithm = options.algorithm ?? JWT_ALGORITHM;
     this.#now = options.now ?? (() => Math.floor(Date.now() / 1_000));

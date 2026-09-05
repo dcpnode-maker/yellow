@@ -436,13 +436,14 @@ databaseDescribe("Order 062 operator-managed offline lease pool", () => {
     `;
     expect(permissions.map(({ code }) => code)).toEqual([
       "crm.parties:read", "crm.parties:write",
-      "financials.charges:write", "financials.folios:read",
+      "financials.charges:write", "financials.folios:open", "financials.folios:read",
       "inventory.availability:read", "inventory.blocks:read", "inventory.blocks:write",
       "inventory.configuration:read", "inventory.configuration:write", "inventory.holds:read",
       "inventory.holds:write", "inventory.offline_leases:read", "inventory.offline_leases:write",
       "inventory.policy:read", "inventory.policy:write", "inventory.restriction:read",
       "inventory.restriction:write", "rates.configuration:read", "rates.configuration:write",
       "rates.pricing:read", "rates.pricing:write",
+      "reservations.booking:write",
       "reservations.guests:read", "reservations.guests:write",
       "reservations.lifecycle:read", "reservations.lifecycle:write",
       "reservations.segments:read", "reservations.segments:write",
@@ -458,7 +459,7 @@ databaseDescribe("Order 062 operator-managed offline lease pool", () => {
     expect(script).toContain("Prepare offline capacity");
     expect(script).not.toMatch(/localStorage|sessionStorage|indexedDB|space_occupancy|record_occupancy|release_occupancy/i);
     expect(script).not.toMatch(/offline-leases[^\n]*(?:consume|reservation)/i);
-    expect(css).toContain("[data-theme=\"pixel\"]");
+    expect(css).toContain("[data-theme=\"android\"]");
     expect(css).toContain("@media (max-width: 720px)");
   });
 });

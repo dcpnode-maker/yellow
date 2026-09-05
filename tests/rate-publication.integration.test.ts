@@ -23,6 +23,7 @@ import { LAUNCH_EXTENSION_TYPES, runSeed, SEED_PROPERTY, SEED_TENANT } from "../
 
 const DATABASE_URL = process.env.YELLOW_RATE_PUBLICATION_URL;
 const REQUIRE_DATABASE = process.env.YELLOW_REQUIRE_RATE_PUBLICATION === "1";
+const CURSOR_MODE = process.env.YELLOW_RATE_PUBLICATION_CURSOR_MODE ?? "parity";
 const TENANT = SEED_TENANT.id;
 const PROPERTY = SEED_PROPERTY.id;
 const FOREIGN_TENANT = "00000000-0000-0000-0000-0000000069b0";
@@ -51,12 +52,16 @@ const PLANS = Object.freeze({
 if (REQUIRE_DATABASE && !DATABASE_URL) {
   throw new Error("YELLOW_RATE_PUBLICATION_URL is required by the Order 069 proof");
 }
+if (!new Set(["prepared", "unprepared", "parity"]).has(CURSOR_MODE)) {
+  throw new Error("YELLOW_RATE_PUBLICATION_CURSOR_MODE must be prepared, unprepared or parity");
+}
 
 const databaseDescribe = DATABASE_URL ? describe.serial : describe.skip;
 let admin: SQL;
 let platformPool: SQL;
 let eventPool: SQL;
 let database: Database;
+let unpreparedDatabase: Database;
 let registry: ExtensionRegistry;
 let approvals: ApprovalService;
 let models: RateModelService;
@@ -72,6 +77,10 @@ function envelope(operation: string, actorId = REQUESTER, tenantId = TENANT, pro
     requestId: crypto.randomUUID(),
     operation,
   });
+}
+
+function cursor(value: Record<string, unknown>): string {
+  return Buffer.from(JSON.stringify(value), "utf8").toString("base64url");
 }
 
 function evaluatorSpec(amountMinor: unknown = 10_000n, overrides: Record<string, unknown> = {}) {
@@ -243,6 +252,7 @@ beforeAll(async () => {
   platformPool = new SQL(DATABASE_URL, { max: 8 });
   eventPool = new SQL(DATABASE_URL, { max: 12 });
   database = Database.connect(DATABASE_URL, { maxConnections: 48 });
+  unpreparedDatabase = Database.connect(DATABASE_URL, { maxConnections: 12, prepare: false });
   registry = new ExtensionRegistry(platformPool);
   const events = new PostgresEventBus(eventPool);
   approvals = new ApprovalService(events);
@@ -312,6 +322,7 @@ afterAll(async () => {
   await admin.close();
   await platformPool.close();
   await eventPool.close();
+  await unpreparedDatabase.close();
   await database.close();
 });
 
@@ -361,28 +372,47 @@ databaseDescribe("Order 069 atomic rate release publication", () => {
       SET created_at = '2026-08-23T00:00:00.000Z'::timestamptz
       WHERE id IN ${admin(requests.map(({ approvalId }) => approvalId))}
     `;
-    const firstPage = await database.withTenantTransaction(TENANT, (tx) =>
-      publication.listPublicationApprovals(tx, {
-        propertyNode: PROPERTY,
-        ratePlanId: PLANS.approvals,
-        limit: 2,
-      })
-    );
-    expect(firstPage.approvals).toHaveLength(2);
-    expect(firstPage.nextCursor).toMatch(/^[A-Za-z0-9_-]+$/);
-    const secondPage = await database.withTenantTransaction(TENANT, (tx) =>
-      publication.listPublicationApprovals(tx, {
-        propertyNode: PROPERTY,
-        ratePlanId: PLANS.approvals,
-        limit: 2,
-        after: firstPage.nextCursor!,
-      })
-    );
-    expect(secondPage.approvals).toHaveLength(1);
-    expect(secondPage.nextCursor).toBeNull();
-    const pageIds = [...firstPage.approvals, ...secondPage.approvals].map(({ id }) => id);
-    expect(pageIds).toEqual(requests.map(({ approvalId }) => approvalId).sort().reverse());
-    expect(new Set(pageIds).size).toBe(3);
+    const modes = CURSOR_MODE === "parity" ? ["prepared", "unprepared"] as const : [CURSOR_MODE] as const;
+    const pages: Array<{ mode: string; first: Awaited<ReturnType<typeof publication.listPublicationApprovals>>;
+      second: Awaited<ReturnType<typeof publication.listPublicationApprovals>> }> = [];
+    for (const mode of modes) {
+      const connection = mode === "prepared" ? database : unpreparedDatabase;
+      const first = await connection.withTenantTransaction(TENANT, (tx) =>
+        publication.listPublicationApprovals(tx, {
+          propertyNode: PROPERTY,
+          ratePlanId: PLANS.approvals,
+          limit: 2,
+        })
+      );
+      expect(first.approvals).toHaveLength(2);
+      expect(first.nextCursor).toMatch(/^[A-Za-z0-9_-]+$/);
+      const second = await connection.withTenantTransaction(TENANT, (tx) =>
+        publication.listPublicationApprovals(tx, {
+          propertyNode: PROPERTY,
+          ratePlanId: PLANS.approvals,
+          limit: 2,
+          after: first.nextCursor!,
+        })
+      );
+      expect(second.approvals).toHaveLength(1);
+      expect(second.nextCursor).toBeNull();
+      const pageIds = [...first.approvals, ...second.approvals].map(({ id }) => id);
+      expect(pageIds).toEqual(requests.map(({ approvalId }) => approvalId).sort().reverse());
+      expect(new Set(pageIds).size).toBe(3);
+      pages.push({ mode, first, second });
+    }
+    if (CURSOR_MODE === "parity") {
+      expect(pages.map(({ first, second }) => [
+        first.approvals.map(({ id }) => id),
+        second.approvals.map(({ id }) => id),
+        second.nextCursor,
+      ])).toEqual([
+        [pages[0]!.first.approvals.map(({ id }) => id), pages[0]!.second.approvals.map(({ id }) => id), null],
+        [pages[0]!.first.approvals.map(({ id }) => id), pages[0]!.second.approvals.map(({ id }) => id), null],
+      ]);
+    }
+    const firstPage = pages[0]!.first;
+    const secondPage = pages[0]!.second;
     expect(firstPage.approvals.every(({ requestedBy }) =>
       requestedBy.id === REQUESTER && requestedBy.displayName === "Order 069 Requester"
     )).toBe(true);
@@ -391,6 +421,28 @@ databaseDescribe("Order 069 atomic rate release publication", () => {
     await expect(database.withTenantTransaction(TENANT, (tx) => publication.listPublicationApprovals(tx, {
       propertyNode: PROPERTY, ratePlanId: PLANS.approvals, after: "not-a-canonical-cursor", limit: 2,
     }))).rejects.toBeInstanceOf(RatePublicationError);
+    const cursorCases = [
+      `${cursor({ createdAt: "2026-08-23T00:00:00.000Z", id: requests[0]!.approvalId })}=`,
+      cursor({ createdAt: "2026-08-23T00:00:00Z", id: requests[0]!.approvalId }),
+      cursor({ createdAt: "2026-08-23T00:00:00.000Z", id: requests[0]!.approvalId, extra: true }),
+      cursor({ createdAt: "2026-08-23T00:00:00.000Z", id: requests[0]!.approvalId.toUpperCase() }),
+      cursor({ createdAt: "2026-08-23T00:00:00.000Z", id: "not-a-uuid" }),
+    ];
+    for (const after of cursorCases) {
+      await expect(database.withTenantTransaction(TENANT, (tx) => publication.listPublicationApprovals(tx, {
+        propertyNode: PROPERTY, ratePlanId: PLANS.approvals, after, limit: 2,
+      }))).rejects.toBeInstanceOf(RatePublicationError);
+    }
+    const unsignedCoordinates = cursor({
+      createdAt: "2026-08-24T00:00:00.000Z",
+      id: "ffffffff-ffff-4fff-8fff-ffffffffffff",
+    });
+    const unsignedPage = await database.withTenantTransaction(TENANT, (tx) =>
+      publication.listPublicationApprovals(tx, {
+        propertyNode: PROPERTY, ratePlanId: PLANS.approvals, after: unsignedCoordinates, limit: 2,
+      })
+    );
+    expect(unsignedPage.approvals.map(({ id }) => id)).toEqual(firstPage.approvals.map(({ id }) => id));
     await expect(database.withTenantTransaction(TENANT, (tx) => publication.listPublicationApprovals(tx, {
       propertyNode: PROPERTY, ratePlanId: PLANS.approvals, limit: 101,
     }))).rejects.toBeInstanceOf(RatePublicationError);

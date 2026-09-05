@@ -1,31 +1,61 @@
 # BUILD-PLAN.md — phased delivery for Yellow
 
-> **Development documentation snapshot — 2026-09-05.** Source:
-> [`61dbeea`](https://github.com/dcpnode-maker/yellow/commit/61dbeea6f2e0eac764ff177d33d8a6f8ac36103e).
-> This updates the original project documentation on main; main's executable code
-> is still an older integrated baseline. Implemented contracts, setup behavior and
-> proof described below refer to that development revision, not a claim that main
-> or the local app already runs them. Planned capabilities remain planned.
-
-
 Rules of engagement: one scoped order per worker, coordinated through one
 authoritative plan. Bounded tasks may run in parallel when their dependency gates
 permit; no worker may silently widen an order. A phase is DONE only when its DoD
 checks pass in CI. Every session starts with the ritual below; no phase may modify
 a prior phase's public surface without a written note in `DECISIONS.log`.
 
-## Current implementation status — 2026-09-05, Order435
+## Current implementation status — 2026-09-05, Orders438/439
+
+[PROJECT-STATUS](docs/PROJECT-STATUS.md) is the canonical current-state record.
+Orders438/439 form the Codex-owned Phase-7 consolidated operational baseline through
+PR82. Both have independent acceptance at bb3b8f9 and all five required CI jobs passed,
+including real database invariants and the complete local launcher. Main integration,
+image publication and each deployed runtime retain separate receipts. Historical milestones below preserve the
+evidence available when written and do not compete with PROJECT-STATUS.
 
 The plan retains **18 phases (0–17)** and the existing **13 bounded contexts**.
 Phases 0–3, 5 and 6 are reviewed; Phase 4 is built pending final integration and review;
 Phase 7 is active; Phases 8–17 remain planned. Definitions, dependencies and the
 founder priority 11 → 13 → 17 below are unchanged.
 
-[Order430](https://github.com/dcpnode-maker/yellow/blob/61dbeea6f2e0eac764ff177d33d8a6f8ac36103e/handoff/orders/430-india-native-fiscal-invoice-issuance.md) was rejected
-by independent review D1323. [Order434](https://github.com/dcpnode-maker/yellow/blob/61dbeea6f2e0eac764ff177d33d8a6f8ac36103e/handoff/orders/434-native-fiscal-source-completion.md)
-is the active complete repair under D1330: the first native invoice without an
+[Order430](handoff/orders/430-india-native-fiscal-invoice-issuance.md) was rejected
+by independent review D1323. [Order434](handoff/orders/434-native-fiscal-source-completion.md)
+is a preserved, unfinished and unreleased repair under D1330: the first native invoice without an
 external-invoice prerequisite, with persisted provenance, actual-date atomic
-issuance and no duplicate revenue. It is not built or independently approved.
+issuance and no duplicate revenue. The complete order is not independently approved or released.
+Its runtime now issues ordinary, rounded-zero and genuine rate-change invoices.
+Earlier bounded independent proof also verifies permanent replay after payment,
+folio and day closure, and 100 distinct invoices sharing one series: 11 passed,
+0 failed,897 assertions. Order434 records the remaining acceptance conditions.
+The D1368 checkpoint additionally proves two-night CGST/SGST, CGST/UTGST and
+IGST issuance, sequential correction/transfer/seal winner behavior for positive
+and rounded-zero tax, and real expiring approval request → different-user decision
+→ native valuation. The original approval-table INSERT column restrictions remain
+unchanged. The later Order434 work adds genuine correction-first and transferred-
+folio issuance, plus an observed concurrent correction waiting behind an invoice
+before COMMIT. A combined 500-root/366-night invoice fixture exercises 183,000 real
+allocations and the exact 503-account source/route set. It exposed repeated database
+scans, repaired forward in the non-runnable0076 fragments without changing0075.
+The final independent completion run passed18/0 with169 assertions in296.83s;
+the maximum case took276788.87ms (fixture40045ms, prefix498ms, issue233912ms,
+exact-result query55ms, replay2214ms, final census9ms). The exact account union is
+identity evidence for one guest,500 revenue and two payable accounts, not a claim
+that503 individual locks were observed. Earlier runs retain their diagnostic value:
+one account-query attempt failed42703, and its corrected successor timed out at
+300002.72ms after16 passes/162 assertions. D1370 made item serialization linear
+without weakening the deadline or assertions; root's final optimized maximum-only
+proof passed1/0 with8 assertions in283.61s.
+The D1372 continuation proves actual invoice-first concurrent folio transfer,
+approved predecessor12% and upper-slab18% histories, exact30/31-calendar-day
+timeliness, and real same-transaction accounting-handler replay. Completed handler
+delivery and invoice replay remain effect-free after the exact synthetic original
+request event is retained away. Independent focused execution passed7/0 with124
+assertions; the complete environment-cleared suite passed1560/0 with1165 explicit
+database/environment skips. No production tax policy or clock was changed.
+These are bounded additions, not full acceptance: remaining simultaneous winner/
+authority schedules, rate/history cases and migration0076 integration remain open.
 This status does not claim IRP completion, Phase 7 completion or a local promotion.
 See [the project map](docs/PROJECT-MAP.md) for the separate development, main, CI
 and runtime evidence states. Older order milestones below retain their historical
@@ -657,7 +687,7 @@ gapless series, Rule-46-valid default/reset, immutable unreclaimed numbers, sepa
 numbered corrections, folio-window/legal-payer invoice splitting, approved integer
 component totals without new residual, property-local issue date and server-owned
 actor authority. Independent review D1323 rejected Order430's incomplete canonical
-provenance authentication. Order434 is the active complete repair under D1330:
+provenance authentication. Order434 is the preserved unfinished repair under D1330:
 persist the original ordinary/source evidence, remove the external-invoice
 prerequisite, bind the actual issue date and complete graph in one transaction,
 and add only incremental tax accounting before immutable native issuance. The
@@ -2112,19 +2142,29 @@ Order412 freezes/hashes them, with no value, query, validation, authority or dat
 change. The repair and live rerun were covered by the independent approval; no document,
 provider, IRP, local, or Phase-7 completion authority is implied.
 
-### Current native issuance — Order430 rejected; Order434 active repair
+### Native issuance source history — Order430 rejected; Order434 unfinished
 
 Order430's D1316 legal-body repair was builder-proven under D1321, but fresh independent
 review D1323 rejected its incomplete canonical provenance authentication. Three Order426
 child hashes and material Order413 persisted predecessor/source lineage are not yet
 bound inside the database; digest consistency of supplied bytes is insufficient.
-[Order434](https://github.com/dcpnode-maker/yellow/blob/61dbeea6f2e0eac764ff177d33d8a6f8ac36103e/handoff/orders/434-native-fiscal-source-completion.md), admitted by D1330,
-is the active complete repair for first native issuance without an external invoice,
+[Order434](handoff/orders/434-native-fiscal-source-completion.md), admitted by D1330,
+is the preserved unfinished repair for first native issuance without an external invoice,
 with governed persisted evidence, actual-date atomic completion and no second revenue
 posting. Implementation, permanent defensive behavior/access proof and another
 different fresh Tier3 review remain required. Order434 is not built or approved;
 neither order establishes provider readiness, IRP completion, a local refresh or
 Phase7 completion.
+
+The latest [Order434 execution checkpoint](handoff/orders/434-native-fiscal-source-completion.md#genuine-native-invoice-execution--d1363)
+proves real charge-to-invoice COMMIT and no-write replay for ordinary, rounded-zero
+and genuine rate-change cases. A non-implementer executed9 dynamic cases, including
+current permission checks, partial-COMMIT rollback,100 identical-key requests
+and replay after exact temporary receipt/event removal.
+Full source/race/closed-state coverage,0076 migration integration and complete Tier3
+acceptance remain open; this is not Phase7 completion or current release authority. All draft fragments stay
+outside the migration runner; the18-phase scope and dependency-gated11→13→17
+priority are unchanged. The retained local app is not promoted by these proofs.
 
 ## Current cross-phase requirements index — Order433, 2026-09-05
 

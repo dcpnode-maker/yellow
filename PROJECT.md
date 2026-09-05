@@ -1,9 +1,10 @@
 # PROJECT.md — canonical constitution (ALL agents read this first)
 
-**This file is the single source of truth.** `CLAUDE.md`, `AGENTS.md`, and every
-future per-agent file are thin adapters that point here and add only a role. If an
-adapter ever contradicts this file, **this file wins** — and the contradiction is a
-bug to fix, not a judgement call.
+**This file is the single source of truth for engineering rules.**
+`docs/PROJECT-STATUS.md` is the single current-state record. `CLAUDE.md`, `AGENTS.md`,
+and every future per-agent file are thin adapters that point here and add only a role.
+If an adapter ever contradicts this file, **this file wins** — and the contradiction
+is a bug to fix, not a judgement call.
 
 Why it's built this way: duplicated rules drift. Two copies survive; four don't.
 
@@ -17,9 +18,12 @@ founding team; AI agents write essentially all code; a founder reviews every
 critical-path change. Stack: **TypeScript (strict) · Bun · Elysia · PostgreSQL 16 ·
 modular monolith**. Zero-cost doctrine: runs on free/OSS infrastructure.
 
-**Current state:** the immutable 80-table baseline is applied by the production
-runner, which adds `schema_migration` (81 public tables total); deterministic demo
-seed, schema drift, health, and the 11/11 invariant battery are Phase-0 gates.
+**Current state:** read [docs/PROJECT-STATUS.md](docs/PROJECT-STATUS.md) before using
+a branch, local app or deployment. The immutable 80-table migration is the baseline;
+the runner adds `schema_migration`, and forward migrations expand that catalogue.
+The exact source and migration frontier must come from current release evidence, not
+the historical 81-table Phase-0 count. Deterministic seed, schema drift, health and
+the 11/11 invariant battery remain required gates.
 
 ## The Ten Invariants (violating any is never acceptable)
 
@@ -85,8 +89,8 @@ invariants 4 or 7; hand-write availability math outside the projection rebuilder
 ## Session ritual — every agent, every session
 
 1. Run `./state.sh` — this prints identical ground truth for everyone: branch, head,
-   phase, last ledger lines, last decisions, open orders and questions.
-2. Read this file, then `BUILD-PLAN.md` for the **current phase only**.
+   canonical current task/lifecycle/phase, historical record counts and service state.
+2. Read `docs/PROJECT-STATUS.md`, then `BUILD-PLAN.md` for the **current phase only**.
 3. `grep -i "<topic>" DECISIONS.log` **before deciding anything** — the answer may
    already exist, and re-deciding it wastes budget and creates contradictions.
 4. State in one sentence what you're doing and which order/phase it serves.
@@ -106,9 +110,10 @@ invariants 4 or 7; hand-write availability math outside the projection rebuilder
 | What does the UI do? | `docs/UI-SPEC.md` |
 | What's already been decided? | `DECISIONS.log` |
 | What are we building next? | `BUILD-PLAN.md` |
+| What is current right now? | `docs/PROJECT-STATUS.md` |
 | Who does what? | `docs/WORKFLOW.md`, `handoff/ROSTER.md` |
 | What just happened? | `handoff/LEDGER.md` |
-| Is it still correct? | `./setup.sh --db-only` → 81 tables and 11/11 |
+| Is it still correct? | current release catalogue checks + `./setup.sh --db-only` → 11/11 |
 
 ## The referee
 

@@ -5,16 +5,34 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      args:
+        YELLOW_BUILD_SHA: "${YELLOW_BUILD_SHA:-}"
     environment:
       NODE_ENV: production
       HOST: "0.0.0.0"
       PORT: "3000"
       YELLOW_OPERATOR_ALLOW_NON_LOOPBACK: "1"
       YELLOW_OPERATOR_WORKBENCH: "${YELLOW_OPERATOR_WORKBENCH:-0}"
+      YELLOW_LOCAL_REVIEW_PREFILL: "${YELLOW_LOCAL_REVIEW_PREFILL:-0}"
+      YELLOW_LOCAL_REVIEW_TENANT: "${YELLOW_LOCAL_REVIEW_TENANT:-}"
+      YELLOW_LOCAL_REVIEW_EMAIL: "${YELLOW_LOCAL_REVIEW_EMAIL:-}"
+      YELLOW_LOCAL_REVIEW_PASSWORD: "${YELLOW_LOCAL_REVIEW_PASSWORD:-}"
+      YELLOW_HOSTED_DEPOSIT_WORKBENCH: "${YELLOW_HOSTED_DEPOSIT_WORKBENCH:-0}"
+      YELLOW_RUNTIME_DATABASE_URL: "postgres://yellow_runtime:${YELLOW_RUNTIME_DATABASE_PASSWORD:?YELLOW_RUNTIME_DATABASE_PASSWORD is required}@postgres:5432/${YELLOW_DATABASE_NAME:-yellow_dev}"
+      YELLOW_HOSTED_DEPOSIT_CALLBACK_SECRET: "${YELLOW_HOSTED_DEPOSIT_CALLBACK_SECRET:-}"
+      YELLOW_HOSTED_PROVIDER_ORIGIN: "http://127.0.0.1:${YELLOW_HOSTED_PROVIDER_PORT:-3001}"
+      YELLOW_HOSTED_GUEST_ORIGIN: "http://127.0.0.1:${YELLOW_APP_PORT:-3000}"
       YELLOW_HOLD_EXPIRY_WORKER: "${YELLOW_HOLD_EXPIRY_WORKER:-1}"
       YELLOW_AVAILABILITY_PROJECTION_WORKER: "${YELLOW_AVAILABILITY_PROJECTION_WORKER:-1}"
-      DATABASE_URL: "${YELLOW_APP_DATABASE_URL:-postgres://yellow:yellow@postgres:5432/yellow_dev}"
-      YELLOW_TOKEN_SECRET: "${YELLOW_TOKEN_SECRET:-yellow-local-development-token-secret-change-before-deployment}"
+      YELLOW_PICKUP_TASK_WORKER: "${YELLOW_PICKUP_TASK_WORKER:-1}"
+      YELLOW_RESERVATION_ARRIVAL_ROLL_WORKER: "${YELLOW_RESERVATION_ARRIVAL_ROLL_WORKER:-1}"
+      YELLOW_RESERVATION_DEPARTURE_ROLL_WORKER: "${YELLOW_RESERVATION_DEPARTURE_ROLL_WORKER:-1}"
+      YELLOW_BUSINESS_DAY_ROLL_WORKER: "${YELLOW_BUSINESS_DAY_ROLL_WORKER:-1}"
+      YELLOW_EXTENSION_REGISTRAR_DATABASE_URL: "postgres://yellow_extension_registrar:${YELLOW_EXTENSION_REGISTRAR_DATABASE_PASSWORD:?YELLOW_EXTENSION_REGISTRAR_DATABASE_PASSWORD is required}@postgres:5432/${YELLOW_DATABASE_NAME:-yellow_dev}"
+      YELLOW_TOKEN_SECRET: "${YELLOW_TOKEN_SECRET:-}"
+    depends_on:
+      postgres:
+        condition: service_healthy
     ports: ["127.0.0.1:${YELLOW_APP_PORT:-3000}:3000"]
     healthcheck:
       test:
@@ -29,6 +47,51 @@ services:
       timeout: 3s
       retries: 20
 
+  synthetic-provider:
+    profiles: ["hosted-deposit"]
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        YELLOW_BUILD_SHA: "${YELLOW_BUILD_SHA:-}"
+    environment:
+      NODE_ENV: production
+      HOST: "0.0.0.0"
+      PORT: "3001"
+      YELLOW_OPERATOR_ALLOW_NON_LOOPBACK: "1"
+      YELLOW_HOSTED_PROVIDER_ONLY: "1"
+      YELLOW_HOSTED_DEPOSIT_CALLBACK_SECRET: "${YELLOW_HOSTED_DEPOSIT_CALLBACK_SECRET:-}"
+      YELLOW_HOSTED_PROVIDER_ORIGIN: "http://127.0.0.1:${YELLOW_HOSTED_PROVIDER_PORT:-3001}"
+      YELLOW_HOSTED_GUEST_ORIGIN: "http://127.0.0.1:${YELLOW_APP_PORT:-3000}"
+      YELLOW_HOSTED_CALLBACK_ORIGIN: "http://app:3000"
+    ports: ["127.0.0.1:${YELLOW_HOSTED_PROVIDER_PORT:-3001}:3001"]
+    healthcheck:
+      test:
+        - CMD
+        - bun
+        - -e
+        - >-
+          const response = await fetch("http://127.0.0.1:3001/health");
+          if (response.status !== 200) process.exit(1);
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+  provision:
+    profiles: ["tools"]
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: database-tools
+    command: ["bun", "scripts/provision-local-database-authority.ts"]
+    environment:
+      YELLOW_DEPLOY_DATABASE_URL: "postgres://yellow_deploy:${YELLOW_DEPLOY_DATABASE_PASSWORD:?YELLOW_DEPLOY_DATABASE_PASSWORD is required}@postgres:5432/${YELLOW_DATABASE_NAME:-yellow_dev}"
+      YELLOW_RUNTIME_DATABASE_PASSWORD: "${YELLOW_RUNTIME_DATABASE_PASSWORD:?YELLOW_RUNTIME_DATABASE_PASSWORD is required}"
+      YELLOW_EXTENSION_REGISTRAR_DATABASE_PASSWORD: "${YELLOW_EXTENSION_REGISTRAR_DATABASE_PASSWORD:?YELLOW_EXTENSION_REGISTRAR_DATABASE_PASSWORD is required}"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
   migrate:
     profiles: ["tools"]
     build:
@@ -36,10 +99,10 @@ services:
       dockerfile: Dockerfile
       target: database-tools
     environment:
-      DATABASE_URL: postgres://yellow:yellow@postgres:5432/yellow_dev
+      YELLOW_DEPLOY_DATABASE_URL: "postgres://yellow_deploy:${YELLOW_DEPLOY_DATABASE_PASSWORD:?YELLOW_DEPLOY_DATABASE_PASSWORD is required}@postgres:5432/${YELLOW_DATABASE_NAME:-yellow_dev}"
     depends_on:
-      postgres:
-        condition: service_healthy
+      provision:
+        condition: service_completed_successfully
 
   seed:
     profiles: ["tools"]
@@ -49,7 +112,7 @@ services:
       target: database-tools
     command: ["bun", "scripts/seed.ts"]
     environment:
-      DATABASE_URL: postgres://yellow:yellow@postgres:5432/yellow_dev
+      YELLOW_DEPLOY_DATABASE_URL: "postgres://yellow_deploy:${YELLOW_DEPLOY_DATABASE_PASSWORD:?YELLOW_DEPLOY_DATABASE_PASSWORD is required}@postgres:5432/${YELLOW_DATABASE_NAME:-yellow_dev}"
     depends_on:
       migrate:
         condition: service_completed_successfully
@@ -57,9 +120,9 @@ services:
   postgres:
     image: postgres:16.15-alpine@sha256:ab5c955e9e57ae9879d4411ab49a912be9d162455676f7bf56e951b11ac73785
     environment:
-      POSTGRES_USER: yellow
-      POSTGRES_PASSWORD: yellow
-      POSTGRES_DB: yellow_dev
+      POSTGRES_USER: yellow_deploy
+      POSTGRES_PASSWORD: "${YELLOW_DEPLOY_DATABASE_PASSWORD:?YELLOW_DEPLOY_DATABASE_PASSWORD is required}"
+      POSTGRES_DB: "${YELLOW_DATABASE_NAME:-yellow_dev}"
     ports: ["127.0.0.1:${YELLOW_POSTGRES_PORT:-5442}:5432"]
     volumes:
       - yellow-pgdata:/var/lib/postgresql/data
@@ -69,13 +132,13 @@ services:
       -c pg_stat_statements.track=all
       -c log_min_duration_statement=200
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U yellow -d yellow_dev"]
+      test: ["CMD-SHELL", "pg_isready -U yellow_deploy -d \"$${POSTGRES_DB}\""]
       interval: 3s
       timeout: 3s
       retries: 20
 
   valkey:
-    image: valkey/valkey:8-alpine
+    image: valkey/valkey:8.1.9-alpine@sha256:e0eb7c480958d32bdc4357a74bdd70653ae15f2f9b4c93c4a5a9fad1dc471c84
     ports: ["127.0.0.1:${YELLOW_VALKEY_PORT:-6389}:6379"]
     command: valkey-server --save "" --appendonly no
     healthcheck:
