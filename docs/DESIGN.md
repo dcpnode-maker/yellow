@@ -1,5 +1,35 @@
 # Yellow interface atlas
 
+## Current direction — 2026-09-05, Order433
+
+The founder now explicitly requires **different hotel and STR workspaces**, with
+PriceLabs informing STR revenue workflows and Beds24/other PMSs informing operations.
+See [staff journeys](design/STAFF-JOURNEYS.md), [feature IDs](FEATURE-REGISTER.md) and
+[regional packs](architecture/REGIONAL-PACKS.md). One domain core does not require
+identical screen arrangements. Property experience, visual material, locale and
+authorization are independent dimensions.
+
+For the next scoped redesign, replace the global Simple/Advanced/Expert selector
+with contextual progressive disclosure and role-aware next actions. Preserve six
+dedicated appearances: Apple, Android/Pixel, Win95/98, Glass, Neo and ERP. The founder's
+supplied visual/video references below remain design provenance, not proof of a
+pixel-exact native implementation or permission to redistribute third-party assets.
+
+Each workspace has coherent semantic reading/focus order; appearance changes preserve
+the active task, values and authorization but may use different responsive composition.
+The older requirement for identical DOM/layout across every experience is not the
+new product intent. Material authenticity needs actual visual/interaction evidence.
+
+The older five-appearance, three-detail-mode and 98,304-byte criteria below belong
+to the historical Order195 contract. They are not the new desired design ceiling.
+Future implementation must explicitly reconcile the affected executable tests and
+budgets in its own scope: measure first-use bytes, frame/interaction latency, memory
+and accessibility; load optional 3D, voice and locale assets on demand. Do not silently
+remove a gate, lower contrast, hide unsupported states or call extra payload harmless.
+This documentation does not change the running UI or existing executable gates.
+
+## Historical Order195 contract and reference provenance
+
 **Status:** Order 195 implementation contract · D-493–D-526
 **Catalogue:** Apple iOS · Android 17 / native Pixel · Windows 95/98 ·
 Glassmorphism · Neomorphism · Enterprise ERP

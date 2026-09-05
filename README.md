@@ -7,6 +7,21 @@ is the durable source of truth: implementation, decisions, orders, executable pr
 and independent reviews travel together so a future maintainer or model can reconstruct
 why the system works as it does.
 
+## Developer and AI entry point
+
+Start with [PROJECT.md](PROJECT.md), then [the project map](docs/PROJECT-MAP.md).
+The [feature register](docs/FEATURE-REGISTER.md) records the founder's current
+requirements with stable IDs, owning phases and evidence boundaries. It covers
+distinct hotel/STR experiences, regional preferences, voice workflows, RMS and OTA
+integration—not just colours or a PMS-only scope.
+
+Follow the linked [staff journeys](docs/design/STAFF-JOURNEYS.md),
+[research](docs/research/STAFF-STR-ECOSYSTEM-2026-09.md),
+[regional packs](docs/architecture/REGIONAL-PACKS.md),
+[OTA contracts](docs/integrations/OTA-CONNECTIVITY.md) and
+[voice/RMS plan](docs/architecture/VOICE-RMS-PLAN.md). These are specified design
+and research, not a claim that every feature is implemented, integrated or live.
+
 ## Current build snapshot
 
 The authoritative roadmap contains **18 phases, numbered 0–17**. Current recorded
@@ -88,10 +103,12 @@ certification or production deployment that has not occurred.
 
 ## Provenance
 
-Designed clean-room from USALI 12th, HTNG/OpenTravel, and public API docs of modern
-PMSs — no Oracle/OPERA materials were used. Four research rounds + a system stress
-test are archived in the project outputs (`differential-analysis-round-*.md`,
-`system-stress-test-round-4.md`).
+The original design research used USALI 12th, HTNG/OpenTravel and public modern-PMS
+API documentation, without Oracle/OPERA material. Its four research rounds and system
+stress test remain archived (`differential-analysis-round-*.md`,
+`system-stress-test-round-4.md`). The separately dated September staff-journey research
+now includes public Oracle OPERA documentation at the founder's request, alongside
+Beds24 and other PMS/STR products. It does not copy proprietary code or assets.
 
 ## The one number to remember
 

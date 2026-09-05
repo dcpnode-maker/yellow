@@ -2081,3 +2081,17 @@ bound inside the database; digest consistency of supplied bytes is insufficient.
 Repair, isolated lineage-only zero-artifact hostility and another different fresh
 Tier-3 review remain mandatory. It is not independently approved, provider-ready,
 IRP-complete, locally refreshed, or Phase-7 complete.
+
+## Current cross-phase requirements index — Order433, 2026-09-05
+
+The [feature register](docs/FEATURE-REGISTER.md) records current founder requirements
+as stable YF IDs mapped to these same 18 phases. [The project map](docs/PROJECT-MAP.md)
+is the developer/AI navigation entry point. Linked specifications distinguish hotel
+and STR journeys, contextual detail, dedicated materials, lightweight regional packs,
+multilingual voice, RMS, global/regional OTA connectivity and authorized data collection.
+
+These are acceptance requirements for future scoped implementation, not completed
+features or an added phase. Preserve the approved dependency sequence and founder
+priority 11 → 13 → 17. Each implementing order must cite its YF IDs, contracts,
+code/proof and remaining gaps; a phase count or a research document cannot substitute
+for working end-to-end functionality and the required verification.

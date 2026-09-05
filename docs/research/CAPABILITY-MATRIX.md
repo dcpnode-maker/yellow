@@ -1,5 +1,12 @@
 # Capability Matrix
 
+> Historical assessment, not today's feature status. For the 2026-09-05 founder
+> requirements and their observed/proposed distinctions, use the
+> [feature register](../FEATURE-REGISTER.md) and
+> [current research](STAFF-STR-ECOSYSTEM-2026-09.md). Current phase state is in
+> [BUILD-PLAN.md](../../BUILD-PLAN.md); exact implementation/review evidence remains
+> in orders, reviews and the ledger. The assessment below is preserved unchanged.
+
 **Assessment date:** 2026-08-21
 **Method:** Source, tests, live catalog, runtime probe, and decisions were inspected.
 A filename or table alone never earns “implemented.”
