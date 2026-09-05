@@ -70,3 +70,18 @@ state report still infers a phase from historical order files. These are disclos
 implementation gaps, not silently “fixed” by prose. Historical HTML onboarding and
 archived research remain historical; this order does not claim every repository file
 has been rewritten or every feature tested.
+
+## Subsequent publication / default-branch clarification
+
+The 14 original documents were published at dc407e2 in PR80. Its CI33935495750
+failed one documentation assertion because the prior AI heading was removed. The
+original heading is now retained as an explicitly historical quoted label while
+the current Phase14 ownership remains clear. Root executed the rate-intent-provider
+suite: 7 passed, 0 failed, 59 assertions; no assertion was removed or softened.
+
+PR81 initially published README-only549208f. Quality, Windows-state and container
+checks passed, but CI33935544793 exposed seven aged quote-fixture failures before
+the referee. Order436 now scopes their test-only repair. After the founder's further
+clarification, Order435 explicitly extends main publication to 20 current Markdown
+documents with pinned development-provenance notices and correct source links.
+This supersedes the README-only publication plan above, not its historical receipt.

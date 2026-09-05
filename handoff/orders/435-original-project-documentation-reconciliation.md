@@ -84,3 +84,24 @@ The existing clean Order432 checkout is reused for a separate README-only branch
 rooted at origin/main. No clone/worktree or database is added; the former branch
 remains preserved. Publication is not integration. The main correction must remain
 draft until the required gate and independent integration have actually occurred.
+
+## Explicit scope expansion after founder's default-page clarification
+
+The founder reiterated that a development-branch push does not update the default
+GitHub project. PR81 now admits a documentation snapshot of the original guides and
+specifications above, plus their five supporting current-direction documents
+(STAFF-JOURNEYS, REGIONAL-PACKS, VOICE-RMS-PLAN, OTA-CONNECTIVITY and the dated
+STAFF-STR-ECOSYSTEM research) and docs/research/README.md. This is 20 Markdown files
+including README, not the initially proposed README-only change.
+
+Every imported document must visibly state the exact development source commit and
+that main's executable code has not yet caught up. Rewrite relative code/order/
+evidence links to that pinned development ref when they describe that lineage; keep
+links among imported current documents local. Validate all remaining local links
+against the main candidate, and all pinned targets against the source commit.
+Applied migrations, production source and historical evidence remain untouched.
+
+Order436 separately admits the single expired quote-test fixture repair needed by
+main CI. The combined candidate is documentation plus a test fixture, never described
+as README-only or as current product-code integration. No default-branch swap,
+unapproved fiscal merge or independent-proof waiver is permitted.

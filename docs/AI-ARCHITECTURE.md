@@ -208,6 +208,8 @@ distribution uses outbox/push cursors; property-local dates, tenancy and consent
 
 ## 7. Historical Phase-4 conflict; current RMS ownership is Phase 14
 
+The earlier heading, "Conflict with the current phase plan", described the Phase-4
+planning checkpoint, not an unresolved conflict in today's 18-phase roadmap.
 Earlier planning drafts placed some RMS prerequisites beside Phase 4. That placement is
 historical and superseded: Phase 4 owns reservation correctness—search, hold, commit,
 lifecycle, segments, guests and its review workbench—while the adaptive RMS is owned by
