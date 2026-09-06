@@ -1,6 +1,6 @@
 # Question198 — Integrate concurrent reviewed Yellow work
 
-**Status:** RESOLVED; local integration proof passed, exact-head GitHub CI pending.
+**Status:** CLOSED; exact-head GitHub CI passed and PR85 merged independently.
 **Date:** 2026-09-06
 **Owner:** Codex implementation coordinator.
 
@@ -102,3 +102,20 @@ native_migration_assembly personally reran22/0(134) and types; its exact hash re
 is appended to review440. These repairs do not alter lifecycle or database authority.
 Publish the repaired revision for a new complete exact-head CI execution; failed
 4ecee0b is not accepted or merged.
+
+## Final integration receipt
+
+The reviewed RMS-only correction advanced the candidate to
+088d093ee6b813cb79cee8a98a4bfb67d72fecb0. CI33999540391 passed all five jobs;
+CodeQL passed without findings. Non-implementing native_migration_assembly checked
+migration41/41, seed10/10, native116/116, required Q197 issued-wire4/4,
+compatibility89/89, exact schema and referee11/11. No skipped required proof was
+substituted. GitHub confirms PR85 merged2026-09-06T00:04:14Z as
+b5ef70842b658183f7b5b4c650c8e78c7a0b513d. Root independently checked the PR state,
+fetched main, verified its tree equals088d093 and fast-forwarded the active branch
+without changing the uncommitted Q199 work. No own-PR merge or runtime refresh.
+
+The earlier fee23d5 database job was canceled by the newer research push, not
+accepted as passing. The complete successor33999540391 supplies the required proof.
+MainCI34000319799 and image publication34000989837 also succeeded atb5ef708.
+Q199's subsequently developed durable foundation is not included in this acceptance.

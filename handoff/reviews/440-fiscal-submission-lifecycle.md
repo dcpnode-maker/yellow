@@ -164,3 +164,90 @@ src/contexts/tax-fiscal/fiscal-submission-state.ts
 tests/fiscal-submission-state.test.ts
   D8DA387F7DDF3533C52726732AFDD27AC20FAA05F29F13ED74DF9FC61A9D1DC6
 ```
+
+## Q199 durable foundation independent clone receipt
+
+Reviewer: `/root/native_migration_assembly` (independent), 2026-09-06.
+Scope: disposable `yellow_order440_durable_20260906_v8` cloned from
+`yellow_order434_production`; no template or other database was changed.
+
+Personally executed against PostgreSQL 16.15 on `127.0.0.1:55503` with the
+admitted deploy/runtime roles and `YELLOW_REQUIRE_ORDER440_DURABILITY=1`:
+
+```text
+bun test tests/fiscal-submission-durability.integration.test.ts
+17 passed, 0 failed, 190 expectations, 77.54s
+bun test tests/fiscal-submission-worker.test.ts tests/fiscal-submission-state.test.ts tests/india-irp-issued-wire-candidate.test.ts
+40 passed, 0 failed, 207 expectations, 411ms
+bun run typecheck
+tsc --noEmit passed
+```
+
+The durable integration covered the four late-outbox rollback paths, real
+history pruning, both audited seal schedules, and 100 concurrent claims. A
+schema-only dump was captured before cleanup. The durable draft added one
+table and one policy to the 77-migration baseline (`128` public tables / `118`
+policies versus the baseline `127` / `117`); it is not represented by a
+`schema_migration` row. The clone was dropped with `WITH (FORCE)` and a final
+activity query reported zero sessions for both the clone and the production
+template.
+
+The separately seeded fresh clone's protected referee invocation was **not**
+accepted as a full proof: `tests/referee-typed-parent-fixtures.integration.test.ts`
+returned `8 passed, 3 failed of 11`. The three failures were TC-12.1,
+TC-12.3, and TC-12.5 (zero occupancy winners/claims/throughput), plus the
+typed-parent observer's temporary table lacked runtime INSERT privilege during
+the P2 forced-exclusion path (`42501`). This is a proof-environment/fixture
+boundary, not evidence that the durable functions passed the referee. No
+catalogue promotion, migration-row insertion, canonical schema update, or
+Tier-3 approval is claimed; the draft remains outside the migration runner.
+
+Canonical referee correction: on a new v9 clone, the frozen draft was applied
+inside one transaction, then the exact `tests/seed_fixture.sql` was loaded and
+`py -3.13 tests/run_invariants.py order130` was run with the deploy DSN and
+UTF-8 output. It returned `RESULT: 11 passed, 0 failed of 11` (TC-12.1/12.3
+occupancy races, TC-12.4 direct INSERT denial, TC-12.5 throughput, journal,
+seal, numbering, and both RLS checks). The earlier 8/11 result was the
+historical `referee-typed-parent-fixtures.integration.test.ts` observer test,
+which creates invoker triggers and is not the canonical CI referee command;
+that earlier failure remains recorded but is not a durable-foundation defect.
+The v9 catalogue was `77` migration rows, `128` public tables, and `118`
+policies. Its normalized schema-only dump was byte-identical to the prior v8
+draft dump (raw pg_dump wrapper tokens differ); comparison with the historical
+`tests/schema/expected.sql` necessarily diverges at the draft function section.
+
+Static worker inspection found repository `ok:false` envelopes are checked
+before worker success/reconcile results are returned; no public ordinary
+transaction wrapper currently calls these draft functions. This does not
+constitute application-writer integration proof.
+
+## Q199 disposition
+
+The private durable foundation is approved for development publication and for
+subsequent canonical-migration admission, limited to the draft repository,
+worker, and SQL contract. This is not approval of Order 440 as a whole,
+provider activation, runtime/database deployment, or Phase 7 completion.
+
+The remaining implementation finding is explicit: any future ordinary
+transaction command wrapper must inspect a failed repository `Result` and
+abort before its enclosing commit. No such public wrapper exists in this
+candidate, so this is a required integration condition rather than a failure
+of the privately tested worker.
+
+Frozen SHA-256 hashes for the five private foundation artifacts:
+
+```text
+handoff/drafts/order440/0078-fiscal-submission-durability.sql
+  65323A81A999A11E3D55893411C994C0B841AF9B0465CA7E80630FD78D0FFAE6
+src/contexts/tax-fiscal/fiscal-submission-repository.ts
+  2839062C0BAC75339AC52158BADA74AA8BFCBDB71BDF8E71C5EAAD20ED305E2F
+src/contexts/tax-fiscal/fiscal-submission-worker.ts
+  67F96C18029C2B8C74D2E6AE1A126AD2B35561348F5C03B8383C1BE1651D4470
+tests/fiscal-submission-durability.integration.test.ts
+  A83DA64C55EEA0BCAD0609E8094BCB8F69BB2305DD9A3DDC58B11A1710C91886
+tests/fiscal-submission-worker.test.ts
+  8B852BC39EC95298E3FA3BC8F69918EA8A17943DFAE359DAAC2994CEC5BE7D49
+```
+
+The canonical `tests/schema/expected.sql` remains unchanged at the 77-migration
+baseline; no migration admission or catalogue promotion is claimed here.

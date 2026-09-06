@@ -1,6 +1,6 @@
 # Order 440 — Durable fiscal submission and reconciliation
 
-**Status:** ACTIVE — private contract independently accepted; durable integration next.
+**Status:** ACTIVE — private contract accepted; durable draft implemented and separately tested.
 Order434's exact candidate is accepted and merged; no provider is activated.
 **Phase:** 7, planned sequence item6.
 **Owner:** Codex coordinator; bounded internal builders, separate high-risk reviewer.
@@ -198,3 +198,28 @@ denials, concurrent claims, crashes before/after transport, unknown/duplicate ou
 recovery, verified receipt binding, retained audit and immutable document/accounting
 census. Migration/schema/11-invariant and independent personally executed proof apply
 to that later high-risk integration. Lane A unit tests alone do not close this order.
+
+## Q199 durable foundation checkpoint
+
+The private SQL draft, repository and one-step worker are implemented without a new
+dependency or live provider. Root and independent native_migration_assembly each
+personally passed17 genuine PostgreSQL tests with190 assertions, including100
+competing claims, three GST wire families, unknown-outcome lookup, bounded retries,
+source/financial preservation, full write rollback, history retention and both actual
+audited seal commit schedules. Worker/state/wire40/40(207) and typecheck pass. Root
+standing1613/0 with1214 explicit database skips(21877;490 files) is separate evidence.
+
+Real red tests found null-result-family acceptance, leases consumed while waiting
+for locks, a concurrent same-request race, nullable mixed legacy/durable metadata,
+and the missing promised history-read grant. All have permanent regressions and
+repairs in the frozen draft. Request correlation IDs do not change semantic replay
+identity; actor/property permission is always checked again. Earlier partial runs and
+test-harness stalls remain in the logs, not counted as successful complete runs.
+
+Draft source SHA-256:
+`65323a81a999a11e3d55893411c994c0b841af9b0465ca7e80630fd78d0ffae6`.
+The draft is not in the migration runner: canonical main stays77/127, while the
+disposable draft catalogue is128 tables/118 policies. Independent reproducible
+schema-dump comparison and the canonical Python referee11/11 now pass; review440
+approves the private foundation and subsequent canonical migration/CI admission. No operator
+command, authenticated provider, serving local app or complete Order440 is claimed.

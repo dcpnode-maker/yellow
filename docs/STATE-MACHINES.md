@@ -233,6 +233,33 @@ is allowed for ready, pending, failed, expired, revoked or foreign capture state
 prev_hash chained) → cleared|rejected (fiscal_submission) ; issued→void only where
 jurisdiction permits, else credit-note document. Emits document.issued / .cleared.
 
+### Order440 delivery head (private draft, not document mutation)
+
+Issued native documents and their number/content/chain remain immutable. The separate
+`fiscal_submission` status records delivery, with protected append-only transition and
+receipt history. [Q199](../handoff/questions/199-durable-fiscal-submission-admission.md)
+is the current implementation admission; no real provider is activated.
+
+| Current head | Event | Next head / permitted work |
+|---|---|---|
+| absent | authorized request for eligible issued document | pending / send |
+| pending | runtime claims new attempt | submitted / transport outside the transaction |
+| submitted | pending, timeout or duplicate response | submitted / lookup only |
+| submitted | expired claim | new lookup claim for the same attempt; never a new send |
+| submitted | verified accepted or rejected receipt | terminal accepted or rejected / no work |
+| submitted | verified known-not-sent | error / explicit authorized retry eligible |
+| error, known-not-sent | authorized retry, fewer than3 retries | pending / new unique attempt; prior history retained |
+| terminal | identical receipt replay | same immutable terminal state, no duplicate effects |
+| any | stale attempt/token, conflicting receipt, foreign binding | reject without changing the head |
+
+The private generic reducer also models clearance for future adapters; the admitted
+durable India foundation permits reporting only. A lease is15–300 seconds (worker
+default60), and at most3 explicit known-not-sent retries follow the first attempt.
+These are bounded implementation controls, not statutory eligibility policies.
+Pending/submitted/rejected/error remain audited business-day seal blockers unchanged.
+No transition edits an issued document, balances a second ledger, reuses an invoice
+number or interprets a local success receipt as authenticated government acceptance.
+
 ## 9. Approval (`approval_request.status`) — added by D-93 (Question 011)
 
 ```

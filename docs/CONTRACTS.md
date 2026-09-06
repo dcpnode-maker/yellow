@@ -489,6 +489,39 @@ prepare(document)→jurisdiction payload (UBL/PINT/IRP-JSON) · submit(payload)�
 Implement: `sa-zatca` (clearance, XAdES, PIH chain, TLV QR) · `in-irp` (IRN+signed QR) ·
 `ae-asp:<provider>` (PINT AE generate + hand-off; ASP does transmission — UAE law).
 
+### Order440 private delivery foundation — implementation in progress
+
+The current private provider port and reducer distinguish verified terminal receipts,
+unknown transport outcomes and known-not-sent failures. Q197 projects the exact
+native-issued document into deterministic wire bytes with a separate SHA-256; source
+hash integrity alone does not authenticate a caller's document. No adapter is
+registered and no provider certification or live registration is claimed.
+
+[Q199](../handoff/questions/199-durable-fiscal-submission-admission.md) admits a durable
+draft within the existing monolith. Ordinary request/retry methods accept the caller's
+tenant-scoped `Tx` and independently authorize their distinct active-actor/property
+permissions. A separate private infrastructure adapter reserves a runtime-login
+connection for claim/reconcile, commits before transport, and settles it after each
+short transaction. Application `Database` does not expose raw worker authority.
+Ordinary request/retry return a typed Result inside the caller-owned transaction;
+any future command wrapper must abort that entire transaction on a failed Result,
+including invalid database receipts. Returning a failure and committing unrelated
+effects is not an admitted command composition. No such public wrapper is wired yet.
+
+Database-owned source selection, exact wire derivation, logical provider key and
+immutable extension version bind one current submission head. Protected insert-only
+history retains each attempt and normalized receipt independently of prunable outbox
+and generic app-writable facts. The worker processes one claim, selects only an
+explicitly registered matching adapter, verifies the stored bytes/bindings, and sends
+or looks up according to the database result. A thrown network call is uncertain,
+never evidence of non-delivery. There is no automatic retry or fake-success provider.
+
+The SQL draft is outside the canonical runner. Its exact signatures/receipt fields,
+permissions, retry/lease bounds and tests are in Q199. Do not treat these private
+contracts as HTTP endpoints, completed persistence, current migration78, fiscal
+acceptance, operator UI or local/cloud activation until their executable proof and
+separate canonical integration are recorded.
+
 ## 8. India GST accommodation rate-change-date evidence (Order307)
 
 `deriveIndiaGstAccommodationRateChangeDate({ tenantId, rateVersionPair })` accepts

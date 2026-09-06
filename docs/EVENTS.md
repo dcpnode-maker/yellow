@@ -309,6 +309,24 @@ source, locking, accounting and executable acceptance contract.
 
 ## Consumer registry (who must exist by launch)
 
+### Order440 fiscal delivery events — private draft admission
+
+`fiscal.submission.requested`, `fiscal.submission.claimed`,
+`fiscal.submission.reconciled` and `fiscal.submission.retry_requested` describe changes
+to the delivery head, not issuance or government acceptance of an invoice. Q199's
+database owner functions atomically write the head, protected receipt history, fact
+and outbox entry. Payloads carry bounded submission/attempt/document/provider identities,
+document and wire hashes, status/disposition and transition sequence. Never include
+claim secrets, credentials, guest records, signed-invoice bodies or raw provider errors.
+
+Protected history is the receipt authority: generic fact insertion and consumer
+deduplication cannot forge or replace it. Consumers may be rebuilt from outbox; a
+provider attempt cannot be safely repeated merely because an event was replayed.
+After uncertainty or lease expiry, an authoritative lookup claim is required.
+This in-progress draft registers no asynchronous consumer and activates no provider.
+
+### Planned launch consumers
+
 projection-rebuilder (availability, stats_daily, folio_balance cache) · valkey-invalidator ·
 automation-engine (matches trigger_event, evaluates condition AST, executes action) ·
 ari-pusher (per channel, batched 5–30 s adaptive) · statutory-scheduler · document-issuer ·

@@ -24,6 +24,10 @@ independently reviewed hotel-journey/schema/design study as
 `7829eae47d4281efa117c8d3c788c3be52d10d06`. Main contains77 migrations and127 public
 base tables, including the runner ledger; [SCHEMA-GUIDE](SCHEMA-GUIDE.md) explains
 the immutable80-table baseline and historical125-table frontier.
+The combined private fiscal/RMS follow-up passed all five jobs in
+[CI33999540391](https://github.com/dcpnode-maker/yellow/actions/runs/33999540391)
+at088d093 and merged through[PR85](https://github.com/dcpnode-maker/yellow/pull/85)
+asb5ef70842b658183f7b5b4c650c8e78c7a0b513d. That merge changes no migration frontier.
 
 **Order440 fiscal submission** continues the durable request/delivery/reconciliation
 implementation. Its private state contract passes17 tests; the new private issued-wire
@@ -32,8 +36,14 @@ Those prove the supported GST component combinations, two-tenant source isolatio
 unchanged financial rows. The source hash remains distinct from the deterministic
 wire hash; money never passes through floating-point conversion. Canonical0077's final
 issued content includes Qty1.000/UnitOTH; the ordinary intermediate candidate does
-not. Q197 corrects that description. The candidate remains uncertified; durable
-writers, provider authentication and live sandbox evidence are unfinished.
+not. Q197 corrects that description. The candidate remains uncertified. Q199's
+private repository/worker and SQL draft now pass17 real PostgreSQL tests: exact
+source/wire preservation,100 concurrent claims, unknown-delivery recovery, bounded
+explicit retries, forced rollback of all four delivery operations, retained history
+and both audited business-day seal race orders. These are isolated-database proofs,
+not a canonical migration or activated worker. Independent private-foundation review
+also passed the canonical referee11/11 and reproducible draft-schema comparison.
+Canonical integration, provider authentication and live sandbox evidence are unfinished.
 
 **Order440 hotel journeys** preserves cross-department guest/staff research,
 16 synthetic cases and a14-case interactive design study. Its fictional in-memory
@@ -49,9 +59,13 @@ PR85 CI33996882192. PR85 then required integration because main advanced through
 PR84. Combined candidate4ecee0b failed quality inCI33998572070 because a test matcher
 mutated shared status text; Windows/local and CodeQL passed, database/container did
 not execute. Root reproduced and repaired that test-order defect, plus a private
-revoked-proxy input exception. The repaired source passes1600 local standing tests
-with1195 explicit database skips, types and independent narrow proof. Complete new
-exact-head CI, including the required issued-wire database proof, remains mandatory.
+revoked-proxy input exception. The repaired source passed1600 local standing tests
+with1195 explicit database skips. The later088d093 exact-head CI discharged the
+combined-source gate, including the required issued-wire database proof. Q199's next
+private draft passes1613 standing tests with1214 explicit database skips, types,
+import boundaries across173 TypeScript files,23 package licence checks and dependency audit; its separate
+genuine DB run is17/17. The independent private-foundation approval permits development
+publication and subsequent canonical admission, not an activated feature.
 No retained hotel database or founder-local app was refreshed by this work.
 
 Earlier failure CI33992123191 at6bb7ba6 remains evidence: migration41/41,
@@ -65,14 +79,14 @@ vendor/person dependency. Independent high-risk proof remains required.
 
 | Surface | Verified baseline | Release boundary |
 |---|---|---|
-| Source and integration | Reviewed native fiscal PR83 at443e3826, then hotel-journey/schema/design PR84 at7829eae; fiscal440 and RMS441 are being combined in PR85 | Main is the sole release branch; the combined candidate requires its own exact-head CI and independent integration |
+| Source and integration | Reviewed native fiscal PR83 at443e3826, hotel-journey/schema/design PR84 at7829eae and private fiscal/RMS PR85 atb5ef708 | Main is the sole release branch; the next Q199 durable draft is separate unpromoted work |
 | Native fiscal acceptance | Independent migration41/41, native116/116, compatibility89/89, catalogue23/23, exact schema and referee11/11; all five [PR83 CI jobs](https://github.com/dcpnode-maker/yellow/actions/runs/33993977811) passed | [Review434](../handoff/reviews/434-native-fiscal-source-completion.md) approves bounded native issuance, not provider activation or a retained hotel database |
-| GitHub work queue | All62 PRs in the original audit are closed with source preservation; PR82/83/84 are merged and PR85 carries the combined follow-up | [The manifest](../handoff/CONSOLIDATION-MANIFEST.json) preserves dispositions; [GitHub](https://github.com/dcpnode-maker/yellow/pulls) is authoritative for the live queue |
+| GitHub work queue | All62 PRs in the original audit are closed with source preservation; PR82/83/84/85 are merged | [The manifest](../handoff/CONSOLIDATION-MANIFEST.json) preserves dispositions; [GitHub](https://github.com/dcpnode-maker/yellow/pulls) is authoritative for the live queue |
 | Database schema | Main has77 migrations /127 public tables;0076 adds two tables and0077 adds no table. Order440 projection adds no migration | Immutable0001 declares80 application tables;0075's legacy containment stays intact. No retained hotel database was migrated |
 | Private issued-wire proof | Independent10/10 unit and4/4 real-issued tests, including exact unchanged financial rows and cross-tenant isolation | Source/wire hashes differ deliberately; no certified provider, durable submission writer or fiscal acceptance is claimed |
 | Hotel journey design | [Workbench specification](design/STAFF-WORKBENCH-SPEC.md), [casebook](design/HOTEL-CASEBOOK.md) and [research](research/HOTEL-OPERATIONS-REVIEW.md) are preserved from PR84 | Fictional interaction study; final visual fidelity needs an accessible reference and matched screenshot evidence |
 | Local app | The supported launcher passed clean CI with real database, canonical/review seeds, exact-SHA readiness, authentication and volume-preserving stop | [Local instructions](RELEASE.md) provide127.0.0.1:3000; CI does not prove the user's machine was refreshed |
-| Main verification and cloud | Last explicitly verified publication here is443e3826: mainCI33994717854 and immutable runtime/migration image publication33995471357 succeeded | Registry digests were not retrieved; no approved cloud host, ingress or serving URL is connected. Publication is not deployment |
+| Main verification and cloud | Mainb5ef708 CI34000319799 and runtime/migration image publication34000989837 succeeded | Registry digests were not retrieved; no approved cloud host, ingress or serving URL is connected. Publication is not deployment |
 
 A branch, document, test, container build, merge and deployment are separate evidence
 states. The runtime must identify its exact source and applied migration frontier.
@@ -85,7 +99,7 @@ states. The runtime must identify its exact source and applied migration frontie
 | Phase4 | Built; integration review outstanding | Preserve implementation and close remaining integration evidence |
 | Phase7 operational flows | Consolidated and independently approved baseline | PMS, stay, folio, payment, approval and fiscal-support flows remain preserved; this does not complete the whole phase |
 | Order434 native fiscal issuance | Independently approved and merged through PR83 | Real source-to-invoice, accounting, replay, concurrency, tenant isolation, bounds and migration proofs pass; no provider registration or operator invoice screen is implied |
-| Order440 fiscal submission | Private state and issued-wire projection accepted; durable integration in progress | Persistence, delivery/reconciliation, provider authentication, runtime activation and live sandbox evidence remain outstanding |
+| Order440 fiscal submission | Private state, issued-wire projection and durable foundation independently accepted | Canonical persistence/worker integration, provider authentication, runtime activation and live sandbox evidence remain outstanding |
 | Order440 hotel journeys | Reviewed study merged through PR84 | Cross-department research and a fictional prototype; final reference-matched visual QA and laptop execution remain separate |
 | Order441 RMS research | Astra Ultra portfolio documented | Known methods, falsifiable proposals and experiment design; no live algorithm or measured uplift |
 | Phases8–17 | Planned | Requirements, research and department studies are preserved; documentation is not shipped behavior |
