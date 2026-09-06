@@ -8,6 +8,19 @@ a prior phase's public surface without a written note in `DECISIONS.log`.
 
 ## Current implementation status — 2026-09-06, consolidated Codex Yellow work
 
+D1398 repairs the sole stale worker caller exposed by exact1b7 CI34047572346.
+Five jobs pass, including full Linux quality; actual current80 delivery11/11 and
+Linux process5/5 pass before the older77-to78 durability case rejects its missing
+provider identity/deadline. The scoped caller correction preserves strict
+production validation and separately proves real cross-tenant database denial.
+Root and non-implementer each personally pass all19 historical durability cases
+on distinct pristine77 clones (227 assertions each). Types,177 boundaries and23
+licences pass. Complete standing passes1,674/0 with1,264 explicit DB/Unix skips and
+22,293 assertions in101.95s. The earlier unchanged long-stay timeout and its
+isolated12/12 result remain recorded; no test limit was changed. New exact-source
+CI remains required before integration. Main79 and stable local77 are unchanged;
+later phases are not closed.
+
 Q204's latest CI harness repair is documented atD1397: actual Linux CI verifies
 batched scans and owned-child cleanup but exposes an overly tight new eight-second
 browser budget. The repair shares one monotonic deadline across each complete

@@ -710,3 +710,115 @@ not prove the original Linux timeout's cause or substitute Windows execution for
 new Linux isolated/full quality and current80 fiscal/database/readiness/referee CI.
 No retry/dispatch/merge, service restart, database mutation or production source
 edit occurred. Only this admitted review evidence was appended.
+
+## Exact1b7f9cc CI — Linux harness accepted; historical worker caller blocks integration
+
+Independent reviewer personally followed automatic CI34047572346 at exact
+1b7f9cc2813fb9286e41c2bacbc1f71a4265f783 over main
+22f1beddea23429ccd9111092dccf6176386adf2. No dispatch, rerun, cancellation,
+database mutation, service change or merge occurred. Read commands included
+`gh run view 34047572346 --json headSha,status,conclusion,jobs`,
+`gh api --allow-escape-sequences repos/dcpnode-maker/yellow/actions/jobs/101525267639/logs`,
+and the corresponding database job101525535103 log endpoint, filtered in memory.
+PR head/base, conversations and branch protection were also inspected read-only.
+No unresolved review threads exist; this does not waive executable gates.
+
+Quality101525267639, local-review101525267381, windows-state101525267565,
+free-host-arm64101525535144 and container-smoke101525535159 all succeeded.
+Normal CodeQL34047571169 succeeded on the same exact head. Actual isolated Linux
+six-file subprocess gate:24 pass,0 fail,227 assertions,35.84s. The previously
+failing discrepancy journey now passes in16.57s; Unix batching98.33ms, real owned
+child timeout/reap755.32ms and inherited-pipe cancellation762.65ms pass. Isolated
+maximum RSS467744KiB, exit0. Full Linux quality has1675 personally counted pass
+records,0 fail records,504 file groups and explicit1263-skipped summary; time-v
+records62.07s,480480KiB maximum RSS and exit0. Its stored log ends the repeated
+skip list mid-line before time-v output, without a final assertion-count summary.
+Full-suite assertion count is therefore unavailable, not inferred from Windows.
+
+Database101525535103 failed. Phase3 catalogue/authority, migration and seed steps
+passed; the revised runtime-authority suite specifically passes10/0,110 assertions.
+Before the failure, actual native source/accounting/preparation/locks/completion
+suites passed. Personally inspected exact fiscal summaries:
+
+- Issued wire:4/0,230 assertions,4.85s.
+- Q203 authenticated HTTP:10/0,97 assertions,8.85s.
+- Q204 current80 delivery including restart lookup:11/0,95 assertions,16.77s.
+- Required Linux server-process proof:5/0,29 assertions,1.078s.
+- Q205 real78-to79 immutable-receipt upgrade/replay:5/0,447 assertions,8.09s.
+- Historical77-to78 durability:18 pass,1 fail,215 assertions,55.37s.
+
+The first and only test failure is
+`tests/fiscal-submission-durability.integration.test.ts:490`, “real repository and
+worker commit a claim before provider work and settle their connection”,1094.23ms.
+It expects reconciled/submit/accepted but receives
+`{ok:false,error:{code:"invalid_input"}}`. Source inspection identifies the stale
+three-field input at489:tenantId,submissionId,leaseSeconds60. The current worker's
+exact seven-field validator additionally requires providerKey,providerExtensionId,
+providerExtensionVersion and transportDeadlineMs. Rejection occurs before claim
+or provider invocation; this is a substantive retained-caller/oracle mismatch,
+not another runner timeout and not grounds for a blind rerun. The provider's
+accepted resolution shape in this test remains compatible. Coordinator received
+the exact location, input contract and actual preceding positive results.
+
+**NO MERGE.** Native release containment/readiness, compatibility, deployment/schema,
+canonical database referee and final database-backed application proof were skipped
+after that failure. Existing independent native80 proof remains retained evidence,
+but cannot stand in for these missing exact-head Linux gates. Only this admitted
+review evidence was appended; untracked Question206 research is outside PR88 scope.
+
+## Historical worker caller correction — independent fresh77-to78 proof
+
+The non-implementing reviewer inspected the exact durability-test change and Q204
+scope amendment. The typed seven-field step uses provider identity from the committed
+request receipt and a20s transport budget inside the60s lease. Repository claims
+retain their separate three-field input. The old worker shape now explicitly fails
+before submission with all four delivery-evidence tables unchanged; the syntactically
+valid foreign claim must return the exact sanitized database_error, with foreign
+evidence unchanged. Original committed-claim-before-provider, max1 pool reuse,
+cleared tenant/no open transaction, one send, terminal replay and financial equality
+assertions remain. No production validator or historical SQL was changed.
+
+After the coordinator's distinct root proof terminated, reviewer personally created
+ONLY the admitted new `yellow_order440_durable_q204_review_90607` on the existing
+127.0.0.1:55503 cluster. Target absence and yellow_deploy CREATEDB authority were
+verified. Pristine `yellow_order434_production` was independently reverified as
+77 exact canonical ledger hashes,127 public base tables,0 tenants and0 other
+sessions; after closing the template connection, its session count was rechecked
+as0 before the fixed-literal CREATE DATABASE ... TEMPLATE operation.
+
+Protected Order442 seed.env/app.env keys were read only within the proof process;
+host/port/role were validated and only URL pathname changed. No URL or credential
+was printed. Command-scoped variables and personally executed test:
+
+```text
+YELLOW_ORDER440_DURABLE_DEPLOY_DATABASE_URL=<private target URL>
+YELLOW_ORDER440_DURABLE_RUNTIME_DATABASE_URL=<private target URL>
+YELLOW_REQUIRE_ORDER440_DURABILITY=1
+bun test tests/fiscal-submission-durability.integration.test.ts
+19 pass, 0 fail, 227 assertions, 93.18s; exit0
+```
+
+The existing canonical harness proves genuine77-to78 migration rollback, preserved
+legacy row, exact applied78 bytes/ledger and idempotent rerun before all19 cases.
+Temporary migration copies are confined to newly generated D:\Yellow\temp children;
+the harness's intentional rollback suffix touches only its temporary copy, never
+canonical/applied migration source. The repaired worker case passes in2049.96ms;
+real lease lock-wait19299.06ms, expired unknown-delivery lookup17693.43ms,100-way
+single-send claim, late rollback, history retention and both seal/request races pass.
+
+Test SHA256 checked before and after:
+`209b71caf8fa11f1cd419d3753e1041567374feee27262d1453f6cb70406978d`.
+Frozen SQL78/79/80 hashes remain respectively65323a81...,b233821d...,2c6b1a82...
+(full retained hashes above). Subsequent independent read-only checks compare ALL
+target78 and template77 ledger hashes against canonical bytes. The target retains
+18 synthetic tenants; both `order440_proof_late_failure` and
+`order440_command_late_failure` constraints are absent. Target/template have0 other
+sessions, and template remains0 tenants. Pools closed; no old database was reused,
+reset or removed, and no global role, cluster, app or provider was changed.
+
+Scoped diff-check is clean. This exact bounded test repair is independently accepted
+for development publication, not integration. Fresh exact-source full Linux CI,
+including the previously skipped current80 readiness/compatibility/schema/referee
+gates, remains mandatory before any merge. Reviewer made no product/test edits and
+no commit/push/rerun/merge; only this admitted evidence was appended. Uncommitted
+Question206/order research remains excluded from PR88 review scope.

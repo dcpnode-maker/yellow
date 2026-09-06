@@ -93,6 +93,8 @@ DECISIONS.log
 handoff/LEDGER.md
 127.0.0.1:55503 / yellow_order440_q204_* (new isolated proof databases only)
 D:\Yellow\temp (new uniquely named Q204 proof files only)
+127.0.0.1:55503 / yellow_order440_durable_q204_root_90607 (new historical77-to78 caller proof)
+127.0.0.1:55503 / yellow_order440_durable_q204_review_90607 (separate non-implementing historical proof)
 ```
 
 Q205 inserts corrective migration79 before this runtime migration80. Immutable
@@ -180,6 +182,22 @@ without extending the existing total test limit; five seconds remain for fixture
 cleanup. Preserve unique profiles, all cases/assertions and owned-process cleanup.
 Add permanent budget-wiring proof in the already scoped workflow test. No product,
 provider, SQL, local service or outer-test timeout changes are admitted.
+
+Exact1b7f9cc CI34047572346 now passes quality, current80 delivery11/11 and actual
+Linux process5/5, but the historical77-to78 durability suite fails18/19: its worker
+caller still supplies only tenant/submission/lease. The current seven-field worker
+correctly rejects that call before claim. Correct this already scoped test to use
+an explicit typed provider-bound step with a transport deadline, retaining a separate
+three-field repository claim input. Permanently require the obsolete worker shape
+to reject without mutation and the valid foreign-tenant claim to reach database
+denial, not merely malformed-input rejection. Preserve all transaction-order,
+single-pool reuse, exactly-once and unchanged financial evidence assertions.
+The two exact disposable database names above are admitted solely because this
+historical harness requires its durable prefix and pristine77 predecessor; root and
+non-implementer each get a separate fresh clone. Verify all77 template hashes,
+zero tenants and no other template sessions before cloning. Do not change existing
+proof databases, applied SQL, production validation, live provider or stable app.
+Complete fresh exact-source CI remains required; no blind rerun or merge.
 
 Migration80 adds a narrow
 `runtime_due_india_fiscal_submissions(integer, uuid, uuid)` capability returning

@@ -4,7 +4,7 @@
 <!-- current-phase: 7 -->
 <!-- current-task: Codex Yellow — fiscal completion, with free-hosting and recovery preparation in parallel -->
 <!-- current-order-files: handoff/orders/442-host-recovery-and-merged-local-review.md;handoff/orders/443-runtime-storage-containment.md;handoff/orders/440-fiscal-submission-lifecycle.md -->
-<!-- current-lifecycle: Q205 independently merged main79 with post-merge proof; Q204 supervised runtime80 implemented with independent database/schema/referee proof, final full CI pending; stable local77 preserved; provider and hosting inactive -->
+<!-- current-lifecycle: Q205 independently merged main79; Q204 runtime80 has independent database proof, latest CI exposes a historical caller now repaired and independently proved, fresh complete CI required; stable local77 preserved; provider and hosting inactive -->
 
 This is the canonical current-state record. It identifies the consolidated source,
 verified behavior, release boundaries and active work. Historical orders, reviews,
@@ -12,6 +12,32 @@ decisions and ledger entries remain evidence; their filenames are not an active
 backlog. `state.sh` and `state.ps1` read the machine-readable comments above.
 
 ## Current task
+
+**Historical worker caller correction — D1398.** Exact1b7f9cc
+CI34047572346 passes five jobs, including complete Linux quality, current80
+delivery11/11 and actual Linux process5/5. Its database job later fails one older
+77-to78 durability case: the caller omits four now-required worker fields.
+The current worker rejects it before any claim; this is not a provider failure
+or another browser timeout. Downstream readiness, compatibility, schema and
+canonical database referee are skipped, not approved.
+
+The already admitted test now supplies a typed, provider-bound seven-field worker
+step, separately retaining the exact three-field repository claim. Its permanent
+regressions require old-input rejection with zero mutation and valid cross-tenant
+database denial, not merely a malformed-input error. Root actual fresh77-to78
+proof passes19/19 (227 assertions,77.11s); non-implementing
+fiscal_http_acceptance personally passes19/19 (227 assertions,93.18s) on a
+different new database, with canonical hashes, clean constraints and no residual
+sessions. Focused worker/runtime/command/workflow32/32, types,177 boundaries
+and23 installed dependency licences pass. The first full standing run overlaps
+the separate database proof and records1,673 pass/1 failure: an unchanged long-stay
+tax-preview case reaches its5s deadline. Its unchanged isolated suite passes12/12
+(45 assertions; failing case3.41s). A controlled complete run after the database
+proof finishes passes **1,674 tests,0 failures**, with1,264 explicit DB/Unix skips
+and22,293 assertions across504 files in101.95s. This does not establish the earlier
+timeout's cause; no timeout or test was changed, skipped or hidden. Fresh exact-source
+CI remains required before integration. No product validation, applied migration,
+provider or stable-local77 behavior changed.
 
 **Shared browser-journey deadlines — D1397.** The next exact CI34046418901
 verifies Linux batching and owned-child cleanup, but the first Chromium launch
