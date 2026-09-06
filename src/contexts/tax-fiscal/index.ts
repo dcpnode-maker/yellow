@@ -437,6 +437,25 @@ export type {
   IndiaGstSection14PaymentReceiptDateInput,
   IndiaGstSection14PaymentReceiptDateResult,
 } from "./india-gst-section14-payment-receipt-date";
+
+export {
+  FiscalSubmissionService,
+  snapshotFiscalSubmissionReceipt,
+  snapshotRequestIndiaFiscalSubmissionInput,
+  snapshotRetryIndiaFiscalSubmissionInput,
+} from "./fiscal-submission-repository";
+export type {
+  FiscalSubmissionDisposition,
+  FiscalSubmissionPersistedStatus,
+  FiscalSubmissionReceipt,
+  FiscalSubmissionServiceError,
+  FiscalSubmissionServiceErrorCode,
+  FiscalSubmissionServiceResult,
+  RequestIndiaFiscalSubmissionInput,
+  RetryIndiaFiscalSubmissionInput,
+} from "./fiscal-submission-repository";
+export { FiscalSubmissionAdapterAvailabilityService } from "./fiscal-submission-adapter-availability";
+export type { FiscalSubmissionAdapterIdentity } from "./fiscal-submission-adapter-availability";
 export {
   IndiaGstSection14RateSelectionService,
   IndiaGstSection14RateSelectionValidationError,

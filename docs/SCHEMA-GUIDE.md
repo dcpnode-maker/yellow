@@ -2,7 +2,7 @@
 
 This guide explains what Yellow's table and migration counts mean, where the schema is
 defined and how to inspect an existing database without changing it. It records source
-state as of 2026-09-05; always pair a count with an exact Git commit and database
+state as of 2026-09-06; always pair a count with an exact Git commit and database
 migration frontier.
 
 ## Current source lines
@@ -12,9 +12,28 @@ migration frontier.
 | Reviewed `main` | [`443e3826b47025106d1829fcbb406ce6302fbbba`](https://github.com/dcpnode-maker/yellow/commit/443e3826b47025106d1829fcbb406ce6302fbbba) | 77 | 127 | [PR83](https://github.com/dcpnode-maker/yellow/pull/83) merged reviewed source `92346674`. All five jobs passed in [CI178](https://github.com/dcpnode-maker/yellow/actions/runs/33993977811): deployment acceptance23/23, exact normalized schema and referee11/11. |
 | Earlier operational baseline | [`5879e2b719db18077e00556477ba34bdb9b9991c`](https://github.com/dcpnode-maker/yellow/commit/5879e2b719db18077e00556477ba34bdb9b9991c) | 75 | 125 | Historical PR82 release, including `schema_migration`. Its five main CI jobs passed in [CI33987884230](https://github.com/dcpnode-maker/yellow/actions/runs/33987884230). |
 
-These rows describe accepted source frontiers. The current main checkout expects
+These rows describe accepted source frontiers. Subsequent mainb5ef708/PR85 keeps
+the same77/127 frontier. The current main checkout expects
 77 migrations and 127 tables. A retained runtime still requires its own exact-SHA,
 applied-ledger and health evidence; a source merge does not migrate it automatically.
+
+**Unmerged Q201 candidate:** canonical
+`0078_fiscal_submission_durability.sql` adds one protected
+`fiscal_submission_history` table and nullable typed delivery fields to the
+existing submission head. Its actual runner-backed catalogue is78 migrations,
+128 public tables,118 RLS tables/policies,27 FORCE-RLS tables and2 views.
+The regenerated candidate snapshot has SHA256
+`dab3a27ac463e4565ac033eaafcbc5004732dc65a096fd182dd8d8e43ba03705`.
+No existing1–77 migration is rewritten and no historical submission is invented
+or backfilled. Candidate catalogue, independent approval, main and local runtime
+are separate states; local remains77. See[Q201](../handoff/questions/201-canonical-fiscal-submission-integration.md).
+
+**Current unmerged Q205 correction:** migration79 reuses that immutable history
+for request/retry receipts and introduces one owner-private projection function;
+there is no new table, financial write or history backfill. Current candidate is
+79 migrations/128 tables, with unchanged RLS/table counts. The78 snapshot hash
+above is historical, not the current79 snapshot. Independent real78→79 receipt
+proof passes; new combined-source CI and merge are pending. Main/local remain77.
 
 CI history remains visible: [CI175](https://github.com/dcpnode-maker/yellow/actions/runs/33991882050)
 failed on the old125-table financial expectation; [CI176](https://github.com/dcpnode-maker/yellow/actions/runs/33992123191)
@@ -64,7 +83,8 @@ The executable schema is the ordered result of three layers:
    ordered filenames and recorded checksums before applying pending files.
 
 [`tests/schema/expected.sql`](../tests/schema/expected.sql) is the normalized PostgreSQL
-16 acceptance snapshot for the reviewed source line. It is derived evidence of the
+16 acceptance snapshot for the source line (currently the unmerged Q201 candidate).
+It is derived evidence of the
 whole resulting catalogue, not an input that can create migration authority. The
 catalogue assertions in [`tests/database-acceptance.integration.test.ts`](../tests/database-acceptance.integration.test.ts)
 and the setup scripts bind counts to a particular accepted frontier.

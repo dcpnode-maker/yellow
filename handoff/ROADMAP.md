@@ -4,6 +4,12 @@
 
 **Current coordination:** Codex under PROJECT and the applicable agent adapter.
 
+**Latest integration finding:** Q205 supersedes earlier Q203 acceptance after
+independent PR87 review reproduced late-replay drift. Corrective79 reuses immutable
+receipts and preserves canonical HTTP bytes; independent actual upgrade and all-key
+replay proof pass. Combined-source CI and merge remain required. Q204 supervised
+runtime is under construction, prospective80, without provider/local activation.
+
 **Status reconciled:** 2026-09-06. Orders438/439 merged through PR82; independently
 reviewed native fiscal Order434 passed exact CI178 and merged through PR83 as443e3826
 (77 migrations /127 public tables). Post-merge CI179 and image publication passed.
@@ -13,6 +19,16 @@ proof and continues durable integration; the hotel-journey Order440 history and
 Astra Ultra RMS research Order441 are preserved. Q198 records their consolidation.
 Retained local runtimes and cloud deployment require separate evidence. Historical
 sections below retain their original meaning; PROJECT-STATUS is current.
+Q201 continues this plan with canonical78/128 and application request/retry
+commands. Exact827be467 now passes all-five CI34008495909, including the canonical
+durability19/19 and clean Linux readiness12/12 (combined containment15/15); the
+merged/local frontier remains77/127 atb5ef708. No provider or Phase7 completion
+is implied by the candidate migration count.
+Q203 now has independent local13/13(125) for authenticated request/retry, including
+five real PostgreSQL cases; exact-head CI remains before integration. Q202's native
+ARM64 compatibility passes in all-six CI34010394787 atd88ae59, with no deployed
+host or provider. Continue worker/provider integration without changing the phase
+sequence or the reviewed local77 runtime.
 
 [PROJECT-STATUS](../docs/PROJECT-STATUS.md) records what is current now.
 [BUILD-PLAN.md](../BUILD-PLAN.md) says what each phase contains. This file records

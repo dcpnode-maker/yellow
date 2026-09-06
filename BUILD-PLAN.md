@@ -8,6 +8,14 @@ a prior phase's public surface without a written note in `DECISIONS.log`.
 
 ## Current implementation status — 2026-09-06, consolidated Codex Yellow work
 
+Latest Q205: PR87 integration was withheld after independent late-replay proof
+showed historical fiscal keys returning the latest attempt. Forward79 plus the
+canonical HTTP representation now pass independent actual78→79 and all-key replay
+tests, without changing applied1–78 or financial rows. Exact repaired-source CI and
+merge remain pending. Q204 supervised delivery runtime is in development, not
+activated; its prospective migration is80. The earlier CI checkpoints below are
+historical and cannot close the subsequently discovered defect by themselves.
+
 [PROJECT-STATUS](docs/PROJECT-STATUS.md) is the canonical current-state record.
 Orders438/439 form the operational baseline through PR82. Order434's independently
 accepted candidate92346674c784b552356934e168d60e4b9650497a passed all five PR83 CI
@@ -21,6 +29,21 @@ Astra Ultra RMS research, not implemented algorithms or measured uplift.
 [Question198](handoff/questions/198-concurrent-reviewed-source-integration.md)
 disambiguates concurrent identifiers and preserves both histories. Main integration,
 image publication and each deployed runtime retain separate receipts.
+PR85 subsequently mergedb5ef708 without changing77/127. Q201 now implements
+canonical78/128 and Tx-safe fiscal request/retry commands in development; real
+durability19/19 and migrations43/43 pass. Exact827be467 all-five CI34008495909
+also passes native116/116, current wire4/4, containment/readiness15/15 (including
+all12 repaired readiness cases with clean Linux exit), compatibility89/89,
+acceptance24/24 and referee11/11. Windows Bun's native crash remains open.
+The founder's local remains exact merged-main77; no provider activation or
+Phase7 completion is claimed.
+Q203 adds authenticated HTTP request/retry with verified-session tenant/property
+binding and an empty production adapter directory. Non-implementing root personally
+passes13/13(125), including five genuine PostgreSQL cases; its own exact-head CI
+is now green at exactcb9a87f in all-six CI34017067690, including required HTTP9/9
+with five genuine database cases and canonical referee11/11. Delivery-worker and
+provider integration remain outstanding. Separate Q202 ARM64 compatibility passes in all-six CI34010394787
+atd88ae59. This prepares free staging without deploying or activating a provider.
 Historical milestones below preserve the
 evidence available when written and do not compete with PROJECT-STATUS.
 

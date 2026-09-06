@@ -136,7 +136,7 @@ for _attempt in $(seq 1 40); do
       if (body.status !== "ready"
           || body.target !== "yellow_runtime_database"
           || body.build?.revision !== process.env.BUILD_SHA
-          || body.build?.expectedMigrationFrontier !== 77) process.exit(1);
+          || body.build?.expectedMigrationFrontier !== 79) process.exit(1);
     '; then
     ready=1
     break

@@ -1,6 +1,6 @@
 # Order 440 — Durable fiscal submission and reconciliation
 
-**Status:** ACTIVE — private contract independently accepted; durable integration next.
+**Status:** ACTIVE — Q205 repairs a PR87 late-replay defect; independent79 proof passes, new combined CI/merge pending.
 Order434's exact candidate is accepted and merged; no provider is activated.
 **Phase:** 7, planned sequence item6.
 **Owner:** Codex coordinator; bounded internal builders, separate high-risk reviewer.
@@ -9,6 +9,27 @@ Order434's exact candidate is accepted and merged; no provider is activated.
 merged through PR83 as443e3826b47025106d1829fcbb406ce6302fbbba.
 
 ## Outcome
+
+[Question205](../questions/205-fiscal-immutable-command-replay.md) supersedes the
+earlier integration approval: original request/retry keys incorrectly returned a
+later head. Forward79 and canonical HTTP body repair now pass independently executed
+78→79 and all-key replay proof. No applied migration or stored financial row changes.
+PR87 remains unmerged pending the new exact-source gates. Q204's separate delivery
+runtime remains in development, with prospective migration80.
+
+[Question203](../questions/203-fiscal-submission-http-integration.md) admits both
+authenticated request/retry HTTP persistence paths after Q201 exact Linux CI.
+They remain unavailable by default: no role grant or adapter is activated.
+Independent real-database signed-session proof now passes: root personally13/13(125),
+including five actual PostgreSQL cases. Exactcb9a87f all-six CI34017067690 now
+passes, with required HTTP9/9(89), including all five genuine cases, and referee11/11.
+Delivery-worker integration and authenticated provider/sandbox remain unfinished.
+
+[Question201](../questions/201-canonical-fiscal-submission-integration.md) admits
+canonical78, release/catalogue/CI proof and transaction-safe request/retry commands
+after Q199's independent execution. It does not activate a provider or refresh the
+stable local app. Historical private-scope restrictions below remain the record of
+those stages; Q201 names the exact newly admitted paths.
 
 Register an already-issued eligible fiscal document through a replaceable provider
 port, preserve the exact issued bytes, record every delivery attempt and receipt,
@@ -198,3 +219,28 @@ denials, concurrent claims, crashes before/after transport, unknown/duplicate ou
 recovery, verified receipt binding, retained audit and immutable document/accounting
 census. Migration/schema/11-invariant and independent personally executed proof apply
 to that later high-risk integration. Lane A unit tests alone do not close this order.
+
+## Q199 durable foundation checkpoint
+
+The private SQL draft, repository and one-step worker are implemented without a new
+dependency or live provider. Root and independent native_migration_assembly each
+personally passed17 genuine PostgreSQL tests with190 assertions, including100
+competing claims, three GST wire families, unknown-outcome lookup, bounded retries,
+source/financial preservation, full write rollback, history retention and both actual
+audited seal commit schedules. Worker/state/wire40/40(207) and typecheck pass. Root
+standing1613/0 with1214 explicit database skips(21877;490 files) is separate evidence.
+
+Real red tests found null-result-family acceptance, leases consumed while waiting
+for locks, a concurrent same-request race, nullable mixed legacy/durable metadata,
+and the missing promised history-read grant. All have permanent regressions and
+repairs in the frozen draft. Request correlation IDs do not change semantic replay
+identity; actor/property permission is always checked again. Earlier partial runs and
+test-harness stalls remain in the logs, not counted as successful complete runs.
+
+Draft source SHA-256:
+`65323a81a999a11e3d55893411c994c0b841af9b0465ca7e80630fd78d0ffae6`.
+The draft is not in the migration runner: canonical main stays77/127, while the
+disposable draft catalogue is128 tables/118 policies. Independent reproducible
+schema-dump comparison and the canonical Python referee11/11 now pass; review440
+approves the private foundation and subsequent canonical migration/CI admission. No operator
+command, authenticated provider, serving local app or complete Order440 is claimed.

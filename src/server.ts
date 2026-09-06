@@ -18,7 +18,11 @@ import {
   RateQuoteService,
   RateTargetService,
 } from "./contexts/rates";
-import { TaxJurisdictionResolutionService } from "./contexts/tax-fiscal";
+import {
+  FiscalSubmissionAdapterAvailabilityService,
+  FiscalSubmissionService,
+  TaxJurisdictionResolutionService,
+} from "./contexts/tax-fiscal";
 import { OperatorHttpApi, type OperatorLocalReviewCredentials } from "./http/operator";
 import { HostedDepositProviderHttpApi } from "./http/provider";
 import {
@@ -225,6 +229,8 @@ function runtimeApp() {
   const availability = new AvailabilityService();
   const publication = new RatePublicationService(registry, approvals, events);
   const taxJurisdictionResolver = new TaxJurisdictionResolutionService(registry);
+  const fiscalSubmissions = new FiscalSubmissionService();
+  const fiscalSubmissionAdapters = new FiscalSubmissionAdapterAvailabilityService([]);
   const rateBuilder = {
     models: new RateModelService(registry),
     targets: new RateTargetService(registry),
@@ -318,7 +324,10 @@ function runtimeApp() {
     readinessTarget: "yellow_runtime_database",
     database,
     tenantResolver: new BearerTenantResolver(tokens),
-    operatorApi: new OperatorHttpApi(login, availability, inventory, new PostgresIdempotency(), restrictions, rates, pricing, blocks, policy, holds, projection, runtimeStatus, rateBuilder, reservations, reservationOffers, reservationGuests, reservationLifecycle, reservationSegments, parties, folioStatements, charges, new ReservationBoardService(), new ReservationDetailService(), folios, chargeCorrections, folioTransfers, hostedRuntime?.hostedDeposits, folioSettlements, cashiers, receivables, checkIns, housekeeping, housekeepingSheets, checkoutReadiness, checkouts, vehicleRegister, reservationTravel, pickupTaskDispatch, arrivalRoomCleaning, housekeepingDiscrepancies, vehicleParking, undefined, undefined, businessDayCarry, businessDaySeal, ownerTrustExpenses),
+    operatorApi: new OperatorHttpApi(login, availability, inventory, new PostgresIdempotency(), restrictions, rates, pricing, blocks, policy, holds, projection, runtimeStatus, rateBuilder, reservations, reservationOffers, reservationGuests, reservationLifecycle, reservationSegments, parties, folioStatements, charges, new ReservationBoardService(), new ReservationDetailService(), folios, chargeCorrections, folioTransfers, hostedRuntime?.hostedDeposits, folioSettlements, cashiers, receivables, checkIns, housekeeping, housekeepingSheets, checkoutReadiness, checkouts, vehicleRegister, reservationTravel, pickupTaskDispatch, arrivalRoomCleaning, housekeepingDiscrepancies, vehicleParking, undefined, undefined, businessDayCarry, businessDaySeal, ownerTrustExpenses, {
+      submissions: fiscalSubmissions,
+      adapters: fiscalSubmissionAdapters,
+    }),
     operatorLocalReviewCredentials: localReviewCredentials(),
     ...(hostedRuntime ? { hostedDepositRoutes: hostedRuntime.routes, hostedDepositSurface: "guest" as const } : {}),
   });
