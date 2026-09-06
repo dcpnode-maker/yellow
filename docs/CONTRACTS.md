@@ -3306,6 +3306,44 @@ adapter before effects. Exact
 [command proof](../tests/fiscal-submission-commands.test.ts) include rejection,
 rollback, commit settlement, replay and real tenant-isolation cases.
 
+### Authenticated fiscal submission edge (Order440 / Q203 candidate)
+
+The operator application serves two JSON-only POST routes:
+
+| Route | Exact body | Required scope |
+|---|---|---|
+| `/api/v1/properties/:property/fiscal-submissions` | `{documentId, providerExtensionId}` | `tax-fiscal.submissions:request` |
+| `/api/v1/properties/:property/fiscal-submissions/:submission/retry` | `{providerExtensionId}` | `tax-fiscal.submissions:retry` |
+
+Neither route accepts query parameters or caller tenant/actor identity. The
+verified signed session supplies tenant/actor; current property grants and the
+canonical78 SQL permissions are checked on each request, including replay. Both
+require a visible-ASCII8–200-character `Idempotency-Key` and preserve the existing
+correlation-header contract. No default role receives either new permission.
+
+`FiscalSubmissionAdapterAvailabilityService` is an immutable, exact identity-only
+directory keyed by extension UUID. It contains provider key, extension UUID and
+positive version, not transport functions, claims, credentials or certification.
+The production server supplies an empty directory. A database extension record
+or caller `verified` flag therefore cannot enable provider transport or persistence.
+
+The HTTP edge invokes the Tx-only service exactly once on middleware-owned
+`context.tx`. It checks returned tenant/property, document or submission identity,
+and all three selected adapter fields before returning. Failed Results, malformed
+receipts, mismatches and exceptions abort the tenant callback; the outer handler
+returns a sanitized503 only after rollback or failed commit. A retry selector
+cannot switch the stored provider. No worker or provider is called by these routes.
+
+Success201 contains only `fiscalSubmission` with submission/document/attempt UUIDs,
+attemptNumber, retryCount, status, disposition, transitionSeq, replayed, and provider
+`{key, extensionId, extensionVersion}`. `Idempotency-Replayed` and
+`X-Correlation-Id` accompany the no-store response. Tenant/actor IDs, source/wire
+hashes or bytes, claim tokens, SQL/provider errors and credentials are omitted.
+Unauthenticated401, scope/property403, invalid input400 and unavailable503 follow
+the existing operator problem response. Independent local proof now passes13/13(125),
+including five genuine signed-session PostgreSQL cases. The combined candidate
+awaits exact-head CI; no local, external-provider or cloud activation is implied.
+
 ### India IRP accommodation fiscal-action readiness (Order 429, historical contract)
 
 `IndiaIrpAccommodationFiscalActionReadinessService.resolve(tx, input)` is a

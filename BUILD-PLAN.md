@@ -29,6 +29,11 @@ all12 repaired readiness cases with clean Linux exit), compatibility89/89,
 acceptance24/24 and referee11/11. Windows Bun's native crash remains open.
 The founder's local remains exact merged-main77; no provider activation or
 Phase7 completion is claimed.
+Q203 adds authenticated HTTP request/retry with verified-session tenant/property
+binding and an empty production adapter directory. Non-implementing root personally
+passes13/13(125), including five genuine PostgreSQL cases; its own exact-head CI
+remains required. Separate Q202 ARM64 compatibility passes in all-six CI34010394787
+atd88ae59. This prepares free staging without deploying or activating a provider.
 Historical milestones below preserve the
 evidence available when written and do not compete with PROJECT-STATUS.
 

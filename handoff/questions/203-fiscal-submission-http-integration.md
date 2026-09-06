@@ -1,6 +1,6 @@
 # Question203 — Authenticated fiscal request/retry integration
 
-**Status:** ADMITTED implementation under Order440; independent Tier3 required.
+**Status:** IMPLEMENTED; independent bounded local proof passes; exact CI pending.
 **Date:** 2026-09-06. **Owner:** Codex coordinator.
 
 Q201's canonical persistence and Tx commands pass exact827be467 Linux CI34008495909.
@@ -23,6 +23,8 @@ tests/fiscal-submission-adapter-availability.test.ts
 tests/operator-fiscal-submission.intentional-red.test.ts
 tests/operator-fiscal-submission.integration.test.ts
 tests/fixtures/order440-fiscal-submission-http.ts
+tests/operator-business-day-seal.integration.test.ts (coordinator-only exact composition expectation)
+tests/operator-reservation-travel.integration.test.ts (coordinator-only exact composition expectation)
 .github/workflows/ci.yml (coordinator-only required HTTP proof addition)
 docs/CONTRACTS.md
 docs/PROJECT-STATUS.md
@@ -50,7 +52,8 @@ POST `/api/v1/properties/:property/fiscal-submissions` accepts exactly
 `{providerExtensionId}`. Both require JSON, no query parameters and a visible-ASCII
 8–200-character `Idempotency-Key`. Reuse existing correlation-header rules.
 Tenant and actor derive solely from verified signed session context; route property
-is freshly checked using existing active-actor/property grants. Require exact
+is freshly checked using existing property grants. The canonical SQL operation
+separately enforces active actor status in the same transaction. Require exact
 `tax-fiscal.submissions:request` or `tax-fiscal.submissions:retry` JWT scope.
 Migration78's same-transaction authorization remains authoritative on every replay.
 No new default role assignments are made; synthetic tests may grant exact fixture
@@ -95,3 +98,53 @@ not a success-shaped stub alone, must pass. Require the proof without a silent
 environment skip in CI. Root verifies combined changes; a non-implementer personally
 executes the high-risk proof. No complete Order440/Phase7, local promotion, provider
 registration, transport availability or cloud deployment claim follows.
+
+## Bounded independent execution — 2026-09-06
+
+Builder fiscal_command_integration implements only the listed production/fixture
+paths. Root did not implement those paths and personally inspected and executed
+the frozen candidate: three files/13tests pass,125assertions,18.62s. This comprises
+five genuine signed-session PostgreSQL cases and eight identity/target-safety/
+transaction-closure/workflow checks; the commit-failure injection is a deliberate
+connection double, not an actual database process failure. The genuine late-outbox
+constraint failure rolls back actual fiscal writes. Root found and had the builder
+correct nonexistent-UUID-only negatives to existing other-tenant property, document
+and submission records; both tenants' delivery and four financial-table snapshots
+remain unchanged after exact sanitized denials.
+
+Root separately confirms canonical78 checksum65323a81a999a11e3d55893411c994c0b841af9b0465ca7e80630fd78d0ffae6,
+zero injected constraints and zero other sessions in disposable
+yellow_order440_q203_90601 on55503. The retained77 template and local app are
+untouched. Integration test worktree SHA256 is
+491c86a7b9bc5b317c2b369803bb7ce8726c3fdc1a90c0ddb9c703a0e40278f1.
+Independent fiscal_integration_map separately executes root's CI gate test1/1(12),
+validates YAML and preserves the ARM job. Full standing/exact-head CI and final
+integration still apply; no provider credential, worker or live service is activated.
+
+## Combined-standing regression admission
+
+The first full standing run has1633pass/1234explicit DBskips/2fail(22058assertions).
+Root reproduces both failures in isolation9pass/2fail: existing Order389 seal and
+Order212 travel tests pin the complete old OperatorHttpApi constructor tail ending
+at ownerTrustExpenses. Q203 adds one final fiscal dependency object without moving
+or changing any existing argument. Admit only those two exact expected strings,
+preserving every existing positional argument and adding the exact new object
+bindings. Do not weaken route counts, body parsing, middleware, service, authority,
+failure or behavioral assertions; no product source change is needed. Root owns
+these two bounded test updates; a non-implementer reruns their complete suites.
+
+## Completed local acceptance after reboot
+
+The incomplete pre-reboot rerun has no result and is not counted. Root's new
+full standing run exits0:1635pass,1234explicit database skips,0fail,
+22058assertions,2869tests/496files,101.53s. Its persistent output is
+`D:\Yellow\temp\q203-standing-20260906T115125.log`.
+Root typecheck,176-file boundaries,23-package licence policy and diff checks pass.
+
+Fresh non-implementer `/root/fiscal_http_acceptance` personally executes all three
+Q203 files after retained PostgreSQL recovery:13pass/0fail/125assertions,12.58s,
+including all five genuine database cases. It separately executes both complete
+seal/travel suites11pass/0fail/75assertions,310ms, and verifies78migrations,
+zero residual injected constraints and zero other proof-database sessions.
+No blocking finding remains in the bounded HTTP persistence integration.
+Production adapters remain empty and the exact-head combined CI condition remains.

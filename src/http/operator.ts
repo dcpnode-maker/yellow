@@ -1,4 +1,5 @@
 import { readFileSync } from "node:fs";
+import { types as utilTypes } from "node:util";
 import { fileURLToPath } from "node:url";
 
 import { LocalLoginLimitedError, LocalLoginService, type LocalLoginInput } from "../contexts/identity";
@@ -211,6 +212,12 @@ import {
   type HousekeepingTaskDetail,
 } from "../contexts/housekeeping";
 import {
+  FiscalSubmissionAdapterAvailabilityService,
+  FiscalSubmissionService,
+  snapshotFiscalSubmissionReceipt,
+  type FiscalSubmissionReceipt,
+} from "../contexts/tax-fiscal";
+import {
   createAuditEnvelope,
   IdempotencyConflictError,
   IdempotencyValidationError,
@@ -293,6 +300,8 @@ const HOUSEKEEPING_ARRIVAL_TASK_READ_SCOPE = "housekeeping.arrival-tasks:read";
 const HOUSEKEEPING_ARRIVAL_TASK_CREATE_SCOPE = "housekeeping.arrival-tasks:create";
 const HOUSEKEEPING_DISCREPANCY_READ_SCOPE = "housekeeping.discrepancies:read";
 const HOUSEKEEPING_DISCREPANCY_REPORT_SCOPE = "housekeeping.discrepancies:report";
+const FISCAL_SUBMISSION_REQUEST_SCOPE = "tax-fiscal.submissions:request";
+const FISCAL_SUBMISSION_RETRY_SCOPE = "tax-fiscal.submissions:retry";
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 const ISO_INSTANT = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2})(?:\.(\d{1,3}))?)?(Z|([+-])(\d{2}):(\d{2}))$/;
 const LOCAL_DATE = /^(\d{4})-(\d{2})-(\d{2})$/;
@@ -305,6 +314,58 @@ function exactKeys(value: Record<string, unknown>, required: readonly string[], 
   const keys = Object.keys(value);
   return required.every((key) => keys.includes(key)) &&
     keys.every((key) => required.includes(key) || optional.includes(key));
+}
+
+interface FiscalSubmissionRequestBody {
+  readonly documentId: string;
+  readonly providerExtensionId: string;
+}
+
+interface FiscalSubmissionRetryBody {
+  readonly providerExtensionId: string;
+}
+
+function fiscalSubmissionBody(
+  value: unknown,
+  kind: "request",
+): Readonly<FiscalSubmissionRequestBody> | null;
+function fiscalSubmissionBody(
+  value: unknown,
+  kind: "retry",
+): Readonly<FiscalSubmissionRetryBody> | null;
+function fiscalSubmissionBody(
+  value: unknown,
+  kind: "request" | "retry",
+): Readonly<FiscalSubmissionRequestBody | FiscalSubmissionRetryBody> | null {
+  if (typeof value !== "object" || value === null || utilTypes.isProxy(value)) return null;
+  try {
+    if (Array.isArray(value)) return null;
+    const prototype = Object.getPrototypeOf(value);
+    if (prototype !== Object.prototype && prototype !== null) return null;
+    const descriptors = Object.getOwnPropertyDescriptors(value);
+    const keys = Reflect.ownKeys(value);
+    const expected = kind === "request" ? ["documentId", "providerExtensionId"] : ["providerExtensionId"];
+    if (keys.some((key) => typeof key === "symbol") || keys.length !== expected.length
+        || !keys.every((key) => expected.includes(String(key)))) return null;
+    const snapshot: Record<string, unknown> = {};
+    for (const key of expected) {
+      const descriptor = descriptors[key];
+      if (!descriptor || descriptor.get !== undefined || descriptor.set !== undefined
+          || !("value" in descriptor) || descriptor.enumerable !== true) return null;
+      snapshot[key] = descriptor.value;
+    }
+    if (typeof snapshot.providerExtensionId !== "string" || !UUID.test(snapshot.providerExtensionId)) return null;
+    if (kind === "retry") return Object.freeze({ providerExtensionId: snapshot.providerExtensionId });
+    if (typeof snapshot.documentId !== "string" || !UUID.test(snapshot.documentId)) return null;
+    return Object.freeze({ documentId: snapshot.documentId, providerExtensionId: snapshot.providerExtensionId });
+  } catch {
+    return null;
+  }
+}
+
+function hasJsonContentType(request: Request): boolean {
+  const value = request.headers.get("content-type");
+  return value !== null && /^application\/json(?:\s*;\s*charset=utf-8)?$/i.test(value);
 }
 
 const POSITIVE_INT64 = /^[1-9][0-9]*$/;
@@ -2076,6 +2137,40 @@ function releasesWithAuthoringCommands(
   })));
 }
 
+type FiscalSubmissionOperations = Pick<FiscalSubmissionService, "request" | "retry">;
+
+interface FiscalSubmissionOperatorDependencies {
+  readonly submissions: FiscalSubmissionOperations;
+  readonly adapters: FiscalSubmissionAdapterAvailabilityService;
+}
+
+class FiscalSubmissionOperatorFailure extends Error {
+  constructor() {
+    super("fiscal submission operation is unavailable");
+  }
+}
+
+function fiscalSubmissionJson(receipt: FiscalSubmissionReceipt): JsonValue {
+  return Object.freeze({
+    fiscalSubmission: Object.freeze({
+      submissionId: receipt.submissionId,
+      documentId: receipt.documentId,
+      attemptId: receipt.attemptId,
+      attemptNumber: receipt.attemptNumber,
+      retryCount: receipt.retryCount,
+      status: receipt.status,
+      disposition: receipt.disposition,
+      transitionSeq: receipt.transitionSeq,
+      provider: Object.freeze({
+        key: receipt.providerKey,
+        extensionId: receipt.providerExtensionId,
+        extensionVersion: receipt.providerExtensionVersion,
+      }),
+      replayed: receipt.replayed,
+    }),
+  });
+}
+
 export class OperatorHttpApi {
   readonly #login: LocalLoginService;
   readonly #availability: Pick<AvailabilityService, "search">;
@@ -2124,6 +2219,7 @@ export class OperatorHttpApi {
   readonly #businessDaySeal?: BusinessDaySealOperations;
   readonly #ownerTrustExpenses?: Pick<OwnerTrustExpenseWorkbenchService,
     "listAccounts" | "previewExpense" | "requestApproval" | "listApprovals" | "decideApproval" | "postExpense">;
+  readonly #fiscalSubmissions?: FiscalSubmissionOperatorDependencies;
 
   constructor(
     login: LocalLoginService,
@@ -2173,6 +2269,7 @@ export class OperatorHttpApi {
     businessDaySeal?: BusinessDaySealOperations,
     ownerTrustExpenses?: Pick<OwnerTrustExpenseWorkbenchService,
       "listAccounts" | "previewExpense" | "requestApproval" | "listApprovals" | "decideApproval" | "postExpense">,
+    fiscalSubmissions?: FiscalSubmissionOperatorDependencies,
   ) {
     this.#login = login;
     this.#availability = availability;
@@ -2220,6 +2317,7 @@ export class OperatorHttpApi {
     this.#businessDayCarry = businessDayCarry;
     this.#businessDaySeal = businessDaySeal;
     this.#ownerTrustExpenses = ownerTrustExpenses;
+    this.#fiscalSubmissions = fiscalSubmissions;
   }
 
   unavailable(request: Request): Response {
@@ -2231,6 +2329,7 @@ export class OperatorHttpApi {
   }
 
   failure(request: Request, error: unknown): Response {
+    if (error instanceof FiscalSubmissionOperatorFailure) return this.unavailable(request);
     if (error instanceof OwnerTrustExpenseWorkbenchValidationError) {
       return apiError(request, 400, "request/invalid", "Invalid request", "Owner-trust expense input is invalid");
     }
@@ -2478,6 +2577,95 @@ export class OperatorHttpApi {
       return apiError(request, 404, "rates/not_found", "Not found", "Referenced rate configuration was not found");
     }
     return this.unavailable(request);
+  }
+
+  async requestFiscalSubmission(
+    context: TenantRequestContext,
+    propertyNode: string,
+    body: unknown,
+  ): Promise<Response> {
+    if (!hasScope(context, FISCAL_SUBMISSION_REQUEST_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Fiscal submission request access is not granted");
+    }
+    const input = fiscalSubmissionBody(body, "request");
+    const idempotencyKey = context.request.headers.get("idempotency-key") ?? "";
+    if (!input || !UUID.test(propertyNode) || !IDEMPOTENCY_KEY.test(idempotencyKey)
+        || !hasJsonContentType(context.request) || new URL(context.request.url).search !== "") {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Fiscal submission request input is invalid");
+    }
+    const grants = await listGrantedProperties(context, FISCAL_SUBMISSION_REQUEST_SCOPE);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 403, "auth/property_forbidden", "Forbidden", "Property access is not granted");
+    }
+    const dependencies = this.#fiscalSubmissions;
+    const adapter = dependencies?.adapters.find(input.providerExtensionId);
+    if (!dependencies || !adapter) throw new FiscalSubmissionOperatorFailure();
+    const requestId = correlationId(context.request);
+    const result = await dependencies.submissions.request(context.tx, {
+      tenantId: context.tenantId,
+      propertyNode,
+      documentId: input.documentId,
+      providerExtensionId: input.providerExtensionId,
+      actorId: context.identity.actorId,
+      idempotencyKey,
+      requestId,
+    });
+    if (!result.ok) throw new FiscalSubmissionOperatorFailure();
+    const receipt = snapshotFiscalSubmissionReceipt(result.value);
+    if (!receipt || receipt.tenantId !== context.tenantId || receipt.propertyNode !== propertyNode
+        || receipt.documentId !== input.documentId || receipt.providerExtensionId !== adapter.providerExtensionId
+        || receipt.providerKey !== adapter.providerKey
+        || receipt.providerExtensionVersion !== adapter.providerExtensionVersion) {
+      throw new FiscalSubmissionOperatorFailure();
+    }
+    return apiResponse(context.request, fiscalSubmissionJson(receipt), 201, {
+      "idempotency-replayed": String(receipt.replayed),
+      "x-correlation-id": requestId,
+    });
+  }
+
+  async retryFiscalSubmission(
+    context: TenantRequestContext,
+    propertyNode: string,
+    submissionId: string,
+    body: unknown,
+  ): Promise<Response> {
+    if (!hasScope(context, FISCAL_SUBMISSION_RETRY_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Fiscal submission retry access is not granted");
+    }
+    const input = fiscalSubmissionBody(body, "retry");
+    const idempotencyKey = context.request.headers.get("idempotency-key") ?? "";
+    if (!input || !UUID.test(propertyNode) || !UUID.test(submissionId) || !IDEMPOTENCY_KEY.test(idempotencyKey)
+        || !hasJsonContentType(context.request) || new URL(context.request.url).search !== "") {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Fiscal submission retry input is invalid");
+    }
+    const grants = await listGrantedProperties(context, FISCAL_SUBMISSION_RETRY_SCOPE);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 403, "auth/property_forbidden", "Forbidden", "Property access is not granted");
+    }
+    const dependencies = this.#fiscalSubmissions;
+    const adapter = dependencies?.adapters.find(input.providerExtensionId);
+    if (!dependencies || !adapter) throw new FiscalSubmissionOperatorFailure();
+    const requestId = correlationId(context.request);
+    const result = await dependencies.submissions.retry(context.tx, {
+      tenantId: context.tenantId,
+      submissionId,
+      actorId: context.identity.actorId,
+      idempotencyKey,
+      requestId,
+    });
+    if (!result.ok) throw new FiscalSubmissionOperatorFailure();
+    const receipt = snapshotFiscalSubmissionReceipt(result.value);
+    if (!receipt || receipt.tenantId !== context.tenantId || receipt.propertyNode !== propertyNode
+        || receipt.submissionId !== submissionId || receipt.providerExtensionId !== adapter.providerExtensionId
+        || receipt.providerKey !== adapter.providerKey
+        || receipt.providerExtensionVersion !== adapter.providerExtensionVersion) {
+      throw new FiscalSubmissionOperatorFailure();
+    }
+    return apiResponse(context.request, fiscalSubmissionJson(receipt), 201, {
+      "idempotency-replayed": String(receipt.replayed),
+      "x-correlation-id": requestId,
+    });
   }
 
   async login(request: Request, body: unknown, sourceKey = "unknown"): Promise<Response> {

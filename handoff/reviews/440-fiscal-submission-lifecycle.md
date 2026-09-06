@@ -348,3 +348,62 @@ lazy pool activation/finalization edge, but does not prove a cause. No crash ret
 runtime upgrade or local restart was performed. Canonical integration's target-
 runtime CI condition is met; provider/HTTP/worker activation and whole Order440
 or Phase7 completion are not.
+
+### Independent Linux readiness follow-through and Q203 CI boundary
+
+Non-implementer `/root/fiscal_integration_map` personally dispatched exactc1dfaacc
+CI34009685141 and retrieved database job101423353803. All12 repaired readiness
+cases passed within15/15(59) and the Linux Bun1.3.14 process exited cleanly;
+canonical referee11/11 also passed. All five original jobs succeeded. That run's
+separate ARM64 wheel-lock failure was repaired under Q202 without changing the
+readiness implementation. This supplies the earlier independent target-runtime
+follow-through; it does not repair or reclassify Windows Bun crashes.
+
+The same agent independently inspected root's Q203 CI addition only: its new
+database is a separate canonical78 native-template clone, registered for cleanup
+before creation, with distinct deploy/runtime URLs and mandatory HTTP proof flag.
+It personally ran the permanent CI contract1/1(12), parsed valid YAML with six
+jobs, and compared the unchanged ARM64 job with HEAD. No CI finding or widened
+runtime authority. This bounded CI review does not approve the concurrent HTTP
+implementation or substitute for personally executed real-database HTTP review.
+
+### Q203 independent HTTP acceptance — 2026-09-06
+
+Fresh non-implementer `/root/fiscal_http_acceptance` inspected the complete new
+identity directory, both operator handlers, application/server composition,
+fixture, database proof, required CI clone and the coordinator's two legacy
+constructor-expectation updates. It made no implementation edits.
+
+Personally executed on existing isolated `yellow_order440_q203_90601`/55503:
+
+```text
+bun test tests/fiscal-submission-adapter-availability.test.ts \
+  tests/operator-fiscal-submission.intentional-red.test.ts \
+  tests/operator-fiscal-submission.integration.test.ts
+13 pass, 0 fail, 125 assertions, 12.58s
+bun test tests/operator-business-day-seal.integration.test.ts \
+  tests/operator-reservation-travel.integration.test.ts
+11 pass, 0 fail, 75 assertions, 310ms
+```
+
+All five genuine signed-session PostgreSQL cases executed; the remaining eight
+checks cover directory/input/target/transaction/CI behavior. Read-only postproof
+census confirms78migrations, zero residual injected constraints and zero other
+proof-database sessions. Integration-test SHA256 remains491c86a7b9bc5b317c2b369803bb7ce8726c3fdc1a90c0ddb9c703a0e40278f1;
+canonical78 remains65323a81a999a11e3d55893411c994c0b841af9b0465ca7e80630fd78d0ffae6.
+
+No blocking finding: middleware owns the sole tenant transaction, failed Results
+and malformed/mismatched receipts throw before commit, and errors are sanitized
+after rollback. Exact receipt bindings and current database permissions survive
+replay. Actual other-tenant resources preserve both tenants' delivery/financial
+snapshots. Production adapters are empty and no new role grants/transport exist.
+The commit-failure case is a connection double; late-outbox rollback is genuine
+PostgreSQL. The two legacy tests retain every prior constructor argument/assertion.
+
+Root separately completes full standing1635pass/1234explicit DBskips/0fail
+(22058assertions,496files,101.53s), types,176-file boundaries and23-package
+licences. The interrupted pre-reboot rerun has no result and is not counted.
+The earlier1633pass/2fail run exposed stale constructor strings, now permanently
+corrected and independently exercised above. Local bounded approval is conditional
+on combined exact-head CI; no live provider, sandbox registration, worker activation,
+merge, deployment, whole Order440 or Phase7 completion is claimed.

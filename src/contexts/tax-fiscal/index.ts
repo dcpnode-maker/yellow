@@ -454,6 +454,8 @@ export type {
   RequestIndiaFiscalSubmissionInput,
   RetryIndiaFiscalSubmissionInput,
 } from "./fiscal-submission-repository";
+export { FiscalSubmissionAdapterAvailabilityService } from "./fiscal-submission-adapter-availability";
+export type { FiscalSubmissionAdapterIdentity } from "./fiscal-submission-adapter-availability";
 export {
   IndiaGstSection14RateSelectionService,
   IndiaGstSection14RateSelectionValidationError,

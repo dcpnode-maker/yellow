@@ -18,6 +18,11 @@ commands. Exact827be467 now passes all-five CI34008495909, including the canonic
 durability19/19 and clean Linux readiness12/12 (combined containment15/15); the
 merged/local frontier remains77/127 atb5ef708. No provider or Phase7 completion
 is implied by the candidate migration count.
+Q203 now has independent local13/13(125) for authenticated request/retry, including
+five real PostgreSQL cases; exact-head CI remains before integration. Q202's native
+ARM64 compatibility passes in all-six CI34010394787 atd88ae59, with no deployed
+host or provider. Continue worker/provider integration without changing the phase
+sequence or the reviewed local77 runtime.
 
 [PROJECT-STATUS](../docs/PROJECT-STATUS.md) records what is current now.
 [BUILD-PLAN.md](../BUILD-PLAN.md) says what each phase contains. This file records

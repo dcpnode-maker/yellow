@@ -71,6 +71,12 @@ ARM64 CI compatibility proof for the founder's free-host request. It reuses the
 existing launcher/migrations/referee/login on a standard free public-repository
 runner. No laptop Docker, paid resource, image publication or cloud deployment.
 
+Q202's bounded native compatibility proof is complete atd88ae59 in ARM job
+101425264551/CI34010394787: both image identities, actual migration/referee11/11,
+readiness78, synthetic sign-in and cleanup pass. Independent fiscal_integration_map
+personally dispatched and inspected the execution; root separately read its log.
+This does not close the broader recovery, offsite verification or deployment order.
+
 Record actual deleted/reclaimed bytes (if any), retained dependencies, complete
 bundle verification and artifact hashes, explicit remote-sync confirmation status,
 recoverability limitations, source-exact local readiness/login and a browser image.

@@ -51,3 +51,42 @@ report it without rewriting the source, weakening checks or inventing readiness.
 The initial Google Drive source backup excludes these newly created runtime files;
 record that boundary and make a consistent logical backup before claiming database
 recovery. A cloud upload must be confirmed separately from mounted-file readback.
+
+## Reboot recovery admission — 2026-09-06
+
+The laptop rebooted at11:34:17 IST. Coordinator personally confirms no listener
+on3000/55503/55513 and no Bun process. The existing source archive, receipt and
+protected app.env/seed.env remain. A separate installed PostgreSQL service is
+running (parent6396 at inspection); it is unrelated and must not be stopped.
+The earlier full-test handle disappeared; its incomplete run is not a pass.
+
+Additional exact scope under Order442:
+
+```text
+scripts/resume-merged-native-review.ps1
+tests/native-review-resume.test.ts
+D:\Yellow\temp\order434-production-cluster-20260906 (existing cluster startup only)
+D:\Yellow\runtime\order442-review (new bounded resume logs/receipt only)
+```
+
+Resume existing state only: no initdb, CREATE/DROP database, migrations, seed,
+role/credential change, source extraction, dependency install or service registration.
+Verify the explicit absolute cluster target, PG_VERSION16, recorded startup options,
+PostgreSQL16.15 binary and absence/identity of its actual process/listener before
+pg_ctl start. Never remove a PID file or kill a conflicting process. Reuse existing
+loopback55503 configuration and write a new log in the admitted control directory.
+Starting this retained cluster for the already admitted disposable Q203 proof is
+allowed before app recovery; do not start the stopped55513 test cluster.
+
+The standalone resume helper must validate the protected environment files, exact
+mainb5ef708 source archive/hash and extracted source, dependency junction and locked
+Bun version. Existing listeners must be verified or refused, never replaced. Check
+the existing review database identity, server160015 and actual77 migration hashes
+read-only; the historical runner must not run. Start only the existing app with its
+existing credentials, loopback address and unchanged worker configuration, in a
+hidden process with new logs and a small bounded startup wait. Verify exact source77
+readiness, prefilled synthetic login and real authentication without printing a
+password/token. Preserve the initial receipt and write a distinct resume receipt.
+Tests must pin non-destructive resumption and identity checks; actual laptop execution
+must additionally verify readiness/login. Native Windows crash repair, provider
+activation, new UI, cloud hosting and phase completion are not implied.

@@ -170,9 +170,10 @@ monthly), plus200GB combined boot/block storage in the home region—not the old
 
 Use one Linux ARM64 VM, a TLS entrypoint, private PostgreSQL, and the existing
 worker model. No database-engine rewrite, managed Oracle database, Kubernetes or
-per-department microservices are needed. Current release images are **amd64-only**;
-an ARM64 build, pinned-image/native-dependency checks and actual deployment proofs
-are required first. No ARM64 compatibility or capacity benchmark is claimed.
+per-department microservices are needed. Current published release images remain
+**amd64-only**. Native ARM64 image/launcher compatibility is now proved below;
+reviewed ARM64 publication and actual deployment proofs are still required.
+No capacity benchmark or sustained reliability result is claimed.
 Keep loopback review credential prefill OFF outside the laptop; use separate
 staging credentials and synthetic data only. A Linux VM removes the Windows/WSL
 layer but does not itself fix the unidentified Bun crash.
@@ -209,8 +210,8 @@ laptop Docker/WSL or C: runtime installation is introduced. Red0/2 preceded
 implementation; new/release/catalogue tests8/8(94), YAML parsing and typecheck
 pass. A non-implementer reproduced those results and requested explicit SHA/pin
 regressions. After adding them, the combined status/release/readiness/containment
-proof passes17/17(185), with types and YAML parsing green. Actual ARM64 execution
-remains required before compatibility is claimed.
+proof passes17/17(185), with types and YAML parsing green. The initial requirement
+for actual ARM64 execution is discharged by the repaired job recorded below.
 This check does not provision OCI, resolve account/capacity access, prove a long
 soak, repair Bun's Windows crash or approve live hotel data on free staging.
 
@@ -223,5 +224,19 @@ adds only the [publisher's CPython3.12 manylinux ARM64 hash](https://pypi.org/py
 matching the actual failed download. The original Intel hash, version pin,
 `--require-hashes` and binary-only policy are unchanged. Permanent red2/1 becomes
 green8/8(93) across host/release tests, independently rerun. No local dependency
-installation, source build or hash bypass. A new exact-head hosted run must still
-prove the images and launcher; the original database job is not cancelled.
+installation, source build or hash bypass. The original run subsequently completed:
+all five existing jobs passed, with only ARM64's wheel check failing.
+
+Repaired[CI34010394787](https://github.com/dcpnode-maker/yellow/actions/runs/34010394787)
+at exactd88ae59ade95b342121e0a3644f5102adcf9726c has a successful native ARM64
+job101425264551. Non-implementer fiscal_integration_map personally dispatched,
+observed and inspected it; root independently retrieved the completed job log.
+It ran on ubuntu24.04arm image20260831.111.1 with read-only repository authority,
+Bun Linux ARM64 1.3.14 and hash-verified CPython3.12 ARM64 psycopg2-binary2.9.12.
+Both runtime/database-tools image architecture and exact revision assertions passed;
+the supported launcher passed referee11/11, readiness at frontier78 and synthetic
+sign-in. Its app/PostgreSQL/Valkey containers and isolated network were stopped and
+removed. The separate long database job subsequently passed, completing all six
+jobs successfully; root also retrieved its canonical referee11/11 result.
+No image was published, OCI resource created or paid service activated. This is a
+bounded native compatibility receipt, not deployment, load testing or a crash fix.

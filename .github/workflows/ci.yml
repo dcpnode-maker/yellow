@@ -431,6 +431,18 @@ jobs:
           docker compose exec -T postgres psql --username yellow_deploy --dbname postgres --set ON_ERROR_STOP=1 \
             --command "DROP DATABASE ${wire_database} WITH (FORCE)"
 
+          # Q203 exercises signed-session HTTP against an isolated canonical78 clone.
+          q203_database="yellow_order440_q203_ci"
+          native_clones+=("$q203_database")
+          docker compose exec -T postgres psql --username yellow_deploy --dbname postgres --set ON_ERROR_STOP=1 \
+            --command "CREATE DATABASE ${q203_database} TEMPLATE ${native_template}"
+          YELLOW_ORDER440_HTTP_DEPLOY_DATABASE_URL="postgres://yellow_deploy:${YELLOW_DEPLOY_DATABASE_PASSWORD}@${POSTGRES_ADDRESS}/${q203_database}" \
+          YELLOW_ORDER440_HTTP_RUNTIME_DATABASE_URL="postgres://yellow_runtime:${YELLOW_RUNTIME_DATABASE_PASSWORD}@${POSTGRES_ADDRESS}/${q203_database}" \
+          YELLOW_REQUIRE_ORDER440_HTTP=1 \
+            bun test tests/operator-fiscal-submission.integration.test.ts
+          docker compose exec -T postgres psql --username yellow_deploy --dbname postgres --set ON_ERROR_STOP=1 \
+            --command "DROP DATABASE ${q203_database} WITH (FORCE)"
+
           # Q201 proves legacy retention and atomic canonical 77-to-78 upgrade.
           durable_database="yellow_order440_durable_ci"
           native_clones+=("$durable_database")

@@ -4,7 +4,7 @@
 <!-- current-phase: 7 -->
 <!-- current-task: Codex Yellow — fiscal completion, with free-hosting and recovery preparation in parallel -->
 <!-- current-order-files: handoff/orders/442-host-recovery-and-merged-local-review.md;handoff/orders/443-runtime-storage-containment.md;handoff/orders/440-fiscal-submission-lifecycle.md -->
-<!-- current-lifecycle: canonical78 and fiscal commands pass exact Linux CI; ARM64 free-host proof prepared; local remains main77; provider and hosting not activated -->
+<!-- current-lifecycle: canonical78 and ARM64 pass all-six CI; authenticated fiscal HTTP locally approved, combined CI pending; main77 preview stopped after reboot, native database recovered; provider and hosting inactive -->
 
 This is the canonical current-state record. It identifies the consolidated source,
 verified behavior, release boundaries and active work. Historical orders, reviews,
@@ -34,8 +34,9 @@ passed in [CI34008495909](https://github.com/dcpnode-maker/yellow/actions/runs/3
 at exact827be46703d85e87def0615f71e9c5bd4d485e75: migrations43/43, native116/116,
 issued-wire4/4, durable19/19, containment/readiness15/15 (including all12 readiness
 cases with clean Linux exit), seed10/10, compatibility89/89, acceptance24/24 and
-referee11/11. No provider or new HTTP worker is active. The current local still
-serves merged mainb5ef708/77. This source is not yet merged or deployed.
+referee11/11. No provider or new HTTP worker is active. The preserved preview
+source is merged mainb5ef708/77; its reboot status is recorded below. This
+candidate source is not yet merged or deployed.
 
 Final native checkpoint: root standing1624pass/1227explicit DBskips/0fail,
 19/19 actual durability and4/4 actual wire cases. Fresh migration43/43 and
@@ -46,8 +47,12 @@ Linux CI result above discharges that target-runtime gate, not the Windows runti
 defect. The temporary55513 PostgreSQL
 cluster is stopped; its directories remain because cleanup was policy-blocked.
 
-**Host recovery and local preview (Orders442/443).** Exact merged
-mainb5ef708 now runs natively at<http://127.0.0.1:3000/> with prefilled synthetic
+**Host recovery and local preview (Orders442/443).** The laptop rebooted at
+11:34:17 IST on2026-09-06. The app is currently stopped. Root has restored only
+the retained native PostgreSQL cluster on55503; its own WAL recovery completed
+and it is ready. The existing main source, databases and protected passwords remain.
+An explicit Q200 resume helper is being implemented without reseeding or migration.
+Before reboot, exact merged mainb5ef708 ran at<http://127.0.0.1:3000/> with prefilled synthetic
 sign-in, Bun1.3.14, PostgreSQL16.15, canonical77/127 and referee11/11. A separate
 reviewer verifies source identity, readiness and real login. No WSL/Docker or
 retained hotel database was started/refreshed. Q199's cdfca0b private durable work
@@ -72,8 +77,14 @@ does not claim a restore drill. Free staging recommendation is OCI Always Free
 amd64). Q202 adds a native ARM64 CI job using the existing launcher/referee/login.
 Its first run atc1dfaacc (CI34009685141) rejected a Python wheel because the existing
 lock allowed only its Intel hash. The exact publisher ARM64 hash is now added for
-the same package version; independent focused8/8(93) passes. The repaired hosted
-ARM64 execution is not yet proven. No cloud
+the same package version; independent focused8/8(93) passes. Repaired native ARM64
+job101425264551 in[CI34010394787](https://github.com/dcpnode-maker/yellow/actions/runs/34010394787)
+passes at exactd88ae59ade95b342121e0a3644f5102adcf9726c: both image targets pass
+architecture/source checks, referee11/11, readiness78, synthetic sign-in and cleanup.
+The non-implementer personally dispatched and inspected the run; root independently
+retrieved its log. The separate long database job subsequently succeeded: all six
+jobs are green, with canonical referee11/11 in the database log.
+This proves the bounded ARM64 launch, not capacity, sustained reliability or hosting. No cloud
 deployment or spending occurred. Full limits and the unchanged
 7.86GiB WSL dump evidence are in[RECOVERY](RECOVERY.md).
 
@@ -109,9 +120,18 @@ not a canonical migration or activated worker. Independent private-foundation re
 also passed the canonical referee11/11 and reproducible draft-schema comparison.
 Q201 promotes the exact draft through the canonical runner and Tx commands and
 passes the Linux integration proof above. Provider authentication, verified-session
-HTTP/worker activation and live sandbox evidence remain unfinished. Q203 work is
-in progress on both authenticated request/retry endpoints with an empty production
-adapter directory and no new role grants; that source is not yet accepted. The earlier
+worker activation and live sandbox evidence remain unfinished. Q203 now
+implements both authenticated request/retry endpoints with an empty production
+adapter directory and no new role grants. Non-implementing root personally passes
+13/13(125): five actual signed-session PostgreSQL cases plus eight identity, safety,
+workflow and transaction-closure checks. Actual existing cross-tenant resources,
+permission revocation on replay, receipt mismatch and late-outbox rollback are
+proved; the isolated78 database has zero residual fault constraints or sessions.
+Fresh independent fiscal_http_acceptance personally repeats13/13(125) plus both
+legacy composition suites11/11(75), with no blocking finding. Root full standing
+passes1635/0 with1234explicit DB skips,22058assertions and clean process exit;
+the incomplete pre-reboot run is not counted. The combined Q203 source still
+requires its own exact-head CI before integration. The earlier
 private-only figures above are historical Q199 evidence.
 
 **Order440 hotel journeys** preserves cross-department guest/staff research,
@@ -169,7 +189,7 @@ states. The runtime must identify its exact source and applied migration frontie
 | Phase4 | Built; integration review outstanding | Preserve implementation and close remaining integration evidence |
 | Phase7 operational flows | Consolidated and independently approved baseline | PMS, stay, folio, payment, approval and fiscal-support flows remain preserved; this does not complete the whole phase |
 | Order434 native fiscal issuance | Independently approved and merged through PR83 | Real source-to-invoice, accounting, replay, concurrency, tenant isolation, bounds and migration proofs pass; no provider registration or operator invoice screen is implied |
-| Order440 fiscal submission | Private foundation independently accepted; canonical persistence and Tx commands built with exact Linux CI passing | Verified-session/worker integration, provider authentication, runtime activation and live sandbox evidence remain outstanding |
+| Order440 fiscal submission | Canonical persistence/Tx commands pass exact Linux CI; authenticated HTTP passes independent local proof and awaits its own CI | Worker integration, provider authentication, runtime activation and live sandbox evidence remain outstanding |
 | Order440 hotel journeys | Reviewed study merged through PR84 | Cross-department research and a fictional prototype; final reference-matched visual QA and laptop execution remain separate |
 | Order441 RMS research | Astra Ultra portfolio documented | Known methods, falsifiable proposals and experiment design; no live algorithm or measured uplift |
 | Phases8–17 | Planned | Requirements, research and department studies are preserved; documentation is not shipped behavior |
