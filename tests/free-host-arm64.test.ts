@@ -63,7 +63,7 @@ describe("Order442 free-host native ARM64 preparation", () => {
     const step = job!.slice(proof, images);
     expect(step).toBe(
       "      - name: Verify fiscal decoder and pinned RS256 on native ARM64\n" +
-      "        run: bun test tests/fiscal-exact-json.test.ts tests/fiscal-signed-jws.test.ts\n\n",
+      "        run: bun test tests/fiscal-exact-json.test.ts tests/fiscal-signed-jws.test.ts tests/india-irp-signed-receipt-binding.test.ts\n\n",
     );
   });
 });

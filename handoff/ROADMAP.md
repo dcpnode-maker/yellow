@@ -4,7 +4,17 @@
 
 **Current coordination:** Codex under PROJECT and the applicable agent adapter.
 
-**Latest integration:** Q204 supervised delivery passes exacte4399cf all-six
+**Latest integration:** PR89 privately verifies signed-token foundations and is
+independently merged as43fc758 after all-six CI34053928779, actual ARM64 crypto25/25
+and fresh post-merge80 schema/seed/referee11/11. Original-source invoice/QR binding
+is independently verified in development; complete standing1719/0 passes with1264
+explicit environment skips after independent native test-harness proof. Exact-source
+full CI/native ARM64 execution for that new candidate remains required.
+Provider transport, durable signed receipts,
+authorized reads, operator printing and authentic sandbox remain unfinished.
+Main80/128, stable local77/127 and all18 phase classifications remain separate.
+
+**Preceding integration:** Q204 supervised delivery passes exacte4399cf all-six
 CI34049699932 and normal CodeQL; the non-implementer merges PR88 as2a0ba41 after
 personally checking every required gate. Separate fresh post-merge80 schema and
 seed/referee11/11 pass. Main80/128 and unchanged local77/127 are distinct releases.

@@ -4,7 +4,7 @@
 <!-- current-phase: 7 -->
 <!-- current-task: Codex Yellow — fiscal completion, with free-hosting and recovery preparation in parallel -->
 <!-- current-order-files: handoff/orders/442-host-recovery-and-merged-local-review.md;handoff/orders/443-runtime-storage-containment.md;handoff/orders/440-fiscal-submission-lifecycle.md -->
-<!-- current-lifecycle: Q204 independently merged main80 with complete CI and fresh post-merge schema/referee proof; Q206 signed-receipt implementation active; stable local77 preserved; provider and hosting inactive -->
+<!-- current-lifecycle: PR89 independently merged main80 with complete CI, native ARM64 crypto and fresh post-merge proof; Q206 invoice/QR binding independently verified in development; provider/receipt integration active; stable local77 preserved -->
 
 This is the canonical current-state record. It identifies the consolidated source,
 verified behavior, release boundaries and active work. Historical orders, reviews,
@@ -12,6 +12,37 @@ decisions and ledger entries remain evidence; their filenames are not an active
 backlog. `state.sh` and `state.ps1` read the machine-readable comments above.
 
 ## Current task
+
+**Current checkpoint — 2026-09-07.** PR89 is independently merged as
+`43fc758bf706b40cdf6d3a06e4272ffd8d56193d` after all six
+[CI34053928779 jobs](https://github.com/dcpnode-maker/yellow/actions/runs/34053928779)
+and normal CodeQL pass. The actual native ARM64 job executes the decoder/JWS
+tests25/25; image success alone is not their proof. A separate new post-merge80
+database reproduces the exact schema and genuine seed/referee11/11, preserving
+template77, global roles and the founder preview. Main remains80 migrations/128
+tables. These are merged private foundations, not an activated IRP provider.
+
+The next original-invoice/signed-QR binder is independently verified in development.
+It matches every issued field using exact decimal comparison, both genuine pinned
+signatures and explicit compatibility rules. Root personally re-executes55 focused
+tests (582 assertions) and112 additional generated-key adversarial assertions on
+unchanged final source. The new ARM64 gate includes this binder, but its execution
+on that architecture still requires new exact-source CI.
+
+Complete current standing now passes1719 tests,0 failures,1264 explicit DB/Unix
+skips and22813 assertions across507 files in109.65s. Types,180 module boundaries
+and23 installed dependency licences pass. The first run's Windows status timeout
+and next run's loaded-folio Chromium port-file EBUSY remain recorded failures.
+Independently executed native batch/outsider-cwd and bounded transient-read repairs
+preserve existing deadlines, exact report semantics and actual geometry assertions.
+The new binder and these repairs are verified development, not yet a merged release.
+
+Current remaining product work is authenticated provider transport, atomic signed
+receipt retention, a property-authorized receipt read and operator invoice/printing,
+followed by authentic sandbox proof. No phase classification, local promotion,
+provider activation or cloud deployment is implied.
+
+### Earlier foundation checkpoint — superseded by the current checkpoint above
 
 **Fiscal runtime merged; signed receipts next — D1399.** PR88 is independently
 merged as`2a0ba41ea5e018e44e69e87677b703721b0a2e33` after all six jobs in
@@ -381,9 +412,9 @@ vendor/person dependency. Independent high-risk proof remains required.
 
 | Surface | Verified baseline | Release boundary |
 |---|---|---|
-| Source and integration | PR88 independently merged at2a0ba41 after exacte4399cf all-six CI and fresh post-merge schema/referee11/11 | Main is the sole release branch; Q206 provider/signed-receipt work remains in development |
+| Source and integration | PR89 independently merged at43fc758 after exactd300 all-six CI, actual ARM64 decoder/JWS execution and fresh post-merge schema/referee11/11 | Main is the sole release branch; source-bound invoice/QR verification is in development and complete provider/receipt integration remains unfinished |
 | Native fiscal acceptance | Independent migration41/41, native116/116, compatibility89/89, catalogue23/23, exact schema and referee11/11; all five [PR83 CI jobs](https://github.com/dcpnode-maker/yellow/actions/runs/33993977811) passed | [Review434](../handoff/reviews/434-native-fiscal-source-completion.md) approves bounded native issuance, not provider activation or a retained hotel database |
-| GitHub work queue | All62 PRs in the original audit are closed with source preservation; PR82/83/84/85/87/88 are merged | [The manifest](../handoff/CONSOLIDATION-MANIFEST.json) preserves dispositions; [GitHub](https://github.com/dcpnode-maker/yellow/pulls) is authoritative for the live queue |
+| GitHub work queue | All62 PRs in the original audit are closed with source preservation; PR82/83/84/85/87/88/89 are merged | [The manifest](../handoff/CONSOLIDATION-MANIFEST.json) preserves dispositions; [GitHub](https://github.com/dcpnode-maker/yellow/pulls) is authoritative for the live queue |
 | Database schema | Main80/128;118RLS/118policies/27FORCE/13permissions/2views | Applied1–80 remain immutable. Founder preview77/127 is not migrated by these isolated proofs |
 | Private issued-wire proof | Independent10/10 unit and4/4 real-issued tests, including exact unchanged financial rows and cross-tenant isolation | Source/wire hashes differ deliberately; no certified provider, durable submission writer or fiscal acceptance is claimed |
 | Hotel journey design | [Workbench specification](design/STAFF-WORKBENCH-SPEC.md), [casebook](design/HOTEL-CASEBOOK.md) and [research](research/HOTEL-OPERATIONS-REVIEW.md) are preserved from PR84 | Fictional interaction study; final visual fidelity needs an accessible reference and matched screenshot evidence |

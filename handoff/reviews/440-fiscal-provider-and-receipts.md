@@ -189,3 +189,211 @@ Root's same live full-standing session97318 reaches terminal exit0:
 Log:D:\Yellow\temp\q206-standing-20260907-arm64-gate.log.
 The newly admitted invoice-binding implementation starts only after this suite
 finishes and is not covered by it. No canonical DB inputs or private JWS files changed.
+
+### PR89 independent integration — 2026-09-07
+
+Reviewer fiscal_http_acceptance personally inspects exact-d300b7c CI34053928779:
+all six jobs finish successfully, alongside normal CodeQL34053927038. Native
+ARM64 actually executes the decoder/JWS suites:25 passed,0 failed,272 assertions.
+Linux full standing reports1701 passed,1263 explicit database skips,0 failed,
+22580 assertions; isolated subprocess proof24/0(227) also passes.
+
+The reviewer personally reads genuine current80 wire4/0(230), HTTP10/0(97),
+delivery11/0(95), Linux process5/0(29), immutable replay5/0(447), historical
+durability19/0(227), containment/readiness19/0(68), all ten compatibility suites,
+deployment24/0(69), exact schema and canonical referee11/11. This includes the
+fresh-worker recovery case, historical79 denial/current80 admission and hostile
+ACL/configuration restoration. Referee records162 commits,118 RLS tables,
+two invoker views and100 gapless numbers. Root is recording this reviewer's
+personal execution/inspection, not claiming to have rerun these CI commands.
+
+Immediately before ordinary SHA-guarded merge, reviewer confirms exact source
+d300b7c7c702303d1e9e89a8736237daca235a07, unchanged base2a0ba41,
+OPEN/CLEAN/MERGEABLE state, all required checks green, no review threads and
+unchanged normal protection. PR89 is independently merged as
+43fc758bf706b40cdf6d3a06e4272ffd8d56193d. Merge parents are2a0ba41 andd300;
+tree2a6645fab518b415721a039d8ed620a0b16e4213 equals the tested source and
+CI test-mergec85a2e61. No admin/bypass, branch deletion, database or local action.
+Post-merge schema/referee is separately admitted in Q206 and remains pending here.
+
+### Original invoice/QR binding — independent review in progress
+
+Builder native_resume_builder freezes source6b0778a1dac71675f16bb564c7f8eabfe82e2d09a8d6945ccadef65bf367584d
+and test8fc40312914899b15eb5aedea9cbf264b6ec1b11548a8cc8325d3b347f31ad66.
+Its reported missing-module red is0 pass/1 fail/1 error. Root independently reads
+both complete files and personally executes the projector/decoder/JWS/binder and
+import-boundary suites:58 passed,0 failed,569 assertions,5.35s.
+
+Root identifies a permanent-proof gap despite that green suite: the test described
+as an unsafe changed-cent collision uses10000000000000.01 and10000000000000.00,
+which remain different after Number conversion. Root's actual Bun probe establishes
+that90071992547409.91 and90071992547409.90 do collapse to the same Number while
+remaining distinct exact decimals inside the existing14,2 source limit. Builder
+is asked to prove valid baseline acceptance and independently re-signed invoice
+AND QR mismatch rejection, with an explicit collision precondition in the test.
+Number conversion is only an attack demonstration, never the binding oracle.
+Final binder acceptance remains pending the repaired proof and independent probes.
+
+### PR89 mandatory post-merge80 proof — personally executed fiscal_http_acceptance
+
+On2026-09-07, after reading the explicit Q206 post-merge admission and confirming
+no overlapping full local suite, nonimplementing reviewer fiscal_http_acceptance
+personally executed the bounded native procedure. Local HEAD and remote main were
+both43fc758bf706b40cdf6d3a06e4272ffd8d56193d; GitHub confirms parents2a0ba41/d300
+and tree2a6645fab518b415721a039d8ed620a0b16e4213, identical to tested PR89 source.
+No checkout change was made by this reviewer.
+
+Before database allocation, all85 proof inputs were compared byte-for-byte by
+SHA256 against binary `git show 43fc758:<path>` output: exactly80 sequential
+migrations and scripts/migrate.ts, scripts/schema-drift.ts, tests/seed_fixture.sql,
+tests/run_invariants.py, tests/schema/expected.sql. Every input matched and was
+rechecked unchanged after execution. Ordered path/NUL/hash/LF mapping SHA256:
+`7763707b6c38f9f873cf67786f841d91c99e2acbb634fa5b771ac7ac41108187`.
+This excludes the uncommitted binder and all private/dirty governance files.
+
+The exact authorized target `yellow_order440_q206_postmerge_90607` was proven
+absent. On existing127.0.0.1:55503, yellow_deploy CREATEDB authority was verified;
+template yellow_order434_production had77 canonical ledger hashes,127 public
+base tables,0 tenants and0 other sessions. Its connection was closed and an
+administrator-side check again found0 template sessions before one fixed-literal
+CREATE DATABASE ... TEMPLATE operation. No existing database was reused/reset/dropped.
+
+Only the approved Order442 seed.env/app.env keys were read, inside the proof
+process. Exact loopback host,port,roles and no URL query/fragment were validated;
+only pathname changed. Credentials were not printed or written to a new file.
+Personally executed commands/operations:
+
+```text
+runMigrations({databaseUrl:<private target URL>,logger:<quiet>})
+  discovered80; applied0078,0079,0080
+  backendPid12916; transactionBackendPids12916/12916/12916
+pg_dump --schema-only --no-owner --no-comments
+  command-scoped PGHOST=127.0.0.1 PGPORT=55503 PGDATABASE=<authorized target>
+  PGUSER=yellow_deploy PGPASSWORD=<private in-process value>
+normalizeSchemaDump(actual,true); schemaMismatch(actual,expected) === null
+psql --no-psqlrc --set ON_ERROR_STOP=1 --file tests/seed_fixture.sql
+  same command-scoped target authority; no transaction/observer wrapper; exit0
+YELLOW_DSN=<private target URL> PYTHONIOENCODING=utf-8
+  python tests/run_invariants.py yellow_order440_q206_postmerge_90607
+RESULT: 11 passed, 0 failed of 11; exit0
+```
+
+Native PostgreSQL16.15 strict restrict/unrestrict normalization yields exactly
+1620228 bytes, schema SHA256
+`03796c8d46400892158875f6957525b5ec91e6406e7cb9d3f13787800ee32b8e`.
+Canonical78/79/80 hashes respectively remain
+`65323a81a999a11e3d55893411c994c0b841af9b0465ca7e80630fd78d0ffae6`,
+`b233821d0b683810542f91834458e98f657996268d81bc81398f6c15f86ca52f`,
+`2c6b1a82e031470bace7ae8b37a2d67e54497014bd1e82f5364d23a2ce25f250`.
+Runner1c744395992ad99cb7eb44c5db811c4edddf2fb1169720aac96445d1042c6354,
+normalizer5b3815c3709e23bf5b1dae47ce1f988e6f74f98818be5ae31826e8a63fdd3d36,
+seedf8e8147800bc3ee24ba5020b70f95ad77a987c698d3c63dd664ed8d4cba1a409 and
+referee2afa95bb7c02cd9637ffc9c3df00d1ddf7cfc5d8d31c4fd8fad29b950c1a418d
+are exact merged inputs, not substituted proof wrappers.
+
+Actual referee checks all11:50-thread exclusive winner1; private-vs-beds result
+exclusive1/beds0 with no coexistence;40 contenders yield exactly6 beds; direct
+INSERT denied42501;162 commits in0.97s; unbalanced journal rejected at COMMIT and
+balanced journal accepted; sealed-day denial;100 invoice numbers exactly1..100;
+118 tenant tables/RLS/policies and both security-invoker views preserve isolation.
+
+Final retained target is80 migrations/128 tables/2 synthetic fixture tenants/0
+other sessions. Template remains77 migrations/127 tables/0 tenants/0 sessions.
+All80 target and77 template ledger hashes match canonical source. Complete role
+attributes excluding password data and all membership rows/options were snapshotted
+in memory before/after and are unchanged. After owned pools closed, a separate
+administrator-side count found0 target/template sessions. Terminal proof session43986
+exited0 and the coordinator was immediately notified that no database work remained.
+
+No global role/grant mutation, new cluster, Docker/WSL, live provider, stable-local
+restart, existing database change, source edit, commit or push occurred. Only this
+admitted end section was appended. This completes the actual PR89 post-merge80
+schema/seed/referee gate; it neither reviews/accepts the uncommitted binder nor
+claims complete provider integration, receipt persistence or Phase7 completion.
+
+### Original-source signed invoice/QR binder — independent bounded acceptance
+
+On2026-09-07, root remains the nonimplementing reviewer: native_resume_builder
+wrote both admitted binder files and repaired the permanent unsafe-cent proof.
+Root personally read the complete source/tests and did not edit either file.
+Final source SHA256:
+`6b0778a1dac71675f16bb564c7f8eabfe82e2d09a8d6945ccadef65bf367584d`.
+Final test SHA256:
+`b8ff670d47a49be6bc96f37f8a68fc0105c21b83076794d268cf0b4cca14bb33`.
+Both were rechecked unchanged before the following personally executed proof.
+
+```text
+bun test tests/fiscal-exact-json.test.ts tests/fiscal-signed-jws.test.ts tests/india-irp-issued-wire-candidate.test.ts tests/india-irp-signed-receipt-binding.test.ts tests/free-host-arm64.test.ts
+55 passed,0 failed,582 assertions;1429ms
+bun -e <independent in-memory generated-key original-source mutation probe>
+112 assertions passed; final module SHA2566b0778a1...
+```
+
+The additional probe generates its own2048-bit RSA key and fictional checksum-valid
+GSTINs from29YELLO0000W1Z and27FIXXX0000Y1Z, never copies real taxpayer/token data.
+For genuine IGST and split invoices, it mutates and freshly signs every original
+leaf, verifies denial, and separately checks invoice and QR changed-cent collisions
+at90071992547409.91 versus90071992547409.90. Those distinct legal decimal amounts
+round to the same JavaScript Number; the binder nevertheless rejects the changed
+amount. Likewise an independently resigned changed acknowledgement is rejected.
+Mathematically equivalent exponent/decimal forms remain accepted without rounding.
+This supersedes the earlier test-only comparison that did not actually collide.
+
+Other independently executed cases cover decoded duplicate/prototype-shaped/deep
+JSON,64-digit acknowledgement acceptance versus65 rejection, invalid leap/year/time,
+input snapshot across await, getter invocation count0, revoked proxies, wrong QR
+issuer, exact half-open trust-window boundaries and recursive immutability.
+Both providerAcceptanceEstablished and authenticatedProviderSandboxCertified remain
+false. Fixed errors expose no key, raw token, original financial content or cause.
+
+Root accepts the private original-source binding semantics. This is not approval
+of authenticated transport, SQL retention, receipt reads or provider registration.
+The first complete standing remains1715 pass/1264 explicit DB/Unix skips/1 native
+status deadline failure (22784 assertions;2980 tests/507files;128.36s). Its unchanged
+isolated status proof is5 pass/1 Unix skip/0 fail. Q206 now admits a bounded native
+batching correction with no timeout increase; final complete standing and new
+exact-source CI remain before publication/integration.
+
+The newly extended native ARM64 command includes the binder after the unchanged
+decoder/JWS suites. Root first executes the required intentional red3 pass/1 fail.
+Nonimplementing fiscal_http_acceptance inspects the exact workflow delta and
+personally passes4/4 (37 assertions) on workflowfe418598.../test216ca2b6....
+That proves wiring only; PR89's actual ARM64 result does not execute the new binder.
+
+### Native publication repairs and final complete standing — 2026-09-07
+
+Builder native_resume_builder implements only state.ps1 and its native fixture.
+Root independently catches relative .NET existence checks resolving against process
+cwd despite PowerShell Set-Location. The new outsider-cwd fixture first reports5
+open questions instead of3; builder roots response paths at PSScriptRoot and keeps
+both File.Exists and Directory.Exists. Initial pre-batch fixture also fails exact
+counts because Path treats literal brackets as wildcards. Both repairs retain
+612-to2 batch reduction, anchored/case-insensitive markers and empty-array guards.
+
+Nonimplementing fiscal_http_acceptance personally executes:
+bun test tests/project-status.test.ts tests/current-management-demo-status.intentional-red.test.ts tests/founder-status.integration.test.ts tests/free-host-arm64.test.ts tests/owned-proof-process.test.ts
+24 passed,3 explicit skips (2 database,1 Unix),0 failed,272 assertions;9.10s.
+Final native state SHAea5e84bfa72d466b419fa83d675c27a519a38189dfea71e97f9ec934c8db4f04;
+test SHAc489946f6581c7cfcfdbc8810a582c866226d13cf69a7a2bf512c1b05791019a.
+Hash comparison before/after is unchanged. The optional symlink branch remains
+dependent on native permission; unconditional symlink execution is not claimed.
+
+The next complete run passes native status but aborts an unrelated loaded-folio
+browser proof on startup-port EBUSY:1716 pass/1264 skips/1 fail,22800 assertions,
+111.12s. Root adds the explicitly admitted narrow transient-reader repair already
+used in the appearance/app-bar proofs. Injected transient-before-success red first
+records1 pass/1 fail; final personal actual browser proof is3/0(13).
+Nonimplementing fiscal_http_acceptance independently reads the delta and personally
+repeats3/0(13),2.35s, including actual375/640px atDSF2. Its frozen file hash remains
+c54dafc4e29db5d76856c14fd813ddc4a856d1b33c9cdd22168e0d5520e61856.
+Only EBUSY/ENOENT mean 'port not yet ready'; EACCES/EIO/unclassified/nonobject
+errors rethrow unchanged. Existing geometry, polling,60s deadline and cleanup stay.
+
+After every other agent's proof terminates, root personally runs complete bun test:
+1719 passed,1264 explicit DB/Unix skips,0 failed,22813 assertions;
+2983 tests across507 files in109.65s. Both failed logs remain retained.
+Types pass;180 import-boundary files and23 installed package licences pass.
+Current-status regression intentionally fails0/1 against old PR89 state, then
+passes7/0 with2 explicit database skips and158 assertions after exact reconciliation.
+Fresh all-six CI must execute actual databases and the new native ARM64 binder;
+this accepts publication, not merge, activation, complete IRP or Phase7 closure.

@@ -224,6 +224,35 @@ helper unchanged; add no command-idempotency header to the GET. Required legacy
 variants remain explicitly unsigned/hash-only. Do not use an HTTP status route as
 proof of signed fiscal acceptance or expose raw encrypted response bytes by default.
 
+Root personally verifies the retained canonical80 proof catalogue in a
+`SET TRANSACTION READ ONLY` transaction on2026-09-07, against only
+`yellow_order440_q204_postmerge_90607` in the existing127.0.0.1:55503 cluster.
+The protected deployment URL is read only in process and never printed; target
+identity/current actor and80 ledger rows are checked. The pool closes afterward.
+No tenant rows, roles, grants, schema, cluster or local runtime are changed.
+
+Actual catalogue names requiring prospective81 compatibility are:
+`fiscal_submission_delivery_all_or_none_ck`,
+`fiscal_submission_history_outcome_check`,
+`fiscal_submission_history_reconciliation_reason_check` and
+`fiscal_submission_history_event_shape_ck`. Current history resolution sources
+remain transport_result/lookup_result; status vocabulary already includes error,
+but error/none/provider_cancelled does not pass the current head constraint.
+Both current tables have app_role table-level SELECT and no column-level ACLs.
+Neither has a PUBLIC or yellow_runtime table grant; yellow_owner retains ownership
+rights. These are observed grants, not an assertion that all future effective
+privilege paths have been audited or an authorization to revoke anything now.
+
+The current direct-runtime claim returns original wire/hash and document ID/hash,
+but NOT original document content. The newly admitted binder validates immutable
+content to regenerate wire. The full provider integration must explicitly carry
+that owner-derived content through a scoped claim/port contract (or separately
+admit an equally strong validated-wire input), never invent content from lossy
+parsed wire or obtain it from an unauthenticated HTTP request. Existing private
+claim/reconcile oracles and exact startup signatures need inventoried compatibility;
+Q205 POST receipt bytes must remain untouched. No such claim/port change is admitted
+by this catalogue note.
+
 - Exact sandbox/production API origins and current supported versions.
 - Authentication RSA padding/encoding details and authoritative encryption key.
 - Signing key acquisition, provider/issuer binding, rotation/revocation and trust
@@ -413,6 +442,13 @@ read-only permissions, no publication and unconditional owned-preview cleanup.
 No new job/runner/service/dependency, existing timeout increase or platform emulation.
 The laptop cannot prove ARM64 execution; new exact-source CI must execute this step.
 
+After the original-source signed-pair binder is independently accepted, the same
+two already admitted workflow/test paths must add its exact new test file to that
+unconditional native ARM64 step. Preserve the existing decoder/JWS proofs and all
+job ordering, pins, limits and cleanup. The regression must fail against the old
+two-suite command before extending it. The prior PR89 ARM64 result covers only
+the prior two suites; it is not evidence that the new binder ran on ARM64.
+
 ### Admitted original-invoice/signed-pair binding — 2026-09-07
 
 The next dependency closes the gap between a valid signature and matching the
@@ -523,6 +559,73 @@ decoded duplicate keys, Unicode, huge numeric/exponent limits, source hash misma
 HSN maximum/grouping/tie rules, optional IrnDt, input mutation across await,
 getter/proxy rejection, deeply frozen output and sanitized failures. Root is
 independent of the builder and must inspect/execute this proof before publication.
+
+### PR89 post-merge proof admission — 2026-09-07
+
+Independent fiscal_http_acceptance verifies all six exact-d300 CI jobs and normal
+CodeQL, then normally merges PR89 as43fc758bf706b40cdf6d3a06e4272ffd8d56193d.
+Its tree2a6645fab518b415721a039d8ed620a0b16e4213 equals the tested source tree.
+This merges only the private decoder/JWS foundations, native ARM64 test gate and
+status records; the new invoice/QR binder remains uncommitted and unapproved.
+
+For the mandatory post-merge referee, admit only the new isolated database
+`yellow_order440_q206_postmerge_90607` on the existing loopback127.0.0.1:55503
+test cluster. The non-implementing reviewer must first prove the name absent and
+the existing `yellow_order434_production` template remains pristine77, with no
+tenants/sessions. Reuse the already reviewed native proof procedure and exact
+canonical inputs: clone that template without modifying it, apply only78–80,
+compare exact normalized schema, then execute genuine canonical seed/referee11/11.
+Record source/input hashes and final target/template/session/role preservation.
+No new cluster, existing database overwrite/deletion, global role/grant mutation,
+Docker/WSL, provider, credentials publication or stable-local promotion is admitted.
+If the exact target already exists, stop and report it instead of resetting it.
+This proof does not accept the separately uncommitted binder or full Phase7.
+
+### Admitted native status scan correction — 2026-09-07
+
+The binder's complete standing run records1715 pass,1264 explicit DB/Unix skips
+and one existing Windows status subprocess deadline failure. The unchanged isolated
+status suite passes5 tests with one Unix-only skip. Independent read-only profiling
+does not reproduce the timeout and does not establish its cause: three native full
+reports complete in2303/2358/2309ms. It does establish612 per-file Select-String
+calls plus125 response-path existence calls across418 orders and320 questions.
+A semantically equivalent batch prototype preserves312 unclosed orders/34 open
+questions and reduces the matching scan-section median from about860ms to366ms.
+
+Under Order440's executable publication gate, admit exactly `state.ps1` and
+`tests/project-status.test.ts` for a bounded performance correction. Keep existing
+enumeration, sorting, case/anchored-regex/encoding behavior, metadata validation,
+service probes, output and all existing deadlines. Guard empty input arrays, use
+two batch literal-path Select-String scans and case-insensitive matched-path sets;
+preserve response existence for files and directories. Do not replace PowerShell
+with WSL, weaken the owned-child cleanup or change production fiscal code.
+
+First add a permanent intentional-red Windows fixture for empty arrays, anchored
+and unanchored markers, literal unusual filenames, case-insensitive markers,
+response files/directories and symlinks where platform privilege permits. Retain
+the existing Unix proof and test limits. Prove exact counts and no per-file marker
+scans. A nonimplementer must inspect and execute the final native proof; record the
+first failed full run rather than relabeling it green. This optimization is not
+proof that file scanning alone caused the earlier deadline failure.
+
+### Admitted loaded-folio browser startup correction — 2026-09-07
+
+After native batching passes independently24/0(272) with3 explicit environment
+skips, the complete run records1716 pass/1264 skips/1 failure (22800 assertions,
+111.12s). Native status passes; the unrelated loaded-folio geometry proof aborts
+before any geometry assertion with EBUSY while reading its own DevToolsActivePort.
+Its exists-then-read leaves the same transient startup race already handled by
+the appearance and app-bar proofs. This is not evidence of a product layout defect.
+
+Admit only `tests/operator-folio-loaded-responsive-geometry.intentional-red.test.ts`
+to mirror that existing narrow read behavior: EBUSY/ENOENT means no port yet, and
+every other error propagates unchanged. Add intentional-red injected-reader cases
+for each transient followed by success and permanent-error identity, then wire the
+helper into the existing bounded startup loop. Preserve browser discovery, unique
+profiles, actual375/640 widths atDSF2, all geometry assertions,60s outer limit,
+800x25ms polling bound and owned cleanup. No product CSS, generic retry, browser
+restart, existing timeout increase, new dependency or permanent-error suppression.
+Execute the actual two-width browser proof as well as the deterministic cases.
 
 ## Required executable acceptance
 

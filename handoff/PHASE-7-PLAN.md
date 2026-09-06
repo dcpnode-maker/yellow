@@ -7,9 +7,14 @@ also preserved at reviewed main7829eae. Orders237–429 retain their recorded re
 states; Order430's rejection remains historical evidence.
 **Entry point:** approved Phase6/7 dependencies in BUILD-PLAN.md and handoff/ROADMAP.md.
 **Current implementation:** [Order440 fiscal submission](orders/440-fiscal-submission-lifecycle.md)
-continues authenticated provider/signed receipts through Question206 after PR88's
-independently merged durable delivery/reconciliation runtime. Exacte439 all-six CI
-and a separate fresh post-merge80 schema/seed/referee11/11 pass; main is2a0ba41.
+continues authenticated provider/signed receipts through Question206 after PR89's
+independently merged private decoder and pinned signature verifier at43fc758.
+Exactd300 all-six CI, native ARM64 crypto25/25 and a separate fresh post-merge80
+schema/seed/referee11/11 pass. Original-source invoice/QR binding is independently
+verified in development, with complete standing1719/0 and1264 explicit environment
+skips after independently proved native test-harness repairs. Prior failures remain
+recorded. The new binder requires exact-source full CI/native ARM64 execution; provider,
+receipt persistence/read, operator invoice/printing and authentic sandbox are unbuilt.
 [Order440 hotel journeys](orders/440-hotel-journeys-and-schema-guide.md)
 preserves the merged cross-department study and outstanding reference-matched visual
 review. [Question198](questions/198-concurrent-reviewed-source-integration.md)

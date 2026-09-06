@@ -6,7 +6,22 @@ permit; no worker may silently widen an order. A phase is DONE only when its DoD
 checks pass in CI. Every session starts with the ritual below; no phase may modify
 a prior phase's public surface without a written note in `DECISIONS.log`.
 
-## Current implementation status — 2026-09-06, consolidated Codex Yellow work
+## Current implementation status — 2026-09-07, consolidated Codex Yellow work
+
+PR89 independently merges the private exact decoder and pinned signature verifier
+as43fc758 after exactd300 all-six CI34053928779, native ARM64 crypto25/25 and
+fresh post-merge80 schema/seed/referee11/11. Main80/128 and stable local77/127
+remain separate. Q206 original-source invoice/QR binding is independently verified
+in development: root55/0(582) plus112 adversarial assertions on frozen source.
+Complete standing passes1719/0 with1264 explicit environment skips and22813
+assertions (507files;109.65s), after independently proved native batch/outsider-cwd
+and transient Chromium port-file repairs. Prior failed runs remain recorded and
+all existing deadlines/geometry assertions are preserved. Types,180 boundaries and
+23 licences pass. The new binder still requires exact-source native ARM64 and full CI.
+Authenticated transport, signed receipt retention/read, operator invoice/printing
+and authentic sandbox acceptance remain the full outcome; no Phase7 closure.
+
+The following D1399 paragraph is the preceding merged runtime checkpoint.
 
 D1399 closes Q204 integration: exacte4399cf passes all six CI34049699932 jobs
 and normal CodeQL. Non-implementer fiscal_http_acceptance personally verifies the

@@ -55,7 +55,7 @@ async function historicalCounts(directory: string): Promise<string> {
 describe("canonical project status", () => {
   test("records the accepted native closure and current durable-submission work", () => {
     const originalSnapshot = JSON.stringify(PROJECT_BUILD_SNAPSHOT);
-    expect(PROJECT_BUILD_SNAPSHOT.recordedAt).toBe("2026-09-06");
+    expect(PROJECT_BUILD_SNAPSHOT.recordedAt).toBe("2026-09-07");
     expect(PROJECT_BUILD_SNAPSHOT.roadmap).toMatchObject({
       phaseCount: 18,
       latestBuiltOrder: 439,
@@ -214,6 +214,122 @@ describe("canonical project status", () => {
       await report(2);
     } finally {
       await rm(directory, { recursive: true, force: true });
+    }
+  });
+
+  test.skipIf(process.platform !== "win32")("native batch scans preserve marker and response-path semantics", async () => {
+    const directory = await mkdtemp(join(tmpdir(), "yellow-project-status-native-batch-"));
+    const emptyDirectory = join(directory, "empty");
+    const populatedDirectory = join(directory, "populated");
+    const powerShell = join(
+      process.env.SystemRoot ?? "C:\\Windows",
+      "System32",
+      "WindowsPowerShell",
+      "v1.0",
+      "powershell.exe",
+    );
+    const quotePowerShell = (value: string) => `'${value.replaceAll("'", "''")}'`;
+    let symlinkCreated = false;
+    try {
+      const bin = join(directory, "bin");
+      await mkdir(bin);
+      await Bun.write(join(bin, "git.cmd"), "@echo off\r\nexit /b 0\r\n");
+      await Bun.write(join(bin, "docker.cmd"), "@echo off\r\nexit /b 1\r\n");
+      const stateScript = await Bun.file(join(root, "state.ps1")).text();
+      async function prepare(directory: string) {
+        for (const kind of ["orders", "reviews", "questions"]) {
+          await mkdir(join(directory, "handoff", kind), { recursive: true });
+        }
+        await Bun.write(join(directory, "state.ps1"), stateScript);
+        await Bun.write(join(directory, "current.md"), "Current fixture order");
+        const statusFile = join(directory, "status.md");
+        await Bun.write(statusFile, [
+          "<!-- status-schema: yellow-project-status/v1 -->", "<!-- current-phase: 7 -->",
+          "<!-- current-task: fixture -->", "<!-- current-lifecycle: fixture -->",
+          "<!-- current-order-files: current.md -->",
+        ].join("\n"));
+        return statusFile;
+      }
+      const [emptyStatusFile, populatedStatusFile] = await Promise.all([
+        prepare(emptyDirectory), prepare(populatedDirectory),
+      ]);
+      async function report(fixtureDirectory: string, statusFile: string, scanLog: string) {
+        await Bun.write(scanLog, "");
+        const wrapper = [
+          "function Select-String {",
+          "[CmdletBinding(DefaultParameterSetName='Path')] param(",
+          "[Parameter(ParameterSetName='Path')][string[]]$Path,",
+          "[Parameter(ParameterSetName='LiteralPath')][string[]]$LiteralPath,",
+          "[Parameter(Mandatory=$true)][string[]]$Pattern, [switch]$Quiet, [switch]$List)",
+          "$targets = if ($PSCmdlet.ParameterSetName -eq 'LiteralPath') { $LiteralPath } else { $Path }",
+          "[IO.File]::AppendAllText($env:YELLOW_SCAN_COUNT_FILE, \"$($PSCmdlet.ParameterSetName):$($targets.Count):$($Quiet.IsPresent):$($List.IsPresent)`n\")",
+          "$matches = Microsoft.PowerShell.Utility\\Select-String @PSBoundParameters",
+          "if ($List) { $matches | ForEach-Object { [pscustomobject]@{ Path = $_.Path.ToUpperInvariant() } } } else { $matches }",
+          "}",
+          `& ${quotePowerShell(join(fixtureDirectory, "state.ps1"))}`,
+        ].join("\n");
+        const child = await runOwnedProofProcess(
+          [powerShell, "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", wrapper],
+          {
+            cwd: directory,
+            env: {
+              ...process.env,
+              PATH: `${bin};${process.env.PATH ?? ""}`,
+              YELLOW_PROJECT_STATUS_FILE: statusFile,
+              YELLOW_SCAN_COUNT_FILE: scanLog,
+            },
+            timeoutMs: 4_500,
+          },
+        );
+        expect(child.exitCode).toBe(0);
+        return {
+          output: child.stdout,
+          scans: (await Bun.file(scanLog).text()).split("\n").filter(Boolean),
+        };
+      }
+
+      const fixture: Readonly<Record<string, string>> = {
+        "orders/001-open.md": "Open", "orders/002-[literal]-merged.md": "## MERGED with evidence",
+        "orders/003-unanchored.md": "not ## MERGED", "orders/004-case.md": "## merged case-insensitively",
+        "reviews/001.md": "review", "questions/001-open.md": "Open",
+        "questions/002-[literal]-resolved.md": "## RESOLVED details", "questions/003-case.md": "## ratified",
+        "questions/004-unanchored.md": "not ## RESOLVED", "questions/005-question.md": "Open",
+        "questions/005-ARCHITECT-RESPONSE.md": "response", "questions/006-question.md": "Open",
+        "questions/007-question.md": "Open", "questions/008-ARCHITECT-RESPONSE.md": "response only",
+      };
+      for (const [file, content] of Object.entries(fixture)) {
+        await Bun.write(join(populatedDirectory, "handoff", file), content);
+      }
+      await mkdir(join(populatedDirectory, "handoff", "questions", "006-ARCHITECT-RESPONSE.md"));
+      try {
+        await symlink(
+          "005-ARCHITECT-RESPONSE.md",
+          join(populatedDirectory, "handoff", "questions", "007-ARCHITECT-RESPONSE.md"),
+          "file",
+        );
+        symlinkCreated = true;
+      } catch (error) {
+        const code = (error as NodeJS.ErrnoException).code;
+        if (code !== "EPERM" && code !== "EACCES") throw error;
+      }
+
+      const [empty, populated] = await Promise.all([
+        report(emptyDirectory, emptyStatusFile, join(directory, "empty-marker-scans")),
+        report(populatedDirectory, populatedStatusFile, join(directory, "populated-marker-scans")),
+      ]);
+      expect(empty.output).toContain("Historical records: orders=0 total (0 lack legacy MERGED marker) reviews=0 total questions=0 without legacy resolution marker (0 total)");
+      expect(empty.scans).toEqual([]);
+      const questionTotal = symlinkCreated ? 10 : 9;
+      const openQuestions = symlinkCreated ? 2 : 3;
+      expect(populated.output).toContain(
+        `Historical records: orders=4 total (2 lack legacy MERGED marker) reviews=1 total questions=${openQuestions} without legacy resolution marker (${questionTotal} total)`,
+      );
+      expect(populated.scans).toEqual([
+        "LiteralPath:4:False:True",
+        "LiteralPath:7:False:True",
+      ]);
+    } finally {
+      await rm(directory, { recursive: true, force: true, maxRetries: 2, retryDelay: 50 });
     }
   });
 });

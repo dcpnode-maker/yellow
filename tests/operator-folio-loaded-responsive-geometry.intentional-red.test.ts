@@ -19,6 +19,49 @@ const browserCandidates = [
 ].filter((candidate): candidate is string => Boolean(candidate));
 const browserPath = browserCandidates.find((candidate) => existsSync(candidate));
 
+type PortFileReader = (path: string) => Promise<string>;
+
+async function readDevToolsPort(
+  portFile: string,
+  read: PortFileReader = async path => Bun.file(path).text(),
+): Promise<string> {
+  try {
+    return (await read(portFile)).split(/\r?\n/, 1)[0] ?? "";
+  } catch (error) {
+    const code = typeof error === "object" && error !== null
+      ? (error as { code?: unknown }).code
+      : undefined;
+    if (code === "EBUSY" || code === "ENOENT") return "";
+    throw error;
+  }
+}
+
+test("Order328 retries only transient DevTools port-file reads within the existing poll", async () => {
+  for (const code of ["EBUSY", "ENOENT"] as const) {
+    let reads = 0;
+    const read: PortFileReader = async () => {
+      reads += 1;
+      if (reads === 1) throw Object.assign(new Error("transient port-file contention"), { code });
+      return "43127\n/devtools/browser/order328";
+    };
+    expect(await readDevToolsPort("synthetic-port-file", read)).toBe("");
+    expect(await readDevToolsPort("synthetic-port-file", read)).toBe("43127");
+    expect(reads).toBe(2);
+  }
+});
+
+test("Order328 propagates permanent DevTools port-file errors unchanged", async () => {
+  for (const failure of [
+    Object.assign(new Error("access denied"), { code: "EACCES" }),
+    Object.assign(new Error("I/O failure"), { code: "EIO" }),
+    new Error("unclassified failure"),
+    "non-object failure",
+  ]) {
+    await expect(readDevToolsPort("synthetic-port-file", async () => { throw failure; }))
+      .rejects.toBe(failure);
+  }
+});
+
 type FolioGeometry = Readonly<{
   viewport: number;
   deviceScaleFactor: number;
@@ -85,7 +128,7 @@ async function measure(htmlFile: string, profile: string, width: number): Promis
     const portFile = resolve(profile, "DevToolsActivePort");
     let port = "";
     for (let attempt = 0; attempt < 800; attempt += 1) {
-      if (existsSync(portFile)) port = (await Bun.file(portFile).text()).split(/\r?\n/, 1)[0] ?? "";
+      if (existsSync(portFile)) port = await readDevToolsPort(portFile);
       port ||= diagnostic.match(/DevTools listening on ws:\/\/(?:127\.0\.0\.1|localhost|\[::1\]):(\d+)\//)?.[1] ?? "";
       if (port || chrome.exitCode !== null) break;
       await Bun.sleep(25);
