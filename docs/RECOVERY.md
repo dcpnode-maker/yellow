@@ -213,3 +213,15 @@ proof passes17/17(185), with types and YAML parsing green. Actual ARM64 executio
 remains required before compatibility is claimed.
 This check does not provision OCI, resolve account/capacity access, prove a long
 soak, repair Bun's Windows crash or approve live hotel data on free staging.
+
+The first hosted ARM64 job101423353740 atc1dfaacc3922f922c97166cd5d7356c02ea5346b
+failed during frozen Python verification, before image/database startup. The
+requirements permitted only psycopg2-binary2.9.12's CPython3.12 Intel wheel hash;
+pip correctly rejected the ARM64 wheel. Q202's explicit same-version admission
+adds only the [publisher's CPython3.12 manylinux ARM64 hash](https://pypi.org/pypi/psycopg2-binary/2.9.12/json)
+`40e7b28b63aaf737cb3a1edc3a9bbc9a9f4ad3dcb7152e8c1130e4050eddcb7d`, independently
+matching the actual failed download. The original Intel hash, version pin,
+`--require-hashes` and binary-only policy are unchanged. Permanent red2/1 becomes
+green8/8(93) across host/release tests, independently rerun. No local dependency
+installation, source build or hash bypass. A new exact-head hosted run must still
+prove the images and launcher; the original database job is not cancelled.

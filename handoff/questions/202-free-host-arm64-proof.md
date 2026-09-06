@@ -15,6 +15,7 @@ handoff/questions/202-free-host-arm64-proof.md
 handoff/orders/442-host-recovery-and-merged-local-review.md
 .github/workflows/ci.yml (one additional free-host-arm64 proof job only)
 tests/free-host-arm64.test.ts
+requirements-ci.txt (same-version CPython3.12 manylinux ARM64 wheel hash only)
 docs/RECOVERY.md
 docs/PROJECT-STATUS.md
 DECISIONS.log
@@ -50,3 +51,17 @@ scoped target/credential/TLS/private-database/backup deployment plan.
 
 If any pinned dependency lacks ARM64 support, record the exact failure; do not
 silently remove its digest or substitute an unreviewed image/runtime.
+
+## Exact portability repair admission
+
+Job101423353740 in CI34009685141 failed before image/database work: pip selected
+the supported psycopg2-binary2.9.12 CPython3.12 manylinux aarch64 wheel, but the
+requirements file allowed only the x86_64 wheel hash. Root retrieved the exact
+completed job log and independently checked PyPI's2.9.12 release JSON: both files
+are non-yanked, with unchanged x86_64 hash9fe06d93e72f1c048e731a2e3e7854a5bfaa58fc736068df90b352cefe66f03f
+and ARM64 hash40e7b28b63aaf737cb3a1edc3a9bbc9a9f4ad3dcb7152e8c1130e4050eddcb7d.
+Admit only that additional exact wheel hash and a permanent two-hash regression.
+No package version change, source build, hash bypass, unpinned dependency or laptop
+installation. Hosted pip must independently hash the actual downloaded bytes on
+the next run. [PyPI release metadata](https://pypi.org/pypi/psycopg2-binary/2.9.12/json)
+is the hash source; the failing job's observed digest independently matches it.

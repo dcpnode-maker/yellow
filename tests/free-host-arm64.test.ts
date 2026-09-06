@@ -1,6 +1,16 @@
 import { describe, expect, test } from "bun:test";
 
 describe("Order442 free-host native ARM64 preparation", () => {
+  test("pins exactly the existing CPython312 x86_64 and ARM64 referee wheels", async () => {
+    const requirements = await Bun.file(new URL("../requirements-ci.txt", import.meta.url)).text();
+    const tokens = requirements.replace(/\\\r?\n/g, " ").trim().split(/\s+/);
+    expect(tokens).toEqual([
+      "psycopg2-binary==2.9.12",
+      "--hash=sha256:9fe06d93e72f1c048e731a2e3e7854a5bfaa58fc736068df90b352cefe66f03f",
+      "--hash=sha256:40e7b28b63aaf737cb3a1edc3a9bbc9a9f4ad3dcb7152e8c1130e4050eddcb7d",
+    ]);
+  });
+
   test("requires real ARM execution and both existing image targets", async () => {
     const workflow = await Bun.file(new URL("../.github/workflows/ci.yml", import.meta.url)).text();
     const job = workflow.replace(/\r\n/g, "\n").split("\n  free-host-arm64:\n")[1];

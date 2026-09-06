@@ -69,8 +69,11 @@ of source/history/working changes and the new synthetic review database plus
 private configuration. Archive listing passed; it has **not been uploaded** and
 does not claim a restore drill. Free staging recommendation is OCI Always Free
 2OCPU/12GB, subject to account/capacity and an ARM64 build (current images are
-amd64). Q202 adds a native ARM64 CI job using the existing launcher/referee/login;
-its workflow/unit checks pass, but the ARM64 execution is not yet proven. No cloud
+amd64). Q202 adds a native ARM64 CI job using the existing launcher/referee/login.
+Its first run atc1dfaacc (CI34009685141) rejected a Python wheel because the existing
+lock allowed only its Intel hash. The exact publisher ARM64 hash is now added for
+the same package version; independent focused8/8(93) passes. The repaired hosted
+ARM64 execution is not yet proven. No cloud
 deployment or spending occurred. Full limits and the unchanged
 7.86GiB WSL dump evidence are in[RECOVERY](RECOVERY.md).
 
@@ -106,7 +109,9 @@ not a canonical migration or activated worker. Independent private-foundation re
 also passed the canonical referee11/11 and reproducible draft-schema comparison.
 Q201 promotes the exact draft through the canonical runner and Tx commands and
 passes the Linux integration proof above. Provider authentication, verified-session
-HTTP/worker activation and live sandbox evidence remain unfinished. The earlier
+HTTP/worker activation and live sandbox evidence remain unfinished. Q203 work is
+in progress on both authenticated request/retry endpoints with an empty production
+adapter directory and no new role grants; that source is not yet accepted. The earlier
 private-only figures above are historical Q199 evidence.
 
 **Order440 hotel journeys** preserves cross-department guest/staff research,

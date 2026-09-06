@@ -10,6 +10,11 @@ merged through PR83 as443e3826b47025106d1829fcbb406ce6302fbbba.
 
 ## Outcome
 
+[Question203](../questions/203-fiscal-submission-http-integration.md) admits both
+authenticated request/retry HTTP persistence paths after Q201 exact Linux CI.
+They remain unavailable by default: no role grant or adapter is activated.
+Independent real-database signed-session proof remains required before acceptance.
+
 [Question201](../questions/201-canonical-fiscal-submission-integration.md) admits
 canonical78, release/catalogue/CI proof and transaction-safe request/retry commands
 after Q199's independent execution. It does not activate a provider or refresh the
