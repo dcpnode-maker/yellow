@@ -16,10 +16,30 @@ export interface ProjectRecordedWorkSnapshot {
     | 126 | 127 | 148 | 154 | 155 | 156 | 160 | 161 | 162 | 163 | 164
     | 165 | 166 | 168 | 169 | 170 | 171 | 173 | 174 | 175 | 176 | 177 | 178
     | 179 | 180 | 181 | 182 | 183 | 184 | 185 | 186 | 188 | 189
-    | 190 | 191 | 192 | 193 | 195 | 199 | 236 | 310 | 396 | 429 | 434 | 438;
+    | 190 | 191 | 192 | 193 | 195 | 199 | 236 | 310 | 396 | 429 | 434 | 438 | 440;
   readonly state: ProjectRecordedWorkState;
   readonly summary: string;
   readonly remaining?: string;
+}
+
+export interface ProjectBuildSnapshot {
+  readonly schemaVersion: number;
+  readonly recordedAt: string;
+  readonly label: string;
+  readonly roadmap: Readonly<{
+    readonly phaseCount: number;
+    readonly latestBuiltOrder: number;
+    readonly currentOrder: number;
+    readonly activePhase: number;
+  }>;
+  readonly review: Readonly<{
+    readonly independentlyReviewedThroughOrder: number;
+    readonly gate3Debt: number;
+    readonly state: "reviewed" | "built_unverified";
+  }>;
+  readonly referee: Readonly<{ readonly requiredPasses: number; readonly requiredFailures: number }>;
+  readonly recordedWork: readonly ProjectRecordedWorkSnapshot[];
+  readonly phases: readonly ProjectPhaseSnapshot[];
 }
 
 export interface OperatorRuntimeStatus {
@@ -46,13 +66,13 @@ export const DEFAULT_OPERATOR_RUNTIME_STATUS: OperatorRuntimeStatus = Object.fre
   processStartedAt: new Date(0).toISOString(),
 });
 
-export const PROJECT_BUILD_SNAPSHOT = Object.freeze({
+export const PROJECT_BUILD_SNAPSHOT: ProjectBuildSnapshot = Object.freeze({
   schemaVersion: 2,
-  recordedAt: "2026-09-05",
-  label: "Consolidated operational baseline",
+  recordedAt: "2026-09-06",
+  label: "Durable fiscal submission integration in progress",
   roadmap: Object.freeze({
     phaseCount: 18,
-    latestBuiltOrder: 438,
+    latestBuiltOrder: 439,
     currentOrder: 440,
     activePhase: 7,
   }),
@@ -320,16 +340,22 @@ export const PROJECT_BUILD_SNAPSHOT = Object.freeze({
       remaining: "Approval returns frozen false readiness only; document origin, numbering, series, provider submission, and Phase-7 completion remain separate.",
     }),
     Object.freeze({
+      order: 434,
+      state: "independently_approved" as const,
+      summary: "Order 434 independently accepted native fiscal issuance at exact source 92346674c784b552356934e168d60e4b9650497a; PR83 CI33993977811 passed native116/116, migrations41/41, compatibility89/89, catalogue23/23, exact schema and referee11/11, and merged source is 443e3826b47025106d1829fcbb406ce6302fbbba with 77 migrations and 127 public tables.",
+      remaining: "Acceptance is unreleased native proof: provider submission, durable attempt/receipt integration, authenticated provider normalization, runtime activation and Phase-7 completion remain separate.",
+    }),
+    Object.freeze({
       order: 438,
       state: "independently_approved" as const,
       summary: "Orders 438/439 independently approved the consolidated operational baseline at bb3b8f9. All five CI jobs passed, including real database invariants and the full local launcher; migration 75 contains the unapproved legacy native-fiscal issue capability.",
-      remaining: "PR82 records operational source integration. The subsequent Order 434 receipt records native fiscal source approval. Each local/cloud runtime needs its own serving-revision receipt; Phase 7 is not complete.",
+      remaining: "This baseline remains historical source and operational evidence. Its local and cloud serving revisions are separate receipts; no runtime refresh or cloud deployment is claimed, and Phase 7 is not complete.",
     }),
     Object.freeze({
-      order: 434,
-      state: "independently_approved" as const,
-      summary: "Order 434 passed independent whole-candidate Tier-3 review and all five CI178 jobs at 92346674. PR83 merged it as main443e3826 with 77 migrations and 127 public tables. Post-merge CI179 passed, including catalogue 23/23, exact schema and referee 11/11; immutable image publication also succeeded.",
-      remaining: "IRP provider activation and operator invoice UI remain separate. Order 440 supplies hotel journeys and a fictional design study; it does not release future departments. Each local/cloud runtime still needs its exact serving-revision receipt. No cloud host is connected; Phase 7 is not complete.",
+      order: 440,
+      state: "proof_in_progress" as const,
+      summary: "Order 440 is the current Phase-7 work: provider-neutral durable fiscal submission and reconciliation after accepted native issuance; the separately descriptive Order 440 hotel journeys and fictional design study are merged as design input with a fictional in-memory prototype only. The separate Order 441 Astra Ultra RMS paper is documented research only, with no algorithm runtime or measured uplift.",
+      remaining: "Private fiscal reducer and issued-wire projection are independently verified; durable persistence, claim/reconciliation worker, canonical issued payload assembly and authenticated provider normalization remain unfinished. IRP provider activation and operator invoice UI remain separate; new-department release, local refresh, cloud deployment and live sandbox evidence remain outstanding; the hotel prototype is not production and Phase 7 is not complete.",
     }),
   ] satisfies readonly ProjectRecordedWorkSnapshot[]),
   phases: Object.freeze([

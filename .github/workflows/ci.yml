@@ -418,6 +418,19 @@ jobs:
               --command "DROP DATABASE IF EXISTS ${native_clone} WITH (FORCE)"
           done
 
+          # Required Order440 proof uses the same pristine migrated template,
+          # never a tenant fixture left behind by the preceding native suites.
+          wire_database="yellow_order440_ci"
+          native_clones+=("$wire_database")
+          docker compose exec -T postgres psql --username yellow_deploy --dbname postgres --set ON_ERROR_STOP=1 \
+            --command "CREATE DATABASE ${wire_database} TEMPLATE ${native_template}"
+          YELLOW_ORDER440_DEPLOY_DATABASE_URL="postgres://yellow_deploy:${YELLOW_DEPLOY_DATABASE_PASSWORD}@${POSTGRES_ADDRESS}/${wire_database}" \
+          YELLOW_ORDER440_RUNTIME_DATABASE_URL="postgres://yellow_runtime:${YELLOW_RUNTIME_DATABASE_PASSWORD}@${POSTGRES_ADDRESS}/${wire_database}" \
+          YELLOW_REQUIRE_ORDER440_DATABASE=1 \
+            bun test tests/india-irp-issued-wire-candidate.integration.test.ts
+          docker compose exec -T postgres psql --username yellow_deploy --dbname postgres --set ON_ERROR_STOP=1 \
+            --command "DROP DATABASE ${wire_database} WITH (FORCE)"
+
       - name: Prove native fiscal release containment on fresh and upgraded databases
         shell: bash
         run: |

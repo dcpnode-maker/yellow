@@ -5,6 +5,13 @@ files explain WHY, which matters when someone later asks "can we just change X?"
 
 ## Current research and requirements
 
+The [Astra Ultra RMS algorithm portfolio](RMS-ALGORITHMS-ASTRA-ULTRA.md),
+dated2026-09-06 under [Order441](../../handoff/orders/441-astra-ultra-rms-algorithm-research.md),
+compares known methods with three falsifiable Yellow-specific combinations. The
+founder-selected research model is GPT-6 Astra with Ultra reasoning; the production
+runtime remains a separate measured low-cost choice. No algorithm or revenue uplift
+is claimed as implemented or measured. Phase14 and11 → 13 → 17 priority are unchanged.
+
 The [Astra hotel-operations review](HOTEL-OPERATIONS-REVIEW.md), Order440,
 independently connects the full guest lifecycle to departmental work, handoffs and
 exceptions. Its [16 synthetic case studies](../design/HOTEL-CASEBOOK.md) and

@@ -1,13 +1,17 @@
 # Order 434 — Complete the first native fiscal invoice source
 
-**Status:** ACTIVE — implementation and independent native proofs complete; Tier-3 approval conditional on final exact-head CI — D1375
+**Status:** CLOSED — independently accepted; exact-candidate CI green and PR83 merged — D1377
 **Phase:** 7 · YF-008, YF-009, YF-023
 **Implementation base:** `591ace8` (includes the complete Order432 current-catalogue repair)
 
 **Latest implementation work:** [Canonical 76/77 integration on the released containment baseline](#current-integration-continuation--question195).
-The complete candidate and its derived schema are now in the development runner.
-The full migration suite passes 41/41 and independent native acceptance passes116/116;
-final corrected-candidate CI remains pending. See the D1375 receipt below.
+The complete candidate and its derived schema are now in main through PR83,
+merge443e3826b47025106d1829fcbb406ce6302fbbba. Exact candidate92346674c784b552356934e168d60e4b9650497a
+passed all five jobs in CI33993977811; independent migration41/41 and native116/116,
+catalogue23/23, exact schema and genuine referee11/11 are accepted. The reviewer
+personally checked the final logs and discharged its conditional Tier-3 approval.
+This closes the native source-to-invoice scope, not all Phase7, IRP registration,
+cloud deployment or retained local refresh. Order440 continues submission work.
 Question195 supersedes historical draft migration numbers throughout this order.
 
 **Earlier command checkpoint:**

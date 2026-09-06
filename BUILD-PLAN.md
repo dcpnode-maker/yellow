@@ -6,18 +6,21 @@ permit; no worker may silently widen an order. A phase is DONE only when its DoD
 checks pass in CI. Every session starts with the ritual below; no phase may modify
 a prior phase's public surface without a written note in `DECISIONS.log`.
 
-## Current implementation status — 2026-09-05, Codex Yellow after PR83
+## Current implementation status — 2026-09-06, consolidated Codex Yellow work
 
 [PROJECT-STATUS](docs/PROJECT-STATUS.md) is the canonical current-state record.
-Orders438/439 form the Codex-owned Phase-7 consolidated operational baseline through
-PR82. Both have independent acceptance at bb3b8f9 and all five required CI jobs passed,
-including real database invariants and the complete local launcher. Main integration,
-image publication and each deployed runtime retain separate receipts. PR82 has now
-merged as main5879e2b7; its five main CI jobs and image publication succeeded.
-Order434 subsequently passed independent whole-candidate review and all five CI178
-jobs at92346674, then merged through PR83 as main443e3826. Main has77 migrations
-and127 public tables. Question195 preserves the0076/0077 numbering after immutable
-containment0075. The current follow-up is Order440 hotel journeys and design review.
+Orders438/439 form the operational baseline through PR82. Order434's independently
+accepted candidate92346674c784b552356934e168d60e4b9650497a passed all five PR83 CI
+jobs and merged as443e3826. Reviewed PR84 then added hotel journeys, schema clarity
+and UI/UX research at main7829eae47d4281efa117c8d3c788c3be52d10d06. Main has77
+migrations and127 public tables; Question195 preserves0076/0077 after immutable0075.
+The concurrent Order440 fiscal lane continues durable submission integration after
+private state and genuine-issued wire projection proof. The separately named
+Order440 hotel-journey study is preserved in the same project. Order441 records
+Astra Ultra RMS research, not implemented algorithms or measured uplift.
+[Question198](handoff/questions/198-concurrent-reviewed-source-integration.md)
+disambiguates concurrent identifiers and preserves both histories. Main integration,
+image publication and each deployed runtime retain separate receipts.
 Historical milestones below preserve the
 evidence available when written and do not compete with PROJECT-STATUS.
 
@@ -38,9 +41,8 @@ by independent review D1323. [Order434](handoff/orders/434-native-fiscal-source-
 implements the first native invoice without an external-invoice prerequisite, with
 persisted provenance, actual-date atomic issuance and no duplicate revenue. D1375
 records independent native116/116, migration41/41, catalogue23/23, exact schema and
-referee11/11. Consolidated Tier-3 had no unresolved finding; CI33993977811 on
-92346674 satisfied its final condition. PR83 merged the approved source. This does
-not activate an IRP provider or refresh a retained hotel runtime.
+referee11/11. D1377 closes Order434 after green PR83 CI and independent acceptance;
+the source is merged, but no retained local refresh or live IRP registration is claimed.
 The following checkpoints preserve earlier bounded evidence, not current blockers.
 Earlier bounded independent proof also verifies permanent replay after payment,
 folio and day closure, and 100 distinct invoices sharing one series: 11 passed,

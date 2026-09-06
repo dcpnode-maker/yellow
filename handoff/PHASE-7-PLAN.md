@@ -2,14 +2,19 @@
 
 **Status:** active. Orders438/439 merged the operational baseline through PR82;
 Order434's replacement native fiscal source passed independent review and exact
-CI178, then merged through PR83 as main443e3826. Orders237–429 retain their
-recorded review states; Order430's rejection remains historical evidence.
+CI178, then merged through PR83 as443e3826. PR84 hotel-journey/schema/design work is
+also preserved at reviewed main7829eae. Orders237–429 retain their recorded review
+states; Order430's rejection remains historical evidence.
 **Entry point:** approved Phase6/7 dependencies in BUILD-PLAN.md and handoff/ROADMAP.md.
-**Current task:** [Order440](orders/440-hotel-journeys-and-schema-guide.md) integrates
-hotel/staff journey research, schema clarity and a design study into this one Codex
-Yellow task. [PROJECT-STATUS](../docs/PROJECT-STATUS.md) owns current source, local and
-cloud evidence. Main includes77 migrations /127 public tables;0075 still contains
-the rejected legacy entry while0076/0077 add the reviewed native source path.
+**Current implementation:** [Order440 fiscal submission](orders/440-fiscal-submission-lifecycle.md)
+continues durable request/delivery/reconciliation after private state and genuine-issued
+wire projection proof. [Order440 hotel journeys](orders/440-hotel-journeys-and-schema-guide.md)
+preserves the merged cross-department study and outstanding reference-matched visual
+review. [Question198](questions/198-concurrent-reviewed-source-integration.md)
+disambiguates the concurrent numbering; neither workstream replaces the other.
+[PROJECT-STATUS](../docs/PROJECT-STATUS.md) owns source, local and cloud evidence.
+Main includes77 migrations /127 tables;0075 still contains the rejected legacy entry
+while0076/0077 add reviewed native source. Provider and runtime activation are separate.
 
 ## Outcome
 

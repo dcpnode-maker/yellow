@@ -3,6 +3,7 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { PROJECT_BUILD_SNAPSHOT } from "../src/project-status";
 
 const root = fileURLToPath(new URL("..", import.meta.url));
 
@@ -22,6 +23,36 @@ function parseStatus(status: string): Readonly<Record<string, string>> {
 }
 
 describe("canonical project status", () => {
+  test("records the accepted native closure and current durable-submission work", () => {
+    const originalSnapshot = JSON.stringify(PROJECT_BUILD_SNAPSHOT);
+    expect(PROJECT_BUILD_SNAPSHOT.recordedAt).toBe("2026-09-06");
+    expect(PROJECT_BUILD_SNAPSHOT.roadmap).toMatchObject({
+      phaseCount: 18,
+      latestBuiltOrder: 439,
+      currentOrder: 440,
+      activePhase: 7,
+    });
+    expect(PROJECT_BUILD_SNAPSHOT.review.independentlyReviewedThroughOrder).toBeGreaterThanOrEqual(91);
+
+    const byOrder = new Map(PROJECT_BUILD_SNAPSHOT.recordedWork.map((work) => [work.order, work]));
+    // Bun 1.3.14 nested asymmetric matching mutates actual objects. Check scalar
+    // values so this test cannot replace shared snapshot text with matcher objects.
+    expect(byOrder.get(434)?.state).toBe("independently_approved");
+    expect(byOrder.get(434)?.summary).toContain("native");
+    expect(byOrder.get(440)?.state).toBe("proof_in_progress");
+    expect(byOrder.get(440)?.summary).toContain("durable fiscal submission");
+
+    expect(PROJECT_BUILD_SNAPSHOT.phases).toHaveLength(18);
+    expect(PROJECT_BUILD_SNAPSHOT.phases.map(({ number, state }) => [number, state])).toEqual([
+      [0, "reviewed"], [1, "reviewed"], [2, "reviewed"], [3, "reviewed"],
+      [4, "built_unverified"], [5, "reviewed"], [6, "reviewed"], [7, "active"],
+      [8, "planned"], [9, "planned"], [10, "planned"], [11, "planned"],
+      [12, "planned"], [13, "planned"], [14, "planned"], [15, "planned"],
+      [16, "planned"], [17, "planned"],
+    ]);
+    expect(JSON.stringify(PROJECT_BUILD_SNAPSHOT)).toBe(originalSnapshot);
+  });
+
   test("drives the Unix report from valid metadata and real current orders", async () => {
     const status = await Bun.file(`${root}/docs/PROJECT-STATUS.md`).text();
     const fields = parseStatus(status);
