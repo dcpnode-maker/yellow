@@ -167,6 +167,20 @@ retry, longer test timeout, test skip, global process kill, product/UI change or
 laptop service restart. Real child timeout/output/exit regressions and independent
 execution are required. Linux CI must verify the shell and complete current80 gates.
 
+Exact28b0ecd CI34046418901 verifies the Linux batch fixture and owned-process
+cleanup cases, but the first isolated Chromium launch exceeds the newly introduced
+8-second per-child budget (7,777.53ms including bounded cleanup). The other23
+isolated tests pass; full quality and database gates do not run. Correct this new
+inner-budget regression inside the three admitted browser tests: each complete
+12-case journey owns one monotonic deadline,55s for the existing60s discrepancy
+test and85s for the existing90s seal/owner tests. Compute the positive remaining
+budget immediately before every spawn, fail without spawning if exhausted, and
+never reset the deadline per theme or viewport. This allows a slow initial launch
+without extending the existing total test limit; five seconds remain for fixture
+cleanup. Preserve unique profiles, all cases/assertions and owned-process cleanup.
+Add permanent budget-wiring proof in the already scoped workflow test. No product,
+provider, SQL, local service or outer-test timeout changes are admitted.
+
 Migration80 adds a narrow
 `runtime_due_india_fiscal_submissions(integer, uuid, uuid)` capability returning
 tenant_id, submission_id, provider_key, provider_extension_id and

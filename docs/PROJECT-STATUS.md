@@ -13,6 +13,25 @@ backlog. `state.sh` and `state.ps1` read the machine-readable comments above.
 
 ## Current task
 
+**Shared browser-journey deadlines — D1397.** The next exact CI34046418901
+verifies Linux batching and owned-child cleanup, but the first Chromium launch
+exceeds the newly introduced eight-second inner budget. The isolated gate is
+23 pass / 1 fail; full quality and database stages are skipped, not approved.
+The scoped repair gives each complete twelve-case journey one monotonic deadline
+inside its unchanged60s/90s outer limit. Remaining time is checked before each
+spawn; exhausted budgets fail without launching another child. No case, geometry
+assertion, unique profile or cleanup obligation is removed.
+
+Root's repaired focused browser/helper/workflow run passes15/15 (213 assertions).
+The complete standing suite passes **1,674 tests, 0 failures**, with1,264 explicit
+database/Unix skips and22,293 assertions across504 files in106.09s. Typecheck,
+177-file boundaries,23 dependency licences and diff-check pass. Independent
+workflow/helper/status/CLI proof passes23/23 with one explicit Unix-fixture skip;
+separate personal browser execution passes4/4 (120 assertions,42.74s), with all
+frozen hashes unchanged. The reviewer approves this bounded repair for publication;
+new exact-source Linux CI remains required before integration. Main79 and the
+stable local77 are unchanged; no provider is enabled.
+
 **CI process containment — D1396.** The exact bd35c8a run34044350648 fails
 four existing child-process timeouts; no current80 database gates execute. The
 same test order and almost identical preceding elapsed time on the passing run,

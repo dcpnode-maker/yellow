@@ -30,13 +30,15 @@ const dialogProduction = slice(" const dayCloseCarryKeys", " let dayCloseRequest
 const behaviorProduction = slice(" function renderDayClose(", " async function loadDayCloseWorkbench(")
   .replaceAll("await loadDayCloseWorkbench({ businessDate: dayCloseDate.value, focus: true })", "await refreshWorkbench(dayCloseDate.value)");
 
-async function chromium(html: string, width: number, theme: string) {
+async function chromium(html: string, width: number, theme: string, expiresAt: number) {
   if (!browser) throw new Error("Chrome or Edge is required for Order395 browser proof");
   const dir = await mkdtemp(resolve(tmpdir(), "yellow-395-ui-"));
   const file = resolve(dir, "proof.html");
   await writeFile(file, html.replace("THEME", theme));
   try {
-    const result = await runOwnedProofProcess([browser, "--headless=new", "--disable-gpu", "--no-sandbox", "--disable-dev-shm-usage", "--no-first-run", "--no-default-browser-check", "--allow-file-access-from-files", `--user-data-dir=${resolve(dir, "profile")}`, `--window-size=${width},900`, "--virtual-time-budget=3000", "--dump-dom", file], { timeoutMs: 8_000 });
+    const remainingMs = Math.floor(expiresAt - performance.now());
+    if (remainingMs < 1) throw new Error("browser journey deadline exhausted before launch");
+    const result = await runOwnedProofProcess([browser, "--headless=new", "--disable-gpu", "--no-sandbox", "--disable-dev-shm-usage", "--no-first-run", "--no-default-browser-check", "--allow-file-access-from-files", `--user-data-dir=${resolve(dir, "profile")}`, `--window-size=${width},900`, "--virtual-time-budget=3000", "--dump-dom", file], { timeoutMs: remainingMs });
     const output = result.stdout;
     expect(result.exitCode).toBe(0);
     const encoded = output.match(/<pre id="proof">([^<]+)<\/pre>/)?.[1];
@@ -73,9 +75,11 @@ $("#proof").textContent=JSON.stringify(out);
 </script></body></html>`;
 
 test("Order395 executes carry workflow, retry safety, stale suppression, focus and all approved appearances in a browser", async () => {
+  // All twelve launches share this budget, leaving five seconds for final cleanup.
+  const expiresAt = performance.now() + 55_000;
   for (const theme of ["apple", "android", "win95", "glass", "neo", "erp"]) {
     for (const width of [390, 1280]) {
-      const proof = await chromium(fixture, width, theme);
+      const proof = await chromium(fixture, width, theme, expiresAt);
       expect(proof).toMatchObject({ dialogOpen: true, requestFocus: true, cancelled: true, failureFocus: true, requestRetrySame: true, requestSuccessClears: true, staleSuppressed: true, actions: ["approve", "reject", "carry"], actionRetrySame: true, actionFailureFocus: true, theme, overflow: true });
       expect(proof.dialogDisplay).not.toBe("none");
       if (theme === "android") expect(Number(proof.actionMinHeight)).toBeGreaterThanOrEqual(48);

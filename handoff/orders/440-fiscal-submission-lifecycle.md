@@ -10,6 +10,16 @@ merged through PR83 as443e3826b47025106d1829fcbb406ce6302fbbba.
 
 ## Outcome
 
+Q204's latest harness checkpoint is D1397. Actual CI34046418901 proves the Linux
+batch fixture and owned-child cleanup, but fails the first browser at the new8s
+inner budget; later quality/database gates are skipped. The admitted correction
+shares one55s/85s monotonic budget across all twelve cases inside unchanged60s/90s
+test limits. Root's genuine browser/helper/workflow15/15 (213 assertions), complete
+standing1,674/0 with1,264 explicit skips (22,293 assertions), types/boundaries/
+licences pass. Independent frozen-delta focused23/23 plus one Unix skip and actual
+browser4/4 (120 assertions) approve publication. Fresh full CI remains required;
+this changes no production code, SQL, provider or retained local app.
+
 [Question205](../questions/205-fiscal-immutable-command-replay.md) supersedes the
 earlier integration approval: original request/retry keys incorrectly returned a
 later head. Forward79 and canonical HTTP body repair now pass independently executed

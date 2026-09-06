@@ -1,5 +1,27 @@
 import { expect, test } from "bun:test";
 
+test("browser proofs share one journey deadline inside their original outer limits", async () => {
+  for (const [file, budget, outer] of [
+    ["operator-business-day-discrepancy-carry-browser.integration.test.ts", "55_000", "60_000"],
+    ["operator-business-day-seal-browser.integration.test.ts", "85_000", "90_000"],
+    ["operator-owner-trust-workbench-browser.integration.test.ts", "85_000", "90_000"],
+  ] as const) {
+    const source = await Bun.file(new URL(`./${file}`, import.meta.url)).text();
+    const deadline = `const expiresAt = performance.now() + ${budget};`;
+    expect(source.split(deadline).length).toBe(2);
+    const journey = source.slice(source.indexOf(deadline));
+    expect(journey.indexOf(deadline)).toBeLessThan(journey.indexOf("for (const theme"));
+    expect(journey).toContain(`}, ${outer});`);
+    expect(journey).toMatch(/await chromium\([^\n]+, expiresAt\)/);
+    const browser = source.slice(source.indexOf("async function chromium"), source.indexOf("const result = await runOwnedProofProcess"));
+    expect(browser).toContain("expiresAt: number");
+    expect(browser).toContain("const remainingMs = Math.floor(expiresAt - performance.now());");
+    expect(browser).toContain('if (remainingMs < 1) throw new Error("browser journey deadline exhausted before launch");');
+    expect(source).toContain("{ timeoutMs: remainingMs }");
+    expect(source).not.toContain("timeoutMs: 8_000");
+  }
+});
+
 test("quality preserves the full suite and independently exercises owned subprocess boundaries", async () => {
   const workflow = await Bun.file(new URL("../.github/workflows/ci.yml", import.meta.url)).text();
   const quality = workflow.slice(workflow.indexOf("  quality:"), workflow.indexOf("  container-smoke:"));

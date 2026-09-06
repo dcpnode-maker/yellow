@@ -8,10 +8,14 @@ a prior phase's public surface without a written note in `DECISIONS.log`.
 
 ## Current implementation status — 2026-09-06, consolidated Codex Yellow work
 
-Q204's latest CI harness repair is documented atD1396: bounded owned subprocesses,
-isolated browser profiles and batched historical state scans pass the complete
-local standing suite1,673/0 with1,264 explicit DB/Unix skips. Independent focused
-execution also passes; unchanged Linux/current80 integration gates remain mandatory.
+Q204's latest CI harness repair is documented atD1397: actual Linux CI verifies
+batched scans and owned-child cleanup but exposes an overly tight new eight-second
+browser budget. The repair shares one monotonic deadline across each complete
+journey, preserving its original60s/90s outer limit and every assertion. Root's
+complete local suite passes1,674/0 with1,264 explicit DB/Unix skips; focused real
+browser/helper/workflow proof passes15/15. Independent browser4/4 and focused23/23
+proof approves this bounded repair for publication. Fresh complete Linux/current80
+integration gates remain mandatory; earlier CI failures are retained.
 No Phase7 completion, provider activation or retained-local replacement is claimed.
 
 Latest: Q205 repairs late-replay drift without changing applied1–78 or financial

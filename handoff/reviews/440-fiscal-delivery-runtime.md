@@ -617,3 +617,96 @@ must still pass on Linux; mandatory current80 database/readiness/fiscal/referee 
 also remains required before independent integration. Reviewer did not run browsers
 during the coordinator's full suite, alter product/tests, touch databases/services,
 dispatch/rerun CI or merge. Review evidence now freezes pending publication.
+
+## Exact28b0ecd Linux isolation result — first browser budget failure
+
+Reviewer personally inspected automatic CI34046418901 at published
+28b0ecd56b3f4a2870f40859e0d276b58fab31de over main22f1bed. quality101522158541
+failed the new isolated subprocess step; windows-state/local-review passed and
+full quality, database, ARM64 and container gates were skipped. No retry/dispatch
+or merge occurred. One GitHub log-download connection timeout was retried only as
+a read, not as a workflow execution.
+
+Exact failed-step log:23 pass,1 fail,189 assertions,27.33s. The FIRST test file,
+Order395 discrepancy-carry browser, fails after7777.53ms with
+OwnedProofProcessDeadlineError, empty stdout and bounded Chrome stderr containing
+DBus address/NameHasOwner warnings. The new8s total allowance reserves250ms,
+leaving approximately7.75s execution. This is not an outer90s test timeout or
+CleanupError: helper cleanup completed. No earlier file in this isolated Bun
+process could contaminate global state. Cold-launch overhead is a hypothesis,
+not a demonstrated DBus or runner diagnosis; the warnings alone are not a cause.
+
+Actual Linux positives in the same step are now personally inspected: valid state
+664.63ms, invalid metadata57.48ms, exact Unix empty/marker/response/hidden/symlink/
+unusual-name0/2-scan fixture104.87ms; all7 owned-helper cases, including child
+timeout/reap755.26ms and inherited-pipe763.01ms; whole seal browser7813.96ms,
+real CLI150.16ms, whole owner-trust browser7769.86ms. Thus the batching/helper
+and those two browser obligations passed on Linux, but not the entire isolated gate.
+
+/usr/bin/time -v records14.18s user,8.57s system,83% CPU,27.34s wall,
+406752KiB maximum RSS,5879 major faults and0 swaps. These are aggregate job
+measurements, not proof of a resource limit. Unlike the earlier four-timeout
+cascade, this failure occurs immediately and returns bounded diagnostics while
+later child tests still succeed. Coordinator received these exact distinctions.
+
+**NO MERGE**: isolated-gate correction must preserve the original90s outer proof
+and all cases/geometry assertions; complete exact-source quality and every genuine
+current80 database/readiness/fiscal/referee gate remain required. No local service,
+database, source file or provider state was changed by this reviewer.
+
+## Frozen shared browser-journey budget — pre-browser independent checks
+
+Reviewer inspected the exact four-test delta and explicit Q204 amendment. Each
+complete twelve-case journey creates one monotonic deadline before either loop:
+55s discrepancy,85s seal/owner. The original outer limits are respectively60s,
+90s and90s; the preceding record's blanket90s wording was imprecise for discrepancy.
+Each helper computes floor(remaining) immediately before spawn and throws if it is
+less than1ms. No per-case reset, minimum clamp or additional retry extends the
+journey. Geometry/behavior assertions, all themes/widths, unique profiles, bounded
+output and owned cleanup are unchanged. No static blocker found in this correction.
+
+Personally executed while the coordinator's full suite ran, without browser overlap:
+
+```text
+bun test tests/fiscal-replay-workflow.test.ts tests/owned-proof-process.test.ts \
+  tests/project-status.test.ts tests/import-boundaries.test.ts
+23 pass, 1 explicit Unix-fixture skip, 0 fail, 168 assertions, 11.04s
+```
+
+The new permanent budget-wiring regression, all7 real owned-child cases, actual
+CLI and native PowerShell status checks pass. Scoped diff-check passes. Frozen hashes:
+
+- discrepancy:21220e06e41100e701677b645211d2f7c921889cd18ed491da02563e976324f6
+- seal:eb51e5c762dd1282ad917f9123bad70f03e541ff141a18710735a18fdbb0773e
+- owner:a27b5bfd76fd5dff2ce110c456988cb56f799e7e20aa2a55ddceca3dd60db079
+- workflow test:00b50c4e7e5191a3efbab2af32ac45625c79b8a093c789b4aa34401989f018a5
+
+Personal execution of all three frozen browser files is pending the coordinator's
+full-suite completion to avoid shared-host contention. No local browser, CI retry,
+database mutation, source edit or merge was started in this check. Exact-source
+Linux isolated/full quality and all current80 database gates remain mandatory.
+
+## Shared journey budget — personal browser execution and bounded approval
+
+After the coordinator confirmed its standing suite had terminated, reviewer
+personally ran all three frozen browser files without concurrent standing/browser
+work. Command:
+
+```text
+bun test tests/operator-business-day-discrepancy-carry-browser.integration.test.ts \
+  tests/operator-business-day-seal-browser.integration.test.ts \
+  tests/operator-owner-trust-workbench-browser.integration.test.ts
+4 pass, 0 fail, 120 assertions, 42.74s
+```
+
+Actual complete discrepancy journey13.13s, seal14.04s, owner15.41s plus its pure
+route assertion pass. Each journey executes all six themes and both widths with
+unchanged workflow/retry/focus/containment assertions. The three full SHA256 hashes
+in the preceding section were personally checked before and after and are unchanged.
+
+This exact bounded journey-budget correction is independently accepted for
+development publication. The reviewer implemented none of it. This approval does
+not prove the original Linux timeout's cause or substitute Windows execution for
+new Linux isolated/full quality and current80 fiscal/database/readiness/referee CI.
+No retry/dispatch/merge, service restart, database mutation or production source
+edit occurred. Only this admitted review evidence was appended.
