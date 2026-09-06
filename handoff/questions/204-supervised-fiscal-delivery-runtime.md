@@ -127,6 +127,20 @@ states, exact whole-object equality and tenant/access/privacy checks. No product
 state or permission change is needed; the later skipped database gates must execute
 in new exact-source CI.
 
+The next exact-head CI34043585965 passes founder status but stops at two older
+runtime-authority expectations of fourteen runtime capabilities. The already scoped
+runtime-database-authority.integration.test.ts must require all fifteen exact
+signatures, preserve the fourteen existing search-path-only configurations, and
+require the new discovery function's exact UTC/ISO configuration and five-field
+result shape. Add its direct app-role denial and invalid-limit/paired-cursor probes
+without weakening universal PUBLIC/app denials or runtime ownership/grants.
+Independent read-only catalogue evidence from the existing80 proof database fixes
+the exact DateStyle=ISO,YMD spelling. No production SQL, role or permission change.
+The adjacent already-scoped database-acceptance test likewise must enumerate this
+fifth fiscal capability and the exact valid/ready tenant-leading partial cursor
+index. Existing historical named-subset runtime-DML tests are not global counts
+and remain unchanged. Schema/permissions/RLS totals are unchanged by migration80.
+
 Migration80 adds a narrow
 `runtime_due_india_fiscal_submissions(integer, uuid, uuid)` capability returning
 tenant_id, submission_id, provider_key, provider_extension_id and

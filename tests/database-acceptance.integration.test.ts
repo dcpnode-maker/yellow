@@ -489,7 +489,8 @@ databaseDescribe("fresh deployment database acceptance", () => {
   });
 
   test("has exact durable fiscal head, protected history and capability authority", async () => {
-    const head = await sql!<Array<{ columns: string; protected_trigger: boolean; document_provider_index: boolean }>>`
+    const head = await sql!<Array<{ columns: string; protected_trigger: boolean;
+      document_provider_index: boolean; delivery_cursor_definition: string }>>`
       SELECT
         (SELECT string_agg(column_name||':'||data_type||':'||is_nullable,',' ORDER BY ordinal_position)
            FROM information_schema.columns
@@ -511,7 +512,13 @@ databaseDescribe("fresh deployment database acceptance", () => {
           WHERE index.indrelid='public.fiscal_submission'::regclass
             AND index_class.relname='fiscal_submission_document_provider_uq'
             AND index.indisunique AND pg_catalog.pg_get_expr(index.indpred,index.indrelid)='(delivery_version = 1)'
-        ) AS "document_provider_index"
+        ) AS "document_provider_index",
+        (SELECT pg_catalog.pg_get_indexdef(index.indexrelid)
+           FROM pg_catalog.pg_index index
+           JOIN pg_catalog.pg_class index_class ON index_class.oid=index.indexrelid
+          WHERE index.indrelid='public.fiscal_submission'::regclass
+            AND index_class.relname='fiscal_submission_delivery_cursor'
+            AND index.indisvalid AND index.indisready) AS "delivery_cursor_definition"
     `;
     expect(head).toEqual([{
       columns: [
@@ -526,6 +533,7 @@ databaseDescribe("fresh deployment database acceptance", () => {
       ].join(","),
       protected_trigger: true,
       document_provider_index: true,
+      delivery_cursor_definition: "CREATE INDEX fiscal_submission_delivery_cursor ON public.fiscal_submission USING btree (tenant_id, id) WHERE ((delivery_version = 1) AND (status = ANY (ARRAY['pending'::text, 'submitted'::text])))",
     }]);
 
     const history = await sql!<Array<{
@@ -588,7 +596,8 @@ databaseDescribe("fresh deployment database acceptance", () => {
         ('request_india_fiscal_submission(uuid,uuid,uuid,uuid,uuid,text,uuid)'),
         ('retry_india_fiscal_submission(uuid,uuid,uuid,text,uuid)'),
         ('claim_india_fiscal_submission(uuid,uuid,integer)'),
-        ('reconcile_india_fiscal_submission(uuid,uuid,uuid,uuid,jsonb)')
+        ('reconcile_india_fiscal_submission(uuid,uuid,uuid,uuid,jsonb)'),
+        ('runtime_due_india_fiscal_submissions(integer,uuid,uuid)')
       )
       SELECT expected.name,pg_catalog.pg_get_userbyid(procedure.proowner) AS owner,
              procedure.prosecdef AS "securityDefiner",procedure.proconfig AS config,
@@ -613,6 +622,9 @@ databaseDescribe("fresh deployment database acceptance", () => {
       { name: "retry_india_fiscal_submission(uuid,uuid,uuid,text,uuid)", owner: "yellow_owner",
         securityDefiner: true, config: ["search_path=pg_catalog, public, pg_temp", "TimeZone=UTC", "DateStyle=ISO,YMD"],
         appExecute: true, runtimeExecute: false, publicExecute: false },
+      { name: "runtime_due_india_fiscal_submissions(integer,uuid,uuid)", owner: "yellow_owner",
+        securityDefiner: true, config: ["search_path=pg_catalog, public, pg_temp", "TimeZone=UTC", "DateStyle=ISO,YMD"],
+        appExecute: false, runtimeExecute: true, publicExecute: false },
     ]);
 
     const helpers = await sql!<Array<{ count: number; ownerOnly: boolean }>>`

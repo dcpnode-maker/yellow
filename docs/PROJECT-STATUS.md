@@ -13,6 +13,14 @@ backlog. `state.sh` and `state.ps1` read the machine-readable comments above.
 
 ## Current task
 
+**Catalogue correction — D1395.** PR88's next exact head efa71b8 passes actual
+founder status and five CI34043585965 jobs, but an older runtime-authority test still
+expects fourteen capabilities instead of fifteen. The correction preserves all old
+signatures, configurations and ACL checks, and explicitly verifies the new discovery
+function, its bounds, return shape and cursor index. Focused tests and types pass;
+35 database cases are honestly skipped locally. Fresh complete CI must execute the
+later fiscal/Linux gates; neither failed run is integration approval.
+
 **CI correction — D1394.** Q204 is published as PR88 at a4a1346. Five jobs in
 CI34043209976 and normal CodeQL pass. The database job stops on an older exact
 six-worker status assertion; the seventh fiscal worker correctly reports disabled.

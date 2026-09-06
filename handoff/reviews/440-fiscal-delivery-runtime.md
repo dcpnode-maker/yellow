@@ -378,3 +378,47 @@ SKIPPED downstream. They are not green evidence at this head. PR88 remains
 MERGEABLE/UNSTABLE with unchanged head/base; **NO MERGE** until a corrected published
 source passes every required gate and final independent review. No database action,
 stable-local promotion, provider call, admin bypass or branch deletion occurred.
+
+## PR88 corrected status oracle — next exact-source catalogue blocker
+
+Reviewer independently inspected a4a1346..efa71b830c3d56f553d33558027e9cda22a7fcae.
+The admitted founder-status test correction changes only its response type and
+seventh exact expected disabled worker field. Six existing states, whole-object
+equality and privacy/access assertions are intact; diff-check passes. Frozen
+provider/worker/delivery/SQL80/schema hashes still match personal acceptance.
+
+Personally ran bun test with founder-status.integration.test.ts,
+server-fiscal-runtime.test.ts and build-readiness.test.ts:12 pass,5 explicit
+database/Linux skips,0 fail,165 assertions,498ms. This local check does not claim
+execution of the corrected database assertion.
+
+Automatic exact-head CI34043585965 then genuinely executed both founder-status
+P1 and P2 successfully on Linux. The next failure is database job101514797757,
+Phase3 runtime-database-authority.integration.test.ts:356 and465: expected14
+runtime_% functions, received15. Output8 pass,2 fail,49 assertions,241ms. The new
+discovery function is the legitimate fifteenth capability. Reviewer inspected the
+surrounding exact signature list and configuration predicate, not just the counts:
+the list also lacks runtime_due_india_fiscal_submissions(integer,uuid,uuid), and
+the universal one-setting config expectation must distinguish that exact new
+function's fixed search_path,TimeZone=UTC,DateStyle=ISO,YMD from the fourteen
+unchanged older configs. Universal owner/runtime-grant/PUBLIC-app denial checks
+must remain strict. Coordinator received this full diagnosis before repair.
+
+Five jobs and normal CodeQL passed; database failed. All downstream migration,
+Q204 delivery/Linux-process, readiness/compatibility/deployment and database-job
+referee gates were skipped again. No blind retry, dispatch, source edit or merge
+was performed. **NO MERGE** remains until admitted narrow catalogue corrections
+and new exact-source execution discharge every required gate.
+
+Supplemental personal read-only query on retained q204_review_90605 used pg_proc
+for the exact discovery regprocedure, selecting proconfig and
+pg_get_function_result. PostgreSQL returns exactly:
+
+```text
+config = ["search_path=pg_catalog, public, pg_temp","TimeZone=UTC","DateStyle=ISO,YMD"]
+result = TABLE(tenant_id uuid, submission_id uuid, provider_key text, provider_extension_id uuid, provider_extension_version integer)
+```
+
+In particular DateStyle has no space after its comma. One protected deploy
+connection was opened read-only in usage and closed; no suite, mutation, role action
+or clone was performed. This confirms the exact catalogue oracle for the repair.
