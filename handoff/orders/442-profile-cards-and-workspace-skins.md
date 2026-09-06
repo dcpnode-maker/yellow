@@ -86,6 +86,16 @@ missing screenshot/comparison evidence. Existing Order440 images are historical.
 Code approval does not discharge that gate. The author must not self-merge, and
 this UI candidate must not be labelled released until the remaining proof passes.
 
+The first published candidate `9337c560` in [PR86](https://github.com/dcpnode-maker/yellow/pull/86)
+failed three standing final-forced-colours checks in
+[CI34003844519](https://github.com/dcpnode-maker/yellow/actions/runs/34003844519).
+Local review and Windows state passed; database and container jobs were skipped.
+The repair moves the existing consolidated management/pickup/HK guard into the
+last forced-colours block alongside the new skin rules, preserving every guard
+declaration and all existing test expectations. The targeted four suites pass
+19/19 with259 assertions; type checking also passes. This is repair evidence,
+not a substitute for fresh exact-source CI or the blocked rendered review.
+
 ## Handoff to the already authorized laptop Codex session
 
 The founder explicitly requested this handoff. It is prepared in this same branch

@@ -126,3 +126,51 @@ P0/P1/P2 finding and retain actual matched captures before visual acceptance.
 Fresh candidate CI/referee and independent integration are still required. This
 review authorizes no merge, release or deployment. The reviewer changed only this
 review file; no product edit, commit or publication was made.
+
+## CI repair follow-up — final forced-colours guard
+
+Date: 2026-09-06. Same independent non-implementing reviewer. Published candidate:
+`9337c560cfb8d5e19afee89e28e4951cf2951b74`, PR86. This scoped follow-up reviews the
+one-line removal/one-line insertion in `src/http/operator/operator.css`; no test,
+JavaScript, HTML or domain bytes changed from that published candidate.
+
+The reviewer independently fetched [CI188 / run 34003844519](https://github.com/dcpnode-maker/yellow/actions/runs/34003844519):
+it remains **failure** at that exact source. Quality failed at its Test step;
+local-review and windows-state succeeded; database and container-smoke were
+skipped. The reported three standing failures concern Orders 217/220/228 reading
+the final forced-colours block. The reviewer reproduced their missing selector
+conditions directly against `git show 9337c560:src/http/operator/operator.css`.
+This failed CI run is preserved; the local repair is not substituted for fresh CI.
+
+The repair moves the preexisting consolidated management, pickup and housekeeping
+guard into the final `@media (forced-colors: active)` block after the skin rules.
+An independent byte comparison confirmed that all three selector/declaration rules
+inside that guard are identical, appear exactly once, and retain their media
+condition. Removing the moved body from the new CSS and the old wrapped block
+from the published CSS leaves identical bytes. No other CSS change is present.
+Canvas/CanvasText, ButtonFace/ButtonText, focus Highlight, removal of shadows/blur
+and `forced-color-adjust: auto` declarations are preserved. The new skin controls'
+forced-colours rules remain in the same final block. This is source/cascade
+inspection, not proof of rendered contrast or higher-specificity interactions.
+
+Reviewer personally executed:
+
+```text
+BUN test tests/operator-housekeeping-task-detail-ui.integration.test.ts tests/operator-housekeeping-task-detail-governed-actions-ui.integration.test.ts tests/operator-reservation-pickup-task-dispatch-ui.integration.test.ts tests/operator-workspace-skins.test.ts
+19 pass; 0 fail; 259 assertions; 4 files.
+git diff --check
+Exit 0.
+```
+
+`BUN` denotes the same absolute Bun 1.3.14 executable documented above. Tests were
+unchanged. The repaired CSS SHA-256 is
+`ecfd97a8fed9179d9e792caeabec81dfa49e4e8d2d528d3a2eaf89bc7def1339`;
+the published CSS hash remains the earlier
+`7e1fbd362918838b81f3792192c115f94f96f242dd62fd683af4b9bf50f1a569`.
+This new CSS hash supersedes only that row of the preceding candidate manifest.
+
+**No material finding in this bounded repair; merge/release still WITHHELD.**
+The repaired source needs a new exact-source CI run including all five jobs and
+the 11/11 referee. The existing blocked visual/browser/laptop gate is unchanged.
+No browser or rendering workaround was attempted. The reviewer appended only this
+receipt and made no product edit, commit, publication or merge.
