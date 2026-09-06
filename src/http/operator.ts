@@ -214,6 +214,8 @@ import {
 import {
   FiscalSubmissionAdapterAvailabilityService,
   FiscalSubmissionService,
+  FiscalSubmissionReceiptReadService,
+  snapshotFiscalSubmissionDeliveryReceipt,
   snapshotFiscalSubmissionReceipt,
   type FiscalSubmissionReceipt,
 } from "../contexts/tax-fiscal";
@@ -302,6 +304,7 @@ const HOUSEKEEPING_DISCREPANCY_READ_SCOPE = "housekeeping.discrepancies:read";
 const HOUSEKEEPING_DISCREPANCY_REPORT_SCOPE = "housekeeping.discrepancies:report";
 const FISCAL_SUBMISSION_REQUEST_SCOPE = "tax-fiscal.submissions:request";
 const FISCAL_SUBMISSION_RETRY_SCOPE = "tax-fiscal.submissions:retry";
+const FISCAL_SUBMISSION_READ_SCOPE = "tax-fiscal.submissions:read";
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 const ISO_INSTANT = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2})(?:\.(\d{1,3}))?)?(Z|([+-])(\d{2}):(\d{2}))$/;
 const LOCAL_DATE = /^(\d{4})-(\d{2})-(\d{2})$/;
@@ -2142,6 +2145,7 @@ type FiscalSubmissionOperations = Pick<FiscalSubmissionService, "request" | "ret
 interface FiscalSubmissionOperatorDependencies {
   readonly submissions: FiscalSubmissionOperations;
   readonly adapters: FiscalSubmissionAdapterAvailabilityService;
+  readonly receipts?: Pick<FiscalSubmissionReceiptReadService, "read">;
 }
 
 class FiscalSubmissionOperatorFailure extends Error {
@@ -2221,6 +2225,7 @@ export class OperatorHttpApi {
   readonly #ownerTrustExpenses?: Pick<OwnerTrustExpenseWorkbenchService,
     "listAccounts" | "previewExpense" | "requestApproval" | "listApprovals" | "decideApproval" | "postExpense">;
   readonly #fiscalSubmissions?: FiscalSubmissionOperatorDependencies;
+  readonly #fiscalReceiptReader: Pick<FiscalSubmissionReceiptReadService, "read">;
 
   constructor(
     login: LocalLoginService,
@@ -2319,6 +2324,7 @@ export class OperatorHttpApi {
     this.#businessDaySeal = businessDaySeal;
     this.#ownerTrustExpenses = ownerTrustExpenses;
     this.#fiscalSubmissions = fiscalSubmissions;
+    this.#fiscalReceiptReader = fiscalSubmissions?.receipts ?? new FiscalSubmissionReceiptReadService();
   }
 
   unavailable(request: Request): Response {
@@ -2578,6 +2584,35 @@ export class OperatorHttpApi {
       return apiError(request, 404, "rates/not_found", "Not found", "Referenced rate configuration was not found");
     }
     return this.unavailable(request);
+  }
+
+  async fiscalSubmissionDeliveryReceipt(
+    context: TenantRequestContext,
+    propertyNode: string,
+    submissionId: string,
+  ): Promise<Response> {
+    if (!hasScope(context, FISCAL_SUBMISSION_READ_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Fiscal receipt access is not granted");
+    }
+    if (!UUID.test(propertyNode) || !UUID.test(submissionId) || new URL(context.request.url).search !== "") {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Fiscal receipt input is invalid");
+    }
+    const grants = await listGrantedProperties(context, FISCAL_SUBMISSION_READ_SCOPE);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 403, "auth/property_forbidden", "Forbidden", "Property access is not granted");
+    }
+    const result = await this.#fiscalReceiptReader.read(context.tx, {
+      tenantId: context.tenantId, propertyNode, submissionId, actorId: context.identity.actorId,
+    });
+    if (!result.ok) throw new FiscalSubmissionOperatorFailure();
+    if (result.value === null) {
+      return apiError(context.request, 404, "fiscal/receipt_not_found", "Not found", "Fiscal receipt is not available");
+    }
+    const receipt = snapshotFiscalSubmissionDeliveryReceipt(result.value);
+    if (!receipt || receipt.tenantId !== context.tenantId || receipt.propertyNode !== propertyNode
+      || receipt.submissionId !== submissionId) throw new FiscalSubmissionOperatorFailure();
+    return apiResponse(context.request, { fiscalSubmissionReceipt: receipt as unknown as JsonValue }, 200,
+      { "cache-control": "no-store" });
   }
 
   async requestFiscalSubmission(

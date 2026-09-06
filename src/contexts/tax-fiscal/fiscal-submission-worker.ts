@@ -16,6 +16,7 @@ import {
   type FiscalSubmissionRepositoryResult,
   type ReconcileIndiaFiscalSubmissionInput,
 } from "./fiscal-submission-repository";
+import { snapshotFiscalReceiptEvidence } from "./fiscal-submission-receipt";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 const SHA256 = /^[0-9a-f]{64}$/;
@@ -288,13 +289,24 @@ function stepInput(value: unknown): FiscalSubmissionWorkerStepInput | null {
 function providerResolution(value: unknown): FiscalProviderResolution | null {
   const row = record(value);
   if (!row || row.verified !== true || typeof row.outcome !== "string") return null;
-  if (row.outcome === "accepted" || row.outcome === "rejected") {
-    if (!exact(row, ["verified", "outcome", "authorityRef", "responseSha256"])
-        || typeof row.authorityRef !== "string" || row.authorityRef.length < 1
-        || row.authorityRef.length > 256 || REFERENCE_CONTROL.test(row.authorityRef)
-        || typeof row.responseSha256 !== "string" || !SHA256.test(row.responseSha256)) return null;
-    return frozen({ verified: true, outcome: row.outcome,
-      authorityRef: row.authorityRef, responseSha256: row.responseSha256 });
+  if (row.outcome === "accepted" || row.outcome === "rejected" || row.outcome === "provider_cancelled") {
+    if (typeof row.responseSha256 !== "string" || !SHA256.test(row.responseSha256)) return null;
+    const receipt = snapshotFiscalReceiptEvidence(row.receipt, row.responseSha256);
+    if (!receipt) return null;
+    if (row.outcome === "accepted" && receipt.kind === "accepted_signed_v1"
+        && exact(row, ["verified", "outcome", "authorityRef", "responseSha256", "receipt"])
+        && row.authorityRef === receipt.irn) {
+      return frozen({ verified: true, outcome: "accepted", authorityRef: receipt.irn,
+        responseSha256: row.responseSha256, receipt });
+    }
+    if (!exact(row, ["verified", "outcome", "responseSha256", "receipt"])) return null;
+    if (row.outcome === "rejected" && receipt.kind === "rejected") {
+      return frozen({ verified: true, outcome: "rejected", responseSha256: row.responseSha256, receipt });
+    }
+    if (row.outcome === "provider_cancelled" && receipt.kind === "provider_cancelled") {
+      return frozen({ verified: true, outcome: "provider_cancelled", responseSha256: row.responseSha256, receipt });
+    }
+    return null;
   }
   if (row.outcome === "pending" || row.outcome === "timeout" || row.outcome === "duplicate"
       || row.outcome === "known_not_sent") {
@@ -316,6 +328,13 @@ function normalizedResult(
   resolution: FiscalProviderResolution,
 ): FiscalSubmissionNormalizedResult | null {
   const base = baseResult(claim);
+  if ("receipt" in resolution) {
+    if (resolution.receipt.documentSha256 !== claim.documentSha256) return null;
+    const type = claim.action === "submit" ? "transport_result" : "lookup_result";
+    return snapshotFiscalSubmissionNormalizedResult({ ...base, type, outcome: resolution.outcome,
+      responseSha256: resolution.responseSha256, receipt: resolution.receipt,
+      ...(resolution.outcome === "accepted" ? { authorityRef: resolution.authorityRef } : {}) });
+  }
   if (claim.action === "submit") {
     if (resolution.outcome === "cleared") return null;
     if (resolution.outcome === "accepted" || resolution.outcome === "rejected") {
@@ -352,6 +371,7 @@ function expectedReceipt(
     case "known_not_sent": return receipt.status === "error" && receipt.disposition === "retry";
     case "accepted": return receipt.status === "accepted" && receipt.disposition === "none";
     case "rejected": return receipt.status === "rejected" && receipt.disposition === "none";
+    case "provider_cancelled": return receipt.status === "error" && receipt.disposition === "none";
     default: return assertNever(result);
   }
 }
@@ -382,7 +402,8 @@ async function callProvider(
   const timer = setTimeout(abort, transportDeadlineMs);
   const context: FiscalProviderCallContext = frozen({ signal: controller.signal, deadlineUnixMs });
   const binding = frozen({ tenantId: claim.tenantId, providerKey: claim.providerKey,
-    attemptId: claim.attemptId, documentId: claim.documentId, payloadSha256: claim.wireSha256 });
+    attemptId: claim.attemptId, documentId: claim.documentId, payloadSha256: claim.wireSha256,
+    documentSha256: claim.documentSha256, sourceContentJson: claim.sourceContentJson });
   let original: Promise<FiscalProviderResolution>;
   try {
     if (claim.action === "submit") {

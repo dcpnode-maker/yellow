@@ -168,6 +168,25 @@ describe("Order440/Q206 private lossless fiscal JSON decoder", () => {
     expect(errorCode(plus)).toBe("resource_exhausted");
   });
 
+  test("permits only an explicit bounded UTF-8 override up to eight MiB", () => {
+    const twoMiB = 2 * 1024 * 1024;
+    const source = JSON.stringify("x".repeat(twoMiB - 2));
+    expect(new TextEncoder().encode(source)).toHaveLength(twoMiB);
+    expect(errorCode(source)).toBe("resource_exhausted");
+    const decoded = decodeFiscalExactJson(source, { maxUtf8Bytes: twoMiB });
+    expect(decoded.ok).toBe(true);
+    if (decoded.ok) expect(decoded.value).toEqual({ kind: "string", value: "x".repeat(twoMiB - 2) });
+    for (const maxUtf8Bytes of [0, -1, 1.5, Number.NaN,
+      FISCAL_EXACT_JSON_LIMITS.maxExplicitUtf8Bytes + 1]) {
+      const result = decodeFiscalExactJson("null", { maxUtf8Bytes });
+      expect(result).toEqual({ ok: false,
+        error: { code: "invalid_input", message: "fiscal JSON input is invalid" } });
+    }
+    expect(decodeFiscalExactJson("null", {
+      maxUtf8Bytes: FISCAL_EXACT_JSON_LIMITS.maxExplicitUtf8Bytes,
+    }).ok).toBe(true);
+  });
+
   test("enforces container-depth boundary minus, exact and plus", () => {
     const { maxContainerDepth } = FISCAL_EXACT_JSON_LIMITS;
     const nested = (depth: number) => `${"[".repeat(depth)}0${"]".repeat(depth)}`;

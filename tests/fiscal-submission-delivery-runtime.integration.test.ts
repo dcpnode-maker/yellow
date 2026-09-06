@@ -2,7 +2,17 @@ import { afterAll, afterEach, beforeAll, describe, expect, test } from "bun:test
 import { SQL } from "bun";
 import { Database } from "../src/kernel";
 import { Hs256TokenSigner } from "../src/contexts/identity";
-import { FiscalSubmissionDeliveryRuntime } from "../src/contexts/tax-fiscal";
+import {
+  FiscalSubmissionDeliveryRuntime,
+  FiscalSubmissionWorker,
+  VerifiedIndiaIrpAdapterRegistry,
+  type FiscalSubmissionClaim,
+  type FiscalSubmissionReceipt,
+  type FiscalSubmissionWorkerRepository,
+  type ReconcileIndiaFiscalSubmissionInput,
+} from "../src/contexts/tax-fiscal";
+import { projectIssuedIndiaIrpWireCandidate } from
+  "../src/contexts/tax-fiscal/india-irp-issued-wire-candidate";
 import {
   assertFiscalDeliveryProofTargets,
   createFiscalDeliveryRuntime,
@@ -17,6 +27,10 @@ import {
   fiscalToken,
   type FiscalSubmissionHttpBody,
 } from "./fixtures/order440-fiscal-submission-http";
+import {
+  createSignedFiscalReceiptFactory,
+  type SignedFiscalReceiptFactory,
+} from "./fixtures/order440-signed-fiscal-receipt";
 
 const deployUrl = process.env.YELLOW_ORDER440_DELIVERY_DEPLOY_DATABASE_URL;
 const runtimeUrl = process.env.YELLOW_ORDER440_DELIVERY_RUNTIME_DATABASE_URL;
@@ -26,6 +40,7 @@ if (process.env.YELLOW_REQUIRE_ORDER440_DELIVERY === "1" && (!deployUrl || !runt
 if (deployUrl && runtimeUrl) assertFiscalDeliveryProofTargets(deployUrl, runtimeUrl);
 const databaseDescribe = deployUrl && runtimeUrl ? describe.serial : describe.skip;
 const canonical78Hash = "65323a81a999a11e3d55893411c994c0b841af9b0465ca7e80630fd78d0ffae6";
+const canonical81Hash = "d2e4e34a4587f4ee12ed5c43f8fac9d4186345877bdbb75ac74217460f0e06ac";
 const dueColumns = ["tenant_id", "submission_id", "provider_key",
   "provider_extension_id", "provider_extension_version"].sort();
 
@@ -97,11 +112,90 @@ describe("Q204 proof target isolation", () => {
   }, 60_000);
 });
 
+describe("Q204 genuine signed protocol fixture", () => {
+  test("actual receipt factory crosses the provider boundary and worker normalization", async () => {
+    const tenantId = "00000000-0000-4000-8000-000000020401";
+    const propertyNode = "00000000-0000-4000-8000-000000020402";
+    const documentId = "00000000-0000-4000-8000-000000020403";
+    const submissionId = "00000000-0000-4000-8000-000000020404";
+    const attemptId = "00000000-0000-4000-8000-000000020405";
+    const providerExtensionId = "00000000-0000-4000-8000-000000020406";
+    const sourceContentJson = JSON.stringify({
+      Version: "1.1", TranDtls: { TaxSch: "GST", SupTyp: "B2B" },
+      DocDtls: { Typ: "INV", No: "Q204-PURE-1", Dt: "07/09/2044" },
+      SellerDtls: { Gstin: "29ABCDE1234F1ZW", LglNm: "Yellow Fictional",
+        Addr1: "1 Fictional Road", Loc: "Bengaluru", Pin: 560001, Stcd: "29" },
+      BuyerDtls: { Gstin: "27FGHIJ5678K1Z1", LglNm: "Fictional Buyer",
+        Addr1: "2 Fictional Road", Loc: "Mumbai", Pin: 400001, Stcd: "27", Pos: "27" },
+      ItemList: [{ SlNo: "1", IsServc: "Y", HsnCd: "996311", Qty: "1.000", Unit: "OTH",
+        UnitPrice: "100.00", TotAmt: "100.00", AssAmt: "100.00", GstRt: "5.00",
+        IgstAmt: "5.00", TotItemVal: "105.00" }],
+      ValDtls: { AssVal: "100.00", IgstVal: "5.00", TotInvVal: "105.00" },
+    });
+    const documentSha256 = sha256(new TextEncoder().encode(sourceContentJson));
+    const projected = projectIssuedIndiaIrpWireCandidate({ documentId, documentSha256,
+      contentJson: sourceContentJson });
+    expect(projected.ok).toBe(true);
+    if (!projected.ok) throw new Error("Q204 pure signed fixture source did not project");
+
+    const provider = Object.freeze({ providerKey: "india-irp", providerExtensionId,
+      providerExtensionVersion: 1 });
+    const scenario = Object.freeze({ tenantId, propertyNode,
+      actorId: "00000000-0000-4000-8000-000000020407",
+      unauthorizedActorId: "00000000-0000-4000-8000-000000020408",
+      roleId: "00000000-0000-4000-8000-000000020409", documentId, provider, submissionId });
+    const receipts = await createSignedFiscalReceiptFactory();
+    const protocol = createFiscalProtocolAdapter(scenario, receipts);
+    const claim: Extract<FiscalSubmissionClaim, { claimed: true }> = Object.freeze({
+      claimed: true, action: "submit", claimToken: "00000000-0000-4000-8000-000000020410",
+      submissionId, tenantId, propertyNode, documentId, documentSha256,
+      wireSha256: projected.value.wireSha256, wireJson: projected.value.wireJson,
+      sourceContentJson, providerKey: provider.providerKey, providerExtensionId,
+      providerExtensionVersion: 1, attemptId, attemptNumber: 1,
+    });
+    let reconciliation: ReconcileIndiaFiscalSubmissionInput | undefined;
+    const repository: FiscalSubmissionWorkerRepository = {
+      async claim() { return Object.freeze({ ok: true as const, value: claim }); },
+      async reconcile(input) {
+        reconciliation = input;
+        const value: FiscalSubmissionReceipt = Object.freeze({
+          submissionId, tenantId, propertyNode, documentId, documentSha256,
+          wireSha256: projected.value.wireSha256, providerKey: provider.providerKey,
+          providerExtensionId, providerExtensionVersion: 1, attemptId, attemptNumber: 1,
+          retryCount: 0, status: "accepted", disposition: "none", transitionSeq: 3,
+          replayed: false,
+        });
+        return Object.freeze({ ok: true as const, value });
+      },
+    };
+    const worker = new FiscalSubmissionWorker(repository,
+      new VerifiedIndiaIrpAdapterRegistry([protocol.registration]));
+    expect(await worker.runOnce({ tenantId, submissionId, ...provider,
+      leaseSeconds: 60, transportDeadlineMs: 20_000 })).toEqual({
+      ok: true, kind: "reconciled", action: "submit", submissionId, attemptId,
+      status: "accepted", disposition: "none", replayed: false,
+    });
+    expect(protocol.calls).toHaveLength(1);
+    if (!reconciliation) throw new Error("Q204 pure signed fixture did not reconcile");
+    expect(Object.keys(reconciliation.result).sort()).toEqual([
+      "attemptId", "authorityRef", "documentId", "outcome", "payloadSha256", "providerKey",
+      "receipt", "responseSha256", "tenantId", "type",
+    ].sort());
+    expect(reconciliation?.result).toMatchObject({
+      type: "transport_result", outcome: "accepted", tenantId, providerKey: "india-irp",
+      attemptId, documentId, payloadSha256: projected.value.wireSha256,
+      receipt: { kind: "accepted_signed_v1", documentSha256,
+        signedInvoice: expect.any(String), signedQRCode: expect.any(String) },
+    });
+  }, 60_000);
+});
+
 databaseDescribe("Q204 genuine fiscal delivery discovery", () => {
   let deploy: SQL;
   let runtime: SQL;
   let database: Database;
   let tokens: Hs256TokenSigner;
+  let signedReceipts: SignedFiscalReceiptFactory;
   const activeTenants = new Set<string>();
 
   async function scenario(): Promise<FiscalDeliveryScenario> {
@@ -130,6 +224,9 @@ databaseDescribe("Q204 genuine fiscal delivery discovery", () => {
   }
 
   beforeAll(async () => {
+    // Key generation and verifier construction are deliberately outside every
+    // worker transport deadline. Provider calls below only sign fixture data.
+    signedReceipts = await createSignedFiscalReceiptFactory();
     deploy = new SQL(deployUrl!, { max: 4, prepare: false, connectionTimeout: 5 });
     runtime = new SQL(runtimeUrl!, { max: 4, prepare: false, connectionTimeout: 5 });
     database = Database.connect(runtimeUrl!, { maxConnections: 4, prepare: false });
@@ -138,23 +235,24 @@ databaseDescribe("Q204 genuine fiscal delivery discovery", () => {
       SELECT current_database()::text AS name,
              (SELECT max(version)::integer FROM public.schema_migration) AS frontier`;
     if (!identity || !/^yellow_order440_q204_[a-z0-9_]+$/.test(identity.name)
-        || identity.frontier !== 80) {
-      throw new Error("Q204 delivery proof needs an isolated canonical80 database");
+        || identity.frontier !== 81) {
+      throw new Error("Q204 delivery proof needs an isolated canonical81 database");
     }
     const ledger = await deploy<{ version: number; filename: string; checksum: string }[]>`
       SELECT version::integer,filename,btrim(checksum_sha256) AS checksum
-        FROM public.schema_migration WHERE version BETWEEN 78 AND 80 ORDER BY version`;
+        FROM public.schema_migration WHERE version BETWEEN 78 AND 81 ORDER BY version`;
     const expectedFiles = [
       "0078_fiscal_submission_durability.sql",
       "0079_fiscal_immutable_command_receipts.sql",
       "0080_fiscal_submission_delivery_runtime.sql",
+      "0081_fiscal_signed_delivery_receipts.sql",
     ] as const;
     const expectedHashes = await Promise.all(expectedFiles.map(async filename =>
       sha256(new Uint8Array(await Bun.file(new URL(`../migrations/${filename}`, import.meta.url)).arrayBuffer()))));
     expect(ledger).toEqual(expectedFiles.map((filename, index) => ({
       version: index + 78,
       filename,
-      checksum: index === 0 ? canonical78Hash : expectedHashes[index]!,
+      checksum: index === 0 ? canonical78Hash : index === 3 ? canonical81Hash : expectedHashes[index]!,
     })));
     const [contents] = await deploy<{ tenants: number; submissions: number }[]>`
       SELECT (SELECT count(*)::integer FROM public.tenant) AS tenants,
@@ -265,8 +363,29 @@ databaseDescribe("Q204 genuine fiscal delivery discovery", () => {
   test("runs signed HTTP request through discovery, provider transport and durable reconciliation", async () => {
     const value = await scenario();
     const finances = await fiscalFinancialSnapshot(deploy, value.tenantId);
-    const protocol = createFiscalProtocolAdapter(value.provider);
-    const fixture = createFiscalDeliveryRuntime(runtimeUrl!, [protocol.registration], { batchSize: 1 });
+    let fixture!: ReturnType<typeof createFiscalDeliveryRuntime>;
+    const protocol = createFiscalProtocolAdapter(value, signedReceipts, {
+      async submit(_input, _context, signedAcceptance) {
+        // The one-connection pool cannot reach this callback until claim commit
+        // has returned its connection with cleared tenant and transaction state.
+        const [state] = await fixture.pool<{ role: string; tenant: string | null;
+          open_transaction: boolean }[]>`
+          SELECT current_user::text AS role,
+                 NULLIF(current_setting('app.tenant_id',true),'') AS tenant,
+                 EXISTS(SELECT 1 FROM pg_stat_activity WHERE datname=current_database()
+                   AND usename='yellow_runtime' AND state='idle in transaction') AS open_transaction`;
+        expect(state).toEqual({ role: "yellow_runtime", tenant: null, open_transaction: false });
+        const [during] = await deploy<{ status: string; history: number }[]>`
+          SELECT status,(SELECT count(*)::integer FROM public.fiscal_submission_history h
+            WHERE h.tenant_id=f.tenant_id AND h.submission_id=f.id) AS history
+          FROM public.fiscal_submission f WHERE f.tenant_id=${value.tenantId}::uuid
+            AND f.id=${value.submissionId}::uuid`;
+        expect(during).toEqual({ status: "submitted", history: 2 });
+        return signedAcceptance();
+      },
+    });
+    fixture = createFiscalDeliveryRuntime(runtimeUrl!, [protocol.registration], { batchSize: 1 },
+      { poolMax: 1 });
     try {
       expect(await fixture.runtime.drainOnce()).toMatchObject({
         discovered: 1, reconciled: 1, unavailable: 0, failures: [],
@@ -284,6 +403,15 @@ databaseDescribe("Q204 genuine fiscal delivery discovery", () => {
       expect(protocol.calls[0]?.payloadBodySha256).toBe(protocol.calls[0]?.payloadSha256);
       expect(protocol.calls[0]?.signal).toBeInstanceOf(AbortSignal);
       expect(protocol.calls[0]!.deadlineUnixMs).toBeGreaterThan(Date.now() - 20_000);
+      const [receipt] = await deploy<{ kind: string; qr_matches: boolean;
+        authority_matches: boolean }[]>`
+        SELECT response->'receipt'->>'kind' AS kind,
+               response->'receipt'->>'signedQRCode'=qr_payload AS qr_matches,
+               response->>'authorityRef'=authority_ref AS authority_matches
+          FROM public.fiscal_submission
+         WHERE tenant_id=${value.tenantId}::uuid AND id=${value.submissionId}::uuid`;
+      expect(receipt).toEqual({ kind: "accepted_signed_v1", qr_matches: true,
+        authority_matches: true });
       expect(await fiscalFinancialSnapshot(deploy, value.tenantId)).toEqual(finances);
     } finally {
       await fixture.close();
@@ -311,12 +439,10 @@ databaseDescribe("Q204 genuine fiscal delivery discovery", () => {
     const value = await scenario();
     let release!: () => void;
     const gate = new Promise<void>((resolve) => { release = resolve; });
-    const protocol = createFiscalProtocolAdapter(value.provider, {
-      async submit(input) {
+    const protocol = createFiscalProtocolAdapter(value, signedReceipts, {
+      async submit(_input, _context, signedAcceptance) {
         await gate;
-        return Object.freeze({ verified: true, outcome: "accepted",
-          authorityRef: `q204-competing-${input.attemptId}`,
-          responseSha256: "a".repeat(64) });
+        return signedAcceptance();
       },
     });
     const first = createFiscalDeliveryRuntime(runtimeUrl!, [protocol.registration], { batchSize: 1 });
@@ -347,7 +473,7 @@ databaseDescribe("Q204 genuine fiscal delivery discovery", () => {
       authorityRef: string; responseSha256: string }>) => void;
     const pendingSubmit = new Promise<Readonly<{ verified: true; outcome: "accepted";
       authorityRef: string; responseSha256: string }>>((resolve) => { settleSubmit = resolve; });
-    const protocol = createFiscalProtocolAdapter(value.provider, {
+    const protocol = createFiscalProtocolAdapter(value, signedReceipts, {
       async submit() { return pendingSubmit; },
     });
     const fixture = createFiscalDeliveryRuntime(runtimeUrl!, [protocol.registration], {
@@ -383,19 +509,27 @@ databaseDescribe("Q204 genuine fiscal delivery discovery", () => {
       expect(await runtime<DueRow[]>`SELECT * FROM public.runtime_due_india_fiscal_submissions(
         10,NULL,NULL) WHERE submission_id=${value.submissionId}::uuid`).toHaveLength(1);
 
+      // Deliberately not a candidate81 signed acceptance: this late value must be
+      // ignored after abort and can never become durable receipt evidence.
       settleSubmit({ verified: true, outcome: "accepted", authorityRef: "q204-late-ignored",
         responseSha256: "b".repeat(64) });
       await Bun.sleep(0);
       expect(await head(value)).toMatchObject({ status: "submitted", disposition: "lookup", transition_seq: 3 });
+      const [ignored] = await deploy<{ response_sha256: string | null }[]>`
+        SELECT response_sha256 FROM public.fiscal_submission
+         WHERE tenant_id=${value.tenantId}::uuid AND id=${value.submissionId}::uuid`;
+      expect(ignored).toEqual({ response_sha256: null });
       expect(await fixture.runtime.drainOnce()).toMatchObject({ discovered: 0 });
       expect(await fixture.runtime.drainOnce()).toMatchObject({ discovered: 1, reconciled: 1 });
       expect(protocol.calls.map(({ kind }) => kind)).toEqual(["submit", "lookup"]);
       expect(await head(value)).toMatchObject({ status: "accepted", disposition: "none", transition_seq: 5 });
       expect(await fiscalFinancialSnapshot(deploy, value.tenantId)).toEqual(finances);
     } finally {
+      controller.abort();
+      // Release only the already-aborted fixture promise so shutdown cannot hang;
+      // this intentionally invalid late value is never eligible for retention.
       settleSubmit?.({ verified: true, outcome: "accepted", authorityRef: "q204-finalize",
         responseSha256: "c".repeat(64) });
-      controller.abort();
       await Promise.allSettled([drain]);
       await fixture.close();
     }
@@ -417,9 +551,9 @@ databaseDescribe("Q204 genuine fiscal delivery discovery", () => {
       await claimant.close();
     }
 
-    const protocol = createFiscalProtocolAdapter(value.provider);
+    const protocol = createFiscalProtocolAdapter(value, signedReceipts);
     const fixture = createFiscalDeliveryRuntime(runtimeUrl!, [protocol.registration], {
-      batchSize: 1, leaseSeconds: 15, transportDeadlineMs: 100,
+      batchSize: 1, leaseSeconds: 15, transportDeadlineMs: 5_000,
     });
     try {
       expect(protocol.calls).toEqual([]);
@@ -442,13 +576,12 @@ databaseDescribe("Q204 genuine fiscal delivery discovery", () => {
   test("known-not-sent remains explicit-retry-only and resumes only after signed HTTP retry", async () => {
     const value = await scenario();
     let submits = 0;
-    const protocol = createFiscalProtocolAdapter(value.provider, {
-      async submit(input) {
+    const protocol = createFiscalProtocolAdapter(value, signedReceipts, {
+      async submit(_input, _context, signedAcceptance) {
         submits += 1;
         return submits === 1
           ? Object.freeze({ verified: true, outcome: "known_not_sent" })
-          : Object.freeze({ verified: true, outcome: "accepted",
-            authorityRef: `q204-retry-${input.attemptId}`, responseSha256: "d".repeat(64) });
+          : signedAcceptance();
       },
     });
     const fixture = createFiscalDeliveryRuntime(runtimeUrl!, [protocol.registration], { batchSize: 1 });
@@ -483,7 +616,7 @@ databaseDescribe("Q204 genuine fiscal delivery discovery", () => {
 
   test("deactivation between discovery and claim creates no claim, transport or delivery mutation", async () => {
     const value = await scenario();
-    const protocol = createFiscalProtocolAdapter(value.provider);
+    const protocol = createFiscalProtocolAdapter(value, signedReceipts);
     const base = createFiscalDeliveryRuntime(runtimeUrl!, [protocol.registration], { batchSize: 1 });
     const beforeHead = await head(value);
     const beforeHistory = await history(value);

@@ -1,6 +1,6 @@
 # Order 440 — Durable fiscal submission and reconciliation
 
-**Status:** ACTIVE — Q205/Q204 and private Q206 decoder/JWS are independently merged through PR87/88/89 with complete CI and fresh post-merge80 schema/referee11/11. Original-source invoice/QR binding is independently verified in development; full authenticated provider and signed-receipt integration remains current work.
+**Status:** ACTIVE — private source binding is independently merged through PR90 with complete CI and post-merge80 proof. Q207 provider/signed-receipt/read integration passes actual81 storage, full synthetic protocol journey, authorized GET, schema and clean seed/referee11/11. Current compatibility/full CI and operator invoice/printing plus authentic sandbox acceptance remain.
 Order434's exact candidate is accepted and merged; no provider is activated.
 **Phase:** 7, planned sequence item6.
 **Owner:** Codex coordinator; bounded internal builders, separate high-risk reviewer.
@@ -10,7 +10,27 @@ merged through PR83 as443e3826b47025106d1829fcbb406ce6302fbbba.
 
 ## Outcome
 
-Current checkpoint2026-09-07: PR89 exactd300 passes all six CI34053928779 jobs
+[Question207](../questions/207-signed-fiscal-receipt-integration.md) now admits the
+complete provider/source claim/signed receipt/forward81/authorized GET integration
+with exact path ownership, legacy compatibility and executable proof requirements.
+PR90 has independently merged as4ba1d6f after all-six CI and normal CodeQL. This
+advances verified source, not the preserved local77 or provider activation. New-only
+post-merge80 proof and forward81 development are separately scoped in Q207.
+
+Current Q207 development2026-09-07: frozen forward81
+`d2e4e34a4587f4ee12ed5c43f8fac9d4186345877bdbb75ac74217460f0e06ac`
+is independently applied on owned synthetic targets. Fresh81 durability13/0 with
+one upgrade-only skip, actual cryptographic provider-to-GET journey4/0, separate
+receipt GET6/0, effective-ACL readiness19 assertions, identical normalized schemas
+and separate clean seed/referee11/11 pass. The first full upgrade run remains11pass/
+3harnessfail; its genuine80→81 preservation case passed and the repaired cases pass
+fresh81, not a claimed whole-upgrade rerun. The recovery journey now respects the
+real15-second lookup delay; its initial failures remain recorded. Main80/local77
+are untouched. Current runtime and historical compatibility plus full exact-source
+CI remain before publication/integration. No operator invoice/print or live-provider
+activation is implied. The precise independently executed proof is in review440.
+
+Historical checkpoint2026-09-07: PR89 exactd300 passes all six CI34053928779 jobs
 and normal CodeQL, including actual ARM64 decoder/JWS25/25. Nonimplementer
 fiscal_http_acceptance normally merges43fc758 and personally executes the separate
 fresh post-merge80 exact schema/seed/referee11/11. Main80 and local77 stay separate.

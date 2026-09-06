@@ -378,6 +378,85 @@ databaseDescribe("Order 127 runtime database authority (kernel boundary; HTTP P4
         ? ["search_path=pg_catalog, public, pg_temp", "TimeZone=UTC", "DateStyle=ISO,YMD"]
         : ["search_path=pg_catalog, public, pg_temp"]);
     }
+    const fiscalReceiptRead = await admin!<Array<{
+      signature: string; owner: string; security_definer: boolean; config: string[];
+      public_execute: boolean; app_execute: boolean; runtime_execute: boolean;
+    }>>`
+      SELECT p.oid::regprocedure::text AS signature,pg_catalog.pg_get_userbyid(p.proowner) AS owner,
+             p.prosecdef AS security_definer,p.proconfig AS config,
+             pg_catalog.has_function_privilege('public',p.oid,'EXECUTE') AS public_execute,
+             pg_catalog.has_function_privilege('app_role',p.oid,'EXECUTE') AS app_execute,
+             pg_catalog.has_function_privilege('yellow_runtime',p.oid,'EXECUTE') AS runtime_execute
+        FROM pg_catalog.pg_proc p
+        JOIN pg_catalog.pg_namespace n ON n.oid=p.pronamespace
+       WHERE n.nspname='public'
+         AND p.oid=pg_catalog.to_regprocedure(
+           'public.read_india_fiscal_submission_delivery_receipt(uuid,uuid,uuid,uuid)')
+    `;
+    expect(fiscalReceiptRead).toEqual([{
+      signature: "read_india_fiscal_submission_delivery_receipt(uuid,uuid,uuid,uuid)",
+      owner: "yellow_owner", security_definer: true,
+      config: ["search_path=pg_catalog, public, pg_temp", "TimeZone=UTC", "DateStyle=ISO,YMD"],
+      public_execute: false, app_execute: true, runtime_execute: false,
+    }]);
+
+    const fiscalColumnAuthority = await admin!<Array<{
+      relation: string; app_table_privileges: number; app_column_privileges: string;
+      runtime_table_privileges: number; runtime_column_privileges: string;
+      public_table_privileges: number; public_column_privileges: string;
+    }>>`
+      SELECT class.relname AS relation,
+             (SELECT count(*)::int FROM unnest(ARRAY[
+               'SELECT','INSERT','UPDATE','DELETE','TRUNCATE','REFERENCES','TRIGGER'
+             ]) AS privilege(name) WHERE pg_catalog.has_table_privilege('app_role',class.oid,privilege.name))
+               AS app_table_privileges,
+             COALESCE((SELECT pg_catalog.string_agg(attribute.attname||':'||privilege.name,','
+                                                    ORDER BY attribute.attnum,privilege.name)
+               FROM pg_catalog.pg_attribute attribute
+               CROSS JOIN unnest(ARRAY['SELECT','INSERT','UPDATE','REFERENCES']) AS privilege(name)
+              WHERE attribute.attrelid=class.oid AND attribute.attnum>0 AND NOT attribute.attisdropped
+                AND pg_catalog.has_column_privilege('app_role',class.oid,attribute.attnum,privilege.name)), '')
+               AS app_column_privileges,
+             (SELECT count(*)::int FROM unnest(ARRAY[
+               'SELECT','INSERT','UPDATE','DELETE','TRUNCATE','REFERENCES','TRIGGER'
+             ]) AS privilege(name) WHERE pg_catalog.has_table_privilege('yellow_runtime',class.oid,privilege.name))
+               AS runtime_table_privileges,
+             COALESCE((SELECT pg_catalog.string_agg(attribute.attname||':'||privilege.name,','
+                                                    ORDER BY attribute.attnum,privilege.name)
+               FROM pg_catalog.pg_attribute attribute
+               CROSS JOIN unnest(ARRAY['SELECT','INSERT','UPDATE','REFERENCES']) AS privilege(name)
+              WHERE attribute.attrelid=class.oid AND attribute.attnum>0 AND NOT attribute.attisdropped
+                AND pg_catalog.has_column_privilege('yellow_runtime',class.oid,attribute.attnum,privilege.name)), '')
+               AS runtime_column_privileges,
+             (SELECT count(*)::int FROM unnest(ARRAY[
+               'SELECT','INSERT','UPDATE','DELETE','TRUNCATE','REFERENCES','TRIGGER'
+             ]) AS privilege(name) WHERE pg_catalog.has_table_privilege('public',class.oid,privilege.name))
+               AS public_table_privileges,
+             COALESCE((SELECT pg_catalog.string_agg(attribute.attname||':'||privilege.name,','
+                                                    ORDER BY attribute.attnum,privilege.name)
+               FROM pg_catalog.pg_attribute attribute
+               CROSS JOIN unnest(ARRAY['SELECT','INSERT','UPDATE','REFERENCES']) AS privilege(name)
+              WHERE attribute.attrelid=class.oid AND attribute.attnum>0 AND NOT attribute.attisdropped
+                AND pg_catalog.has_column_privilege('public',class.oid,attribute.attnum,privilege.name)), '')
+               AS public_column_privileges
+        FROM pg_catalog.pg_class class
+       WHERE class.oid IN ('public.fiscal_submission'::regclass,
+                           'public.fiscal_submission_history'::regclass)
+       ORDER BY class.relname
+    `;
+    expect(fiscalColumnAuthority).toEqual([
+      {
+        relation: "fiscal_submission", app_table_privileges: 0,
+        app_column_privileges: "tenant_id:SELECT,document_id:SELECT,status:SELECT",
+        runtime_table_privileges: 0, runtime_column_privileges: "",
+        public_table_privileges: 0, public_column_privileges: "",
+      },
+      {
+        relation: "fiscal_submission_history", app_table_privileges: 0, app_column_privileges: "",
+        runtime_table_privileges: 0, runtime_column_privileges: "",
+        public_table_privileges: 0, public_column_privileges: "",
+      },
+    ]);
     const dueScopeResults = await admin!<{ signature: string; result: string }[]>`
       SELECT p.oid::regprocedure::text AS signature,
              pg_catalog.pg_get_function_result(p.oid) AS result

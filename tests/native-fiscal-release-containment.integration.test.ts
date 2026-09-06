@@ -136,10 +136,10 @@ databaseDescribe("Order439 released native fiscal authority is contained", () =>
     });
   }, 120_000);
 
-  test("fresh80 retains legacy denial under both runtime identities without business side effects", async () => {
+  test("fresh81 retains legacy denial under both runtime identities without business side effects", async () => {
     await withDatabase(async (url, sql, runtimeUrl) => {
       const migration = await runMigrations({ databaseUrl: url, logger: () => undefined });
-      expect(migration.appliedFiles).toHaveLength(80);
+      expect(migration.appliedFiles).toHaveLength(81);
       const before = await census(sql);
       expect(before[0]?.tables).toBe(128);
       await assertContained(sql, runtimeUrl);

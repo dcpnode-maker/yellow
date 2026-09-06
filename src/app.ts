@@ -193,6 +193,11 @@ export function createApp(options: AppOptions = {}) {
       .get("/api/v1/properties/:property/system-status", ({ request, params, tenantContext }) =>
         withOperatorTenant(request, (context) => operator.systemStatus(context, params.property))
       )
+      .get("/api/v1/properties/:property/fiscal-submissions/:submission/receipt", ({ request, params, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.fiscalSubmissionDeliveryReceipt(
+          context, params.property, params.submission,
+        ))
+      )
       .post("/api/v1/properties/:property/fiscal-submissions", ({ request, params, body, tenantContext }) =>
         withOperatorTenant(request, (context) => operator.requestFiscalSubmission(context, params.property, body))
       )

@@ -1,7 +1,7 @@
 import type { ReservedSQL, SQL } from "bun";
 
 const GIT_SHA = /^[0-9a-f]{40}$/;
-export const CURRENT_MIGRATION_FRONTIER = 80 as const;
+export const CURRENT_MIGRATION_FRONTIER = 81 as const;
 
 export interface BuildInfo {
   readonly schemaVersion: 1;
@@ -50,6 +50,8 @@ export async function assertRuntimeReleaseReadiness(
     nativeEntryAuthorityExact: boolean;
     fiscalHistoryProtected: boolean;
     fiscalEntryAuthorityExact: boolean;
+    fiscalReceiptReadAuthorityExact: boolean;
+    fiscalReceiptColumnsProtected: boolean;
     issueFunctionPresent: boolean;
     publicIssueDenied: boolean;
     appIssueDenied: boolean;
@@ -89,9 +91,10 @@ export async function assertRuntimeReleaseReadiness(
       ('public.retry_india_fiscal_submission(uuid,uuid,uuid,text,uuid)', false),
       ('public.claim_india_fiscal_submission(uuid,uuid,integer)', true),
       ('public.reconcile_india_fiscal_submission(uuid,uuid,uuid,uuid,jsonb)', true),
-      ('public.runtime_due_india_fiscal_submissions(integer,uuid,uuid)', true)
+      ('public.runtime_due_india_fiscal_submissions(integer,uuid,uuid)', true),
+      ('public.read_india_fiscal_submission_delivery_receipt(uuid,uuid,uuid,uuid)', false)
     ), fiscal_authority AS (
-      SELECT count(procedure.oid)=5
+      SELECT count(procedure.oid)=6
         AND bool_and(procedure.prosecdef AND procedure.proowner='yellow_owner'::regrole)
         AND bool_and(procedure.proconfig = ARRAY[
           'search_path=pg_catalog, public, pg_temp','TimeZone=UTC','DateStyle=ISO,YMD'
@@ -108,6 +111,30 @@ export async function assertRuntimeReleaseReadiness(
       FROM fiscal_entry
       LEFT JOIN pg_catalog.pg_proc procedure
         ON procedure.oid=pg_catalog.to_regprocedure(fiscal_entry.signature)
+    ), fiscal_receipt_read AS (
+      SELECT count(*)=1 AND bool_and(
+        procedure.provolatile='s' AND NOT procedure.proretset
+        AND procedure.prorettype='pg_catalog.jsonb'::regtype
+      ) AS exact
+      FROM pg_catalog.pg_proc procedure
+      WHERE procedure.oid=pg_catalog.to_regprocedure(
+        'public.read_india_fiscal_submission_delivery_receipt(uuid,uuid,uuid,uuid)'
+      )
+    ), fiscal_receipt_columns AS (
+      SELECT count(DISTINCT relation.oid)=2 AND bool_and(
+        NOT pg_catalog.has_table_privilege('app_role',relation.oid,'SELECT')
+        AND NOT pg_catalog.has_table_privilege('yellow_runtime',relation.oid,'SELECT')
+        AND pg_catalog.has_column_privilege('app_role',relation.oid,attribute.attnum,'SELECT')
+          = (relation.relname='fiscal_submission'
+             AND attribute.attname IN ('tenant_id','document_id','status'))
+        AND NOT pg_catalog.has_column_privilege('yellow_runtime',relation.oid,attribute.attnum,'SELECT')
+      ) AS protected
+      FROM pg_catalog.pg_class relation
+      JOIN pg_catalog.pg_namespace namespace ON namespace.oid=relation.relnamespace
+      JOIN pg_catalog.pg_attribute attribute ON attribute.attrelid=relation.oid
+        AND attribute.attnum>0 AND NOT attribute.attisdropped
+      WHERE namespace.nspname='public' AND relation.relkind='r'
+        AND relation.relname IN ('fiscal_submission','fiscal_submission_history')
     ), fiscal_history AS (
       SELECT count(*)=1
         AND bool_and(relation.relrowsecurity AND relation.relforcerowsecurity
@@ -127,7 +154,7 @@ export async function assertRuntimeReleaseReadiness(
             relation.relacl,pg_catalog.acldefault('r',relation.relowner)
           )) privilege WHERE privilege.grantee=0
         ))
-        AND bool_and(pg_catalog.has_table_privilege('app_role',relation.oid,'SELECT'))
+        AND bool_and(NOT pg_catalog.has_table_privilege('app_role',relation.oid,'SELECT'))
         AND bool_and(NOT pg_catalog.has_table_privilege('app_role',relation.oid,'INSERT,UPDATE,DELETE,TRUNCATE'))
         AND bool_and(NOT pg_catalog.has_table_privilege('yellow_runtime',relation.oid,'SELECT,INSERT,UPDATE,DELETE,TRUNCATE'))
         AS protected
@@ -148,6 +175,8 @@ export async function assertRuntimeReleaseReadiness(
       authority.exact AS "nativeEntryAuthorityExact",
       history.protected AS "fiscalHistoryProtected",
       fiscal.exact AS "fiscalEntryAuthorityExact",
+      receipt_read.exact AS "fiscalReceiptReadAuthorityExact",
+      receipt_columns.protected AS "fiscalReceiptColumnsProtected",
       target.function_oid IS NOT NULL AS "issueFunctionPresent",
       NOT EXISTS (
         SELECT 1
@@ -173,6 +202,7 @@ export async function assertRuntimeReleaseReadiness(
     FROM release_target target CROSS JOIN native_source_schema source_schema
       CROSS JOIN native_authority authority
       CROSS JOIN fiscal_authority fiscal CROSS JOIN fiscal_history history
+      CROSS JOIN fiscal_receipt_read receipt_read CROSS JOIN fiscal_receipt_columns receipt_columns
   `;
   const proof = rows[0];
   if (rows.length !== 1 || !proof || Object.values(proof).some((value) => value !== true)) {

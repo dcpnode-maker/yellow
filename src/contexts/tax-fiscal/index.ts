@@ -445,6 +445,8 @@ export {
   snapshotRequestIndiaFiscalSubmissionInput,
   snapshotRetryIndiaFiscalSubmissionInput,
 } from "./fiscal-submission-repository";
+export { FiscalSubmissionReceiptReadService, snapshotFiscalSubmissionDeliveryReceipt } from "./fiscal-submission-receipt";
+export type { FiscalSubmissionDeliveryReceipt, FiscalSubmissionDeliveryReadResult } from "./fiscal-submission-receipt";
 export type {
   FiscalSubmissionClaim,
   FiscalSubmissionDisposition,
@@ -472,6 +474,12 @@ export type {
   FiscalSubmissionWorkerStepResult,
   VerifiedIndiaIrpAdapterRegistration,
 } from "./fiscal-submission-worker";
+export { loadIndiaIrpAdapterRegistrationsFromEnvironment } from "./india-irp-provider-configuration";
+export type {
+  IndiaIrpAdapterRegistrationLoadError,
+  IndiaIrpAdapterRegistrationLoadErrorCode,
+  IndiaIrpAdapterRegistrationLoadResult,
+} from "./india-irp-provider-configuration";
 export { FiscalSubmissionDeliveryRuntime } from "./fiscal-submission-delivery-runtime";
 export type {
   DueFiscalSubmission,

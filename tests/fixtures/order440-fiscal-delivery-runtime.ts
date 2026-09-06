@@ -22,6 +22,10 @@ import {
   type FiscalSubmissionHttpBody,
   type FiscalSubmissionHttpScenario,
 } from "./order440-fiscal-submission-http";
+import {
+  type SignedFiscalClaim,
+  type SignedFiscalReceiptFactory,
+} from "./order440-signed-fiscal-receipt";
 
 function isExplicitLoopbackDatabaseTarget(target: URL): boolean {
   const port = Number(target.port);
@@ -70,10 +74,12 @@ export interface FiscalProtocolAdapterBehavior {
   readonly submit?: (
     input: FiscalProviderSubmission,
     context: FiscalProviderCallContext,
+    signedAcceptance: () => Promise<FiscalProviderResolution>,
   ) => Promise<FiscalProviderResolution>;
   readonly lookup?: (
     input: FiscalProviderLookup,
     context: FiscalProviderCallContext,
+    signedAcceptance: () => Promise<FiscalProviderResolution>,
   ) => Promise<FiscalProviderResolution>;
 }
 
@@ -83,27 +89,76 @@ function sha256(value: Uint8Array | string): string {
 
 /** Deterministic protocol fixture only. It asserts no certification or production authority. */
 export function createFiscalProtocolAdapter(
-  identity: FiscalSubmissionHttpScenario["provider"],
+  scenario: FiscalDeliveryScenario,
+  receipts: SignedFiscalReceiptFactory,
   behavior: FiscalProtocolAdapterBehavior = {},
 ): FiscalProtocolAdapterFixture {
   const calls: Readonly<FiscalProtocolCall>[] = [];
+  const identity = scenario.provider;
+  const signedClaim = (
+    input: FiscalProviderSubmission | FiscalProviderLookup,
+    action: "submit" | "lookup",
+  ): SignedFiscalClaim => Object.freeze({
+    claimed: true,
+    action,
+    // These claim-envelope fields are not receipt fields; the shared factory uses
+    // the real source/document/wire/attempt/provider bindings below.
+    claimToken: "00000000-0000-0000-0000-000000000000",
+    submissionId: scenario.submissionId,
+    tenantId: input.tenantId,
+    propertyNode: scenario.propertyNode,
+    documentId: input.documentId,
+    documentSha256: input.documentSha256,
+    sourceContentJson: input.sourceContentJson,
+    wireSha256: input.payloadSha256,
+    wireJson: new TextDecoder().decode(input.payload),
+    providerKey: input.providerKey,
+    providerExtensionId: identity.providerExtensionId,
+    providerExtensionVersion: identity.providerExtensionVersion,
+    attemptId: input.attemptId,
+    attemptNumber: 1,
+  });
+  const accepted = async (
+    input: FiscalProviderSubmission | FiscalProviderLookup,
+    action: "submit" | "lookup",
+  ): Promise<FiscalProviderResolution> => {
+    const result = await receipts.accepted(
+      signedClaim(input, action), action === "submit" ? "transport_result" : "lookup_result",
+    );
+    // The shared fixture returns a repository reconciliation envelope. A provider
+    // is allowed to return only its verified resolution, so deliberately strip
+    // every claim/reconciliation binding before handing the value to the worker.
+    const keys = Object.keys(result).sort();
+    if (keys.join(",") !== ["attemptId", "authorityRef", "documentId", "outcome", "payloadSha256",
+      "providerKey", "receipt", "responseSha256", "tenantId", "type"].sort().join(",")
+        || result.type !== (action === "submit" ? "transport_result" : "lookup_result")
+        || result.tenantId !== input.tenantId || result.providerKey !== input.providerKey
+        || result.attemptId !== input.attemptId || result.documentId !== input.documentId
+        || result.payloadSha256 !== input.payloadSha256 || result.outcome !== "accepted"
+        || typeof result.authorityRef !== "string" || typeof result.responseSha256 !== "string"
+        || !/^[0-9a-f]{64}$/u.test(result.responseSha256)
+        || typeof result.receipt !== "object" || result.receipt === null) {
+      throw new Error("Q204 synthetic signed receipt resolution is invalid");
+    }
+    return Object.freeze({ verified: true, outcome: "accepted",
+      authorityRef: result.authorityRef, responseSha256: result.responseSha256,
+      receipt: result.receipt }) as FiscalProviderResolution;
+  };
   const submit: VerifiedIndiaIrpAdapterRegistration["submit"] = async (input, context) => {
     calls.push(Object.freeze({ kind: "submit", tenantId: input.tenantId,
       attemptId: input.attemptId, documentId: input.documentId,
       payloadSha256: input.payloadSha256, payloadBodySha256: sha256(input.payload),
       signal: context.signal, deadlineUnixMs: context.deadlineUnixMs }));
-    return behavior.submit?.(input, context) ?? Object.freeze({ verified: true,
-      outcome: "accepted", authorityRef: `q204-submit-${input.attemptId}`,
-      responseSha256: sha256(`q204-submit-${input.attemptId}`) });
+    return behavior.submit?.(input, context, () => accepted(input, "submit"))
+      ?? accepted(input, "submit");
   };
   const lookup: VerifiedIndiaIrpAdapterRegistration["lookup"] = async (input, context) => {
     calls.push(Object.freeze({ kind: "lookup", tenantId: input.tenantId,
       attemptId: input.attemptId, documentId: input.documentId,
       payloadSha256: input.payloadSha256, payloadBodySha256: sha256(input.payload), signal: context.signal,
       deadlineUnixMs: context.deadlineUnixMs }));
-    return behavior.lookup?.(input, context) ?? Object.freeze({ verified: true,
-      outcome: "accepted", authorityRef: `q204-lookup-${input.attemptId}`,
-      responseSha256: sha256(`q204-lookup-${input.attemptId}`) });
+    return behavior.lookup?.(input, context, () => accepted(input, "lookup"))
+      ?? accepted(input, "lookup");
   };
   return Object.freeze({
     registration: Object.freeze({
@@ -131,6 +186,7 @@ export function createFiscalDeliveryRuntime(
   runtimeDatabaseUrl: string,
   registrations: readonly VerifiedIndiaIrpAdapterRegistration[],
   options: FiscalSubmissionDeliveryRuntimeOptions = {},
+  fixtureOptions: { readonly poolMax?: 1 | 4 } = {},
 ): FiscalDeliveryRuntimeFixture {
   const parsed = new URL(runtimeDatabaseUrl);
   if (!/^postgres(?:ql)?:$/.test(parsed.protocol)
@@ -140,7 +196,9 @@ export function createFiscalDeliveryRuntime(
       || !/^\/yellow_order440_q204_[a-z0-9_]+$/.test(parsed.pathname)) {
     throw new Error("Fiscal delivery runtime fixture requires isolated Q204 runtime authority");
   }
-  const pool = new SQL(runtimeDatabaseUrl, { max: 4, prepare: false, connectionTimeout: 5 });
+  const pool = new SQL(runtimeDatabaseUrl, {
+    max: fixtureOptions.poolMax ?? 4, prepare: false, connectionTimeout: 5,
+  });
   const repository = new FiscalSubmissionRepository(pool);
   const worker = new FiscalSubmissionWorker(repository, new VerifiedIndiaIrpAdapterRegistry(registrations));
   const source = new PostgresDueFiscalSubmissionSource(pool);

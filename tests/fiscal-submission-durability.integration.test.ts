@@ -448,10 +448,11 @@ databaseDescribe("Order440 durable fiscal delivery on genuine issued invoices", 
     expect(await claim(s, r.submissionId, 15)).toEqual({ claimed: false, reason: "busy" });
   }, 180_000);
 
-  test("real repository and worker commit a claim before provider work and settle their connection", async () => {
+  test("current worker rejects canonical78 claims without source content and leaves no residual mutation", async () => {
     const s = await scenario();
     const before = await retainedFinance(s);
-    // A single-connection pool proves that both provider callbacks and later tenants can reuse it.
+    // A single-connection pool proves the rejected old claim rolls back and the
+    // same settled connection remains reusable for state and foreign-tenant checks.
     const pool = new SQL(runtimeUrl!, { max: 1, prepare: false });
     const repository = new FiscalSubmissionRepository(pool);
     try {
@@ -465,25 +466,15 @@ databaseDescribe("Order440 durable fiscal delivery on genuine issued invoices", 
       const registry = new VerifiedIndiaIrpAdapterRegistry([{
         kind: "registered_verified_india_irp_1_1_adapter", providerKey: "india-irp",
         providerExtensionId: s.provider, providerExtensionVersion: 1,
-        // Synthetic protocol double: tests transaction ordering, never provider certification.
-        submit: async (input: { payload: Uint8Array }) => {
+        // Candidate81 must reject the old claim shape before any provider transport.
+        submit: async () => {
           submits++;
-          expect(new TextDecoder().decode(input.payload)).toBe(s.wire);
-          const [state] = await pool<{ role: string; tenant: string | null; open_transaction: boolean }[]>`
-            SELECT current_user::text AS role,NULLIF(current_setting('app.tenant_id',true),'') AS tenant,
-              EXISTS(SELECT 1 FROM pg_stat_activity WHERE datname=current_database()
-                AND usename='yellow_runtime' AND state='idle in transaction') AS open_transaction`;
-          expect(state).toEqual({ role: "yellow_runtime", tenant: null, open_transaction: false });
-          const [head] = await deploy<{ status: string; history: number }[]>`
-            SELECT status,(SELECT count(*)::integer FROM public.fiscal_submission_history h
-              WHERE h.tenant_id=f.tenant_id AND h.submission_id=f.id) AS history
-            FROM public.fiscal_submission f WHERE f.tenant_id=${s.tenant}::uuid
-              AND f.id=${requested.value.submissionId}::uuid`;
-          expect(head).toEqual({ status: "submitted", history: 2 });
-          return { verified: true, outcome: "accepted", authorityRef: "synthetic-worker-receipt",
-            responseSha256: hash("synthetic-worker-receipt") };
+          throw new Error("Canonical78 claims must be rejected before submit");
         },
-        lookup: async () => { throw new Error("This first-send proof must not call lookup"); },
+        lookup: async () => {
+          submits++;
+          throw new Error("Canonical78 claims must be rejected before lookup");
+        },
       }]);
       const runner = new FiscalSubmissionWorker(repository, registry);
       const claimInput = { tenantId: s.tenant, submissionId: requested.value.submissionId, leaseSeconds: 60 };
@@ -500,9 +491,19 @@ databaseDescribe("Order440 durable fiscal delivery on genuine issued invoices", 
       } });
       expect(submits).toBe(0);
       expect(await deliveryEvidence(s)).toEqual(unclaimed);
-      expect(await runner.runOnce(input)).toMatchObject({ ok: true, kind: "reconciled", action: "submit", status: "accepted" });
-      expect(await runner.runOnce(input)).toEqual({ ok: true, kind: "idle", reason: "terminal" });
-      expect(submits).toBe(1);
+      // Migration78 cannot supply candidate81's sourceContentJson claim field. The
+      // repository must fail closed and roll back the claim made in its transaction.
+      expect(await runner.runOnce(input)).toEqual({ ok: false, error: {
+        code: "repository_error", message: "fiscal submission claim failed",
+      } });
+      expect(submits).toBe(0);
+      expect(await deliveryEvidence(s)).toEqual(unclaimed);
+      const [settled] = await pool<{ role: string; tenant: string | null;
+        open_transaction: boolean }[]>`
+        SELECT current_user::text AS role,NULLIF(current_setting('app.tenant_id',true),'') AS tenant,
+          EXISTS(SELECT 1 FROM pg_stat_activity WHERE datname=current_database()
+            AND usename='yellow_runtime' AND state='idle in transaction') AS open_transaction`;
+      expect(settled).toEqual({ role: "yellow_runtime", tenant: null, open_transaction: false });
       const foreign = cases[0]!;
       const foreignBefore = await deliveryEvidence(foreign);
       const foreignClaim = await repository.claim({ ...claimInput, tenantId: foreign.tenant });
@@ -510,8 +511,15 @@ databaseDescribe("Order440 durable fiscal delivery on genuine issued invoices", 
         code: "database_error", message: "Fiscal submission database operation failed",
       } });
       expect(await deliveryEvidence(foreign)).toEqual(foreignBefore);
-      expect(await runner.runOnce(input)).toEqual({ ok: true, kind: "idle", reason: "terminal" });
+      expect(await runner.runOnce(input)).toEqual({ ok: false, error: {
+        code: "repository_error", message: "fiscal submission claim failed",
+      } });
+      expect(submits).toBe(0);
+      expect(await deliveryEvidence(s)).toEqual(unclaimed);
       expect(await retainedFinance(s)).toEqual(before);
+      // Current candidate81 one-connection commit-before-transport coverage lives
+      // in fiscal-submission-delivery-runtime.integration.test.ts with a genuine
+      // bound signed receipt; this historical prefix remains an incompatibility proof.
     } finally { await pool.close(); }
   }, 180_000);
 

@@ -24,9 +24,9 @@ import {
   FiscalSubmissionRepository,
   FiscalSubmissionService,
   FiscalSubmissionWorker,
+  loadIndiaIrpAdapterRegistrationsFromEnvironment,
   TaxJurisdictionResolutionService,
   VerifiedIndiaIrpAdapterRegistry,
-  type VerifiedIndiaIrpAdapterRegistration,
 } from "./contexts/tax-fiscal";
 import { OperatorHttpApi, type OperatorLocalReviewCredentials } from "./http/operator";
 import { HostedDepositProviderHttpApi } from "./http/provider";
@@ -58,7 +58,13 @@ const reservationArrivalRollEnabled = workbenchEnabled && Bun.env.YELLOW_RESERVA
 const reservationDepartureRollEnabled = workbenchEnabled && Bun.env.YELLOW_RESERVATION_DEPARTURE_ROLL_WORKER === "1";
 const businessDayRollEnabled = workbenchEnabled && Bun.env.YELLOW_BUSINESS_DAY_ROLL_WORKER === "1";
 const fiscalSubmissionDeliveryEnabled = workbenchEnabled && Bun.env.YELLOW_FISCAL_SUBMISSION_WORKER === "1";
-const verifiedIndiaIrpAdapterRegistrations = Object.freeze([]) as readonly VerifiedIndiaIrpAdapterRegistration[];
+// Construct one protected, immutable provider snapshot before database pools or
+// intake exist. A configured adapter is not permission to enable its worker.
+const providerConfiguration = await loadIndiaIrpAdapterRegistrationsFromEnvironment(Bun.env);
+if (!providerConfiguration.ok) {
+  throw new Error("India IRP provider deployment configuration is invalid");
+}
+const verifiedIndiaIrpAdapterRegistrations = providerConfiguration.value;
 if (fiscalSubmissionDeliveryEnabled && verifiedIndiaIrpAdapterRegistrations.length === 0) {
   throw new Error("enabled fiscal submission worker requires a verified provider adapter");
 }

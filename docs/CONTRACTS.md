@@ -497,16 +497,14 @@ native-issued document into deterministic wire bytes with a separate SHA-256; so
 hash integrity alone does not authenticate a caller's document. No adapter is
 registered and no provider certification or live registration is claimed.
 
-[Q199](../handoff/questions/199-durable-fiscal-submission-admission.md) admits a durable
-draft within the existing monolith. Ordinary request/retry methods accept the caller's
-tenant-scoped `Tx` and independently authorize their distinct active-actor/property
-permissions. A separate private infrastructure adapter reserves a runtime-login
-connection for claim/reconcile, commits before transport, and settles it after each
-short transaction. Application `Database` does not expose raw worker authority.
-Ordinary request/retry return a typed Result inside the caller-owned transaction;
-any future command wrapper must abort that entire transaction on a failed Result,
-including invalid database receipts. Returning a failure and committing unrelated
-effects is not an admitted command composition. No such public wrapper is wired yet.
+[Q199](../handoff/questions/199-durable-fiscal-submission-admission.md) supplied the
+durable design now integrated by migrations78–80. Ordinary request/retry methods use
+the caller's tenant-scoped `Tx` and independently authorize their distinct
+active-actor/property permissions. A separate private infrastructure adapter reserves
+a runtime-login connection for claim/reconcile, commits before transport, and settles
+it after each short transaction. Application `Database` does not expose raw worker
+authority. The authenticated POST edge and supervised default-off runtime are described
+below; neither implies a configured provider.
 
 Database-owned source selection, exact wire derivation, logical provider key and
 immutable extension version bind one current submission head. Protected insert-only
@@ -516,11 +514,14 @@ explicitly registered matching adapter, verifies the stored bytes/bindings, and 
 or looks up according to the database result. A thrown network call is uncertain,
 never evidence of non-delivery. There is no automatic retry or fake-success provider.
 
-The SQL draft is outside the canonical runner. Its exact signatures/receipt fields,
-permissions, retry/lease bounds and tests are in Q199. Do not treat these private
-contracts as HTTP endpoints, completed persistence, current migration78, fiscal
-acceptance, operator UI or local/cloud activation until their executable proof and
-separate canonical integration are recorded.
+Q207's forward81 signed-receipt/read/configuration work remains a private candidate.
+Its complete synthetic protocol journey has passed through the real adapter, worker,
+actual PostgreSQL81 and signed-session GET; that is executable offline protocol proof,
+not external-provider acceptance. Do not treat generated signatures, synthetic
+provider responses or the empty deployment registry as authentic sandbox onboarding,
+operator invoice/print UI, local/cloud activation or Phase7 completion. See
+[Q207](../handoff/questions/207-signed-fiscal-receipt-integration.md) for its exact
+admission and remaining boundary.
 
 ## 8. India GST accommodation rate-change-date evidence (Order307)
 
@@ -3356,7 +3357,7 @@ CI passes all six jobs, including HTTP9/9 and replay5/5(447); PR87 is independen
 merged as22f1bed. Post-merge actual79 schema and referee11/11 pass. No local,
 external-provider or cloud activation follows from that source integration.
 
-### Supervised fiscal delivery (Order440 / Q204 candidate)
+### Supervised fiscal delivery (Order440 / Q204, merged current80)
 
 `FiscalSubmissionDeliveryRuntime` discovers bounded pending work from
 `PostgresDueFiscalSubmissionSource`, then invokes `FiscalSubmissionWorker.runOnce`.
@@ -3408,9 +3409,63 @@ environment JSON, test provider or credential placeholder can establish certific
 The genuine PostgreSQL HTTP→discovery→worker→reconciliation proof independently
 passes 11/11 (95 assertions), including fresh-worker original-wire lookup without
 resend, with separate lock/ACL/rollback proof and actual80 schema/referee11/11.
-Required Linux process/readiness and complete current80 CI remain release gates.
-This contract does not claim provider authentication, live sandbox acceptance or
-completion of Phase7.
+Complete current80 CI/readiness passed before PR88 merged. This contract still does
+not claim provider authentication, live sandbox acceptance or completion of Phase7.
+
+### Signed India IRP receipt and governed read (Order440 / Q207 candidate)
+
+Forward-only candidate migration81 reuses `fiscal_submission.response`,
+`response_sha256` and `qr_payload`; it adds no table, queue, journal or source hash.
+The successful claim adds `sourceContentJson` from the immutable issued document and
+revalidates its existing document hash before submit or fresh-process lookup. New
+terminal India results must be one complete version1 envelope bound to tenant,
+document, attempt, provider, source and wire. Exact raw authenticated response bytes
+and decrypted data bytes are retained as canonical padded base64 with separate
+SHA-256 values. Accepted results additionally retain the exact source-bound signed
+invoice and signed QR tokens, and `qr_payload` is that signed QR. Credentials,
+authentication responses and provider messages are forbidden from the read DTO,
+events and logs. The protected head still retains the bounded authenticated raw and
+decrypted error evidence required by the receipt contract.
+
+Only accepted results carry an IRN/authority reference. A configured definitive
+rejection is terminal without an invented IRN. Authenticated lookup status `CNL`
+normalizes only to `error/none/provider_cancelled`, with lookup resolution, no
+authority reference and no further discovery or retry. The stricter validator applies
+to new terminal transitions; an unchanged pre81 terminal response replays exactly,
+while a conflicting replay remains rejected. Receipt bodies are not duplicated into
+history, fact or outbox.
+
+The candidate adds the app-only
+`read_india_fiscal_submission_delivery_receipt(uuid,uuid,uuid,uuid)` query and the
+unassigned `tax-fiscal.submissions:read` permission. The HTTP GET uses the verified
+session and governed transaction, rechecking active tenant/user, property containment,
+role permission and revocation. It requires neither an idempotency key nor a registered
+adapter and returns no-store pending, legacy-hash-only, rejected, provider-cancelled or
+accepted-signed DTOs. It never exposes raw/decrypted evidence, request wire, claim
+tokens, credentials or provider messages; missing and inaccessible records do not leak
+which case occurred. Broad app-role reads are removed: direct head access is limited to
+`tenant_id`, `document_id` and `status`, and history has no directly selectable column.
+
+Deployment configuration is protected and explicit. Absence of
+`YELLOW_INDIA_IRP_PROVIDERS_FILE` produces the immutable empty registry; invalid or
+duplicate configuration fails all-or-nothing before listening. The manifest and
+separate credential files are bounded regular-file snapshots, never network-fetched,
+and loading performs no provider request. The same frozen registration identities feed
+HTTP availability and workers, which remain independently default-off. See
+[EXTENSIONS.md](EXTENSIONS.md) for file limits and platform permission boundaries.
+
+Candidate evidence is deliberately bounded. The corrected fresh81 suite passes13
+tests, skips the one upgrade-only case, fails0 and records338 assertions. The first
+genuine80→81 upgrade execution is retained as11 passes and3 harness failures; its
+actual migration-preservation case passed, but the whole upgrade suite has not been
+rerun all-green and is not reported as such. The complete generated-key protocol
+journey passes4/0 (43 assertions): real ClearIRP auth/encryption/signature handling,
+the real worker, actual PostgreSQL81, response-loss recovery by a fresh adapter/worker,
+terminal rejection, CNL, source-mismatch containment and signed-session receipt read.
+The separate actual receipt GET proof passes6/0 (83 assertions), and hostile-grant
+readiness records19 assertions. These are genuine synthetic-protocol proofs without a
+stubbed verified result. Authentic external-provider sandbox onboarding, operator
+invoice/print UI, production activation and Phase7 completion remain pending.
 
 ### India IRP accommodation fiscal-action readiness (Order 429, historical contract)
 

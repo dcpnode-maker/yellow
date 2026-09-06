@@ -8,6 +8,22 @@ a prior phase's public surface without a written note in `DECISIONS.log`.
 
 ## Current implementation status — 2026-09-07, consolidated Codex Yellow work
 
+PR90 is independently merged as4ba1d6f after all-six CI, actual native ARM64 source
+binding and separate post-merge80 schema/referee11/11. Q207 now implements the
+complete provider→signed receipt→authorized GET path. Independent actual81 proof
+passes fresh durability13/0 (one upgrade-only skip), full synthetic cryptographic
+journey4/0, receipt GET6/0, hostile-grant readiness19 assertions, identical fresh/
+upgraded schema and a separate clean canonical seed/referee11/11. Initial harness
+and recovery-timing failures remain recorded, not relabelled green.
+
+Development81 is not mergedmain80 or the preserved local77. Full current/historical
+runtime compatibility and exact-source Linux/ARM64 CI remain before integration.
+Operator invoice discovery/issuance/printing and authentic external-provider sandbox
+acceptance remain the full Phase7 outcome. All18 phases and dependency-gated
+11→13→17 priority are unchanged; this is not a phase exit.
+
+The following paragraphs preserve the preceding private-foundation checkpoint.
+
 PR89 independently merges the private exact decoder and pinned signature verifier
 as43fc758 after exactd300 all-six CI34053928779, native ARM64 crypto25/25 and
 fresh post-merge80 schema/seed/referee11/11. Main80/128 and stable local77/127

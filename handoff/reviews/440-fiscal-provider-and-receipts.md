@@ -397,3 +397,331 @@ Current-status regression intentionally fails0/1 against old PR89 state, then
 passes7/0 with2 explicit database skips and158 assertions after exact reconciliation.
 Fresh all-six CI must execute actual databases and the new native ARM64 binder;
 this accepts publication, not merge, activation, complete IRP or Phase7 closure.
+
+## Q207 independent production, SQL81 and executable acceptance — 2026-09-07
+
+Reviewer: fiscal_http_acceptance, independent of all production and migration
+implementation below. Authority: Order440 and Q207, including its explicit
+new-only native proof targets and test-only reviewer ownership. I personally read
+the receipt/provider/repository/worker, read-service/HTTP, protected deployment
+loader/server composition, readiness and complete prospective81 SQL/contracts.
+I authored only the admitted signed durability proof and signed fixture repairs;
+I did not change production SQL or production TypeScript. This section records
+my own execution, not implementer-provided test results.
+
+### Retained defects and exact scope of their correction
+
+1. The original receipt byte boundary used a repeated base64 quartet expression.
+   My 121 independent checks produced117 pass/4 fail: valid raw6MiB minus1/exact
+   and decrypted4MiB minus1/exact were rejected by Bun/JSC's regex budget. Root
+   replaced it with bounded decode/re-encode canonical validation. My rerun was
+   121/0 and the permanent five tests were5/0(44),271ms. The original source was
+   f11d77ea1f362e3b1c64f0c63d17819e6cb6c3b835bede292c69105788aa433d;
+   repaired boundary source5f48d70f7d8cfef3576b60e801df410b409b38d78670c9cc82051ca73ca0088c.
+   Later DTO additions are mapped to the current complete module below.
+2. The original signed suite fabricated its purported legacy row after81. That
+   was not an80→81 preservation proof. I replaced it with explicit new unsigned
+   INSERT/UPDATE denial and genuine old-function histories before the runner
+   applies81. Static findings also required a same-tenant role join, all sensitive
+   column privilege checks, actual ancestor/foreign-role fixtures and late-write
+   rollback. Root made the production repairs; I executed their proof.
+3. Frozen prospective81 SHA8412f2a5bac88013e945e5717e95867745ec490076844b0a932a8d8c67392891
+   failed my actual hostile PUBLIC column-grant probe. Its canonical transaction
+   reached an appended assertion after real DDL and demonstrated surviving head
+   wire_text/history response_sha256 privileges; the entire81 transaction rolled
+   back. My positive-control predicate then proved NULL status, disposition and
+   resolution-source acceptance. An earlier prepare:true JSON-scalar control was
+   invalid and is explicitly discarded, not represented as a successful probe.
+4. Root's next1388130ef72c0f17a3a253d993d160f65cb0ab14ff1ff649c4128b415c919813
+   corrected those cases, but my valid accepted/rejected/CNL controls exposed CNL
+   reconciliation_reason=NULL still passing. The transient81 transaction again
+   rolled back completely. Root's final IS DISTINCT FROM correction is applied
+   and frozen as d2e4e34a4587f4ee12ed5c43f8fac9d4186345877bdbb75ac74217460f0e06ac.
+   No applied1–80 bytes or migration ledger was rewritten.
+
+Retained owned migration-copy artifacts, never canonical edits:
+
+- hostile ACL: C:/Users/astha/AppData/Local/Temp/yellow-q207-hostile_acl-6xOLQI;
+  copied81 SHAef2515f58072f5bf4dcaedce37687900dab79b20fa3bc413509c27855df3ea40.
+- late rollback: C:/Users/astha/AppData/Local/Temp/yellow-q207-rollback-4BJ5XU;
+  SHA c44834d2cfb0c000d64af17188ae7820b830feeda28e012926443b7e0e0a8f25.
+- canonical: C:/Users/astha/AppData/Local/Temp/yellow-q207-canonical-frjrc7;
+  copied81 matches frozen d2e4e34a above.
+- checksum drift: C:/Users/astha/AppData/Local/Temp/yellow-q207-drift-yDPCls;
+  SHA9b7eb1c98e9e65ca54f900e2bd1655e8d7add034f8ac9dc9f2f77e1843d8f8dd.
+
+### Personally executed genuine SQL81 upgrade and empty81 acceptance
+
+Only the named NEW-ONLY databases were created on existing127.0.0.1:55503 from
+yellow_order434_production. Before each creation I proved absence and pristine
+template77 with all77 canonical checksums,127 tables,0 tenants and0 sessions.
+Protected deploy/runtime URLs were read in process from the admitted Order442
+seed.env/app.env keys; only pathname changed. URLs/passwords were never printed.
+
+Command: bun test tests/fiscal-signed-receipt-durability.integration.test.ts,
+with command-scoped YELLOW_ORDER440_SIGNED_DEPLOY_DATABASE_URL,
+YELLOW_ORDER440_SIGNED_RUNTIME_DATABASE_URL and YELLOW_REQUIRE_ORDER440_SIGNED=1.
+For yellow_order440_q207_upgrade_review_90607 only,
+YELLOW_ORDER440_SIGNED_APPLY_UPGRADE=1 enabled real80-before81 setup. Canonical
+78–80 first applied using one backend11476. The full proof then recorded actual
+accepted/rejected/known-not-sent/in-flight/pending histories under old80 functions,
+original request plus every one of three explicit retry keys, and complete eight
+table snapshots. Hostile migration ACL rejection, late canonical-DDL rollback,
+actual81 application, no-op, checksum drift rejection, byte-identical historical
+replay/read projection and continuation of an old in-flight token all passed.
+
+That complete run is retained as **11 pass,3 fail,459 assertions,56.21s**, session61020,
+not relabelled green. Three fixture expectations were wrong: DateStyle was exactly
+ISO,YMD (not ISO, YMD); the initial property had no ancestor; an unsigned INSERT
+had untyped jsonb_build_object parameters and failed42P18 before the guard. I fixed
+only the admitted test: exact catalogue text, a genuine ancestor and explicit SQL
+casts. Failed test SHA697e9f5c271a4838bb5fe5521888e8d7b9b4cb366300049760f56987d4daac7e;
+final test SHA f89a87b9fa9ae9891b558fbbe0faf38cafb8926ce73a9b51c231ec9cca753065;
+fixture SHA8ed391f7a4a245010a34252489fe928598b8013119470cd9be304ab718fd9136.
+The retained upgrade target remains81 with17 synthetic tenants; no reset/re-run of
+its whole empty-target setup is claimed. Current CI must execute the final complete
+upgrade suite on a new80 clone.
+
+Separate yellow_order440_q207_sql81_review_90607 was then created new and migrated
+78–81 canonically on backend7408. With APPLY_UPGRADE=0 the complete empty81 suite
+passed **13 pass,1 explicit upgrade-only skip,0 fail,338 assertions,43.41s**,
+session88160. All three corrected cases passed here. Coverage includes actual
+source-bound signatures, private byte/hash retention and public variant privacy,
+all-column ACL and direct-write denial, genuine ancestor/sibling/child/foreign-role
+and revoked/inactive grants, unsigned new terminal INSERT/UPDATE55000, late
+history/fact/outbox23514 with complete eight-table rollback, all three valid
+terminal controls and NULL/mismatched bindings, both byte ceilings minus1/exact/+1,
+BOM/invalid/overlong/surrogate UTF-8, and non-due/non-retry CNL with blocked day close.
+
+### Actual authenticated-protocol simulation → worker →81 → authorized GET
+
+This is real adapter/crypto/SQL/HTTP execution against a trusted synthetic fetch
+and generated RSA/AES keys, not an actual provider account or certification.
+Protocol fixture SHA148a62cdc985356b4275e81b16391f091236b317a9e41cd0d00068c4e9c84440.
+The original journey a26a49a0f0b8a6f73d737878d201240e96f47beb94c520de4801cdc5ba8f64c4
+failed **1 pass,3 fail,15 assertions,13.23s**: immediate new-worker lookup correctly
+returned idle/busy during the database15-second guard. No production bypass was
+made. The builder repaired only timing: assert that immediate idle result and zero
+auth/POST/lookup delta, poll the exact tenant/submission database due expression
+read-only within20s and the unchanged60s test deadline, then construct another
+fresh adapter/worker. No DML lease-aging or reset was used for this journey.
+
+On the same admitted synthetic target, my complete repaired command
+bun test tests/fiscal-signed-provider-journey.integration.test.ts passed
+**4 pass,0 fail,43 assertions,60.49s**, session45876. Final journey SHA
+a48fd9c2efb633475a1bc42be12a24022fdca5005dfc8e0ed8e093a47cee3b35.
+It covers response-loss then original-wire lookup without another POST, rejection,
+CNL and genuinely signed source mismatch remaining unresolved. Recovery metrics
+are three adapter instances, two authentications, one POST and one lookup. The
+current receipt module8c52c013 (full hash below) handled its authorized GETs.
+
+Separate bun test tests/operator-fiscal-submission-receipt.integration.test.ts
+on the same isolated81 target passed **6 pass,0 fail,83 assertions,5.54s**: five pure
+cases and genuine signed-session/database GET. It proves pending→accepted signed
+DTO, exact no-store response, no raw/decrypted/source/claim secrets, missing/foreign
+404, current scope/property/revoked403. Test SHA
+9444a16ac34144d073dd890f535fbc5f90812a7e621c9a4631aa31229da0c05f.
+That earlier standalone run used receipt modulebd2ed0daa9092e86cd916dcb89368ba2b3e27dbc28d219d97b4959b617a7a008;
+the later full journey and current focused tests execute the hardened8c52 module.
+
+### Actual runtime authority, clean schema and canonical referee
+
+I personally invoked assertRuntimeReleaseReadiness through the real yellow_runtime
+pool on81: **19 assertions passed**. Six separate committed target-local grants
+covered app_role/PUBLIC/yellow_runtime × head.wire_text/history.response_sha256.
+Each real runtime probe refused readiness. Unconditional precise REVOKE removed
+only the added grant; baseline readiness and exact full relation/attribute ACL
+snapshots were restored after every case. No global roles/memberships were changed.
+Readiness source68b0a7377771ec33e4baf8721dc3b7a27744f6833d110067200772e9aad7de86
+was unchanged before/after and remains current.
+
+Native PostgreSQL16.15 pg_dump --schema-only --no-owner --no-comments, followed by
+the canonical normalizeSchemaDump(stdout,true), produced identical clean schemas
+from both independent81 targets: **1,645,755 bytes**, SHA
+60b969a970baa8746f54b5f79eb8a3d5aa08bfafa0ceec1ffaa0dd2bd6f3e83a.
+Artifacts: D:/Yellow/temp/q207-schema81-review-2dsder/, filenames
+yellow_order440_q207_sql81_review_90607.normalized.sql and
+yellow_order440_q207_upgrade_review_90607.normalized.sql. Neither contains residual
+fault DDL/ACLs; all63 head/history effective column privileges match. Root, not I,
+mechanically copied that identical artifact to tests/schema/expected.sql.
+
+The separately admitted NEW-ONLY yellow_order440_q207_referee_review_90607 was
+created after another absent/pristine77 check. Canonical78–81 applied on one
+backend7652 and its81 ledger hashes matched source. Its dump exactly matched the
+frozen expected schema above. I then personally executed the **unwrapped** native
+psql --no-psqlrc --set ON_ERROR_STOP=1 --file tests/seed_fixture.sql (exit0), then
+Python313/python.exe tests/run_invariants.py yellow_order440_q207_referee_review_90607
+with command-scoped YELLOW_DSN and UTF-8 output. Session22425 exited0:
+
+    RESULT: 11 passed, 0 failed (of 11)
+
+Concrete referee results:50-thread exclusive race exactly1; private-versus-beds
+0 private/6 beds;40-thread six-bed race exactly6; direct insert42501;162 commits in
+1.20s (135/s); unbalanced journal rejected; balanced journal commits; sealed day
+rejected;100 gapless numbers1–100;118 tenant tables with RLS/policies (A16/B0);
+two security-invoker views (A2/B1). Final clean referee target81/128 tables/2 tenants.
+
+All86 canonical input hashes remained identical before/after (81 sorted SQL paths,
+migrate.ts, schema-drift.ts, seed_fixture.sql, run_invariants.py, expected.sql),
+ordered path+NUL+SHA+LF map SHA
+a3a9b2d0f0f681898e85b600c7bcd53206dc0433119a1705987565e7087009df.
+Canonical1–80/runner/normalizer/seed/referee matched merged4ba1d6f bytes. Individual
+runner SHA1c744395992ad99cb7eb44c5db811c4edddf2fb1169720aac96445d1042c6354;
+normalizer5b3815c3709e23bf5b1dae47ce1f988e6f74f98818be5ae31826e8a63fdd3d36;
+seed f8e8147800bc3ee24ba5020b70f95ad77a987c698d3c63dd664ed8d4cba1a409;
+referee2afa95bb7c02cd9637ffc9c3df00d1ddf7cfc5d8d31c4fd8fad29b950c1a418d.
+Template remains77/all hashes/127 tables/0 tenants; exact global pg_roles attributes
+(excluding password) and pg_auth_members snapshot SHA remains
+1a404b9f0aa6c85deaf9ee4d9db2351be8327733b8d1b2f88f6b5221e2a9496e.
+All target/template sessions were empty after each proof. Existing databases and
+stable preview were preserved; no new cluster, role, Docker, WSL or provider call.
+
+### Current focused production review and proof
+
+The public receipt boundary now inspects data descriptors on outer driver Arrays,
+rejects proxies/accessors without evaluating length/index traps, accepts legitimate
+Array subclasses/metadata, freezes detached DTOs and rebinds tenant/property/submission.
+HTTP uses its existing session/tenant transaction and current property grants;
+the reader receives actor identity explicitly. No adapter or idempotency key is
+needed for a read. The repository commits claim before transport and uses a fresh
+short reconciliation transaction. Original source and whole wire are retained for
+fresh-worker lookup; unsigned new acceptance cannot become a terminal receipt.
+
+Protected loading is default-off, exact duplicate-rejecting bounded JSON and real
+adapter construction only, with no network activity while loading. Files are read
+through opened handles with type/inode/size/time and final-path checks; POSIX adds
+NOFOLLOW/NONBLOCK and owner/mode restrictions. Windows DACL protection remains an
+explicit deployment requirement, not a claim inferred from POSIX bits. Invalid
+configuration fails sanitized before pools/listening. The same frozen registry
+drives HTTP availability and workers; the independent worker switch remains off.
+
+Personally executed one command, bun test, with these13 exact files:
+fiscal-submission-receipt.test.ts; fiscal-submission-worker.test.ts;
+fiscal-submission-commands.test.ts; fiscal-submission-state.test.ts;
+fiscal-submission-adapter-availability.test.ts; fiscal-submission-delivery-runtime.test.ts;
+india-irp-provider-configuration.test.ts; fiscal-exact-json.test.ts;
+fiscal-signed-jws.test.ts; india-irp-signed-receipt-binding.test.ts;
+build-readiness.test.ts; operator-fiscal-submission-receipt.integration.test.ts;
+server-fiscal-runtime.test.ts (all under tests/).
+Result: **124 pass,8 explicit DB/Linux skips,0 fail,1197 assertions,4.47s**.
+No DB URLs were configured for this command and no full standing suite was run.
+The retained independent in-process receipt121 and worker/repository45 adversarial
+probes also passed again on current source. These cover getter/proxy/descriptors,
+UTF-8/BOM/base64 canonicality, acknowledgement calendars and unsafe integers,
+deep freeze, exact max−1/max/+1, source/wire hash binding and transaction ordering.
+The18MiB envelope positive boundary is unreachable under its constituent limits:
+the constructed maxima are16,791,817 bytes; direct18MiB positive coverage is not claimed.
+
+Current reviewed production SHA256 map:
+
+    fiscal-submission-receipt.ts 8c52c0137618a76e879c2259ce52f848b7fa00b736fb244c10bc2d8c43292687
+    fiscal-provider.ts c490079d6fe36a5bcd9d171bd621ccac48d7d2b2b7911257c9ecacd3af330e53
+    fiscal-submission-repository.ts f308b1d6223f569e3993b26d05d1e0f2bc0f4acc44b6d9b168ef12c7663d2e36
+    fiscal-submission-worker.ts d7ffcdc84a00f55210d3268fb5eec8bb683c3aac14964b776e1aefca48566ab1
+    kernel/build-info.ts 68b0a7377771ec33e4baf8721dc3b7a27744f6833d110067200772e9aad7de86
+    http/operator.ts eb2041b6970e72c04b4eba388589a0b292a3ad97f20c3c7ccabdebc662b1b900
+    app.ts 72894b0fbf9770c906bff221172f44aa3bbb4afc8764add4a9c43476b4a322f3
+    server.ts 073f63af06dae0c7a2351eb971ab529881b839c474cbea2654566595b95c79e6
+    tax-fiscal/index.ts 09b5fed38185f1ee80dfcf02731d617e1b4a486a5a6d56b61d3218d45d3bf59c
+    india-irp-provider-configuration.ts 66a40600a08845b9a89ca9876282fb7d041eb156efc6d47560035639641f2a53
+
+Receipt test SHA5f43d8074f699af17e4514d4cb004da09b374e467a8d37f6efbc2d1341f1b574;
+loader test cfbc09031e1f383571fee121b53c9b317eff149a8b6ccf084986bf7c937c43e7;
+server test c03df61be3d9fbf20455a4e5391998d12024dddef5a896b8116b51b5aa8ee6ae.
+No new production blocker was found in this bounded review. This is not overall
+publication/integration approval: the following current compatibility failure and
+all exact-source CI/ARM/Linux process/POSIX gates must be discharged first.
+
+### Current81 compatibility failure retained — not waived
+
+I inspected the admitted current-runtime fixture/test and historical78 test delta.
+The successful lookup transport budget100→5000ms is limited to real signing after
+an abandoned lease, not a timeout test; production lease15s and outer60s remain.
+The max-one-pool commit-before-transport assertions are moved to current81, while
+the old78 suite explicitly requires zero transport and full claim rollback.
+
+New-only yellow_order440_q204_signed_review_90607 passed absence/pristine77 checks;
+the canonical runner applied78–81 on backend13328, all four transactions on that
+backend. I executed the **complete** bun test
+tests/fiscal-submission-delivery-runtime.integration.test.ts with command-scoped
+YELLOW_ORDER440_DELIVERY_DEPLOY_DATABASE_URL,
+YELLOW_ORDER440_DELIVERY_RUNTIME_DATABASE_URL,YELLOW_REQUIRE_ORDER440_DELIVERY=1.
+Session57297 recorded **6 pass,5 fail,88 assertions,31.23s**. Earliest failure is
+line305: expected accepted/none but actual submitted/lookup. All five signed-success
+paths failed similarly; discovery/denial/unavailable/deactivation passed.
+
+The concrete fixture defect is createFiscalProtocolAdapter's result.verified check:
+createSignedFiscalReceiptFactory.accepted intentionally returns a repository
+reconciliation envelope with no verified property. The new adapter fixture rejects
+every genuine signed factory result before converting it to the provider envelope.
+The worker correctly treats that thrown transport result as unknown; this is not
+a production acceptance bypass. I reported the defect without editing production
+or the builder-owned fixture. Failure hashes: runtime fixture
+d03820ede8edf6ddd7f412815216deb9c9572269e5d41311e332afe6e8d18af3;
+runtime test4d8c1b3ca0ba3540f6087683bde1d0af63df933a5aa290a14235c5f60be0382c;
+historical test6fdffc8f6f4e56db353c70b501d9147d176d59b8b058ea4efb2491e5da621a88.
+Target is retained81/12 synthetic tenants/0 fault constraints; all reviewed hashes,
+template and global metadata preserved, sessions[]. The harness stopped before
+allocating the separately admitted historical target. No retry/reset is claimed.
+
+### Historical77→78 compatibility — independently green
+
+The unaffected historical proof then proceeded under its existing admission.
+yellow_order440_durable_signed_review_90607 was still absent; after another exact
+pristine77/checksum/zero-session check I created it once and left migration78 to
+the full canonical durability suite's own genuine runner. Command:
+bun test tests/fiscal-submission-durability.integration.test.ts, with only
+command-scoped YELLOW_ORDER440_DURABLE_DEPLOY_DATABASE_URL,
+YELLOW_ORDER440_DURABLE_RUNTIME_DATABASE_URL,YELLOW_REQUIRE_ORDER440_DURABILITY=1.
+Session95668 exited0: **19 pass,0 fail,227 assertions,77.22s**.
+The current worker's missing-source refusal passed with no provider calls, exact
+delivery/finance preservation and a reusable, settled single-connection pool.
+All original historical SQL, authority, concurrency, retry, late rollback and seal
+ordering cases passed. Final target78/18 synthetic tenants/0 fault constraints;
+all canonical and reviewed historical/production hashes remained unchanged,
+template77/global metadata stayed exact and remaining target/template sessions[].
+Historical test SHA6fdffc8f6f4e56db353c70b501d9147d176d59b8b058ea4efb2491e5da621a88.
+This proves intentional current-binary incompatibility on78, not current receipt
+support on78. The failed original current81 target remains untouched.
+
+### Repaired current81 compatibility — independently green
+
+After the explicitly admitted fixture-only repair I inspected its complete delta.
+The factory result must have exactly its ten reconciliation keys, the correct
+transport/lookup type and matching tenant/provider/attempt/document/payload hash;
+only after genuine RSA/signature/source binding succeeds is it projected to the
+five-field provider resolution. No production validator or applied SQL changed.
+The new pure regression projects an original source, generates real signatures,
+uses the actual worker and verifies its normalized reconciliation envelope.
+
+Frozen fixture SHA64941395887ee2a5a5a5a248b14631df1e97ff4068de07fa28d72338c0d6e810;
+runtime test SHA70d7fffe4771b5d007718c0a2af8781d4a6ac2e19d075dc6dc21893a492471cb.
+New-only yellow_order440_q204_signed_repaired_review_90607 was absent. After another
+pristine77/all77 checksums/127 tables/zero tenants/zero sessions check, I created it
+once and applied canonical78–81 on backend5616, all four migration transactions
+using that same backend. I executed the full runtime test command and the same
+required command-scoped delivery environment as the failed run; no test filtering.
+Session61636 exited0: **12 pass,0 fail,104 assertions,30.42s**.
+
+All five former failures pass: one-connection claim-commit-before-provider plus
+cleared tenant/transaction state, competing workers with exactly one submit,
+aborted/late result ignored before signed lookup, a newly constructed worker's
+original-wire lookup without resend, and signed acceptance only after explicit
+known-not-sent retry. Genuine signed receipt/QR/head binding and financial snapshots
+pass. Discovery/current-role denial/keyset bounds/unavailable/deactivation remain
+green. The new pure factory-to-worker regression also executes (122.31ms).
+Final repaired target81/12 synthetic tenants/0 fault constraints. All86 canonical
+inputs and17 frozen reviewed production/test hashes remained identical; template77
+and the global metadata hash above were unchanged. Target/template sessions[].
+The earlier failed current target was neither reset nor reused. The serial heavy
+database lane is now closed; root was notified before beginning its standing suite.
+
+Disposition: no remaining finding blocks the bounded reviewed production/SQL81
+source or these repaired compatibility changes from development publication once
+the coordinator's remaining repository gates pass. This is **not merge approval**.
+The exact published source must still pass full all-six CI, normal CodeQL, native
+ARM64 crypto/protocol and actual Linux process/POSIX loader proofs, genuine current81
+database/schema/referee/readiness gates and the final complete new80→81 upgrade
+suite. The latter's local11/3 original run remains honestly distinguished from its
+passed upgrade case and fresh81 discharge. No live provider registration, production
+activation, native-preview promotion, Order440 completion or Phase7 closure is claimed.

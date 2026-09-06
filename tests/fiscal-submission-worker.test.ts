@@ -25,11 +25,31 @@ const REQUEST = "00000000-0000-4000-8000-000000004406";
 const SUBMISSION = "00000000-0000-4000-8000-000000004407";
 const ATTEMPT = "00000000-0000-4000-8000-000000004408";
 const CLAIM_TOKEN = "00000000-0000-4000-8000-000000004409";
-const SOURCE_HASH = "1".repeat(64);
-const RESPONSE_HASH = "2".repeat(64);
+const SOURCE_JSON = '{"Version":"1.1","DocDtls":{"No":"Y-440"}}';
+const digest = (value: string) => new Bun.CryptoHasher("sha256").update(value).digest("hex");
+const SOURCE_HASH = digest(SOURCE_JSON);
+const RAW_RESPONSE = '{"Status":1,"Data":"opaque"}';
+const RESPONSE_HASH = digest(RAW_RESPONSE);
 const PROVIDER_KEY = "in-irp:verified-one";
 const WIRE_JSON = '{"Version":"1.1","DocDtls":{"No":"Y-440"}}';
 const WIRE_HASH = new Bun.CryptoHasher("sha256").update(WIRE_JSON).digest("hex");
+
+function acceptedResolution(): Extract<FiscalProviderResolution, { outcome: "accepted"; receipt: unknown }> {
+  // Synthetic structural evidence tests worker plumbing, not real signatures.
+  // Genuine provider authentication/signatures are exercised by the adapter suite.
+  const token = "e30.e30.YQ";
+  return { verified: true, outcome: "accepted", authorityRef: "c".repeat(64), responseSha256: RESPONSE_HASH,
+    receipt: { version: 1, kind: "accepted_signed_v1", protocolProfile: "clearirp_direct_v1_04_v1_03_v1",
+      environment: "sandbox", providerKey: PROVIDER_KEY, documentId: DOCUMENT,
+      documentSha256: SOURCE_HASH, wireSha256: WIRE_HASH, receivedAtUnixMs: 1000,
+      rawResponseBase64: Buffer.from(RAW_RESPONSE).toString("base64"),
+      decryptedDataBase64: Buffer.from("{}").toString("base64"), decryptedDataSha256: digest("{}"),
+      irn: "c".repeat(64), ackNo: "9007199254740993", ackDt: "2026-09-07 01:00:00",
+      signedInvoice: token, signedInvoiceSha256: digest(token), signedQRCode: token, signedQrSha256: digest(token),
+      verification: { profileVersion: "yellow_native_india_1_1_v1", issuer: "fictional", verificationUnixMs: 1000,
+        invoiceKeyId: "k", invoiceKeySpkiSha256: "d".repeat(64), invoiceBundleVersion: "v1",
+        qrKeyId: "k", qrKeySpkiSha256: "d".repeat(64), qrBundleVersion: "v1" } } };
+}
 
 function claim(overrides: Partial<Extract<FiscalSubmissionClaim, { claimed: true }>> = {}): Extract<FiscalSubmissionClaim, { claimed: true }> {
   return {
@@ -43,6 +63,7 @@ function claim(overrides: Partial<Extract<FiscalSubmissionClaim, { claimed: true
     documentSha256: SOURCE_HASH,
     wireSha256: WIRE_HASH,
     wireJson: WIRE_JSON,
+    sourceContentJson: SOURCE_JSON,
     providerKey: PROVIDER_KEY,
     providerExtensionId: EXTENSION,
     providerExtensionVersion: 7,
@@ -387,7 +408,9 @@ describe("Order 440 one-step fiscal submission worker", () => {
       expect(context.signal).toBeInstanceOf(AbortSignal);
       expect(context.deadlineUnixMs).toBeGreaterThan(Date.now());
       transportInput = input.payload;
-      return { verified: true, outcome: "accepted", authorityRef: "IRN-ORDER-440", responseSha256: RESPONSE_HASH };
+      expect(input.documentSha256).toBe(SOURCE_HASH);
+      expect(input.sourceContentJson).toBe(SOURCE_JSON);
+      return acceptedResolution();
     })]);
     const result = await new FiscalSubmissionWorker(repository, registry).runOnce(step());
     expect(result).toEqual({ ok: true, kind: "reconciled", action: "submit",
@@ -404,7 +427,8 @@ describe("Order 440 one-step fiscal submission worker", () => {
     expect(JSON.parse(String(reconcileValues[4]))).toEqual({
       type: "transport_result", tenantId: TENANT, providerKey: PROVIDER_KEY,
       attemptId: ATTEMPT, documentId: DOCUMENT, payloadSha256: WIRE_HASH,
-      outcome: "accepted", authorityRef: "IRN-ORDER-440", responseSha256: RESPONSE_HASH,
+      outcome: "accepted", authorityRef: "c".repeat(64), responseSha256: RESPONSE_HASH,
+      receipt: acceptedResolution().receipt,
     });
     expect(deeplyFrozen(result)).toBe(true);
   });
@@ -434,6 +458,7 @@ describe("Order 440 one-step fiscal submission worker", () => {
     expect({ submits, lookups }).toEqual({ submits: 0, lookups: 1 });
     expect(lookupInput).toEqual({ tenantId: TENANT, providerKey: PROVIDER_KEY,
       attemptId: ATTEMPT, documentId: DOCUMENT, payloadSha256: WIRE_HASH,
+      documentSha256: SOURCE_HASH, sourceContentJson: SOURCE_JSON,
       payload: new TextEncoder().encode(WIRE_JSON) });
     const payload = (lookupInput as typeof lookupInput & { readonly payload?: Uint8Array })?.payload;
     expect(payload).toBeInstanceOf(Uint8Array);
@@ -607,6 +632,7 @@ describe("Order 440 one-step fiscal submission worker", () => {
       ownKeys() { throw new Error("hostile provider body"); },
     });
     const invalid: unknown[] = [
+      { verified: true, outcome: "accepted", authorityRef: "c".repeat(64), responseSha256: RESPONSE_HASH },
       { verified: false, outcome: "accepted", authorityRef: "IRN", responseSha256: RESPONSE_HASH },
       { verified: true, outcome: "cleared", authorityRef: "IRN", responseSha256: RESPONSE_HASH },
       { verified: true, outcome: "accepted", authorityRef: "IRN", responseSha256: RESPONSE_HASH, extra: true },
@@ -633,7 +659,7 @@ describe("Order 440 one-step fiscal submission worker", () => {
     let providerCalls = 0;
     const registry = new VerifiedIndiaIrpAdapterRegistry([registered(async () => {
       providerCalls += 1;
-      return { verified: true, outcome: "accepted", authorityRef: "IRN", responseSha256: RESPONSE_HASH };
+      return acceptedResolution();
     })]);
     const badClaim = { ...claim(), wireSha256: "4".repeat(64) };
     const invalidClaimResult = await new FiscalSubmissionWorker(

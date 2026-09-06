@@ -1,5 +1,7 @@
 import { types as utilTypes } from "node:util";
 import type { ConnectionPool, Tx } from "../../kernel";
+import { decodeFiscalExactJson } from "./fiscal-exact-json";
+import { snapshotFiscalReceiptEvidence, type FiscalReceiptEvidence } from "./fiscal-submission-receipt";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 const SHA256 = /^[0-9a-f]{64}$/;
@@ -47,6 +49,7 @@ export type FiscalSubmissionClaim = Readonly<
       readonly documentSha256: string;
       readonly wireSha256: string;
       readonly wireJson: string;
+      readonly sourceContentJson: string;
       readonly providerKey: string;
       readonly providerExtensionId: string;
       readonly providerExtensionVersion: number;
@@ -84,6 +87,40 @@ export type FiscalSubmissionNormalizedResult = Readonly<
       readonly outcome: "accepted" | "rejected";
       readonly authorityRef: string;
       readonly responseSha256: string;
+    }
+  | {
+      readonly type: "transport_result" | "lookup_result";
+      readonly tenantId: string;
+      readonly providerKey: string;
+      readonly attemptId: string;
+      readonly documentId: string;
+      readonly payloadSha256: string;
+      readonly outcome: "accepted";
+      readonly authorityRef: string;
+      readonly responseSha256: string;
+      readonly receipt: Extract<FiscalReceiptEvidence, { kind: "accepted_signed_v1" }>;
+    }
+  | {
+      readonly type: "transport_result" | "lookup_result";
+      readonly tenantId: string;
+      readonly providerKey: string;
+      readonly attemptId: string;
+      readonly documentId: string;
+      readonly payloadSha256: string;
+      readonly outcome: "rejected";
+      readonly responseSha256: string;
+      readonly receipt: Extract<FiscalReceiptEvidence, { kind: "rejected" }>;
+    }
+  | {
+      readonly type: "lookup_result";
+      readonly tenantId: string;
+      readonly providerKey: string;
+      readonly attemptId: string;
+      readonly documentId: string;
+      readonly payloadSha256: string;
+      readonly outcome: "provider_cancelled";
+      readonly responseSha256: string;
+      readonly receipt: Extract<FiscalReceiptEvidence, { kind: "provider_cancelled" }>;
     }
 >;
 
@@ -158,7 +195,7 @@ const RETRY_KEYS = ["tenantId", "submissionId", "actorId", "idempotencyKey", "re
 const CLAIM_INPUT_KEYS = ["tenantId", "submissionId", "leaseSeconds"] as const;
 const RECONCILE_KEYS = ["tenantId", "submissionId", "attemptId", "claimToken", "result"] as const;
 const RECEIPT_KEYS = ["submissionId", "tenantId", "propertyNode", "documentId", "documentSha256", "wireSha256", "providerKey", "providerExtensionId", "providerExtensionVersion", "attemptId", "attemptNumber", "retryCount", "status", "disposition", "transitionSeq", "replayed"] as const;
-const CLAIM_KEYS = ["claimed", "action", "claimToken", "submissionId", "tenantId", "propertyNode", "documentId", "documentSha256", "wireSha256", "wireJson", "providerKey", "providerExtensionId", "providerExtensionVersion", "attemptId", "attemptNumber"] as const;
+const CLAIM_KEYS = ["claimed", "action", "claimToken", "submissionId", "tenantId", "propertyNode", "documentId", "documentSha256", "wireSha256", "wireJson", "sourceContentJson", "providerKey", "providerExtensionId", "providerExtensionVersion", "attemptId", "attemptNumber"] as const;
 const EVENT_BASE_KEYS = ["type", "tenantId", "providerKey", "attemptId", "documentId", "payloadSha256", "outcome"] as const;
 
 class InvalidReceipt extends Error {}
@@ -273,7 +310,7 @@ function validDisposition(status: FiscalSubmissionPersistedStatus, disposition: 
     case "submitted": return disposition === "lookup";
     case "accepted":
     case "rejected": return disposition === "none";
-    case "error": return disposition === "retry";
+    case "error": return disposition === "retry" || disposition === "none";
     default: return assertNever(status);
   }
 }
@@ -317,15 +354,14 @@ export function snapshotFiscalSubmissionClaim(value: unknown): FiscalSubmissionC
       || !sha256(row.wireSha256) || typeof row.wireJson !== "string"
       || row.wireJson.length > MAX_WIRE_BYTES || !isWellFormedUtf16(row.wireJson)
       || new TextEncoder().encode(row.wireJson).byteLength > MAX_WIRE_BYTES
+      || typeof row.sourceContentJson !== "string" || row.sourceContentJson.length > MAX_WIRE_BYTES
       || typeof row.providerKey !== "string" || !PROVIDER_KEY.test(row.providerKey)
       || !uuid(row.providerExtensionId) || !positiveInteger(row.providerExtensionVersion)
       || !uuid(row.attemptId) || !positiveInteger(row.attemptNumber)) return null;
-  try {
-    const parsed: unknown = JSON.parse(row.wireJson);
-    if (!record(parsed)) return null;
-  } catch {
-    return null;
-  }
+  const wire = decodeFiscalExactJson(row.wireJson);
+  const source = decodeFiscalExactJson(row.sourceContentJson);
+  if (!wire.ok || wire.value.kind !== "object" || !source.ok || source.value.kind !== "object"
+      || new Bun.CryptoHasher("sha256").update(row.sourceContentJson).digest("hex") !== row.documentSha256) return null;
   const actualHash = new Bun.CryptoHasher("sha256").update(row.wireJson).digest("hex");
   if (actualHash !== row.wireSha256) return null;
   const action = row.action as "submit" | "lookup";
@@ -333,7 +369,7 @@ export function snapshotFiscalSubmissionClaim(value: unknown): FiscalSubmissionC
     claimed: true, action, claimToken: row.claimToken,
     submissionId: row.submissionId, tenantId: row.tenantId, propertyNode: row.propertyNode,
     documentId: row.documentId, documentSha256: row.documentSha256, wireSha256: row.wireSha256,
-    wireJson: row.wireJson, providerKey: row.providerKey,
+    wireJson: row.wireJson, sourceContentJson: row.sourceContentJson, providerKey: row.providerKey,
     providerExtensionId: row.providerExtensionId,
     providerExtensionVersion: row.providerExtensionVersion,
     attemptId: row.attemptId, attemptNumber: row.attemptNumber,
@@ -347,6 +383,26 @@ export function snapshotFiscalSubmissionNormalizedResult(value: unknown): Fiscal
       || (row.type !== "transport_result" && row.type !== "lookup_result")) return null;
   const base = { type: row.type, tenantId: row.tenantId, providerKey: row.providerKey,
     attemptId: row.attemptId, documentId: row.documentId, payloadSha256: row.payloadSha256 } as const;
+  if (Object.hasOwn(row, "receipt")) {
+    if (!sha256(row.responseSha256)) return null;
+    const receipt = snapshotFiscalReceiptEvidence(row.receipt, row.responseSha256);
+    if (!receipt || receipt.providerKey !== row.providerKey || receipt.documentId !== row.documentId
+        || receipt.wireSha256 !== row.payloadSha256) return null;
+    if (row.outcome === "accepted" && receipt.kind === "accepted_signed_v1"
+        && exact(row, [...EVENT_BASE_KEYS, "authorityRef", "responseSha256", "receipt"])
+        && row.authorityRef === receipt.irn) {
+      return frozen({ ...base, outcome: "accepted", authorityRef: receipt.irn, responseSha256: row.responseSha256, receipt });
+    }
+    if (row.outcome === "rejected" && receipt.kind === "rejected"
+        && exact(row, [...EVENT_BASE_KEYS, "responseSha256", "receipt"])) {
+      return frozen({ ...base, outcome: "rejected", responseSha256: row.responseSha256, receipt });
+    }
+    if (row.type === "lookup_result" && row.outcome === "provider_cancelled" && receipt.kind === "provider_cancelled"
+        && exact(row, [...EVENT_BASE_KEYS, "responseSha256", "receipt"])) {
+      return frozen({ ...base, type: "lookup_result", outcome: "provider_cancelled", responseSha256: row.responseSha256, receipt });
+    }
+    return null;
+  }
   if (row.outcome === "accepted" || row.outcome === "rejected") {
     if (!exact(row, [...EVENT_BASE_KEYS, "authorityRef", "responseSha256"])
         || typeof row.authorityRef !== "string" || row.authorityRef.length < 1
