@@ -1,6 +1,6 @@
 # Question200 — Native Windows merged-main founder preview
 
-**Status:** ADMITTED technical local-preview implementation under Order442.
+**Status:** IMPLEMENTED; first provisioning and non-destructive reboot resumption personally verified under Order442.
 **Date:** 2026-09-06. **Source:** merged main
 `b5ef70842b658183f7b5b4c650c8e78c7a0b513d` (remote verified).
 

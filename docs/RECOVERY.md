@@ -31,6 +31,32 @@ was activated. Compose may report `down` because this preview does not use Docke
 existing runtime directories/databases/port3000. Do not rerun it as a restart
 command, recreate the databases, or rotate credentials to get back into the app.
 
+### Verified reboot resumption — 2026-09-06
+
+`scripts/resume-merged-native-review.ps1` resumes only the retained mainb5ef708
+preview after its existing PostgreSQL55503 is available. It validates the complete
+archive/extracted source, dependency junction and lockfiles, protected environment,
+actual process identity and read-only77 migration ledger. It never provisions,
+migrates, seeds, rotates passwords or replaces a listener. It uses the Order443
+bounded supervisor:5MiB per file, three files per stream, no automatic restart.
+
+Root, not the helper's implementer, personally ran7 tests/0 failures and the actual
+helper. Successful app5716/supervisor16176 started2026-09-06T06:56:53.5264898Z;
+PostgreSQL15956 remained unchanged. Exact readiness77, no-store prefill and genuine
+authentication passed again through independent HTTP calls. A second invocation
+refused the occupied port and left app5716 running. The protected receipt is
+`D:\Yellow\runtime\order442-review\resume-receipt-20260906T065651860Z.json`;
+initial receipt.json is preserved, not overwritten.
+
+Actual execution first exposed fixed-width PostgreSQL `ready   ` padding, then
+PowerShell's automatic JSON timestamp conversion. The latter failed the supervisor
+check and exposed incomplete owned-child cleanup. Root verified and stopped only
+that attempt's orphan app13072; the builder repaired timestamp normalization and
+early parent/executable/command/start-time child binding. Executable regressions
+preserve refusals for wrong/stale identities. These are recovery-helper defects,
+not evidence that the unrelated Bun crash is repaired. No new screenshot, stability
+soak, cloud deployment or later unmerged fiscal activation is claimed.
+
 ## What the crashes establish — and what they do not
 
 Nine Linux Bun signal11 dump filenames occupied **8,436,600,824 bytes** under

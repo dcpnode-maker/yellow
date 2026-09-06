@@ -1,6 +1,6 @@
 # Order 440 — Durable fiscal submission and reconciliation
 
-**Status:** ACTIVE — Q201 canonical CI passes; Q203 HTTP independently proved locally, exact CI pending.
+**Status:** ACTIVE — Q205 repairs a PR87 late-replay defect; independent79 proof passes, new combined CI/merge pending.
 Order434's exact candidate is accepted and merged; no provider is activated.
 **Phase:** 7, planned sequence item6.
 **Owner:** Codex coordinator; bounded internal builders, separate high-risk reviewer.
@@ -10,11 +10,20 @@ merged through PR83 as443e3826b47025106d1829fcbb406ce6302fbbba.
 
 ## Outcome
 
+[Question205](../questions/205-fiscal-immutable-command-replay.md) supersedes the
+earlier integration approval: original request/retry keys incorrectly returned a
+later head. Forward79 and canonical HTTP body repair now pass independently executed
+78→79 and all-key replay proof. No applied migration or stored financial row changes.
+PR87 remains unmerged pending the new exact-source gates. Q204's separate delivery
+runtime remains in development, with prospective migration80.
+
 [Question203](../questions/203-fiscal-submission-http-integration.md) admits both
 authenticated request/retry HTTP persistence paths after Q201 exact Linux CI.
 They remain unavailable by default: no role grant or adapter is activated.
 Independent real-database signed-session proof now passes: root personally13/13(125),
-including five actual PostgreSQL cases. Exact-head combined CI remains required.
+including five actual PostgreSQL cases. Exactcb9a87f all-six CI34017067690 now
+passes, with required HTTP9/9(89), including all five genuine cases, and referee11/11.
+Delivery-worker integration and authenticated provider/sandbox remain unfinished.
 
 [Question201](../questions/201-canonical-fiscal-submission-integration.md) admits
 canonical78, release/catalogue/CI proof and transaction-safe request/retry commands

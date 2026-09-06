@@ -4,7 +4,7 @@
 <!-- current-phase: 7 -->
 <!-- current-task: Codex Yellow — fiscal completion, with free-hosting and recovery preparation in parallel -->
 <!-- current-order-files: handoff/orders/442-host-recovery-and-merged-local-review.md;handoff/orders/443-runtime-storage-containment.md;handoff/orders/440-fiscal-submission-lifecycle.md -->
-<!-- current-lifecycle: canonical78 and ARM64 pass all-six CI; authenticated fiscal HTTP locally approved, combined CI pending; main77 preview stopped after reboot, native database recovered; provider and hosting inactive -->
+<!-- current-lifecycle: Q205 repairs PR87 late-replay defect with independent canonical79 upgrade proof; combined CI pending; Q204 delivery runtime in development; main77 preview preserved; provider and hosting inactive -->
 
 This is the canonical current-state record. It identifies the consolidated source,
 verified behavior, release boundaries and active work. Historical orders, reviews,
@@ -12,6 +12,30 @@ decisions and ledger entries remain evidence; their filenames are not an active
 backlog. `state.sh` and `state.ps1` read the machine-readable comments above.
 
 ## Current task
+
+**Latest correction — Q205.** PR87's six CI jobs passed, but subsequent independent
+testing found that repeated fiscal commands returned a later attempt's receipt.
+Merge was withheld. Root reproduced both late-attempt drift and immediate JSON
+body drift, then added forward79 without changing applied1–78 or stored financial
+rows. Independent genuine78→79 proof passes5/5 (447 assertions), and existing79
+proof passes5/5 (451 assertions): original request and all three retry keys retain
+their exact HTTP bytes through acceptance/rejection, with replay metadata only in
+the response header. Earlier bounded approvals below are superseded for integration;
+new exact-source CI and final integration are still required. Q204 provider-neutral
+runtime production/unit work is built but not yet database-integrated; its prospective
+migration is80. No Phase7 completion or stable-local promotion is claimed.
+
+The exact staged Q205 candidate now passes the full standing suite:1,644 tests,
+1,242 explicitly skipped database cases,zero failures,22,098 assertions across499
+files (111.62s). A first archive-only run had four failures: two lacked Git parent
+objects, one hit Chromium's transient port-file lock and one status child timed out.
+All four pass unchanged in the scoped rerun; the complete rerun used read-only Git
+metadata and a fresh browser profile. Types and176-file boundaries pass; dependency
+licences pass for the same23 installed packages in the authoritative checkout.
+The archive's junction-blind zero-package scan is not counted as licence evidence.
+Independent actual current79 schema and all11 canonical invariants also pass.
+Applied79's extra trailing blank line is retained to preserve its reviewed checksum;
+the resulting diff-check whitespace warning is recorded, not concealed.
 
 **Founder direction: finish outstanding build, then dependent phases.** The
 existing `Review Yellow Findings` task has been asked for the new UI handoff;
@@ -48,13 +72,16 @@ defect. The temporary55513 PostgreSQL
 cluster is stopped; its directories remain because cleanup was policy-blocked.
 
 **Host recovery and local preview (Orders442/443).** The laptop rebooted at
-11:34:17 IST on2026-09-06. The app is currently stopped. Root has restored only
-the retained native PostgreSQL cluster on55503; its own WAL recovery completed
-and it is ready. The existing main source, databases and protected passwords remain.
-An explicit Q200 resume helper is being implemented without reseeding or migration.
-Before reboot, exact merged mainb5ef708 ran at<http://127.0.0.1:3000/> with prefilled synthetic
-sign-in, Bun1.3.14, PostgreSQL16.15, canonical77/127 and referee11/11. A separate
-reviewer verifies source identity, readiness and real login. No WSL/Docker or
+11:34:17 IST on2026-09-06. Root restored the retained native PostgreSQL cluster
+on55503 and, at12:26:53 IST, resumed exact mainb5ef708 at<http://127.0.0.1:3000/>.
+The existing source, databases and protected passwords are unchanged. Independent
+root inspection of the builder's Q200 helper passes7/7; actual full archive identity,
+read-only77 ledger hashes, readiness and prefilled real login pass. AppPID5716 runs
+under bounded supervisor16176; PostgreSQL remains15956. Repeated invocation safely
+refuses replacement and preserves the same appPID. Logs are limited to5MiB per file,
+three per stream, with no automatic restart. This is Bun1.3.14/PostgreSQL16.15,
+canonical77/127; the initial referee11/11 remains historical evidence, not a rerun.
+No WSL/Docker or
 retained hotel database was started/refreshed. Q199's cdfca0b private durable work
 is committed/pushed development, not part of this merged-main preview.
 
@@ -130,8 +157,14 @@ proved; the isolated78 database has zero residual fault constraints or sessions.
 Fresh independent fiscal_http_acceptance personally repeats13/13(125) plus both
 legacy composition suites11/11(75), with no blocking finding. Root full standing
 passes1635/0 with1234explicit DB skips,22058assertions and clean process exit;
-the incomplete pre-reboot run is not counted. The combined Q203 source still
-requires its own exact-head CI before integration. The earlier
+the incomplete pre-reboot run is not counted. Exact combinedcb9a87f now passes all
+six jobs in[CI34017067690](https://github.com/dcpnode-maker/yellow/actions/runs/34017067690).
+Non-implementer fiscal_http_acceptance personally dispatched and inspected the run;
+root independently retrieved its success and database log. Required HTTP proof
+passes9/9(89), including five genuine signed-session cases; durable19/19,
+migrations43/43, containment/readiness15/15, deployment24/24 and referee11/11 pass.
+This completes the bounded HTTP acceptance, not worker/provider activation or merge.
+The earlier
 private-only figures above are historical Q199 evidence.
 
 **Order440 hotel journeys** preserves cross-department guest/staff research,
@@ -189,7 +222,7 @@ states. The runtime must identify its exact source and applied migration frontie
 | Phase4 | Built; integration review outstanding | Preserve implementation and close remaining integration evidence |
 | Phase7 operational flows | Consolidated and independently approved baseline | PMS, stay, folio, payment, approval and fiscal-support flows remain preserved; this does not complete the whole phase |
 | Order434 native fiscal issuance | Independently approved and merged through PR83 | Real source-to-invoice, accounting, replay, concurrency, tenant isolation, bounds and migration proofs pass; no provider registration or operator invoice screen is implied |
-| Order440 fiscal submission | Canonical persistence/Tx commands pass exact Linux CI; authenticated HTTP passes independent local proof and awaits its own CI | Worker integration, provider authentication, runtime activation and live sandbox evidence remain outstanding |
+| Order440 fiscal submission | Canonical79 repairs independently reproduced late-replay defect; genuine upgrade and all-key HTTP replay pass independent proof | New combined CI and merge, worker integration, provider authentication, runtime activation and live sandbox evidence remain outstanding |
 | Order440 hotel journeys | Reviewed study merged through PR84 | Cross-department research and a fictional prototype; final reference-matched visual QA and laptop execution remain separate |
 | Order441 RMS research | Astra Ultra portfolio documented | Known methods, falsifiable proposals and experiment design; no live algorithm or measured uplift |
 | Phases8–17 | Planned | Requirements, research and department studies are preserved; documentation is not shipped behavior |

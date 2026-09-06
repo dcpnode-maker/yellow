@@ -407,3 +407,333 @@ The earlier1633pass/2fail run exposed stale constructor strings, now permanently
 corrected and independently exercised above. Local bounded approval is conditional
 on combined exact-head CI; no live provider, sandbox registration, worker activation,
 merge, deployment, whole Order440 or Phase7 completion is claimed.
+
+
+## Q203 exact-source CI acceptance
+
+Non-implementing reviewer `/root/fiscal_http_acceptance` personally dispatched
+and inspected [CI34017067690](https://github.com/dcpnode-maker/yellow/actions/runs/34017067690)
+at cb9a87ff5e94b47a9172f7e0f919c4df0e6f2ef5; root separately retrieved its status
+and database log. All six jobs passed. Database job 101442779655 records required
+HTTP proof 9/9 (89 assertions, 11.74 s), including each of the five genuine
+signed-session PostgreSQL cases and isolated database cleanup. Durable submission
+19/19, migrations 43/43, containment/readiness 15/15, deployment 24/24 and canonical
+referee 11/11 passed. ARM64 job 101442779664 verifies the same revision at frontier78.
+
+This discharges the exact-head CI condition on the bounded Q203 acceptance.
+It does not merge the branch, activate a provider or complete Order440/Phase7.
+The later Q200 resume-helper source is not covered by this earlier commit's CI.
+
+## PR87 independent integration review — blocking replay finding
+
+Reviewer: `/root/fiscal_http_acceptance`, non-implementer and not the PR-authoring
+agent. Date: 2026-09-06. Immutable candidate:
+`b5ef70842b658183f7b5b4c650c8e78c7a0b513d..cb9a87ff5e94b47a9172f7e0f919c4df0e6f2ef5`.
+The complete 71-file candidate, retained Order440/442/443 acceptance, frozen SQL,
+schema and worker identities, canonical CI, native supervisor and recovery scope
+were inspected. Earlier bounded acceptance above is superseded by the blocking
+finding below; green existing suites do not establish late-replay correctness.
+
+### Personally executed supplemental candidate proof
+
+```text
+pwsh -NoProfile -File tests/run-native-review-bounded.test.ps1
+PASS: 21 assertions, 9.30s
+bun test tests/fiscal-submission-commands.test.ts tests/fiscal-submission-worker.test.ts \
+  tests/runtime-storage-containment.test.ts tests/free-host-arm64.test.ts \
+  tests/release-workflow.test.ts tests/setup-current-catalogue-oracle.test.ts
+31 pass, 0 fail, 261 assertions, 201ms
+```
+
+The supervisor proof owns only synthetic PowerShell children and four newly named
+GUID fixtures under `D:/Yellow/temp`; these are retained. It starts no application,
+database, WSL or Docker service, fills no disk, and does not exercise the known
+crashing Windows Bun readiness suite. No review source edits preceded these runs.
+
+### P2: old request/retry keys return a later attempt's mutable head
+
+[Automated discussion3943264423](https://github.com/dcpnode-maker/yellow/pull/87#discussion_r3943264423)
+first identified the missing case. The independent reviewer checked the claim
+against source and personally reproduced it with genuine signed HTTP and native
+PostgreSQL, rather than accepting the automated description as proof.
+
+`migrations/0078_fiscal_submission_durability.sql` lines708,723 and816 return
+`india_fiscal_submission_receipt(v_head,true)` on matching historical request/retry
+keys. They load the current mutable head, not the operation's immutable history
+snapshot. `docs/CONTRACTS.md` lines47–48 require exact successful JSON replay;
+D-443/D-444 specifically reject replacing a stored HTTP creation representation
+with a later/replayed representation. Q199 contains no current-head exception.
+The existing permanent tests check immediate replay, identity or the replay flag,
+but do not replay an old operation after subsequent attempts have advanced.
+
+Executed command: native Bun1.3.14 `bun -e $q203Proof`, with the JavaScript supplied
+as a PowerShell in-memory here-string. Exit0,3.22s. No harness file was created or
+retained; the full invocation/output is retained in this review agent's tool
+transcript. The harness method is reproducible from these exact existing helpers:
+
+1. In-process, load only `YELLOW_DEPLOY_DATABASE_URL` from
+   `D:/Yellow/runtime/order442-review/seed.env` and `YELLOW_RUNTIME_DATABASE_URL`
+   from `app.env`; require hostname127.0.0.1 and port55503, replace only pathname
+   with `/yellow_order440_q203_90601`, and verify current database plus frontier78.
+   Neither credentials, URL values nor tokens were printed.
+2. Create one new synthetic scenario using
+   `createFiscalSubmissionHttpScenario(deploy,database)` from
+   `tests/fixtures/order440-fiscal-submission-http.ts`; compose
+   `fiscalSubmissionHttpApp`, `Hs256TokenSigner` and `fiscalToken` exactly as in the
+   permanent HTTP suite. Use a fresh UUID-suffixed request key and two distinct
+   UUID-suffixed retry keys. Every HTTP operation must return201.
+3. Request through `app.handle(fiscalRequest(...))`; retain the original receipt.
+   In separate direct runtime transactions, set local tenant, call
+   `claim_india_fiscal_submission(tenant,submission,60)`, commit its claim, then
+   reconcile its exact tenant/provider/document/wire/attempt/token binding with
+   normalized `transport_result/known_not_sent`. This is synthetic transport
+   evidence, not an external provider call.
+4. Retry through `app.handle(fiscalRetryRequest(...))` with the first retry key;
+   retain that receipt. Repeat the genuine claim/known-not-sent reconciliation
+   and submit the second retry key. Finally replay the original request key and
+   the first retry key using their original HTTP selectors.
+5. Compare opaque attempt identities and report only attempt number, retry count,
+   status, transition sequence and replay flag; close all three connection pools.
+
+Observed results (all statuses pending):
+
+| Operation | Attempt | Retry count | Transition | Replayed |
+|---|---:|---:|---:|---|
+| Original request | 1 | 0 | 1 | false |
+| First retry | 2 | 1 | 4 | false |
+| Second retry | 3 | 2 | 7 | false |
+| Original request-key replay | 3 | 2 | 7 | true |
+| First retry-key replay | 3 | 2 | 7 | true |
+
+Both old-key responses changed attempt UUID. This conclusively demonstrates the
+original request and first retry misattributing a later attempt as their response.
+The existing HTTP test also deliberately changes body `replayed` on immediate
+replay; the repair must reconcile that representation with D-443/D-444 rather than
+merely adding a status-only assertion.
+
+Only the existing named Q203 disposable database received synthetic fixture and
+delivery writes. No migration, clone, seed command, role provisioning, production
+DB, pristine77 template, provider call or unrelated cluster was touched. SQL78
+remained SHA256
+`65323a81a999a11e3d55893411c994c0b841af9b0465ca7e80630fd78d0ffae6`.
+Concurrent uncommitted Q204 provider/worker/repository changes were excluded from
+the immutable candidate review. The reproduction's HTTP `FiscalSubmissionService`
+request/retry implementation is unchanged by that repository diff; claim/reconcile
+were direct SQL, not the uncommitted worker. Thus the defect is in candidate78.
+
+### Disposition
+
+WITHHOLD PR87 merge and complete Q203/integration approval. Root accepted the finding
+and will admit a forward-only repair without changing applied78. Require permanent
+late-request and late-retry replay tests, unchanged canonical HTTP body/replay-header
+behavior, fresh independent genuine proof, and new exact-head CI before approval.
+Do not resolve the automated thread or bypass the conversation-resolution gate on
+the strength of the old green run. No PR merge, comment-resolution or implementation
+edit was performed by this reviewer.
+
+Existing manually dispatched exact-candidate CI34017067690 passed all six jobs as
+recorded above. PR-triggered CI34018171495 is still being observed without duplicate
+dispatch/restart/cancellation: five jobs plus all CodeQL checks passed; database is
+in progress after successful migration and seed suites. Its eventual green result
+cannot close this independently reproduced test-coverage gap.
+
+Final observation: PR CI34018171495 completed SUCCESS, all six jobs, with database
+job101445870506 completing in15m54s. All four displayed CodeQL checks also passed.
+Reviewer personally retrieved the completed database log: required Q2039/0(89;
+12.22s), all five signed-session cases, explicit Q203 database drop and subsequent
+absence, durability19/0(223;64.78s), containment/readiness15/0(59), deployment24/0(69),
+canonical referee11/11 and runtime/cleanup job steps passed. PR remains OPEN,
+MERGEABLE but BLOCKED by unresolved conversation; its exact head/base are unchanged.
+The P2 and WITHHOLD disposition remain in force. No merge was performed.
+
+## Q205 independent forward-repair acceptance — 2026-09-06
+
+Reviewer `/root/fiscal_http_acceptance` remains independent of all repair product
+and test implementation. It read the complete Q205 admission, migration79, expanded
+permanent test and fixture, and the exact operator response delta, using the
+PostgreSQL patterns skill. Review edits are append-only in this admitted record.
+Q204's concurrent runtime/provider/health changes are explicitly excluded.
+
+### Source inspection
+
+The new owner-private `india_fiscal_submission_history_receipt` projects the exact
+recorded submission/provider/document/attempt/state/transition fields from the
+append-only command history row. It neither reads the live head nor reconstructs
+financial evidence. It is owner-owned, invoker-mode, STRICT, fixed-search-path and
+non-executable by PUBLIC/app_role/yellow_runtime. Existing request/retry signatures,
+SECURITY DEFINER owner, authority checks, semantic request hashes, locks, first
+effects and runtime claim/reconcile remain unchanged.
+
+An independently executed in-memory Bun comparison extracted both complete function
+bodies from78 and79, normalized only CREATE OR REPLACE, and proved byte equality
+after exactly two request and one retry replay-return substitutions. Migration79
+contains no data update/backfill or new table. Applied1–78 have no tracked diff
+against cb9a87f, and each stored ledger hash matched its canonical file after upgrade.
+The HTTP body's existing `replayed` field is always false; the original service
+receipt metadata still controls `Idempotency-Replayed`. The prior Q203 immediate
+replay oracle now compares the entire canonical body rather than expecting drift.
+
+### Personally executed genuine upgrade and permanent proof
+
+The reviewer verified exact `yellow_order434_production` on127.0.0.1:55503 contained
+77 migrations,127 public tables,zero tenants and zero other sessions, with owner
+yellow_deploy; every stored1–77 hash matched canonical bytes. After confirming the
+target did not exist, it created only `yellow_order440_q205_review_90601` from that
+pristine template through the existing deploy principal. No roles were provisioned.
+
+PowerShell New-Item/Copy-Item mechanically copied the exact78 canonical migration
+files into new `D:/Yellow/temp/q205-review-5581619b128544f9ad1fdbe2932a902a`.
+`runMigrations({databaseUrl,migrationsDirectory:prefix,logger:()=>{}})` discovered78
+and applied only `0078_fiscal_submission_durability.sql` to the new reviewer DB.
+Neither the source template nor a retained hotel/review database was migrated.
+
+Native Bun1.3.14 then personally executed:
+
+```text
+YELLOW_REQUIRE_ORDER440_REPLAY=1
+YELLOW_ORDER440_REPLAY_APPLY_UPGRADE=1
+bun test tests/fiscal-submission-immutable-replay.integration.test.ts
+target: yellow_order440_q205_review_90601
+5 pass, 0 fail, 447 assertions, 13.72s
+
+YELLOW_REQUIRE_ORDER440_REPLAY=1
+YELLOW_ORDER440_REPLAY_APPLY_UPGRADE=0
+bun test tests/fiscal-submission-immutable-replay.integration.test.ts
+target: existing yellow_order440_q205_90601 at79
+5 pass, 0 fail, 451 assertions, 13.81s
+```
+
+Each child had command-scoped `YELLOW_ORDER440_REPLAY_DEPLOY_DATABASE_URL` and
+`YELLOW_ORDER440_REPLAY_RUNTIME_DATABASE_URL`, loaded privately in-process from
+the existing protected seed/app env files. Host and port were required to be
+127.0.0.1:55503 and only the pathname was replaced. No credential, URL value or
+bearer token was printed. The initial pre-freeze already79 run5/0(285;14.25s) is
+retained as provisional history, not a substitute for these frozen expanded runs.
+
+The actual upgrade branch creates and commits an original request and first retry
+under78, captures complete sorted JSON rows for fiscal_submission, history, fact,
+outbox, document, series, journal and posting_line, applies only79 with the canonical
+runner, and proves all eight snapshots unchanged. Those pre79 operation keys then
+retain their original status201 and exact HTTP bytes after later attempts and
+terminal acceptance. A second genuine family proves terminal rejection.
+
+The expanded permanent proof retains the original request and all three explicit
+retry keys, reaches attempt4/retry3, and performs five concurrent repetitions per
+retained key at the relevant pending/in-flight/terminal stages. It checks exact
+body bytes,201 status,replay-only header,no-store and unchanged eight-table state.
+Immediate replay, revoked current request/retry permission, changed document
+identity, genuine other-tenant authority and owner-private helper metadata pass.
+
+Additional personally executed SQL invoked the history helper with a non-null
+synthetic composite value under direct yellow_runtime and SET LOCAL ROLE app_role;
+both denied with SQLSTATE42501. An initial NULL argument probe was uninformative
+because STRICT NULL folding avoids invoking the function; that harness assertion
+was corrected to a non-null composite, not counted as a product failure or proof.
+Final reviewer DB census:79 exact matching ledger hashes,128 public tables,zero
+other sessions. Pristine template recheck:77 migrations,127 tables,zero tenants,
+zero other sessions. All pools closed; new reviewer DB and prefix are retained for
+coordinator-managed bounded follow-on proof. No cleanup, restart or live activation.
+
+Frozen accepted source hashes (SHA256):
+
+```text
+0078_fiscal_submission_durability.sql
+65323a81a999a11e3d55893411c994c0b841af9b0465ca7e80630fd78d0ffae6
+0079_fiscal_immutable_command_receipts.sql
+b233821d0b683810542f91834458e98f657996268d81bc81398f6c15f86ca52f
+fiscal-submission-immutable-replay.integration.test.ts
+46eaef35e3f63db6da4f265dbe891d672ad62ad1538d55ec3deb77c00656031e
+order440-fiscal-immutable-replay.ts
+54ff7192b03c5180fa748ffd48bc1b38a5e634bb31af5ecd6b8d5d8c9145be23
+```
+
+### Narrow disposition
+
+The reproduced P2 is repaired in this frozen Q205 local source, with independently
+executed real78→79 and all-key late-replay evidence. No new blocking finding in the
+bounded repair. This is not approval of excluded Q204 work or a merge authorization
+for old cb9a87f: combined current-frontier/schema/full repository gates and fresh
+exact-source CI must complete, followed by final PR head/base/check review. The old
+PR87 remains unmerged and its discussion is not resolved by this local record alone.
+
+## Q205 independent current79 referee, schema and gate review
+
+Reviewer `/root/fiscal_http_acceptance`, 2026-09-06, independently completed the
+coordinator-requested current-frontier proof before repaired PR publication. This
+does not reuse the older77/78 referee result. PostgreSQL patterns were re-read and
+the canonical seed/referee path was checked against setup.sh before execution.
+
+Only new `yellow_order440_q205_referee_90601` was created, using existing
+yellow_deploy authority after target-absence and exact pristine-template checks:
+`yellow_order434_production` on127.0.0.1:55503,77 migrations,127 public tables,zero
+tenants,zero sessions. The canonical runner discovered79 and applied exactly78
+and79. No role, cluster, application, retained review database or template changed.
+
+Native PostgreSQL16.15 `pg_dump --schema-only --no-owner --no-comments` against the
+new target was captured in memory. The repository's `normalizeSchemaDump(...,true)`
+removed only its validated random wrapper pair and normalized line endings. The
+result exactly equals `tests/schema/expected.sql`:1,616,718 UTF-8 bytes, SHA256
+`fc3b1af4c6f9d929acd8f58d4907f56fcda6bc926f3ef896daa7de0dc5bbda63`.
+No expected-schema edits or normalization weakening were performed by the reviewer.
+
+Then executed the normal unwrapped seed and canonical referee (native paths, with
+password/YELLOW_DSN supplied only through child-scoped environment):
+
+```text
+E:/yellow/toolchains/postgresql-16.15/pgsql/bin/psql.exe \
+  --host 127.0.0.1 --port 55503 --username yellow_deploy \
+  --dbname yellow_order440_q205_referee_90601 --no-password --no-psqlrc \
+  --set ON_ERROR_STOP=1 --file tests/seed_fixture.sql
+canonical seed succeeded
+
+C:/Users/astha/AppData/Local/Programs/Python/Python313/python.exe \
+  tests/run_invariants.py yellow_order440_q205_referee_90601
+RESULT: 11 passed, 0 failed of 11
+```
+
+Actual results: exclusive50-thread race1 winner; private/bed claims never coexist;
+40-thread capacity race exactly6; direct app INSERT42501;162 committed throughput
+claims in0.57s; unbalanced commit denied,balanced commit accepted; sealed-day posting
+denied;100 fiscal numbers gapless1–100;118/118 tenant-table RLS/policies and both
+security-invoker views enforce real tenant isolation. No Order130 observer wrapper,
+fixture mutation, Docker/WSL invocation or copied implementer output was used.
+The synthetic referee database is retained; no material resource was deleted.
+
+### Current-frontier and required-CI inspection/proof
+
+The reviewer inspected the Q205 CI block and its surrounding fail-fast cleanup
+trap, the new pure workflow test, current79 build/launcher/setup/release constants,
+database catalogue/hash addition and fresh-current proof checks. The exact historical
+77→78 migration/durability tests now use a mechanically copied prefix78 rather than
+accidentally consuming79. The added79 migration suite preserves rollback, ledger,
+no-op, checksum-drift and fresh-versus-upgrade assertions. No applied SQL or historical
+hash was rewritten. These are admitted Q205 frontier/proof changes, not Q204 runtime.
+
+The new CI target is registered for cleanup before creation, starts from exact78,
+passes distinct deploy/runtime URLs plus both REQUIRE and APPLY_UPGRADE flags, and
+runs the whole immutable replay test without filtering or error suppression. It
+executes actual pre79 receipts and forward migration inside the permanent test,
+then removes its own proof DB. Existing six CI jobs, ARM64 native execution and
+release source/revision gates are unchanged except for current79 expectations.
+
+Personally executed:
+
+```text
+bun test tests/fiscal-replay-workflow.test.ts tests/build-readiness.test.ts \
+  tests/free-host-arm64.test.ts tests/release-workflow.test.ts \
+  tests/setup-current-catalogue-oracle.test.ts tests/schema-drift.test.ts
+17 pass, 0 fail, 156 assertions, 401ms
+```
+
+These readiness tests are pure HTTP/probe tests, not the known crashing Windows
+database-readiness suite. Both workflow files additionally parse as valid YAML
+with Bun.YAML: CI6 jobs,release1 job. Focused diff-check passes. CI SHA256
+`f85f1539bc213f57a401e1c19f8cbe1c460d828161808f1a8f49d51a0ab0bb98`;
+new workflow-test SHA256
+`bc54650948a166567e9d2790fd131aba2b85b0892ef4a7d159fe863834db583b`.
+
+No additional blocking finding in these gates. Current79 canonical referee/schema
+conditions are personally discharged. Full repaired-candidate standing gates,
+fresh exact-source CI and final independent PR head/base/conversation/check review
+remain required before merge. This reviewer made only this appended review record;
+no push, merge, PR-thread resolution, provider call or activation occurred.

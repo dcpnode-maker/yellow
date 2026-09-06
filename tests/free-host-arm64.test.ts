@@ -44,7 +44,7 @@ describe("Order442 free-host native ARM64 preparation", () => {
     expect(job).not.toMatch(/continue-on-error|YELLOW_REVIEW_PASSWORD=|YELLOW_RUNTIME_DATABASE_PASSWORD=/);
     const launcher = await Bun.file(new URL("../scripts/local-review.sh", import.meta.url)).text();
     expect(launcher).toContain("./setup.sh --db-only");
-    expect(launcher).toContain("body.build?.expectedMigrationFrontier !== 78");
+    expect(launcher).toContain("body.build?.expectedMigrationFrontier !== 79");
     expect(launcher).toContain("/api/v1/auth/local:login");
     expect(workflow.replace(/\r\n/g, "\n")).toContain("  database:\n");
     expect(workflow).toContain("YELLOW_REQUIRE_ORDER440_DURABILITY=1");

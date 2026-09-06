@@ -154,3 +154,34 @@ pg_restore --list native-review-database.pgdump: exit 0, 1950 archive entries
 The checkpoint is StageOnly: no Drive files were created, no restore or database
 creation was attempted, and no deletion was performed. Mounted Drive/cloud sync,
 restore success, and recovery of later post-capture changes remain unverified.
+
+
+## Q200 reboot-resume executable review
+
+Reviewer: `/root`, not the implementation agent `native_resume_builder`.
+Date: 2026-09-06. Scope: the new resume helper and its tests only.
+
+Root inspected the full helper and personally ran the final focused suite:
+7 passed, 0 failed, 19 assertions. Actual execution exposed two defects before
+acceptance: fixed-width PostgreSQL PID status padding, and PowerShell JSON UTC
+timestamp conversion coupled with cleanup that could leave an owned child behind.
+The builder corrected both; root reviewed and reran executable regressions for
+PID/path/port/address/status, JSON string and DateTime normalization, and exact
+parent/executable/command/start-time ownership. No arbitrary status PID is trusted.
+
+The repaired helper exited 0 and preserved existing main source, database and
+credentials. App 5716 and bounded supervisor 16176 started at
+2026-09-06T06:56:53.5264898Z; retained PostgreSQL 15956 stayed untouched. The initial
+source archive SHA256 F923DDAD39171E449A3712725A3C43358E7916B6B80E4BA056FC4E2ED0268087
+and every extracted file match. Actual read-only migration ledger remains 77 with
+SHA256 e44e0baf02e57872aa8b83a7c626919ff36c48950c9e7606dee9354c5adbf96e.
+Root separately made real GET /ready and POST /api/v1/auth/local:login calls:
+main b5ef708, frontier 77, ready, no-store prefill and authentication all pass.
+A repeated helper invocation refused the occupied port and preserved app PID 5716.
+
+Acceptance is bounded to this non-destructive resumption and its owned-process
+failure cleanup. Five-MiB/three-per-stream diagnostic limits reuse Order443;
+actual oversized-output/low-disk proof remains in that order's review. No screenshot,
+new referee execution, provider activation, long soak, cloud upload or crash repair
+is implied. The earlier orphan app 13072 was stopped by root only after exact
+process and source verification; no PostgreSQL or unrelated process was stopped.

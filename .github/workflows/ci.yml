@@ -374,7 +374,7 @@ jobs:
       - name: Run seed integration suite
         run: bun run test:db:seed
 
-      - name: Prove Order434 native fiscal suite on a fresh migrated 78 database
+      - name: Prove Order434 native fiscal suite on a fresh migrated 79 database
         shell: bash
         timeout-minutes: 35
         run: |
@@ -431,7 +431,7 @@ jobs:
           docker compose exec -T postgres psql --username yellow_deploy --dbname postgres --set ON_ERROR_STOP=1 \
             --command "DROP DATABASE ${wire_database} WITH (FORCE)"
 
-          # Q203 exercises signed-session HTTP against an isolated canonical78 clone.
+          # Q203 exercises signed-session HTTP against an isolated current79 clone.
           q203_database="yellow_order440_q203_ci"
           native_clones+=("$q203_database")
           docker compose exec -T postgres psql --username yellow_deploy --dbname postgres --set ON_ERROR_STOP=1 \
@@ -442,6 +442,29 @@ jobs:
             bun test tests/operator-fiscal-submission.integration.test.ts
           docker compose exec -T postgres psql --username yellow_deploy --dbname postgres --set ON_ERROR_STOP=1 \
             --command "DROP DATABASE ${q203_database} WITH (FORCE)"
+
+          # Q205 records real request/retry receipts on78, then proves their
+          # immutable HTTP bytes through the forward79 upgrade and later attempts.
+          q205_database="yellow_order440_q205_ci"
+          native_clones+=("$q205_database")
+          docker compose exec -T postgres psql --username yellow_deploy --dbname postgres --set ON_ERROR_STOP=1 \
+            --command "CREATE DATABASE ${q205_database}"
+          replay_migrations="$(mktemp -d "$RUNNER_TEMP/yellow-order440-prefix78.XXXXXX")"
+          for migration in "$GITHUB_WORKSPACE"/migrations/*.sql; do
+            filename="$(basename "$migration")"
+            if (( 10#${filename:0:4} <= 78 )); then cp "$migration" "$replay_migrations/$filename"; fi
+          done
+          YELLOW_DEPLOY_DATABASE_URL="postgres://yellow_deploy:${YELLOW_DEPLOY_DATABASE_PASSWORD}@${POSTGRES_ADDRESS}/${q205_database}" \
+          YELLOW_ORDER440_PRE_MIGRATIONS_DIR="$replay_migrations" \
+            bun -e 'import { runMigrations } from "./scripts/migrate"; const result = await runMigrations({ databaseUrl: process.env.YELLOW_DEPLOY_DATABASE_URL, migrationsDirectory: process.env.YELLOW_ORDER440_PRE_MIGRATIONS_DIR }); if (result.discoveredFiles !== 78) throw new Error("Expected the exact prefix-78 predecessor");'
+          YELLOW_ORDER440_REPLAY_DEPLOY_DATABASE_URL="postgres://yellow_deploy:${YELLOW_DEPLOY_DATABASE_PASSWORD}@${POSTGRES_ADDRESS}/${q205_database}" \
+          YELLOW_ORDER440_REPLAY_RUNTIME_DATABASE_URL="postgres://yellow_runtime:${YELLOW_RUNTIME_DATABASE_PASSWORD}@${POSTGRES_ADDRESS}/${q205_database}" \
+          YELLOW_REQUIRE_ORDER440_REPLAY=1 YELLOW_ORDER440_REPLAY_APPLY_UPGRADE=1 \
+            bun test tests/fiscal-submission-immutable-replay.integration.test.ts
+          [[ "$replay_migrations" == "$RUNNER_TEMP"/yellow-order440-prefix78.* ]]
+          rm -r -- "$replay_migrations"
+          docker compose exec -T postgres psql --username yellow_deploy --dbname postgres --set ON_ERROR_STOP=1 \
+            --command "DROP DATABASE ${q205_database} WITH (FORCE)"
 
           # Q201 proves legacy retention and atomic canonical 77-to-78 upgrade.
           durable_database="yellow_order440_durable_ci"
@@ -619,7 +642,7 @@ jobs:
           READY_FILE="$proof_directory/readiness.json" bun -e '
             const body = await Bun.file(process.env.READY_FILE!).json();
             if (body.status !== "ready" || body.build?.revision !== process.env.YELLOW_BUILD_SHA
-                || body.build?.expectedMigrationFrontier !== 78
+                || body.build?.expectedMigrationFrontier !== 79
                 || body.target !== "yellow_runtime_database") process.exit(1);
           '
 

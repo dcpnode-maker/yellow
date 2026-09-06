@@ -1,7 +1,7 @@
 import type { ReservedSQL, SQL } from "bun";
 
 const GIT_SHA = /^[0-9a-f]{40}$/;
-export const CURRENT_MIGRATION_FRONTIER = 78 as const;
+export const CURRENT_MIGRATION_FRONTIER = 79 as const;
 
 export interface BuildInfo {
   readonly schemaVersion: 1;

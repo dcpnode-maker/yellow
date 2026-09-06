@@ -43,6 +43,26 @@ const MIGRATIONS = resolve(import.meta.dir, "..", "migrations");
 const CANONICAL78 = "0078_fiscal_submission_durability.sql";
 const CANONICAL78_HASH = "65323a81a999a11e3d55893411c994c0b841af9b0465ca7e80630fd78d0ffae6";
 
+async function withCanonical78Migrations<T>(operation: (directory: string) => Promise<T>): Promise<T> {
+  const directory = await mkdtemp(join(tmpdir(), "yellow-order440-canonical78-"));
+  try {
+    const names = (await readdir(MIGRATIONS))
+      .filter(name => /^\d{4}_.*\.sql$/.test(name) && Number(name.slice(0, 4)) <= 78)
+      .sort();
+    expect(names.map(name => Number(name.slice(0, 4))))
+      .toEqual(Array.from({ length: 78 }, (_, index) => index + 1));
+    expect(names.at(-1)).toBe(CANONICAL78);
+    await Promise.all(names.map(name => copyFile(join(MIGRATIONS, name), join(directory, name))));
+    return await operation(directory);
+  } finally {
+    if (!resolve(directory).startsWith(resolve(tmpdir()) + "/")
+        && !resolve(directory).startsWith(resolve(tmpdir()) + "\\")) {
+      throw new Error("Canonical78 cleanup escaped its temporary root");
+    }
+    await rm(directory, { recursive: true, force: true });
+  }
+}
+
 databaseDescribe("Order440 durable fiscal delivery on genuine issued invoices", () => {
   let deploy: SQL;
   let worker: SQL;
@@ -284,21 +304,12 @@ databaseDescribe("Order440 durable fiscal delivery on genuine issued invoices", 
     legacyBefore = await legacyRow();
     const canonical = await Bun.file(join(MIGRATIONS, CANONICAL78)).text();
     expect(hash(canonical)).toBe(CANONICAL78_HASH);
-    const failureDirectory = await mkdtemp(join(tmpdir(), "yellow-order440-canonical-failure-"));
-    try {
-      const names = (await readdir(MIGRATIONS)).filter(name => /^\d{4}_.*\.sql$/.test(name));
-      await Promise.all(names.map(name => copyFile(join(MIGRATIONS, name), join(failureDirectory, name))));
+    await withCanonical78Migrations(async (failureDirectory) => {
       await writeFile(join(failureDirectory, CANONICAL78), canonical +
         "\nDO $$ BEGIN RAISE EXCEPTION 'order440-canonical-migration-rollback-proof'; END $$;\n");
       await expect(runMigrations({ databaseUrl: deployUrl!, migrationsDirectory: failureDirectory,
         logger: () => undefined })).rejects.toThrow("order440-canonical-migration-rollback-proof");
-    } finally {
-      if (!resolve(failureDirectory).startsWith(resolve(tmpdir()) + "/")
-          && !resolve(failureDirectory).startsWith(resolve(tmpdir()) + "\\")) {
-        throw new Error("Proof cleanup escaped its temporary root");
-      }
-      await rm(failureDirectory, { recursive: true, force: true });
-    }
+    });
     const [rolledBack] = await deploy<{ absent: boolean; privileges: number }[]>`
       SELECT to_regclass('public.fiscal_submission_history') IS NULL AS absent,
         (SELECT count(*)::integer FROM public.permission WHERE code IN
@@ -308,13 +319,17 @@ databaseDescribe("Order440 durable fiscal delivery on genuine issued invoices", 
       SELECT count(*)::integer AS count FROM public.schema_migration`;
     expect(rolledBackLedger?.count).toBe(77);
     expect(await legacyRow()).toEqual(legacyBefore);
-    const migrated = await runMigrations({ databaseUrl: deployUrl!, logger: () => undefined });
+    const migrated = await withCanonical78Migrations(directory => runMigrations({
+      databaseUrl: deployUrl!, migrationsDirectory: directory, logger: () => undefined,
+    }));
     expect(migrated.appliedFiles).toEqual([CANONICAL78]);
     expect(migrated.discoveredFiles).toBe(78);
     const [ledger78] = await deploy<{ filename: string; checksum_sha256: string }[]>`
       SELECT filename, checksum_sha256 FROM public.schema_migration WHERE version=78`;
     expect(ledger78).toEqual({ filename: CANONICAL78, checksum_sha256: CANONICAL78_HASH });
-    expect((await runMigrations({ databaseUrl: deployUrl!, logger: () => undefined })).appliedFiles).toEqual([]);
+    expect((await withCanonical78Migrations(directory => runMigrations({
+      databaseUrl: deployUrl!, migrationsDirectory: directory, logger: () => undefined,
+    }))).appliedFiles).toEqual([]);
   }, 180_000);
 
   afterAll(async () => { await database?.close(); await worker?.close(); await deploy?.close(); });

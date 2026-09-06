@@ -255,8 +255,8 @@ databaseDescribe("Q203 signed-session fiscal submission HTTP integration", () =>
              to_regprocedure('public.request_india_fiscal_submission(uuid,uuid,uuid,uuid,uuid,text,uuid)')::text AS fiscal
       FROM public.schema_migration
     `;
-    if (frontier?.applied !== 78 || frontier.fiscal === null) {
-      throw new Error("Q203 proof database must be an exact canonical78 database");
+    if (frontier?.applied !== 79 || frontier.fiscal === null) {
+      throw new Error("Q203 proof database must be an exact canonical79 database");
     }
   });
 
@@ -380,7 +380,7 @@ databaseDescribe("Q203 signed-session fiscal submission HTTP integration", () =>
     expect(replay.status).toBe(201);
     expect(replay.headers.get("idempotency-replayed")).toBe("true");
     const replayBody = await replay.json() as FiscalSubmissionHttpBody;
-    expect(replayBody.fiscalSubmission).toEqual({ ...firstBody.fiscalSubmission, replayed: true });
+    expect(replayBody).toEqual(firstBody);
     expect(await deliveryEvidence(scenario.tenantId)).toEqual({ heads: 1, history: 1, facts: 1, events: 1 });
 
     const otherRequest = await app.handle(fiscalRequest(other, otherToken, key("other-tenant-source")));

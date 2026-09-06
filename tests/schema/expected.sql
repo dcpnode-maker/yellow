@@ -5754,6 +5754,88 @@ $$;
 
 
 --
+-- Name: fiscal_submission_history; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.fiscal_submission_history (
+    tenant_id uuid NOT NULL,
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    submission_id uuid NOT NULL,
+    transition_seq bigint NOT NULL,
+    property_node uuid NOT NULL,
+    business_date date NOT NULL,
+    document_id uuid NOT NULL,
+    document_sha256 text NOT NULL,
+    wire_sha256 text NOT NULL,
+    provider_key text NOT NULL,
+    provider_extension_id uuid NOT NULL,
+    provider_extension_version integer NOT NULL,
+    attempt_id uuid NOT NULL,
+    attempt_number integer NOT NULL,
+    retry_count integer NOT NULL,
+    status text NOT NULL,
+    disposition text NOT NULL,
+    event_type text NOT NULL,
+    outcome text,
+    reconciliation_reason text,
+    resolution_source text,
+    authority_ref text,
+    response_sha256 text,
+    claim_token_hash text,
+    claim_expires_at timestamp with time zone,
+    claim_action text,
+    actor_id uuid,
+    correlation_id uuid NOT NULL,
+    idempotency_key_hash text,
+    idempotency_request_hash text,
+    recorded_at timestamp with time zone DEFAULT transaction_timestamp() NOT NULL,
+    CONSTRAINT fiscal_submission_history_attempt_number_check CHECK (((attempt_number >= 1) AND (attempt_number <= 4))),
+    CONSTRAINT fiscal_submission_history_business_date_check CHECK (isfinite(business_date)),
+    CONSTRAINT fiscal_submission_history_check CHECK ((((retry_count >= 0) AND (retry_count <= 3)) AND (attempt_number = (retry_count + 1)))),
+    CONSTRAINT fiscal_submission_history_claim_action_check CHECK (((claim_action IS NULL) OR (claim_action = ANY (ARRAY['submit'::text, 'lookup'::text])))),
+    CONSTRAINT fiscal_submission_history_claim_token_hash_check CHECK (((claim_token_hash IS NULL) OR (claim_token_hash ~ '^[0-9a-f]{64}$'::text))),
+    CONSTRAINT fiscal_submission_history_disposition_check CHECK ((disposition = ANY (ARRAY['send'::text, 'lookup'::text, 'retry'::text, 'none'::text]))),
+    CONSTRAINT fiscal_submission_history_document_sha256_check CHECK ((document_sha256 ~ '^[0-9a-f]{64}$'::text)),
+    CONSTRAINT fiscal_submission_history_event_shape_ck CHECK ((((event_type = ANY (ARRAY['fiscal.submission.requested'::text, 'fiscal.submission.retry_requested'::text])) AND (outcome IS NULL) AND (actor_id IS NOT NULL) AND (num_nonnulls(idempotency_key_hash, idempotency_request_hash) = 2)) OR ((event_type = 'fiscal.submission.claimed'::text) AND (outcome IS NULL) AND (actor_id IS NULL) AND (num_nonnulls(idempotency_key_hash, idempotency_request_hash) = 0) AND (num_nonnulls(claim_token_hash, claim_expires_at, claim_action) = 3)) OR ((event_type = 'fiscal.submission.reconciled'::text) AND (outcome IS NOT NULL) AND (actor_id IS NULL) AND (num_nonnulls(idempotency_key_hash, idempotency_request_hash) = 0) AND (num_nonnulls(claim_token_hash, claim_expires_at, claim_action) = 3)))),
+    CONSTRAINT fiscal_submission_history_event_type_check CHECK ((event_type = ANY (ARRAY['fiscal.submission.requested'::text, 'fiscal.submission.claimed'::text, 'fiscal.submission.reconciled'::text, 'fiscal.submission.retry_requested'::text]))),
+    CONSTRAINT fiscal_submission_history_idempotency_key_hash_check CHECK (((idempotency_key_hash IS NULL) OR (idempotency_key_hash ~ '^[0-9a-f]{64}$'::text))),
+    CONSTRAINT fiscal_submission_history_idempotency_request_hash_check CHECK (((idempotency_request_hash IS NULL) OR (idempotency_request_hash ~ '^[0-9a-f]{64}$'::text))),
+    CONSTRAINT fiscal_submission_history_outcome_check CHECK ((outcome = ANY (ARRAY['pending'::text, 'timeout'::text, 'duplicate'::text, 'known_not_sent'::text, 'accepted'::text, 'rejected'::text]))),
+    CONSTRAINT fiscal_submission_history_provider_extension_version_check CHECK ((provider_extension_version > 0)),
+    CONSTRAINT fiscal_submission_history_provider_key_check CHECK ((provider_key ~ '^[a-z0-9](?:[a-z0-9._:-]{0,126}[a-z0-9])?$'::text)),
+    CONSTRAINT fiscal_submission_history_reconciliation_reason_check CHECK ((reconciliation_reason = ANY (ARRAY['transport_started'::text, 'timeout'::text, 'duplicate'::text, 'provider_pending'::text, 'known_not_sent'::text]))),
+    CONSTRAINT fiscal_submission_history_resolution_source_check CHECK ((resolution_source = ANY (ARRAY['transport_result'::text, 'lookup_result'::text]))),
+    CONSTRAINT fiscal_submission_history_response_sha256_check CHECK (((response_sha256 IS NULL) OR (response_sha256 ~ '^[0-9a-f]{64}$'::text))),
+    CONSTRAINT fiscal_submission_history_status_check CHECK ((status = ANY (ARRAY['pending'::text, 'submitted'::text, 'accepted'::text, 'rejected'::text, 'error'::text]))),
+    CONSTRAINT fiscal_submission_history_transition_seq_check CHECK ((transition_seq > 0)),
+    CONSTRAINT fiscal_submission_history_wire_sha256_check CHECK ((wire_sha256 ~ '^[0-9a-f]{64}$'::text))
+);
+
+ALTER TABLE ONLY public.fiscal_submission_history FORCE ROW LEVEL SECURITY;
+
+
+--
+-- Name: india_fiscal_submission_history_receipt(public.fiscal_submission_history, boolean); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.india_fiscal_submission_history_receipt(p_receipt public.fiscal_submission_history, p_replayed boolean) RETURNS jsonb
+    LANGUAGE sql STABLE STRICT
+    SET search_path TO 'pg_catalog', 'public', 'pg_temp'
+    AS $$
+  SELECT pg_catalog.jsonb_build_object(
+    'submissionId',p_receipt.submission_id,'tenantId',p_receipt.tenant_id,
+    'propertyNode',p_receipt.property_node,'documentId',p_receipt.document_id,
+    'documentSha256',p_receipt.document_sha256,'wireSha256',p_receipt.wire_sha256,
+    'providerKey',p_receipt.provider_key,'providerExtensionId',p_receipt.provider_extension_id,
+    'providerExtensionVersion',p_receipt.provider_extension_version,
+    'attemptId',p_receipt.attempt_id,'attemptNumber',p_receipt.attempt_number,
+    'retryCount',p_receipt.retry_count,'status',p_receipt.status,
+    'disposition',p_receipt.disposition,'transitionSeq',p_receipt.transition_seq,
+    'replayed',p_replayed)
+$$;
+
+
+--
 -- Name: india_fiscal_submission_lock_relations(); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -16009,7 +16091,7 @@ BEGIN
     END IF;
     SELECT submission.* INTO STRICT v_head FROM public.fiscal_submission submission
      WHERE submission.tenant_id=p_tenant AND submission.id=v_existing.submission_id FOR UPDATE;
-    RETURN public.india_fiscal_submission_receipt(v_head,true);
+    RETURN public.india_fiscal_submission_history_receipt(v_existing,true);
   END IF;
   PERFORM pg_catalog.pg_advisory_xact_lock(pg_catalog.hashtextextended(
     'india-fiscal-submission:'||p_tenant::text||':'||p_document::text,0));
@@ -16024,7 +16106,7 @@ BEGIN
     END IF;
     SELECT submission.* INTO STRICT v_head FROM public.fiscal_submission submission
      WHERE submission.tenant_id=p_tenant AND submission.id=v_existing.submission_id FOR UPDATE;
-    RETURN public.india_fiscal_submission_receipt(v_head,true);
+    RETURN public.india_fiscal_submission_history_receipt(v_existing,true);
   END IF;
   SELECT extension.* INTO v_provider FROM public.extension extension
    WHERE extension.id=p_provider_extension
@@ -16124,7 +16206,7 @@ BEGIN
        OR v_existing.submission_id<>p_submission THEN
       RAISE EXCEPTION USING ERRCODE='23505',MESSAGE='fiscal submission retry idempotency key conflicts';
     END IF;
-    RETURN public.india_fiscal_submission_receipt(v_head,true);
+    RETURN public.india_fiscal_submission_history_receipt(v_existing,true);
   END IF;
   IF v_head.status<>'error' OR v_head.disposition<>'retry'
      OR v_head.reconciliation_reason<>'known_not_sent' THEN
@@ -18157,67 +18239,6 @@ CREATE TABLE public.fact_log (
     payload jsonb NOT NULL,
     supersedes uuid
 );
-
-
---
--- Name: fiscal_submission_history; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.fiscal_submission_history (
-    tenant_id uuid NOT NULL,
-    id uuid DEFAULT gen_random_uuid() NOT NULL,
-    submission_id uuid NOT NULL,
-    transition_seq bigint NOT NULL,
-    property_node uuid NOT NULL,
-    business_date date NOT NULL,
-    document_id uuid NOT NULL,
-    document_sha256 text NOT NULL,
-    wire_sha256 text NOT NULL,
-    provider_key text NOT NULL,
-    provider_extension_id uuid NOT NULL,
-    provider_extension_version integer NOT NULL,
-    attempt_id uuid NOT NULL,
-    attempt_number integer NOT NULL,
-    retry_count integer NOT NULL,
-    status text NOT NULL,
-    disposition text NOT NULL,
-    event_type text NOT NULL,
-    outcome text,
-    reconciliation_reason text,
-    resolution_source text,
-    authority_ref text,
-    response_sha256 text,
-    claim_token_hash text,
-    claim_expires_at timestamp with time zone,
-    claim_action text,
-    actor_id uuid,
-    correlation_id uuid NOT NULL,
-    idempotency_key_hash text,
-    idempotency_request_hash text,
-    recorded_at timestamp with time zone DEFAULT transaction_timestamp() NOT NULL,
-    CONSTRAINT fiscal_submission_history_attempt_number_check CHECK (((attempt_number >= 1) AND (attempt_number <= 4))),
-    CONSTRAINT fiscal_submission_history_business_date_check CHECK (isfinite(business_date)),
-    CONSTRAINT fiscal_submission_history_check CHECK ((((retry_count >= 0) AND (retry_count <= 3)) AND (attempt_number = (retry_count + 1)))),
-    CONSTRAINT fiscal_submission_history_claim_action_check CHECK (((claim_action IS NULL) OR (claim_action = ANY (ARRAY['submit'::text, 'lookup'::text])))),
-    CONSTRAINT fiscal_submission_history_claim_token_hash_check CHECK (((claim_token_hash IS NULL) OR (claim_token_hash ~ '^[0-9a-f]{64}$'::text))),
-    CONSTRAINT fiscal_submission_history_disposition_check CHECK ((disposition = ANY (ARRAY['send'::text, 'lookup'::text, 'retry'::text, 'none'::text]))),
-    CONSTRAINT fiscal_submission_history_document_sha256_check CHECK ((document_sha256 ~ '^[0-9a-f]{64}$'::text)),
-    CONSTRAINT fiscal_submission_history_event_shape_ck CHECK ((((event_type = ANY (ARRAY['fiscal.submission.requested'::text, 'fiscal.submission.retry_requested'::text])) AND (outcome IS NULL) AND (actor_id IS NOT NULL) AND (num_nonnulls(idempotency_key_hash, idempotency_request_hash) = 2)) OR ((event_type = 'fiscal.submission.claimed'::text) AND (outcome IS NULL) AND (actor_id IS NULL) AND (num_nonnulls(idempotency_key_hash, idempotency_request_hash) = 0) AND (num_nonnulls(claim_token_hash, claim_expires_at, claim_action) = 3)) OR ((event_type = 'fiscal.submission.reconciled'::text) AND (outcome IS NOT NULL) AND (actor_id IS NULL) AND (num_nonnulls(idempotency_key_hash, idempotency_request_hash) = 0) AND (num_nonnulls(claim_token_hash, claim_expires_at, claim_action) = 3)))),
-    CONSTRAINT fiscal_submission_history_event_type_check CHECK ((event_type = ANY (ARRAY['fiscal.submission.requested'::text, 'fiscal.submission.claimed'::text, 'fiscal.submission.reconciled'::text, 'fiscal.submission.retry_requested'::text]))),
-    CONSTRAINT fiscal_submission_history_idempotency_key_hash_check CHECK (((idempotency_key_hash IS NULL) OR (idempotency_key_hash ~ '^[0-9a-f]{64}$'::text))),
-    CONSTRAINT fiscal_submission_history_idempotency_request_hash_check CHECK (((idempotency_request_hash IS NULL) OR (idempotency_request_hash ~ '^[0-9a-f]{64}$'::text))),
-    CONSTRAINT fiscal_submission_history_outcome_check CHECK ((outcome = ANY (ARRAY['pending'::text, 'timeout'::text, 'duplicate'::text, 'known_not_sent'::text, 'accepted'::text, 'rejected'::text]))),
-    CONSTRAINT fiscal_submission_history_provider_extension_version_check CHECK ((provider_extension_version > 0)),
-    CONSTRAINT fiscal_submission_history_provider_key_check CHECK ((provider_key ~ '^[a-z0-9](?:[a-z0-9._:-]{0,126}[a-z0-9])?$'::text)),
-    CONSTRAINT fiscal_submission_history_reconciliation_reason_check CHECK ((reconciliation_reason = ANY (ARRAY['transport_started'::text, 'timeout'::text, 'duplicate'::text, 'provider_pending'::text, 'known_not_sent'::text]))),
-    CONSTRAINT fiscal_submission_history_resolution_source_check CHECK ((resolution_source = ANY (ARRAY['transport_result'::text, 'lookup_result'::text]))),
-    CONSTRAINT fiscal_submission_history_response_sha256_check CHECK (((response_sha256 IS NULL) OR (response_sha256 ~ '^[0-9a-f]{64}$'::text))),
-    CONSTRAINT fiscal_submission_history_status_check CHECK ((status = ANY (ARRAY['pending'::text, 'submitted'::text, 'accepted'::text, 'rejected'::text, 'error'::text]))),
-    CONSTRAINT fiscal_submission_history_transition_seq_check CHECK ((transition_seq > 0)),
-    CONSTRAINT fiscal_submission_history_wire_sha256_check CHECK ((wire_sha256 ~ '^[0-9a-f]{64}$'::text))
-);
-
-ALTER TABLE ONLY public.fiscal_submission_history FORCE ROW LEVEL SECURITY;
 
 
 --
@@ -28265,6 +28286,20 @@ REVOKE ALL ON FUNCTION public.guard_native_valuation_child_insert() FROM PUBLIC;
 
 
 --
+-- Name: TABLE fiscal_submission_history; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT SELECT ON TABLE public.fiscal_submission_history TO app_role;
+
+
+--
+-- Name: FUNCTION india_fiscal_submission_history_receipt(p_receipt public.fiscal_submission_history, p_replayed boolean); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.india_fiscal_submission_history_receipt(p_receipt public.fiscal_submission_history, p_replayed boolean) FROM PUBLIC;
+
+
+--
 -- Name: FUNCTION india_fiscal_submission_lock_relations(); Type: ACL; Schema: public; Owner: -
 --
 
@@ -29840,13 +29875,6 @@ GRANT INSERT(payload) ON TABLE public.fact_log TO app_role;
 --
 
 GRANT INSERT(supersedes) ON TABLE public.fact_log TO app_role;
-
-
---
--- Name: TABLE fiscal_submission_history; Type: ACL; Schema: public; Owner: -
---
-
-GRANT SELECT ON TABLE public.fiscal_submission_history TO app_role;
 
 
 --

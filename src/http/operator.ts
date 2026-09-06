@@ -2166,7 +2166,8 @@ function fiscalSubmissionJson(receipt: FiscalSubmissionReceipt): JsonValue {
         extensionId: receipt.providerExtensionId,
         extensionVersion: receipt.providerExtensionVersion,
       }),
-      replayed: receipt.replayed,
+      // Exact successful JSON is immutable; replay metadata is a response header.
+      replayed: false,
     }),
   });
 }

@@ -3339,6 +3339,12 @@ attemptNumber, retryCount, status, disposition, transitionSeq, replayed, and pro
 `{key, extensionId, extensionVersion}`. `Idempotency-Replayed` and
 `X-Correlation-Id` accompany the no-store response. Tenant/actor IDs, source/wire
 hashes or bytes, claim tokens, SQL/provider errors and credentials are omitted.
+Q205 forward79 restores the global exact-response contract: every exact command
+key returns its original immutable history snapshot, not the current delivery head.
+The canonical JSON field `replayed` stays false; only `Idempotency-Replayed` changes
+to true. Both original201 status and successful body bytes survive later attempts
+and terminal outcomes. Fresh actor/property authorization and changed-request
+conflicts remain mandatory. Existing pre79 history needs no backfill.
 Unauthenticated401, scope/property403, invalid input400 and unavailable503 follow
 the existing operator problem response. Independent local proof now passes13/13(125),
 including five genuine signed-session PostgreSQL cases. The combined candidate

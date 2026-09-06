@@ -1,7 +1,12 @@
 # Question203 — Authenticated fiscal request/retry integration
 
-**Status:** IMPLEMENTED; independent bounded local proof passes; exact CI pending.
+**Status:** IMPLEMENTED; prior bounded proof superseded for integration by Q205's late-replay repair.
 **Date:** 2026-09-06. **Owner:** Codex coordinator.
+
+PR87 review subsequently proved mutable late replay, despite the earlier green
+tests. Q205 restores immutable history receipts and byte-identical HTTP bodies;
+replay metadata stays in the header. Its independent79 proof is separate from the
+historical results below. New exact-source CI is required before merge.
 
 Q201's canonical persistence and Tx commands pass exact827be467 Linux CI34008495909.
 Connect both request and retry to the existing authenticated operator application,
@@ -148,3 +153,12 @@ seal/travel suites11pass/0fail/75assertions,310ms, and verifies78migrations,
 zero residual injected constraints and zero other proof-database sessions.
 No blocking finding remains in the bounded HTTP persistence integration.
 Production adapters remain empty and the exact-head combined CI condition remains.
+
+
+## Exact-head CI condition discharged
+
+All six CI34017067690 jobs pass at cb9a87ff5e94b47a9172f7e0f919c4df0e6f2ef5.
+The non-implementing fiscal_http_acceptance agent personally dispatched and inspected
+required HTTP proof 9/9 (89 assertions, all five real-database cases), durable19/19
+and referee11/11. Root separately retrieved the result. This closes this bounded
+admission's proof condition, not full Order440, merge, local promotion or transport.

@@ -28,6 +28,13 @@ No existing1–77 migration is rewritten and no historical submission is invente
 or backfilled. Candidate catalogue, independent approval, main and local runtime
 are separate states; local remains77. See[Q201](../handoff/questions/201-canonical-fiscal-submission-integration.md).
 
+**Current unmerged Q205 correction:** migration79 reuses that immutable history
+for request/retry receipts and introduces one owner-private projection function;
+there is no new table, financial write or history backfill. Current candidate is
+79 migrations/128 tables, with unchanged RLS/table counts. The78 snapshot hash
+above is historical, not the current79 snapshot. Independent real78→79 receipt
+proof passes; new combined-source CI and merge are pending. Main/local remain77.
+
 CI history remains visible: [CI175](https://github.com/dcpnode-maker/yellow/actions/runs/33991882050)
 failed on the old125-table financial expectation; [CI176](https://github.com/dcpnode-maker/yellow/actions/runs/33992123191)
 passed the native suites but failed four old deployment-shape assertions. Exact

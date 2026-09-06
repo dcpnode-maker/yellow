@@ -4,6 +4,12 @@
 
 **Current coordination:** Codex under PROJECT and the applicable agent adapter.
 
+**Latest integration finding:** Q205 supersedes earlier Q203 acceptance after
+independent PR87 review reproduced late-replay drift. Corrective79 reuses immutable
+receipts and preserves canonical HTTP bytes; independent actual upgrade and all-key
+replay proof pass. Combined-source CI and merge remain required. Q204 supervised
+runtime is under construction, prospective80, without provider/local activation.
+
 **Status reconciled:** 2026-09-06. Orders438/439 merged through PR82; independently
 reviewed native fiscal Order434 passed exact CI178 and merged through PR83 as443e3826
 (77 migrations /127 public tables). Post-merge CI179 and image publication passed.

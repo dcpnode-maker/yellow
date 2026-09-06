@@ -73,8 +73,8 @@ databaseDescribe("Order440 genuine issued-document wire candidate", () => {
       SELECT current_database()::text AS database_name,
         (SELECT count(*)::int FROM public.schema_migration) AS migrations
     `;
-    if (!identity || !identity.database_name.startsWith("yellow_order440_") || identity.migrations !== 78) {
-      throw new Error("Order440 proof requires an isolated synthetic 78-migration database");
+    if (!identity || !identity.database_name.startsWith("yellow_order440_") || identity.migrations !== 79) {
+      throw new Error("Order440 proof requires an isolated synthetic 79-migration database");
     }
   });
 
