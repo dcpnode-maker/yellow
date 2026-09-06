@@ -199,8 +199,18 @@ jobs:
       - name: Typecheck
         run: bun run typecheck
 
+      - name: Prove subprocess isolation on the Linux runner
+        run: >-
+          /usr/bin/time -v bun test
+          tests/project-status.test.ts
+          tests/owned-proof-process.test.ts
+          tests/import-boundaries.test.ts
+          tests/operator-business-day-seal-browser.integration.test.ts
+          tests/operator-owner-trust-workbench-browser.integration.test.ts
+          tests/operator-business-day-discrepancy-carry-browser.integration.test.ts
+
       - name: Test
-        run: bun test
+        run: /usr/bin/time -v bun test
 
   container-smoke:
     needs: quality

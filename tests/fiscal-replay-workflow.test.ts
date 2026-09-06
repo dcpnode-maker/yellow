@@ -1,5 +1,20 @@
 import { expect, test } from "bun:test";
 
+test("quality preserves the full suite and independently exercises owned subprocess boundaries", async () => {
+  const workflow = await Bun.file(new URL("../.github/workflows/ci.yml", import.meta.url)).text();
+  const quality = workflow.slice(workflow.indexOf("  quality:"), workflow.indexOf("  container-smoke:"));
+  expect(quality).toContain("run: /usr/bin/time -v bun test\n");
+  for (const file of [
+    "tests/project-status.test.ts", "tests/owned-proof-process.test.ts", "tests/import-boundaries.test.ts",
+    "tests/operator-business-day-seal-browser.integration.test.ts",
+    "tests/operator-owner-trust-workbench-browser.integration.test.ts",
+    "tests/operator-business-day-discrepancy-carry-browser.integration.test.ts",
+  ]) expect(quality).toContain(file);
+  expect(quality).not.toContain("continue-on-error");
+  expect(quality).not.toContain("--test-name-pattern");
+  expect(quality).not.toContain("--retry");
+});
+
 test("CI requires genuine pre79 receipt upgrade and late replay proof with isolated cleanup", async () => {
   const workflow = await Bun.file(new URL("../.github/workflows/ci.yml", import.meta.url)).text();
   const start = workflow.indexOf('q205_database="yellow_order440_q205_ci"');

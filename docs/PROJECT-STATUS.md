@@ -13,6 +13,26 @@ backlog. `state.sh` and `state.ps1` read the machine-readable comments above.
 
 ## Current task
 
+**CI process containment — D1396.** The exact bd35c8a run34044350648 fails
+four existing child-process timeouts; no current80 database gates execute. The
+same test order and almost identical preceding elapsed time on the passing run,
+plus recurrence before Q204, do not identify a new fiscal-runtime defect. Scoped
+repairs remove per-record shell forks, preserve exact historical counts, give the
+three matching browser proofs unique profiles, and bound child output, cancellation
+and reaping inside each existing outer deadline. Independent inspection catches and
+closes inherited-pipe, cleanup-margin and PID-fixture leaks. No test assertion,
+existing deadline, product code, applied migration or permission is weakened.
+
+Root's final complete suite passes **1,673 tests, 0 failures**, with 1,264 explicit
+database/Unix-platform skips and22,266 assertions across504 files in107.00s. The
+actual three browser journeys pass4/4(120), and independent final helper/status/
+workflow/CLI proof passes22/22(141), with one explicit Unix fixture skip. Types,
+177-file boundaries and23 installed dependency licences pass. New Linux CI must
+execute the real empty/marker/response/symlink batch fixture, an isolated subprocess
+gate and the complete suite, then all current80 database/process/referee gates.
+This is a tested development candidate, not a merged or activated release. The
+single local still reports ready atb5ef708/frontier77; no restart occurred.
+
 **Catalogue correction — D1395.** PR88's next exact head efa71b8 passes actual
 founder status and five CI34043585965 jobs, but an older runtime-authority test still
 expects fourteen capabilities instead of fifteen. The correction preserves all old

@@ -422,3 +422,198 @@ result = TABLE(tenant_id uuid, submission_id uuid, provider_key text, provider_e
 In particular DateStyle has no space after its comma. One protected deploy
 connection was opened read-only in usage and closed; no suite, mutation, role action
 or clone was performed. This confirms the exact catalogue oracle for the repair.
+
+## Exact bd35c8a catalogue repair — independent read-only verification
+
+Reviewer inspected efa71b8..bd35c8a735fb35bb809c98f39dcc9cade752f350 and the explicit
+Q204 amendment. Both test deltas preserve the fourteen previous runtime signatures,
+their exact single-setting configs and universal owner/grant/denial checks. They
+add only exact discovery authority/result/input checks, and deployment acceptance
+now requires the fifth fiscal capability plus the valid/ready tenant-leading
+partial cursor index definition. No product or applied SQL changed; diff-check
+passes. New automatic CI34044350648 is tied to this exact head over main22f1bed.
+
+Personally executed an in-memory bun -e read-only catalogue harness against retained
+yellow_order440_q204_review_90605. It compares the ordered15 runtime signatures to
+the repaired test's explicit list, then asserts every owner and runtime/PUBLIC/app
+grant, all14 unchanged configs, exact fiscal config, SECURITY DEFINER/result and
+the complete index definition with indisvalid=true and indisready=true. All pass.
+The index is exactly:
+
+```text
+CREATE INDEX fiscal_submission_delivery_cursor ON public.fiscal_submission USING btree (tenant_id, id) WHERE ((delivery_version = 1) AND (status = ANY (ARRAY['pending'::text, 'submitted'::text])))
+```
+
+One protected deploy connection closed; no DDL, role change, fixture suite against
+the retained DB or new clone occurred. With no database test env configured,
+bun test runtime-database-authority.integration.test.ts and
+database-acceptance.integration.test.ts passes3 pure tests,35 explicit DB skips,
+0 failures,24 assertions,136ms. bun run typecheck passes. These are not substitutes
+for the full runtime-authority/acceptance database suites now required in new CI.
+No source edits, workflow reruns, merge or activation were performed.
+
+## bd35c8a automatic CI — child-process timeout failure
+
+CI34044350648 attempt1 completed failure at exactbd35c8a. windows-state and
+local-review passed; quality job101516618935 failed and dependent database,
+free-host-arm64 and container-smoke jobs were skipped. Normal CodeQL34044348485
+passed. No genuine new-head database gates executed in this run.
+
+Reviewer personally retrieved the full failed quality log and inspected all four
+reported failures. Earliest is project-status.test.ts, Unix report case, at
+16:06:49Z:5004.58ms/5000ms timeout, killed dangling child, followed by an unhandled
+exitCode expected0/receivednull assertion after the timeout. Subsequent failures:
+business-day-seal Chromium90000ms, import-boundary real CLI5000ms with dangling
+child killed, owner-trust Chromium90000ms. No substantive assertion failure before
+those timeouts is visible. Git diff from main22f1bed to bd35c8a confirms all four
+test files are unchanged. This resembles the previously recorded multi-child
+timeout pattern but its underlying runner/harness cause is not established here.
+
+Commands: gh run view34044350648 --json status,conclusion,jobs;
+gh run view34044350648 --job101516618935 --log-failed; exact git diff for all four
+affected files and read of project-status runState/Bun.spawnSync harness. Reviewer
+reported the first failure and downstream skip boundary immediately. **NO MERGE**;
+no rerun or workflow dispatch was authorized/performed in this inspection. No
+assertion, timeout, configuration or production source was weakened or edited.
+
+## Independent failed-versus-successful quality diagnosis
+
+Reviewer personally compared full quality logs34044350648/job101516618935 with
+successful quality34043585965/job101514570696 using an in-memory parser. Both
+execute exactly the same373 test-file groups in the same order before project-status.
+Elapsed to that group is38,972ms failed versus38,958ms successful, a14ms difference.
+Immediately preceding runtime-authority executes the same three unchanged pure
+tests and skips its database body. bd35c8a changes only two DB test bodies and
+governance records; the new authority assertions do not execute in quality. No new
+executed pre-timeout setup/global-state mutation is identified from this delta.
+
+Both jobs use Bun1.3.14 commit0d9b296a, runner2.337.0, Ubuntu24.04.4 and image
+20260831.293.1. Worker regions differ (failed eastus, successful northcentralus).
+No ENOMEM, EMFILE, EAGAIN, ENFILE, ENOSPC, OOM, resource-unavailable or panic signal
+is visible. The logs do not contain CPU/memory/FD/process-limit telemetry sufficient
+to diagnose exhaustion. Similar pre-failure elapsed time does not rule out a later
+resource stall, but cannot support a claim of one either.
+
+The successful four case durations are status1744.85ms, seal10443.64ms,
+CLI165.11ms, owner-trust10169.44ms; the failed run hits their5s/90s/5s/90s limits.
+Source inspection finds status uses Bun.spawnSync without an inner deadline;
+state.sh spawns hundreds of grep/basename commands and unbounded read-only Docker
+status commands. The two browser harnesses discard stderr, wait for stdout EOF
+then process exit, and do not kill an owned child in their finally cleanup. The
+CLI concurrently waits for exit and both streams. Thus existing logs cannot
+distinguish child execution stalls from stream/child-reaping waits.
+
+Q204 lifecycle's signal test removes its listeners in finally and asserts restoration;
+no global mock/clock/env modification was found in inspected worker/runtime tests.
+The exact four-timeout pattern was already independently recorded at7235e27;
+git ls-tree confirms that head contains neither Q204 lifecycle source/test nor
+server-fiscal-runtime test. Therefore this new Q204 signal code is not a necessary
+precondition, although a general ordering/runner issue remains unproven.
+
+Proposed next diagnostic, not executed or authorized by this record: preserve all
+assertions/deadlines, compare unchanged four-case isolated Linux execution with the
+same ordered full prefix, and collect bounded external-watchdog child PID/status/
+wait-channel, RSS,FD/process-limit and state-script stage timings. Record only
+listener counts/environment key names, not credential values; capture bounded
+browser stderr. An external observer is needed if the Bun event loop itself stalls.
+Any diagnostic source/workflow changes need explicit admission. Final full exact
+CI remains mandatory regardless of an isolated pass. No rerun, dispatch, mutation,
+production edit or merge occurred during this read-only diagnosis.
+
+## State batching review — Windows proof and reference-oracle edge case
+
+Reviewer read the full admitted state.sh/project-status.test.ts delta. For ordinary
+readable non-hidden regular records, batching preserves anchored MERGED/RESOLVED/
+RATIFIED semantics, architect-response exclusion, report metadata and zero-record
+handling. Quoted arrays, grep -- and NUL-delimited output preserve spaces/newlines;
+parameter expansion replaces per-question basename. The Unix fixture instruments
+only marker scans, expects0 for empty groups and2 for populated groups, and retains
+the original outer deadline with a2s owned fixture process timeout.
+
+Personally ran bun test tests/project-status.test.ts on native Windows:
+5 pass,1 explicit Unix-fixture skip,0 fail,46 assertions,5.09s. Actual PowerShell
+valid-report case3224.94ms and invalid metadata1789.21ms; scoped diff-check passes.
+No system32 bash/WSL was invoked. The new Unix batch fixture still requires Linux
+execution; this result neither executes batching nor proves the CI root cause fixed.
+
+At inspection state.sh SHA256977496544ba0dedaec9773dff59299f7040a67dbdf6ff2671831dcecb55c8f4c;
+test4438aca08de0afce63f8dfc10049bcc0a143be47e3cd77e1df9ce4d508eb7ccc.
+One reference-oracle issue was reported: historicalCounts uses readdir/isFile,
+including hidden.md names but excluding file symlinks, whereas Bash *.md excludes
+dotfiles and -f follows file symlinks. No such current .md entries were found, so
+the real current count check passes; only.gitkeep hidden entries exist. Align the
+helper and fixture before claiming generic equivalence across those cases. No
+production/test edit was made by the reviewer. Linux batching and forthcoming
+owned-child helper proof remain separate mandatory acceptance obligations.
+
+## Revised state/workflow review — helper lifecycle acceptance held
+
+The revised historical reference excludes dotfiles, follows valid file symlinks,
+skips broken links, and tests a symlinked architect response plus exact fixture
+counts. This resolves the reported reference mismatch. Status invocation now awaits
+the owned async helper; Linux fixture uses its2s inner lifecycle deadline. CI adds
+a required isolated six-file subprocess proof with /usr/bin/time -v, followed by
+the unchanged full bun test suite under the same resource reporter. No retry,
+continue-on-error, test filter or reduced full-suite scope is introduced.
+
+Personally ran project-status.test.ts plus fiscal-replay-workflow.test.ts:
+8 pass,1 explicit Unix fixture skip,0 fail,87 assertions,4.67s. Native valid-report
+2936.54ms and invalid metadata1666.84ms. Typecheck and scoped diff-check pass.
+State hash remains97749654; revised status2a01445d15de3db620e1d34aa85145c78bdae1405a261e5396fac4df15e4569e;
+workflow78d3e8bcbd4961a9f348f1987bb3d495d4c99d6cf03fbf310968df5a40cc0726;
+workflow test12bab528c802545e299ad71a492f16d7f391e0b305b40f44c17c87eb98adde85.
+
+Reviewer inspected the still-unfrozen helper and callers, reporting two additional
+lifecycle concerns before final acceptance. Import-checker CLI wraps a potentially
+never-settling exit/stream Promise.all only in finally; an outer test timeout is not
+an inner cancellation mechanism and does not itself guarantee that finally runs.
+Use a bounded lifecycle for that caller. Status's4.5s execution allowance plus the
+helper's2s cleanup allowance can exceed the unchanged5s test deadline, so it cannot
+yet guarantee cleanup before the outer timeout. Stream cancel/read settlement also
+needs the pending inherited-pipe regression before calling total cleanup bounded.
+
+Final helper/test proof is explicitly held pending the builder's cleanup fix/freeze.
+This record does not approve current helper lifecycle behavior or claim Linux cause
+identified. No WSL, database mutation, CI dispatch, source edit or merge occurred.
+
+## Frozen owned-process helper — independent bounded acceptance
+
+Reviewer inspected final helper014437f04f5c5ff7285c93aa3b7e5cd3a428207eb8ba18501c8ff91f25e2ffd3,
+testa9e7d31a53940f8d396718057e6b41173d097a5e6a2b75f43c18a6da475ff1ce,
+and import test a1fe14dafe84089bd64bcc3e8e5b3e84c550fd025bbb56797759fed8983dc92a.
+These exact hashes match before/after personal execution. Previously reported
+lifecycle concerns are resolved in this frozen source: timeoutMs is a total budget,
+with up to250ms reserved inside it for cleanup, measured from a monotonic absolute
+deadline. Termination and both reader cancellations start concurrently; allSettled
+observes every rejection and the remaining absolute budget bounds waiting. Failure
+to prove all cleanup complete yields CleanupError, never successful cleanup.
+Import CLI now uses the same helper with3s total budget; status retains4.5s total
+inside its unchanged5s test limit. Output tails are byte-bounded on both streams.
+
+The fixture cleanup re-reads only its own recorded positive safe-integer PID and
+nests directory removal in finally, so a failed PID lookup cannot bypass directory
+cleanup. The deliberately detached descendant is separately terminated by its
+own fixture after proving that helper pipe cancellation did not kill it. No global
+process-name kill or service ownership is introduced. This remains test tooling,
+not a production supervisor or a claim that the old Linux failure is diagnosed.
+
+Personally executed exactly the agreed lightweight set, with no browser overlap:
+
+```text
+bun test tests/owned-proof-process.test.ts tests/project-status.test.ts \
+  tests/import-boundaries.test.ts tests/fiscal-replay-workflow.test.ts
+22 pass, 1 explicit Unix-fixture skip, 0 fail, 141 assertions, 11.07s
+```
+
+Actual child timeout/reap784.20ms and inherited-pipe reader cancellation766.24ms
+both pass; oversized and multibyte tail, nonzero exit, private error text and
+pre-spawn validation cases pass. Real CLI430.66ms, valid PowerShell state3346.10ms
+and invalid metadata1677.35ms pass. Scoped diff-check passes. Slightly longer total
+than the coordinator's earlier run is recorded honestly; no extra run was made.
+
+This frozen small harness is accepted for development publication. Unix batching,
+three updated browser cases and the full exact-source isolated/full quality gates
+must still pass on Linux; mandatory current80 database/readiness/fiscal/referee CI
+also remains required before independent integration. Reviewer did not run browsers
+during the coordinator's full suite, alter product/tests, touch databases/services,
+dispatch/rerun CI or merge. Review evidence now freezes pending publication.

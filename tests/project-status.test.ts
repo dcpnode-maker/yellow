@@ -1,9 +1,10 @@
 import { describe, expect, test } from "bun:test";
-import { mkdtemp, rm } from "node:fs/promises";
+import { chmod, mkdir, mkdtemp, readdir, rm, stat, symlink } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { PROJECT_BUILD_SNAPSHOT } from "../src/project-status";
+import { runOwnedProofProcess } from "./helpers/owned-proof-process";
 
 const root = fileURLToPath(new URL("..", import.meta.url));
 
@@ -11,7 +12,7 @@ function runState(environment?: NodeJS.ProcessEnv) {
   const command = process.platform === "win32"
     ? ["powershell.exe", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", join(root, "state.ps1")]
     : ["bash", join(root, "state.sh")];
-  return Bun.spawnSync(command, { cwd: root, env: environment ?? process.env });
+  return runOwnedProofProcess(command, { cwd: root, env: environment ?? process.env, timeoutMs: 4_500 });
 }
 
 function parseStatus(status: string): Readonly<Record<string, string>> {
@@ -20,6 +21,35 @@ function parseStatus(status: string): Readonly<Record<string, string>> {
       [...status.matchAll(/^<!-- ([a-z-]+): (.*) -->$/gm)].map((match) => [match[1]!, match[2]!] as const),
     ),
   );
+}
+
+async function historicalCounts(directory: string): Promise<string> {
+  async function records(kind: string) {
+    const base = join(directory, "handoff", kind);
+    const entries = await readdir(base, { withFileTypes: true });
+    const files: { name: string; text: string }[] = [];
+    for (const entry of entries) {
+      if (entry.name.startsWith(".") || !entry.name.endsWith(".md")) continue;
+      const path = join(base, entry.name);
+      let metadata;
+      try { metadata = await stat(path); } catch (error) {
+        if ((error as NodeJS.ErrnoException).code === "ENOENT") continue;
+        throw error;
+      }
+      if (metadata.isFile()) files.push({ name: entry.name, text: await Bun.file(path).text() });
+    }
+    return files;
+  }
+  const [orders, reviews, questions] = await Promise.all([
+    records("orders"), records("reviews"), records("questions"),
+  ]);
+  const unclosed = orders.filter(({ text }) => !/^## MERGED/m.test(text)).length;
+  const questionNames = new Set(questions.map(({ name }) => name));
+  const open = questions.filter(({ name, text }) =>
+    !name.endsWith("-ARCHITECT-RESPONSE.md") && !/^## (RESOLVED|RATIFIED)/m.test(text) &&
+    !questionNames.has(`${name.split("-")[0]}-ARCHITECT-RESPONSE.md`)).length;
+  return `Historical records: orders=${orders.length} total (${unclosed} lack legacy MERGED marker) ` +
+    `reviews=${reviews.length} total questions=${open} without legacy resolution marker (${questions.length} total)`;
 }
 
 describe("canonical project status", () => {
@@ -75,13 +105,14 @@ describe("canonical project status", () => {
       expect(await Bun.file(`${root}/${file}`).exists()).toBe(true);
     }
 
-    const report = runState();
+    const report = await runState();
     expect(report.exitCode).toBe(0);
-    const output = new TextDecoder("utf-8").decode(report.stdout);
+    const output = report.stdout;
     expect(output).toContain(`Current task: ${task}`);
     expect(output).toContain(`Lifecycle: ${lifecycle}`);
     expect(output).toContain(`Phase: ${phase} · ${lifecycle}`);
     for (const file of currentFiles) expect(output).toContain(`  ${file}`);
+    expect(output).toContain(await historicalCounts(root));
     expect(output).not.toContain("Open orders:");
     expect(output).not.toContain("Open questions:");
   });
@@ -99,9 +130,9 @@ describe("canonical project status", () => {
           "<!-- current-order-files: handoff/orders/438-codex-consolidated-release.md -->",
         ].join("\n"),
       );
-      const report = runState({ ...process.env, YELLOW_PROJECT_STATUS_FILE: invalidStatus });
+      const report = await runState({ ...process.env, YELLOW_PROJECT_STATUS_FILE: invalidStatus });
       expect(report.exitCode).not.toBe(0);
-      const errorOutput = `${new TextDecoder("utf-8").decode(report.stderr)}${new TextDecoder("utf-8").decode(report.stdout)}`;
+      const errorOutput = `${report.stderr}${report.stdout}`;
       if (process.platform === "win32") expect(errorOutput).toMatch(/YELLOW\s+state report failed/);
       else expect(errorOutput).toContain("invalid docs/PROJECT-STATUS.md metadata");
       expect(report.stdout.toString()).not.toContain("Referee:");
@@ -118,5 +149,71 @@ describe("canonical project status", () => {
     expect(script).toContain("yellow-project-status/v1");
     expect(script).not.toContain("Write-Host 'Open orders:'");
     expect(script).not.toContain("Write-Host 'Open questions:'");
+  });
+
+  test("historical scanning uses two batched marker scans and shell-only question names", async () => {
+    const script = await Bun.file(join(root, "state.sh")).text();
+    expect(script).toContain('grep -LZ \'^## MERGED\' -- "${order_files[@]}"');
+    expect(script).toContain('grep -LEZ \'^## (RESOLVED|RATIFIED)\' -- "${question_candidates[@]}"');
+    expect(script).toContain('name=${file##*/}');
+    expect(script).not.toContain('grep -q \'^## MERGED\' "$file"');
+    expect(script).not.toContain('name=$(basename "$file")');
+  });
+
+  test.skipIf(process.platform === "win32")("Unix batch scans preserve empty, marker, response and unusual-filename semantics", async () => {
+    const directory = await mkdtemp(join(tmpdir(), "yellow-project-status-batch-"));
+    const realGrep = Bun.which("grep");
+    if (!realGrep) throw new Error("Unix status proof requires grep");
+    try {
+      for (const kind of ["orders", "reviews", "questions"]) {
+        await mkdir(join(directory, "handoff", kind), { recursive: true });
+      }
+      const bin = join(directory, "bin");
+      await mkdir(bin);
+      const markerLog = join(directory, "marker-scans");
+      await Bun.write(join(directory, "state.sh"), await Bun.file(join(root, "state.sh")).text());
+      await Bun.write(join(directory, "current.md"), "Current fixture order");
+      const statusFile = join(directory, "status.md");
+      await Bun.write(statusFile, [
+        "<!-- status-schema: yellow-project-status/v1 -->", "<!-- current-phase: 7 -->",
+        "<!-- current-task: fixture -->", "<!-- current-lifecycle: fixture -->",
+        "<!-- current-order-files: current.md -->",
+      ].join("\n"));
+      await Bun.write(join(bin, "docker"), "#!/usr/bin/env bash\nexit 1\n");
+      await Bun.write(join(bin, "git"), "#!/usr/bin/env bash\nexit 0\n");
+      await Bun.write(join(bin, "grep"), '#!/usr/bin/env bash\ncase "$1" in -LZ|-LEZ) printf "scan\\n" >> "$YELLOW_SCAN_COUNT_FILE";; esac\n' +
+        `exec ${JSON.stringify(realGrep)} "$@"\n`);
+      for (const command of ["docker", "git", "grep"]) await chmod(join(bin, command), 0o755);
+      const env = { ...process.env, PATH: `${bin}:${process.env.PATH ?? ""}`,
+        YELLOW_PROJECT_STATUS_FILE: statusFile, YELLOW_SCAN_COUNT_FILE: markerLog };
+      async function report(expectedScans: number) {
+        await Bun.write(markerLog, "");
+        const child = await runOwnedProofProcess(["bash", join(directory, "state.sh")], {
+          cwd: directory, env, timeoutMs: 2_000,
+        });
+        expect(child.exitCode).toBe(0);
+        expect(child.stdout.toString()).toContain(await historicalCounts(directory));
+        expect((await Bun.file(markerLog).text()).split("\n").filter(Boolean)).toHaveLength(expectedScans);
+      }
+      await report(0);
+      const fixture: Readonly<Record<string, string>> = {
+        "orders/001-open.md": "Open", "orders/002-merged.md": "## MERGED with evidence",
+        "orders/003-unanchored.md": "not ## MERGED", "orders/--space\nand newline.md": "Open",
+        "reviews/001.md": "review", "questions/001-open.md": "Open",
+        "questions/002-resolved.md": "## RESOLVED details", "questions/003-ratified.md": "## RATIFIED",
+        "questions/004-question.md": "Open", "questions/004-ARCHITECT-RESPONSE.md": "response",
+        "questions/005-unanchored.md": "not ## RESOLVED", "questions/006-space\nand newline.md": "Open",
+        "orders/.hidden.md": "Open but not globbed", "questions/007-question.md": "Answered by symlink",
+      };
+      for (const [file, content] of Object.entries(fixture)) await Bun.write(join(directory, "handoff", file), content);
+      await mkdir(join(directory, "handoff", "orders", "ignored-directory.md"));
+      await symlink("002-merged.md", join(directory, "handoff", "orders", "005-symlink.md"));
+      await symlink("does-not-exist.md", join(directory, "handoff", "orders", "006-broken.md"));
+      await symlink("004-ARCHITECT-RESPONSE.md", join(directory, "handoff", "questions", "007-ARCHITECT-RESPONSE.md"));
+      expect(await historicalCounts(directory)).toBe("Historical records: orders=5 total (3 lack legacy MERGED marker) reviews=1 total questions=3 without legacy resolution marker (9 total)");
+      await report(2);
+    } finally {
+      await rm(directory, { recursive: true, force: true });
+    }
   });
 });

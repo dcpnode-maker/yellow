@@ -59,6 +59,14 @@ tests/operator-app-bar-responsive-containment.intentional-red.test.ts (bounded D
 tests/fiscal-submission-durability.integration.test.ts
 tests/fiscal-submission-immutable-replay.integration.test.ts (preserve exact historical79 upgrade prefix)
 tests/fiscal-replay-workflow.test.ts (assert required current80 delivery/process gates)
+state.sh (batch historical record scans; preserve report and metadata semantics)
+tests/project-status.test.ts (batch-scan equivalence and bounded process ownership proof)
+tests/import-boundaries.test.ts (owned CLI child cleanup only; existing assertions/deadline unchanged)
+tests/operator-business-day-seal-browser.integration.test.ts (isolated owned browser lifecycle only)
+tests/operator-owner-trust-workbench-browser.integration.test.ts (isolated owned browser lifecycle only)
+tests/operator-business-day-discrepancy-carry-browser.integration.test.ts (same isolated browser lifecycle)
+tests/helpers/owned-proof-process.ts (bounded test-only child output, deadline and cleanup)
+tests/owned-proof-process.test.ts (actual child lifecycle and failure regressions)
 tests/operator-fiscal-submission.integration.test.ts
 tests/india-irp-issued-wire-candidate.integration.test.ts
 tests/migrate.integration.test.ts
@@ -140,6 +148,24 @@ The adjacent already-scoped database-acceptance test likewise must enumerate thi
 fifth fiscal capability and the exact valid/ready tenant-leading partial cursor
 index. Existing historical named-subset runtime-DML tests are not global counts
 and remain unchanged. Schema/permissions/RLS totals are unchanged by migration80.
+
+Exact bd35c8a CI34044350648 fails four existing child-process tests: the status
+script reaches its unchanged5-second deadline, then two browser cases reach their
+90-second limits and the import checker child reaches5 seconds. The same373 earlier
+test-file groups finish in essentially identical time on the immediately previous
+passing run; the new catalogue assertions are skipped in quality. This pattern also
+predates Q204. Root's unchanged local four-file execution passes14/14(151).
+The precise Linux wait/resource cause is not established; do not call the runtime
+or runner repaired from those observations. Inspection does establish two avoidable
+harness weaknesses: state.sh starts hundreds of per-record grep/basename processes,
+and the three matching browser helpers have neither unique profiles nor bounded
+owned-child cleanup. Before editing, admit the exact paths above to batch historical
+scans, isolate browser profiles, bound and drain child output, and terminate/reap only
+owned children on failure. Preserve report/count/marker semantics, all UI assertions,
+the full test suite, existing outer deadlines and every database/CI gate. No blanket
+retry, longer test timeout, test skip, global process kill, product/UI change or
+laptop service restart. Real child timeout/output/exit regressions and independent
+execution are required. Linux CI must verify the shell and complete current80 gates.
 
 Migration80 adds a narrow
 `runtime_due_india_fiscal_submissions(integer, uuid, uuid)` capability returning

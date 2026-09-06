@@ -4,6 +4,8 @@ import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 
+import { runOwnedProofProcess } from "./helpers/owned-proof-process";
+
 const root = resolve(import.meta.dir, "..");
 const markup = await Bun.file(resolve(root, "src/http/operator/index.html")).text();
 const operator = await Bun.file(resolve(root, "src/http/operator/operator.js")).text();
@@ -30,8 +32,8 @@ async function chromium(width: number, theme: string) {
   </script></body></html>`;
   await writeFile(file, html);
   try {
-    const proc = Bun.spawn([browser, "--headless=new", "--disable-gpu", "--no-sandbox", "--disable-dev-shm-usage", "--no-first-run", "--no-default-browser-check", "--allow-file-access-from-files", `--window-size=${width},900`, "--virtual-time-budget=2000", "--dump-dom", file], { stdout: "pipe", stderr: "ignore" });
-    const output = await new Response(proc.stdout).text(); expect(await proc.exited).toBe(0);
+    const result = await runOwnedProofProcess([browser, "--headless=new", "--disable-gpu", "--no-sandbox", "--disable-dev-shm-usage", "--no-first-run", "--no-default-browser-check", "--allow-file-access-from-files", `--user-data-dir=${resolve(dir, "profile")}`, `--window-size=${width},900`, "--virtual-time-budget=2000", "--dump-dom", file], { timeoutMs: 8_000 });
+    const output = result.stdout; expect(result.exitCode).toBe(0);
     const encoded = output.match(/<pre id="proof">([^<]+)<\/pre>/)?.[1]; if (!encoded) throw new Error("browser proof did not complete");
     return JSON.parse(encoded.replaceAll("&quot;", '"').replaceAll("&amp;", "&"));
   } finally { await rm(dir, { recursive:true, force:true }); }

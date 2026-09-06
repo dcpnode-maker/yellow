@@ -8,6 +8,12 @@ a prior phase's public surface without a written note in `DECISIONS.log`.
 
 ## Current implementation status — 2026-09-06, consolidated Codex Yellow work
 
+Q204's latest CI harness repair is documented atD1396: bounded owned subprocesses,
+isolated browser profiles and batched historical state scans pass the complete
+local standing suite1,673/0 with1,264 explicit DB/Unix skips. Independent focused
+execution also passes; unchanged Linux/current80 integration gates remain mandatory.
+No Phase7 completion, provider activation or retained-local replacement is claimed.
+
 Latest: Q205 repairs late-replay drift without changing applied1–78 or financial
 rows. Exact15f5204 passes all six CI34039764089 jobs, and PR87 is independently
 merged as22f1bed with a separate post-merge actual79 schema/referee11/11. Main is
