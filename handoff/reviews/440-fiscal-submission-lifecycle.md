@@ -737,3 +737,49 @@ conditions are personally discharged. Full repaired-candidate standing gates,
 fresh exact-source CI and final independent PR head/base/conversation/check review
 remain required before merge. This reviewer made only this appended review record;
 no push, merge, PR-thread resolution, provider call or activation occurred.
+
+## Published b6ecada integration observation — CI withheld
+
+Independent reviewer `/root/fiscal_http_acceptance` verified PR87 head and remote
+branch exactly `b6ecada300762342d0b299a86c7efc1fac65838b`, base/main exactly
+`b5ef70842b658183f7b5b4c650c8e78c7a0b513d`. It inspected the published39-file delta,
+confirmed Q204 production is excluded, and compared immutable git-object SHA256s
+for78,79,schema,replay test/fixture and CI against the accepted hashes above; all
+match. The added Q204 admission is prospective work, not activated runtime code.
+
+The new Q200 resume helper and all307 test lines were independently read, together
+with the retained non-implementing root review and actual-resume evidence. Reviewer
+personally ran the exact published helper/test source:
+
+```text
+bun test tests/native-review-resume.test.ts
+7 pass, 0 fail, 19 assertions, 6.62s
+```
+
+Only synthetic AST/function/fixture checks executed. The reviewer did not launch
+the real helper, change the stable local preview, or touch its process/database.
+No additional implementation finding in that bounded recovery slice.
+
+Automatic pull-request CI34020729817 was observed without any dispatch, restart
+or cancellation. Five jobs passed:local-review,windows-state,quality,container-smoke
+and free-host-arm64. Database job101452922367 FAILED during the migration suite:
+44 pass,1 fail,264 assertions,109.39s. Both new Q205 tests (exact rollback/upgrade/
+no-op/checksum and fresh79-versus-upgraded78 schema equivalence) passed. The failed
+case is `stages historical lineage then applies correction, repair and all India
+fiscal evidence exactly once`: its current full-runner appliedFiles expectation
+ends at78, while actual correctly adds `0079_fiscal_immutable_command_receipts.sql`.
+Its subsequent upgraded-ledger length and no-op discoveredFiles expectations also
+remain78 and must be updated to79. Preserve its exact predecessor44 ledger and
+no-op assertions; do not bypass current-source coverage by pinning that case to78.
+The required downstream Q205 HTTP/replay stage did not execute in this failed run.
+
+All normal CodeQL checks passed. The separate dynamic GitHub Advanced Security
+run34020730334 failed before analysis with Copilot entitlement403, `You are not
+licensed to use Copilot`; it is not a code finding or a displayed required PR check.
+No entitlement, repository protection, paid service or bypass was changed.
+
+Disposition: KEEP PR87 UNMERGED. The original P2 discussion remains unresolved
+pending a repaired published candidate and complete exact-source gates. Root owns
+the scoped three-point migration-test frontier correction. The passing local Q205
+repair proof is retained but cannot substitute for the failed full CI run. No PR
+comment-resolution, merge, push or production edit was performed by this reviewer.

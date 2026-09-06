@@ -37,6 +37,12 @@ Independent actual current79 schema and all11 canonical invariants also pass.
 Applied79's extra trailing blank line is retained to preserve its reviewed checksum;
 the resulting diff-check whitespace warning is recorded, not concealed.
 
+Published repaired candidate `b6ecada` passes five CI jobs and normal CodeQL.
+CI34020729817's database job found three stale78 expectations in an older
+current-frontier migration test. Both new78→79 proofs pass, but later integration
+steps did not run. The three expectations now include79; applied SQL and historical
+prefix tests are unchanged. Fresh exact-source CI remains required before merge.
+
 **Founder direction: finish outstanding build, then dependent phases.** The
 existing `Review Yellow Findings` task has been asked for the new UI handoff;
 do not reintroduce the global Simple/Advanced/Expert design or block backend work

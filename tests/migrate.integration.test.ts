@@ -2213,6 +2213,7 @@ databaseDescribe("Bun SQL migration runner", () => {
           "0076_india_native_fiscal_source_evidence.sql",
           "0077_india_native_fiscal_source_completion.sql",
           "0078_fiscal_submission_durability.sql",
+          "0079_fiscal_immutable_command_receipts.sql",
         ]);
 
         const preservedLedger = await sql<Array<{
@@ -2238,7 +2239,7 @@ databaseDescribe("Bun SQL migration runner", () => {
             FROM public.schema_migration
            ORDER BY version
         `;
-        expect(upgradedLedger).toHaveLength(78);
+        expect(upgradedLedger).toHaveLength(79);
 
         const noOpLog: string[] = [];
         const noOp = await runMigrations({
@@ -2247,7 +2248,7 @@ databaseDescribe("Bun SQL migration runner", () => {
           logger: (message) => noOpLog.push(message),
         });
         expect(noOp.appliedFiles).toEqual([]);
-        expect(noOp.discoveredFiles).toBe(78);
+        expect(noOp.discoveredFiles).toBe(79);
         expect(noOp.transactionBackendPids).toEqual([]);
         expect(noOpLog).toHaveLength(1);
         expect(noOpLog[0]).toContain("applied=0 status=no-op");
