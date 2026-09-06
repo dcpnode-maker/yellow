@@ -341,3 +341,40 @@ approval: mandatory exact-source Linux process/readiness/migration/current80 CI 
 final independent PR review remain required. The older11/93 result stays historical;
 the new11/95 result is the personally executed current delivery evidence. Reviewer
 changed only this admitted review record, not production/tests/main or local apps.
+
+## PR88 exact-source CI failure — no integration approval
+
+Reviewer personally inspected PR88 at exact published head
+a4a134660a3bc13b45e545a678597fd1d34adb29 over main
+22f1beddea23429ccd9111092dccf6176386adf2, its56-file immutable diff, body and current
+conversation/check state. The frozen repair, SQL80/schema and preceding personal
+proof remain applicable; applied1–79 are not changed. Scoped full diff-check passes.
+
+Automatic CI34043209976 completed with five successful jobs (quality, local-review,
+windows-state, free-host-arm64, container-smoke) and database failure. Normal
+CodeQL34043208505 passed. This reviewer launched no duplicate workflow or rerun.
+Actual local-review and ARM64 logs each show128 tables after1–80 and canonical
+RESULT:11 passed,0 failed of11; ARM64 runtime status reports frontier80. Those
+successes do not substitute for the blocked database integration chain.
+
+Personally retrieved the exact failed job with:
+
+```text
+gh run view 34043209976 --json headSha,status,conclusion,jobs
+gh run view 34043209976 --job 101513773620 --log-failed
+```
+
+Earliest failing gate: Execute isolated Phase3 database proofs, specifically
+tests/founder-status.integration.test.ts:744, P1 granted-property exact live status.
+Expected workers omits fiscalSubmissionDelivery, while published operator.ts:2755
+correctly returns fiscalSubmissionDelivery:"disabled". Output is7 pass,1 fail,
+150 assertions,1.59s. This is a substantive deterministic stale-oracle assertion,
+not a timeout or reason for a blind retry. Coordinator was immediately notified
+to admit a narrowly scoped expectation correction; reviewer made no test edit.
+
+The migration integration suite, Q204 delivery/Linux-process proof, readiness and
+compatibility chain, deployment acceptance and database-job referee were all
+SKIPPED downstream. They are not green evidence at this head. PR88 remains
+MERGEABLE/UNSTABLE with unchanged head/base; **NO MERGE** until a corrected published
+source passes every required gate and final independent review. No database action,
+stable-local promotion, provider call, admin bypass or branch deletion occurred.

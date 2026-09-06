@@ -53,6 +53,7 @@ tests/arrival-pickup-task-worker-wiring.integration.test.ts (shared supervision/
 tests/reservation-arrival-roll-worker-wiring.integration.test.ts (shared supervision/signal/logging oracle only)
 tests/reservation-departure-roll-worker-wiring.integration.test.ts (shared supervision/signal/logging oracle only)
 tests/fiscal-submission-commands.test.ts (admitted context export surface only; snapshot helpers remain private)
+tests/founder-status.integration.test.ts (exact seventh worker status field only; existing access/privacy assertions unchanged)
 tests/operator-fiscal-submission.intentional-red.test.ts (default-off shared registry composition only)
 tests/operator-app-bar-responsive-containment.intentional-red.test.ts (bounded DevTools port-file EBUSY/ENOENT startup handling only; geometry unchanged)
 tests/fiscal-submission-durability.integration.test.ts
@@ -116,6 +117,15 @@ viewport/DSF/overflow/label/rail assertion, process ownership and timeout; no UI
 test skip, blanket retry or broad browser cleanup.
 
 ## Runtime-only discovery and claim rules
+
+After publication at a4a1346, CI34043209976 passes five jobs but its database job
+stops at the older founder-status exact workers equality (7 pass, 1 fail). The
+production status correctly adds fiscalSubmissionDelivery=disabled. Before editing
+that assertion, this amendment admits only its response type and exact expected
+seventh field in founder-status.integration.test.ts. Keep all six older worker
+states, exact whole-object equality and tenant/access/privacy checks. No production
+state or permission change is needed; the later skipped database gates must execute
+in new exact-source CI.
 
 Migration80 adds a narrow
 `runtime_due_india_fiscal_submissions(integer, uuid, uuid)` capability returning

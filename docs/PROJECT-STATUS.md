@@ -13,6 +13,15 @@ backlog. `state.sh` and `state.ps1` read the machine-readable comments above.
 
 ## Current task
 
+**CI correction — D1394.** Q204 is published as PR88 at a4a1346. Five jobs in
+CI34043209976 and normal CodeQL pass. The database job stops on an older exact
+six-worker status assertion; the seventh fiscal worker correctly reports disabled.
+Only that test's response type and exact expected field are corrected, preserving
+all privacy/access checks. Root focused proof passes 12 tests with 5 explicit
+database/Linux skips; typecheck passes. The later database gates did not run and
+must pass in fresh exact-source CI before independent integration. Main79 and
+the stable local77 remain unchanged.
+
 **Latest implementation and integration — D1393.** PR87 is independently merged
 as`22f1beddea23429ccd9111092dccf6176386adf2`, after exact15f5204 passes all six jobs
 in[CI34039764089](https://github.com/dcpnode-maker/yellow/actions/runs/34039764089).

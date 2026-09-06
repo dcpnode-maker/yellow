@@ -721,7 +721,8 @@ databaseDescribe("Order 064 authenticated founder status", () => {
         app: { state: string; checkedAt: string; processStartedAt: string; build: typeof TEST_BUILD };
         database: { state: string; checkedAt: string; tenantContext: boolean; database: string };
         workers: { holdExpiry: string; availabilityProjection: string; arrivalPickupTask: string;
-          reservationArrivalRoll: string; reservationDepartureRoll: string; businessDayRoll: string };
+          reservationArrivalRoll: string; reservationDepartureRoll: string; businessDayRoll: string;
+          fiscalSubmissionDelivery: string };
         valkey: { state: string; detail: string };
         ci: { state: string; detail: string };
       };
@@ -744,6 +745,7 @@ databaseDescribe("Order 064 authenticated founder status", () => {
     expect(body.live.workers).toEqual({
       holdExpiry: "configured", availabilityProjection: "disabled", arrivalPickupTask: "disabled",
       reservationArrivalRoll: "configured", reservationDepartureRoll: "configured", businessDayRoll: "configured",
+      fiscalSubmissionDelivery: "disabled",
     });
     expect(body.live.valkey).toEqual({
       state: "not_connected",
