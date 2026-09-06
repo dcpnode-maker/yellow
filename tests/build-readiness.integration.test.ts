@@ -17,13 +17,13 @@ if (REQUIRED && (!ADMIN_URL || !RUNTIME_URL)) {
 }
 
 const databaseDescribe = ADMIN_URL && RUNTIME_URL ? describe.serial : describe.skip;
-const databaseName = `yellow_build_readiness_${crypto.randomUUID().replaceAll("-", "")}`;
+const databaseName = `yellow_order440_readiness_${crypto.randomUUID().replaceAll("-", "")}`;
 let administrator: SQL | undefined;
 let deployment: SQL | undefined;
 let runtime: SQL | undefined;
 let deploymentDatabaseUrl = "";
 let runtimeDatabaseUrl = "";
-let release77Ready = false;
+let release78Ready = false;
 
 async function readinessFailure(operation: Promise<void>): Promise<Error> {
   try {
@@ -35,16 +35,15 @@ async function readinessFailure(operation: Promise<void>): Promise<Error> {
   throw new Error("runtime readiness unexpectedly succeeded");
 }
 
-async function ensureRelease77(): Promise<void> {
-  if (release77Ready) return;
+async function ensureRelease78(): Promise<void> {
+  if (release78Ready) return;
   const result = await runMigrations({ databaseUrl: deploymentDatabaseUrl, logger: () => undefined });
   expect(result.appliedFiles).toEqual([
-    "0076_india_native_fiscal_source_evidence.sql",
-    "0077_india_native_fiscal_source_completion.sql",
+    "0078_fiscal_submission_durability.sql",
   ]);
   deployment = new SQL(deploymentDatabaseUrl, { max: 1, prepare: false });
   runtime = new SQL(runtimeDatabaseUrl, { max: 1, prepare: false });
-  release77Ready = true;
+  release78Ready = true;
 }
 
 databaseDescribe("Order438 runtime release readiness identity", () => {
@@ -59,7 +58,7 @@ databaseDescribe("Order438 runtime release readiness identity", () => {
     deploymentDatabaseUrl = deploymentUrl.toString();
     runtimeDatabaseUrl = runtimeUrl.toString();
 
-    const predecessorDirectory = await mkdtemp(join(tmpdir(), "yellow-readiness-75-"));
+    const predecessorDirectory = await mkdtemp(join(tmpdir(), "yellow-order440-readiness-75-"));
     try {
       const names = (await readdir(MIGRATIONS)).filter(name =>
         name.endsWith(".sql") && Number(name.slice(0, 4)) <= 75);
@@ -68,19 +67,23 @@ databaseDescribe("Order438 runtime release readiness identity", () => {
       await runMigrations({ databaseUrl: deploymentUrl.toString(),
         migrationsDirectory: predecessorDirectory, logger: () => undefined });
     } finally {
+      if (!resolve(predecessorDirectory).startsWith(resolve(tmpdir()) + "/")
+          && !resolve(predecessorDirectory).startsWith(resolve(tmpdir()) + "\\")) {
+        throw new Error("readiness proof cleanup escaped temporary directory");
+      }
       await rm(predecessorDirectory, { recursive: true, force: true });
     }
-    await administrator.close({ timeout: 0 });
+    await administrator.close({ timeout: 5 });
     administrator = undefined;
   }, 120_000);
 
   afterAll(async () => {
-    await runtime?.close({ timeout: 0 });
-    await deployment?.close({ timeout: 0 });
-    await administrator?.close({ timeout: 0 });
+    await runtime?.close({ timeout: 5 });
+    await deployment?.close({ timeout: 5 });
+    await administrator?.close({ timeout: 5 });
     const cleanup = new SQL(ADMIN_URL!, { max: 1, prepare: false });
     await cleanup.unsafe(`DROP DATABASE IF EXISTS "${databaseName}" WITH (FORCE)`);
-    await cleanup.close({ timeout: 0 });
+    await cleanup.close({ timeout: 5 });
   });
 
   test("rejects a direct yellow_runtime login against the production-75 predecessor", async () => {
@@ -89,23 +92,52 @@ databaseDescribe("Order438 runtime release readiness identity", () => {
       const error = await readinessFailure(assertRuntimeReleaseReadiness(predecessorRuntime));
       expect(error.message).toBe("runtime release readiness is unavailable");
     } finally {
-      await predecessorRuntime.close({ timeout: 0 });
+      await predecessorRuntime.close({ timeout: 5 });
     }
   });
 
-  test("accepts only a direct yellow_runtime login against the complete release-77 catalogue", async () => {
-    await ensureRelease77();
+  test("rejects a direct yellow_runtime login against the complete release-77 predecessor", async () => {
+    const prefixDirectory = await mkdtemp(join(tmpdir(), "yellow-order440-readiness-77-"));
+    try {
+      const names = (await readdir(MIGRATIONS)).filter(name =>
+        name.endsWith(".sql") && Number(name.slice(0, 4)) <= 77);
+      await Promise.all(names.map(async name => writeFile(resolve(prefixDirectory, name),
+        await readFile(resolve(MIGRATIONS, name)))));
+      const result = await runMigrations({ databaseUrl: deploymentDatabaseUrl,
+        migrationsDirectory: prefixDirectory, logger: () => undefined });
+      expect(result.appliedFiles).toEqual([
+        "0076_india_native_fiscal_source_evidence.sql",
+        "0077_india_native_fiscal_source_completion.sql",
+      ]);
+    } finally {
+      if (!resolve(prefixDirectory).startsWith(resolve(tmpdir()) + "/")
+          && !resolve(prefixDirectory).startsWith(resolve(tmpdir()) + "\\")) {
+        throw new Error("readiness proof cleanup escaped temporary directory");
+      }
+      await rm(prefixDirectory, { recursive: true, force: true });
+    }
+    const predecessorRuntime = new SQL(runtimeDatabaseUrl, { max: 1, prepare: false });
+    try {
+      const error = await readinessFailure(assertRuntimeReleaseReadiness(predecessorRuntime));
+      expect(error.message).toBe("runtime release readiness is unavailable");
+    } finally {
+      await predecessorRuntime.close({ timeout: 5 });
+    }
+  });
+
+  test("accepts only a direct yellow_runtime login against the complete release-78 catalogue", async () => {
+    await ensureRelease78();
     await expect(assertRuntimeReleaseReadiness(runtime!)).resolves.toBeUndefined();
   });
 
   test("rejects the deployment login", async () => {
-    await ensureRelease77();
+    await ensureRelease78();
     const error = await readinessFailure(assertRuntimeReleaseReadiness(deployment!));
     expect(error.message).toBe("runtime release readiness is unavailable");
   });
 
   test("rejects a privileged deployment session after SET ROLE yellow_runtime", async () => {
-    await ensureRelease77();
+    await ensureRelease78();
     const connection = await deployment!.reserve();
     try {
       await connection.unsafe("BEGIN");
@@ -116,5 +148,94 @@ databaseDescribe("Order438 runtime release readiness identity", () => {
       await connection.unsafe("ROLLBACK");
       connection.release();
     }
+  });
+
+  test("rejects history without FORCE RLS and proves restoration", async () => {
+    await ensureRelease78();
+    try {
+      await deployment!.unsafe("ALTER TABLE public.fiscal_submission_history NO FORCE ROW LEVEL SECURITY");
+      const error = await readinessFailure(assertRuntimeReleaseReadiness(runtime!));
+      expect(error.message).toBe("runtime release readiness is unavailable");
+    } finally {
+      await deployment!.unsafe("ALTER TABLE public.fiscal_submission_history FORCE ROW LEVEL SECURITY");
+    }
+    await expect(assertRuntimeReleaseReadiness(runtime!)).resolves.toBeUndefined();
+  });
+
+  test("rejects permissive additional policy and proves restoration", async () => {
+    await ensureRelease78();
+    try {
+      await deployment!.unsafe("CREATE POLICY order440_readiness_probe ON public.fiscal_submission_history USING (true) WITH CHECK (true)");
+      const error = await readinessFailure(assertRuntimeReleaseReadiness(runtime!));
+      expect(error.message).toBe("runtime release readiness is unavailable");
+    } finally {
+      await deployment!.unsafe("DROP POLICY IF EXISTS order440_readiness_probe ON public.fiscal_submission_history");
+    }
+    await expect(assertRuntimeReleaseReadiness(runtime!)).resolves.toBeUndefined();
+  });
+
+  test("rejects modified tenant predicate and proves restoration", async () => {
+    await ensureRelease78();
+    try {
+      await deployment!.unsafe("ALTER POLICY tenant_isolation ON public.fiscal_submission_history USING (true) WITH CHECK (true)");
+      const error = await readinessFailure(assertRuntimeReleaseReadiness(runtime!));
+      expect(error.message).toBe("runtime release readiness is unavailable");
+    } finally {
+      await deployment!.unsafe(`ALTER POLICY tenant_isolation ON public.fiscal_submission_history
+        USING (tenant_id=NULLIF(pg_catalog.current_setting('app.tenant_id',true),'')::uuid)
+        WITH CHECK (tenant_id=NULLIF(pg_catalog.current_setting('app.tenant_id',true),'')::uuid)`);
+    }
+    await expect(assertRuntimeReleaseReadiness(runtime!)).resolves.toBeUndefined();
+  });
+
+  test("rejects public history access and proves restoration", async () => {
+    await ensureRelease78();
+    try {
+      await deployment!.unsafe("GRANT SELECT ON public.fiscal_submission_history TO PUBLIC");
+      const error = await readinessFailure(assertRuntimeReleaseReadiness(runtime!));
+      expect(error.message).toBe("runtime release readiness is unavailable");
+    } finally {
+      await deployment!.unsafe("REVOKE SELECT ON public.fiscal_submission_history FROM PUBLIC");
+    }
+    await expect(assertRuntimeReleaseReadiness(runtime!)).resolves.toBeUndefined();
+  });
+
+  test("rejects fiscal function configuration drift and proves restoration", async () => {
+    await ensureRelease78();
+    const signature = "public.request_india_fiscal_submission(uuid,uuid,uuid,uuid,uuid,text,uuid)";
+    try {
+      await deployment!.unsafe(`ALTER FUNCTION ${signature} SET TimeZone='Asia/Kolkata'`);
+      const error = await readinessFailure(assertRuntimeReleaseReadiness(runtime!));
+      expect(error.message).toBe("runtime release readiness is unavailable");
+    } finally {
+      await deployment!.unsafe(`ALTER FUNCTION ${signature} SET TimeZone='UTC'`);
+    }
+    await expect(assertRuntimeReleaseReadiness(runtime!)).resolves.toBeUndefined();
+  });
+
+  test("rejects wrong request authority and proves restoration", async () => {
+    await ensureRelease78();
+    const signature = "public.request_india_fiscal_submission(uuid,uuid,uuid,uuid,uuid,text,uuid)";
+    try {
+      await deployment!.unsafe(`GRANT EXECUTE ON FUNCTION ${signature} TO yellow_runtime`);
+      const error = await readinessFailure(assertRuntimeReleaseReadiness(runtime!));
+      expect(error.message).toBe("runtime release readiness is unavailable");
+    } finally {
+      await deployment!.unsafe(`REVOKE EXECUTE ON FUNCTION ${signature} FROM yellow_runtime`);
+    }
+    await expect(assertRuntimeReleaseReadiness(runtime!)).resolves.toBeUndefined();
+  });
+
+  test("rejects public claim capability and proves restoration", async () => {
+    await ensureRelease78();
+    const signature = "public.claim_india_fiscal_submission(uuid,uuid,integer)";
+    try {
+      await deployment!.unsafe(`GRANT EXECUTE ON FUNCTION ${signature} TO PUBLIC`);
+      const error = await readinessFailure(assertRuntimeReleaseReadiness(runtime!));
+      expect(error.message).toBe("runtime release readiness is unavailable");
+    } finally {
+      await deployment!.unsafe(`REVOKE EXECUTE ON FUNCTION ${signature} FROM PUBLIC`);
+    }
+    await expect(assertRuntimeReleaseReadiness(runtime!)).resolves.toBeUndefined();
   });
 });

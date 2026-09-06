@@ -1,7 +1,22 @@
 # Local development services. Phase 0 extends this file with the app service;
 # NATS stays out until the Phase-1 decision gate says otherwise (DECISIONS.log).
+# Diagnostic budget per container: three 10 MiB log files; no crash-restart loop.
+# Host crash collectors and database/WAL capacity still need separate limits.
+x-yellow-diagnostics: &yellow-diagnostics
+  restart: "no"
+  logging:
+    driver: local
+    options:
+      max-size: "10m"
+      max-file: "3"
+  ulimits:
+    core:
+      soft: 0
+      hard: 0
+
 services:
   app:
+    <<: *yellow-diagnostics
     build:
       context: .
       dockerfile: Dockerfile
@@ -48,6 +63,7 @@ services:
       retries: 20
 
   synthetic-provider:
+    <<: *yellow-diagnostics
     profiles: ["hosted-deposit"]
     build:
       context: .
@@ -78,6 +94,7 @@ services:
       retries: 20
 
   provision:
+    <<: *yellow-diagnostics
     profiles: ["tools"]
     build:
       context: .
@@ -93,6 +110,7 @@ services:
         condition: service_healthy
 
   migrate:
+    <<: *yellow-diagnostics
     profiles: ["tools"]
     build:
       context: .
@@ -105,6 +123,7 @@ services:
         condition: service_completed_successfully
 
   seed:
+    <<: *yellow-diagnostics
     profiles: ["tools"]
     build:
       context: .
@@ -118,6 +137,7 @@ services:
         condition: service_completed_successfully
 
   postgres:
+    <<: *yellow-diagnostics
     image: postgres:16.15-alpine@sha256:ab5c955e9e57ae9879d4411ab49a912be9d162455676f7bf56e951b11ac73785
     environment:
       POSTGRES_USER: yellow_deploy
@@ -138,6 +158,7 @@ services:
       retries: 20
 
   valkey:
+    <<: *yellow-diagnostics
     image: valkey/valkey:8.1.9-alpine@sha256:e0eb7c480958d32bdc4357a74bdd70653ae15f2f9b4c93c4a5a9fad1dc471c84
     ports: ["127.0.0.1:${YELLOW_VALKEY_PORT:-6389}:6379"]
     command: valkey-server --save "" --appendonly no

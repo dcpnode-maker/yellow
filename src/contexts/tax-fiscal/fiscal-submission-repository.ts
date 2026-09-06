@@ -1,3 +1,4 @@
+import { types as utilTypes } from "node:util";
 import type { ConnectionPool, Tx } from "../../kernel";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
@@ -90,14 +91,27 @@ export type FiscalSubmissionRepositoryErrorCode =
   | "database_error"
   | "pool_failed";
 
+export type FiscalSubmissionServiceErrorCode = Exclude<FiscalSubmissionRepositoryErrorCode, "pool_failed">;
+
 export interface FiscalSubmissionRepositoryError {
   readonly code: FiscalSubmissionRepositoryErrorCode;
+  readonly message: string;
+}
+
+export interface FiscalSubmissionServiceError {
+  readonly code: FiscalSubmissionServiceErrorCode;
   readonly message: string;
 }
 
 export type FiscalSubmissionRepositoryResult<T> = Readonly<
   | { readonly ok: true; readonly value: Readonly<T> }
   | { readonly ok: false; readonly error: Readonly<FiscalSubmissionRepositoryError> }
+>;
+
+/** Application-facing request/retry result. Runtime claim/reconcile stay private. */
+export type FiscalSubmissionServiceResult<T> = Readonly<
+  | { readonly ok: true; readonly value: Readonly<T> }
+  | { readonly ok: false; readonly error: Readonly<FiscalSubmissionServiceError> }
 >;
 
 export interface RequestIndiaFiscalSubmissionInput {
@@ -146,11 +160,18 @@ function frozen<T extends object>(value: T): Readonly<T> {
   return Object.freeze(value);
 }
 
-function success<T extends object>(value: T): FiscalSubmissionRepositoryResult<T> {
+function success<T extends object>(value: T): Readonly<{ readonly ok: true; readonly value: Readonly<T> }> {
   return frozen({ ok: true as const, value: frozen(value) });
 }
 
 function failure<T>(code: FiscalSubmissionRepositoryErrorCode, message: string): FiscalSubmissionRepositoryResult<T> {
+  return frozen({ ok: false as const, error: frozen({ code, message }) });
+}
+
+function serviceFailure<T>(
+  code: FiscalSubmissionServiceErrorCode,
+  message: string,
+): FiscalSubmissionServiceResult<T> {
   return frozen({ ok: false as const, error: frozen({ code, message }) });
 }
 
@@ -204,7 +225,10 @@ function isWellFormedUtf16(value: string): boolean {
   return true;
 }
 
-function requestInput(value: unknown): RequestIndiaFiscalSubmissionInput | null {
+export function snapshotRequestIndiaFiscalSubmissionInput(
+  value: unknown,
+): RequestIndiaFiscalSubmissionInput | null {
+  if (typeof value === "object" && value !== null && utilTypes.isProxy(value)) return null;
   const row = record(value);
   if (!row || !exact(row, REQUEST_KEYS) || !uuid(row.tenantId) || !uuid(row.propertyNode)
       || !uuid(row.documentId) || !uuid(row.providerExtensionId) || !uuid(row.actorId)
@@ -215,7 +239,10 @@ function requestInput(value: unknown): RequestIndiaFiscalSubmissionInput | null 
     idempotencyKey: row.idempotencyKey, requestId: row.requestId });
 }
 
-function retryInput(value: unknown): RetryIndiaFiscalSubmissionInput | null {
+export function snapshotRetryIndiaFiscalSubmissionInput(
+  value: unknown,
+): RetryIndiaFiscalSubmissionInput | null {
+  if (typeof value === "object" && value !== null && utilTypes.isProxy(value)) return null;
   const row = record(value);
   if (!row || !exact(row, RETRY_KEYS) || !uuid(row.tenantId) || !uuid(row.submissionId)
       || !uuid(row.actorId) || typeof row.idempotencyKey !== "string"
@@ -361,17 +388,10 @@ function oneClaim(rows: unknown): FiscalSubmissionClaim {
   return claim;
 }
 
-export class FiscalSubmissionRepository {
-  readonly #pool: ConnectionPool;
-  #poolFailure: Error | undefined;
-
-  constructor(runtimePool: ConnectionPool) {
-    this.#pool = runtimePool;
-  }
-
-  async request(tx: Tx, inputValue: unknown): Promise<FiscalSubmissionRepositoryResult<FiscalSubmissionReceipt>> {
-    const input = requestInput(inputValue);
-    if (!input) return failure("invalid_input", "fiscal submission request is invalid");
+export class FiscalSubmissionService {
+  async request(tx: Tx, inputValue: unknown): Promise<FiscalSubmissionServiceResult<FiscalSubmissionReceipt>> {
+    const input = snapshotRequestIndiaFiscalSubmissionInput(inputValue);
+    if (!input) return serviceFailure("invalid_input", "fiscal submission request is invalid");
     try {
       const receipt = oneReceipt(await tx<Array<{ receipt: unknown }>>`
         SELECT request_india_fiscal_submission(
@@ -386,14 +406,14 @@ export class FiscalSubmissionRepository {
       return success({ ...receipt });
     } catch (error) {
       return error instanceof InvalidReceipt
-        ? failure("invalid_receipt", "PostgreSQL returned an invalid fiscal submission receipt")
-        : failure("database_error", "Fiscal submission request could not be persisted");
+        ? serviceFailure("invalid_receipt", "PostgreSQL returned an invalid fiscal submission receipt")
+        : serviceFailure("database_error", "Fiscal submission request could not be persisted");
     }
   }
 
-  async retry(tx: Tx, inputValue: unknown): Promise<FiscalSubmissionRepositoryResult<FiscalSubmissionReceipt>> {
-    const input = retryInput(inputValue);
-    if (!input) return failure("invalid_input", "fiscal submission retry request is invalid");
+  async retry(tx: Tx, inputValue: unknown): Promise<FiscalSubmissionServiceResult<FiscalSubmissionReceipt>> {
+    const input = snapshotRetryIndiaFiscalSubmissionInput(inputValue);
+    if (!input) return serviceFailure("invalid_input", "fiscal submission retry request is invalid");
     try {
       const receipt = oneReceipt(await tx<Array<{ receipt: unknown }>>`
         SELECT retry_india_fiscal_submission(
@@ -407,9 +427,19 @@ export class FiscalSubmissionRepository {
       return success({ ...receipt });
     } catch (error) {
       return error instanceof InvalidReceipt
-        ? failure("invalid_receipt", "PostgreSQL returned an invalid fiscal submission receipt")
-        : failure("database_error", "Fiscal submission retry could not be persisted");
+        ? serviceFailure("invalid_receipt", "PostgreSQL returned an invalid fiscal submission receipt")
+        : serviceFailure("database_error", "Fiscal submission retry could not be persisted");
     }
+  }
+}
+
+export class FiscalSubmissionRepository extends FiscalSubmissionService {
+  readonly #pool: ConnectionPool;
+  #poolFailure: Error | undefined;
+
+  constructor(runtimePool: ConnectionPool) {
+    super();
+    this.#pool = runtimePool;
   }
 
   async claim(inputValue: unknown): Promise<FiscalSubmissionRepositoryResult<FiscalSubmissionClaim>> {

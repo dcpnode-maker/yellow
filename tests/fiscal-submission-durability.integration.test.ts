@@ -1,6 +1,12 @@
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { SQL } from "bun";
+import { copyFile, mkdtemp, readdir, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join, resolve } from "node:path";
+import { runMigrations } from "../scripts/migrate";
 import { IssueIndiaNativeFiscalInvoiceCommand } from "../src/commands/issue-india-native-fiscal-invoice";
+import { RequestIndiaFiscalSubmissionCommand } from "../src/commands/request-india-fiscal-submission";
+import { RetryIndiaFiscalSubmissionCommand } from "../src/commands/retry-india-fiscal-submission";
 import { projectIssuedIndiaIrpWireCandidate } from "../src/contexts/tax-fiscal/india-irp-issued-wire-candidate";
 import { FiscalSubmissionRepository } from "../src/contexts/tax-fiscal/fiscal-submission-repository";
 import { FiscalSubmissionWorker, VerifiedIndiaIrpAdapterRegistry } from "../src/contexts/tax-fiscal/fiscal-submission-worker";
@@ -33,6 +39,9 @@ interface Claim extends Json {
 }
 const key = () => `proof-${crypto.randomUUID()}`;
 const hash = (text: string) => new Bun.CryptoHasher("sha256").update(text).digest("hex");
+const MIGRATIONS = resolve(import.meta.dir, "..", "migrations");
+const CANONICAL78 = "0078_fiscal_submission_durability.sql";
+const CANONICAL78_HASH = "65323a81a999a11e3d55893411c994c0b841af9b0465ca7e80630fd78d0ffae6";
 
 databaseDescribe("Order440 durable fiscal delivery on genuine issued invoices", () => {
   let deploy: SQL;
@@ -133,6 +142,39 @@ databaseDescribe("Order440 durable fiscal delivery on genuine issued invoices", 
     });
   }
 
+  function commandRequest(
+    s: Scenario,
+    idempotencyKey: string,
+    overrides: Partial<Pick<Scenario, "tenant" | "property" | "document" | "provider" | "actor">> = {},
+  ) {
+    const input = { ...s, ...overrides };
+    return new RequestIndiaFiscalSubmissionCommand(database).execute({
+      tenantId: input.tenant,
+      propertyNode: input.property,
+      documentId: input.document,
+      providerExtensionId: input.provider,
+      actorId: input.actor,
+      idempotencyKey,
+      requestId: crypto.randomUUID(),
+    });
+  }
+
+  function commandRetry(
+    s: Scenario,
+    submissionId: string,
+    idempotencyKey: string,
+    overrides: Partial<Pick<Scenario, "tenant" | "actor">> = {},
+  ) {
+    const input = { ...s, ...overrides };
+    return new RetryIndiaFiscalSubmissionCommand(database).execute({
+      tenantId: input.tenant,
+      submissionId,
+      actorId: input.actor,
+      idempotencyKey,
+      requestId: crypto.randomUUID(),
+    });
+  }
+
   async function retainedFinance(s: Scenario): Promise<unknown[]> {
     const tables = ["document", "document_series", "journal", "posting_line",
       "india_gst_native_fiscal_document_origin", "india_gst_accommodation_final_component_tax_journal_binding"] as const;
@@ -175,6 +217,14 @@ databaseDescribe("Order440 durable fiscal delivery on genuine issued invoices", 
     try { await expect(operation()).rejects.toMatchObject({ errno: "23514" }); }
     finally { await deploy.unsafe("ALTER TABLE public.outbox DROP CONSTRAINT order440_proof_late_failure"); }
     expect(await deliveryEvidence(s)).toEqual(before);
+  }
+
+  async function withLateOutboxFailure<T>(s: Scenario, operation: () => Promise<T>): Promise<T> {
+    if (!/^[0-9a-f-]{36}$/.test(s.tenant)) throw new Error("Invalid generated fixture tenant");
+    await deploy.unsafe(`ALTER TABLE public.outbox ADD CONSTRAINT order440_command_late_failure
+      CHECK (tenant_id <> '${s.tenant}'::uuid) NOT VALID`);
+    try { return await operation(); }
+    finally { await deploy.unsafe("ALTER TABLE public.outbox DROP CONSTRAINT order440_command_late_failure"); }
   }
 
   async function assertSqlState(operation: () => Promise<unknown>, expected: string): Promise<void> {
@@ -232,23 +282,44 @@ databaseDescribe("Order440 durable fiscal delivery on genuine issued invoices", 
       VALUES(${legacyId}::uuid,${legacy.tenant}::uuid,${legacy.document}::uuid,'in-irp','reporting','accepted',
        'historical-fixture','{"historical":true}'::jsonb)`;
     legacyBefore = await legacyRow();
-    const draft = await Bun.file(new URL("../handoff/drafts/order440/0078-fiscal-submission-durability.sql", import.meta.url)).text();
-    await expect(deploy.begin(async tx => {
-      await tx.unsafe(draft);
-      throw new Error("order440-migration-rollback-proof");
-    })).rejects.toThrow("order440-migration-rollback-proof");
+    const canonical = await Bun.file(join(MIGRATIONS, CANONICAL78)).text();
+    expect(hash(canonical)).toBe(CANONICAL78_HASH);
+    const failureDirectory = await mkdtemp(join(tmpdir(), "yellow-order440-canonical-failure-"));
+    try {
+      const names = (await readdir(MIGRATIONS)).filter(name => /^\d{4}_.*\.sql$/.test(name));
+      await Promise.all(names.map(name => copyFile(join(MIGRATIONS, name), join(failureDirectory, name))));
+      await writeFile(join(failureDirectory, CANONICAL78), canonical +
+        "\nDO $$ BEGIN RAISE EXCEPTION 'order440-canonical-migration-rollback-proof'; END $$;\n");
+      await expect(runMigrations({ databaseUrl: deployUrl!, migrationsDirectory: failureDirectory,
+        logger: () => undefined })).rejects.toThrow("order440-canonical-migration-rollback-proof");
+    } finally {
+      if (!resolve(failureDirectory).startsWith(resolve(tmpdir()) + "/")
+          && !resolve(failureDirectory).startsWith(resolve(tmpdir()) + "\\")) {
+        throw new Error("Proof cleanup escaped its temporary root");
+      }
+      await rm(failureDirectory, { recursive: true, force: true });
+    }
     const [rolledBack] = await deploy<{ absent: boolean; privileges: number }[]>`
       SELECT to_regclass('public.fiscal_submission_history') IS NULL AS absent,
         (SELECT count(*)::integer FROM public.permission WHERE code IN
           ('tax-fiscal.submissions:request','tax-fiscal.submissions:retry')) AS privileges`;
     expect(rolledBack).toEqual({ absent: true, privileges: 0 });
+    const [rolledBackLedger] = await deploy<{ count: number }[]>`
+      SELECT count(*)::integer AS count FROM public.schema_migration`;
+    expect(rolledBackLedger?.count).toBe(77);
     expect(await legacyRow()).toEqual(legacyBefore);
-    await deploy.begin(async tx => { await tx.unsafe(draft); });
+    const migrated = await runMigrations({ databaseUrl: deployUrl!, logger: () => undefined });
+    expect(migrated.appliedFiles).toEqual([CANONICAL78]);
+    expect(migrated.discoveredFiles).toBe(78);
+    const [ledger78] = await deploy<{ filename: string; checksum_sha256: string }[]>`
+      SELECT filename, checksum_sha256 FROM public.schema_migration WHERE version=78`;
+    expect(ledger78).toEqual({ filename: CANONICAL78, checksum_sha256: CANONICAL78_HASH });
+    expect((await runMigrations({ databaseUrl: deployUrl!, logger: () => undefined })).appliedFiles).toEqual([]);
   }, 180_000);
 
   afterAll(async () => { await database?.close(); await worker?.close(); await deploy?.close(); });
 
-  test("forward draft preserves legacy fields and adds no assigned permissions", async () => {
+  test("canonical migration preserves legacy fields and adds no assigned permissions", async () => {
     expect(await legacyRow()).toEqual(legacyBefore);
     const [count] = await deploy<{ count: number }[]>`SELECT count(*)::integer AS count FROM public.role_permission
       WHERE permission_code IN ('tax-fiscal.submissions:request','tax-fiscal.submissions:retry')`;
@@ -410,6 +481,105 @@ databaseDescribe("Order440 durable fiscal delivery on genuine issued invoices", 
       expect(await runner.runOnce(input)).toEqual({ ok: true, kind: "idle", reason: "terminal" });
       expect(await retainedFinance(s)).toEqual(before);
     } finally { await pool.close(); }
+  }, 180_000);
+
+  test("production request command commits exact replay and sanitizes permission and tenant denials", async () => {
+    const s = await scenario();
+    const foreign = cases[0]!;
+    const finance = await retainedFinance(s);
+    const foreignFinance = await retainedFinance(foreign);
+    const foreignDelivery = await deliveryEvidence(foreign);
+    const idempotencyKey = key();
+    const first = await commandRequest(s, idempotencyKey);
+    expect(first.ok).toBe(true);
+    if (!first.ok) throw new Error("Production request command did not commit");
+    expect(first.value).toMatchObject({ tenantId: s.tenant, propertyNode: s.property,
+      documentId: s.document, providerExtensionId: s.provider, replayed: false });
+    const committed = await deliveryEvidence(s);
+    expect(committed[0]).toHaveLength(1);
+    expect(committed[1]).toHaveLength(1);
+    const replay = await commandRequest(s, idempotencyKey);
+    expect(replay.ok).toBe(true);
+    if (!replay.ok) throw new Error("Production request command replay failed");
+    expect(replay.value.submissionId).toBe(first.value.submissionId);
+    expect(replay.value.replayed).toBe(true);
+    expect(await deliveryEvidence(s)).toEqual(committed);
+
+    await deploy`DELETE FROM public.role_permission WHERE role_id=${s.role}::uuid
+      AND permission_code='tax-fiscal.submissions:request'`;
+    let permissionDenied;
+    try { permissionDenied = await commandRequest(s, idempotencyKey); }
+    finally { await grantPermissions(s); }
+    expect(permissionDenied).toEqual({ ok: false, error: {
+      code: "database_error", message: "Fiscal submission request could not be persisted",
+    } });
+    const tenantDenied = await commandRequest(s, key(), { tenant: foreign.tenant });
+    expect(tenantDenied).toEqual({ ok: false, error: {
+      code: "database_error", message: "Fiscal submission request could not be persisted",
+    } });
+    expect(await deliveryEvidence(s)).toEqual(committed);
+    expect(await deliveryEvidence(foreign)).toEqual(foreignDelivery);
+    expect(await retainedFinance(s)).toEqual(finance);
+    expect(await retainedFinance(foreign)).toEqual(foreignFinance);
+  }, 180_000);
+
+  test("production request and retry commands roll back late outbox failure; retry commits exact replay", async () => {
+    const s = await scenario();
+    const foreign = cases[0]!;
+    const finance = await retainedFinance(s);
+    const foreignDelivery = await deliveryEvidence(foreign);
+    const initialDelivery = await deliveryEvidence(s);
+    const failedRequest = await withLateOutboxFailure(s, () => commandRequest(s, key()));
+    expect(failedRequest).toEqual({ ok: false, error: {
+      code: "database_error", message: "Fiscal submission request could not be persisted",
+    } });
+    expect(await deliveryEvidence(s)).toEqual(initialDelivery);
+    expect(await retainedFinance(s)).toEqual(finance);
+
+    const requested = await commandRequest(s, key());
+    expect(requested.ok).toBe(true);
+    if (!requested.ok) throw new Error("Production request command did not recover after rollback");
+    const claimed = await claim(s, requested.value.submissionId);
+    expect((await reconcile(s, claimed, outcome(claimed, "transport_result", "known_not_sent"))).status)
+      .toBe("error");
+    const beforeRetry = await deliveryEvidence(s);
+    const retryKey = key();
+    const failedRetry = await withLateOutboxFailure(s,
+      () => commandRetry(s, requested.value.submissionId, retryKey));
+    expect(failedRetry).toEqual({ ok: false, error: {
+      code: "database_error", message: "Fiscal submission retry could not be persisted",
+    } });
+    expect(await deliveryEvidence(s)).toEqual(beforeRetry);
+    expect(await retainedFinance(s)).toEqual(finance);
+
+    const retried = await commandRetry(s, requested.value.submissionId, retryKey);
+    expect(retried.ok).toBe(true);
+    if (!retried.ok) throw new Error("Production retry command did not commit");
+    expect(retried.value).toMatchObject({ tenantId: s.tenant,
+      submissionId: requested.value.submissionId, attemptNumber: 2, retryCount: 1, replayed: false });
+    const committed = await deliveryEvidence(s);
+    const replay = await commandRetry(s, requested.value.submissionId, retryKey);
+    expect(replay.ok).toBe(true);
+    if (!replay.ok) throw new Error("Production retry command replay failed");
+    expect(replay.value.attemptId).toBe(retried.value.attemptId);
+    expect(replay.value.replayed).toBe(true);
+    expect(await deliveryEvidence(s)).toEqual(committed);
+
+    await deploy`DELETE FROM public.role_permission WHERE role_id=${s.role}::uuid
+      AND permission_code='tax-fiscal.submissions:retry'`;
+    let permissionDenied;
+    try { permissionDenied = await commandRetry(s, requested.value.submissionId, retryKey); }
+    finally { await grantPermissions(s); }
+    expect(permissionDenied).toEqual({ ok: false, error: {
+      code: "database_error", message: "Fiscal submission retry could not be persisted",
+    } });
+    const tenantDenied = await commandRetry(s, requested.value.submissionId, key(), { tenant: foreign.tenant });
+    expect(tenantDenied).toEqual({ ok: false, error: {
+      code: "database_error", message: "Fiscal submission retry could not be persisted",
+    } });
+    expect(await deliveryEvidence(s)).toEqual(committed);
+    expect(await deliveryEvidence(foreign)).toEqual(foreignDelivery);
+    expect(await retainedFinance(s)).toEqual(finance);
   }, 180_000);
 
   test("one hundred concurrent claims authorize exactly one send", async () => {

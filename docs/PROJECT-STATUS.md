@@ -2,9 +2,9 @@
 
 <!-- status-schema: yellow-project-status/v1 -->
 <!-- current-phase: 7 -->
-<!-- current-task: Codex Yellow — fiscal submission with hotel journey and RMS research integration -->
-<!-- current-order-files: handoff/orders/440-fiscal-submission-lifecycle.md;handoff/orders/440-hotel-journeys-and-schema-guide.md -->
-<!-- current-lifecycle: native fiscal source and journey study merged; private fiscal state and issued-wire proof accepted; durable integration in progress; no provider or runtime activation -->
+<!-- current-task: Codex Yellow — fiscal completion, with free-hosting and recovery preparation in parallel -->
+<!-- current-order-files: handoff/orders/442-host-recovery-and-merged-local-review.md;handoff/orders/443-runtime-storage-containment.md;handoff/orders/440-fiscal-submission-lifecycle.md -->
+<!-- current-lifecycle: canonical78 and fiscal commands built under Q201; fresh-install and independent proof in progress; local remains main77; free hosting not deployed -->
 
 This is the canonical current-state record. It identifies the consolidated source,
 verified behavior, release boundaries and active work. Historical orders, reviews,
@@ -12,6 +12,60 @@ decisions and ledger entries remain evidence; their filenames are not an active
 backlog. `state.sh` and `state.ps1` read the machine-readable comments above.
 
 ## Current task
+
+**Founder direction: finish outstanding build, then dependent phases.** The
+existing `Review Yellow Findings` task has been asked for the new UI handoff;
+do not reintroduce the global Simple/Advanced/Expert design or block backend work
+on that handoff. The old local preview is not the redesigned UI. No further UI
+implementation/restart was performed here. Order440 fiscal canonical integration
+is actively being verified; Orders442/443 recovery/free-hosting preparation remains
+parallel support.
+
+**Q201 implementation checkpoint (unmerged).** The frozen durable SQL is now
+canonical migration78, with a regenerated128-table source snapshot and mandatory
+CI durability proof. Public Tx-only request/retry commands reject malformed input
+before tenant selection and abort failed Results before commit. The actual
+canonical-upgrade durability suite passes19/19 (223 assertions), including both
+production commands and all17 prior delivery/race/rollback cases. Setup/release
+unit gates pass9/9; types,175-file boundaries,23-package licences and audit pass.
+Fresh replay uses one temporary native D: proof cluster because historical
+migration12 correctly rejects the retained preview's live sessions. Independent
+integration, whole-suite and exact-head CI remain required; no provider or new
+HTTP worker is active. The current local still serves merged mainb5ef708/77.
+
+Final native checkpoint: root standing1624pass/1227explicit DBskips/0fail,
+19/19 actual durability and4/4 actual wire cases. Fresh migration43/43 and
+independent actual78 schema/ledger/referee11/11 pass. Independent readiness
+inspection's policy/config gap is repaired, but its Windows Bun process crashes
+after passing assertions; graceful pool close did not resolve it. Clean
+target-runtime readiness/CI is still required. The temporary55513 PostgreSQL
+cluster is stopped; its directories remain because cleanup was policy-blocked.
+
+**Host recovery and local preview (Orders442/443).** Exact merged
+mainb5ef708 now runs natively at<http://127.0.0.1:3000/> with prefilled synthetic
+sign-in, Bun1.3.14, PostgreSQL16.15, canonical77/127 and referee11/11. A separate
+reviewer verifies source identity, readiness and real login. No WSL/Docker or
+retained hotel database was started/refreshed. Q199's cdfca0b private durable work
+is committed/pushed development, not part of this merged-main preview.
+
+The desktop Drive parent is`G:\My Drive\Yellow`; the initial19.8MB checkpoint
+preserves533 Git refs and all three worktrees' captured dirty/untracked source,
+with independent hashes. It predates the local preview and excludes databases.
+Remote upload and browser screenshot remain unverified because desktop/browser
+automation initialization failed. Nine WSL Bun dumps still total8,436,600,824bytes:
+tool-policy-blocked deletion is not claimed. A pending WSL count cap is containment,
+not a runtime repair. Order443 addresses uncapped app logs; native Windows crashes
+also exist in historical evidence. [RECOVERY](RECOVERY.md) records exact recovery,
+containment and unfinished enterprise reliability gates. Phase7 fiscal canonical
+integration is progressing alongside this founder-requested host work; phase priority is unchanged.
+
+The newer D:-only checkpoint `20260906T020603870Z-644ad0ec` captures21,630,399bytes
+of source/history/working changes and the new synthetic review database plus
+private configuration. Archive listing passed; it has **not been uploaded** and
+does not claim a restore drill. Free staging recommendation is OCI Always Free
+2OCPU/12GB, subject to account/capacity and an ARM64 build (current images are
+amd64). No cloud deployment or spending occurred. Full limits and the unchanged
+7.86GiB WSL dump evidence are in[RECOVERY](RECOVERY.md).
 
 **One Codex Yellow project preserves both reviewed development streams.**
 Orders438/439 consolidated the operational app through PR82. Order434's native
@@ -43,7 +97,9 @@ explicit retries, forced rollback of all four delivery operations, retained hist
 and both audited business-day seal race orders. These are isolated-database proofs,
 not a canonical migration or activated worker. Independent private-foundation review
 also passed the canonical referee11/11 and reproducible draft-schema comparison.
-Canonical integration, provider authentication and live sandbox evidence are unfinished.
+Q201 now promotes the exact draft through the canonical runner and Tx commands;
+its integration proof, provider authentication and live sandbox evidence remain
+unfinished. The earlier private-only figures above are historical Q199 evidence.
 
 **Order440 hotel journeys** preserves cross-department guest/staff research,
 16 synthetic cases and a14-case interactive design study. Its fictional in-memory
@@ -66,7 +122,8 @@ private draft passes1613 standing tests with1214 explicit database skips, types,
 import boundaries across173 TypeScript files,23 package licence checks and dependency audit; its separate
 genuine DB run is17/17. The independent private-foundation approval permits development
 publication and subsequent canonical admission, not an activated feature.
-No retained hotel database or founder-local app was refreshed by this work.
+No retained hotel database was refreshed by the fiscal work. Order442 subsequently
+created a separate synthetic native review database and launched merged main above.
 
 Earlier failure CI33992123191 at6bb7ba6 remains evidence: migration41/41,
 native116/116, containment7/7 and compatibility89/89 passed before four stale
@@ -85,7 +142,7 @@ vendor/person dependency. Independent high-risk proof remains required.
 | Database schema | Main has77 migrations /127 public tables;0076 adds two tables and0077 adds no table. Order440 projection adds no migration | Immutable0001 declares80 application tables;0075's legacy containment stays intact. No retained hotel database was migrated |
 | Private issued-wire proof | Independent10/10 unit and4/4 real-issued tests, including exact unchanged financial rows and cross-tenant isolation | Source/wire hashes differ deliberately; no certified provider, durable submission writer or fiscal acceptance is claimed |
 | Hotel journey design | [Workbench specification](design/STAFF-WORKBENCH-SPEC.md), [casebook](design/HOTEL-CASEBOOK.md) and [research](research/HOTEL-OPERATIONS-REVIEW.md) are preserved from PR84 | Fictional interaction study; final visual fidelity needs an accessible reference and matched screenshot evidence |
-| Local app | The supported launcher passed clean CI with real database, canonical/review seeds, exact-SHA readiness, authentication and volume-preserving stop | [Local instructions](RELEASE.md) provide127.0.0.1:3000; CI does not prove the user's machine was refreshed |
+| Local app | Exactb5ef708 native Windows preview personally verified on the laptop: readiness77, source archive hash, synthetic login and referee11/11 | [Recovery details](RECOVERY.md) distinguish native startup from Compose; no new screenshot, production stability or unmerged fiscal activation is claimed |
 | Main verification and cloud | Mainb5ef708 CI34000319799 and runtime/migration image publication34000989837 succeeded | Registry digests were not retrieved; no approved cloud host, ingress or serving URL is connected. Publication is not deployment |
 
 A branch, document, test, container build, merge and deployment are separate evidence

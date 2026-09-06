@@ -251,3 +251,80 @@ tests/fiscal-submission-worker.test.ts
 
 The canonical `tests/schema/expected.sql` remains unchanged at the 77-migration
 baseline; no migration admission or catalogue promotion is claimed here.
+
+## Q201 canonical integration — implementation proof, 2026-09-06
+
+The preceding Q199 statements are historical. Q201 promotes the frozen draft
+byte-exactly to canonical78 (SHA65323a81a999a11e3d55893411c994c0b841af9b0465ca7e80630fd78d0ffae6)
+and adds application request/retry commands. No HTTP/provider activation or
+retained local migration is included.
+
+Root personally executed on two new55503 synthetic clones:
+
+```text
+bun test tests/fiscal-submission-durability.integration.test.ts
+19 pass, 0 fail, 223 assertions, 93.33s
+bun test tests/india-irp-issued-wire-candidate.integration.test.ts
+4 pass, 0 fail, 230 assertions, 16.33s
+focused command/worker/state/wire/setup/release/readiness units
+56 pass, 0 fail, 353 assertions
+bun test
+1624 pass, 1227 explicit database skips, 0 fail
+21975 assertions / 2851 tests / 492 files / 171.40s
+```
+
+Both root clones were dropped; the pristine77 template and merged-main preview
+were untouched. Typecheck,175-file import boundaries,23-package licence policy,
+dependency audit and diff checks pass.
+
+The first full run had1621pass/1223skip/2fail/1error: unchanged browser geometry
+and status-report timeouts. Status passed isolated4/4. A separate geometry run
+reproduced Windows EBUSY reading DevToolsActivePort. The scoped harness repair
+retries only EBUSY/ENOENT within the existing loop and propagates other errors;
+its deterministic regression and all unchanged geometry cases pass5/5(51).
+The existing30-second timeout was not increased and no UI code or assertion was
+removed. The complete rerun above is the accepted standing result.
+
+Non-implementer `/root/fiscal_integration_map` inspected the commands and
+personally passed their7tests/57assertions. Its independent readiness inspection
+found a real gap: a named but wrong/permissive tenant policy could report ready.
+Root repaired exact policy count/name/command/roles/predicates, PUBLIC denial and
+exact function configuration, adding restoration-based database negatives.
+Independent execution of the repaired readiness is still pending at this checkpoint.
+
+Non-implementer `/root/fiscal_command_integration` independently verified unchanged
+1–77 bytes, exact canonical78, all78 actual ledger hashes,78/128/118/118/27/13/2
+catalogue, byte-equal normalized schema and same-backend77→78 migration on another
+new clone. It personally executed the canonical referee11/11 and static
+catalogue/readiness/release9/9(89). This does not review its own command code.
+
+The mapper's first full fresh migration run was42pass/1fail: both Q201 upgrade/
+equivalence cases and all historical434 cases passed, but the existing auth
+metadata check lacked28P01 under a private `postgresql://` test URL. Normalizing
+that disposable environment to project-standard `postgres://` made the exact
+auth test pass1/1 without runner/test weakening; a full rerun is underway.
+No whole-Q201, exact-head CI, main/local promotion, Order440 or Phase7 completion
+is claimed until those remaining integration receipts are recorded.
+
+### Final native checkpoint in this turn
+
+Mapper BUILDER rerun of the full migration suite passes43/43,257assertions,
+282.27s with project-standard PostgreSQL URL scheme. This is not an independent
+review of its own migration-test implementation.
+
+Independent repaired-readiness execution printed all12 named cases as pass twice,
+then the Bun1.3.14 Windows process exited abnormally. Changing pool shutdown from
+timeout0 to bounded graceful timeout5 did not cure it:75 rejection,77 rejection
+and78 acceptance passed, then a silent exit before the remaining cases. No clean
+readiness-suite result is claimed. Stop repeated crash retries and retain the
+runtime defect as open; Linux CI has not yet supplied a target-runtime result.
+
+The distinct migration/catalogue/CI reviewer personally confirms exact78 schema/
+ledger, direct positive runtime readiness, referee11/11, static9/9(89), types and
+175-file boundaries. No remaining source finding was raised in that assigned
+review. Each reviewer excludes its own implemented lane from approval.
+
+Root stopped the verified temporary PostgreSQL process10400 on loopback55513;
+the existing preview10856 on3000 and retained PostgreSQL14964 on55503 remain.
+Three exact D: proof directories remain after policy-blocked recursive cleanup,
+including two aborted initialization attempts; no alternative deletion was tried.

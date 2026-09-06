@@ -21,6 +21,11 @@ Astra Ultra RMS research, not implemented algorithms or measured uplift.
 [Question198](handoff/questions/198-concurrent-reviewed-source-integration.md)
 disambiguates concurrent identifiers and preserves both histories. Main integration,
 image publication and each deployed runtime retain separate receipts.
+PR85 subsequently mergedb5ef708 without changing77/127. Q201 now implements
+canonical78/128 and Tx-safe fiscal request/retry commands in development; real
+durability19/19 passes, fresh-install and independent integration proof continue.
+The founder's local remains exact merged-main77; no provider activation or
+Phase7 completion is claimed.
 Historical milestones below preserve the
 evidence available when written and do not compete with PROJECT-STATUS.
 

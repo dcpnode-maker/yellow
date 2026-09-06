@@ -1,6 +1,6 @@
 # Order 440 — Durable fiscal submission and reconciliation
 
-**Status:** ACTIVE — private contract accepted; durable draft implemented and separately tested.
+**Status:** ACTIVE — private foundation approved; canonical migration/commands under Q201.
 Order434's exact candidate is accepted and merged; no provider is activated.
 **Phase:** 7, planned sequence item6.
 **Owner:** Codex coordinator; bounded internal builders, separate high-risk reviewer.
@@ -9,6 +9,12 @@ Order434's exact candidate is accepted and merged; no provider is activated.
 merged through PR83 as443e3826b47025106d1829fcbb406ce6302fbbba.
 
 ## Outcome
+
+[Question201](../questions/201-canonical-fiscal-submission-integration.md) admits
+canonical78, release/catalogue/CI proof and transaction-safe request/retry commands
+after Q199's independent execution. It does not activate a provider or refresh the
+stable local app. Historical private-scope restrictions below remain the record of
+those stages; Q201 names the exact newly admitted paths.
 
 Register an already-issued eligible fiscal document through a replaceable provider
 port, preserve the exact issued bytes, record every delivery attempt and receipt,
