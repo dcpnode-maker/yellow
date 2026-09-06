@@ -14,7 +14,8 @@ Astra Ultra RMS research Order441 are preserved. Q198 records their consolidatio
 Retained local runtimes and cloud deployment require separate evidence. Historical
 sections below retain their original meaning; PROJECT-STATUS is current.
 Q201 continues this plan with canonical78/128 and application request/retry
-commands. These are implemented but integration proof is in progress; the
+commands. Exact827be467 now passes all-five CI34008495909, including the canonical
+durability19/19 and clean Linux readiness12/12 (combined containment15/15); the
 merged/local frontier remains77/127 atb5ef708. No provider or Phase7 completion
 is implied by the candidate migration count.
 

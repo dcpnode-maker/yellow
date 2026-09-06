@@ -192,3 +192,24 @@ components do not by themselves host Yellow's full worker/runtime architecture.
 See [Render Free limitations](https://render.com/docs/free). Google Drive remains
 offsite file recovery, not the application/database host. GitHub stores reviewed
 source; credentials and database archives stay private and outside Git.
+
+### Native ARM64 compatibility preparation — Question202
+
+The new `free-host-arm64` CI job runs on standard `ubuntu-24.04-arm`, asserts
+actual aarch64/Linux ARM64 execution, builds both existing digest-pinned image
+targets, checks their architecture and exact source labels, and reuses the
+supported launcher for fresh migration, referee11/11, readiness and synthetic
+sign-in. It stops its isolated preview on every outcome. The existing five CI
+jobs and amd64-only publication policy remain unchanged.
+
+Yellow is a public repository; [GitHub's standard hosted runners are free for
+public repositories](https://docs.github.com/en/actions/reference/runners/github-hosted-runners).
+No large/self-hosted paid runner, emulator, cloud credentials, package publishing,
+laptop Docker/WSL or C: runtime installation is introduced. Red0/2 preceded
+implementation; new/release/catalogue tests8/8(94), YAML parsing and typecheck
+pass. A non-implementer reproduced those results and requested explicit SHA/pin
+regressions. After adding them, the combined status/release/readiness/containment
+proof passes17/17(185), with types and YAML parsing green. Actual ARM64 execution
+remains required before compatibility is claimed.
+This check does not provision OCI, resolve account/capacity access, prove a long
+soak, repair Bun's Windows crash or approve live hotel data on free staging.

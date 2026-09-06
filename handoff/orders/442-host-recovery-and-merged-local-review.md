@@ -66,6 +66,11 @@ data and no provider activation. Preserve existing native proof databases.
 
 ## Acceptance
 
+[Question202](../questions/202-free-host-arm64-proof.md) admits a bounded native
+ARM64 CI compatibility proof for the founder's free-host request. It reuses the
+existing launcher/migrations/referee/login on a standard free public-repository
+runner. No laptop Docker, paid resource, image publication or cloud deployment.
+
 Record actual deleted/reclaimed bytes (if any), retained dependencies, complete
 bundle verification and artifact hashes, explicit remote-sync confirmation status,
 recoverability limitations, source-exact local readiness/login and a browser image.

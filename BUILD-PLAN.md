@@ -23,7 +23,10 @@ disambiguates concurrent identifiers and preserves both histories. Main integrat
 image publication and each deployed runtime retain separate receipts.
 PR85 subsequently mergedb5ef708 without changing77/127. Q201 now implements
 canonical78/128 and Tx-safe fiscal request/retry commands in development; real
-durability19/19 passes, fresh-install and independent integration proof continue.
+durability19/19 and migrations43/43 pass. Exact827be467 all-five CI34008495909
+also passes native116/116, current wire4/4, containment/readiness15/15 (including
+all12 repaired readiness cases with clean Linux exit), compatibility89/89,
+acceptance24/24 and referee11/11. Windows Bun's native crash remains open.
 The founder's local remains exact merged-main77; no provider activation or
 Phase7 completion is claimed.
 Historical milestones below preserve the

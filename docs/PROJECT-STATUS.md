@@ -4,7 +4,7 @@
 <!-- current-phase: 7 -->
 <!-- current-task: Codex Yellow — fiscal completion, with free-hosting and recovery preparation in parallel -->
 <!-- current-order-files: handoff/orders/442-host-recovery-and-merged-local-review.md;handoff/orders/443-runtime-storage-containment.md;handoff/orders/440-fiscal-submission-lifecycle.md -->
-<!-- current-lifecycle: canonical78 and fiscal commands built under Q201; fresh-install and independent proof in progress; local remains main77; free hosting not deployed -->
+<!-- current-lifecycle: canonical78 and fiscal commands pass exact Linux CI; ARM64 free-host proof prepared; local remains main77; provider and hosting not activated -->
 
 This is the canonical current-state record. It identifies the consolidated source,
 verified behavior, release boundaries and active work. Historical orders, reviews,
@@ -18,10 +18,10 @@ existing `Review Yellow Findings` task has been asked for the new UI handoff;
 do not reintroduce the global Simple/Advanced/Expert design or block backend work
 on that handoff. The old local preview is not the redesigned UI. No further UI
 implementation/restart was performed here. Order440 fiscal canonical integration
-is actively being verified; Orders442/443 recovery/free-hosting preparation remains
+has passed its exact Linux CI checkpoint; Orders442/443 recovery/free-hosting preparation remains
 parallel support.
 
-**Q201 implementation checkpoint (unmerged).** The frozen durable SQL is now
+**Q201 verified implementation checkpoint (unmerged).** The frozen durable SQL is now
 canonical migration78, with a regenerated128-table source snapshot and mandatory
 CI durability proof. Public Tx-only request/retry commands reject malformed input
 before tenant selection and abort failed Results before commit. The actual
@@ -29,16 +29,21 @@ canonical-upgrade durability suite passes19/19 (223 assertions), including both
 production commands and all17 prior delivery/race/rollback cases. Setup/release
 unit gates pass9/9; types,175-file boundaries,23-package licences and audit pass.
 Fresh replay uses one temporary native D: proof cluster because historical
-migration12 correctly rejects the retained preview's live sessions. Independent
-integration, whole-suite and exact-head CI remain required; no provider or new
-HTTP worker is active. The current local still serves merged mainb5ef708/77.
+migration12 correctly rejects the retained preview's live sessions. All five jobs
+passed in [CI34008495909](https://github.com/dcpnode-maker/yellow/actions/runs/34008495909)
+at exact827be46703d85e87def0615f71e9c5bd4d485e75: migrations43/43, native116/116,
+issued-wire4/4, durable19/19, containment/readiness15/15 (including all12 readiness
+cases with clean Linux exit), seed10/10, compatibility89/89, acceptance24/24 and
+referee11/11. No provider or new HTTP worker is active. The current local still
+serves merged mainb5ef708/77. This source is not yet merged or deployed.
 
 Final native checkpoint: root standing1624pass/1227explicit DBskips/0fail,
 19/19 actual durability and4/4 actual wire cases. Fresh migration43/43 and
 independent actual78 schema/ledger/referee11/11 pass. Independent readiness
 inspection's policy/config gap is repaired, but its Windows Bun process crashes
-after passing assertions; graceful pool close did not resolve it. Clean
-target-runtime readiness/CI is still required. The temporary55513 PostgreSQL
+after passing assertions; graceful pool close did not resolve it. The clean
+Linux CI result above discharges that target-runtime gate, not the Windows runtime
+defect. The temporary55513 PostgreSQL
 cluster is stopped; its directories remain because cleanup was policy-blocked.
 
 **Host recovery and local preview (Orders442/443).** Exact merged
@@ -64,7 +69,9 @@ of source/history/working changes and the new synthetic review database plus
 private configuration. Archive listing passed; it has **not been uploaded** and
 does not claim a restore drill. Free staging recommendation is OCI Always Free
 2OCPU/12GB, subject to account/capacity and an ARM64 build (current images are
-amd64). No cloud deployment or spending occurred. Full limits and the unchanged
+amd64). Q202 adds a native ARM64 CI job using the existing launcher/referee/login;
+its workflow/unit checks pass, but the ARM64 execution is not yet proven. No cloud
+deployment or spending occurred. Full limits and the unchanged
 7.86GiB WSL dump evidence are in[RECOVERY](RECOVERY.md).
 
 **One Codex Yellow project preserves both reviewed development streams.**
@@ -97,9 +104,10 @@ explicit retries, forced rollback of all four delivery operations, retained hist
 and both audited business-day seal race orders. These are isolated-database proofs,
 not a canonical migration or activated worker. Independent private-foundation review
 also passed the canonical referee11/11 and reproducible draft-schema comparison.
-Q201 now promotes the exact draft through the canonical runner and Tx commands;
-its integration proof, provider authentication and live sandbox evidence remain
-unfinished. The earlier private-only figures above are historical Q199 evidence.
+Q201 promotes the exact draft through the canonical runner and Tx commands and
+passes the Linux integration proof above. Provider authentication, verified-session
+HTTP/worker activation and live sandbox evidence remain unfinished. The earlier
+private-only figures above are historical Q199 evidence.
 
 **Order440 hotel journeys** preserves cross-department guest/staff research,
 16 synthetic cases and a14-case interactive design study. Its fictional in-memory
@@ -136,10 +144,10 @@ vendor/person dependency. Independent high-risk proof remains required.
 
 | Surface | Verified baseline | Release boundary |
 |---|---|---|
-| Source and integration | Reviewed native fiscal PR83 at443e3826, hotel-journey/schema/design PR84 at7829eae and private fiscal/RMS PR85 atb5ef708 | Main is the sole release branch; the next Q199 durable draft is separate unpromoted work |
+| Source and integration | Reviewed native fiscal PR83 at443e3826, hotel-journey/schema/design PR84 at7829eae and private fiscal/RMS PR85 atb5ef708; Q201 candidate827be467 passes all five CI jobs | Main is the sole release branch; canonical78 candidate is separate unmerged work |
 | Native fiscal acceptance | Independent migration41/41, native116/116, compatibility89/89, catalogue23/23, exact schema and referee11/11; all five [PR83 CI jobs](https://github.com/dcpnode-maker/yellow/actions/runs/33993977811) passed | [Review434](../handoff/reviews/434-native-fiscal-source-completion.md) approves bounded native issuance, not provider activation or a retained hotel database |
 | GitHub work queue | All62 PRs in the original audit are closed with source preservation; PR82/83/84/85 are merged | [The manifest](../handoff/CONSOLIDATION-MANIFEST.json) preserves dispositions; [GitHub](https://github.com/dcpnode-maker/yellow/pulls) is authoritative for the live queue |
-| Database schema | Main has77 migrations /127 public tables;0076 adds two tables and0077 adds no table. Order440 projection adds no migration | Immutable0001 declares80 application tables;0075's legacy containment stays intact. No retained hotel database was migrated |
+| Database schema | Main has77 migrations /127 public tables; Q201 candidate has78 migrations /128 tables,118RLS/118policies/27FORCE/13permissions/2views | Immutable0001 and applied1–77 remain unchanged. No retained hotel database was migrated |
 | Private issued-wire proof | Independent10/10 unit and4/4 real-issued tests, including exact unchanged financial rows and cross-tenant isolation | Source/wire hashes differ deliberately; no certified provider, durable submission writer or fiscal acceptance is claimed |
 | Hotel journey design | [Workbench specification](design/STAFF-WORKBENCH-SPEC.md), [casebook](design/HOTEL-CASEBOOK.md) and [research](research/HOTEL-OPERATIONS-REVIEW.md) are preserved from PR84 | Fictional interaction study; final visual fidelity needs an accessible reference and matched screenshot evidence |
 | Local app | Exactb5ef708 native Windows preview personally verified on the laptop: readiness77, source archive hash, synthetic login and referee11/11 | [Recovery details](RECOVERY.md) distinguish native startup from Compose; no new screenshot, production stability or unmerged fiscal activation is claimed |
@@ -156,7 +164,7 @@ states. The runtime must identify its exact source and applied migration frontie
 | Phase4 | Built; integration review outstanding | Preserve implementation and close remaining integration evidence |
 | Phase7 operational flows | Consolidated and independently approved baseline | PMS, stay, folio, payment, approval and fiscal-support flows remain preserved; this does not complete the whole phase |
 | Order434 native fiscal issuance | Independently approved and merged through PR83 | Real source-to-invoice, accounting, replay, concurrency, tenant isolation, bounds and migration proofs pass; no provider registration or operator invoice screen is implied |
-| Order440 fiscal submission | Private state, issued-wire projection and durable foundation independently accepted | Canonical persistence/worker integration, provider authentication, runtime activation and live sandbox evidence remain outstanding |
+| Order440 fiscal submission | Private foundation independently accepted; canonical persistence and Tx commands built with exact Linux CI passing | Verified-session/worker integration, provider authentication, runtime activation and live sandbox evidence remain outstanding |
 | Order440 hotel journeys | Reviewed study merged through PR84 | Cross-department research and a fictional prototype; final reference-matched visual QA and laptop execution remain separate |
 | Order441 RMS research | Astra Ultra portfolio documented | Known methods, falsifiable proposals and experiment design; no live algorithm or measured uplift |
 | Phases8–17 | Planned | Requirements, research and department studies are preserved; documentation is not shipped behavior |

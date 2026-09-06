@@ -328,3 +328,23 @@ Root stopped the verified temporary PostgreSQL process10400 on loopback55513;
 the existing preview10856 on3000 and retained PostgreSQL14964 on55503 remain.
 Three exact D: proof directories remain after policy-blocked recursive cleanup,
 including two aborted initialization attempts; no alternative deletion was tried.
+
+### Exact Linux CI checkpoint — 2026-09-06
+
+Root retrieved completed job101420142538 logs from
+[CI34008495909](https://github.com/dcpnode-maker/yellow/actions/runs/34008495909),
+exact827be46703d85e87def0615f71e9c5bd4d485e75. All five jobs pass. Required
+database stages personally inspected: migrations43/43(257), seed10/10(63),
+native six suites116/116, current issued-wire4/4(230), canonical durability
+19/19(223), containment/readiness15/15(59), released compatibility89/89,
+acceptance24/24(69), and canonical referee11/11. The twelve repaired readiness
+cases individually pass and the process exits cleanly; subsequent compatibility,
+acceptance, app/login and cleanup stages run successfully.
+
+This is exact Linux CI evidence, not a new claim that an agent personally ran
+another agent's local tests. Preserve the distinct non-implementer reviews above.
+The Windows native Bun crash remains unresolved: source inspection suggests a
+lazy pool activation/finalization edge, but does not prove a cause. No crash retry,
+runtime upgrade or local restart was performed. Canonical integration's target-
+runtime CI condition is met; provider/HTTP/worker activation and whole Order440
+or Phase7 completion are not.
