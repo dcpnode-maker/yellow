@@ -161,3 +161,31 @@ normal non-author integration remain required. This is signature-only evidence:
 issuer/source binding, authenticated provider transport, persistent artifacts,
 property-authorized GET, operator printing and authentic sandbox remain unfinished.
 No SQL, global roles, provider registration, dependency or stable local changed.
+
+### PR89 publication and native ARM64 execution gap
+
+Candidate3ff6349a73cb47fe689eecf03acb8a427a25e714 is published through PR89.
+Independent fiscal_http_acceptance personally reattests all85 canonical inputs
+byte-identical to its executed post-merge80 schema/referee11/11 proof and stable
+on second read. Ordered mapping digest7763707b6c38f9f873cf67786f841d91c99e2acbb634fa5b771ac7ac41108187.
+This is a source-applicability check, not another database execution.
+
+The reviewer detects that the original ARM64 image/referee job never imports
+these private helpers. Root records exact scope in Q206, adds a failing wiring
+regression (3 passed,1 failed,35 assertions), then an unconditional two-file
+decoder/JWS test step after native ARM64 frozen installation and before image
+proofs. Existing six jobs, action pins, limits, read-only permissions and cleanup
+remain unchanged. Actual ARM64 execution is not claimed by local wiring tests.
+
+Root focused proof:29 passed,0 failed,309 assertions; typecheck/diff pass.
+Nonimplementing fiscal_http_acceptance personally inspects the two-file diff and
+runs free-host-arm64.test.ts:4 passed,0 failed,37 assertions,86ms; accepts the
+bounded correction for publication, not integration.
+Frozen workflow SHA5722afc44f44e2813eaf1529d439f2018d2a40cb989643bd95247a5ec9d608ae;
+test SHAac4091da86b0b298c1bf6314e96f96cd08538481b6e7c7c207a31ac9f3b9f15d.
+Root's same live full-standing session97318 reaches terminal exit0:
+1700 passed,1264 explicit DB/Unix skips,0 failed,22573 assertions,
+2964 tests across506 files,95.91s.
+Log:D:\Yellow\temp\q206-standing-20260907-arm64-gate.log.
+The newly admitted invoice-binding implementation starts only after this suite
+finishes and is not covered by it. No canonical DB inputs or private JWS files changed.

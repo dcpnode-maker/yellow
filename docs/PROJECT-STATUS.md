@@ -36,8 +36,15 @@ RSA modulus acceptance. Final decoder/JWS/boundary proof passes32 tests and301
 assertions;36 further independent adversarial assertions pass. Complete current
 standing passes1699 tests,0 failures,1264 explicit DB/Unix skips and22568 assertions
 across506 files in97.05s; types,179-file boundaries and23 dependency licences pass.
-Exact-source CI/integration remains required for these new private helpers.
-Neither is a completed provider integration, live registration or Phase7 exit.
+These private helpers are published in PR89. The independent reviewer finds that
+the first ARM64 image proof never executes them; an explicitly admitted CI step
+now runs both suites natively before image/referee checks. Its permanent wiring
+regression passes independently4/4; root's complete repaired standing passes1700
+tests,0 failures,1264 explicit DB/Unix skips and22573 assertions in95.91s.
+Fresh exact-source ARM64 execution and complete CI/integration remain required.
+The next admitted private implementation binds both signed artifacts and all
+invoice/QR values back to the original issued source, using exact decimals.
+Neither helper is a completed provider integration, live registration or Phase7 exit.
 
 ### Historical implementation checkpoints
 

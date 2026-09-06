@@ -400,6 +400,130 @@ Before coding a migration, enumerate the exact fixture, schema/current-frontier,
 startup/readiness/catalogue/workflow and migration acceptance files too. This draft
 does not authorize a wildcard edit across them or allocate a proof database.
 
+### Admitted architecture-specific verification — 2026-09-07
+
+The non-author PR89 reviewer finds that the existing free-host-arm64 job builds
+images and runs migration/referee/login but never imports these private helpers.
+Green ARM64 image checks therefore cannot establish their crypto compatibility.
+Under Orders440/442, admit exactly `.github/workflows/ci.yml` and
+`tests/free-host-arm64.test.ts` to run the decoder and JWS suites explicitly on
+the existing native ARM64 runner after frozen dependencies and before image proofs.
+Add an intentional-red wiring regression preserving pinned actions, all old gates,
+read-only permissions, no publication and unconditional owned-preview cleanup.
+No new job/runner/service/dependency, existing timeout increase or platform emulation.
+The laptop cannot prove ARM64 execution; new exact-source CI must execute this step.
+
+### Admitted original-invoice/signed-pair binding — 2026-09-07
+
+The next dependency closes the gap between a valid signature and matching the
+actual issued invoice. It is still part of the complete provider/receipt/operator
+outcome, not a phase exit. Coordinator admits exactly these new private files:
+
+```text
+src/contexts/tax-fiscal/india-irp-signed-receipt-binding.ts
+tests/india-irp-signed-receipt-binding.test.ts
+```
+
+Reuse the unchanged issued-source projector, private exact decoder and pinned JWS
+factory. No edits to those reviewed files, public exports, SQL, provider transport,
+runtime, dependencies or existing test fixtures. Build with generated synthetic
+keys and fictional hotel values; do not copy published taxpayer values/tokens.
+Do not edit these files during the coordinator's frozen publication suite.
+
+Factory configuration is an unknown JSON string, maximum256KiB UTF-8, exact keys
+`profileVersion,issuer,trustBundleJson`. The only admitted profileVersion is
+`yellow_native_india_1_1_v1`; issuer is an explicit1–128 printable ASCII string,
+never an automatic NIC/NIC Sandbox default or token-selected value. The embedded
+trustBundleJson is passed to the existing factory and its existing32KiB limit.
+No injectable verifier or caller-supplied verified boolean/evidence is accepted.
+Configuration and time must later come from authenticated runtime policy.
+
+Return a frozen verifier with `verify(input:unknown,verificationUnixMs:unknown)`.
+The input is an exact plain/null-prototype record of eight own enumerable data
+properties, all strings:
+`documentId,documentSha256,contentJson,signedInvoice,signedQRCode,irn,ackNo,ackDt`.
+Reject proxies (including revoked), symbols, accessors and prototype surprises
+without invoking getters/coercion; snapshot primitives before any await. Cheap
+length limits precede work: content1MiB characters with existing projector's
+exact UTF-8 bound, each compact token's existing1,404,249-character ceiling,
+IRN64 lowercase hexadecimal, acknowledgement1–64 canonical positive decimal
+digits and AckDt exactly19 characters. The date is a valid calendar
+`YYYY-MM-DD HH:mm:ss` value; no timezone, clock recency or UTC conversion is inferred.
+The existing projector independently validates original content/hash/document ID
+and produces exact wire/hash; no arbitrary request-supplied wire is authoritative.
+
+Verify both original compact tokens at the same captured safe integer instant
+with the internally constructed pinned verifier. Both outer payloads have exact
+`data,iss` keys, data is a JSON string and iss equals configured issuer exactly.
+Decode each data string with the lossless decoder and all its existing limits.
+Do not parse signed amounts/AckNo through JSON.parse/Number. This initial profile
+does not claim every direct-provider signed shape is established by public samples.
+
+SignedInvoice requires the seven original wire sections plus AckNo/AckDt/Irn.
+Bind every supplied original field, not only amounts selected for display. Object
+member order may differ; strings/types/array order may not. Numeric equality is
+mathematical decimal equality with no rounding: internally normalize sign,
+coefficient and base10 exponent without expanding huge powers. Bound each numeric
+lexeme to128 characters and absolute exponent1000; reject negative zero and
+unsupported/resource-exhausting forms. Monetary values never pass through Number.
+AckNo must equal expected ackNo mathematically and be positive/integral; retain
+the exact canonical expected digits, not a rounded number. AckDt/IRN must equal
+the supplied expected receipt metadata exactly. The source/tokens remain retained
+unchanged regardless of equivalent numeric serialization.
+
+Explicit conservative absent-field allowances are limited to the following
+versioned table; an original present field can never be omitted/overridden by it:
+
+| Location | Additional field allowed only when absent from original wire |
+|---|---|
+| Invoice root | DispDtls,ShipDtls,PayDtls,RefDtls,AddlDocDtls,ExpDtls,EwbDtls: null only |
+| TranDtls | RegRev,IgstOnIntra: null or exactly N; EcmGstin: null only |
+| SellerDtls/BuyerDtls | TrdNm,Addr2,Ph,Em: null only |
+| Item | ItemNo: numeric integer equal to its original one-based SlNo |
+| Item | PrdDesc,Barcde,OrdLineRef,OrgCntry,PrdSlNo,BchDtls,AttribDtls: null only |
+| Item | FreeQty,Discount,PreTaxVal,CesRt,CesAmt,CesNonAdvlAmt,StateCesRt,StateCesAmt,StateCesNonAdvlAmt,OthChrg and absent IgstAmt/CgstAmt/SgstAmt: numeric zero only |
+| ValDtls | CesVal,StCesVal,Discount,OthChrg,RndOffAmt and absent IgstVal/CgstVal/SgstVal: numeric zero only; TotInvValFc: null only |
+
+These are Yellow's conservative compatibility policy, NOT an assertion that a
+provider supplies those defaults. Reject every other new/missing/type-changing or
+nondefault field, especially extra financial value, rather than silently discarding
+it. Unknown signed shapes must remain distinguishable from a signature failure
+for later discrepancy handling; authentic provider fixtures may justify a separately
+reviewed versioned profile, never a silent weakening of this comparison.
+
+SignedQRCode has exact required keys
+`SellerGstin,BuyerGstin,DocNo,DocTyp,DocDt,TotInvVal,ItemCnt,MainHsnCode,Irn`
+and optional IrnDt. Bind identities/date to original wire, total by exact numeric
+equality, ItemCnt to number of original lines and IRN to the signed invoice/expected
+metadata. If IrnDt is present, this conservative profile requires exact AckDt
+equality; do not infer a provider timezone/normalization from examples.
+
+Primary [IRIS/GSTN FAQ](https://einvoice6.gst.gov.in/content/faq-powered-by-irisirp/)
+and ClearTax e-invoicing basics identify QR main HSN as the code of the line with
+highest taxable value, not the largest grouped HSN. Compute maximum original AssAmt
+using exact arithmetic. Equal maxima sharing one HSN are unambiguous; distinct HSNs
+tied at maximum require unsupported-shape failure pending a documented tie rule.
+Use line count, not distinct HSN count. This does not derive or change any tax policy.
+
+Successful deeply frozen evidence contains profile/issuer/verification instant,
+document ID/hash, exact wire/hash, IRN, canonical acknowledgement digits/raw date,
+and both unchanged signature evidence objects. It explicitly records
+`providerAcceptanceEstablished:false` and `authenticatedProviderSandboxCertified:false`.
+Authentication, current delivery status/attempt, tenant/property authority, retention
+and sandbox acceptance are established by later integration, not this private
+helper. No boolean/input data may bypass signature/source/metadata comparison.
+All typed failure messages are fixed/sanitized without raw values, tokens or keys.
+
+Intentional missing-module red before implementation. Prove genuine two-token
+success for IGST/split and366-line source, numerically equivalent representations,
+unsafe changed-cent/AckNo collisions, every identity/line/tax/total/metadata mismatch
+using newly signed valid tokens, missing/extra/default-field policy, wrong issuer,
+expired/wrong/removed keys, swapped invoice/QR tokens, malformed nested JSON,
+decoded duplicate keys, Unicode, huge numeric/exponent limits, source hash mismatch,
+HSN maximum/grouping/tie rules, optional IrnDt, input mutation across await,
+getter/proxy rejection, deeply frozen output and sanitized failures. Root is
+independent of the builder and must inspect/execute this proof before publication.
+
 ## Required executable acceptance
 
 Golden protocol fixtures with generated test-only keys and a local HTTP server;
