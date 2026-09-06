@@ -4,7 +4,7 @@
 <!-- current-phase: 7 -->
 <!-- current-task: Codex Yellow — fiscal completion, with free-hosting and recovery preparation in parallel -->
 <!-- current-order-files: handoff/orders/442-host-recovery-and-merged-local-review.md;handoff/orders/443-runtime-storage-containment.md;handoff/orders/440-fiscal-submission-lifecycle.md -->
-<!-- current-lifecycle: Q205 current79 readiness and compatibility test correction in verification after CI failure; Q204 delivery runtime has bounded actual PostgreSQL proof, final integration pending; main77 preview preserved; provider and hosting inactive -->
+<!-- current-lifecycle: Q205 independently merged main79; Q204 runtime80 has independent database proof, latest CI exposes a historical caller now repaired and independently proved, fresh complete CI required; stable local77 preserved; provider and hosting inactive -->
 
 This is the canonical current-state record. It identifies the consolidated source,
 verified behavior, release boundaries and active work. Historical orders, reviews,
@@ -13,7 +13,129 @@ backlog. `state.sh` and `state.ps1` read the machine-readable comments above.
 
 ## Current task
 
-**Latest integration correction — D1392.** Exact7235e27 CI34021139814 attempt2
+**Historical worker caller correction — D1398.** Exact1b7f9cc
+CI34047572346 passes five jobs, including complete Linux quality, current80
+delivery11/11 and actual Linux process5/5. Its database job later fails one older
+77-to78 durability case: the caller omits four now-required worker fields.
+The current worker rejects it before any claim; this is not a provider failure
+or another browser timeout. Downstream readiness, compatibility, schema and
+canonical database referee are skipped, not approved.
+
+The already admitted test now supplies a typed, provider-bound seven-field worker
+step, separately retaining the exact three-field repository claim. Its permanent
+regressions require old-input rejection with zero mutation and valid cross-tenant
+database denial, not merely a malformed-input error. Root actual fresh77-to78
+proof passes19/19 (227 assertions,77.11s); non-implementing
+fiscal_http_acceptance personally passes19/19 (227 assertions,93.18s) on a
+different new database, with canonical hashes, clean constraints and no residual
+sessions. Focused worker/runtime/command/workflow32/32, types,177 boundaries
+and23 installed dependency licences pass. The first full standing run overlaps
+the separate database proof and records1,673 pass/1 failure: an unchanged long-stay
+tax-preview case reaches its5s deadline. Its unchanged isolated suite passes12/12
+(45 assertions; failing case3.41s). A controlled complete run after the database
+proof finishes passes **1,674 tests,0 failures**, with1,264 explicit DB/Unix skips
+and22,293 assertions across504 files in101.95s. This does not establish the earlier
+timeout's cause; no timeout or test was changed, skipped or hidden. Fresh exact-source
+CI remains required before integration. No product validation, applied migration,
+provider or stable-local77 behavior changed.
+
+**Shared browser-journey deadlines — D1397.** The next exact CI34046418901
+verifies Linux batching and owned-child cleanup, but the first Chromium launch
+exceeds the newly introduced eight-second inner budget. The isolated gate is
+23 pass / 1 fail; full quality and database stages are skipped, not approved.
+The scoped repair gives each complete twelve-case journey one monotonic deadline
+inside its unchanged60s/90s outer limit. Remaining time is checked before each
+spawn; exhausted budgets fail without launching another child. No case, geometry
+assertion, unique profile or cleanup obligation is removed.
+
+Root's repaired focused browser/helper/workflow run passes15/15 (213 assertions).
+The complete standing suite passes **1,674 tests, 0 failures**, with1,264 explicit
+database/Unix skips and22,293 assertions across504 files in106.09s. Typecheck,
+177-file boundaries,23 dependency licences and diff-check pass. Independent
+workflow/helper/status/CLI proof passes23/23 with one explicit Unix-fixture skip;
+separate personal browser execution passes4/4 (120 assertions,42.74s), with all
+frozen hashes unchanged. The reviewer approves this bounded repair for publication;
+new exact-source Linux CI remains required before integration. Main79 and the
+stable local77 are unchanged; no provider is enabled.
+
+**CI process containment — D1396.** The exact bd35c8a run34044350648 fails
+four existing child-process timeouts; no current80 database gates execute. The
+same test order and almost identical preceding elapsed time on the passing run,
+plus recurrence before Q204, do not identify a new fiscal-runtime defect. Scoped
+repairs remove per-record shell forks, preserve exact historical counts, give the
+three matching browser proofs unique profiles, and bound child output, cancellation
+and reaping inside each existing outer deadline. Independent inspection catches and
+closes inherited-pipe, cleanup-margin and PID-fixture leaks. No test assertion,
+existing deadline, product code, applied migration or permission is weakened.
+
+Root's final complete suite passes **1,673 tests, 0 failures**, with 1,264 explicit
+database/Unix-platform skips and22,266 assertions across504 files in107.00s. The
+actual three browser journeys pass4/4(120), and independent final helper/status/
+workflow/CLI proof passes22/22(141), with one explicit Unix fixture skip. Types,
+177-file boundaries and23 installed dependency licences pass. New Linux CI must
+execute the real empty/marker/response/symlink batch fixture, an isolated subprocess
+gate and the complete suite, then all current80 database/process/referee gates.
+This is a tested development candidate, not a merged or activated release. The
+single local still reports ready atb5ef708/frontier77; no restart occurred.
+
+**Catalogue correction — D1395.** PR88's next exact head efa71b8 passes actual
+founder status and five CI34043585965 jobs, but an older runtime-authority test still
+expects fourteen capabilities instead of fifteen. The correction preserves all old
+signatures, configurations and ACL checks, and explicitly verifies the new discovery
+function, its bounds, return shape and cursor index. Focused tests and types pass;
+35 database cases are honestly skipped locally. Fresh complete CI must execute the
+later fiscal/Linux gates; neither failed run is integration approval.
+
+**CI correction — D1394.** Q204 is published as PR88 at a4a1346. Five jobs in
+CI34043209976 and normal CodeQL pass. The database job stops on an older exact
+six-worker status assertion; the seventh fiscal worker correctly reports disabled.
+Only that test's response type and exact expected field are corrected, preserving
+all privacy/access checks. Root focused proof passes 12 tests with 5 explicit
+database/Linux skips; typecheck passes. The later database gates did not run and
+must pass in fresh exact-source CI before independent integration. Main79 and
+the stable local77 remain unchanged.
+
+**Latest implementation and integration — D1393.** PR87 is independently merged
+as`22f1beddea23429ccd9111092dccf6176386adf2`, after exact15f5204 passes all six jobs
+in[CI34039764089](https://github.com/dcpnode-maker/yellow/actions/runs/34039764089).
+The non-implementer verifies migrations45/45, HTTP9/9, immutable replay5/5(447),
+durability19/19, Linux readiness15/15, both GST compatibility suites and the canonical
+referee11/11. A separate new post-merge79 database reproduces the exact schema and
+unwrapped seed/referee11/11. Main now contains79 migrations/128 tables. The existing
+founder preview remains exactb5ef708/77; merge is not deployment.
+
+Q204's supervised runtime is implemented, including fair bounded discovery,
+pre-claim adapter reservations, cancellation and late-result quarantine, durable
+lookup cadence, tenant revalidation and shared graceful shutdown. Independent real
+HTTP→PostgreSQL→worker→reconciliation initially passes11/11(93), extra lock/ACL/rollback proof
+passes, and actual80 schema plus canonical referee pass11/11. Root found and fixed
+a startup gap: readiness now verifies the fifth runtime-only discovery capability,
+with exact79 rejection and hostile80 ACL/config regressions. Pure4/4(26) passes
+independently; required Linux database/process execution remains in the next CI.
+
+The complete current80 standing run first exposed six stale composition/frontier
+assertions (1,655pass/1,259explicit DBskips/6fail). Scoped corrections preserve
+opt-ins, sanitized logs, private helpers and inactive production. The next run
+passes1,661 with1,263 explicit DBskips and one Chromium EBUSY startup failure.
+The unchanged browser test passes on rerun; a bounded EBUSY/ENOENT helper repair
+has deterministic red/green proof and preserves the geometry checks. Before
+publication, provider research also exposes a restart gap: internal IDs and a hash
+cannot identify a remote invoice. Lookup now receives detached original issued
+bytes, with no submit cache or second store. Independent execution on a new
+isolated80 database passes all 11 delivery cases (95 assertions), including a fresh
+worker recovering the exact wire without resending. The five repair files, SQL80
+and schema hashes are unchanged before and after that proof.
+
+Final local standing passes **1,664 tests, 0 failures**, with 1,263 explicit
+database skips and 22,225 assertions across 503 files (128.73s). Types, 177-file
+module boundaries and all 23 installed dependency licences pass. Exact-source Linux
+process/readiness, fresh/upgrade migration equivalence and complete CI still must
+pass before independent integration. Runtime80 is not yet merged or locally active;
+real provider authentication/sandbox remains unfinished. No Phase7 completion claim.
+
+### Historical checkpoints — superseded by the latest record above
+
+**Integration correction — D1392.** Exact7235e27 CI34021139814 attempt2
 passes five jobs, migration45/45, authenticated HTTP9/9, immutable replay5/5
 (447 assertions) and durability19/19. Readiness then fails because its helper
 expects only78 after running the complete79 catalogue. Root corrects that exact
@@ -224,10 +346,10 @@ vendor/person dependency. Independent high-risk proof remains required.
 
 | Surface | Verified baseline | Release boundary |
 |---|---|---|
-| Source and integration | Reviewed native fiscal PR83 at443e3826, hotel-journey/schema/design PR84 at7829eae and private fiscal/RMS PR85 atb5ef708; Q201 candidate827be467 passes all five CI jobs | Main is the sole release branch; canonical78 candidate is separate unmerged work |
+| Source and integration | PR87 independently merged at22f1bed after exact15f5204 all-six CI and post-merge schema/referee11/11 | Main is the sole release branch; Q204 runtime80 remains separate unmerged work |
 | Native fiscal acceptance | Independent migration41/41, native116/116, compatibility89/89, catalogue23/23, exact schema and referee11/11; all five [PR83 CI jobs](https://github.com/dcpnode-maker/yellow/actions/runs/33993977811) passed | [Review434](../handoff/reviews/434-native-fiscal-source-completion.md) approves bounded native issuance, not provider activation or a retained hotel database |
-| GitHub work queue | All62 PRs in the original audit are closed with source preservation; PR82/83/84/85 are merged | [The manifest](../handoff/CONSOLIDATION-MANIFEST.json) preserves dispositions; [GitHub](https://github.com/dcpnode-maker/yellow/pulls) is authoritative for the live queue |
-| Database schema | Main has77 migrations /127 public tables; Q201 candidate has78 migrations /128 tables,118RLS/118policies/27FORCE/13permissions/2views | Immutable0001 and applied1–77 remain unchanged. No retained hotel database was migrated |
+| GitHub work queue | All62 PRs in the original audit are closed with source preservation; PR82/83/84/85/87 are merged | [The manifest](../handoff/CONSOLIDATION-MANIFEST.json) preserves dispositions; [GitHub](https://github.com/dcpnode-maker/yellow/pulls) is authoritative for the live queue |
+| Database schema | Main79/128; private Q20480/128;118RLS/118policies/27FORCE/13permissions/2views | Applied1–79 remain immutable. Founder preview77/127 is not migrated by these isolated proofs |
 | Private issued-wire proof | Independent10/10 unit and4/4 real-issued tests, including exact unchanged financial rows and cross-tenant isolation | Source/wire hashes differ deliberately; no certified provider, durable submission writer or fiscal acceptance is claimed |
 | Hotel journey design | [Workbench specification](design/STAFF-WORKBENCH-SPEC.md), [casebook](design/HOTEL-CASEBOOK.md) and [research](research/HOTEL-OPERATIONS-REVIEW.md) are preserved from PR84 | Fictional interaction study; final visual fidelity needs an accessible reference and matched screenshot evidence |
 | Local app | Exactb5ef708 native Windows preview personally verified on the laptop: readiness77, source archive hash, synthetic login and referee11/11 | [Recovery details](RECOVERY.md) distinguish native startup from Compose; no new screenshot, production stability or unmerged fiscal activation is claimed |
@@ -244,7 +366,7 @@ states. The runtime must identify its exact source and applied migration frontie
 | Phase4 | Built; integration review outstanding | Preserve implementation and close remaining integration evidence |
 | Phase7 operational flows | Consolidated and independently approved baseline | PMS, stay, folio, payment, approval and fiscal-support flows remain preserved; this does not complete the whole phase |
 | Order434 native fiscal issuance | Independently approved and merged through PR83 | Real source-to-invoice, accounting, replay, concurrency, tenant isolation, bounds and migration proofs pass; no provider registration or operator invoice screen is implied |
-| Order440 fiscal submission | Canonical79 repairs independently reproduced late-replay defect; genuine upgrade and all-key HTTP replay pass independent proof | New combined CI and merge, worker integration, provider authentication, runtime activation and live sandbox evidence remain outstanding |
+| Order440 fiscal submission | Canonical79 repair is independently merged after full CI and post-merge proof; runtime80 has independent genuine worker, schema and referee evidence | Complete80 CI/integration, provider authentication, runtime activation and live sandbox evidence remain outstanding |
 | Order440 hotel journeys | Reviewed study merged through PR84 | Cross-department research and a fictional prototype; final reference-matched visual QA and laptop execution remain separate |
 | Order441 RMS research | Astra Ultra portfolio documented | Known methods, falsifiable proposals and experiment design; no live algorithm or measured uplift |
 | Phases8–17 | Planned | Requirements, research and department studies are preserved; documentation is not shipped behavior |

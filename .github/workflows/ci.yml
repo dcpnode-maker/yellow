@@ -199,8 +199,18 @@ jobs:
       - name: Typecheck
         run: bun run typecheck
 
+      - name: Prove subprocess isolation on the Linux runner
+        run: >-
+          /usr/bin/time -v bun test
+          tests/project-status.test.ts
+          tests/owned-proof-process.test.ts
+          tests/import-boundaries.test.ts
+          tests/operator-business-day-seal-browser.integration.test.ts
+          tests/operator-owner-trust-workbench-browser.integration.test.ts
+          tests/operator-business-day-discrepancy-carry-browser.integration.test.ts
+
       - name: Test
-        run: bun test
+        run: /usr/bin/time -v bun test
 
   container-smoke:
     needs: quality
@@ -374,7 +384,7 @@ jobs:
       - name: Run seed integration suite
         run: bun run test:db:seed
 
-      - name: Prove Order434 native fiscal suite on a fresh migrated 79 database
+      - name: Prove Order434 native fiscal suite on a fresh migrated 80 database
         shell: bash
         timeout-minutes: 35
         run: |
@@ -431,7 +441,7 @@ jobs:
           docker compose exec -T postgres psql --username yellow_deploy --dbname postgres --set ON_ERROR_STOP=1 \
             --command "DROP DATABASE ${wire_database} WITH (FORCE)"
 
-          # Q203 exercises signed-session HTTP against an isolated current79 clone.
+          # Q203 exercises signed-session HTTP against an isolated current80 clone.
           q203_database="yellow_order440_q203_ci"
           native_clones+=("$q203_database")
           docker compose exec -T postgres psql --username yellow_deploy --dbname postgres --set ON_ERROR_STOP=1 \
@@ -442,6 +452,21 @@ jobs:
             bun test tests/operator-fiscal-submission.integration.test.ts
           docker compose exec -T postgres psql --username yellow_deploy --dbname postgres --set ON_ERROR_STOP=1 \
             --command "DROP DATABASE ${q203_database} WITH (FORCE)"
+
+          # Q204 exercises actual HTTP/discovery/transport/reconciliation on an
+          # empty current80 clone. The isolated adapter is never production authority.
+          q204_database="yellow_order440_q204_ci"
+          native_clones+=("$q204_database")
+          docker compose exec -T postgres psql --username yellow_deploy --dbname postgres --set ON_ERROR_STOP=1 \
+            --command "CREATE DATABASE ${q204_database} TEMPLATE ${native_template}"
+          YELLOW_ORDER440_DELIVERY_DEPLOY_DATABASE_URL="postgres://yellow_deploy:${YELLOW_DEPLOY_DATABASE_PASSWORD}@${POSTGRES_ADDRESS}/${q204_database}" \
+          YELLOW_ORDER440_DELIVERY_RUNTIME_DATABASE_URL="postgres://yellow_runtime:${YELLOW_RUNTIME_DATABASE_PASSWORD}@${POSTGRES_ADDRESS}/${q204_database}" \
+          YELLOW_REQUIRE_ORDER440_DELIVERY=1 \
+            bun test tests/fiscal-submission-delivery-runtime.integration.test.ts
+          YELLOW_REQUIRE_SERVER_FISCAL_PROCESS=1 \
+            bun test tests/server-fiscal-runtime.test.ts
+          docker compose exec -T postgres psql --username yellow_deploy --dbname postgres --set ON_ERROR_STOP=1 \
+            --command "DROP DATABASE ${q204_database} WITH (FORCE)"
 
           # Q205 records real request/retry receipts on78, then proves their
           # immutable HTTP bytes through the forward79 upgrade and later attempts.
@@ -642,7 +667,7 @@ jobs:
           READY_FILE="$proof_directory/readiness.json" bun -e '
             const body = await Bun.file(process.env.READY_FILE!).json();
             if (body.status !== "ready" || body.build?.revision !== process.env.YELLOW_BUILD_SHA
-                || body.build?.expectedMigrationFrontier !== 79
+                || body.build?.expectedMigrationFrontier !== 80
                 || body.target !== "yellow_runtime_database") process.exit(1);
           '
 

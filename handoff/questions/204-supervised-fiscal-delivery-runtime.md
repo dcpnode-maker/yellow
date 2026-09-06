@@ -26,6 +26,7 @@ provider-integration obligation, not something a flag or test adapter can assert
 handoff/questions/204-supervised-fiscal-delivery-runtime.md
 handoff/orders/440-fiscal-submission-lifecycle.md
 handoff/reviews/440-fiscal-submission-lifecycle.md
+handoff/reviews/440-fiscal-delivery-runtime.md (separate non-implementing Q204 review)
 migrations/0080_fiscal_submission_delivery_runtime.sql
 tests/schema/expected.sql
 src/contexts/tax-fiscal/fiscal-provider.ts
@@ -48,7 +49,24 @@ tests/fiscal-submission-delivery-runtime.integration.test.ts
 tests/fixtures/order440-fiscal-delivery-runtime.ts
 tests/server-lifecycle.test.ts
 tests/server-fiscal-runtime.test.ts
+tests/arrival-pickup-task-worker-wiring.integration.test.ts (shared supervision/signal/logging oracle only)
+tests/reservation-arrival-roll-worker-wiring.integration.test.ts (shared supervision/signal/logging oracle only)
+tests/reservation-departure-roll-worker-wiring.integration.test.ts (shared supervision/signal/logging oracle only)
+tests/fiscal-submission-commands.test.ts (admitted context export surface only; snapshot helpers remain private)
+tests/founder-status.integration.test.ts (exact seventh worker status field only; existing access/privacy assertions unchanged)
+tests/operator-fiscal-submission.intentional-red.test.ts (default-off shared registry composition only)
+tests/operator-app-bar-responsive-containment.intentional-red.test.ts (bounded DevTools port-file EBUSY/ENOENT startup handling only; geometry unchanged)
 tests/fiscal-submission-durability.integration.test.ts
+tests/fiscal-submission-immutable-replay.integration.test.ts (preserve exact historical79 upgrade prefix)
+tests/fiscal-replay-workflow.test.ts (assert required current80 delivery/process gates)
+state.sh (batch historical record scans; preserve report and metadata semantics)
+tests/project-status.test.ts (batch-scan equivalence and bounded process ownership proof)
+tests/import-boundaries.test.ts (owned CLI child cleanup only; existing assertions/deadline unchanged)
+tests/operator-business-day-seal-browser.integration.test.ts (isolated owned browser lifecycle only)
+tests/operator-owner-trust-workbench-browser.integration.test.ts (isolated owned browser lifecycle only)
+tests/operator-business-day-discrepancy-carry-browser.integration.test.ts (same isolated browser lifecycle)
+tests/helpers/owned-proof-process.ts (bounded test-only child output, deadline and cleanup)
+tests/owned-proof-process.test.ts (actual child lifecycle and failure regressions)
 tests/operator-fiscal-submission.integration.test.ts
 tests/india-irp-issued-wire-candidate.integration.test.ts
 tests/migrate.integration.test.ts
@@ -57,6 +75,8 @@ tests/runtime-database-authority.integration.test.ts
 tests/app-role-nonlogin.integration.test.ts
 tests/build-readiness.test.ts
 tests/build-readiness.integration.test.ts
+tests/india-gst-accommodation-final-component-tax-recording.integration.test.ts (current80 catalogue count only)
+tests/india-gst-accommodation-quoted-rate-applicability-recording.integration.test.ts (current80 catalogue count only)
 tests/free-host-arm64.test.ts
 tests/release-workflow.test.ts
 tests/native-fiscal-release-containment.integration.test.ts
@@ -73,6 +93,8 @@ DECISIONS.log
 handoff/LEDGER.md
 127.0.0.1:55503 / yellow_order440_q204_* (new isolated proof databases only)
 D:\Yellow\temp (new uniquely named Q204 proof files only)
+127.0.0.1:55503 / yellow_order440_durable_q204_root_90607 (new historical77-to78 caller proof)
+127.0.0.1:55503 / yellow_order440_durable_q204_review_90607 (separate non-implementing historical proof)
 ```
 
 Q205 inserts corrective migration79 before this runtime migration80. Immutable
@@ -85,7 +107,97 @@ template before cloning; apply78/79/80 only to a new isolated target. Historical
 Root owns governance, migration/schema and release/CI integration; a bounded
 builder owns only its explicitly assigned production/unit-test subset.
 
+The first complete current80 standing run passes1,655 with1,259 explicit database
+skips and fails6 assertions. Before changing those assertions, this amendment
+admits the five historical test files above plus the already scoped release workflow
+test. Their old inline failure-log, private worker export, empty standalone identity
+directory and current79 step-name expectations conflict with the explicitly admitted
+shared lifecycle/current80 composition. Preserve workbench-only exact opt-ins,
+fixed sanitized logging, common cancellation, private raw snapshot helpers, an empty
+production registration and pre-listen refusal. No business code or permission is
+changed to accommodate these assertions; original failure evidence is retained.
+
+The next complete run passes1,661 with1,263 explicit database skips, but Order330's
+fresh Chromium640px profile raises EBUSY reading DevToolsActivePort before its
+geometry assertions. The exact unchanged rerun passes1/1(4). This recurring Windows
+file-publication race is admitted for a permanent bounded startup correction in the
+single test file above: retry only EBUSY/ENOENT inside the existing800-attempt loop,
+rethrow other I/O failures, and add deterministic helper regressions. Preserve every
+viewport/DSF/overflow/label/rail assertion, process ownership and timeout; no UI edit,
+test skip, blanket retry or broad browser cleanup.
+
 ## Runtime-only discovery and claim rules
+
+After publication at a4a1346, CI34043209976 passes five jobs but its database job
+stops at the older founder-status exact workers equality (7 pass, 1 fail). The
+production status correctly adds fiscalSubmissionDelivery=disabled. Before editing
+that assertion, this amendment admits only its response type and exact expected
+seventh field in founder-status.integration.test.ts. Keep all six older worker
+states, exact whole-object equality and tenant/access/privacy checks. No production
+state or permission change is needed; the later skipped database gates must execute
+in new exact-source CI.
+
+The next exact-head CI34043585965 passes founder status but stops at two older
+runtime-authority expectations of fourteen runtime capabilities. The already scoped
+runtime-database-authority.integration.test.ts must require all fifteen exact
+signatures, preserve the fourteen existing search-path-only configurations, and
+require the new discovery function's exact UTC/ISO configuration and five-field
+result shape. Add its direct app-role denial and invalid-limit/paired-cursor probes
+without weakening universal PUBLIC/app denials or runtime ownership/grants.
+Independent read-only catalogue evidence from the existing80 proof database fixes
+the exact DateStyle=ISO,YMD spelling. No production SQL, role or permission change.
+The adjacent already-scoped database-acceptance test likewise must enumerate this
+fifth fiscal capability and the exact valid/ready tenant-leading partial cursor
+index. Existing historical named-subset runtime-DML tests are not global counts
+and remain unchanged. Schema/permissions/RLS totals are unchanged by migration80.
+
+Exact bd35c8a CI34044350648 fails four existing child-process tests: the status
+script reaches its unchanged5-second deadline, then two browser cases reach their
+90-second limits and the import checker child reaches5 seconds. The same373 earlier
+test-file groups finish in essentially identical time on the immediately previous
+passing run; the new catalogue assertions are skipped in quality. This pattern also
+predates Q204. Root's unchanged local four-file execution passes14/14(151).
+The precise Linux wait/resource cause is not established; do not call the runtime
+or runner repaired from those observations. Inspection does establish two avoidable
+harness weaknesses: state.sh starts hundreds of per-record grep/basename processes,
+and the three matching browser helpers have neither unique profiles nor bounded
+owned-child cleanup. Before editing, admit the exact paths above to batch historical
+scans, isolate browser profiles, bound and drain child output, and terminate/reap only
+owned children on failure. Preserve report/count/marker semantics, all UI assertions,
+the full test suite, existing outer deadlines and every database/CI gate. No blanket
+retry, longer test timeout, test skip, global process kill, product/UI change or
+laptop service restart. Real child timeout/output/exit regressions and independent
+execution are required. Linux CI must verify the shell and complete current80 gates.
+
+Exact28b0ecd CI34046418901 verifies the Linux batch fixture and owned-process
+cleanup cases, but the first isolated Chromium launch exceeds the newly introduced
+8-second per-child budget (7,777.53ms including bounded cleanup). The other23
+isolated tests pass; full quality and database gates do not run. Correct this new
+inner-budget regression inside the three admitted browser tests: each complete
+12-case journey owns one monotonic deadline,55s for the existing60s discrepancy
+test and85s for the existing90s seal/owner tests. Compute the positive remaining
+budget immediately before every spawn, fail without spawning if exhausted, and
+never reset the deadline per theme or viewport. This allows a slow initial launch
+without extending the existing total test limit; five seconds remain for fixture
+cleanup. Preserve unique profiles, all cases/assertions and owned-process cleanup.
+Add permanent budget-wiring proof in the already scoped workflow test. No product,
+provider, SQL, local service or outer-test timeout changes are admitted.
+
+Exact1b7f9cc CI34047572346 now passes quality, current80 delivery11/11 and actual
+Linux process5/5, but the historical77-to78 durability suite fails18/19: its worker
+caller still supplies only tenant/submission/lease. The current seven-field worker
+correctly rejects that call before claim. Correct this already scoped test to use
+an explicit typed provider-bound step with a transport deadline, retaining a separate
+three-field repository claim input. Permanently require the obsolete worker shape
+to reject without mutation and the valid foreign-tenant claim to reach database
+denial, not merely malformed-input rejection. Preserve all transaction-order,
+single-pool reuse, exactly-once and unchanged financial evidence assertions.
+The two exact disposable database names above are admitted solely because this
+historical harness requires its durable prefix and pristine77 predecessor; root and
+non-implementer each get a separate fresh clone. Verify all77 template hashes,
+zero tenants and no other template sessions before cloning. Do not change existing
+proof databases, applied SQL, production validation, live provider or stable app.
+Complete fresh exact-source CI remains required; no blind rerun or merge.
 
 Migration80 adds a narrow
 `runtime_due_india_fiscal_submissions(integer, uuid, uuid)` capability returning
@@ -122,6 +234,14 @@ from the same immutable registration snapshot; no independent configuration list
 
 Extend the provider port with an explicit AbortSignal/deadline contract. The transport
 deadline must be strictly shorter than the claim lease with reconciliation margin.
+Before publication, provider-integration inspection identifies a restart gap: lookup
+receives only internal UUIDs and a digest, which cannot identify a government invoice.
+The already scoped port/worker now must supply a detached copy of the original
+issued wire bytes to lookup as well as submit. A stateless adapter can derive the
+provider's documented lookup key from those immutable bytes without a submit cache
+or second store. Preserve the existing payload hash and binding; add unit red/green
+and actual fresh-worker PostgreSQL recovery proof with no previous in-memory submit.
+This does not invent provider-specific authentication or enable external transport.
 Timeout or shutdown after submit begins means unknown delivery, never known-not-sent;
 lookup cancellation preserves lookup. Reconcile through the existing repository.
 Ignore late results and retain lane quarantine until an abort-ignoring original

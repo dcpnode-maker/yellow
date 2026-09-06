@@ -902,3 +902,78 @@ Narrow disposition: no additional finding in this test-only correction. Fresh
 published-head Linux readiness/compatibility, final referee/deployment/app gates,
 all-six CI and final PR conversation/head/base review remain required. No product
 edit, workflow retry/dispatch, P2 resolution or merge occurred in this review.
+
+## Final independent integration — PR87 merged, post-merge referee passed
+
+Non-implementing reviewer `/root/fiscal_http_acceptance` inspected published
+`15f5204cd1f046684b6535567c5f1c8665524d95` over exact base
+`b5ef70842b658183f7b5b4c650c8e78c7a0b513d`, including its full combined source scope
+and the final eight-file correction/evidence delta. Q204 production/SQL80 is absent.
+No further high-risk finding remained after the recorded independent executions.
+
+Automatic CI34039764089 passed all six jobs on attempt1 without any retry:
+quality,windows-state,local-review,database,container-smoke,free-host-arm64.
+Reviewer personally inspected the complete step states and actual database log
+(job101504500955). Relevant exact-source evidence:
+
+- standing1644 pass,1242 explicit database skips,0 fail,22098 assertions,76.95s;
+- migration45/45(280), seed10/10(63);
+- genuine authenticated HTTP9/9(89), actual78-to79 immutable replay5/5(447),7.40s;
+- durable submission19/19(223);
+- corrected current79 readiness/containment15/15(59);
+- both current GST recording compatibility suites18/18(1030) and17/17(701);
+- deployment24/24(69), exact schema check, database-backed app health/login;
+- canonical referee `RESULT: 11 passed, 0 failed of 11`.
+
+All normal CodeQL analyses also passed (run34039762285). Optional AI scan34039765005
+again failed before analysis with Copilot entitlement403; it is not a displayed
+required check and no paid entitlement/protection setting was changed. All ten
+displayed PR checks were successful. Main protection still enforced admins and
+conversation resolution; required approving review count remained0, without bypass.
+
+Reviewer posted exact repaired-source evidence in reply3944311781 to the reproduced
+P2, then resolved only threadPRRT_kwDOT4Mkr86fp9Be. It rechecked exact head/base and
+CLEAN/MERGEABLE immediately before normal SHA-guarded merge through GitHub's merge
+endpoint (merge_method=merge, no admin option). PR87 merged at2026-09-06T14:53:49Z:
+
+```text
+merge SHA: 22f1beddea23429ccd9111092dccf6176386adf2
+head SHA:  15f5204cd1f046684b6535567c5f1c8665524d95
+base SHA:  b5ef70842b658183f7b5b4c650c8e78c7a0b513d
+```
+
+Remote main was verified at22f1bed; the source branch remained15f5204 (not deleted).
+The reviewer did not author/implement this PR. No local checkout/reset/push, stable
+preview restart, provider transport, cloud provisioning or migration80 promotion
+occurred. Root was informed immediately and retains governance/ledger ownership.
+
+### Personally executed post-merge current79 referee
+
+Under explicit coordinator authorization, only after successful merge, created
+`yellow_order440_q205_postmerge_90604` from reverified pristine77 on loopback55503:
+0 tenants,0 other sessions,127 public tables,77 ledger rows with exact hashes.
+Mechanical Copy-Item retained canonical1–79 in new unique prefix
+`D:\Yellow\temp\q205-postmerge-8b8a61eef1924b079cbe7386b3d349c9`.
+All79 copied files and the canonical runner, seed_fixture.sql and run_invariants.py
+were compared byte-for-byte with immutable15f5204 git objects before execution.
+Current dirty migration80 was excluded. Canonical runner applied only78+79 on
+backend6872; native16.15 pg_dump strictly normalized to merged79 schema SHA256
+`fc3b1af4c6f9d929acd8f58d4907f56fcda6bc926f3ef896daa7de0dc5bbda63`.
+
+```text
+psql --host=127.0.0.1 --port=55503 --username=yellow_deploy \
+  --dbname=yellow_order440_q205_postmerge_90604 --no-psqlrc \
+  --set ON_ERROR_STOP=1 --file tests/seed_fixture.sql
+canonical unwrapped seed passed
+
+python tests/run_invariants.py yellow_order440_q205_postmerge_90604
+RESULT: 11 passed, 0 failed of 11
+```
+
+The referee recorded one50-thread exclusive winner, exactly6 beds, occupancy DML
+denial42501,162 commits in0.88s (184/s), balanced/deferred/unbalanced journal gates,
+sealed-day rejection,100 gapless numbers1..100,118 RLS/policy tables and2 isolated
+security-invoker views. Private credentials were read only in-process and supplied
+only through child environments; none was printed or persisted. All owned proof
+connections closed. Database/prefix remain retained; no existing database reset.
+The required post-merge referee is personally discharged for merged79, not80.

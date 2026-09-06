@@ -19,11 +19,19 @@ printf 'Git: %s · %s · %s\n' "$branch" "$head" "$dirty_text"
 
 orders_total=0
 historical_unclosed=()
+order_files=()
 for file in handoff/orders/*.md; do
   [ -f "$file" ] || continue
   ((orders_total += 1))
-  if ! grep -q '^## MERGED' "$file"; then historical_unclosed+=("$file"); fi
+  order_files+=("$file")
 done
+# Scan each group in one process, rather than forking once per historical record.
+# NUL-delimited filenames preserve spaces/newlines and empty groups never read stdin.
+if [ "${#order_files[@]}" -gt 0 ]; then
+  while IFS= read -r -d '' file; do
+    historical_unclosed+=("$file")
+  done < <(grep -LZ '^## MERGED' -- "${order_files[@]}")
+fi
 
 status_file=${YELLOW_PROJECT_STATUS_FILE:-docs/PROJECT-STATUS.md}
 read_status_field() {
@@ -56,18 +64,23 @@ done
 
 questions_total=0
 questions_open=()
+question_candidates=()
 for file in handoff/questions/*.md; do
   [ -f "$file" ] || continue
   ((questions_total += 1))
-  name=$(basename "$file")
+  name=${file##*/}
   number=${name%%-*}
   response="handoff/questions/${number}-ARCHITECT-RESPONSE.md"
   if [[ "$name" != *-ARCHITECT-RESPONSE.md ]] &&
-     ! grep -Eq '^## (RESOLVED|RATIFIED)' "$file" &&
      [ ! -f "$response" ]; then
-    questions_open+=("$file")
+    question_candidates+=("$file")
   fi
 done
+if [ "${#question_candidates[@]}" -gt 0 ]; then
+  while IFS= read -r -d '' file; do
+    questions_open+=("$file")
+  done < <(grep -LEZ '^## (RESOLVED|RATIFIED)' -- "${question_candidates[@]}")
+fi
 
 printf 'Current task: %s\n' "$current_task"
 printf 'Lifecycle: %s\n' "$current_lifecycle"

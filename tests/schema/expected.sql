@@ -1706,6 +1706,13 @@ BEGIN
     RAISE EXCEPTION USING ERRCODE='42501',MESSAGE='fiscal submission tenant context is unauthorized';
   END IF;
   PERFORM public.india_fiscal_submission_lock_relations();
+  -- Lock the current tenant status before the head. A concurrent suspension
+  -- either wins before this check or waits until the atomic claim settles.
+  PERFORM 1 FROM public.tenant tenant
+   WHERE tenant.id=p_tenant AND tenant.status='active' FOR SHARE;
+  IF NOT FOUND THEN
+    RAISE EXCEPTION USING ERRCODE='55000',MESSAGE='active fiscal submission tenant is unavailable';
+  END IF;
   SELECT submission.* INTO v_head FROM public.fiscal_submission submission
    WHERE submission.tenant_id=p_tenant AND submission.id=p_submission AND submission.delivery_version=1
    FOR UPDATE;
@@ -1716,7 +1723,9 @@ BEGIN
     RETURN pg_catalog.jsonb_build_object('claimed',false,'reason','terminal');
   ELSIF v_head.status='error' THEN
     RETURN pg_catalog.jsonb_build_object('claimed',false,'reason','retry_required');
-  ELSIF v_head.status='submitted' AND v_head.claim_expires_at>v_now THEN
+  ELSIF v_head.status='submitted'
+    AND v_head.claim_expires_at + (CASE WHEN v_head.response IS NULL
+      THEN interval '0 seconds' ELSE interval '15 seconds' END) > v_now THEN
     RETURN pg_catalog.jsonb_build_object('claimed',false,'reason','busy');
   ELSIF v_head.status='pending' THEN v_action:='submit';
   ELSIF v_head.status='submitted' THEN v_action:='lookup';
@@ -16549,6 +16558,51 @@ $$;
 
 
 --
+-- Name: runtime_due_india_fiscal_submissions(integer, uuid, uuid); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.runtime_due_india_fiscal_submissions(p_limit integer, p_after_tenant uuid, p_after_submission uuid) RETURNS TABLE(tenant_id uuid, submission_id uuid, provider_key text, provider_extension_id uuid, provider_extension_version integer)
+    LANGUAGE plpgsql STABLE SECURITY DEFINER
+    SET search_path TO 'pg_catalog', 'public', 'pg_temp'
+    SET "TimeZone" TO 'UTC'
+    SET "DateStyle" TO 'ISO,YMD'
+    AS $$
+DECLARE
+  v_now timestamptz:=pg_catalog.clock_timestamp();
+BEGIN
+  -- Discovery deliberately has no tenant context: it exposes infrastructure
+  -- identities only. Tenant-scoped claim/reconcile retain their separate checks.
+  IF session_user<>'yellow_runtime'
+     OR pg_catalog.current_setting('role',true) IS DISTINCT FROM 'none'
+     OR current_user<>'yellow_owner'
+     OR NULLIF(pg_catalog.current_setting('app.tenant_id',true),'') IS NOT NULL THEN
+    RAISE EXCEPTION USING ERRCODE='42501',MESSAGE='fiscal discovery requires context-free direct runtime login';
+  END IF;
+  IF p_limit IS NULL OR p_limit NOT BETWEEN 1 AND 500
+     OR (p_after_tenant IS NULL) IS DISTINCT FROM (p_after_submission IS NULL) THEN
+    RAISE EXCEPTION USING ERRCODE='22023',MESSAGE='fiscal discovery cursor or limit is invalid';
+  END IF;
+
+  RETURN QUERY
+  SELECT submission.tenant_id,submission.id,submission.provider_key::text,
+         submission.provider_extension_id,submission.provider_extension_version
+    FROM public.fiscal_submission submission
+    JOIN public.tenant tenant ON tenant.id=submission.tenant_id AND tenant.status='active'
+   WHERE submission.delivery_version=1
+     AND submission.status IN ('pending','submitted')
+     AND (p_after_tenant IS NULL
+       OR (submission.tenant_id,submission.id)>(p_after_tenant,p_after_submission))
+     AND ((submission.status='pending' AND submission.disposition='send')
+       OR (submission.status='submitted' AND submission.disposition='lookup'
+         AND submission.claim_expires_at + (CASE WHEN submission.response IS NULL
+           THEN interval '0 seconds' ELSE interval '15 seconds' END) <= v_now))
+   ORDER BY submission.tenant_id,submission.id
+   LIMIT p_limit;
+END
+$$;
+
+
+--
 -- Name: runtime_extension_compatibility_inputs(text); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -22979,6 +23033,13 @@ CREATE INDEX fact_current ON public.fact_log USING btree (tenant_id, entity_type
 
 
 --
+-- Name: fiscal_submission_delivery_cursor; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX fiscal_submission_delivery_cursor ON public.fiscal_submission USING btree (tenant_id, id) WHERE ((delivery_version = 1) AND (status = ANY (ARRAY['pending'::text, 'submitted'::text])));
+
+
+--
 -- Name: fiscal_submission_delivery_queue; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -29081,6 +29142,14 @@ GRANT ALL ON FUNCTION public.runtime_due_departure_scopes(p_limit integer) TO ye
 
 REVOKE ALL ON FUNCTION public.runtime_due_hold_scopes(p_limit integer) FROM PUBLIC;
 GRANT ALL ON FUNCTION public.runtime_due_hold_scopes(p_limit integer) TO yellow_runtime;
+
+
+--
+-- Name: FUNCTION runtime_due_india_fiscal_submissions(p_limit integer, p_after_tenant uuid, p_after_submission uuid); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.runtime_due_india_fiscal_submissions(p_limit integer, p_after_tenant uuid, p_after_submission uuid) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.runtime_due_india_fiscal_submissions(p_limit integer, p_after_tenant uuid, p_after_submission uuid) TO yellow_runtime;
 
 
 --

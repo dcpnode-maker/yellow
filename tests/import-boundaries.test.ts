@@ -3,6 +3,7 @@ import { mkdir, mkdtemp, readdir, rm, stat, writeFile } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
 import { tmpdir } from "node:os";
 import { checkImportBoundaries } from "../scripts/check-import-boundaries";
+import { runOwnedProofProcess } from "./helpers/owned-proof-process";
 
 const PROJECT_ROOT = resolve(import.meta.dir, "..");
 const CHECKER = resolve(PROJECT_ROOT, "scripts", "check-import-boundaries.ts");
@@ -185,22 +186,16 @@ describe("import boundary checker", () => {
         "src/kernel/index.ts": "",
       },
       async (root) => {
-        const child = Bun.spawn([process.execPath, CHECKER, root], {
+        const result = await runOwnedProofProcess([process.execPath, CHECKER, root], {
           cwd: PROJECT_ROOT,
-          stderr: "pipe",
-          stdout: "pipe",
+          timeoutMs: 3_000,
         });
-        const [exitCode, stdout, stderr] = await Promise.all([
-          child.exited,
-          new Response(child.stdout).text(),
-          new Response(child.stderr).text(),
-        ]);
 
-        expect(exitCode).not.toBe(0);
-        expect(stdout).toBe("");
-        expect(stderr).toContain("src/contexts/reservations/bad.ts");
-        expect(stderr).toContain('"../inventory/repository"');
-        expect(stderr).toContain("public index");
+        expect(result.exitCode).not.toBe(0);
+        expect(result.stdout).toBe("");
+        expect(result.stderr).toContain("src/contexts/reservations/bad.ts");
+        expect(result.stderr).toContain('"../inventory/repository"');
+        expect(result.stderr).toContain("public index");
       },
     );
   });

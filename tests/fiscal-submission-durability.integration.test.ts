@@ -9,7 +9,7 @@ import { RequestIndiaFiscalSubmissionCommand } from "../src/commands/request-ind
 import { RetryIndiaFiscalSubmissionCommand } from "../src/commands/retry-india-fiscal-submission";
 import { projectIssuedIndiaIrpWireCandidate } from "../src/contexts/tax-fiscal/india-irp-issued-wire-candidate";
 import { FiscalSubmissionRepository } from "../src/contexts/tax-fiscal/fiscal-submission-repository";
-import { FiscalSubmissionWorker, VerifiedIndiaIrpAdapterRegistry } from "../src/contexts/tax-fiscal/fiscal-submission-worker";
+import { FiscalSubmissionWorker, VerifiedIndiaIrpAdapterRegistry, type FiscalSubmissionWorkerStepInput } from "../src/contexts/tax-fiscal/fiscal-submission-worker";
 import { Database, PostgresEventBus, PostgresIdempotency, type Tx } from "../src/kernel";
 import { BusinessDaySealConflictError, BusinessDaySealService } from "../src/contexts/financials";
 import { LAUNCH_EXTENSION_TYPES } from "../scripts/seed";
@@ -486,13 +486,30 @@ databaseDescribe("Order440 durable fiscal delivery on genuine issued invoices", 
         lookup: async () => { throw new Error("This first-send proof must not call lookup"); },
       }]);
       const runner = new FiscalSubmissionWorker(repository, registry);
-      const input = { tenantId: s.tenant, submissionId: requested.value.submissionId, leaseSeconds: 60 };
+      const claimInput = { tenantId: s.tenant, submissionId: requested.value.submissionId, leaseSeconds: 60 };
+      const input = {
+        ...claimInput,
+        providerKey: requested.value.providerKey,
+        providerExtensionId: requested.value.providerExtensionId,
+        providerExtensionVersion: requested.value.providerExtensionVersion,
+        transportDeadlineMs: 20_000,
+      } satisfies FiscalSubmissionWorkerStepInput;
+      const unclaimed = await deliveryEvidence(s);
+      expect(await runner.runOnce(claimInput)).toEqual({ ok: false, error: {
+        code: "invalid_input", message: "fiscal submission worker input is invalid",
+      } });
+      expect(submits).toBe(0);
+      expect(await deliveryEvidence(s)).toEqual(unclaimed);
       expect(await runner.runOnce(input)).toMatchObject({ ok: true, kind: "reconciled", action: "submit", status: "accepted" });
       expect(await runner.runOnce(input)).toEqual({ ok: true, kind: "idle", reason: "terminal" });
       expect(submits).toBe(1);
       const foreign = cases[0]!;
-      const foreignClaim = await repository.claim({ ...input, tenantId: foreign.tenant });
-      expect(foreignClaim.ok).toBe(false);
+      const foreignBefore = await deliveryEvidence(foreign);
+      const foreignClaim = await repository.claim({ ...claimInput, tenantId: foreign.tenant });
+      expect(foreignClaim).toEqual({ ok: false, error: {
+        code: "database_error", message: "Fiscal submission database operation failed",
+      } });
+      expect(await deliveryEvidence(foreign)).toEqual(foreignBefore);
       expect(await runner.runOnce(input)).toEqual({ ok: true, kind: "idle", reason: "terminal" });
       expect(await retainedFinance(s)).toEqual(before);
     } finally { await pool.close(); }

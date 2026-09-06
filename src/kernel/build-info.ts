@@ -1,7 +1,7 @@
 import type { ReservedSQL, SQL } from "bun";
 
 const GIT_SHA = /^[0-9a-f]{40}$/;
-export const CURRENT_MIGRATION_FRONTIER = 79 as const;
+export const CURRENT_MIGRATION_FRONTIER = 80 as const;
 
 export interface BuildInfo {
   readonly schemaVersion: 1;
@@ -88,9 +88,10 @@ export async function assertRuntimeReleaseReadiness(
       ('public.request_india_fiscal_submission(uuid,uuid,uuid,uuid,uuid,text,uuid)', false),
       ('public.retry_india_fiscal_submission(uuid,uuid,uuid,text,uuid)', false),
       ('public.claim_india_fiscal_submission(uuid,uuid,integer)', true),
-      ('public.reconcile_india_fiscal_submission(uuid,uuid,uuid,uuid,jsonb)', true)
+      ('public.reconcile_india_fiscal_submission(uuid,uuid,uuid,uuid,jsonb)', true),
+      ('public.runtime_due_india_fiscal_submissions(integer,uuid,uuid)', true)
     ), fiscal_authority AS (
-      SELECT count(procedure.oid)=4
+      SELECT count(procedure.oid)=5
         AND bool_and(procedure.prosecdef AND procedure.proowner='yellow_owner'::regrole)
         AND bool_and(procedure.proconfig = ARRAY[
           'search_path=pg_catalog, public, pg_temp','TimeZone=UTC','DateStyle=ISO,YMD'

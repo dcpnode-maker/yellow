@@ -4,11 +4,14 @@
 
 **Current coordination:** Codex under PROJECT and the applicable agent adapter.
 
-**Latest integration finding:** Q205 supersedes earlier Q203 acceptance after
-independent PR87 review reproduced late-replay drift. Corrective79 reuses immutable
-receipts and preserves canonical HTTP bytes; independent actual upgrade and all-key
-replay proof pass. Combined-source CI and merge remain required. Q204 supervised
-runtime is under construction, prospective80, without provider/local activation.
+**Latest integration:** Q205's immutable receipt correction passes exact15f5204
+all-six CI34039764089 and is independently merged through PR87 as22f1bed. Separate
+post-merge actual79 schema and referee11/11 pass. Q204 supervised delivery is built
+with frozen80 and independent genuine HTTP/worker11/11(93), extra lock/ACL proof and
+current80 schema/referee11/11; full current80 CI and actual Linux process/readiness
+remain integration gates. Main79 and the unchanged local77 are distinct releases.
+Provider authentication and sandbox verification remain unfinished; phase priority
+and product scope are unchanged.
 
 **Status reconciled:** 2026-09-06. Orders438/439 merged through PR82; independently
 reviewed native fiscal Order434 passed exact CI178 and merged through PR83 as443e3826

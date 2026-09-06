@@ -3279,9 +3279,11 @@ local-environment completion.
 
 ### Durable fiscal request and retry (Order440 / Q201 candidate)
 
-The tax-fiscal index exposes `FiscalSubmissionService`, detached input/receipt
-snapshotters and request/retry result types. It does not expose the raw runtime
-pool repository, worker claims or reconciliation authority.
+The Q201 command surface exposes `FiscalSubmissionService`, detached input/receipt
+snapshotters and request/retry result types. Q204 additionally exposes the repository,
+worker, verified registry and delivery runtime to the server composition root through
+the same bounded-context index. Raw claim and normalized-result snapshotters remain
+private. Import visibility does not grant database claim/reconciliation authority.
 
 `RequestIndiaFiscalSubmissionCommand.execute(unknown)` and
 `RetryIndiaFiscalSubmissionCommand.execute(unknown)` validate exact plain
@@ -3324,8 +3326,10 @@ correlation-header contract. No default role receives either new permission.
 `FiscalSubmissionAdapterAvailabilityService` is an immutable, exact identity-only
 directory keyed by extension UUID. It contains provider key, extension UUID and
 positive version, not transport functions, claims, credentials or certification.
-The production server supplies an empty directory. A database extension record
-or caller `verified` flag therefore cannot enable provider transport or persistence.
+The production server derives this directory from the exact immutable adapter-registry
+identity snapshot shared with the worker. The registration list remains empty. A
+database extension record or caller `verified` flag therefore cannot enable provider
+transport or persistence.
 
 The HTTP edge invokes the Tx-only service exactly once on middleware-owned
 `context.tx`. It checks returned tenant/property, document or submission identity,
@@ -3347,8 +3351,66 @@ and terminal outcomes. Fresh actor/property authorization and changed-request
 conflicts remain mandatory. Existing pre79 history needs no backfill.
 Unauthenticated401, scope/property403, invalid input400 and unavailable503 follow
 the existing operator problem response. Independent local proof now passes13/13(125),
-including five genuine signed-session PostgreSQL cases. The combined candidate
-awaits exact-head CI; no local, external-provider or cloud activation is implied.
+including five genuine signed-session PostgreSQL cases. Q205's final exact15f5204
+CI passes all six jobs, including HTTP9/9 and replay5/5(447); PR87 is independently
+merged as22f1bed. Post-merge actual79 schema and referee11/11 pass. No local,
+external-provider or cloud activation follows from that source integration.
+
+### Supervised fiscal delivery (Order440 / Q204 candidate)
+
+`FiscalSubmissionDeliveryRuntime` discovers bounded pending work from
+`PostgresDueFiscalSubmissionSource`, then invokes `FiscalSubmissionWorker.runOnce`.
+Migration80's sole new discovery capability is
+`runtime_due_india_fiscal_submissions(integer,uuid,uuid)`: direct yellow_runtime
+login, no role override, empty tenant context, exact owner/SECURITY DEFINER/config,
+and no PUBLIC or app_role EXECUTE. It returns only tenant/submission UUIDs and the
+provider key/extension UUID/version. No payload, guest, financial or secret fields
+are exposed. Discovery and claim admit only active tenants and delivery_version1;
+claim rechecks activity after discovery. No table or financial state is added.
+
+Pages use a tenant-leading `(tenant_id,id)` keyset, maximum500. The cursor advances
+even across unavailable adapters and wraps after an empty tail. Both discovery and
+claim use database time: an abandoned unreconciled claim becomes lookup-eligible
+at lease expiry; a reconciled pending/timeout/duplicate waits15 seconds beyond
+claim_expires_at. This minimum cadence is not a provider quota or resubmission policy.
+
+The immutable registry reserves an exact provider/version lane before any claim;
+an unavailable or busy lane creates no attempt. Returned claim identity and issued
+wire hash are rechecked. Both submit and lookup receive a detached copy of the
+original issued wire bytes, with the same payload hash and document/attempt binding.
+A fresh adapter can derive its documented lookup identity from that payload without
+an in-memory submit cache or second store. The call receives
+`FiscalProviderCallContext {signal, deadlineUnixMs}`. The transport deadline is
+strictly earlier than lease expiry with a5-second reconciliation margin. Normal
+defaults are100-row pages,1-second polls,60-second leases and30-second transport
+deadlines. Registered lanes are bounded at100, with one unresolved transport per
+lane; an abort-ignoring promise keeps its lane quarantined until it settles.
+
+Once submit starts, timeout/exception/abort means unknown delivery and lookup,
+never proven not sent. A late result cannot overwrite the reconciled timeout.
+Lookup cancellation stays pending. Only a verified known-not-sent result permits
+the existing explicit authorized retry. Transport runs outside database locks;
+claim/reconcile retain transaction settlement, context clearing and fail-closed pool
+behavior with transaction-local lock/statement timeouts.
+
+One `ServerLifecycle` stops HTTP intake, aborts all seven loops, bounds the drain and
+closes owned pools once. Repeated SIGINT/SIGTERM signals remain handled throughout
+shutdown. Fiscal health reports actual disabled/running/failed state, and enabled
+failed delivery makes readiness unavailable. Release readiness additionally verifies
+the exact discovery capability; release79 cannot satisfy a release80 runtime.
+
+The fiscal worker is a workbench-only exact opt-in, disabled by default. Disabled
+composition creates no fiscal pool/discovery activity; enabled composition with an
+empty registration fails before listening. Production registration remains empty
+until a real authenticated and independently verified adapter is available. No
+environment JSON, test provider or credential placeholder can establish certification.
+
+The genuine PostgreSQL HTTP→discovery→worker→reconciliation proof independently
+passes 11/11 (95 assertions), including fresh-worker original-wire lookup without
+resend, with separate lock/ACL/rollback proof and actual80 schema/referee11/11.
+Required Linux process/readiness and complete current80 CI remain release gates.
+This contract does not claim provider authentication, live sandbox acceptance or
+completion of Phase7.
 
 ### India IRP accommodation fiscal-action readiness (Order 429, historical contract)
 

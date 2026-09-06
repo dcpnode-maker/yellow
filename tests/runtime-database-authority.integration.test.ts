@@ -353,7 +353,7 @@ databaseDescribe("Order 127 runtime database authority (kernel boundary; HTTP P4
        WHERE n.nspname = 'public' AND p.proname LIKE 'runtime_%'
        ORDER BY signature
     `;
-    expect(capabilities).toHaveLength(14);
+    expect(capabilities).toHaveLength(15);
     expect(capabilities.map(({ signature }) => signature).sort()).toEqual([
       "runtime_consumer_advance(text,bigint)",
       "runtime_consumer_begin(text)",
@@ -363,6 +363,7 @@ databaseDescribe("Order 127 runtime database authority (kernel boundary; HTTP P4
       "runtime_due_business_day_scopes(integer)",
       "runtime_due_departure_scopes(integer)",
       "runtime_due_hold_scopes(integer)",
+      "runtime_due_india_fiscal_submissions(integer,uuid,uuid)",
       "runtime_extension_compatibility_inputs(text)",
       "runtime_mark_outbox_published(uuid[])",
       "runtime_prune_outbox(integer)",
@@ -370,14 +371,21 @@ databaseDescribe("Order 127 runtime database authority (kernel boundary; HTTP P4
       "runtime_visible_extension_effective_period(uuid,uuid)",
       "runtime_visible_extensions(uuid)",
     ]);
-    expect(capabilities.every((row) => row.owner === "yellow_owner" && !row.public_execute && !row.app_execute && row.runtime_execute && JSON.stringify(row.config) === JSON.stringify(["search_path=pg_catalog, public, pg_temp"]))).toBe(true);
+    expect(capabilities.every((row) => row.owner === "yellow_owner"
+      && !row.public_execute && !row.app_execute && row.runtime_execute)).toBe(true);
+    for (const row of capabilities) {
+      expect(row.config).toEqual(row.signature === "runtime_due_india_fiscal_submissions(integer,uuid,uuid)"
+        ? ["search_path=pg_catalog, public, pg_temp", "TimeZone=UTC", "DateStyle=ISO,YMD"]
+        : ["search_path=pg_catalog, public, pg_temp"]);
+    }
     const dueScopeResults = await admin!<{ signature: string; result: string }[]>`
       SELECT p.oid::regprocedure::text AS signature,
              pg_catalog.pg_get_function_result(p.oid) AS result
         FROM pg_catalog.pg_proc AS p
         JOIN pg_catalog.pg_namespace AS namespace ON namespace.oid = p.pronamespace
        WHERE namespace.nspname = 'public'
-         AND p.proname IN ('runtime_due_arrival_scopes', 'runtime_due_business_day_scopes', 'runtime_due_departure_scopes', 'runtime_due_hold_scopes')
+         AND p.proname IN ('runtime_due_arrival_scopes', 'runtime_due_business_day_scopes',
+           'runtime_due_departure_scopes', 'runtime_due_hold_scopes', 'runtime_due_india_fiscal_submissions')
        ORDER BY signature
     `;
     expect(dueScopeResults).toEqual([
@@ -385,6 +393,8 @@ databaseDescribe("Order 127 runtime database authority (kernel boundary; HTTP P4
       { signature: "runtime_due_business_day_scopes(integer)", result: "TABLE(tenant_id uuid, property_node uuid)" },
       { signature: "runtime_due_departure_scopes(integer)", result: "TABLE(tenant_id uuid, property_node uuid)" },
       { signature: "runtime_due_hold_scopes(integer)", result: "TABLE(tenant_id uuid, property_node uuid)" },
+      { signature: "runtime_due_india_fiscal_submissions(integer,uuid,uuid)",
+        result: "TABLE(tenant_id uuid, submission_id uuid, provider_key text, provider_extension_id uuid, provider_extension_version integer)" },
     ]);
 
     const rls = await admin!<{ tables: number; enabled: number; forced: number; policies: number }[]>`
@@ -462,7 +472,7 @@ databaseDescribe("Order 127 runtime database authority (kernel boundary; HTTP P4
         FROM pg_catalog.pg_proc p JOIN pg_catalog.pg_namespace n ON n.oid = p.pronamespace
        WHERE n.nspname = 'public' AND p.proname LIKE 'runtime_%' ORDER BY signature
     `;
-    expect(denied).toHaveLength(14);
+    expect(denied).toHaveLength(15);
     expect(denied.every((row) => !row.public_execute && !row.app_execute)).toBe(true);
 
     await database.withTenantTransaction(tenantA, async (tx) => {
@@ -471,6 +481,7 @@ databaseDescribe("Order 127 runtime database authority (kernel boundary; HTTP P4
         () => tx`SELECT public.runtime_due_business_day_scopes(1)`,
         () => tx`SELECT public.runtime_due_departure_scopes(1)`,
         () => tx`SELECT public.runtime_due_hold_scopes(1)`,
+        () => tx`SELECT public.runtime_due_india_fiscal_submissions(1,NULL::uuid,NULL::uuid)`,
         () => tx`SELECT public.runtime_resolve_active_tenant('x')`,
         () => tx`SELECT public.runtime_consumer_begin('x')`,
         () => tx`SELECT public.runtime_consumer_read('x', 0, 1, true)`,
@@ -500,6 +511,12 @@ databaseDescribe("Order 127 runtime database authority (kernel boundary; HTTP P4
     expect(await captureSqlState(() => direct`SELECT public.runtime_due_departure_scopes(1001)`)).toBe("22023");
     expect(await captureSqlState(() => direct`SELECT public.runtime_due_hold_scopes(0)`)).toBe("22023");
     expect(await captureSqlState(() => direct`SELECT public.runtime_due_hold_scopes(1001)`)).toBe("22023");
+    expect(await captureSqlState(() => direct`SELECT public.runtime_due_india_fiscal_submissions(NULL::integer,NULL::uuid,NULL::uuid)`)).toBe("22023");
+    expect(await captureSqlState(() => direct`SELECT public.runtime_due_india_fiscal_submissions(0,NULL::uuid,NULL::uuid)`)).toBe("22023");
+    expect(await captureSqlState(() => direct`SELECT public.runtime_due_india_fiscal_submissions(501,NULL::uuid,NULL::uuid)`)).toBe("22023");
+    expect(await captureSqlState(() => direct`SELECT public.runtime_due_india_fiscal_submissions(1,${tenantA}::uuid,NULL::uuid)`)).toBe("22023");
+    expect(await captureSqlState(() => direct`SELECT public.runtime_due_india_fiscal_submissions(1,NULL::uuid,${tenantA}::uuid)`)).toBe("22023");
+    expect(await direct<{ submission_id: string }[]>`SELECT * FROM public.runtime_due_india_fiscal_submissions(500,NULL::uuid,NULL::uuid)`).toEqual([]);
     expect(await captureSqlState(() => direct`SELECT public.runtime_consumer_begin('Bad_Name')`)).toBe("22023");
     expect(await captureSqlState(() => direct`SELECT public.runtime_consumer_read('x', 0, 0, true)`)).toBe("22023");
     expect(await captureSqlState(() => direct`SELECT public.runtime_consumer_mark('', NULL::uuid)`)).toBe("22023");

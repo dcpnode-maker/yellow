@@ -233,12 +233,14 @@ is allowed for ready, pending, failed, expired, revoked or foreign capture state
 prev_hash chained) → cleared|rejected (fiscal_submission) ; issued→void only where
 jurisdiction permits, else credit-note document. Emits document.issued / .cleared.
 
-### Order440 delivery head (private draft, not document mutation)
+### Order440 delivery head (durable source, not document mutation)
 
 Issued native documents and their number/content/chain remain immutable. The separate
 `fiscal_submission` status records delivery, with protected append-only transition and
-receipt history. [Q199](../handoff/questions/199-durable-fiscal-submission-admission.md)
-is the current implementation admission; no real provider is activated.
+receipt history. Q199's private draft is integrated by canonical78 and Q205's
+immutable-command correction79, merged through PR87. Q204 adds supervised discovery
+without adding a delivery status or mutating any issued document. No real provider
+is activated.
 
 | Current head | Event | Next head / permitted work |
 |---|---|---|
@@ -259,6 +261,20 @@ These are bounded implementation controls, not statutory eligibility policies.
 Pending/submitted/rejected/error remain audited business-day seal blockers unchanged.
 No transition edits an issued document, balances a second ledger, reuses an invoice
 number or interprets a local success receipt as authenticated government acceptance.
+
+Q204 discovery and claim share the same database-clock eligibility. A submitted
+head with an unreconciled expired claim is due for lookup; a reconciled pending,
+timeout or duplicate result is due15 seconds after claim_expires_at. Neither path
+creates another send. Inactive tenants, legacy/terminal heads and explicit-retry
+heads are excluded; active tenant is checked again while claiming.
+
+The runtime has a separate process state: `disabled → running → disabled` on
+cooperative shutdown, or `running → failed` on fatal discovery/repository failure.
+An unavailable/busy adapter is an idle delivery result, not fiscal acceptance or
+failure. The exact adapter lane is reserved before claim. Abort after transport
+begins reconciles unknown delivery; late promise settlement releases quarantine
+but cannot change the durable result. These process states do not replace the
+persisted delivery head or establish government authority.
 
 ## 9. Approval (`approval_request.status`) — added by D-93 (Question 011)
 

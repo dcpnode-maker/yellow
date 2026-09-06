@@ -14,7 +14,14 @@ export interface FiscalProviderSubmission extends FiscalProviderBinding {
   readonly payload: Uint8Array;
 }
 
-export interface FiscalProviderLookup extends FiscalProviderBinding {}
+export interface FiscalProviderLookup extends FiscalProviderSubmission {}
+
+export interface FiscalProviderCallContext {
+  /** Cooperative cancellation is mandatory for production transports. */
+  readonly signal: AbortSignal;
+  /** Absolute Unix epoch deadline supplied to the adapter for its own protocol timeout. */
+  readonly deadlineUnixMs: number;
+}
 
 export type FiscalProviderResolution = Readonly<
   | { verified: true; outcome: "cleared" | "accepted" | "rejected";
@@ -26,6 +33,6 @@ export type FiscalProviderResolution = Readonly<
  * retries and unique historical attempts; a real adapter must authenticate and
  * verify provider responses before returning a `verified: true` resolution. */
 export interface FiscalDocumentProvider {
-  submit(input: FiscalProviderSubmission): Promise<FiscalProviderResolution>;
-  lookup(input: FiscalProviderLookup): Promise<FiscalProviderResolution>;
+  submit(input: FiscalProviderSubmission, context: FiscalProviderCallContext): Promise<FiscalProviderResolution>;
+  lookup(input: FiscalProviderLookup, context: FiscalProviderCallContext): Promise<FiscalProviderResolution>;
 }

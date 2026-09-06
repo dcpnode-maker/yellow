@@ -9,15 +9,17 @@ migration frontier.
 
 | Source line | Exact commit | Migration files / applied rows | Public base tables | Evidence and status |
 |---|---|---:|---:|---|
-| Reviewed `main` | [`443e3826b47025106d1829fcbb406ce6302fbbba`](https://github.com/dcpnode-maker/yellow/commit/443e3826b47025106d1829fcbb406ce6302fbbba) | 77 | 127 | [PR83](https://github.com/dcpnode-maker/yellow/pull/83) merged reviewed source `92346674`. All five jobs passed in [CI178](https://github.com/dcpnode-maker/yellow/actions/runs/33993977811): deployment acceptance23/23, exact normalized schema and referee11/11. |
+| Reviewed `main` | [`22f1beddea23429ccd9111092dccf6176386adf2`](https://github.com/dcpnode-maker/yellow/commit/22f1beddea23429ccd9111092dccf6176386adf2) | 79 | 128 | [PR87](https://github.com/dcpnode-maker/yellow/pull/87) independently merged exact15f5204 after all six [CI34039764089](https://github.com/dcpnode-maker/yellow/actions/runs/34039764089) jobs passed. Post-merge actual79 schema and canonical referee11/11 pass. |
+| Preserved founder preview | [`b5ef70842b658183f7b5b4c650c8e78c7a0b513d`](https://github.com/dcpnode-maker/yellow/commit/b5ef70842b658183f7b5b4c650c8e78c7a0b513d) | 77 | 127 | Native local3000 is not automatically migrated or restarted by a source merge. |
+| Earlier native fiscal baseline | [`443e3826b47025106d1829fcbb406ce6302fbbba`](https://github.com/dcpnode-maker/yellow/commit/443e3826b47025106d1829fcbb406ce6302fbbba) | 77 | 127 | Historical PR83 accepted source92346674 with exact schema and referee11/11. |
 | Earlier operational baseline | [`5879e2b719db18077e00556477ba34bdb9b9991c`](https://github.com/dcpnode-maker/yellow/commit/5879e2b719db18077e00556477ba34bdb9b9991c) | 75 | 125 | Historical PR82 release, including `schema_migration`. Its five main CI jobs passed in [CI33987884230](https://github.com/dcpnode-maker/yellow/actions/runs/33987884230). |
 
-These rows describe accepted source frontiers. Subsequent mainb5ef708/PR85 keeps
-the same77/127 frontier. The current main checkout expects
-77 migrations and 127 tables. A retained runtime still requires its own exact-SHA,
+These rows describe distinct accepted source frontiers. Current main expects79
+migrations and128 tables; Q204's private candidate expects80 and the same128 tables.
+A retained runtime still requires its own exact-SHA,
 applied-ledger and health evidence; a source merge does not migrate it automatically.
 
-**Unmerged Q201 candidate:** canonical
+**Q201 durability, now merged through PR87:** canonical
 `0078_fiscal_submission_durability.sql` adds one protected
 `fiscal_submission_history` table and nullable typed delivery fields to the
 existing submission head. Its actual runner-backed catalogue is78 migrations,
@@ -28,12 +30,28 @@ No existing1–77 migration is rewritten and no historical submission is invente
 or backfilled. Candidate catalogue, independent approval, main and local runtime
 are separate states; local remains77. See[Q201](../handoff/questions/201-canonical-fiscal-submission-integration.md).
 
-**Current unmerged Q205 correction:** migration79 reuses that immutable history
+**Q205 correction, now merged through PR87:** migration79 reuses that immutable history
 for request/retry receipts and introduces one owner-private projection function;
 there is no new table, financial write or history backfill. Current candidate is
 79 migrations/128 tables, with unchanged RLS/table counts. The78 snapshot hash
 above is historical, not the current79 snapshot. Independent real78→79 receipt
-proof passes; new combined-source CI and merge are pending. Main/local remain77.
+proof passes; complete exact15f5204 CI and independent integration are complete.
+The actual79 snapshot SHA256 is
+`fc3b1af4c6f9d929acd8f58d4907f56fcda6bc926f3ef896daa7de0dc5bbda63`.
+Main79 and local77 remain separately identified.
+
+**Unmerged Q204 runtime candidate:** migration80 adds one runtime-only discovery
+function and a tenant-leading partial cursor index on fiscal_submission; it replaces
+claim eligibility to recheck active tenants and share database-clock lookup cadence.
+No table, financial value or delivery status is added. Candidate80 retains128 public
+tables,118 RLS tables/policies,27 FORCE-RLS tables and2 security-invoker views.
+Its independently compared schema is1,620,228bytes, SHA256
+`03796c8d46400892158875f6957525b5ec91e6406e7cb9d3f13787800ee32b8e`.
+SQL80 is frozen at
+`2c6b1a82e031470bace7ae8b37a2d67e54497014bd1e82f5364d23a2ce25f250`.
+Independent new isolated80 schema/referee11/11 passes; complete current80 Linux
+CI/readiness and migration equivalence remain final integration gates. No retained
+database, applied1–79 migration or founder preview is modified.
 
 CI history remains visible: [CI175](https://github.com/dcpnode-maker/yellow/actions/runs/33991882050)
 failed on the old125-table financial expectation; [CI176](https://github.com/dcpnode-maker/yellow/actions/runs/33992123191)
@@ -43,7 +61,7 @@ CI177 was cancelled when the same source's PR run superseded it; CI178 then pass
 These were test-oracle drift failures, not evidence that a released hotel database
 was lost or corrupted.
 
-## What 80, 81, 125 and 127 count
+## What 80, 81, 125, 127 and 128 count
 
 These numbers are compatible because they measure different schema frontiers:
 
@@ -52,11 +70,12 @@ These numbers are compatible because they measure different schema frontiers:
 | 80 | Application tables declared by the immutable baseline file [`migrations/0001_init.sql`](../migrations/0001_init.sql). It is a historical source count. |
 | 81 | Those 80 baseline tables plus `public.schema_migration`, which [`scripts/migrate.ts`](../scripts/migrate.ts) creates before it applies numbered migrations. This is the historical runner-backed Phase-0 catalogue, not today's census. |
 | 125 | Earlier reviewed main5879e2b7 after migrations 1–75: 124 tables declared across the numbered migrations plus the runner ledger. |
-| 127 | Current reviewed main443e3826 after migrations 1–77: the earlier catalogue plus two tables added by migration76. Migration77 adds functions and other schema objects but no table. |
+| 127 | Earlier reviewed main443e3826 after1–77: two tables added by76, none by77. This remains the founder preview's count. |
+| 128 | Current main22f1bed after1–79: migration78 adds fiscal_submission_history. Neither79 nor private80 adds another table. |
 
 One migration can add no table, one table or several tables. The migration number,
 number of applied migrations and number of tables therefore are not interchangeable.
-Migration75 is part of `main` even though it does not add a table. In current main,
+Migration75 is part of `main` even though it does not add a table. In the77 lineage,
 `0076_india_native_fiscal_source_evidence.sql` adds
 `india_gst_accommodation_ordinary_regime_evidence` and
 `india_gst_native_invoice_timing`; `0077_india_native_fiscal_source_completion.sql`
@@ -83,7 +102,7 @@ The executable schema is the ordered result of three layers:
    ordered filenames and recorded checksums before applying pending files.
 
 [`tests/schema/expected.sql`](../tests/schema/expected.sql) is the normalized PostgreSQL
-16 acceptance snapshot for the source line (currently the unmerged Q201 candidate).
+16 acceptance snapshot for the source line (currently the unmerged Q204/current80 candidate).
 It is derived evidence of the
 whole resulting catalogue, not an input that can create migration authority. The
 catalogue assertions in [`tests/database-acceptance.integration.test.ts`](../tests/database-acceptance.integration.test.ts)
