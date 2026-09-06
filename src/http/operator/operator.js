@@ -225,6 +225,7 @@
  const operatorName = $("#operator-name");
  const signOutButton = $("#sign-out");
  const themeSelect = $("#theme-select");
+ const workspaceSkinSelect = $("#workspace-skin-select");
  const experienceSelect = $("#experience-select");
  const secondaryWorkspaces = $("#secondary-workspaces");
  const secondaryWorkspacesToggle = $("#secondary-workspaces-toggle");
@@ -837,6 +838,7 @@
  const SYSTEM_STATUS_SUFFIX = "/system-status";
  const MAX_MINOR = BigInt("9223372036854775807");
  const THEMES = new Set(["apple", "android", "win95", "glass", "neo", "erp"]);
+ const WORKSPACE_SKINS = new Set(["calm", "precision", "timeline"]);
  const EXPERIENCES = new Set(["simple", "advanced", "expert"]);
  const SECONDARY_VIEWS = new Set(["operations", "housekeeping", "vehicles", "inventory", "restrictions", "rates", "status"]);
   function motionPreference(query) {
@@ -950,6 +952,13 @@
  secondaryWorkspaces.hidden = next === "simple" && !keepSecondaryOpen;
  secondaryWorkspacesToggle.setAttribute("aria-expanded", String(!secondaryWorkspaces.hidden));
  secondaryWorkspacesToggle.textContent = secondaryWorkspaces.hidden ? "More workspaces" : "Fewer workspaces";
+ }
+  function applyWorkspaceSkin(skin) {
+ // Presentation only: keep the mounted workspace, draft and request identity intact.
+ // The choice lasts for this page session, just like the existing appearance choice.
+ const next = WORKSPACE_SKINS.has(skin) ? skin : "calm";
+ document.documentElement.dataset.workspaceSkin = next;
+ workspaceSkinSelect.value = next;
  }
   function localInputValue(date) {
  const offset = date.getTimezoneOffset() * 60_000;
@@ -12736,6 +12745,7 @@ housekeepingSheetDate.addEventListener("change", () => {
  experienceSelect.addEventListener("change", () => {
  transitionWorkspace(() => applyExperience(experienceSelect.value));
  });
+ workspaceSkinSelect.addEventListener("change", () => applyWorkspaceSkin(workspaceSkinSelect.value));
  for (const preference of [reducedMotion, coarsePointer, forcedColours]) {
  if (typeof preference.addEventListener === "function") {
   preference.addEventListener("change", () => cancelWorkspaceMotion(true));
@@ -12818,6 +12828,7 @@ housekeepingSheetDate.addEventListener("change", () => {
  if (activeView !== "folios" || folioWorkspace.hidden || confirmFolioExit()) showLogin();
  });
  applyTheme(themeSelect.value);
+ applyWorkspaceSkin(workspaceSkinSelect.value);
  applyExperience(experienceSelect.value);
  initializeDates();
  addTier(createTierList, 1, "");

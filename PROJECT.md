@@ -21,10 +21,10 @@ modular monolith**. Zero-cost doctrine: runs on free/OSS infrastructure.
 **Current state:** read [docs/PROJECT-STATUS.md](docs/PROJECT-STATUS.md) before using
 a branch, local app or deployment. The immutable 80-table migration is the baseline;
 the runner adds `schema_migration`, and forward migrations expand that catalogue.
-Reviewed `main` at `443e3826b47025106d1829fcbb406ce6302fbbba` has 77 applied
-migrations and 127 public base tables including that ledger. PR83 merged the
-independently approved Order434 source after all five CI jobs passed at
-`92346674c784b552356934e168d60e4b9650497a`. Migration76 adds two tables and
+Reviewed `main` at `b5ef70842b658183f7b5b4c650c8e78c7a0b513d` has 77 applied
+migrations and 127 public base tables including that ledger. PR85 consolidated the
+reviewed fiscal and research work; post-merge CI187 passed all five jobs, including
+the canonical11/11 referee. PR83's native issuance proof remains preserved. Migration76 adds two tables and
 migration77 adds none. The earlier main5879e2b7 frontier was 75 migrations / 125 tables;
 that is historical release evidence, not today's setup oracle.
 The exact source and migration frontier must come from current release evidence, not

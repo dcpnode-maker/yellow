@@ -50,9 +50,22 @@ PR84. Combined candidate4ecee0b failed quality inCI33998572070 because a test ma
 mutated shared status text; Windows/local and CodeQL passed, database/container did
 not execute. Root reproduced and repaired that test-order defect, plus a private
 revoked-proxy input exception. The repaired source passes1600 local standing tests
-with1195 explicit database skips, types and independent narrow proof. Complete new
-exact-head CI, including the required issued-wire database proof, remains mandatory.
-No retained hotel database or founder-local app was refreshed by this work.
+with1195 explicit database skips, types and independent narrow proof. That historical failure was discharged at reviewed head088d093 by all five jobs in
+CI18633999540391. An independent reviewer merged PR85 as
+`b5ef70842b658183f7b5b4c650c8e78c7a0b513d`; post-merge
+[CI187](https://github.com/dcpnode-maker/yellow/actions/runs/34000319799) passed all
+five jobs, including issued-wire4/4, catalogue23/23 and referee11/11.
+[Release images](https://github.com/dcpnode-maker/yellow/actions/runs/34000989837)
+were published successfully at that exact source. No retained hotel database or
+founder-local app was refreshed by that publication.
+
+**Order442 profile cards and workspace skins** is the new UI candidate under the
+same Codex coordination. Three presentation-only skins and the revised fictional
+profile study are built in the working branch; the cloud browser refused the new
+preview before it rendered. Current visual QA is therefore blocked, and this UI
+candidate is not merged or released. The existing PR85 fiscal integration remains
+the reviewed main baseline. See [Order442](../handoff/orders/442-profile-cards-and-workspace-skins.md)
+and the [current QA record](../design-qa.md).
 
 Earlier failure CI33992123191 at6bb7ba6 remains evidence: migration41/41,
 native116/116, containment7/7 and compatibility89/89 passed before four stale
@@ -65,14 +78,14 @@ vendor/person dependency. Independent high-risk proof remains required.
 
 | Surface | Verified baseline | Release boundary |
 |---|---|---|
-| Source and integration | Reviewed native fiscal PR83 at443e3826, then hotel-journey/schema/design PR84 at7829eae; fiscal440 and RMS441 are being combined in PR85 | Main is the sole release branch; the combined candidate requires its own exact-head CI and independent integration |
+| Source and integration | Independently merged PR85 atb5ef70842b658183f7b5b4c650c8e78c7a0b513d consolidates PR83/84, private fiscal state/issued-wire proof and RMS research | Main is the sole release branch; Order442 remains an unmerged UI candidate |
 | Native fiscal acceptance | Independent migration41/41, native116/116, compatibility89/89, catalogue23/23, exact schema and referee11/11; all five [PR83 CI jobs](https://github.com/dcpnode-maker/yellow/actions/runs/33993977811) passed | [Review434](../handoff/reviews/434-native-fiscal-source-completion.md) approves bounded native issuance, not provider activation or a retained hotel database |
-| GitHub work queue | All62 PRs in the original audit are closed with source preservation; PR82/83/84 are merged and PR85 carries the combined follow-up | [The manifest](../handoff/CONSOLIDATION-MANIFEST.json) preserves dispositions; [GitHub](https://github.com/dcpnode-maker/yellow/pulls) is authoritative for the live queue |
+| GitHub work queue | All62 PRs in the original audit are closed with source preservation; PR82/83/84/85 are merged; no open PR remained at the start of Order442 | [The manifest](../handoff/CONSOLIDATION-MANIFEST.json) preserves dispositions; [GitHub](https://github.com/dcpnode-maker/yellow/pulls) is authoritative for the live queue |
 | Database schema | Main has77 migrations /127 public tables;0076 adds two tables and0077 adds no table. Order440 projection adds no migration | Immutable0001 declares80 application tables;0075's legacy containment stays intact. No retained hotel database was migrated |
 | Private issued-wire proof | Independent10/10 unit and4/4 real-issued tests, including exact unchanged financial rows and cross-tenant isolation | Source/wire hashes differ deliberately; no certified provider, durable submission writer or fiscal acceptance is claimed |
-| Hotel journey design | [Workbench specification](design/STAFF-WORKBENCH-SPEC.md), [casebook](design/HOTEL-CASEBOOK.md) and [research](research/HOTEL-OPERATIONS-REVIEW.md) are preserved from PR84 | Fictional interaction study; final visual fidelity needs an accessible reference and matched screenshot evidence |
+| Hotel journey design | [Workbench specification](design/STAFF-WORKBENCH-SPEC.md), [casebook](design/HOTEL-CASEBOOK.md) and [research](research/HOTEL-OPERATIONS-REVIEW.md) are preserved from PR84 | Fictional interaction study; the selected Sophie profile reference is available, but the new rendered capture is blocked by cloud browser URL policy |
 | Local app | The supported launcher passed clean CI with real database, canonical/review seeds, exact-SHA readiness, authentication and volume-preserving stop | [Local instructions](RELEASE.md) provide127.0.0.1:3000; CI does not prove the user's machine was refreshed |
-| Main verification and cloud | Last explicitly verified publication here is443e3826: mainCI33994717854 and immutable runtime/migration image publication33995471357 succeeded | Registry digests were not retrieved; no approved cloud host, ingress or serving URL is connected. Publication is not deployment |
+| Main verification and cloud | Last verified main source isb5ef7084: mainCI34000319799 and immutable runtime/migration image publication34000989837 succeeded | Registry digests were not retrieved; no approved cloud host, ingress or serving URL is connected. Publication is not deployment |
 
 A branch, document, test, container build, merge and deployment are separate evidence
 states. The runtime must identify its exact source and applied migration frontier.

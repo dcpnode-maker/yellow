@@ -10,12 +10,18 @@ identical screen arrangements. Property experience, visual material, locale and
 authorization are independent dimensions.
 
 The [Order440 staff workbench](design/STAFF-WORKBENCH-SPEC.md) is a concrete
-interaction study grounded in the existing operator Apple tokens and materials.
+interaction study grounded in the existing operator's workflows. Order442 refines
+its materials with the founder-selected profile reference and adds three selectable
+skins: Calm Workbench, Precision Desk and Service Timeline.
 Desktop keeps the work queue beside its context; phone presents one focused task.
 Its [research](research/HOTEL-OPERATIONS-REVIEW.md) and
 [casebook](design/HOTEL-CASEBOOK.md) make ownership, acknowledgement, freshness,
 privacy and guest follow-up part of visual acceptance. This prototype implements
-one appearance for review; it does not retire the other five or claim new live modules.
+three compositions for review; it does not retire any of the six production
+appearances or claim new live modules. Portrait cards belong to guest and
+staff/management identities. Generated portraits appear only in the fictional study;
+production uses its existing authorized identity content. The new visual acceptance
+gate remains blocked pending an authorized rendered capture, as [recorded](../design-qa.md).
 
 For the next scoped redesign, replace the global Simple/Advanced/Expert selector
 with contextual progressive disclosure and role-aware next actions. Preserve six
