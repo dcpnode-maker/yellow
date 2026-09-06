@@ -1,6 +1,6 @@
 # Order 440 — Durable fiscal submission and reconciliation
 
-**Status:** ACTIVE — Q205 repairs a PR87 late-replay defect; independent79 proof passes, new combined CI/merge pending.
+**Status:** ACTIVE — Q205 is independently merged through PR87; Q204 supervised delivery runtime is implemented with bounded independent database proof, final Linux/current80 CI pending.
 Order434's exact candidate is accepted and merged; no provider is activated.
 **Phase:** 7, planned sequence item6.
 **Owner:** Codex coordinator; bounded internal builders, separate high-risk reviewer.
@@ -14,8 +14,21 @@ merged through PR83 as443e3826b47025106d1829fcbb406ce6302fbbba.
 earlier integration approval: original request/retry keys incorrectly returned a
 later head. Forward79 and canonical HTTP body repair now pass independently executed
 78→79 and all-key replay proof. No applied migration or stored financial row changes.
-PR87 remains unmerged pending the new exact-source gates. Q204's separate delivery
-runtime remains in development, with prospective migration80.
+Exact15f5204 passes all six CI34039764089 jobs, including the repaired Linux readiness
+and canonical referee. PR87 is independently merged as22f1bed; a separate actual79
+post-merge schema/referee11/11 also passes. The single founder preview remains77.
+
+[Question204](../questions/204-supervised-fiscal-delivery-runtime.md) implements
+supervised discovery→claim→transport→reconciliation with frozen migration80, bounded
+adapter lanes and cancellation, database-clock lookup cadence and common process
+shutdown. Independent genuine two-tenant HTTP/worker proof11/11(95), extra lock/ACL
+proof and current80 schema/referee11/11 pass. New discovery authority is included
+in startup readiness, with historical79 rejection and hostile ACL/config tests.
+Restart-safe lookup receives detached original issued bytes, not only internal IDs;
+the fresh-worker actual database proof needs no prior in-memory submit. Final
+standing1,664/0 with1,263 explicit database skips, types,177 boundaries and23 licences
+pass. Complete current80 CI and actual Linux process/readiness proof remain required
+before integration. Real authenticated provider/sandbox remains unfinished.
 
 [Question203](../questions/203-fiscal-submission-http-integration.md) admits both
 authenticated request/retry HTTP persistence paths after Q201 exact Linux CI.

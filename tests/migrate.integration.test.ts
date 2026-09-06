@@ -762,6 +762,70 @@ databaseDescribe("Bun SQL migration runner", () => {
     }, 180_000);
   });
 
+  describe("Order440/Q204 canonical migration 79 to 80 boundary", () => {
+    let upgradedSchema: string | undefined;
+    let immutableLedger: readonly ExactLedgerRow[] | undefined;
+    let finalLedger: readonly ExactLedgerRow[] | undefined;
+
+    test("rolls back exactly, upgrades canonical 80, no-ops, and refuses checksum drift", async () => {
+      const through79 = await canonicalMigrationFiles(79);
+      const through80 = await canonicalMigrationFiles(80);
+      const canonical80 = await readFile(resolve(PROJECT_MIGRATIONS, "0080_fiscal_submission_delivery_runtime.sql"));
+      expect(Object.keys(through80).filter(name => Number(name.slice(0, 4)) === 80))
+        .toEqual(["0080_fiscal_submission_delivery_runtime.sql"]);
+      expect(fileSha256(canonical80)).toBe("2c6b1a82e031470bace7ae8b37a2d67e54497014bd1e82f5364d23a2ce25f250");
+      await withDatabase(async ({ databaseUrl: targetUrl, sql }) => {
+        await withMigrationDirectory(through79, directory => runMigrations({ databaseUrl: targetUrl, migrationsDirectory: directory, logger: () => undefined }));
+        immutableLedger = await exactLedger(sql, 79);
+        const schemaBefore = await normalizedOrder434Dump(targetUrl);
+        const injected80 = new Uint8Array([...canonical80, ...new TextEncoder().encode(
+          "\nDO $q204_atomic_failure$ BEGIN RAISE EXCEPTION USING ERRCODE='55000', MESSAGE='Q204 injected migration rollback'; END $q204_atomic_failure$;\n",
+        )]);
+        await withMigrationDirectory({ ...through79, "0080_fiscal_submission_delivery_runtime.sql": injected80 }, async directory => {
+          const failure = await migrationFailure(() => runMigrations({ databaseUrl: targetUrl, migrationsDirectory: directory, logger: () => undefined }));
+          expect(failure).toMatchObject({ errno: "55000", rollbackConnectionUsable: true });
+        });
+        expect(await exactLedger(sql)).toEqual(immutableLedger);
+        expect(await normalizedOrder434Dump(targetUrl)).toBe(schemaBefore);
+        const upgrade = await withMigrationDirectory(through80, directory => runMigrations({ databaseUrl: targetUrl, migrationsDirectory: directory, logger: () => undefined }));
+        expect(upgrade.appliedFiles).toEqual(["0080_fiscal_submission_delivery_runtime.sql"]);
+        expect(upgrade.transactionBackendPids).toEqual([upgrade.backendPid]);
+        expect(await exactLedger(sql, 79)).toEqual(immutableLedger);
+        finalLedger = await exactLedger(sql);
+        expect(finalLedger).toHaveLength(80);
+        expect(await sql<Array<{ filename: string; checksum_sha256: string }>>`SELECT filename,checksum_sha256 FROM public.schema_migration WHERE version=80`).toEqual([{
+          filename: "0080_fiscal_submission_delivery_runtime.sql", checksum_sha256: fileSha256(canonical80),
+        }]);
+        upgradedSchema = await normalizedOrder434Dump(targetUrl);
+        const noOp = await withMigrationDirectory(through80, directory => runMigrations({ databaseUrl: targetUrl, migrationsDirectory: directory, logger: () => undefined }));
+        expect(noOp).toMatchObject({ appliedFiles: [], discoveredFiles: 80, transactionBackendPids: [] });
+        expect(await exactLedger(sql)).toEqual(finalLedger);
+        await withMigrationDirectory({ ...through79, "0080_fiscal_submission_delivery_runtime.sql": new Uint8Array([...canonical80, 0x0a]) }, async directory => {
+          const drift = await migrationFailure(() => runMigrations({ databaseUrl: targetUrl, migrationsDirectory: directory, logger: () => undefined }));
+          expect(drift.message).toContain("Applied migration checksum mismatch for version 80");
+        });
+        expect(await exactLedger(sql)).toEqual(finalLedger);
+        expect(await normalizedOrder434Dump(targetUrl)).toBe(upgradedSchema);
+      });
+    }, 240_000);
+
+    test("fresh canonical 80 is schema-identical to the canonical 79 upgrade", async () => {
+      if (!upgradedSchema || !immutableLedger || !finalLedger) throw new Error("Q204 upgrade proof must complete before fresh equivalence");
+      const expectedSchema = upgradedSchema;
+      const expectedImmutable = immutableLedger;
+      const expectedFinal = finalLedger;
+      const through80 = await canonicalMigrationFiles(80);
+      await withDatabase(async ({ databaseUrl: targetUrl, sql }) => {
+        const fresh = await withMigrationDirectory(through80, directory => runMigrations({ databaseUrl: targetUrl, migrationsDirectory: directory, logger: () => undefined }));
+        expect(fresh.appliedFiles).toHaveLength(80);
+        expect(fresh.appliedFiles.at(-1)).toBe("0080_fiscal_submission_delivery_runtime.sql");
+        expect((await exactLedger(sql, 79)).map(({ applied_at_bytes: _ignored, ...row }) => row)).toEqual(expectedImmutable.map(({ applied_at_bytes: _ignored, ...row }) => row));
+        expect((await exactLedger(sql)).map(({ applied_at_bytes: _ignored, ...row }) => row)).toEqual(expectedFinal.map(({ applied_at_bytes: _ignored, ...row }) => row));
+        expect(await normalizedOrder434Dump(targetUrl)).toBe(expectedSchema);
+      });
+    }, 180_000);
+  });
+
   test(
     "rejects migration 0015 atomically while yellow_runtime is connected, then retries after drain",
     async () => {
@@ -2214,6 +2278,7 @@ databaseDescribe("Bun SQL migration runner", () => {
           "0077_india_native_fiscal_source_completion.sql",
           "0078_fiscal_submission_durability.sql",
           "0079_fiscal_immutable_command_receipts.sql",
+          "0080_fiscal_submission_delivery_runtime.sql",
         ]);
 
         const preservedLedger = await sql<Array<{
@@ -2239,7 +2304,7 @@ databaseDescribe("Bun SQL migration runner", () => {
             FROM public.schema_migration
            ORDER BY version
         `;
-        expect(upgradedLedger).toHaveLength(79);
+        expect(upgradedLedger).toHaveLength(80);
 
         const noOpLog: string[] = [];
         const noOp = await runMigrations({
@@ -2248,7 +2313,7 @@ databaseDescribe("Bun SQL migration runner", () => {
           logger: (message) => noOpLog.push(message),
         });
         expect(noOp.appliedFiles).toEqual([]);
-        expect(noOp.discoveredFiles).toBe(79);
+        expect(noOp.discoveredFiles).toBe(80);
         expect(noOp.transactionBackendPids).toEqual([]);
         expect(noOpLog).toHaveLength(1);
         expect(noOpLog[0]).toContain("applied=0 status=no-op");

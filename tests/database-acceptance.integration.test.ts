@@ -400,6 +400,11 @@ const EXPECTED_MIGRATIONS = [
     filename: "0079_fiscal_immutable_command_receipts.sql",
     checksum_sha256: "b233821d0b683810542f91834458e98f657996268d81bc81398f6c15f86ca52f",
   },
+  {
+    version: 80,
+    filename: "0080_fiscal_submission_delivery_runtime.sql",
+    checksum_sha256: "2c6b1a82e031470bace7ae8b37a2d67e54497014bd1e82f5364d23a2ce25f250",
+  },
 ];
 
 if (REQUIRE_DATABASE && !DATABASE_URL) {
@@ -478,7 +483,7 @@ databaseDescribe("fresh deployment database acceptance", () => {
             AND class.relforcerowsecurity) AS "forceRlsTables"
     `;
     expect(catalogue).toEqual([{
-      migrations: 79, tables: 128, rlsTables: 118, policies: 118, forceRlsTables: 27,
+      migrations: 80, tables: 128, rlsTables: 118, policies: 118, forceRlsTables: 27,
       permissions: 13, permissionGrants: 0,
     }]);
   });

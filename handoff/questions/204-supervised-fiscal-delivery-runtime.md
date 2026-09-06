@@ -26,6 +26,7 @@ provider-integration obligation, not something a flag or test adapter can assert
 handoff/questions/204-supervised-fiscal-delivery-runtime.md
 handoff/orders/440-fiscal-submission-lifecycle.md
 handoff/reviews/440-fiscal-submission-lifecycle.md
+handoff/reviews/440-fiscal-delivery-runtime.md (separate non-implementing Q204 review)
 migrations/0080_fiscal_submission_delivery_runtime.sql
 tests/schema/expected.sql
 src/contexts/tax-fiscal/fiscal-provider.ts
@@ -48,7 +49,15 @@ tests/fiscal-submission-delivery-runtime.integration.test.ts
 tests/fixtures/order440-fiscal-delivery-runtime.ts
 tests/server-lifecycle.test.ts
 tests/server-fiscal-runtime.test.ts
+tests/arrival-pickup-task-worker-wiring.integration.test.ts (shared supervision/signal/logging oracle only)
+tests/reservation-arrival-roll-worker-wiring.integration.test.ts (shared supervision/signal/logging oracle only)
+tests/reservation-departure-roll-worker-wiring.integration.test.ts (shared supervision/signal/logging oracle only)
+tests/fiscal-submission-commands.test.ts (admitted context export surface only; snapshot helpers remain private)
+tests/operator-fiscal-submission.intentional-red.test.ts (default-off shared registry composition only)
+tests/operator-app-bar-responsive-containment.intentional-red.test.ts (bounded DevTools port-file EBUSY/ENOENT startup handling only; geometry unchanged)
 tests/fiscal-submission-durability.integration.test.ts
+tests/fiscal-submission-immutable-replay.integration.test.ts (preserve exact historical79 upgrade prefix)
+tests/fiscal-replay-workflow.test.ts (assert required current80 delivery/process gates)
 tests/operator-fiscal-submission.integration.test.ts
 tests/india-irp-issued-wire-candidate.integration.test.ts
 tests/migrate.integration.test.ts
@@ -57,6 +66,8 @@ tests/runtime-database-authority.integration.test.ts
 tests/app-role-nonlogin.integration.test.ts
 tests/build-readiness.test.ts
 tests/build-readiness.integration.test.ts
+tests/india-gst-accommodation-final-component-tax-recording.integration.test.ts (current80 catalogue count only)
+tests/india-gst-accommodation-quoted-rate-applicability-recording.integration.test.ts (current80 catalogue count only)
 tests/free-host-arm64.test.ts
 tests/release-workflow.test.ts
 tests/native-fiscal-release-containment.integration.test.ts
@@ -84,6 +95,25 @@ template before cloning; apply78/79/80 only to a new isolated target. Historical
 77-to-78 acceptance/hash evidence is preserved, not bulk rewritten to79.
 Root owns governance, migration/schema and release/CI integration; a bounded
 builder owns only its explicitly assigned production/unit-test subset.
+
+The first complete current80 standing run passes1,655 with1,259 explicit database
+skips and fails6 assertions. Before changing those assertions, this amendment
+admits the five historical test files above plus the already scoped release workflow
+test. Their old inline failure-log, private worker export, empty standalone identity
+directory and current79 step-name expectations conflict with the explicitly admitted
+shared lifecycle/current80 composition. Preserve workbench-only exact opt-ins,
+fixed sanitized logging, common cancellation, private raw snapshot helpers, an empty
+production registration and pre-listen refusal. No business code or permission is
+changed to accommodate these assertions; original failure evidence is retained.
+
+The next complete run passes1,661 with1,263 explicit database skips, but Order330's
+fresh Chromium640px profile raises EBUSY reading DevToolsActivePort before its
+geometry assertions. The exact unchanged rerun passes1/1(4). This recurring Windows
+file-publication race is admitted for a permanent bounded startup correction in the
+single test file above: retry only EBUSY/ENOENT inside the existing800-attempt loop,
+rethrow other I/O failures, and add deterministic helper regressions. Preserve every
+viewport/DSF/overflow/label/rail assertion, process ownership and timeout; no UI edit,
+test skip, blanket retry or broad browser cleanup.
 
 ## Runtime-only discovery and claim rules
 
@@ -122,6 +152,14 @@ from the same immutable registration snapshot; no independent configuration list
 
 Extend the provider port with an explicit AbortSignal/deadline contract. The transport
 deadline must be strictly shorter than the claim lease with reconciliation margin.
+Before publication, provider-integration inspection identifies a restart gap: lookup
+receives only internal UUIDs and a digest, which cannot identify a government invoice.
+The already scoped port/worker now must supply a detached copy of the original
+issued wire bytes to lookup as well as submit. A stateless adapter can derive the
+provider's documented lookup key from those immutable bytes without a submit cache
+or second store. Preserve the existing payload hash and binding; add unit red/green
+and actual fresh-worker PostgreSQL recovery proof with no previous in-memory submit.
+This does not invent provider-specific authentication or enable external transport.
 Timeout or shutdown after submit begins means unknown delivery, never known-not-sent;
 lookup cancellation preserves lookup. Reconcile through the existing repository.
 Ignore late results and retain lane quarantine until an abort-ignoring original

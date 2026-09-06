@@ -1,5 +1,6 @@
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { SQL } from "bun";
+import { readFile } from "node:fs/promises";
 import { Database, type ConnectionPool, type Tx } from "../src/kernel";
 import { Hs256TokenSigner } from "../src/contexts/identity";
 import type { FiscalSubmissionReceipt } from "../src/contexts/tax-fiscal";
@@ -92,6 +93,25 @@ describe("Q203 HTTP proof target safety", () => {
         "must target the same host, port, and database",
       );
     }
+  });
+
+  test("Q204 production remains default-off and shares one empty provider registration snapshot", async () => {
+    const source = await readFile(new URL("../src/server.ts", import.meta.url), "utf8");
+    expect(source).toContain(
+      'const fiscalSubmissionDeliveryEnabled = workbenchEnabled && Bun.env.YELLOW_FISCAL_SUBMISSION_WORKER === "1"',
+    );
+    expect(source).toContain(
+      "const verifiedIndiaIrpAdapterRegistrations = Object.freeze([]) as readonly VerifiedIndiaIrpAdapterRegistration[]",
+    );
+    expect(source).toMatch(/new VerifiedIndiaIrpAdapterRegistry\(verifiedIndiaIrpAdapterRegistrations\)/);
+    expect(source).toMatch(
+      /new FiscalSubmissionAdapterAvailabilityService\(fiscalAdapterRegistry\.identities\(\)\)/,
+    );
+    expect(source).toMatch(/new FiscalSubmissionWorker\(fiscalRepository, fiscalAdapterRegistry\)/);
+    expect(source).toContain("adapters: fiscalSubmissionAdapters");
+    expect(source.indexOf("enabled fiscal submission worker requires a verified provider adapter"))
+      .toBeLessThan(source.indexOf("runtimeApp().listen"));
+    expect(source).not.toMatch(/YELLOW_(?:FISCAL|IRP).*(?:JSON|URL|TOKEN|SECRET|PASSWORD)/);
   });
 });
 
@@ -250,13 +270,18 @@ databaseDescribe("Q203 signed-session fiscal submission HTTP integration", () =>
     runtime = new SQL(runtimeUrl!, { max: 2, prepare: false });
     database = Database.connect(runtimeUrl!, { maxConnections: 4, prepare: false });
     tokens = new Hs256TokenSigner("q203-fiscal-http-signed-session-secret-48-bytes-minimum");
-    const [frontier] = await deploy<{ applied: number; fiscal: string | null }[]>`
+    const [frontier] = await deploy<{
+      applied: number; frontier_version: number; fiscal: string | null; delivery: string | null;
+    }[]>`
       SELECT count(*)::integer AS applied,
-             to_regprocedure('public.request_india_fiscal_submission(uuid,uuid,uuid,uuid,uuid,text,uuid)')::text AS fiscal
+             max(version)::integer AS frontier_version,
+             to_regprocedure('public.request_india_fiscal_submission(uuid,uuid,uuid,uuid,uuid,text,uuid)')::text AS fiscal,
+             to_regprocedure('public.runtime_due_india_fiscal_submissions(integer,uuid,uuid)')::text AS delivery
       FROM public.schema_migration
     `;
-    if (frontier?.applied !== 79 || frontier.fiscal === null) {
-      throw new Error("Q203 proof database must be an exact canonical79 database");
+    if (frontier?.applied !== 80 || frontier.frontier_version !== 80
+        || frontier.fiscal === null || frontier.delivery === null) {
+      throw new Error("Q203 proof database must be an exact canonical80 database");
     }
   });
 
@@ -323,7 +348,7 @@ databaseDescribe("Q203 signed-session fiscal submission HTTP integration", () =>
     });
   }
 
-  test("routes are served while zero default grants and the empty production-style directory prevent persistence", async () => {
+  test("routes are served while zero default grants and an explicitly empty identity directory prevent persistence", async () => {
     const scenario = await createFiscalSubmissionHttpScenario(deploy, database, false);
     const signed = await fiscalToken(tokens, scenario);
     const app = fiscalSubmissionHttpApp(database, tokens, []);

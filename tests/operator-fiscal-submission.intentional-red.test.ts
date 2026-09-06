@@ -1,7 +1,7 @@
 import { expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 
-test("Q203 intentional red: authenticated fiscal request and retry edges are composed but transport stays inactive", () => {
+test("Q203 edges remain composed while Q204 production transport stays default-off and unregistered", () => {
   const operator = readFileSync(new URL("../src/http/operator.ts", import.meta.url), "utf8");
   const app = readFileSync(new URL("../src/app.ts", import.meta.url), "utf8");
   const server = readFileSync(new URL("../src/server.ts", import.meta.url), "utf8");
@@ -11,9 +11,20 @@ test("Q203 intentional red: authenticated fiscal request and retry edges are com
   expect(operator).toContain("retryFiscalSubmission");
   expect(app).toContain('properties/:property/fiscal-submissions"');
   expect(app).toContain("fiscal-submissions/:submission/retry");
-  expect(server).toContain("new FiscalSubmissionAdapterAvailabilityService([])");
-  expect(server).not.toContain("FiscalSubmissionWorker");
-  expect(server).not.toContain("VerifiedIndiaIrpAdapterRegistry");
+  expect(server).toContain(
+    'const fiscalSubmissionDeliveryEnabled = workbenchEnabled && Bun.env.YELLOW_FISCAL_SUBMISSION_WORKER === "1"',
+  );
+  expect(server).toContain(
+    "const verifiedIndiaIrpAdapterRegistrations = Object.freeze([]) as readonly VerifiedIndiaIrpAdapterRegistration[]",
+  );
+  expect(server).toContain("new VerifiedIndiaIrpAdapterRegistry(verifiedIndiaIrpAdapterRegistrations)");
+  expect(server).toContain(
+    "new FiscalSubmissionAdapterAvailabilityService(fiscalAdapterRegistry.identities())",
+  );
+  expect(server).toContain("new FiscalSubmissionWorker(fiscalRepository, fiscalAdapterRegistry)");
+  expect(server.indexOf("enabled fiscal submission worker requires a verified provider adapter"))
+    .toBeLessThan(server.indexOf("runtimeApp().listen"));
+  expect(server).not.toMatch(/YELLOW_(?:FISCAL|IRP).*(?:JSON|URL|TOKEN|SECRET|PASSWORD)/);
   expect(ci).toContain('q203_database="yellow_order440_q203_ci"');
   expect(ci).toContain("YELLOW_ORDER440_HTTP_DEPLOY_DATABASE_URL");
   expect(ci).toContain("YELLOW_ORDER440_HTTP_RUNTIME_DATABASE_URL");

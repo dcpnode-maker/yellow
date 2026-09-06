@@ -1,5 +1,8 @@
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { SQL } from "bun";
+import { copyFile, mkdtemp, readdir, realpath, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { isAbsolute, join, relative } from "node:path";
 import { runMigrations } from "../scripts/migrate";
 import { Database } from "../src/kernel";
 import { Hs256TokenSigner } from "../src/contexts/identity";
@@ -23,6 +26,30 @@ if (deployUrl && runtimeUrl) assertFiscalReplayProofTargets(deployUrl, runtimeUr
 const databaseDescribe = deployUrl && runtimeUrl ? describe.serial : describe.skip;
 const canonical78Hash = "65323a81a999a11e3d55893411c994c0b841af9b0465ca7e80630fd78d0ffae6";
 const key = () => `q205-${crypto.randomUUID()}`;
+
+// Q205 is specifically a historical78-to79 proof even after runtime80 is added.
+// Copy exact canonical bytes; never let a later migration silently change its case.
+async function applyCanonical79ReplayUpgrade() {
+  const base = await realpath(tmpdir());
+  const directory = await mkdtemp(join(base, "yellow-order440-q205-prefix79-"));
+  const migrations = new URL("../migrations/", import.meta.url);
+  try {
+    const files = (await readdir(migrations))
+      .filter(name => /^\d{4}_[a-z0-9_-]+\.sql$/.test(name) && Number(name.slice(0, 4)) <= 79)
+      .sort();
+    expect(files.map(name => Number(name.slice(0, 4))))
+      .toEqual(Array.from({ length: 79 }, (_, index) => index + 1));
+    await Promise.all(files.map(name => copyFile(new URL(name, migrations), join(directory, name))));
+    return await runMigrations({ databaseUrl: deployUrl!, migrationsDirectory: directory, logger: () => {} });
+  } finally {
+    const target = await realpath(directory);
+    const child = relative(base, target);
+    if (isAbsolute(child) || !/^yellow-order440-q205-prefix79-[^/\\]+$/.test(child)) {
+      throw new Error("Q205 migration prefix escaped its isolated temporary directory");
+    }
+    await rm(target, { recursive: true, force: true });
+  }
+}
 
 describe("Q205 replay target isolation", () => {
   test("rejects retained databases, shared credentials, URL options and mismatched targets", () => {
@@ -82,7 +109,7 @@ databaseDescribe("Q205 immutable fiscal command receipts", () => {
       if (identity.frontier !== 78) throw new Error("Pre-upgrade proof requires an actual78 starting frontier");
       preUpgrade = await historyScenario();
       const before = await fiscalReplaySnapshot(deploy, preUpgrade.scenario.tenantId);
-      const result = await runMigrations({ databaseUrl: deployUrl!, logger: () => {} });
+      const result = await applyCanonical79ReplayUpgrade();
       expect(result.appliedFiles).toEqual(["0079_fiscal_immutable_command_receipts.sql"]);
       expect(await fiscalReplaySnapshot(deploy, preUpgrade.scenario.tenantId)).toEqual(before);
     }

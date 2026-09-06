@@ -22,3 +22,32 @@ test("CI requires genuine pre79 receipt upgrade and late replay proof with isola
   expect(step).not.toContain("continue-on-error");
   expect(step).not.toContain("--test-name-pattern");
 });
+
+test("CI requires current80 genuine fiscal delivery and actual Linux process proof", async () => {
+  const workflow = await Bun.file(new URL("../.github/workflows/ci.yml", import.meta.url)).text();
+  const start = workflow.indexOf('q204_database="yellow_order440_q204_ci"');
+  const end = workflow.indexOf("# Q205 records real request/retry", start);
+  expect(start).toBeGreaterThan(0);
+  expect(end).toBeGreaterThan(start);
+  const step = workflow.slice(start, end);
+  for (const expected of [
+    'native_clones+=("$q204_database")',
+    'CREATE DATABASE ${q204_database} TEMPLATE ${native_template}',
+    'YELLOW_ORDER440_DELIVERY_DEPLOY_DATABASE_URL=',
+    'YELLOW_ORDER440_DELIVERY_RUNTIME_DATABASE_URL=',
+    'YELLOW_REQUIRE_ORDER440_DELIVERY=1',
+    'bun test tests/fiscal-submission-delivery-runtime.integration.test.ts',
+    'YELLOW_REQUIRE_SERVER_FISCAL_PROCESS=1',
+    'bun test tests/server-fiscal-runtime.test.ts',
+    'DROP DATABASE ${q204_database} WITH (FORCE)',
+  ]) expect(step).toContain(expected);
+  expect(step).not.toContain("|| true");
+  expect(step).not.toContain("continue-on-error");
+  expect(step).not.toContain("--test-name-pattern");
+  const historical = await Bun.file(new URL(
+    "./fiscal-submission-immutable-replay.integration.test.ts", import.meta.url,
+  )).text();
+  expect(historical).toContain("applyCanonical79ReplayUpgrade()");
+  expect(historical).toContain("migrationsDirectory: directory");
+  expect(historical).toContain("Number(name.slice(0, 4)) <= 79");
+});

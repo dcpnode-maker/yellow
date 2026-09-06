@@ -98,6 +98,27 @@ function registered(
   };
 }
 
+function step(overrides: Partial<{
+  tenantId: string;
+  submissionId: string;
+  providerKey: string;
+  providerExtensionId: string;
+  providerExtensionVersion: number;
+  leaseSeconds: number;
+  transportDeadlineMs: number;
+}> = {}) {
+  return {
+    tenantId: TENANT,
+    submissionId: SUBMISSION,
+    providerKey: PROVIDER_KEY,
+    providerExtensionId: EXTENSION,
+    providerExtensionVersion: 7,
+    leaseSeconds: 60,
+    transportDeadlineMs: 20_000,
+    ...overrides,
+  };
+}
+
 function workerRepository(
   claimed: FiscalSubmissionClaim,
   reconciled: FiscalSubmissionReceipt,
@@ -198,6 +219,10 @@ function runtimeHarness(claimReceipt: unknown, reconcileReceipt: unknown): Runti
         tenant = null;
         state.settlementDirty = false;
         return [];
+      }
+      if (normalized.includes("set_config('lock_timeout'")) {
+        log.push("db:timeouts");
+        return [{ lock_timeout: String(values?.[0]), statement_timeout: String(values?.[1]) }];
       }
       if (normalized.startsWith("SELECT set_config")) {
         tenant = String(values?.[0]);
@@ -309,7 +334,7 @@ describe("Order 440 durable fiscal submission repository", () => {
     expect(result).toEqual({ ok: false, error: { code: "invalid_receipt",
       message: "PostgreSQL returned an invalid fiscal submission receipt" } });
     expect(harness.log).toEqual([
-      "db:reserve", "db:begin", "db:tenant", "db:identity", "db:claim",
+      "db:reserve", "db:begin", "db:timeouts", "db:tenant", "db:identity", "db:claim",
       "db:rollback", "db:identity", "db:release",
     ]);
   });
@@ -356,15 +381,15 @@ describe("Order 440 one-step fiscal submission worker", () => {
     const harness = runtimeHarness(claim(), receipt());
     const repository = new FiscalSubmissionRepository(harness.pool);
     let transportInput: Uint8Array | undefined;
-    const registry = new VerifiedIndiaIrpAdapterRegistry([registered(async (input) => {
+    const registry = new VerifiedIndiaIrpAdapterRegistry([registered(async (input, context) => {
       harness.log.push("provider:submit");
       expect(harness.state.inTransaction).toBe(false);
+      expect(context.signal).toBeInstanceOf(AbortSignal);
+      expect(context.deadlineUnixMs).toBeGreaterThan(Date.now());
       transportInput = input.payload;
       return { verified: true, outcome: "accepted", authorityRef: "IRN-ORDER-440", responseSha256: RESPONSE_HASH };
     })]);
-    const result = await new FiscalSubmissionWorker(repository, registry).runOnce({
-      tenantId: TENANT, submissionId: SUBMISSION, leaseSeconds: 60,
-    });
+    const result = await new FiscalSubmissionWorker(repository, registry).runOnce(step());
     expect(result).toEqual({ ok: true, kind: "reconciled", action: "submit",
       submissionId: SUBMISSION, attemptId: ATTEMPT, status: "accepted", disposition: "none", replayed: false });
     expect(new TextDecoder().decode(transportInput)).toBe(WIRE_JSON);
@@ -384,17 +409,19 @@ describe("Order 440 one-step fiscal submission worker", () => {
     expect(deeplyFrozen(result)).toBe(true);
   });
 
-  test("an expired/uncertain claim performs lookup instead of resending", async () => {
+  test("a fresh worker performs lookup with the exact issued payload instead of resending", async () => {
     let submits = 0;
     let lookups = 0;
+    let lookupInput: Parameters<VerifiedIndiaIrpAdapterRegistration["lookup"]>[0] | undefined;
+    let lookupContext: Parameters<VerifiedIndiaIrpAdapterRegistration["lookup"]>[1] | undefined;
     const events: FiscalSubmissionNormalizedResult[] = [];
     const lookedUpClaim = claim({ action: "lookup" });
     const registry = new VerifiedIndiaIrpAdapterRegistry([registered(
       async () => { submits += 1; return { verified: true, outcome: "accepted", authorityRef: "bad", responseSha256: RESPONSE_HASH }; },
-      async (input) => {
+      async (input, context) => {
         lookups += 1;
-        expect(input).toEqual({ tenantId: TENANT, providerKey: PROVIDER_KEY,
-          attemptId: ATTEMPT, documentId: DOCUMENT, payloadSha256: WIRE_HASH });
+        lookupInput = input;
+        lookupContext = context;
         return { verified: true, outcome: "pending" };
       },
     )]);
@@ -402,9 +429,18 @@ describe("Order 440 one-step fiscal submission worker", () => {
       workerRepository(lookedUpClaim, receipt("submitted", "lookup"), events),
       registry,
     );
-    expect(await worker.runOnce({ tenantId: TENANT, submissionId: SUBMISSION, leaseSeconds: 60 }))
+    expect(await worker.runOnce(step()))
       .toMatchObject({ ok: true, kind: "reconciled", action: "lookup", status: "submitted", disposition: "lookup" });
     expect({ submits, lookups }).toEqual({ submits: 0, lookups: 1 });
+    expect(lookupInput).toEqual({ tenantId: TENANT, providerKey: PROVIDER_KEY,
+      attemptId: ATTEMPT, documentId: DOCUMENT, payloadSha256: WIRE_HASH,
+      payload: new TextEncoder().encode(WIRE_JSON) });
+    const payload = (lookupInput as typeof lookupInput & { readonly payload?: Uint8Array })?.payload;
+    expect(payload).toBeInstanceOf(Uint8Array);
+    if (!(payload instanceof Uint8Array)) throw new Error("lookup payload is missing");
+    expect(new Bun.CryptoHasher("sha256").update(payload).digest("hex")).toBe(WIRE_HASH);
+    expect(lookupContext?.signal).toBeInstanceOf(AbortSignal);
+    expect(lookupContext?.deadlineUnixMs).toBeGreaterThan(Date.now());
     expect(events).toEqual([{ type: "lookup_result", tenantId: TENANT, providerKey: PROVIDER_KEY,
       attemptId: ATTEMPT, documentId: DOCUMENT, payloadSha256: WIRE_HASH, outcome: "pending" }]);
   });
@@ -415,7 +451,7 @@ describe("Order 440 one-step fiscal submission worker", () => {
       workerRepository(claim(), receipt("submitted", "lookup"), events),
       new VerifiedIndiaIrpAdapterRegistry([registered(async () => { throw new Error("provider credential body"); })]),
     );
-    const result = await worker.runOnce({ tenantId: TENANT, submissionId: SUBMISSION, leaseSeconds: 60 });
+    const result = await worker.runOnce(step());
     expect(result).toMatchObject({ ok: true, kind: "reconciled", status: "submitted", disposition: "lookup" });
     expect(events).toEqual([{ type: "transport_result", tenantId: TENANT, providerKey: PROVIDER_KEY,
       attemptId: ATTEMPT, documentId: DOCUMENT, payloadSha256: WIRE_HASH, outcome: "timeout" }]);
@@ -434,7 +470,7 @@ describe("Order 440 one-step fiscal submission worker", () => {
     const worker = new FiscalSubmissionWorker(counted, new VerifiedIndiaIrpAdapterRegistry([
       registered(async () => { submissions += 1; return { verified: true, outcome: "known_not_sent" }; }),
     ]));
-    expect(await worker.runOnce({ tenantId: TENANT, submissionId: SUBMISSION, leaseSeconds: 60 }))
+    expect(await worker.runOnce(step()))
       .toMatchObject({ ok: true, kind: "reconciled", status: "error", disposition: "retry" });
     expect({ submissions, claims }).toEqual({ submissions: 1, claims: 1 });
     expect(events[0]?.outcome).toBe("known_not_sent");
@@ -452,9 +488,7 @@ describe("Order 440 one-step fiscal submission worker", () => {
         providerCalls += 1;
         return { verified: true, outcome: "pending" };
       })]);
-      const result = await new FiscalSubmissionWorker(repository, registry).runOnce({
-        tenantId: TENANT, submissionId: SUBMISSION, leaseSeconds: 60,
-      });
+      const result = await new FiscalSubmissionWorker(repository, registry).runOnce(step());
       expect(result).toEqual({ ok: true, kind: "idle", reason });
       expect({ providerCalls, reconciles }).toEqual({ providerCalls: 0, reconciles: 0 });
       expect(deeplyFrozen(result)).toBe(true);
@@ -470,14 +504,101 @@ describe("Order 440 one-step fiscal submission worker", () => {
     const result = await new FiscalSubmissionWorker(
       workerRepository(claim(), receipt("submitted", "lookup")),
       registry,
-    ).runOnce({ tenantId: TENANT, submissionId: SUBMISSION, leaseSeconds: 60 });
-    expect(result).toEqual({ ok: false, error: { code: "adapter_unavailable",
-      message: "verified fiscal provider adapter is unavailable" } });
+    ).runOnce(step());
+    expect(result).toEqual({ ok: true, kind: "idle", reason: "adapter_unavailable" });
     expect(calls).toBe(0);
     expect(() => new VerifiedIndiaIrpAdapterRegistry([
       registered(async () => ({ verified: true, outcome: "pending" })),
       registered(async () => ({ verified: true, outcome: "pending" })),
     ])).toThrow("duplicated");
+    const registrations = Array.from({ length: 101 }, (_, index) => registered(
+      async () => ({ verified: true, outcome: "pending" }),
+      undefined,
+      { providerExtensionVersion: index + 1 },
+    ));
+    expect(() => new VerifiedIndiaIrpAdapterRegistry(registrations)).toThrow("invalid");
+    const sparse = new Array<unknown>(1);
+    expect(() => new VerifiedIndiaIrpAdapterRegistry(sparse)).toThrow("invalid");
+    const registryIdentity = new VerifiedIndiaIrpAdapterRegistry([
+      registered(async () => ({ verified: true, outcome: "pending" })),
+    ]).identities();
+    expect(registryIdentity).toEqual([{ providerKey: PROVIDER_KEY,
+      providerExtensionId: EXTENSION, providerExtensionVersion: 7 }]);
+    expect(deeplyFrozen(registryIdentity)).toBe(true);
+  });
+
+  test("shutdown after claim but before transport never submits and reconciles the exact safe outcome", async () => {
+    for (const action of ["submit", "lookup"] as const) {
+      const controller = new AbortController();
+      let providerCalls = 0;
+      const events: FiscalSubmissionNormalizedResult[] = [];
+      const base = workerRepository(
+        claim({ action }),
+        action === "submit" ? receipt("error", "retry") : receipt("submitted", "lookup"),
+        events,
+      );
+      const repository: FiscalSubmissionWorkerRepository = {
+        async claim(input) {
+          const result = await base.claim(input);
+          controller.abort();
+          return result;
+        },
+        reconcile: base.reconcile.bind(base),
+      };
+      const registry = new VerifiedIndiaIrpAdapterRegistry([registered(
+        async () => { providerCalls += 1; return { verified: true, outcome: "accepted",
+          authorityRef: "must-not-submit", responseSha256: RESPONSE_HASH }; },
+        async () => { providerCalls += 1; return { verified: true, outcome: "accepted",
+          authorityRef: "must-not-lookup", responseSha256: RESPONSE_HASH }; },
+      )]);
+      const result = await new FiscalSubmissionWorker(repository, registry).runOnce(step(), controller.signal);
+      expect(providerCalls).toBe(0);
+      expect(result).toMatchObject({ ok: true, kind: "reconciled",
+        status: action === "submit" ? "error" : "submitted",
+        disposition: action === "submit" ? "retry" : "lookup" });
+      expect(events.map(({ outcome }) => outcome)).toEqual([
+        action === "submit" ? "known_not_sent" : "pending",
+      ]);
+    }
+  });
+
+  test("reserves before claim and quarantines an abort-ignoring adapter until its original call settles", async () => {
+    let claims = 0;
+    let reconcileEvent: FiscalSubmissionNormalizedResult | undefined;
+    let settleProvider!: (value: FiscalProviderResolution) => void;
+    let callSignal: AbortSignal | undefined;
+    const original = new Promise<FiscalProviderResolution>((resolve) => { settleProvider = resolve; });
+    const repository: FiscalSubmissionWorkerRepository = {
+      async claim() {
+        claims += 1;
+        return claims === 1 ? ok(claim()) : ok({ claimed: false as const, reason: "busy" as const });
+      },
+      async reconcile(input) {
+        reconcileEvent = input.result;
+        return ok(receipt("submitted", "lookup"));
+      },
+    };
+    const registry = new VerifiedIndiaIrpAdapterRegistry([registered(async (_input, context) => {
+      callSignal = context.signal;
+      return original;
+    })]);
+    const worker = new FiscalSubmissionWorker(repository, registry);
+    const first = await worker.runOnce(step({ leaseSeconds: 15, transportDeadlineMs: 100 }));
+    expect(first).toMatchObject({ ok: true, kind: "reconciled", status: "submitted", disposition: "lookup" });
+    expect(reconcileEvent?.outcome).toBe("timeout");
+    expect(callSignal?.aborted).toBe(true);
+
+    expect(await worker.runOnce(step({ leaseSeconds: 15, transportDeadlineMs: 100 })))
+      .toEqual({ ok: true, kind: "idle", reason: "adapter_busy" });
+    expect(claims).toBe(1);
+
+    settleProvider({ verified: true, outcome: "accepted", authorityRef: "late-must-be-ignored",
+      responseSha256: RESPONSE_HASH });
+    await Bun.sleep(0);
+    expect(await worker.runOnce(step({ leaseSeconds: 15, transportDeadlineMs: 100 })))
+      .toEqual({ ok: true, kind: "idle", reason: "busy" });
+    expect(claims).toBe(2);
+    expect(reconcileEvent?.outcome).toBe("timeout");
   });
 
   test("unverified, clearance-mode, extra-key, unknown, and hostile provider results cannot establish acceptance", async () => {
@@ -501,9 +622,7 @@ describe("Order 440 one-step fiscal submission worker", () => {
       };
       const adapter = registered(async () => value as FiscalProviderResolution);
       const result = await new FiscalSubmissionWorker(repository,
-        new VerifiedIndiaIrpAdapterRegistry([adapter])).runOnce({
-          tenantId: TENANT, submissionId: SUBMISSION, leaseSeconds: 60,
-        });
+        new VerifiedIndiaIrpAdapterRegistry([adapter])).runOnce(step());
       expect(result).toEqual({ ok: false, error: { code: "provider_result_invalid",
         message: "verified fiscal provider result is invalid" } });
       expect(reconciles).toBe(0);
@@ -519,14 +638,14 @@ describe("Order 440 one-step fiscal submission worker", () => {
     const badClaim = { ...claim(), wireSha256: "4".repeat(64) };
     const invalidClaimResult = await new FiscalSubmissionWorker(
       workerRepository(badClaim, receipt()), registry,
-    ).runOnce({ tenantId: TENANT, submissionId: SUBMISSION, leaseSeconds: 60 });
+    ).runOnce(step());
     expect(invalidClaimResult).toMatchObject({ ok: false, error: { code: "invalid_claim" } });
     expect(providerCalls).toBe(0);
 
     const conflict = await new FiscalSubmissionWorker(
       workerRepository(claim(), receipt("accepted", "none", { documentSha256: "5".repeat(64) })),
       registry,
-    ).runOnce({ tenantId: TENANT, submissionId: SUBMISSION, leaseSeconds: 60 });
+    ).runOnce(step());
     expect(conflict).toEqual({ ok: false, error: { code: "reconciliation_conflict",
       message: "fiscal submission reconciliation receipt conflicts with the claim" } });
     expect(providerCalls).toBe(1);
@@ -538,13 +657,15 @@ describe("Order 440 one-step fiscal submission worker", () => {
       async claim() { claims += 1; return { ok: true, value: claim(), extra: "secret" } as never; },
       async reconcile() { throw new Error("unused"); },
     };
-    const worker = new FiscalSubmissionWorker(repository, new VerifiedIndiaIrpAdapterRegistry([]));
-    const symbolInput = { tenantId: TENANT, submissionId: SUBMISSION, leaseSeconds: 60 } as Record<PropertyKey, unknown>;
+    const worker = new FiscalSubmissionWorker(repository, new VerifiedIndiaIrpAdapterRegistry([
+      registered(async () => ({ verified: true, outcome: "pending" })),
+    ]));
+    const symbolInput = step() as Record<PropertyKey, unknown>;
     symbolInput[Symbol("hostile")] = true;
     const invalidInput = await worker.runOnce(symbolInput);
     expect(invalidInput).toMatchObject({ ok: false, error: { code: "invalid_input" } });
     expect(claims).toBe(0);
-    const envelope = await worker.runOnce({ tenantId: TENANT, submissionId: SUBMISSION, leaseSeconds: 60 });
+    const envelope = await worker.runOnce(step());
     expect(envelope).toEqual({ ok: false, error: { code: "repository_error",
       message: "fiscal submission claim failed" } });
     expect(JSON.stringify(envelope)).not.toContain("secret");

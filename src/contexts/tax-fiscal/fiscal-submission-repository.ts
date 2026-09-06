@@ -7,6 +7,8 @@ const PROVIDER_KEY = /^[a-z0-9](?:[a-z0-9._:-]{0,126}[a-z0-9])?$/;
 const REFERENCE_CONTROL = /[\u0000-\u001f\u007f]/u;
 const IDEMPOTENCY_KEY = /^[!-~]{8,200}$/;
 const MAX_WIRE_BYTES = 1024 * 1024;
+const DEFAULT_LOCK_TIMEOUT_MS = 5_000;
+const DEFAULT_STATEMENT_TIMEOUT_MS = 15_000;
 
 type RecordValue = Record<string, unknown>;
 
@@ -92,6 +94,11 @@ export type FiscalSubmissionRepositoryErrorCode =
   | "pool_failed";
 
 export type FiscalSubmissionServiceErrorCode = Exclude<FiscalSubmissionRepositoryErrorCode, "pool_failed">;
+
+export interface FiscalSubmissionRepositoryOptions {
+  readonly lockTimeoutMs?: number;
+  readonly statementTimeoutMs?: number;
+}
 
 export interface FiscalSubmissionRepositoryError {
   readonly code: FiscalSubmissionRepositoryErrorCode;
@@ -435,11 +442,23 @@ export class FiscalSubmissionService {
 
 export class FiscalSubmissionRepository extends FiscalSubmissionService {
   readonly #pool: ConnectionPool;
+  readonly #lockTimeoutMs: number;
+  readonly #statementTimeoutMs: number;
   #poolFailure: Error | undefined;
 
-  constructor(runtimePool: ConnectionPool) {
+  constructor(runtimePool: ConnectionPool, options: FiscalSubmissionRepositoryOptions = {}) {
     super();
     this.#pool = runtimePool;
+    this.#lockTimeoutMs = boundedTimeout("lockTimeoutMs", options.lockTimeoutMs ?? DEFAULT_LOCK_TIMEOUT_MS, 100, 10_000);
+    this.#statementTimeoutMs = boundedTimeout(
+      "statementTimeoutMs",
+      options.statementTimeoutMs ?? DEFAULT_STATEMENT_TIMEOUT_MS,
+      1_000,
+      30_000,
+    );
+    if (this.#lockTimeoutMs > this.#statementTimeoutMs) {
+      throw new Error("lockTimeoutMs cannot exceed statementTimeoutMs");
+    }
   }
 
   async claim(inputValue: unknown): Promise<FiscalSubmissionRepositoryResult<FiscalSubmissionClaim>> {
@@ -532,6 +551,18 @@ export class FiscalSubmissionRepository extends FiscalSubmissionService {
     try {
       await connection.unsafe("BEGIN");
       began = true;
+      const timeout = await connection.unsafe<Array<{ lock_timeout: string; statement_timeout: string }>>(
+        `SELECT set_config('lock_timeout', $1, true) AS lock_timeout,
+                set_config('statement_timeout', $2, true) AS statement_timeout`,
+        [`${this.#lockTimeoutMs}ms`, `${this.#statementTimeoutMs}ms`],
+      );
+      // PostgreSQL may canonicalize equivalent GUC spellings (for example 5000ms
+      // to 5s), so verify that both built-ins returned established string values
+      // without coupling settlement to one display format.
+      if (timeout.length !== 1 || typeof timeout[0]?.lock_timeout !== "string"
+          || typeof timeout[0].statement_timeout !== "string") {
+        throw new Error("database timeouts were not established");
+      }
       const context = await connection.unsafe<Array<{ tenant_id: string }>>(
         "SELECT set_config('app.tenant_id', $1, true) AS tenant_id",
         [tenantId],
@@ -593,6 +624,13 @@ export class FiscalSubmissionRepository extends FiscalSubmissionService {
       ? failure("pool_failed", "Fiscal submission runtime pool is unavailable")
       : outcome;
   }
+}
+
+function boundedTimeout(name: string, value: unknown, minimum: number, maximum: number): number {
+  if (typeof value !== "number" || !Number.isSafeInteger(value) || value < minimum || value > maximum) {
+    throw new Error(`${name} must be between ${minimum} and ${maximum}`);
+  }
+  return value;
 }
 
 function assertNever(value: never): never {

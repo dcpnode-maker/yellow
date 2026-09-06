@@ -142,10 +142,10 @@ function databaseHarness(options: HarnessOptions = {}): {
 }
 
 describe("Q201 fiscal submission application commands", () => {
-  test("the bounded-context surface exports only the Tx request/retry service", () => {
+  test("the bounded-context surface exports the request service and supervised runtime, but not raw snapshots", () => {
     expect(typeof fiscalSurface.FiscalSubmissionService).toBe("function");
-    expect("FiscalSubmissionRepository" in fiscalSurface).toBe(false);
-    expect("FiscalSubmissionWorker" in fiscalSurface).toBe(false);
+    expect(typeof fiscalSurface.FiscalSubmissionRepository).toBe("function");
+    expect(typeof fiscalSurface.FiscalSubmissionWorker).toBe("function");
     expect("snapshotFiscalSubmissionClaim" in fiscalSurface).toBe(false);
     expect("snapshotFiscalSubmissionNormalizedResult" in fiscalSurface).toBe(false);
   });

@@ -137,7 +137,11 @@ describe("Order 233 reservation departure-roll worker wiring", () => {
     expect(server).toContain("new ReservationDepartureRollService(");
     expect(server).toContain("new ReservationDepartureRollWorker(");
     expect(server).toContain('console.error("reservation departure-roll worker discovery failed")');
-    expect(server).toContain('console.error("reservation departure-roll worker stopped unexpectedly")');
+    const wiring = server.slice(server.indexOf("if (reservationDepartureRollEnabled)"),
+      server.indexOf("if (businessDayRollEnabled)"));
+    expect(wiring).toContain("superviseWorker(worker.run({ signal: runtimeAbort.signal,");
+    expect(wiring).toContain('}), "reservation departure-roll worker stopped unexpectedly");');
+    expect(server).toContain("runtimeWorkerTasks.push(promise.catch(() => { console.error(failureMessage); }));");
     expect(server).not.toMatch(/reservation departure-roll worker[^\n]*(?:error|cause|stack|message)/i);
     const status = await Bun.file(new URL("../src/project-status.ts", import.meta.url)).text();
     const operator = await Bun.file(new URL("../src/http/operator/operator.js", import.meta.url)).text();

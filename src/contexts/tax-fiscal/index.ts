@@ -439,21 +439,60 @@ export type {
 } from "./india-gst-section14-payment-receipt-date";
 
 export {
+  FiscalSubmissionRepository,
   FiscalSubmissionService,
   snapshotFiscalSubmissionReceipt,
   snapshotRequestIndiaFiscalSubmissionInput,
   snapshotRetryIndiaFiscalSubmissionInput,
 } from "./fiscal-submission-repository";
 export type {
+  FiscalSubmissionClaim,
   FiscalSubmissionDisposition,
   FiscalSubmissionPersistedStatus,
   FiscalSubmissionReceipt,
   FiscalSubmissionServiceError,
   FiscalSubmissionServiceErrorCode,
   FiscalSubmissionServiceResult,
+  FiscalSubmissionRepositoryOptions,
+  FiscalSubmissionRepositoryResult,
+  ReconcileIndiaFiscalSubmissionInput,
   RequestIndiaFiscalSubmissionInput,
   RetryIndiaFiscalSubmissionInput,
 } from "./fiscal-submission-repository";
+export {
+  FiscalSubmissionWorker,
+  VerifiedIndiaIrpAdapterRegistry,
+} from "./fiscal-submission-worker";
+export type {
+  FiscalSubmissionAdapterIdentity as VerifiedFiscalSubmissionAdapterIdentity,
+  FiscalSubmissionWorkerError,
+  FiscalSubmissionWorkerErrorCode,
+  FiscalSubmissionWorkerRepository,
+  FiscalSubmissionWorkerStepInput,
+  FiscalSubmissionWorkerStepResult,
+  VerifiedIndiaIrpAdapterRegistration,
+} from "./fiscal-submission-worker";
+export { FiscalSubmissionDeliveryRuntime } from "./fiscal-submission-delivery-runtime";
+export type {
+  DueFiscalSubmission,
+  DueFiscalSubmissionSource,
+  FiscalSubmissionCursor,
+  FiscalSubmissionDeliveryDrainResult,
+  FiscalSubmissionDeliveryFailure,
+  FiscalSubmissionDeliveryOperations,
+  FiscalSubmissionDeliveryRunOptions,
+  FiscalSubmissionDeliveryRuntimeOptions,
+  FiscalSubmissionDeliveryRuntimeState,
+} from "./fiscal-submission-delivery-runtime";
+export type {
+  FiscalDocumentProvider,
+  FiscalProviderBinding,
+  FiscalProviderCallContext,
+  FiscalProviderLookup,
+  FiscalProviderResolution,
+  FiscalProviderSubmission,
+  FiscalSubmissionMode,
+} from "./fiscal-provider";
 export { FiscalSubmissionAdapterAvailabilityService } from "./fiscal-submission-adapter-availability";
 export type { FiscalSubmissionAdapterIdentity } from "./fiscal-submission-adapter-availability";
 export {

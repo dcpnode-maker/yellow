@@ -51,6 +51,7 @@ export interface OperatorRuntimeStatus {
   readonly reservationArrivalRollWorkerEnabled: boolean;
   readonly reservationDepartureRollWorkerEnabled: boolean;
   readonly businessDayRollWorkerEnabled: boolean;
+  readonly fiscalSubmissionDeliveryWorkerState?: "disabled" | "running" | "failed";
   readonly processStartedAt: string;
 }
 
@@ -63,6 +64,7 @@ export const DEFAULT_OPERATOR_RUNTIME_STATUS: OperatorRuntimeStatus = Object.fre
   reservationArrivalRollWorkerEnabled: false,
   reservationDepartureRollWorkerEnabled: false,
   businessDayRollWorkerEnabled: false,
+  fiscalSubmissionDeliveryWorkerState: "disabled",
   processStartedAt: new Date(0).toISOString(),
 });
 

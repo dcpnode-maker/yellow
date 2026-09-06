@@ -8,19 +8,21 @@ a prior phase's public surface without a written note in `DECISIONS.log`.
 
 ## Current implementation status — 2026-09-06, consolidated Codex Yellow work
 
-Latest Q205: PR87 integration was withheld after independent late-replay proof
-showed historical fiscal keys returning the latest attempt. Forward79 plus the
-canonical HTTP representation now pass independent actual78→79 and all-key replay
-tests, without changing applied1–78 or financial rows. Exact repaired-source CI and
-merge remain pending. Q204 supervised delivery runtime is in development, not
-activated; its prospective migration is80. The earlier CI checkpoints below are
-historical and cannot close the subsequently discovered defect by themselves.
+Latest: Q205 repairs late-replay drift without changing applied1–78 or financial
+rows. Exact15f5204 passes all six CI34039764089 jobs, and PR87 is independently
+merged as22f1bed with a separate post-merge actual79 schema/referee11/11. Main is
+now79 migrations/128 public tables. The founder preview stays exactb5ef708/77.
+Q204 supervised delivery is implemented with frozen migration80, independently
+executed genuine HTTP/worker11/11(93), extra ACL/rollback proof and current80
+schema/referee11/11. Complete current80 standing/CI and actual Linux process/readiness
+proof remain before integration. Production provider registration remains empty.
+The earlier CI checkpoints below are historical, not competing current-state records.
 
 [PROJECT-STATUS](docs/PROJECT-STATUS.md) is the canonical current-state record.
 Orders438/439 form the operational baseline through PR82. Order434's independently
 accepted candidate92346674c784b552356934e168d60e4b9650497a passed all five PR83 CI
 jobs and merged as443e3826. Reviewed PR84 then added hotel journeys, schema clarity
-and UI/UX research at main7829eae47d4281efa117c8d3c788c3be52d10d06. Main has77
+and UI/UX research at main7829eae47d4281efa117c8d3c788c3be52d10d06. That baseline has77
 migrations and127 public tables; Question195 preserves0076/0077 after immutable0075.
 The concurrent Order440 fiscal lane continues durable submission integration after
 private state and genuine-issued wire projection proof. The separately named
