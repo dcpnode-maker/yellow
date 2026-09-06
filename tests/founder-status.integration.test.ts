@@ -259,7 +259,7 @@ describe("Order 064 recorded build snapshot", () => {
     expect(rows.length).toBeGreaterThan(0);
     expect(PROJECT_BUILD_SNAPSHOT.schemaVersion).toBe(2);
     expect(PROJECT_BUILD_SNAPSHOT.label).toBe("Durable fiscal submission integration in progress");
-    expect(PROJECT_BUILD_SNAPSHOT.recordedAt).toBe("2026-09-06");
+    expect(PROJECT_BUILD_SNAPSHOT.recordedAt).toBe("2026-09-07");
     expect(PROJECT_BUILD_SNAPSHOT.roadmap.latestBuiltOrder).toBe(439);
     expect(PROJECT_BUILD_SNAPSHOT.review.gate3Debt).toBe(0);
     expect(PROJECT_BUILD_SNAPSHOT.review.state).toBe("built_unverified");
@@ -548,8 +548,8 @@ describe("Order 064 recorded build snapshot", () => {
       {
         order: 440,
         state: "proof_in_progress",
-        summary: "Order 440 durable fiscal submission, immutable command replay and supervised delivery runtime are independently merged through PR88 at 2a0ba41 (80 migrations / 128 public tables), after all six CI jobs and separate post-merge schema/referee 11/11. The separately descriptive Order 440 hotel journeys and fictional design study are merged as design input with a fictional in-memory prototype only. The separate Order 441 Astra Ultra RMS paper is documented research only, with no algorithm runtime or measured uplift.",
-        remaining: "Authenticated provider normalization, verified signed invoice/QR retention and property-authorized receipt reads remain unfinished. IRP provider activation and operator invoice UI remain separate; new-department release, local refresh, cloud deployment and live sandbox evidence remain outstanding; the hotel prototype is not production and Phase 7 is not complete.",
+        summary: "Order 440 durable fiscal submission, immutable command replay and supervised delivery runtime are independently merged through PR88 at 2a0ba41 (80 migrations / 128 public tables), after all six CI jobs and separate post-merge schema/referee 11/11. The private exact decoder and pinned signature verification are additionally merged through PR89 at 43fc758 after all six CI jobs, actual native ARM64 execution and fresh post-merge schema/referee 11/11. The separately descriptive Order 440 hotel journeys and fictional design study are merged as design input with a fictional in-memory prototype only. The separate Order 441 Astra Ultra RMS paper is documented research only, with no algorithm runtime or measured uplift.",
+        remaining: "Original-source signed-pair binding is independently verified in development, not provider acceptance or a merged release. Authenticated provider normalization, verified signed invoice/QR retention and property-authorized receipt reads remain unfinished. IRP provider activation and operator invoice UI remain separate; new-department release, local refresh, cloud deployment and live sandbox evidence remain outstanding; the hotel prototype is not production and Phase 7 is not complete.",
       },
     ]);
     const recordedOrders = PROJECT_BUILD_SNAPSHOT.recordedWork.map(({ order }) => Number(order));

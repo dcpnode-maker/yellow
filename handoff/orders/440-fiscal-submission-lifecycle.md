@@ -1,6 +1,6 @@
 # Order 440 — Durable fiscal submission and reconciliation
 
-**Status:** ACTIVE — Q205 and Q204 are independently merged through PR87/88 with complete CI and fresh post-merge80 schema/referee11/11. Q206 authenticated provider and signed-receipt integration is current work.
+**Status:** ACTIVE — Q205/Q204 and private Q206 decoder/JWS are independently merged through PR87/88/89 with complete CI and fresh post-merge80 schema/referee11/11. Original-source invoice/QR binding is independently verified in development; full authenticated provider and signed-receipt integration remains current work.
 Order434's exact candidate is accepted and merged; no provider is activated.
 **Phase:** 7, planned sequence item6.
 **Owner:** Codex coordinator; bounded internal builders, separate high-risk reviewer.
@@ -9,6 +9,21 @@ Order434's exact candidate is accepted and merged; no provider is activated.
 merged through PR83 as443e3826b47025106d1829fcbb406ce6302fbbba.
 
 ## Outcome
+
+Current checkpoint2026-09-07: PR89 exactd300 passes all six CI34053928779 jobs
+and normal CodeQL, including actual ARM64 decoder/JWS25/25. Nonimplementer
+fiscal_http_acceptance normally merges43fc758 and personally executes the separate
+fresh post-merge80 exact schema/seed/referee11/11. Main80 and local77 stay separate.
+Q206's new private invoice/QR binder passes root55/0(582) and112 adversarial
+assertions; source/test hashes are recorded in its review. It is source-bound
+signature evidence, not provider acceptance. Complete standing passes1719/0 with
+1264 explicit environment skips and22813 assertions after independently proved
+native batching/outsider-cwd and transient browser startup-read repairs. Both prior
+failed full runs remain recorded. Types,180 boundaries and23 licences pass.
+New candidate CI must actually run the binder on native ARM64 before integration.
+The full provider/SQL/receipt/operator/sandbox outcome remains unfinished.
+
+Historical D1399 runtime checkpoint:
 
 Current D1399: exacte4399cf passes all-six CI34049699932 and normal CodeQL;
 non-implementer fiscal_http_acceptance verifies actual full gates and merges PR88
@@ -112,7 +127,7 @@ measured queue/latency pressure, without weakening invoice identity or retry saf
 the latest directly read ClearIRP protocol evidence, existing artifact-storage gaps
 and independently critiqued proposal for authenticated transport, immutable signed
 receipts and an authorized read model. Only its exact private decoder and JWS
-paths are currently admitted; the full provider/SQL/read integration remains to be
+and original-source binding paths are admitted; the full provider/SQL/read integration remains to be
 admitted. Its direct core lookup evidence must not be confused with the commercial
 gateway's separate protocol. Q204 is merged; Q206 is current implementation.
 
