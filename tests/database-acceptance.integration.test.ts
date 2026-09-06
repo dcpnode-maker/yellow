@@ -405,6 +405,11 @@ const EXPECTED_MIGRATIONS = [
     filename: "0080_fiscal_submission_delivery_runtime.sql",
     checksum_sha256: "2c6b1a82e031470bace7ae8b37a2d67e54497014bd1e82f5364d23a2ce25f250",
   },
+  {
+    version: 81,
+    filename: "0081_fiscal_signed_delivery_receipts.sql",
+    checksum_sha256: "d2e4e34a4587f4ee12ed5c43f8fac9d4186345877bdbb75ac74217460f0e06ac",
+  },
 ];
 
 if (REQUIRE_DATABASE && !DATABASE_URL) {
@@ -483,8 +488,8 @@ databaseDescribe("fresh deployment database acceptance", () => {
             AND class.relforcerowsecurity) AS "forceRlsTables"
     `;
     expect(catalogue).toEqual([{
-      migrations: 80, tables: 128, rlsTables: 118, policies: 118, forceRlsTables: 27,
-      permissions: 13, permissionGrants: 0,
+      migrations: 81, tables: 128, rlsTables: 118, policies: 118, forceRlsTables: 27,
+      permissions: 14, permissionGrants: 0,
     }]);
   });
 
@@ -584,8 +589,81 @@ databaseDescribe("fresh deployment database acceptance", () => {
     `;
     expect(history).toEqual([{
       owner: "yellow_owner", rls: true, forceRls: true, policyCount: 1, policyExact: true,
-      appSelect: true, appMutation: false, runtimePrivileges: 0, publicPrivileges: 0,
+      appSelect: false, appMutation: false, runtimePrivileges: 0, publicPrivileges: 0,
       tenantLeadingIndexes: 4, immutableTrigger: true, requiredConstraints: 8,
+    }]);
+
+    const fiscalColumnAuthority = await sql!<Array<{
+      relation: string; appTablePrivileges: number; appColumnPrivileges: string;
+      runtimeTablePrivileges: number; runtimeColumnPrivileges: string;
+      publicTablePrivileges: number; publicColumnPrivileges: string;
+    }>>`
+      SELECT class.relname AS relation,
+             (SELECT count(*)::int FROM unnest(ARRAY[
+               'SELECT','INSERT','UPDATE','DELETE','TRUNCATE','REFERENCES','TRIGGER'
+             ]) AS privilege(name) WHERE pg_catalog.has_table_privilege('app_role',class.oid,privilege.name))
+               AS "appTablePrivileges",
+             COALESCE((SELECT pg_catalog.string_agg(attribute.attname||':'||privilege.name,','
+                                                    ORDER BY attribute.attnum,privilege.name)
+               FROM pg_catalog.pg_attribute attribute
+               CROSS JOIN unnest(ARRAY['SELECT','INSERT','UPDATE','REFERENCES']) AS privilege(name)
+              WHERE attribute.attrelid=class.oid AND attribute.attnum>0 AND NOT attribute.attisdropped
+                AND pg_catalog.has_column_privilege('app_role',class.oid,attribute.attnum,privilege.name)), '')
+               AS "appColumnPrivileges",
+             (SELECT count(*)::int FROM unnest(ARRAY[
+               'SELECT','INSERT','UPDATE','DELETE','TRUNCATE','REFERENCES','TRIGGER'
+             ]) AS privilege(name) WHERE pg_catalog.has_table_privilege('yellow_runtime',class.oid,privilege.name))
+               AS "runtimeTablePrivileges",
+             COALESCE((SELECT pg_catalog.string_agg(attribute.attname||':'||privilege.name,','
+                                                    ORDER BY attribute.attnum,privilege.name)
+               FROM pg_catalog.pg_attribute attribute
+               CROSS JOIN unnest(ARRAY['SELECT','INSERT','UPDATE','REFERENCES']) AS privilege(name)
+              WHERE attribute.attrelid=class.oid AND attribute.attnum>0 AND NOT attribute.attisdropped
+                AND pg_catalog.has_column_privilege('yellow_runtime',class.oid,attribute.attnum,privilege.name)), '')
+               AS "runtimeColumnPrivileges",
+             (SELECT count(*)::int FROM unnest(ARRAY[
+               'SELECT','INSERT','UPDATE','DELETE','TRUNCATE','REFERENCES','TRIGGER'
+             ]) AS privilege(name) WHERE pg_catalog.has_table_privilege('public',class.oid,privilege.name))
+               AS "publicTablePrivileges",
+             COALESCE((SELECT pg_catalog.string_agg(attribute.attname||':'||privilege.name,','
+                                                    ORDER BY attribute.attnum,privilege.name)
+               FROM pg_catalog.pg_attribute attribute
+               CROSS JOIN unnest(ARRAY['SELECT','INSERT','UPDATE','REFERENCES']) AS privilege(name)
+              WHERE attribute.attrelid=class.oid AND attribute.attnum>0 AND NOT attribute.attisdropped
+                AND pg_catalog.has_column_privilege('public',class.oid,attribute.attnum,privilege.name)), '')
+               AS "publicColumnPrivileges"
+        FROM pg_catalog.pg_class class
+       WHERE class.oid IN ('public.fiscal_submission'::regclass,
+                           'public.fiscal_submission_history'::regclass)
+       ORDER BY class.relname
+    `;
+    expect(fiscalColumnAuthority).toEqual([
+      {
+        relation: "fiscal_submission", appTablePrivileges: 0,
+        appColumnPrivileges: "tenant_id:SELECT,document_id:SELECT,status:SELECT",
+        runtimeTablePrivileges: 0, runtimeColumnPrivileges: "",
+        publicTablePrivileges: 0, publicColumnPrivileges: "",
+      },
+      {
+        relation: "fiscal_submission_history", appTablePrivileges: 0, appColumnPrivileges: "",
+        runtimeTablePrivileges: 0, runtimeColumnPrivileges: "",
+        publicTablePrivileges: 0, publicColumnPrivileges: "",
+      },
+    ]);
+
+    const receiptPermission = await sql!<Array<{
+      code: string; description: string; assigned: number;
+    }>>`
+      SELECT permission.code,permission.description,
+             (SELECT count(*)::int FROM public.role_permission grant_row
+               WHERE grant_row.permission_code=permission.code) AS assigned
+        FROM public.permission permission
+       WHERE permission.code='tax-fiscal.submissions:read'
+    `;
+    expect(receiptPermission).toEqual([{
+      code: "tax-fiscal.submissions:read",
+      description: "Read a property-authorized durable fiscal delivery receipt",
+      assigned: 0,
     }]);
 
     const capabilities = await sql!<Array<{
@@ -597,7 +675,8 @@ databaseDescribe("fresh deployment database acceptance", () => {
         ('retry_india_fiscal_submission(uuid,uuid,uuid,text,uuid)'),
         ('claim_india_fiscal_submission(uuid,uuid,integer)'),
         ('reconcile_india_fiscal_submission(uuid,uuid,uuid,uuid,jsonb)'),
-        ('runtime_due_india_fiscal_submissions(integer,uuid,uuid)')
+        ('runtime_due_india_fiscal_submissions(integer,uuid,uuid)'),
+        ('read_india_fiscal_submission_delivery_receipt(uuid,uuid,uuid,uuid)')
       )
       SELECT expected.name,pg_catalog.pg_get_userbyid(procedure.proowner) AS owner,
              procedure.prosecdef AS "securityDefiner",procedure.proconfig AS config,
@@ -613,6 +692,9 @@ databaseDescribe("fresh deployment database acceptance", () => {
       { name: "claim_india_fiscal_submission(uuid,uuid,integer)", owner: "yellow_owner",
         securityDefiner: true, config: ["search_path=pg_catalog, public, pg_temp", "TimeZone=UTC", "DateStyle=ISO,YMD"],
         appExecute: false, runtimeExecute: true, publicExecute: false },
+      { name: "read_india_fiscal_submission_delivery_receipt(uuid,uuid,uuid,uuid)", owner: "yellow_owner",
+        securityDefiner: true, config: ["search_path=pg_catalog, public, pg_temp", "TimeZone=UTC", "DateStyle=ISO,YMD"],
+        appExecute: true, runtimeExecute: false, publicExecute: false },
       { name: "reconcile_india_fiscal_submission(uuid,uuid,uuid,uuid,jsonb)", owner: "yellow_owner",
         securityDefiner: true, config: ["search_path=pg_catalog, public, pg_temp", "TimeZone=UTC", "DateStyle=ISO,YMD"],
         appExecute: false, runtimeExecute: true, publicExecute: false },
@@ -642,10 +724,10 @@ databaseDescribe("fresh deployment database acceptance", () => {
            'india_fiscal_submission_lock_relations','india_fiscal_submission_money_minor',
            'india_fiscal_submission_reference','india_fiscal_submission_party_wire',
            'india_fiscal_submission_project_wire','india_fiscal_submission_receipt',
-           'india_fiscal_submission_record_transition'
+           'india_fiscal_submission_record_transition','india_fiscal_submission_signed_result_v1_valid'
          ])
     `;
-    expect(helpers).toEqual([{ count: 9, ownerOnly: true }]);
+    expect(helpers).toEqual([{ count: 10, ownerOnly: true }]);
   });
 
   test("has the exact configured positive-tax semantic-route schema and read-only runtime ACL", async () => {

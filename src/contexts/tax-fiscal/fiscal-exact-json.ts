@@ -1,8 +1,13 @@
 export const FISCAL_EXACT_JSON_LIMITS = Object.freeze({
   maxUtf8Bytes: 1024 * 1024,
+  maxExplicitUtf8Bytes: 8 * 1024 * 1024,
   maxContainerDepth: 32,
   maxValueNodes: 100_000,
 } as const);
+
+export interface FiscalExactJsonDecodeOptions {
+  readonly maxUtf8Bytes: number;
+}
 
 export type FiscalExactJsonValue = Readonly<
   | { readonly kind: "null" }
@@ -255,15 +260,48 @@ class FiscalExactJsonDecoder {
   }
 }
 
-export function decodeFiscalExactJson(input: unknown): FiscalExactJsonResult {
+export function decodeFiscalExactJson(input: unknown): FiscalExactJsonResult;
+export function decodeFiscalExactJson(
+  input: unknown,
+  options: Readonly<FiscalExactJsonDecodeOptions>,
+): FiscalExactJsonResult;
+export function decodeFiscalExactJson(
+  input: unknown,
+  options?: Readonly<FiscalExactJsonDecodeOptions>,
+): FiscalExactJsonResult {
+  let maxUtf8Bytes: number;
+  if (options === undefined) {
+    maxUtf8Bytes = FISCAL_EXACT_JSON_LIMITS.maxUtf8Bytes;
+  } else {
+    try {
+      if (typeof options !== "object" || options === null || Array.isArray(options)
+          || Object.getPrototypeOf(options) !== Object.prototype
+          || Object.getOwnPropertySymbols(options).length !== 0) {
+        return failure("invalid_input", "fiscal JSON input is invalid");
+      }
+      const descriptors = Object.getOwnPropertyDescriptors(options);
+      const names = Object.keys(descriptors);
+      const descriptor = descriptors.maxUtf8Bytes;
+      if (names.length !== 1 || names[0] !== "maxUtf8Bytes" || !descriptor
+          || !("value" in descriptor) || descriptor.get !== undefined || descriptor.set !== undefined
+          || descriptor.enumerable !== true || typeof descriptor.value !== "number"
+          || !Number.isSafeInteger(descriptor.value) || descriptor.value < 1
+          || descriptor.value > FISCAL_EXACT_JSON_LIMITS.maxExplicitUtf8Bytes) {
+        return failure("invalid_input", "fiscal JSON input is invalid");
+      }
+      maxUtf8Bytes = descriptor.value;
+    } catch {
+      return failure("invalid_input", "fiscal JSON input is invalid");
+    }
+  }
   if (typeof input !== "string") {
     return failure("invalid_input", "fiscal JSON input is invalid");
   }
-  if (input.length > FISCAL_EXACT_JSON_LIMITS.maxUtf8Bytes) {
+  if (input.length > maxUtf8Bytes) {
     return failure("resource_exhausted", "fiscal JSON resource limit exceeded");
   }
   if (!isWellFormedUtf16(input)) return failure("invalid_json", "fiscal JSON is invalid");
-  if (new TextEncoder().encode(input).byteLength > FISCAL_EXACT_JSON_LIMITS.maxUtf8Bytes) {
+  if (new TextEncoder().encode(input).byteLength > maxUtf8Bytes) {
     return failure("resource_exhausted", "fiscal JSON resource limit exceeded");
   }
   try {

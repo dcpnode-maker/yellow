@@ -374,6 +374,42 @@ Launch instances:
 UAE note: PINT AE must flow through an Accredited Service Provider — in-house clearance
 is not a legal option there. `provider_key` `ae-asp:<vendor>` is chosen at onboarding.
 
+### Q207 protected India IRP registration candidate
+
+The examples above describe extension intent; they are not live credentials or proof
+that an adapter is installed. Candidate Q207 does not read secrets from extension JSON,
+HTTP bodies or environment-variable values. Its only environment selector is
+`YELLOW_INDIA_IRP_PROVIDERS_FILE`. When absent, loading returns the same deeply frozen
+empty registry and the fiscal worker remains independently default-off.
+
+When explicitly configured, that value is an absolute local path of at most4096
+characters to a strict version1 manifest, at most4MiB, with at most16 exact
+registration entries. Each entry binds provider extension UUID/version and the fixed
+ClearIRP protocol configuration to
+a separate absolute credentials-file path. Each credentials file is at most16KiB and
+contains exactly `clientId`, `clientSecret`, `userName`, `password` and `gstin`.
+`protocolConfigurationJson` is itself the strict adapter JSON string with exactly
+`protocolProfile`, `providerKey`, `environment`, `apiBaseUrl`,
+`encryptionSpkiDerBase64`, `issuer`, `profileVersion`, `trustBundleJson`,
+`sekEncoding`, `tokenExpiryUtcOffsetMinutes`, `definitiveRejectionCodes`,
+`duplicateCodes` and `notFoundCodes`; endpoints, issuers, keys, code sets and token
+offsets have no defaults.
+Manifest and secret files are snapshotted from one opened handle, must be bounded
+regular files rather than directories or symbolic links, and loading makes no network
+request. Any malformed entry, duplicate registry identity or file failure rejects the
+whole load; no partial registry is returned.
+
+On POSIX, credential files must be owned by the runtime identity and inaccessible to
+group/other users. Those permission bits do not prove a Windows ACL: Windows deployment
+must separately restrict both manifest and credential paths to the runtime account.
+The loader reports this platform limitation rather than claiming ACL validation it
+cannot perform. The resulting immutable registration list is the single identity
+source for both HTTP adapter availability and supervised workers. No configuration,
+credential file, provider account, local runtime or transport is activated merely by
+this candidate contract. Generated-key tests have exercised the complete fixed
+protocol and protected loader without a network account; authentic provider sandbox
+onboarding remains a distinct unfinished activation gate.
+
 ---
 
 ## 6. `automation_action` — the action vocabulary (CONTRACTS §6 AST targets)

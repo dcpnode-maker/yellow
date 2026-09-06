@@ -1,3 +1,6 @@
+import type { FiscalAcceptedReceiptEvidence, FiscalRejectedReceiptEvidence,
+  FiscalCancelledReceiptEvidence } from "./fiscal-submission-receipt";
+
 /** Provider-neutral fiscal transport contract. Implementations verify and normalize
  * remote responses before returning them; these types confer no fiscal authority. */
 export type FiscalSubmissionMode = "clearance" | "reporting" | "peppol" | "exchange";
@@ -12,6 +15,8 @@ export interface FiscalProviderBinding {
 
 export interface FiscalProviderSubmission extends FiscalProviderBinding {
   readonly payload: Uint8Array;
+  readonly documentSha256: string;
+  readonly sourceContentJson: string;
 }
 
 export interface FiscalProviderLookup extends FiscalProviderSubmission {}
@@ -26,6 +31,12 @@ export interface FiscalProviderCallContext {
 export type FiscalProviderResolution = Readonly<
   | { verified: true; outcome: "cleared" | "accepted" | "rejected";
       authorityRef: string; responseSha256: string }
+  | { verified: true; outcome: "accepted"; authorityRef: string;
+      responseSha256: string; receipt: Readonly<FiscalAcceptedReceiptEvidence> }
+  | { verified: true; outcome: "rejected"; responseSha256: string;
+      receipt: Readonly<FiscalRejectedReceiptEvidence> }
+  | { verified: true; outcome: "provider_cancelled"; responseSha256: string;
+      receipt: Readonly<FiscalCancelledReceiptEvidence> }
   | { verified: true; outcome: "pending" | "timeout" | "duplicate" | "known_not_sent" }
 >;
 

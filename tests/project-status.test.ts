@@ -71,6 +71,10 @@ describe("canonical project status", () => {
     expect(byOrder.get(434)?.summary).toContain("native");
     expect(byOrder.get(440)?.state).toBe("proof_in_progress");
     expect(byOrder.get(440)?.summary).toContain("durable fiscal submission");
+    expect(byOrder.get(440)?.summary).toContain("PR90 at 4ba1d6f");
+    expect(byOrder.get(440)?.summary).toContain("independent actual81 storage");
+    expect(byOrder.get(440)?.remaining).toContain("Development81 is not mergedmain80");
+    expect(byOrder.get(440)?.remaining).toContain("authentic sandbox acceptance remain unfinished");
 
     expect(PROJECT_BUILD_SNAPSHOT.phases).toHaveLength(18);
     expect(PROJECT_BUILD_SNAPSHOT.phases.map(({ number, state }) => [number, state])).toEqual([

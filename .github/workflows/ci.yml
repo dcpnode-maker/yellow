@@ -391,7 +391,12 @@ jobs:
           set -euo pipefail
           native_template="yellow_ci_order434_native_template"
           native_clones=()
-          trap 'for native_clone in "${native_clones[@]}"; do docker compose exec -T postgres psql --username yellow_deploy --dbname postgres --set ON_ERROR_STOP=1 --command "DROP DATABASE IF EXISTS ${native_clone} WITH (FORCE)"; done; docker compose exec -T postgres psql --username yellow_deploy --dbname postgres --set ON_ERROR_STOP=1 --command "DROP DATABASE IF EXISTS ${native_template} WITH (FORCE)"' EXIT
+          native_migrations="$(mktemp -d "$RUNNER_TEMP/yellow-order434-prefix80.XXXXXX")"
+          trap 'for native_clone in "${native_clones[@]}"; do docker compose exec -T postgres psql --username yellow_deploy --dbname postgres --set ON_ERROR_STOP=1 --command "DROP DATABASE IF EXISTS ${native_clone} WITH (FORCE)"; done; docker compose exec -T postgres psql --username yellow_deploy --dbname postgres --set ON_ERROR_STOP=1 --command "DROP DATABASE IF EXISTS ${native_template} WITH (FORCE)"; if [[ -n "${native_migrations:-}" && -d "$native_migrations" && "$native_migrations" == "$RUNNER_TEMP"/yellow-order434-prefix80.* ]]; then rm -r -- "$native_migrations"; fi' EXIT
+          for migration in "$GITHUB_WORKSPACE"/migrations/*.sql; do
+            filename="$(basename "$migration")"
+            if (( 10#${filename:0:4} <= 80 )); then cp "$migration" "$native_migrations/$filename"; fi
+          done
           docker compose exec -T postgres psql --username yellow_deploy --dbname postgres --set ON_ERROR_STOP=1 \
             --command "DROP DATABASE IF EXISTS ${native_template} WITH (FORCE)"
           docker compose exec -T postgres psql --username yellow_deploy --dbname postgres --set ON_ERROR_STOP=1 \
@@ -399,8 +404,9 @@ jobs:
           export YELLOW_REQUIRE_ORDER434_DATABASE=1
           export YELLOW_REQUIRE_ORDER434_NATIVE_ACCOUNTING_DATABASE=1
           export YELLOW_REQUIRE_ORDER434_NATIVE_ISSUANCE_DATABASE=1
-          export YELLOW_ORDER434_MIGRATIONS_DIR="$GITHUB_WORKSPACE/migrations"
+          export YELLOW_ORDER434_MIGRATIONS_DIR="$native_migrations"
           export YELLOW_ORDER434_PG_DUMP_COMPOSE=1
+          YELLOW_MIGRATIONS_DIR="$native_migrations" \
           YELLOW_DEPLOY_DATABASE_URL="postgres://yellow_deploy:${YELLOW_DEPLOY_DATABASE_PASSWORD}@${POSTGRES_ADDRESS}/${native_template}" \
           YELLOW_RUNTIME_DATABASE_URL="postgres://yellow_runtime:${YELLOW_RUNTIME_DATABASE_PASSWORD}@${POSTGRES_ADDRESS}/${native_template}" \
             bun run db:migrate
@@ -454,11 +460,13 @@ jobs:
             --command "DROP DATABASE ${q203_database} WITH (FORCE)"
 
           # Q204 exercises actual HTTP/discovery/transport/reconciliation on an
-          # empty current80 clone. The isolated adapter is never production authority.
+          # empty current81 clone. The isolated adapter is never production authority.
           q204_database="yellow_order440_q204_ci"
           native_clones+=("$q204_database")
           docker compose exec -T postgres psql --username yellow_deploy --dbname postgres --set ON_ERROR_STOP=1 \
             --command "CREATE DATABASE ${q204_database} TEMPLATE ${native_template}"
+          YELLOW_DEPLOY_DATABASE_URL="postgres://yellow_deploy:${YELLOW_DEPLOY_DATABASE_PASSWORD}@${POSTGRES_ADDRESS}/${q204_database}" \
+            bun run db:migrate
           YELLOW_ORDER440_DELIVERY_DEPLOY_DATABASE_URL="postgres://yellow_deploy:${YELLOW_DEPLOY_DATABASE_PASSWORD}@${POSTGRES_ADDRESS}/${q204_database}" \
           YELLOW_ORDER440_DELIVERY_RUNTIME_DATABASE_URL="postgres://yellow_runtime:${YELLOW_RUNTIME_DATABASE_PASSWORD}@${POSTGRES_ADDRESS}/${q204_database}" \
           YELLOW_REQUIRE_ORDER440_DELIVERY=1 \
@@ -512,6 +520,44 @@ jobs:
           rm -r -- "$durable_migrations"
           docker compose exec -T postgres psql --username yellow_deploy --dbname postgres --set ON_ERROR_STOP=1 \
             --command "DROP DATABASE ${durable_database} WITH (FORCE)"
+
+          # Q207 independently exercises the genuine frontier80-to81 preservation
+          # path. The historical Q203 fixture above remains on canonical80.
+          q207_upgrade_database="yellow_order440_q207_upgrade_ci"
+          native_clones+=("$q207_upgrade_database")
+          docker compose exec -T postgres psql --username yellow_deploy --dbname postgres --set ON_ERROR_STOP=1 \
+            --command "CREATE DATABASE ${q207_upgrade_database} TEMPLATE ${native_template}"
+          YELLOW_ORDER440_SIGNED_DEPLOY_DATABASE_URL="postgres://yellow_deploy:${YELLOW_DEPLOY_DATABASE_PASSWORD}@${POSTGRES_ADDRESS}/${q207_upgrade_database}" \
+          YELLOW_ORDER440_SIGNED_RUNTIME_DATABASE_URL="postgres://yellow_runtime:${YELLOW_RUNTIME_DATABASE_PASSWORD}@${POSTGRES_ADDRESS}/${q207_upgrade_database}" \
+          YELLOW_REQUIRE_ORDER440_SIGNED=1 YELLOW_ORDER440_SIGNED_APPLY_UPGRADE=1 \
+            bun test tests/fiscal-signed-receipt-durability.integration.test.ts
+          docker compose exec -T postgres psql --username yellow_deploy --dbname postgres --set ON_ERROR_STOP=1 \
+            --command "DROP DATABASE ${q207_upgrade_database} WITH (FORCE)"
+
+          # Q207's empty current81 durability proof must close first. The full
+          # authenticated protocol journey and signed-session GET then use that
+          # same isolated81 target sequentially, never an old80 fixture.
+          q207_database="yellow_order440_q207_ci"
+          native_clones+=("$q207_database")
+          docker compose exec -T postgres psql --username yellow_deploy --dbname postgres --set ON_ERROR_STOP=1 \
+            --command "CREATE DATABASE ${q207_database} TEMPLATE ${native_template}"
+          q207_deploy_url="postgres://yellow_deploy:${YELLOW_DEPLOY_DATABASE_PASSWORD}@${POSTGRES_ADDRESS}/${q207_database}"
+          q207_runtime_url="postgres://yellow_runtime:${YELLOW_RUNTIME_DATABASE_PASSWORD}@${POSTGRES_ADDRESS}/${q207_database}"
+          YELLOW_DEPLOY_DATABASE_URL="$q207_deploy_url" bun run db:migrate
+          YELLOW_ORDER440_SIGNED_DEPLOY_DATABASE_URL="$q207_deploy_url" \
+          YELLOW_ORDER440_SIGNED_RUNTIME_DATABASE_URL="$q207_runtime_url" \
+          YELLOW_REQUIRE_ORDER440_SIGNED=1 \
+            bun test tests/fiscal-signed-receipt-durability.integration.test.ts
+          YELLOW_ORDER440_SIGNED_DEPLOY_DATABASE_URL="$q207_deploy_url" \
+          YELLOW_ORDER440_SIGNED_RUNTIME_DATABASE_URL="$q207_runtime_url" \
+          YELLOW_REQUIRE_ORDER440_SIGNED=1 \
+            bun test tests/fiscal-signed-provider-journey.integration.test.ts
+          YELLOW_ORDER440_SIGNED_DEPLOY_DATABASE_URL="$q207_deploy_url" \
+          YELLOW_ORDER440_SIGNED_RUNTIME_DATABASE_URL="$q207_runtime_url" \
+          YELLOW_REQUIRE_ORDER440_SIGNED=1 \
+            bun test tests/operator-fiscal-submission-receipt.integration.test.ts
+          docker compose exec -T postgres psql --username yellow_deploy --dbname postgres --set ON_ERROR_STOP=1 \
+            --command "DROP DATABASE ${q207_database} WITH (FORCE)"
 
       - name: Prove native fiscal release containment on fresh and upgraded databases
         shell: bash
@@ -667,7 +713,7 @@ jobs:
           READY_FILE="$proof_directory/readiness.json" bun -e '
             const body = await Bun.file(process.env.READY_FILE!).json();
             if (body.status !== "ready" || body.build?.revision !== process.env.YELLOW_BUILD_SHA
-                || body.build?.expectedMigrationFrontier !== 80
+                || body.build?.expectedMigrationFrontier !== 81
                 || body.target !== "yellow_runtime_database") process.exit(1);
           '
 
@@ -740,7 +786,14 @@ jobs:
 
       - name: Print database logs on failure
         if: failure()
-        run: docker compose logs --no-color postgres app
+        timeout-minutes: 1
+        run: |
+          echo "Bounded PostgreSQL/app tail; partial diagnostics only (40 records/container, 64 KiB, 25s maximum producer lifetime)."
+          set +e
+          timeout --kill-after=5s 20s docker compose logs --no-color --tail 40 postgres app | tail -c 65536
+          diagnostic_status=("${PIPESTATUS[@]}")
+          set -e
+          printf '\nDiagnostic producer exit=%s; tail exit=%s. This does not replace the failed acceptance result.\n' "${diagnostic_status[0]}" "${diagnostic_status[1]}"
 
       - name: Remove database stack and volumes
         if: always()
@@ -818,8 +871,8 @@ jobs:
           bun install --frozen-lockfile
           python -m pip install --require-hashes --only-binary=:all: -r requirements-ci.txt
 
-      - name: Verify fiscal decoder and pinned RS256 on native ARM64
-        run: bun test tests/fiscal-exact-json.test.ts tests/fiscal-signed-jws.test.ts tests/india-irp-signed-receipt-binding.test.ts
+      - name: Verify fiscal decoder, pinned RS256 and direct ClearIRP on native ARM64
+        run: bun test tests/fiscal-exact-json.test.ts tests/fiscal-signed-jws.test.ts tests/india-irp-signed-receipt-binding.test.ts tests/clearirp-direct-adapter.test.ts tests/india-irp-provider-configuration.test.ts
 
       - name: Prove native ARM64 image targets and exact source identity
         shell: bash

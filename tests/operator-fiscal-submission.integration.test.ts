@@ -3,7 +3,10 @@ import { SQL } from "bun";
 import { readFile } from "node:fs/promises";
 import { Database, type ConnectionPool, type Tx } from "../src/kernel";
 import { Hs256TokenSigner } from "../src/contexts/identity";
-import type { FiscalSubmissionReceipt } from "../src/contexts/tax-fiscal";
+import {
+  loadIndiaIrpAdapterRegistrationsFromEnvironment,
+  type FiscalSubmissionReceipt,
+} from "../src/contexts/tax-fiscal";
 import {
   FISCAL_REQUEST_SCOPE,
   FISCAL_RETRY_SCOPE,
@@ -95,22 +98,39 @@ describe("Q203 HTTP proof target safety", () => {
     }
   });
 
-  test("Q204 production remains default-off and shares one empty provider registration snapshot", async () => {
+  test("Q207 protected provider configuration stays default-off and shares one immutable snapshot", async () => {
     const source = await readFile(new URL("../src/server.ts", import.meta.url), "utf8");
+    const absent = await loadIndiaIrpAdapterRegistrationsFromEnvironment({});
+    expect(absent).toEqual({ ok: true, value: [] });
+    expect(absent.ok && Object.isFrozen(absent.value)).toBe(true);
     expect(source).toContain(
       'const fiscalSubmissionDeliveryEnabled = workbenchEnabled && Bun.env.YELLOW_FISCAL_SUBMISSION_WORKER === "1"',
     );
     expect(source).toContain(
-      "const verifiedIndiaIrpAdapterRegistrations = Object.freeze([]) as readonly VerifiedIndiaIrpAdapterRegistration[]",
+      "const providerConfiguration = await loadIndiaIrpAdapterRegistrationsFromEnvironment(Bun.env)",
     );
+    expect(source).toContain("const verifiedIndiaIrpAdapterRegistrations = providerConfiguration.value");
     expect(source).toMatch(/new VerifiedIndiaIrpAdapterRegistry\(verifiedIndiaIrpAdapterRegistrations\)/);
     expect(source).toMatch(
       /new FiscalSubmissionAdapterAvailabilityService\(fiscalAdapterRegistry\.identities\(\)\)/,
     );
     expect(source).toMatch(/new FiscalSubmissionWorker\(fiscalRepository, fiscalAdapterRegistry\)/);
     expect(source).toContain("adapters: fiscalSubmissionAdapters");
-    expect(source.indexOf("enabled fiscal submission worker requires a verified provider adapter"))
-      .toBeLessThan(source.indexOf("runtimeApp().listen"));
+    const configurationLoad = source.indexOf(
+      "await loadIndiaIrpAdapterRegistrationsFromEnvironment(Bun.env)",
+    );
+    const configurationFailure = source.indexOf("if (!providerConfiguration.ok)");
+    const emptyEnabledFailure = source.indexOf(
+      "enabled fiscal submission worker requires a verified provider adapter",
+    );
+    const firstPool = Math.min(source.indexOf("Database.connect"), source.indexOf("new SQL"));
+    const listen = source.indexOf("runtimeApp().listen");
+    expect([configurationLoad, configurationFailure, emptyEnabledFailure, firstPool, listen]
+      .every((index) => index >= 0)).toBe(true);
+    expect(configurationLoad).toBeLessThan(configurationFailure);
+    expect(configurationFailure).toBeLessThan(firstPool);
+    expect(emptyEnabledFailure).toBeLessThan(firstPool);
+    expect(firstPool).toBeLessThan(listen);
     expect(source).not.toMatch(/YELLOW_(?:FISCAL|IRP).*(?:JSON|URL|TOKEN|SECRET|PASSWORD)/);
   });
 });

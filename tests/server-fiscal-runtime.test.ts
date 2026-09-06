@@ -156,10 +156,20 @@ async function waitForPhase(path: string, expected: string): Promise<Awaited<Ret
 }
 
 describe("Order440/Q204 fiscal composition", () => {
-  test("is default-off, has no environment-built adapter hook, and fails enabled-empty before listen", async () => {
+  test("loads the protected provider snapshot before pools/listen and keeps worker activation default-off", async () => {
     const source = await readFile(new URL("../src/server.ts", import.meta.url), "utf8");
     expect(source).toContain('Bun.env.YELLOW_FISCAL_SUBMISSION_WORKER === "1"');
-    expect(source).toContain("const verifiedIndiaIrpAdapterRegistrations = Object.freeze([])");
+    expect(source).toContain("await loadIndiaIrpAdapterRegistrationsFromEnvironment(Bun.env)");
+    expect(source).toContain("const verifiedIndiaIrpAdapterRegistrations = providerConfiguration.value");
+    expect(source).toContain("if (!providerConfiguration.ok)");
+    expect(source).toContain("India IRP provider deployment configuration is invalid");
+    expect(source.indexOf("await loadIndiaIrpAdapterRegistrationsFromEnvironment(Bun.env)"))
+      .toBeLessThan(source.indexOf("Database.connect"));
+    expect(source.indexOf("India IRP provider deployment configuration is invalid"))
+      .toBeLessThan(source.indexOf("runtimeApp().listen"));
+    expect(source).toContain("new VerifiedIndiaIrpAdapterRegistry(verifiedIndiaIrpAdapterRegistrations)");
+    expect(source).toContain("new FiscalSubmissionAdapterAvailabilityService(fiscalAdapterRegistry.identities())");
+    expect(source).toContain("new FiscalSubmissionWorker(fiscalRepository, fiscalAdapterRegistry)");
     expect(source).toContain("enabled fiscal submission worker requires a verified provider adapter");
     expect(source.indexOf("enabled fiscal submission worker requires a verified provider adapter"))
       .toBeLessThan(source.indexOf("runtimeApp().listen"));
@@ -180,6 +190,44 @@ describe("Order440/Q204 fiscal composition", () => {
 });
 
 linuxProcessDescribe("Order440/Q204 actual Linux server lifecycle", () => {
+  test("protected manifest failure is sanitized and an explicit empty manifest cannot activate delivery", async () => {
+    const directory = await validatedTempDirectory();
+    const manifest = join(directory, "private-provider-manifest.json");
+    const reservation = await reserveLoopbackPort();
+    try {
+      for (const [content, expected] of [
+        [JSON.stringify({ version: 1, providers: [], secret: PRIVATE_SENTINEL }),
+          "India IRP provider deployment configuration is invalid"],
+        [JSON.stringify({ version: 1, providers: [] }),
+          "enabled fiscal submission worker requires a verified provider adapter"],
+      ] as const) {
+        await writeFile(manifest, content, { mode: 0o600 });
+        const owned = spawnOwned([process.execPath, SERVER_ENTRY], {
+          NODE_ENV: "production", HOST: "127.0.0.1", PORT: String(reservation.port),
+          YELLOW_OPERATOR_WORKBENCH: "1", YELLOW_FISCAL_SUBMISSION_WORKER: "1",
+          YELLOW_INDIA_IRP_PROVIDERS_FILE: manifest, YELLOW_TOKEN_SECRET: PRIVATE_SENTINEL,
+        });
+        try {
+          const result = await collectOwned(owned);
+          expect(result.exitCode).not.toBe(0);
+          expect(result.stderr.text).toContain(expected);
+          const output = result.stdout.text + result.stderr.text;
+          expect(output).not.toContain(PRIVATE_SENTINEL);
+          expect(output).not.toContain(manifest);
+          expect(output).not.toContain("EADDRINUSE");
+          expect(output).not.toContain("YELLOW_RUNTIME_DATABASE_URL is required");
+          expect(result.stdout.truncated || result.stderr.truncated).toBe(false);
+          expect((await fetch(`http://127.0.0.1:${reservation.port}/`)).status).toBe(418);
+        } finally {
+          await killOwned(owned);
+        }
+      }
+    } finally {
+      await reservation.close();
+      await removeValidatedTempDirectory(directory);
+    }
+  }, 25_000);
+
   test("the default-disabled server serves health and exits cleanly on real SIGTERM", async () => {
     const reservation = await reserveLoopbackPort();
     const port = reservation.port;

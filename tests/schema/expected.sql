@@ -1687,7 +1687,7 @@ CREATE FUNCTION public.claim_india_fiscal_submission(p_tenant uuid, p_submission
     SET "DateStyle" TO 'ISO,YMD'
     AS $$
 DECLARE
-  v_context uuid;v_head public.fiscal_submission%ROWTYPE;v_action text;
+  v_context uuid;v_head public.fiscal_submission%ROWTYPE;v_action text;v_source text;v_source_hash text;
   v_token uuid:=pg_catalog.gen_random_uuid();v_token_hash text;v_now timestamptz;
   v_correlation uuid:=pg_catalog.gen_random_uuid();
 BEGIN
@@ -1706,10 +1706,7 @@ BEGIN
     RAISE EXCEPTION USING ERRCODE='42501',MESSAGE='fiscal submission tenant context is unauthorized';
   END IF;
   PERFORM public.india_fiscal_submission_lock_relations();
-  -- Lock the current tenant status before the head. A concurrent suspension
-  -- either wins before this check or waits until the atomic claim settles.
-  PERFORM 1 FROM public.tenant tenant
-   WHERE tenant.id=p_tenant AND tenant.status='active' FOR SHARE;
+  PERFORM 1 FROM public.tenant tenant WHERE tenant.id=p_tenant AND tenant.status='active' FOR SHARE;
   IF NOT FOUND THEN
     RAISE EXCEPTION USING ERRCODE='55000',MESSAGE='active fiscal submission tenant is unavailable';
   END IF;
@@ -1717,11 +1714,22 @@ BEGIN
    WHERE submission.tenant_id=p_tenant AND submission.id=p_submission AND submission.delivery_version=1
    FOR UPDATE;
   IF NOT FOUND THEN RAISE EXCEPTION USING ERRCODE='55000',MESSAGE='durable fiscal submission is unavailable'; END IF;
-  -- A lease starts only after every possibly blocking relation/head lock is held.
+  SELECT document.content::text INTO v_source FROM public.document document
+   WHERE document.tenant_id=v_head.tenant_id AND document.id=v_head.document_id;
+  IF v_source IS NULL OR pg_catalog.octet_length(v_source) NOT BETWEEN 1 AND 1048576 THEN
+    RAISE EXCEPTION USING ERRCODE='55000',MESSAGE='fiscal submission source content is unavailable';
+  END IF;
+  v_source_hash:=pg_catalog.encode(public.digest(pg_catalog.convert_to(v_source,'UTF8'),'sha256'),'hex');
+  IF v_source_hash IS DISTINCT FROM v_head.document_sha256 THEN
+    RAISE EXCEPTION USING ERRCODE='55000',MESSAGE='fiscal submission source content hash is inconsistent';
+  END IF;
   v_now:=pg_catalog.clock_timestamp();
-  IF v_head.status IN ('accepted','rejected') THEN
+  IF v_head.status IN ('accepted','rejected')
+     OR (v_head.status='error' AND v_head.disposition='none'
+       AND v_head.reconciliation_reason='provider_cancelled') THEN
     RETURN pg_catalog.jsonb_build_object('claimed',false,'reason','terminal');
-  ELSIF v_head.status='error' THEN
+  ELSIF v_head.status='error' AND v_head.disposition='retry'
+      AND v_head.reconciliation_reason='known_not_sent' THEN
     RETURN pg_catalog.jsonb_build_object('claimed',false,'reason','retry_required');
   ELSIF v_head.status='submitted'
     AND v_head.claim_expires_at + (CASE WHEN v_head.response IS NULL
@@ -1737,8 +1745,6 @@ BEGIN
       transition_seq=transition_seq+1,claim_token_hash=v_token_hash,
       claim_expires_at=v_now+pg_catalog.make_interval(secs=>p_lease_seconds),claim_action=v_action,
       reconciliation_reason=CASE WHEN v_action='submit' THEN 'transport_started' ELSE reconciliation_reason END,
-      -- A prior nonterminal adapter result remains in immutable history.  The new
-      -- token owns a fresh reconciliation slot on the mutable delivery head.
       response=NULL,submitted_at=COALESCE(submitted_at,v_now)
     WHERE tenant_id=p_tenant AND id=p_submission RETURNING * INTO v_head;
   PERFORM public.india_fiscal_submission_record_transition(v_head,'fiscal.submission.claimed',
@@ -1746,7 +1752,7 @@ BEGIN
   RETURN pg_catalog.jsonb_build_object('claimed',true,'action',v_action,'claimToken',v_token,
     'submissionId',v_head.id,'tenantId',v_head.tenant_id,'propertyNode',v_head.property_node,
     'documentId',v_head.document_id,'documentSha256',v_head.document_sha256,
-    'wireSha256',v_head.wire_sha256,'wireJson',v_head.wire_text,
+    'sourceContentJson',v_source,'wireSha256',v_head.wire_sha256,'wireJson',v_head.wire_text,
     'providerKey',v_head.provider_key,'providerExtensionId',v_head.provider_extension_id,
     'providerExtensionVersion',v_head.provider_extension_version,
     'attemptId',v_head.attempt_id,'attemptNumber',v_head.attempt_number);
@@ -5805,14 +5811,14 @@ CREATE TABLE public.fiscal_submission_history (
     CONSTRAINT fiscal_submission_history_claim_token_hash_check CHECK (((claim_token_hash IS NULL) OR (claim_token_hash ~ '^[0-9a-f]{64}$'::text))),
     CONSTRAINT fiscal_submission_history_disposition_check CHECK ((disposition = ANY (ARRAY['send'::text, 'lookup'::text, 'retry'::text, 'none'::text]))),
     CONSTRAINT fiscal_submission_history_document_sha256_check CHECK ((document_sha256 ~ '^[0-9a-f]{64}$'::text)),
-    CONSTRAINT fiscal_submission_history_event_shape_ck CHECK ((((event_type = ANY (ARRAY['fiscal.submission.requested'::text, 'fiscal.submission.retry_requested'::text])) AND (outcome IS NULL) AND (actor_id IS NOT NULL) AND (num_nonnulls(idempotency_key_hash, idempotency_request_hash) = 2)) OR ((event_type = 'fiscal.submission.claimed'::text) AND (outcome IS NULL) AND (actor_id IS NULL) AND (num_nonnulls(idempotency_key_hash, idempotency_request_hash) = 0) AND (num_nonnulls(claim_token_hash, claim_expires_at, claim_action) = 3)) OR ((event_type = 'fiscal.submission.reconciled'::text) AND (outcome IS NOT NULL) AND (actor_id IS NULL) AND (num_nonnulls(idempotency_key_hash, idempotency_request_hash) = 0) AND (num_nonnulls(claim_token_hash, claim_expires_at, claim_action) = 3)))),
+    CONSTRAINT fiscal_submission_history_event_shape_ck CHECK (((((event_type = ANY (ARRAY['fiscal.submission.requested'::text, 'fiscal.submission.retry_requested'::text])) AND (outcome IS NULL) AND (actor_id IS NOT NULL) AND (num_nonnulls(idempotency_key_hash, idempotency_request_hash) = 2)) OR ((event_type = 'fiscal.submission.claimed'::text) AND (outcome IS NULL) AND (actor_id IS NULL) AND (num_nonnulls(idempotency_key_hash, idempotency_request_hash) = 0) AND (num_nonnulls(claim_token_hash, claim_expires_at, claim_action) = 3)) OR ((event_type = 'fiscal.submission.reconciled'::text) AND (outcome IS NOT NULL) AND (actor_id IS NULL) AND (num_nonnulls(idempotency_key_hash, idempotency_request_hash) = 0) AND (num_nonnulls(claim_token_hash, claim_expires_at, claim_action) = 3))) AND ((outcome IS DISTINCT FROM 'provider_cancelled'::text) OR ((event_type = 'fiscal.submission.reconciled'::text) AND (status = 'error'::text) AND (disposition = 'none'::text) AND (reconciliation_reason = 'provider_cancelled'::text) AND (resolution_source = 'lookup_result'::text) AND (authority_ref IS NULL) AND (response_sha256 IS NOT NULL) AND (claim_action = 'lookup'::text))) AND ((reconciliation_reason IS DISTINCT FROM 'provider_cancelled'::text) OR (outcome = 'provider_cancelled'::text)))),
     CONSTRAINT fiscal_submission_history_event_type_check CHECK ((event_type = ANY (ARRAY['fiscal.submission.requested'::text, 'fiscal.submission.claimed'::text, 'fiscal.submission.reconciled'::text, 'fiscal.submission.retry_requested'::text]))),
     CONSTRAINT fiscal_submission_history_idempotency_key_hash_check CHECK (((idempotency_key_hash IS NULL) OR (idempotency_key_hash ~ '^[0-9a-f]{64}$'::text))),
     CONSTRAINT fiscal_submission_history_idempotency_request_hash_check CHECK (((idempotency_request_hash IS NULL) OR (idempotency_request_hash ~ '^[0-9a-f]{64}$'::text))),
-    CONSTRAINT fiscal_submission_history_outcome_check CHECK ((outcome = ANY (ARRAY['pending'::text, 'timeout'::text, 'duplicate'::text, 'known_not_sent'::text, 'accepted'::text, 'rejected'::text]))),
+    CONSTRAINT fiscal_submission_history_outcome_check CHECK ((outcome = ANY (ARRAY['pending'::text, 'timeout'::text, 'duplicate'::text, 'known_not_sent'::text, 'accepted'::text, 'rejected'::text, 'provider_cancelled'::text]))),
     CONSTRAINT fiscal_submission_history_provider_extension_version_check CHECK ((provider_extension_version > 0)),
     CONSTRAINT fiscal_submission_history_provider_key_check CHECK ((provider_key ~ '^[a-z0-9](?:[a-z0-9._:-]{0,126}[a-z0-9])?$'::text)),
-    CONSTRAINT fiscal_submission_history_reconciliation_reason_check CHECK ((reconciliation_reason = ANY (ARRAY['transport_started'::text, 'timeout'::text, 'duplicate'::text, 'provider_pending'::text, 'known_not_sent'::text]))),
+    CONSTRAINT fiscal_submission_history_reconciliation_reason_check CHECK ((reconciliation_reason = ANY (ARRAY['transport_started'::text, 'timeout'::text, 'duplicate'::text, 'provider_pending'::text, 'known_not_sent'::text, 'provider_cancelled'::text]))),
     CONSTRAINT fiscal_submission_history_resolution_source_check CHECK ((resolution_source = ANY (ARRAY['transport_result'::text, 'lookup_result'::text]))),
     CONSTRAINT fiscal_submission_history_response_sha256_check CHECK (((response_sha256 IS NULL) OR (response_sha256 ~ '^[0-9a-f]{64}$'::text))),
     CONSTRAINT fiscal_submission_history_status_check CHECK ((status = ANY (ARRAY['pending'::text, 'submitted'::text, 'accepted'::text, 'rejected'::text, 'error'::text]))),
@@ -6196,6 +6202,23 @@ CREATE FUNCTION public.india_fiscal_submission_protect_head() RETURNS trigger
     SET search_path TO 'pg_catalog', 'public', 'pg_temp'
     AS $$
 BEGIN
+  IF TG_OP='DELETE' THEN
+    IF OLD.delivery_version IS NOT NULL THEN
+      RAISE EXCEPTION USING ERRCODE='55000',MESSAGE='durable fiscal submission cannot be deleted';
+    END IF;
+    RETURN OLD;
+  END IF;
+  IF TG_OP='INSERT' THEN
+    IF NEW.delivery_version=1 AND (NEW.status IN ('accepted','rejected')
+        OR (NEW.status='error' AND NEW.disposition='none'))
+       AND public.india_fiscal_submission_signed_result_v1_valid(
+         NEW.response,NEW.response_sha256,NEW.qr_payload,NEW.status,NEW.disposition,
+         NEW.reconciliation_reason,NEW.resolution_source,NEW.authority_ref,NEW.tenant_id,
+         NEW.attempt_id,NEW.document_id,NEW.document_sha256,NEW.wire_sha256,NEW.provider_key) IS NOT TRUE THEN
+      RAISE EXCEPTION USING ERRCODE='55000',MESSAGE='new terminal fiscal submission requires signed delivery evidence';
+    END IF;
+    RETURN NEW;
+  END IF;
   IF OLD.delivery_version IS NULL AND NEW.delivery_version IS NOT NULL THEN
     RAISE EXCEPTION USING ERRCODE='55000',
       MESSAGE='legacy fiscal submissions cannot be adopted as durable delivery evidence';
@@ -6210,17 +6233,238 @@ BEGIN
           OLD.document_sha256,OLD.wire_sha256,OLD.wire_text,OLD.provider_key,OLD.mode,
           OLD.provider_extension_id,OLD.provider_extension_version,OLD.requested_by,OLD.request_id)
     ) THEN
-    RAISE EXCEPTION USING ERRCODE='55000',
-      MESSAGE='durable fiscal submission source references are immutable';
+    RAISE EXCEPTION USING ERRCODE='55000',MESSAGE='durable fiscal submission source references are immutable';
   END IF;
-  IF OLD.delivery_version=1 AND OLD.status IN ('accepted','rejected')
-     AND NEW IS DISTINCT FROM OLD THEN
-    RAISE EXCEPTION USING ERRCODE='55000',
-      MESSAGE='terminal durable fiscal submission is immutable';
+  IF OLD.delivery_version=1 AND (OLD.status IN ('accepted','rejected')
+       OR (OLD.status='error' AND OLD.disposition='none'
+         AND OLD.reconciliation_reason='provider_cancelled'))
+     THEN
+    IF NEW IS DISTINCT FROM OLD THEN
+      RAISE EXCEPTION USING ERRCODE='55000',MESSAGE='terminal durable fiscal submission is immutable';
+    END IF;
+    -- Byte-identical retained pre81 rows remain untouched; this does not allow
+    -- a pending row to acquire a newly fabricated legacy unsigned acceptance.
+    RETURN NEW;
+  END IF;
+  IF NEW.delivery_version=1 AND (NEW.status IN ('accepted','rejected')
+      OR (NEW.status='error' AND NEW.disposition='none'))
+     AND public.india_fiscal_submission_signed_result_v1_valid(
+       NEW.response,NEW.response_sha256,NEW.qr_payload,NEW.status,NEW.disposition,
+       NEW.reconciliation_reason,NEW.resolution_source,NEW.authority_ref,NEW.tenant_id,
+       NEW.attempt_id,NEW.document_id,NEW.document_sha256,NEW.wire_sha256,NEW.provider_key) IS NOT TRUE THEN
+    RAISE EXCEPTION USING ERRCODE='55000',MESSAGE='new terminal fiscal submission requires signed delivery evidence';
   END IF;
   RETURN NEW;
 END;
 $$;
+
+
+--
+-- Name: india_fiscal_submission_signed_result_v1_valid(jsonb, text, text, text, text, text, text, text, uuid, uuid, uuid, text, text, text); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.india_fiscal_submission_signed_result_v1_valid(p_result jsonb, p_response_sha256 text, p_qr_payload text, p_status text, p_disposition text, p_reconciliation_reason text, p_resolution_source text, p_authority_ref text, p_tenant uuid, p_attempt uuid, p_document uuid, p_document_sha256 text, p_wire_sha256 text, p_provider_key text) RETURNS boolean
+    LANGUAGE plpgsql IMMUTABLE
+    SET search_path TO 'pg_catalog', 'public', 'pg_temp'
+    AS $_$
+DECLARE
+  v_receipt jsonb;v_verification jsonb;v_kind text;v_outcome text;v_type text;
+  v_keys text[];v_expected text[];v_raw bytea;v_decrypted bytea;v_ack timestamp;
+  v_raw_base64 text;v_decrypted_base64 text;v_signed_invoice text;v_signed_qr text;
+  v_error_count integer;v_error_distinct integer;
+BEGIN
+  -- SQL three-valued comparisons must never accept an absent required state.
+  -- Authority/QR/reconciliation reason are variant-nullable; these bindings are not.
+  IF p_result IS NULL OR pg_catalog.jsonb_typeof(p_result) IS DISTINCT FROM 'object'
+     OR p_status IS NULL OR p_disposition IS NULL OR p_resolution_source IS NULL
+     OR p_response_sha256 IS NULL OR p_tenant IS NULL OR p_attempt IS NULL
+     OR p_document IS NULL OR p_document_sha256 IS NULL OR p_wire_sha256 IS NULL
+     OR p_provider_key IS NULL THEN RETURN false; END IF;
+  v_outcome:=p_result->>'outcome';v_type:=p_result->>'type';
+  IF v_outcome NOT IN ('accepted','rejected','provider_cancelled')
+     OR v_type NOT IN ('transport_result','lookup_result')
+     OR p_resolution_source IS DISTINCT FROM v_type
+     OR (v_outcome='provider_cancelled' AND v_type<>'lookup_result') THEN RETURN false; END IF;
+  v_expected:=CASE WHEN v_outcome='accepted'
+    THEN ARRAY['attemptId','authorityRef','documentId','outcome','payloadSha256','providerKey',
+      'receipt','responseSha256','tenantId','type']
+    ELSE ARRAY['attemptId','documentId','outcome','payloadSha256','providerKey',
+      'receipt','responseSha256','tenantId','type'] END;
+  SELECT pg_catalog.array_agg(key ORDER BY key) INTO v_keys FROM pg_catalog.jsonb_object_keys(p_result) key;
+  IF v_keys IS DISTINCT FROM v_expected
+     OR pg_catalog.jsonb_typeof(p_result->'type') IS DISTINCT FROM 'string'
+     OR pg_catalog.jsonb_typeof(p_result->'outcome') IS DISTINCT FROM 'string'
+     OR pg_catalog.jsonb_typeof(p_result->'tenantId') IS DISTINCT FROM 'string'
+     OR pg_catalog.jsonb_typeof(p_result->'providerKey') IS DISTINCT FROM 'string'
+     OR pg_catalog.jsonb_typeof(p_result->'attemptId') IS DISTINCT FROM 'string'
+     OR pg_catalog.jsonb_typeof(p_result->'documentId') IS DISTINCT FROM 'string'
+     OR pg_catalog.jsonb_typeof(p_result->'payloadSha256') IS DISTINCT FROM 'string'
+     OR pg_catalog.jsonb_typeof(p_result->'responseSha256') IS DISTINCT FROM 'string'
+     OR pg_catalog.jsonb_typeof(p_result->'receipt') IS DISTINCT FROM 'object'
+     OR p_result->>'tenantId' IS DISTINCT FROM p_tenant::text
+     OR p_result->>'attemptId' IS DISTINCT FROM p_attempt::text
+     OR p_result->>'documentId' IS DISTINCT FROM p_document::text
+     OR p_result->>'providerKey' IS DISTINCT FROM p_provider_key
+     OR p_result->>'payloadSha256' IS DISTINCT FROM p_wire_sha256
+     OR p_result->>'responseSha256' IS DISTINCT FROM p_response_sha256
+     OR p_response_sha256!~'^[0-9a-f]{64}$' THEN RETURN false; END IF;
+
+  v_receipt:=p_result->'receipt';v_kind:=v_receipt->>'kind';
+  v_expected:=CASE v_kind
+    WHEN 'accepted_signed_v1' THEN ARRAY['ackDt','ackNo','decryptedDataBase64','decryptedDataSha256',
+      'documentId','documentSha256','environment','irn','kind','protocolProfile','providerKey',
+      'rawResponseBase64','receivedAtUnixMs','signedInvoice','signedInvoiceSha256','signedQRCode',
+      'signedQrSha256','verification','version','wireSha256']
+    WHEN 'rejected' THEN ARRAY['decryptedDataBase64','decryptedDataSha256','documentId','documentSha256',
+      'environment','errorCodes','kind','protocolProfile','providerKey','rawResponseBase64',
+      'receivedAtUnixMs','version','wireSha256']
+    WHEN 'provider_cancelled' THEN ARRAY['decryptedDataBase64','decryptedDataSha256','documentId',
+      'documentSha256','environment','kind','protocolProfile','providerKey','providerStatus',
+      'rawResponseBase64','receivedAtUnixMs','version','wireSha256']
+    ELSE NULL END;
+  SELECT pg_catalog.array_agg(key ORDER BY key) INTO v_keys FROM pg_catalog.jsonb_object_keys(v_receipt) key;
+  IF v_expected IS NULL OR v_keys IS DISTINCT FROM v_expected
+     OR (v_outcome='accepted' AND v_kind<>'accepted_signed_v1')
+     OR (v_outcome='rejected' AND v_kind<>'rejected')
+     OR (v_outcome='provider_cancelled' AND v_kind<>'provider_cancelled')
+     OR v_receipt->'version' IS DISTINCT FROM '1'::jsonb
+     OR pg_catalog.jsonb_typeof(v_receipt->'kind') IS DISTINCT FROM 'string'
+     OR pg_catalog.jsonb_typeof(v_receipt->'protocolProfile') IS DISTINCT FROM 'string'
+     OR v_receipt->>'protocolProfile'<>'clearirp_direct_v1_04_v1_03_v1'
+     OR pg_catalog.jsonb_typeof(v_receipt->'environment') IS DISTINCT FROM 'string'
+     OR v_receipt->>'environment' NOT IN ('sandbox','production')
+     OR pg_catalog.jsonb_typeof(v_receipt->'providerKey') IS DISTINCT FROM 'string'
+     OR v_receipt->>'providerKey' IS DISTINCT FROM p_provider_key
+     OR pg_catalog.jsonb_typeof(v_receipt->'documentId') IS DISTINCT FROM 'string'
+     OR v_receipt->>'documentId' IS DISTINCT FROM p_document::text
+     OR pg_catalog.jsonb_typeof(v_receipt->'documentSha256') IS DISTINCT FROM 'string'
+     OR v_receipt->>'documentSha256' IS DISTINCT FROM p_document_sha256
+     OR p_document_sha256!~'^[0-9a-f]{64}$'
+     OR pg_catalog.jsonb_typeof(v_receipt->'wireSha256') IS DISTINCT FROM 'string'
+     OR v_receipt->>'wireSha256' IS DISTINCT FROM p_wire_sha256
+     OR pg_catalog.jsonb_typeof(v_receipt->'receivedAtUnixMs') IS DISTINCT FROM 'number'
+     OR v_receipt->>'receivedAtUnixMs'!~'^(?:0|[1-9][0-9]{0,15})$'
+     OR (v_receipt->>'receivedAtUnixMs')::numeric>9007199254740991::numeric
+     OR pg_catalog.jsonb_typeof(v_receipt->'rawResponseBase64') IS DISTINCT FROM 'string'
+     OR pg_catalog.jsonb_typeof(v_receipt->'decryptedDataBase64') IS DISTINCT FROM 'string'
+     OR pg_catalog.jsonb_typeof(v_receipt->'decryptedDataSha256') IS DISTINCT FROM 'string'
+     OR v_receipt->>'decryptedDataSha256'!~'^[0-9a-f]{64}$'
+     OR pg_catalog.octet_length(pg_catalog.convert_to(v_receipt::text,'UTF8'))>18874368 THEN RETURN false; END IF;
+
+  v_raw_base64:=v_receipt->>'rawResponseBase64';
+  v_decrypted_base64:=v_receipt->>'decryptedDataBase64';
+  -- Bound allocation before decoding; exact re-encoding rejects all alphabet,
+  -- whitespace, padding and pad-bit aliases without a large repeated regex.
+  IF pg_catalog.octet_length(v_raw_base64) NOT BETWEEN 4 AND 8388608
+     OR pg_catalog.octet_length(v_decrypted_base64) NOT BETWEEN 4 AND 5592408
+     OR pg_catalog.length(v_raw_base64)%4<>0
+     OR pg_catalog.length(v_decrypted_base64)%4<>0 THEN RETURN false; END IF;
+  v_raw:=pg_catalog.decode(v_raw_base64,'base64');
+  v_decrypted:=pg_catalog.decode(v_decrypted_base64,'base64');
+  IF pg_catalog.octet_length(v_raw) NOT BETWEEN 1 AND 6291456
+     OR pg_catalog.octet_length(v_decrypted) NOT BETWEEN 1 AND 4194304
+     OR pg_catalog.translate(pg_catalog.encode(v_raw,'base64'),E'\n\r','') IS DISTINCT FROM v_raw_base64
+     OR pg_catalog.translate(pg_catalog.encode(v_decrypted,'base64'),E'\n\r','') IS DISTINCT FROM v_decrypted_base64
+     OR pg_catalog.encode(public.digest(v_raw,'sha256'),'hex') IS DISTINCT FROM p_response_sha256
+     OR pg_catalog.encode(public.digest(v_decrypted,'sha256'),'hex')
+       IS DISTINCT FROM v_receipt->>'decryptedDataSha256'
+     OR pg_catalog.substr(v_raw,1,3)=pg_catalog.decode('efbbbf','hex')
+     OR pg_catalog.substr(v_decrypted,1,3)=pg_catalog.decode('efbbbf','hex') THEN RETURN false; END IF;
+  PERFORM pg_catalog.convert_from(v_raw,'UTF8');
+  PERFORM pg_catalog.convert_from(v_decrypted,'UTF8');
+
+  IF v_kind='accepted_signed_v1' THEN
+    IF p_status<>'accepted' OR p_disposition<>'none' OR p_reconciliation_reason IS NOT NULL
+       OR p_resolution_source NOT IN ('transport_result','lookup_result')
+       OR pg_catalog.jsonb_typeof(p_result->'authorityRef') IS DISTINCT FROM 'string'
+       OR pg_catalog.jsonb_typeof(v_receipt->'irn') IS DISTINCT FROM 'string'
+       OR v_receipt->>'irn'!~'^[0-9a-f]{64}$'
+       OR p_authority_ref IS DISTINCT FROM v_receipt->>'irn'
+       OR p_result->>'authorityRef' IS DISTINCT FROM p_authority_ref
+       OR pg_catalog.jsonb_typeof(v_receipt->'ackNo') IS DISTINCT FROM 'string'
+       OR v_receipt->>'ackNo'!~'^[1-9][0-9]{0,63}$'
+       OR pg_catalog.jsonb_typeof(v_receipt->'ackDt') IS DISTINCT FROM 'string'
+       OR v_receipt->>'ackDt'!~'^[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}$'
+       OR pg_catalog.jsonb_typeof(v_receipt->'signedInvoice') IS DISTINCT FROM 'string'
+       OR pg_catalog.jsonb_typeof(v_receipt->'signedInvoiceSha256') IS DISTINCT FROM 'string'
+       OR pg_catalog.jsonb_typeof(v_receipt->'signedQRCode') IS DISTINCT FROM 'string'
+       OR pg_catalog.jsonb_typeof(v_receipt->'signedQrSha256') IS DISTINCT FROM 'string'
+       OR pg_catalog.jsonb_typeof(v_receipt->'verification') IS DISTINCT FROM 'object' THEN RETURN false; END IF;
+    v_ack:=pg_catalog.make_timestamp(
+      pg_catalog.substr(v_receipt->>'ackDt',1,4)::integer,
+      pg_catalog.substr(v_receipt->>'ackDt',6,2)::integer,
+      pg_catalog.substr(v_receipt->>'ackDt',9,2)::integer,
+      pg_catalog.substr(v_receipt->>'ackDt',12,2)::integer,
+      pg_catalog.substr(v_receipt->>'ackDt',15,2)::integer,
+      pg_catalog.substr(v_receipt->>'ackDt',18,2)::double precision);
+    IF pg_catalog.to_char(v_ack,'YYYY-MM-DD HH24:MI:SS') IS DISTINCT FROM v_receipt->>'ackDt' THEN RETURN false; END IF;
+    v_signed_invoice:=v_receipt->>'signedInvoice';v_signed_qr:=v_receipt->>'signedQRCode';
+    IF pg_catalog.char_length(v_signed_invoice) NOT BETWEEN 1 AND 1404249
+       OR pg_catalog.char_length(v_signed_qr) NOT BETWEEN 1 AND 1404249
+       OR v_signed_invoice COLLATE "C" !~ '^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$'
+       OR v_signed_qr COLLATE "C" !~ '^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$'
+       OR v_receipt->>'signedInvoiceSha256'!~'^[0-9a-f]{64}$'
+       OR v_receipt->>'signedQrSha256'!~'^[0-9a-f]{64}$'
+       OR pg_catalog.encode(public.digest(pg_catalog.convert_to(v_signed_invoice,'UTF8'),'sha256'),'hex')
+         IS DISTINCT FROM v_receipt->>'signedInvoiceSha256'
+       OR pg_catalog.encode(public.digest(pg_catalog.convert_to(v_signed_qr,'UTF8'),'sha256'),'hex')
+         IS DISTINCT FROM v_receipt->>'signedQrSha256'
+       OR p_qr_payload IS DISTINCT FROM v_signed_qr THEN RETURN false; END IF;
+    v_verification:=v_receipt->'verification';
+    SELECT pg_catalog.array_agg(key ORDER BY key) INTO v_keys
+      FROM pg_catalog.jsonb_object_keys(v_verification) key;
+    IF v_keys IS DISTINCT FROM ARRAY['invoiceBundleVersion','invoiceKeyId','invoiceKeySpkiSha256',
+         'issuer','profileVersion','qrBundleVersion','qrKeyId','qrKeySpkiSha256','verificationUnixMs']
+       OR pg_catalog.jsonb_typeof(v_verification->'profileVersion') IS DISTINCT FROM 'string'
+       OR v_verification->>'profileVersion'<>'yellow_native_india_1_1_v1'
+       OR pg_catalog.jsonb_typeof(v_verification->'issuer') IS DISTINCT FROM 'string'
+       OR pg_catalog.octet_length(v_verification->>'issuer') NOT BETWEEN 1 AND 128
+       OR v_verification->>'issuer' COLLATE "C" !~ '^[ -~]+$'
+       OR pg_catalog.jsonb_typeof(v_verification->'verificationUnixMs') IS DISTINCT FROM 'number'
+       OR v_verification->>'verificationUnixMs'!~'^(?:0|[1-9][0-9]{0,15})$'
+       OR (v_verification->>'verificationUnixMs')::numeric>9007199254740991::numeric
+       OR pg_catalog.jsonb_typeof(v_verification->'invoiceKeyId') IS DISTINCT FROM 'string'
+       OR pg_catalog.octet_length(v_verification->>'invoiceKeyId') NOT BETWEEN 1 AND 256
+       OR v_verification->>'invoiceKeyId' COLLATE "C" !~ '^[ -~]+$'
+       OR pg_catalog.jsonb_typeof(v_verification->'qrKeyId') IS DISTINCT FROM 'string'
+       OR pg_catalog.octet_length(v_verification->>'qrKeyId') NOT BETWEEN 1 AND 256
+       OR v_verification->>'qrKeyId' COLLATE "C" !~ '^[ -~]+$'
+       OR pg_catalog.jsonb_typeof(v_verification->'invoiceKeySpkiSha256') IS DISTINCT FROM 'string'
+       OR v_verification->>'invoiceKeySpkiSha256'!~'^[0-9a-f]{64}$'
+       OR pg_catalog.jsonb_typeof(v_verification->'qrKeySpkiSha256') IS DISTINCT FROM 'string'
+       OR v_verification->>'qrKeySpkiSha256'!~'^[0-9a-f]{64}$'
+       OR pg_catalog.jsonb_typeof(v_verification->'invoiceBundleVersion') IS DISTINCT FROM 'string'
+       OR pg_catalog.octet_length(v_verification->>'invoiceBundleVersion') NOT BETWEEN 1 AND 128
+       OR v_verification->>'invoiceBundleVersion' COLLATE "C" !~ '^[ -~]+$'
+       OR pg_catalog.jsonb_typeof(v_verification->'qrBundleVersion') IS DISTINCT FROM 'string'
+       OR pg_catalog.octet_length(v_verification->>'qrBundleVersion') NOT BETWEEN 1 AND 128
+       OR v_verification->>'qrBundleVersion' COLLATE "C" !~ '^[ -~]+$' THEN RETURN false; END IF;
+  ELSIF v_kind='rejected' THEN
+    IF p_status<>'rejected' OR p_disposition<>'none' OR p_reconciliation_reason IS NOT NULL
+       OR p_resolution_source NOT IN ('transport_result','lookup_result') OR p_authority_ref IS NOT NULL
+       OR p_qr_payload IS NOT NULL OR pg_catalog.jsonb_typeof(v_receipt->'errorCodes') IS DISTINCT FROM 'array'
+       OR pg_catalog.jsonb_array_length(v_receipt->'errorCodes') NOT BETWEEN 1 AND 32 THEN RETURN false; END IF;
+    SELECT pg_catalog.count(*)::integer,pg_catalog.count(DISTINCT value)::integer
+      INTO v_error_count,v_error_distinct
+      FROM pg_catalog.jsonb_array_elements(v_receipt->'errorCodes') item(value)
+     WHERE pg_catalog.jsonb_typeof(value)='string'
+       AND pg_catalog.octet_length(value#>>'{}') BETWEEN 1 AND 64
+       AND (value#>>'{}') COLLATE "C" ~ '^[ -~]+$';
+    IF v_error_count<>pg_catalog.jsonb_array_length(v_receipt->'errorCodes')
+       OR v_error_distinct<>v_error_count THEN RETURN false; END IF;
+  ELSE
+    IF p_status<>'error' OR p_disposition<>'none'
+       OR p_reconciliation_reason IS DISTINCT FROM 'provider_cancelled'
+       OR p_resolution_source IS DISTINCT FROM 'lookup_result'
+       OR p_authority_ref IS NOT NULL OR p_qr_payload IS NOT NULL
+       OR pg_catalog.jsonb_typeof(v_receipt->'providerStatus') IS DISTINCT FROM 'string'
+       OR v_receipt->>'providerStatus'<>'CNL' THEN RETURN false; END IF;
+  END IF;
+  RETURN true;
+EXCEPTION WHEN OTHERS THEN
+  RETURN false;
+END;
+$_$;
 
 
 --
@@ -6260,7 +6504,7 @@ CREATE TABLE public.fiscal_submission (
     response_sha256 text,
     requested_by uuid,
     request_id uuid,
-    CONSTRAINT fiscal_submission_delivery_all_or_none_ck CHECK (((((delivery_version IS NULL) AND (num_nonnulls(property_node, business_date, document_sha256, wire_sha256, wire_text, provider_extension_id, provider_extension_version, attempt_id, attempt_number, retry_count, transition_seq, disposition, requested_by, request_id) = 0) AND (num_nonnulls(claim_token_hash, claim_expires_at, claim_action, reconciliation_reason, resolution_source, response_sha256) = 0)) OR ((delivery_version = 1) AND (num_nonnulls(property_node, business_date, document_sha256, wire_sha256, wire_text, provider_extension_id, provider_extension_version, attempt_id, attempt_number, retry_count, transition_seq, disposition, requested_by, request_id) = 14) AND isfinite(business_date) AND (document_sha256 ~ '^[0-9a-f]{64}$'::text) AND (wire_sha256 ~ '^[0-9a-f]{64}$'::text) AND ((octet_length(wire_text) >= 1) AND (octet_length(wire_text) <= 1048576)) AND (provider_key ~ '^[a-z0-9](?:[a-z0-9._:-]{0,126}[a-z0-9])?$'::text) AND (provider_extension_version > 0) AND (attempt_number = (retry_count + 1)) AND ((retry_count >= 0) AND (retry_count <= 3)) AND (transition_seq > 0) AND (mode = 'reporting'::text) AND (disposition = ANY (ARRAY['send'::text, 'lookup'::text, 'retry'::text, 'none'::text])) AND ((((status = 'pending'::text) AND (disposition = 'send'::text) AND (num_nonnulls(claim_token_hash, claim_expires_at, claim_action, reconciliation_reason, resolution_source, response_sha256) = 0) AND (response IS NULL) AND (authority_ref IS NULL) AND (submitted_at IS NULL) AND (resolved_at IS NULL)) OR ((status = 'submitted'::text) AND (disposition = 'lookup'::text) AND (reconciliation_reason = ANY (ARRAY['transport_started'::text, 'timeout'::text, 'duplicate'::text, 'provider_pending'::text])) AND (num_nonnulls(claim_token_hash, claim_expires_at, claim_action) = 3) AND (claim_token_hash ~ '^[0-9a-f]{64}$'::text) AND (claim_action = ANY (ARRAY['submit'::text, 'lookup'::text])) AND (resolution_source IS NULL) AND (response_sha256 IS NULL) AND (authority_ref IS NULL) AND (submitted_at IS NOT NULL) AND (resolved_at IS NULL)) OR ((status = 'error'::text) AND (disposition = 'retry'::text) AND (reconciliation_reason = 'known_not_sent'::text) AND (resolution_source = ANY (ARRAY['transport_result'::text, 'lookup_result'::text])) AND (num_nonnulls(claim_token_hash, claim_expires_at, claim_action) = 3) AND (claim_token_hash ~ '^[0-9a-f]{64}$'::text) AND (claim_action = ANY (ARRAY['submit'::text, 'lookup'::text])) AND (response IS NOT NULL) AND (response_sha256 IS NULL) AND (authority_ref IS NULL) AND (submitted_at IS NOT NULL) AND (resolved_at IS NOT NULL)) OR ((status = ANY (ARRAY['accepted'::text, 'rejected'::text])) AND (disposition = 'none'::text) AND (reconciliation_reason IS NULL) AND (resolution_source = ANY (ARRAY['transport_result'::text, 'lookup_result'::text])) AND (num_nonnulls(claim_token_hash, claim_expires_at, claim_action, response, response_sha256, authority_ref) = 6) AND (claim_token_hash ~ '^[0-9a-f]{64}$'::text) AND (response_sha256 ~ '^[0-9a-f]{64}$'::text) AND (claim_action = ANY (ARRAY['submit'::text, 'lookup'::text])) AND (submitted_at IS NOT NULL) AND (resolved_at IS NOT NULL))) IS TRUE))) IS TRUE)),
+    CONSTRAINT fiscal_submission_delivery_all_or_none_ck CHECK (((((delivery_version IS NULL) AND (num_nonnulls(property_node, business_date, document_sha256, wire_sha256, wire_text, provider_extension_id, provider_extension_version, attempt_id, attempt_number, retry_count, transition_seq, disposition, requested_by, request_id) = 0) AND (num_nonnulls(claim_token_hash, claim_expires_at, claim_action, reconciliation_reason, resolution_source, response_sha256) = 0)) OR ((delivery_version = 1) AND (num_nonnulls(property_node, business_date, document_sha256, wire_sha256, wire_text, provider_extension_id, provider_extension_version, attempt_id, attempt_number, retry_count, transition_seq, disposition, requested_by, request_id) = 14) AND isfinite(business_date) AND (document_sha256 ~ '^[0-9a-f]{64}$'::text) AND (wire_sha256 ~ '^[0-9a-f]{64}$'::text) AND ((octet_length(wire_text) >= 1) AND (octet_length(wire_text) <= 1048576)) AND (provider_key ~ '^[a-z0-9](?:[a-z0-9._:-]{0,126}[a-z0-9])?$'::text) AND (provider_extension_version > 0) AND (attempt_number = (retry_count + 1)) AND ((retry_count >= 0) AND (retry_count <= 3)) AND (transition_seq > 0) AND (mode = 'reporting'::text) AND (disposition = ANY (ARRAY['send'::text, 'lookup'::text, 'retry'::text, 'none'::text])) AND ((((status = 'pending'::text) AND (disposition = 'send'::text) AND (num_nonnulls(claim_token_hash, claim_expires_at, claim_action, reconciliation_reason, resolution_source, response_sha256) = 0) AND (response IS NULL) AND (authority_ref IS NULL) AND (submitted_at IS NULL) AND (resolved_at IS NULL)) OR ((status = 'submitted'::text) AND (disposition = 'lookup'::text) AND (reconciliation_reason = ANY (ARRAY['transport_started'::text, 'timeout'::text, 'duplicate'::text, 'provider_pending'::text])) AND (num_nonnulls(claim_token_hash, claim_expires_at, claim_action) = 3) AND (claim_token_hash ~ '^[0-9a-f]{64}$'::text) AND (claim_action = ANY (ARRAY['submit'::text, 'lookup'::text])) AND (resolution_source IS NULL) AND (response_sha256 IS NULL) AND (authority_ref IS NULL) AND (submitted_at IS NOT NULL) AND (resolved_at IS NULL)) OR ((status = 'error'::text) AND (disposition = 'retry'::text) AND (reconciliation_reason = 'known_not_sent'::text) AND (resolution_source = ANY (ARRAY['transport_result'::text, 'lookup_result'::text])) AND (num_nonnulls(claim_token_hash, claim_expires_at, claim_action) = 3) AND (claim_token_hash ~ '^[0-9a-f]{64}$'::text) AND (claim_action = ANY (ARRAY['submit'::text, 'lookup'::text])) AND (response IS NOT NULL) AND (response_sha256 IS NULL) AND (authority_ref IS NULL) AND (submitted_at IS NOT NULL) AND (resolved_at IS NOT NULL)) OR ((status = ANY (ARRAY['accepted'::text, 'rejected'::text])) AND (disposition = 'none'::text) AND (reconciliation_reason IS NULL) AND (resolution_source = ANY (ARRAY['transport_result'::text, 'lookup_result'::text])) AND (num_nonnulls(claim_token_hash, claim_expires_at, claim_action, response, response_sha256) = 5) AND (claim_token_hash ~ '^[0-9a-f]{64}$'::text) AND (response_sha256 ~ '^[0-9a-f]{64}$'::text) AND (claim_action = ANY (ARRAY['submit'::text, 'lookup'::text])) AND (submitted_at IS NOT NULL) AND (resolved_at IS NOT NULL) AND (((NOT (response ? 'receipt'::text)) AND (authority_ref IS NOT NULL)) OR public.india_fiscal_submission_signed_result_v1_valid(response, response_sha256, qr_payload, status, disposition, reconciliation_reason, resolution_source, authority_ref, tenant_id, attempt_id, document_id, document_sha256, wire_sha256, provider_key))) OR ((status = 'error'::text) AND (disposition = 'none'::text) AND (reconciliation_reason = 'provider_cancelled'::text) AND (resolution_source = 'lookup_result'::text) AND (num_nonnulls(claim_token_hash, claim_expires_at, claim_action, response, response_sha256) = 5) AND (claim_token_hash ~ '^[0-9a-f]{64}$'::text) AND (response_sha256 ~ '^[0-9a-f]{64}$'::text) AND (claim_action = 'lookup'::text) AND (authority_ref IS NULL) AND (submitted_at IS NOT NULL) AND (resolved_at IS NOT NULL) AND public.india_fiscal_submission_signed_result_v1_valid(response, response_sha256, qr_payload, status, disposition, reconciliation_reason, resolution_source, authority_ref, tenant_id, attempt_id, document_id, document_sha256, wire_sha256, provider_key))) IS TRUE))) IS TRUE)),
     CONSTRAINT fiscal_submission_mode_check CHECK ((mode = ANY (ARRAY['clearance'::text, 'reporting'::text, 'peppol'::text, 'exchange'::text]))),
     CONSTRAINT fiscal_submission_status_check CHECK ((status = ANY (ARRAY['pending'::text, 'submitted'::text, 'cleared'::text, 'accepted'::text, 'rejected'::text, 'error'::text])))
 );
@@ -10109,6 +10353,81 @@ $$;
 
 
 --
+-- Name: read_india_fiscal_submission_delivery_receipt(uuid, uuid, uuid, uuid); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.read_india_fiscal_submission_delivery_receipt(p_tenant uuid, p_property uuid, p_submission uuid, p_actor uuid) RETURNS jsonb
+    LANGUAGE plpgsql STABLE SECURITY DEFINER
+    SET search_path TO 'pg_catalog', 'public', 'pg_temp'
+    SET "TimeZone" TO 'UTC'
+    SET "DateStyle" TO 'ISO,YMD'
+    AS $$
+DECLARE v_context uuid;v_head public.fiscal_submission%ROWTYPE;v_common jsonb;v_receipt jsonb;
+BEGIN
+  IF session_user<>'yellow_runtime' OR pg_catalog.current_setting('role',true) IS DISTINCT FROM 'app_role'
+     OR current_user<>'yellow_owner' THEN
+    RAISE EXCEPTION USING ERRCODE='42501',MESSAGE='fiscal submission receipt read requires the governed runtime app role';
+  END IF;
+  BEGIN v_context:=NULLIF(pg_catalog.current_setting('app.tenant_id',true),'')::uuid;
+  EXCEPTION WHEN invalid_text_representation THEN
+    RAISE EXCEPTION USING ERRCODE='42501',MESSAGE='fiscal submission receipt tenant context is invalid'; END;
+  IF p_tenant IS NULL OR p_property IS NULL OR p_submission IS NULL OR p_actor IS NULL THEN
+    RAISE EXCEPTION USING ERRCODE='22023',MESSAGE='fiscal submission receipt read input is invalid';
+  END IF;
+  IF v_context IS DISTINCT FROM p_tenant THEN
+    RAISE EXCEPTION USING ERRCODE='42501',MESSAGE='fiscal submission receipt tenant context is unauthorized';
+  END IF;
+  SELECT submission.* INTO v_head
+    FROM public.fiscal_submission submission
+   WHERE submission.tenant_id=p_tenant AND submission.property_node=p_property
+     AND submission.id=p_submission AND submission.delivery_version=1
+     AND EXISTS (
+       SELECT 1 FROM public.tenant tenant
+       JOIN public.app_user actor ON actor.tenant_id=tenant.id AND actor.id=p_actor AND actor.status='active'
+       JOIN public.user_role ur ON ur.tenant_id=actor.tenant_id AND ur.user_id=actor.id
+       JOIN public.role granted_role ON granted_role.tenant_id=tenant.id AND granted_role.id=ur.role_id
+       JOIN public.role_permission rp ON rp.role_id=granted_role.id
+         AND rp.permission_code='tax-fiscal.submissions:read'
+       JOIN public.org_node grant_node ON grant_node.tenant_id=ur.tenant_id AND grant_node.id=ur.scope_node
+       JOIN public.org_node property ON property.tenant_id=tenant.id AND property.id=p_property
+         AND property.kind='property' AND grant_node.path @> property.path
+       WHERE tenant.id=p_tenant AND tenant.status='active');
+  IF NOT FOUND THEN RETURN NULL; END IF;
+  v_common:=pg_catalog.jsonb_build_object(
+    'kind','pending','submissionId',v_head.id,'tenantId',v_head.tenant_id,
+    'propertyNode',v_head.property_node,'documentId',v_head.document_id,
+    'documentSha256',v_head.document_sha256,'wireSha256',v_head.wire_sha256,
+    'providerKey',v_head.provider_key,'attemptId',v_head.attempt_id,
+    'attemptNumber',v_head.attempt_number,'status',v_head.status,
+    'disposition',v_head.disposition,'transitionSeq',v_head.transition_seq);
+  IF v_head.response ? 'receipt' THEN v_receipt:=v_head.response->'receipt'; END IF;
+  IF v_head.status='accepted' AND v_receipt->>'kind'='accepted_signed_v1' THEN
+    RETURN v_common||pg_catalog.jsonb_build_object('kind','accepted_signed_v1',
+      'environment',v_receipt->>'environment','responseSha256',v_head.response_sha256,
+      'irn',v_receipt->>'irn','ackNo',v_receipt->>'ackNo','ackDt',v_receipt->>'ackDt',
+      'signedInvoice',v_receipt->>'signedInvoice','signedQRCode',v_head.qr_payload,
+      'signedInvoiceSha256',v_receipt->>'signedInvoiceSha256',
+      'signedQrSha256',v_receipt->>'signedQrSha256','verification',v_receipt->'verification');
+  ELSIF v_head.status='rejected' AND v_receipt->>'kind'='rejected' THEN
+    RETURN v_common||pg_catalog.jsonb_build_object('kind','rejected',
+      'environment',v_receipt->>'environment','responseSha256',v_head.response_sha256,
+      'errorCodes',v_receipt->'errorCodes');
+  ELSIF v_head.status='error' AND v_head.disposition='none'
+      AND v_head.reconciliation_reason='provider_cancelled'
+      AND v_receipt->>'kind'='provider_cancelled' THEN
+    RETURN v_common||pg_catalog.jsonb_build_object('kind','provider_cancelled',
+      'environment',v_receipt->>'environment','responseSha256',v_head.response_sha256,
+      'providerStatus','CNL');
+  ELSIF v_head.status IN ('accepted','rejected') THEN
+    RETURN v_common||pg_catalog.jsonb_build_object('kind','legacy_hash_only',
+      'authorityRef',v_head.authority_ref,'responseSha256',v_head.response_sha256);
+  END IF;
+  RETURN v_common;
+END;
+$$;
+
+
+--
 -- Name: read_india_native_accounting_source_closure(uuid, uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -11747,9 +12066,10 @@ CREATE FUNCTION public.reconcile_india_fiscal_submission(p_tenant uuid, p_submis
     SET "DateStyle" TO 'ISO,YMD'
     AS $_$
 DECLARE
-  v_context uuid;v_head public.fiscal_submission%ROWTYPE;v_keys text[];v_expected text[];
+  v_context uuid;v_head public.fiscal_submission%ROWTYPE;v_keys text[];
   v_type text;v_outcome text;v_token_hash text;v_reason text;v_correlation uuid:=pg_catalog.gen_random_uuid();
-  v_now timestamptz;
+  v_status text;v_disposition text;v_reconciliation_reason text;v_resolution_source text;
+  v_authority_ref text;v_response_sha256 text;v_qr_payload text;v_now timestamptz;
 BEGIN
   IF session_user<>'yellow_runtime' OR pg_catalog.current_setting('role',true) IS DISTINCT FROM 'none'
      OR current_user<>'yellow_owner' THEN
@@ -11759,40 +12079,18 @@ BEGIN
   EXCEPTION WHEN invalid_text_representation THEN
     RAISE EXCEPTION USING ERRCODE='42501',MESSAGE='fiscal submission tenant context is invalid'; END;
   IF p_tenant IS NULL OR p_submission IS NULL OR p_attempt IS NULL OR p_claim_token IS NULL
-     OR p_result IS NULL
-     OR pg_catalog.jsonb_typeof(p_result) IS DISTINCT FROM 'object' THEN
+     OR p_result IS NULL OR pg_catalog.jsonb_typeof(p_result) IS DISTINCT FROM 'object' THEN
     RAISE EXCEPTION USING ERRCODE='22023',MESSAGE='fiscal submission reconciliation input is invalid';
   END IF;
   IF v_context IS DISTINCT FROM p_tenant THEN
     RAISE EXCEPTION USING ERRCODE='42501',MESSAGE='fiscal submission tenant context is unauthorized';
   END IF;
   v_type:=p_result->>'type';v_outcome:=p_result->>'outcome';
-  v_expected:=CASE WHEN v_outcome IN ('accepted','rejected','cleared')
-    THEN ARRAY['attemptId','authorityRef','documentId','outcome','payloadSha256','providerKey','responseSha256','tenantId','type']
-    ELSE ARRAY['attemptId','documentId','outcome','payloadSha256','providerKey','tenantId','type'] END;
-  SELECT pg_catalog.array_agg(key ORDER BY key) INTO v_keys FROM pg_catalog.jsonb_object_keys(p_result) key;
-  IF v_keys IS DISTINCT FROM v_expected
-     OR pg_catalog.jsonb_typeof(p_result->'type') IS DISTINCT FROM 'string'
+  IF pg_catalog.jsonb_typeof(p_result->'type') IS DISTINCT FROM 'string'
      OR pg_catalog.jsonb_typeof(p_result->'outcome') IS DISTINCT FROM 'string'
      OR v_type NOT IN ('transport_result','lookup_result')
-     OR (v_type='transport_result' AND v_outcome NOT IN
-       ('pending','timeout','duplicate','known_not_sent','accepted','rejected'))
-     OR (v_type='lookup_result' AND v_outcome NOT IN
-       ('pending','known_not_sent','accepted','rejected'))
-     OR pg_catalog.jsonb_typeof(p_result->'tenantId') IS DISTINCT FROM 'string'
-     OR pg_catalog.jsonb_typeof(p_result->'providerKey') IS DISTINCT FROM 'string'
-     OR pg_catalog.jsonb_typeof(p_result->'attemptId') IS DISTINCT FROM 'string'
-     OR pg_catalog.jsonb_typeof(p_result->'documentId') IS DISTINCT FROM 'string'
-     OR pg_catalog.jsonb_typeof(p_result->'payloadSha256') IS DISTINCT FROM 'string'
-     OR p_result->>'payloadSha256'!~'^[0-9a-f]{64}$'
-     OR (v_outcome IN ('accepted','rejected') AND (
-       pg_catalog.jsonb_typeof(p_result->'authorityRef') IS DISTINCT FROM 'string'
-       OR pg_catalog.jsonb_typeof(p_result->'responseSha256') IS DISTINCT FROM 'string'
-       OR p_result->>'responseSha256'!~'^[0-9a-f]{64}$')) THEN
+     OR v_outcome NOT IN ('pending','timeout','duplicate','known_not_sent','accepted','rejected','provider_cancelled') THEN
     RAISE EXCEPTION USING ERRCODE='22023',MESSAGE='normalized fiscal result shape is invalid';
-  END IF;
-  IF v_outcome IN ('accepted','rejected') THEN
-    PERFORM public.india_fiscal_submission_reference(p_result->>'authorityRef');
   END IF;
   PERFORM public.india_fiscal_submission_lock_relations();
   SELECT submission.* INTO v_head FROM public.fiscal_submission submission
@@ -11812,6 +12110,8 @@ BEGIN
      OR (v_head.claim_action='lookup' AND v_type<>'lookup_result') THEN
     RAISE EXCEPTION USING ERRCODE='55000',MESSAGE='fiscal submission attempt, token, or result binding is stale';
   END IF;
+  -- Existing terminal/nonterminal responses replay before the stricter post81
+  -- terminal envelope check. Conflicting replacements remain forbidden.
   IF v_head.status IN ('accepted','rejected','error') OR v_head.response IS NOT NULL THEN
     IF v_head.response IS NOT DISTINCT FROM p_result THEN
       RETURN public.india_fiscal_submission_receipt(v_head,true);
@@ -11821,20 +12121,48 @@ BEGIN
   IF v_head.status<>'submitted' THEN
     RAISE EXCEPTION USING ERRCODE='55000',MESSAGE='fiscal submission is not awaiting reconciliation';
   END IF;
-  IF v_outcome='pending' THEN v_reason:='provider_pending';
-  ELSIF v_outcome IN ('timeout','duplicate') THEN v_reason:=v_outcome;
-  ELSE v_reason:=NULL; END IF;
+
+  IF v_outcome IN ('accepted','rejected','provider_cancelled') THEN
+    v_status:=CASE WHEN v_outcome='provider_cancelled' THEN 'error' ELSE v_outcome END;
+    v_disposition:='none';
+    v_reconciliation_reason:=CASE WHEN v_outcome='provider_cancelled' THEN 'provider_cancelled' ELSE NULL END;
+    v_resolution_source:=v_type;
+    v_authority_ref:=CASE WHEN v_outcome='accepted' THEN p_result->>'authorityRef' ELSE NULL END;
+    v_response_sha256:=p_result->>'responseSha256';
+    v_qr_payload:=CASE WHEN v_outcome='accepted' THEN p_result->'receipt'->>'signedQRCode' ELSE NULL END;
+    IF NOT public.india_fiscal_submission_signed_result_v1_valid(p_result,v_response_sha256,v_qr_payload,
+      v_status,v_disposition,v_reconciliation_reason,v_resolution_source,v_authority_ref,
+      v_head.tenant_id,v_head.attempt_id,v_head.document_id,v_head.document_sha256,
+      v_head.wire_sha256,v_head.provider_key) THEN
+      RAISE EXCEPTION USING ERRCODE='22023',MESSAGE='normalized signed fiscal result is invalid';
+    END IF;
+  ELSE
+    SELECT pg_catalog.array_agg(key ORDER BY key) INTO v_keys FROM pg_catalog.jsonb_object_keys(p_result) key;
+    IF v_keys IS DISTINCT FROM ARRAY['attemptId','documentId','outcome','payloadSha256','providerKey','tenantId','type']
+       OR pg_catalog.jsonb_typeof(p_result->'tenantId') IS DISTINCT FROM 'string'
+       OR pg_catalog.jsonb_typeof(p_result->'providerKey') IS DISTINCT FROM 'string'
+       OR pg_catalog.jsonb_typeof(p_result->'attemptId') IS DISTINCT FROM 'string'
+       OR pg_catalog.jsonb_typeof(p_result->'documentId') IS DISTINCT FROM 'string'
+       OR pg_catalog.jsonb_typeof(p_result->'payloadSha256') IS DISTINCT FROM 'string'
+       OR p_result->>'payloadSha256'!~'^[0-9a-f]{64}$'
+       OR (v_type='transport_result' AND v_outcome NOT IN ('pending','timeout','duplicate','known_not_sent'))
+       OR (v_type='lookup_result' AND v_outcome NOT IN ('pending','known_not_sent')) THEN
+      RAISE EXCEPTION USING ERRCODE='22023',MESSAGE='normalized fiscal result shape is invalid';
+    END IF;
+    IF v_outcome='pending' THEN v_reason:='provider_pending';
+    ELSIF v_outcome IN ('timeout','duplicate') THEN v_reason:=v_outcome;
+    ELSE v_reason:=NULL; END IF;
+    v_status:=CASE WHEN v_outcome IN ('pending','timeout','duplicate') THEN 'submitted' ELSE 'error' END;
+    v_disposition:=CASE WHEN v_outcome IN ('pending','timeout','duplicate') THEN 'lookup' ELSE 'retry' END;
+    v_reconciliation_reason:=CASE WHEN v_outcome='known_not_sent' THEN 'known_not_sent' ELSE v_reason END;
+    v_resolution_source:=CASE WHEN v_outcome='known_not_sent' THEN v_type ELSE NULL END;
+  END IF;
   UPDATE public.fiscal_submission SET transition_seq=transition_seq+1,response=p_result,
-      claim_expires_at=v_now,
-      status=CASE WHEN v_outcome IN ('pending','timeout','duplicate') THEN 'submitted'
-        WHEN v_outcome='known_not_sent' THEN 'error' ELSE v_outcome END,
-      disposition=CASE WHEN v_outcome IN ('pending','timeout','duplicate') THEN 'lookup'
-        WHEN v_outcome='known_not_sent' THEN 'retry' ELSE 'none' END,
-      reconciliation_reason=CASE WHEN v_outcome='known_not_sent' THEN 'known_not_sent' ELSE v_reason END,
-      resolution_source=CASE WHEN v_outcome IN ('known_not_sent','accepted','rejected') THEN v_type ELSE NULL END,
-      authority_ref=CASE WHEN v_outcome IN ('accepted','rejected') THEN p_result->>'authorityRef' ELSE NULL END,
-      response_sha256=CASE WHEN v_outcome IN ('accepted','rejected') THEN p_result->>'responseSha256' ELSE NULL END,
-      resolved_at=CASE WHEN v_outcome IN ('known_not_sent','accepted','rejected') THEN v_now ELSE NULL END
+      claim_expires_at=v_now,status=v_status,disposition=v_disposition,
+      reconciliation_reason=v_reconciliation_reason,resolution_source=v_resolution_source,
+      authority_ref=v_authority_ref,response_sha256=v_response_sha256,qr_payload=v_qr_payload,
+      resolved_at=CASE WHEN v_outcome IN ('known_not_sent','accepted','rejected','provider_cancelled')
+        THEN v_now ELSE NULL END
     WHERE tenant_id=p_tenant AND id=p_submission RETURNING * INTO v_head;
   PERFORM public.india_fiscal_submission_record_transition(v_head,'fiscal.submission.reconciled',
     v_outcome,NULL,v_correlation,NULL,NULL);
@@ -23498,7 +23826,7 @@ CREATE TRIGGER fiscal_submission_history_immutable BEFORE DELETE OR UPDATE ON pu
 -- Name: fiscal_submission fiscal_submission_protected_head; Type: TRIGGER; Schema: public; Owner: -
 --
 
-CREATE TRIGGER fiscal_submission_protected_head BEFORE UPDATE ON public.fiscal_submission FOR EACH ROW EXECUTE FUNCTION public.india_fiscal_submission_protect_head();
+CREATE TRIGGER fiscal_submission_protected_head BEFORE INSERT OR DELETE OR UPDATE ON public.fiscal_submission FOR EACH ROW EXECUTE FUNCTION public.india_fiscal_submission_protect_head();
 
 
 --
@@ -28347,13 +28675,6 @@ REVOKE ALL ON FUNCTION public.guard_native_valuation_child_insert() FROM PUBLIC;
 
 
 --
--- Name: TABLE fiscal_submission_history; Type: ACL; Schema: public; Owner: -
---
-
-GRANT SELECT ON TABLE public.fiscal_submission_history TO app_role;
-
-
---
 -- Name: FUNCTION india_fiscal_submission_history_receipt(p_receipt public.fiscal_submission_history, p_replayed boolean); Type: ACL; Schema: public; Owner: -
 --
 
@@ -28403,10 +28724,31 @@ REVOKE ALL ON FUNCTION public.india_fiscal_submission_protect_head() FROM PUBLIC
 
 
 --
--- Name: TABLE fiscal_submission; Type: ACL; Schema: public; Owner: -
+-- Name: FUNCTION india_fiscal_submission_signed_result_v1_valid(p_result jsonb, p_response_sha256 text, p_qr_payload text, p_status text, p_disposition text, p_reconciliation_reason text, p_resolution_source text, p_authority_ref text, p_tenant uuid, p_attempt uuid, p_document uuid, p_document_sha256 text, p_wire_sha256 text, p_provider_key text); Type: ACL; Schema: public; Owner: -
 --
 
-GRANT SELECT ON TABLE public.fiscal_submission TO app_role;
+REVOKE ALL ON FUNCTION public.india_fiscal_submission_signed_result_v1_valid(p_result jsonb, p_response_sha256 text, p_qr_payload text, p_status text, p_disposition text, p_reconciliation_reason text, p_resolution_source text, p_authority_ref text, p_tenant uuid, p_attempt uuid, p_document uuid, p_document_sha256 text, p_wire_sha256 text, p_provider_key text) FROM PUBLIC;
+
+
+--
+-- Name: COLUMN fiscal_submission.tenant_id; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT SELECT(tenant_id) ON TABLE public.fiscal_submission TO app_role;
+
+
+--
+-- Name: COLUMN fiscal_submission.document_id; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT SELECT(document_id) ON TABLE public.fiscal_submission TO app_role;
+
+
+--
+-- Name: COLUMN fiscal_submission.status; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT SELECT(status) ON TABLE public.fiscal_submission TO app_role;
 
 
 --
@@ -28819,6 +29161,14 @@ REVOKE ALL ON FUNCTION public.prune_outbox(p_retain interval) FROM PUBLIC;
 
 REVOKE ALL ON FUNCTION public.put_reservation_travel(p_tenant uuid, p_property uuid, p_reservation uuid, p_direction text, p_expected_present boolean, p_expected_mode text, p_expected_carrier text, p_expected_service_no text, p_expected_scheduled_at timestamp with time zone, p_expected_pickup_requested boolean, p_desired_mode text, p_desired_carrier text, p_desired_service_no text, p_desired_scheduled_at timestamp with time zone, p_desired_pickup_requested boolean, p_actor uuid) FROM PUBLIC;
 GRANT ALL ON FUNCTION public.put_reservation_travel(p_tenant uuid, p_property uuid, p_reservation uuid, p_direction text, p_expected_present boolean, p_expected_mode text, p_expected_carrier text, p_expected_service_no text, p_expected_scheduled_at timestamp with time zone, p_expected_pickup_requested boolean, p_desired_mode text, p_desired_carrier text, p_desired_service_no text, p_desired_scheduled_at timestamp with time zone, p_desired_pickup_requested boolean, p_actor uuid) TO app_role;
+
+
+--
+-- Name: FUNCTION read_india_fiscal_submission_delivery_receipt(p_tenant uuid, p_property uuid, p_submission uuid, p_actor uuid); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.read_india_fiscal_submission_delivery_receipt(p_tenant uuid, p_property uuid, p_submission uuid, p_actor uuid) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.read_india_fiscal_submission_delivery_receipt(p_tenant uuid, p_property uuid, p_submission uuid, p_actor uuid) TO app_role;
 
 
 --

@@ -71,7 +71,7 @@ export const DEFAULT_OPERATOR_RUNTIME_STATUS: OperatorRuntimeStatus = Object.fre
 export const PROJECT_BUILD_SNAPSHOT: ProjectBuildSnapshot = Object.freeze({
   schemaVersion: 2,
   recordedAt: "2026-09-07",
-  label: "Durable fiscal submission integration in progress",
+  label: "Signed fiscal provider integration; operator invoices next",
   roadmap: Object.freeze({
     phaseCount: 18,
     latestBuiltOrder: 439,
@@ -356,8 +356,8 @@ export const PROJECT_BUILD_SNAPSHOT: ProjectBuildSnapshot = Object.freeze({
     Object.freeze({
       order: 440,
       state: "proof_in_progress" as const,
-      summary: "Order 440 durable fiscal submission, immutable command replay and supervised delivery runtime are independently merged through PR88 at 2a0ba41 (80 migrations / 128 public tables), after all six CI jobs and separate post-merge schema/referee 11/11. The private exact decoder and pinned signature verification are additionally merged through PR89 at 43fc758 after all six CI jobs, actual native ARM64 execution and fresh post-merge schema/referee 11/11. The separately descriptive Order 440 hotel journeys and fictional design study are merged as design input with a fictional in-memory prototype only. The separate Order 441 Astra Ultra RMS paper is documented research only, with no algorithm runtime or measured uplift.",
-      remaining: "Original-source signed-pair binding is independently verified in development, not provider acceptance or a merged release. Authenticated provider normalization, verified signed invoice/QR retention and property-authorized receipt reads remain unfinished. IRP provider activation and operator invoice UI remain separate; new-department release, local refresh, cloud deployment and live sandbox evidence remain outstanding; the hotel prototype is not production and Phase 7 is not complete.",
+      summary: "Order 440 durable fiscal submission, immutable replay, supervised delivery and private source-bound signature verification are independently merged through PR90 at 4ba1d6f (80 migrations / 128 public tables), with complete CI, native ARM64 execution and post-merge schema/referee 11/11. Q207 provider and signed-receipt integration passes independent actual81 storage, synthetic cryptographic recovery journey, authorized receipt GET, identical schema and clean seed/referee 11/11 in development. The separate Order 440 hotel-journey study remains a fictional design prototype; Order 441 Astra Ultra RMS remains documented research without algorithm runtime or measured uplift.",
+      remaining: "Development81 is not mergedmain80 or the preserved local77. Current/historical runtime compatibility and exact-source Linux/ARM64 CI remain integration gates. Operator invoice discovery, issuance and printing, provider onboarding and authentic sandbox acceptance remain unfinished. No local refresh, provider activation, new-department release or cloud deployment is claimed; Phase 7 is not complete.",
     }),
   ] satisfies readonly ProjectRecordedWorkSnapshot[]),
   phases: Object.freeze([

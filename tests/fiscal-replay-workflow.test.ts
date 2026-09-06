@@ -1,5 +1,26 @@
 import { expect, test } from "bun:test";
 
+test("failure diagnostics are time and byte bounded without replacing acceptance or cleanup", async () => {
+  const workflow = await Bun.file(new URL("../.github/workflows/ci.yml", import.meta.url)).text();
+  const start = workflow.indexOf("      - name: Print database logs on failure");
+  const end = workflow.indexOf("      - name: Remove database stack and volumes", start);
+  expect(start).toBeGreaterThan(0);
+  expect(end).toBeGreaterThan(start);
+  const diagnostic = workflow.slice(start, end);
+  expect(diagnostic).toContain("if: failure()");
+  expect(diagnostic).toContain("timeout-minutes: 1");
+  expect(diagnostic).toContain("timeout --kill-after=5s 20s docker compose logs --no-color --tail 40 postgres app | tail -c 65536");
+  expect(diagnostic).toContain('diagnostic_status=("${PIPESTATUS[@]}")');
+  expect(diagnostic).toContain("partial diagnostics only");
+  expect(workflow.slice(end, workflow.indexOf("  local-review:", end))).toContain("if: always()");
+  const acceptance = workflow.slice(workflow.indexOf("      - name: Prove deployment migration and seed"), start);
+  for (const required of ["bun run test:database", "bun run schema:check", "Prove invariant database through canonical referee"]) {
+    expect(acceptance).toContain(required);
+  }
+  expect(acceptance).not.toContain("continue-on-error");
+  expect(acceptance).not.toContain("|| true");
+});
+
 test("browser proofs share one journey deadline inside their original outer limits", async () => {
   for (const [file, budget, outer] of [
     ["operator-business-day-discrepancy-carry-browser.integration.test.ts", "55_000", "60_000"],
@@ -60,7 +81,7 @@ test("CI requires genuine pre79 receipt upgrade and late replay proof with isola
   expect(step).not.toContain("--test-name-pattern");
 });
 
-test("CI requires current80 genuine fiscal delivery and actual Linux process proof", async () => {
+test("CI requires current81 genuine fiscal delivery and actual Linux process proof", async () => {
   const workflow = await Bun.file(new URL("../.github/workflows/ci.yml", import.meta.url)).text();
   const start = workflow.indexOf('q204_database="yellow_order440_q204_ci"');
   const end = workflow.indexOf("# Q205 records real request/retry", start);
@@ -70,6 +91,8 @@ test("CI requires current80 genuine fiscal delivery and actual Linux process pro
   for (const expected of [
     'native_clones+=("$q204_database")',
     'CREATE DATABASE ${q204_database} TEMPLATE ${native_template}',
+    'YELLOW_DEPLOY_DATABASE_URL="postgres://yellow_deploy:${YELLOW_DEPLOY_DATABASE_PASSWORD}@${POSTGRES_ADDRESS}/${q204_database}"',
+    'bun run db:migrate',
     'YELLOW_ORDER440_DELIVERY_DEPLOY_DATABASE_URL=',
     'YELLOW_ORDER440_DELIVERY_RUNTIME_DATABASE_URL=',
     'YELLOW_REQUIRE_ORDER440_DELIVERY=1',
@@ -78,6 +101,9 @@ test("CI requires current80 genuine fiscal delivery and actual Linux process pro
     'bun test tests/server-fiscal-runtime.test.ts',
     'DROP DATABASE ${q204_database} WITH (FORCE)',
   ]) expect(step).toContain(expected);
+  expect(step.indexOf("bun run db:migrate")).toBeGreaterThan(step.indexOf("CREATE DATABASE"));
+  expect(step.indexOf("bun run db:migrate")).toBeLessThan(step.indexOf("bun test tests/fiscal-submission-delivery-runtime.integration.test.ts"));
+  expect(step).not.toContain("YELLOW_MIGRATIONS_DIR=");
   expect(step).not.toContain("|| true");
   expect(step).not.toContain("continue-on-error");
   expect(step).not.toContain("--test-name-pattern");
@@ -87,4 +113,57 @@ test("CI requires current80 genuine fiscal delivery and actual Linux process pro
   expect(historical).toContain("applyCanonical79ReplayUpgrade()");
   expect(historical).toContain("migrationsDirectory: directory");
   expect(historical).toContain("Number(name.slice(0, 4)) <= 79");
+});
+
+test("CI preserves historical80 fixtures and runs signed frontier81 proofs in strict isolated order", async () => {
+  const workflow = await Bun.file(new URL("../.github/workflows/ci.yml", import.meta.url)).text();
+  const historicalStart = workflow.indexOf('native_migrations="$(mktemp -d "$RUNNER_TEMP/yellow-order434-prefix80.XXXXXX")"');
+  const q203 = workflow.indexOf('q203_database="yellow_order440_q203_ci"');
+  const q204 = workflow.indexOf('q204_database="yellow_order440_q204_ci"');
+  const upgrade = workflow.indexOf('q207_upgrade_database="yellow_order440_q207_upgrade_ci"');
+  const current = workflow.indexOf('q207_database="yellow_order440_q207_ci"');
+  expect(historicalStart).toBeGreaterThan(0);
+  expect(q203).toBeGreaterThan(historicalStart);
+  expect(q204).toBeGreaterThan(q203);
+  expect(upgrade).toBeGreaterThan(q204);
+  expect(current).toBeGreaterThan(upgrade);
+  const historical = workflow.slice(historicalStart, upgrade);
+  expect(historical).toContain('10#${filename:0:4} <= 80');
+  expect(historical).toContain('export YELLOW_ORDER434_MIGRATIONS_DIR="$native_migrations"');
+  expect(historical).toContain('YELLOW_MIGRATIONS_DIR="$native_migrations"');
+  expect(historical).not.toContain("YELLOW_ORDER440_SIGNED_DEPLOY_DATABASE_URL=");
+
+  const upgradeStep = workflow.slice(upgrade, current);
+  for (const required of [
+    'native_clones+=("$q207_upgrade_database")',
+    'CREATE DATABASE ${q207_upgrade_database} TEMPLATE ${native_template}',
+    'YELLOW_ORDER440_SIGNED_DEPLOY_DATABASE_URL=',
+    'YELLOW_ORDER440_SIGNED_RUNTIME_DATABASE_URL=',
+    'YELLOW_REQUIRE_ORDER440_SIGNED=1 YELLOW_ORDER440_SIGNED_APPLY_UPGRADE=1',
+    'bun test tests/fiscal-signed-receipt-durability.integration.test.ts',
+    'DROP DATABASE ${q207_upgrade_database} WITH (FORCE)',
+  ]) expect(upgradeStep).toContain(required);
+
+  const end = workflow.indexOf("      - name: Prove native fiscal release containment", current);
+  expect(end).toBeGreaterThan(current);
+  const currentStep = workflow.slice(current, end);
+  for (const required of [
+    'native_clones+=("$q207_database")',
+    'CREATE DATABASE ${q207_database} TEMPLATE ${native_template}',
+    'YELLOW_DEPLOY_DATABASE_URL="$q207_deploy_url" bun run db:migrate',
+    'YELLOW_REQUIRE_ORDER440_SIGNED=1',
+    'bun test tests/fiscal-signed-receipt-durability.integration.test.ts',
+    'bun test tests/fiscal-signed-provider-journey.integration.test.ts',
+    'bun test tests/operator-fiscal-submission-receipt.integration.test.ts',
+    'DROP DATABASE ${q207_database} WITH (FORCE)',
+  ]) expect(currentStep).toContain(required);
+  const durability = currentStep.indexOf("bun test tests/fiscal-signed-receipt-durability.integration.test.ts");
+  const journey = currentStep.indexOf("bun test tests/fiscal-signed-provider-journey.integration.test.ts");
+  const receiptGet = currentStep.indexOf("bun test tests/operator-fiscal-submission-receipt.integration.test.ts");
+  expect(durability).toBeGreaterThan(currentStep.indexOf("bun run db:migrate"));
+  expect(journey).toBeGreaterThan(durability);
+  expect(receiptGet).toBeGreaterThan(journey);
+  expect(currentStep).not.toContain("|| true");
+  expect(currentStep).not.toContain("continue-on-error");
+  expect(currentStep).not.toContain("--test-name-pattern");
 });

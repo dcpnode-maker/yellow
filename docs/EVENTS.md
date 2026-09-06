@@ -309,7 +309,7 @@ source, locking, accounting and executable acceptance contract.
 
 ## Consumer registry (who must exist by launch)
 
-### Order440 fiscal delivery events — private draft admission
+### Order440 fiscal delivery events — current80 plus candidate81
 
 `fiscal.submission.requested`, `fiscal.submission.claimed`,
 `fiscal.submission.reconciled` and `fiscal.submission.retry_requested` describe changes
@@ -319,11 +319,28 @@ and outbox entry. Payloads carry bounded submission/attempt/document/provider id
 document and wire hashes, status/disposition and transition sequence. Never include
 claim secrets, credentials, guest records, signed-invoice bodies or raw provider errors.
 
-Protected history is the receipt authority: generic fact insertion and consumer
-deduplication cannot forge or replace it. Consumers may be rebuilt from outbox; a
-provider attempt cannot be safely repeated merely because an event was replayed.
-After uncertainty or lease expiry, an authoritative lookup claim is required.
-This in-progress draft registers no asynchronous consumer and activates no provider.
+The protected head is the current receipt authority and protected append-only history
+is the transition audit authority: generic fact insertion and consumer deduplication
+cannot forge or replace either. Consumers may be rebuilt from outbox; a provider
+attempt cannot be safely repeated merely because an event was replayed. After
+uncertainty or lease expiry, an authoritative lookup claim is required.
+Candidate81 extends the version1 `fiscal.submission.reconciled` outcome vocabulary
+with `provider_cancelled`. That outcome is valid only for an authenticated lookup and
+records status `error`, disposition `none`, reason `provider_cancelled`, lookup
+resolution source, no authority reference and a response hash. It is terminal,
+non-discoverable and non-retryable. A definitive rejected receipt likewise carries
+no invented IRN. Exact legacy terminal-response replay emits no duplicate event.
+
+The terminal receipt envelope remains on the protected submission head. Signed
+invoice/QR tokens and canonical base64 raw/decrypted response evidence are not copied
+into history, fact or outbox payloads; the existing events remain bounded identity and
+hash notifications. Current merged80 registers no provider. Candidate81's protected
+file loader is all-or-nothing and defaults to the same immutable empty registry when
+no file is configured; it adds no asynchronous outbox consumer and activates no
+provider, local runtime or external call. Its passed generated-key protocol journey
+uses an injected synthetic transport while exercising the real adapter, worker,
+actual81 persistence and receipt GET; it neither publishes receipt bodies through the
+outbox nor proves an authentic external-provider sandbox interaction.
 
 ### Planned launch consumers
 
