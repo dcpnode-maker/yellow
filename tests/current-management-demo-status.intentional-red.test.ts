@@ -13,7 +13,10 @@ test("Order 440 status records fiscal and hotel work without claiming Phase 7 co
     PROJECT_BUILD_SNAPSHOT.recordedWork.at(-1);
   expect(currentDelivery?.order).toBe(440);
   expect(currentDelivery?.state).toBe("proof_in_progress");
-  expect(currentDelivery?.remaining).toMatch(/durable persistence/i);
+  expect(currentDelivery?.summary).toMatch(/durable fiscal submission.*immutable command replay.*supervised delivery runtime.*merged through PR88 at 2a0ba41/i);
+  expect(currentDelivery?.summary).toContain("80 migrations / 128 public tables");
+  expect(currentDelivery?.summary).toContain("post-merge schema/referee 11/11");
+  expect(currentDelivery?.remaining).toMatch(/signed invoice\/QR retention.*property-authorized receipt reads remain unfinished/i);
   expect(currentDelivery?.remaining).toMatch(/live sandbox evidence remain outstanding/i);
   expect(currentDelivery?.summary).toMatch(/hotel journeys.*fictional design study.*merged/i);
   expect(currentDelivery?.summary).toMatch(/fictional in-memory prototype/i);

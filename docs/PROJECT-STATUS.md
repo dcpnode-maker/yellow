@@ -4,7 +4,7 @@
 <!-- current-phase: 7 -->
 <!-- current-task: Codex Yellow — fiscal completion, with free-hosting and recovery preparation in parallel -->
 <!-- current-order-files: handoff/orders/442-host-recovery-and-merged-local-review.md;handoff/orders/443-runtime-storage-containment.md;handoff/orders/440-fiscal-submission-lifecycle.md -->
-<!-- current-lifecycle: Q205 independently merged main79; Q204 runtime80 has independent database proof, latest CI exposes a historical caller now repaired and independently proved, fresh complete CI required; stable local77 preserved; provider and hosting inactive -->
+<!-- current-lifecycle: Q204 independently merged main80 with complete CI and fresh post-merge schema/referee proof; Q206 signed-receipt implementation active; stable local77 preserved; provider and hosting inactive -->
 
 This is the canonical current-state record. It identifies the consolidated source,
 verified behavior, release boundaries and active work. Historical orders, reviews,
@@ -12,6 +12,34 @@ decisions and ledger entries remain evidence; their filenames are not an active
 backlog. `state.sh` and `state.ps1` read the machine-readable comments above.
 
 ## Current task
+
+**Fiscal runtime merged; signed receipts next — D1399.** PR88 is independently
+merged as`2a0ba41ea5e018e44e69e87677b703721b0a2e33` after all six jobs in
+[exact-source CI34049699932](https://github.com/dcpnode-maker/yellow/actions/runs/34049699932)
+and normal CodeQL pass. The reviewer personally reads the full gates: migrations47,
+delivery11, Linux process5, immutable replay5, historical durability19, readiness19,
+all ten compatibility suites, deployment24, exact schema and referee11/11.
+Merged tree equals the tested source tree; integration uses the normal SHA-guarded
+merge with no bypass. A separate new native post-merge80 database matches the exact
+1,620,228-byte schema and passes the genuine seed/referee11/11. Template77, global
+roles and the stable founder preview remain unchanged. Main now has80 migrations
+and128 public tables; a merge is not local promotion or provider activation.
+
+The next work is Question206: authenticated provider transport, verified signed
+invoice/QR retention and a separate authorized receipt read, followed by the operator
+invoice/print journey and authentic sandbox proof. Its private lossless decoder
+passes independent12/12 tests and10,000 differential cases; full standing passes
+1,686 tests,0 failures,1,264 explicit DB/Unix skips and22,423 assertions across505
+files in101.23s. Private RS256 verification is implemented and independently
+approved after root finds and the builder repairs trailing-DER and byte-rounded
+RSA modulus acceptance. Final decoder/JWS/boundary proof passes32 tests and301
+assertions;36 further independent adversarial assertions pass. Complete current
+standing passes1699 tests,0 failures,1264 explicit DB/Unix skips and22568 assertions
+across506 files in97.05s; types,179-file boundaries and23 dependency licences pass.
+Exact-source CI/integration remains required for these new private helpers.
+Neither is a completed provider integration, live registration or Phase7 exit.
+
+### Historical implementation checkpoints
 
 **Historical worker caller correction — D1398.** Exact1b7f9cc
 CI34047572346 passes five jobs, including complete Linux quality, current80
@@ -346,10 +374,10 @@ vendor/person dependency. Independent high-risk proof remains required.
 
 | Surface | Verified baseline | Release boundary |
 |---|---|---|
-| Source and integration | PR87 independently merged at22f1bed after exact15f5204 all-six CI and post-merge schema/referee11/11 | Main is the sole release branch; Q204 runtime80 remains separate unmerged work |
+| Source and integration | PR88 independently merged at2a0ba41 after exacte4399cf all-six CI and fresh post-merge schema/referee11/11 | Main is the sole release branch; Q206 provider/signed-receipt work remains in development |
 | Native fiscal acceptance | Independent migration41/41, native116/116, compatibility89/89, catalogue23/23, exact schema and referee11/11; all five [PR83 CI jobs](https://github.com/dcpnode-maker/yellow/actions/runs/33993977811) passed | [Review434](../handoff/reviews/434-native-fiscal-source-completion.md) approves bounded native issuance, not provider activation or a retained hotel database |
-| GitHub work queue | All62 PRs in the original audit are closed with source preservation; PR82/83/84/85/87 are merged | [The manifest](../handoff/CONSOLIDATION-MANIFEST.json) preserves dispositions; [GitHub](https://github.com/dcpnode-maker/yellow/pulls) is authoritative for the live queue |
-| Database schema | Main79/128; private Q20480/128;118RLS/118policies/27FORCE/13permissions/2views | Applied1–79 remain immutable. Founder preview77/127 is not migrated by these isolated proofs |
+| GitHub work queue | All62 PRs in the original audit are closed with source preservation; PR82/83/84/85/87/88 are merged | [The manifest](../handoff/CONSOLIDATION-MANIFEST.json) preserves dispositions; [GitHub](https://github.com/dcpnode-maker/yellow/pulls) is authoritative for the live queue |
+| Database schema | Main80/128;118RLS/118policies/27FORCE/13permissions/2views | Applied1–80 remain immutable. Founder preview77/127 is not migrated by these isolated proofs |
 | Private issued-wire proof | Independent10/10 unit and4/4 real-issued tests, including exact unchanged financial rows and cross-tenant isolation | Source/wire hashes differ deliberately; no certified provider, durable submission writer or fiscal acceptance is claimed |
 | Hotel journey design | [Workbench specification](design/STAFF-WORKBENCH-SPEC.md), [casebook](design/HOTEL-CASEBOOK.md) and [research](research/HOTEL-OPERATIONS-REVIEW.md) are preserved from PR84 | Fictional interaction study; final visual fidelity needs an accessible reference and matched screenshot evidence |
 | Local app | Exactb5ef708 native Windows preview personally verified on the laptop: readiness77, source archive hash, synthetic login and referee11/11 | [Recovery details](RECOVERY.md) distinguish native startup from Compose; no new screenshot, production stability or unmerged fiscal activation is claimed |
@@ -366,7 +394,7 @@ states. The runtime must identify its exact source and applied migration frontie
 | Phase4 | Built; integration review outstanding | Preserve implementation and close remaining integration evidence |
 | Phase7 operational flows | Consolidated and independently approved baseline | PMS, stay, folio, payment, approval and fiscal-support flows remain preserved; this does not complete the whole phase |
 | Order434 native fiscal issuance | Independently approved and merged through PR83 | Real source-to-invoice, accounting, replay, concurrency, tenant isolation, bounds and migration proofs pass; no provider registration or operator invoice screen is implied |
-| Order440 fiscal submission | Canonical79 repair is independently merged after full CI and post-merge proof; runtime80 has independent genuine worker, schema and referee evidence | Complete80 CI/integration, provider authentication, runtime activation and live sandbox evidence remain outstanding |
+| Order440 fiscal submission | Canonical80 delivery runtime and immutable request/retry replay are independently merged after complete CI and post-merge proof | Provider authentication, verified signed receipts, operator invoice/print journey, runtime activation and live sandbox evidence remain outstanding |
 | Order440 hotel journeys | Reviewed study merged through PR84 | Cross-department research and a fictional prototype; final reference-matched visual QA and laptop execution remain separate |
 | Order441 RMS research | Astra Ultra portfolio documented | Known methods, falsifiable proposals and experiment design; no live algorithm or measured uplift |
 | Phases8–17 | Planned | Requirements, research and department studies are preserved; documentation is not shipped behavior |

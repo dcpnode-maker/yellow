@@ -4,14 +4,14 @@
 
 **Current coordination:** Codex under PROJECT and the applicable agent adapter.
 
-**Latest integration:** Q205's immutable receipt correction passes exact15f5204
-all-six CI34039764089 and is independently merged through PR87 as22f1bed. Separate
-post-merge actual79 schema and referee11/11 pass. Q204 supervised delivery is built
-with frozen80 and independent genuine HTTP/worker11/11(93), extra lock/ACL proof and
-current80 schema/referee11/11; full current80 CI and actual Linux process/readiness
-remain integration gates. Main79 and the unchanged local77 are distinct releases.
-Provider authentication and sandbox verification remain unfinished; phase priority
-and product scope are unchanged.
+**Latest integration:** Q204 supervised delivery passes exacte4399cf all-six
+CI34049699932 and normal CodeQL; the non-implementer merges PR88 as2a0ba41 after
+personally checking every required gate. Separate fresh post-merge80 schema and
+seed/referee11/11 pass. Main80/128 and unchanged local77/127 are distinct releases.
+Question206 continues authenticated provider and signed-receipt implementation;
+its private exact decoder is independently approved, private RS256 work is active,
+and full provider/read-model/operator/sandbox acceptance remains unfinished.
+Phase priority and complete product scope are unchanged.
 
 **Status reconciled:** 2026-09-06. Orders438/439 merged through PR82; independently
 reviewed native fiscal Order434 passed exact CI178 and merged through PR83 as443e3826

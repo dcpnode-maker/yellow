@@ -1,6 +1,6 @@
 # Order 440 — Durable fiscal submission and reconciliation
 
-**Status:** ACTIVE — Q205 is independently merged through PR87; Q204 supervised delivery runtime is implemented with bounded independent database proof, final Linux/current80 CI pending.
+**Status:** ACTIVE — Q205 and Q204 are independently merged through PR87/88 with complete CI and fresh post-merge80 schema/referee11/11. Q206 authenticated provider and signed-receipt integration is current work.
 Order434's exact candidate is accepted and merged; no provider is activated.
 **Phase:** 7, planned sequence item6.
 **Owner:** Codex coordinator; bounded internal builders, separate high-risk reviewer.
@@ -9,6 +9,15 @@ Order434's exact candidate is accepted and merged; no provider is activated.
 merged through PR83 as443e3826b47025106d1829fcbb406ce6302fbbba.
 
 ## Outcome
+
+Current D1399: exacte4399cf passes all-six CI34049699932 and normal CodeQL;
+non-implementer fiscal_http_acceptance verifies actual full gates and merges PR88
+as2a0ba41. Separate genuine post-merge80 schema and seed/referee11/11 pass.
+Question206 admits private exact JSON and RS256 dependencies of the complete
+authenticated provider/signed receipt/read-model outcome. It does not yet admit
+the prospective81 migration. Main80 and stable local77 remain separate.
+
+The following Q204 checkpoints retain historical failure/repair evidence.
 
 Q204's latest harness checkpoint is D1397. Actual CI34046418901 proves the Linux
 batch fixture and owned-child cleanup, but fails the first browser at the new8s
@@ -98,6 +107,14 @@ reconciliation and crash-recovery tests. Revisit worker partitioning only after
 measured queue/latency pressure, without weakening invoice identity or retry safety.
 
 ## Verified provider facts, not activation authority
+
+[Question206](../questions/206-clearirp-protocol-and-signed-receipts.md) preserves
+the latest directly read ClearIRP protocol evidence, existing artifact-storage gaps
+and independently critiqued proposal for authenticated transport, immutable signed
+receipts and an authorized read model. Only its exact private decoder and JWS
+paths are currently admitted; the full provider/SQL/read integration remains to be
+admitted. Its direct core lookup evidence must not be confused with the commercial
+gateway's separate protocol. Q204 is merged; Q206 is current implementation.
 
 The official GSTN IRIS IRP6 pages document Generate IRN and retrieval by document
 number/date/type. Generation checks duplicates across IRPs. Document lookup has a
