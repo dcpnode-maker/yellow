@@ -725,3 +725,111 @@ database/schema/referee/readiness gates and the final complete new80→81 upgrad
 suite. The latter's local11/3 original run remains honestly distinguished from its
 passed upgrade case and fresh81 discharge. No live provider registration, production
 activation, native-preview promotion, Order440 completion or Phase7 closure is claimed.
+
+### PR91 row-identity review and protected-loader consistency repair
+
+On published2381bd4933b8a2435efb771be1c1c9c697c08e23, automated discussion
+3945500035 / PRRT_kwDOT4Mkr86fvn3P identified a constructor disagreement. My
+independent in-memory reproduction instantiated the actual worker registry with
+same-UUID versions1/2 (accepted two identities), then passed registry.identities()
+to the actual HTTP availability constructor (rejected with its generic identity
+configuration error). No filesystem, database or provider activation was involved
+in that original reproduction. The review thread remained unresolved and I held
+merge rather than treating the live CI result as clearance.
+
+The proposed rolling-version diagnosis is narrower than that reproduction:
+canonical extension.id is the primary key, and fiscal head/history bind the
+(provider_extension_id,provider_extension_version) foreign key to extension(id,version).
+Two simultaneously retained versions cannot be two rows with one UUID. Valid old/new
+rows use distinct UUIDs. Root independently confirmed this and admitted a loader
+consistency/pre-pool repair, not a change to database identity or the HTTP find API.
+
+I inspected the exact two-file repair. The loader now rejects a repeated row UUID
+as sanitized invalid_manifest before reading that repeated entry's version,
+credentials or constructing its adapter. It still validates all exact key/version
+bindings, returns no partial registrations and performs no network activity.
+Distinct row UUIDs with the same provider key and different versions still compose
+through the actual registry and HTTP availability service. Production SQL81,
+worker, repository, HTTP, schema and canonical referee inputs are unchanged.
+
+Frozen source SHAfe8194691174957b08c383cfae69d653643a17d15cbe309853bd430e5f4236f9;
+test SHA6313699ae6ca57f2caafff68c152444da6f4f15bc9dbbd7dc5a587bf8846add5.
+My command was bun test tests/india-irp-provider-configuration.test.ts
+tests/fiscal-submission-adapter-availability.test.ts tests/server-fiscal-runtime.test.ts
+tests/operator-fiscal-submission.intentional-red.test.ts
+tests/operator-fiscal-submission.integration.test.ts.
+Result: **18 pass,12 explicit DB/POSIX/Linux skips,0 fail,237 assertions,3.10s**.
+The permanent loader test executes exact duplicates, same UUID/different version,
+same UUID/different key, missing duplicate credentials, sanitized errors/no partial
+value/no fetch, and genuine distinct-ID positive composition.
+
+An independent in-process probe reused only synthetic file/key fixture helpers,
+then tested malformed duplicate versions/configuration/paths and both real registry
+reservations plus HTTP lookup for distinct old/new UUIDs: **15 assertions passed**.
+One initial ad hoc generated-file positive control failed without diagnostic detail;
+its cause is unclassified and is not represented as a production finding or a clean
+first run. After adding diagnostic output, the original same-provider control passed
+three repetitions (15 assertions each) on unchanged production. All synthetic temp
+files were removed in finally; no retained deployment files were accessed or changed.
+Both frozen hashes stayed unchanged and scoped diff-check passed.
+
+Bounded repair accepted for publication after the coordinator's remaining gates.
+Existing CI34064668277 and CodeQL34064667147 test the earlier2381 source and remain
+baseline evidence only. They cannot approve this loader change; new exact-source
+CI, actual POSIX/ARM64 loader execution and normal CodeQL remain mandatory before
+independent integration. The discussion must be answered with the published repair
+and proof, not silently dismissed or bypassed.
+
+### Q207 independent catalogue ordering and bounded failure diagnostics — 2026-09-07
+
+Reviewer: fiscal_http_acceptance, independent of both corrections. Reviewed the
+complete three-file delta and current Q207 admission. The catalogue query orders
+by expected.name, so read must precede reconcile. The correction moves only those
+two expected objects; all six exact signatures, role grants, owner/configuration,
+head/history and cursor assertions remain unchanged. My earlier SELECT-only probe
+on retained clean81 referee reproduced the actual lexical order. The builder's
+reported RED is separate evidence, not a reviewer-executed RED.
+
+Personally executed the exact named case:
+`bun test tests/database-acceptance.integration.test.ts --test-name-pattern 'has exact durable fiscal head, protected history and capability authority'`.
+The approved deploy URL was read only in process, validated against127.0.0.1:55503
+and yellow_deploy, and only its pathname replaced with
+yellow_order440_q207_referee_review_90607. YELLOW_DEPLOY_DATABASE_URL and
+YELLOW_REQUIRE_DATABASE_ACCEPTANCE=1 were child-command scoped; no credentials
+were printed. Result: **1 pass,0 fail,23 filtered,6 assertions,260ms**. This case
+contains only catalogue SELECTs; the full seed-dependent suite was not run on this
+retained target. No DDL/DML, role change, new target or service action occurred.
+
+The failure-log change applies only after failure: one-minute step deadline,
+GNU timeout20s plus kill-after5s around Compose,40 records per container and a
+64KiB stdout tail. PIPESTATUS is captured immediately after the pipeline while
+errexit is disabled, then both statuses are printed. Its successful diagnostic
+exit cannot erase the already-failed acceptance step. Required acceptance/schema/
+referee/readiness commands and unconditional cleanup remain intact. The byte cap
+is the Compose stdout tail; diagnostic labels and stderr are separate. This is
+bounded diagnostic output, not complete logs or a substitute acceptance gate.
+
+Personally executed:
+`bun test tests/fiscal-replay-workflow.test.ts tests/free-host-arm64.test.ts tests/release-workflow.test.ts`.
+Result: **15 pass,0 fail,220 assertions,66ms**. Native Windows execution establishes
+wiring only, not actual GNU timeout behavior. Scoped diff-check passed. Frozen
+SHA256 values:
+
+- ci.yml:93fe504ae4b3248bb25a6ee092e4fee2ee04d309388ea9ff47c5c50a76accbdc
+- fiscal-replay-workflow.test.ts:dc3a4d2a237b69c1ce82558ac7f2bbe38c0b0fb34b5e48ec91e034c982a95fd8
+- database-acceptance.integration.test.ts:4d5c9fa67dae97b054f03fa5ab66fd06d6f2998d92bf465de5436b36bfc3fed6
+
+Baseline CI34064668277 at2381bd4 is terminal cancelled, updated2026-09-06
+23:21:41UTC; database job101571464613 ended23:21:40UTC. I did not cancel/retry it.
+Step17 deployment acceptance failed22:59:17UTC; final referee and app readiness
+were skipped. The API still records the log step in progress and cleanup pending,
+so cleanup execution is not claimed. The job log endpoint still returned404 after
+terminal status. The reproduced catalogue defect is therefore not yet asserted
+to be the exact original CI failure. Earlier native/upgrade and compatibility
+steps are reported successful by the job API, but their detailed counts are not
+substituted with local results. Five other CI jobs and normal CodeQL succeeded.
+
+The bounded corrections are accepted for development publication following the
+coordinator's standing gate. No merge approval: fresh exact-source all-six CI,
+normal CodeQL, actual current81 downstream gates and final referee/readiness remain
+mandatory. Applied SQL81 and canonical schema/referee inputs were not changed.

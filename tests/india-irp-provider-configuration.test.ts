@@ -8,6 +8,8 @@ import {
   INDIA_IRP_PROVIDER_DEPLOYMENT_LIMITS,
   loadIndiaIrpAdapterRegistrationsFromEnvironment,
 } from "../src/contexts/tax-fiscal/india-irp-provider-configuration";
+import { FiscalSubmissionAdapterAvailabilityService } from
+  "../src/contexts/tax-fiscal/fiscal-submission-adapter-availability";
 import { VerifiedIndiaIrpAdapterRegistry } from "../src/contexts/tax-fiscal/fiscal-submission-worker";
 
 const PROVIDERS_FILE = "YELLOW_INDIA_IRP_PROVIDERS_FILE";
@@ -116,7 +118,7 @@ describe("Q207 protected India IRP provider configuration", () => {
   test("constructs a frozen all-real registry without network activity", async () => {
     const files = await validFiles([
       { providerKey: "clearirp-direct-fictional", extensionId: "00000000-0000-4000-8000-000000000711" },
-      { providerKey: "clearirp-direct-second", extensionId: "00000000-0000-4000-8000-000000000712", version: 2 },
+      { providerKey: "clearirp-direct-fictional", extensionId: "00000000-0000-4000-8000-000000000712", version: 2 },
     ]);
     let fetchCalls = 0;
     const testFetch = (async () => {
@@ -136,7 +138,7 @@ describe("Q207 protected India IRP provider configuration", () => {
     }))).toEqual([
       { providerKey: "clearirp-direct-fictional", providerExtensionId: "00000000-0000-4000-8000-000000000711",
         providerExtensionVersion: 1 },
-      { providerKey: "clearirp-direct-second", providerExtensionId: "00000000-0000-4000-8000-000000000712",
+      { providerKey: "clearirp-direct-fictional", providerExtensionId: "00000000-0000-4000-8000-000000000712",
         providerExtensionVersion: 2 },
     ]);
     for (const registration of result.value) {
@@ -145,12 +147,48 @@ describe("Q207 protected India IRP provider configuration", () => {
       expect(typeof registration.submit).toBe("function");
       expect(typeof registration.lookup).toBe("function");
     }
-    expect(new VerifiedIndiaIrpAdapterRegistry(result.value).identities()).toEqual(result.value.map((value) => ({
+    const workerRegistry = new VerifiedIndiaIrpAdapterRegistry(result.value);
+    const identities = workerRegistry.identities();
+    expect(identities).toEqual(result.value.map((value) => ({
       providerKey: value.providerKey, providerExtensionId: value.providerExtensionId,
       providerExtensionVersion: value.providerExtensionVersion,
     })));
+    const availability = new FiscalSubmissionAdapterAvailabilityService(identities);
+    for (const identity of identities) {
+      expect(availability.find(identity.providerExtensionId)).toEqual(identity);
+    }
     await writeFile(files.manifest, "{}", "utf8");
     expect(result.value).toHaveLength(2);
+  }, 30_000);
+
+  test("rejects every repeated provider row UUID before reading duplicate credentials", async () => {
+    const files = await validFiles();
+    const first = files.entries[0]!;
+    const missingCredentials = join(files.root, "must-not-read-duplicate-credentials.json");
+    const repeated = [
+      first,
+      { ...first, providerExtensionVersion: 2, credentialsFile: missingCredentials },
+      { ...first, protocolConfigurationJson: configuration("clearirp-direct-other"),
+        credentialsFile: missingCredentials },
+    ];
+    for (const [index, second] of repeated.entries()) {
+      const manifest = join(files.root, `repeated-row-${index}.json`);
+      await privateFile(manifest, JSON.stringify({ version: 1, providers: [first, second] }));
+      let fetchCalls = 0;
+      const result = await loadIndiaIrpAdapterRegistrationsFromEnvironment(environment(manifest), {
+        fetch: (async () => {
+          fetchCalls++;
+          throw new Error("provider transport must not run during load");
+        }) as unknown as typeof fetch,
+        clock: () => now,
+      });
+      expect(result).toEqual({ ok: false, error: {
+        code: "invalid_manifest", message: "India IRP provider deployment manifest is invalid",
+      } });
+      expect(result).not.toHaveProperty("value");
+      expect(fetchCalls).toBe(0);
+      expectSanitized(result, [files.root, missingCredentials, "fictional-secret"]);
+    }
   }, 30_000);
 
   test("rejects invalid environment paths without treating a URL as deployment configuration", async () => {

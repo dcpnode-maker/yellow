@@ -1,5 +1,26 @@
 import { expect, test } from "bun:test";
 
+test("failure diagnostics are time and byte bounded without replacing acceptance or cleanup", async () => {
+  const workflow = await Bun.file(new URL("../.github/workflows/ci.yml", import.meta.url)).text();
+  const start = workflow.indexOf("      - name: Print database logs on failure");
+  const end = workflow.indexOf("      - name: Remove database stack and volumes", start);
+  expect(start).toBeGreaterThan(0);
+  expect(end).toBeGreaterThan(start);
+  const diagnostic = workflow.slice(start, end);
+  expect(diagnostic).toContain("if: failure()");
+  expect(diagnostic).toContain("timeout-minutes: 1");
+  expect(diagnostic).toContain("timeout --kill-after=5s 20s docker compose logs --no-color --tail 40 postgres app | tail -c 65536");
+  expect(diagnostic).toContain('diagnostic_status=("${PIPESTATUS[@]}")');
+  expect(diagnostic).toContain("partial diagnostics only");
+  expect(workflow.slice(end, workflow.indexOf("  local-review:", end))).toContain("if: always()");
+  const acceptance = workflow.slice(workflow.indexOf("      - name: Prove deployment migration and seed"), start);
+  for (const required of ["bun run test:database", "bun run schema:check", "Prove invariant database through canonical referee"]) {
+    expect(acceptance).toContain(required);
+  }
+  expect(acceptance).not.toContain("continue-on-error");
+  expect(acceptance).not.toContain("|| true");
+});
+
 test("browser proofs share one journey deadline inside their original outer limits", async () => {
   for (const [file, budget, outer] of [
     ["operator-business-day-discrepancy-carry-browser.integration.test.ts", "55_000", "60_000"],

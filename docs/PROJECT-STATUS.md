@@ -4,7 +4,7 @@
 <!-- current-phase: 7 -->
 <!-- current-task: Codex Yellow — fiscal completion, with free-hosting and recovery preparation in parallel -->
 <!-- current-order-files: handoff/orders/442-host-recovery-and-merged-local-review.md;handoff/orders/443-runtime-storage-containment.md;handoff/orders/440-fiscal-submission-lifecycle.md -->
-<!-- current-lifecycle: PR90 merged main80; Q207 signed-provider integration passes native81 end-to-end proof and full local standing1766/0; exact-source CI/integration next; stable local77 preserved -->
+<!-- current-lifecycle: PR90 merged main80; PR91 provider identity, catalogue-order and bounded-diagnostic repairs pass independent focused proof and full local standing1768/0; fresh exact-source CI/integration next; stable local77 preserved -->
 
 This is the canonical current-state record. It identifies the consolidated source,
 verified behavior, release boundaries and active work. Historical orders, reviews,
@@ -17,6 +17,32 @@ backlog. `state.sh` and `state.ps1` read the machine-readable comments above.
 ClearIRP transport, immutable source-bound signed invoice/QR retention, an authorized
 receipt GET and protected deployment configuration. It remains unmerged development,
 not a merged release, configured provider or completed Phase7.
+
+PR91 publishes the complete integration. Its initial2381bd4 CI remains separate
+baseline evidence. Automated review found a loader/HTTP constructor disagreement
+for repeated provider row UUIDs. The independently reproduced and repaired loader
+now rejects those malformed entries before repeated credential access, preserving
+valid same-provider versions with distinct UUIDs. Independent focused proof passes
+18/0 plus12 explicit environment skips and15 additional composition assertions.
+The repaired full local suite passes1767/0 with1294 explicit DB/Unix skips and23578
+assertions in100.96s; types,183 boundaries and23 dependency licences pass. The first
+intentional failure and an unclassified exploratory probe failure remain recorded.
+Fresh repaired-source CI and non-author integration remain mandatory. Applied81,
+the canonical referee inputs and the stable local preview are unchanged.
+
+**Additional integration repairs — D1407.** The baseline database job failed its
+deployment acceptance step, then its unbounded failure-log step stalled until the
+run ended cancelled. Final referee/readiness did not execute; complete job logs
+were still unavailable when inspected. Independently, an actual read-only81 test
+reproduced an expected-array ordering defect: SQL sorts `read` before `reconcile`,
+but the test expected the reverse. Only those expected entries changed; the same
+test now passes independently. Supplementary CI logs now have time, record and
+byte bounds without bypassing acceptance or unconditional cleanup. Native checks
+prove the wiring, not execution of GNU timeout on Linux. Final root standing passes
+1768 tests, zero failures and1294 explicit environment skips, with23591 assertions
+across513 files in110.19s. Types,183 boundaries,23 licences and independent focused
+catalogue1/1 plus workflow15/15 pass. The failed/cancelled baseline is retained;
+the repaired published revision still needs its own complete CI and normal CodeQL.
 
 Independent actual PostgreSQL proof now establishes:
 
@@ -464,7 +490,7 @@ vendor/person dependency. Independent high-risk proof remains required.
 
 | Surface | Verified baseline | Release boundary |
 |---|---|---|
-| Source and integration | PR89 independently merged at43fc758 after exactd300 all-six CI, actual ARM64 decoder/JWS execution and fresh post-merge schema/referee11/11 | Main is the sole release branch; source-bound invoice/QR verification is in development and complete provider/receipt integration remains unfinished |
+| Source and integration | PR90 independently merged at4ba1d6f after exact21794 all-six CI, actual ARM64 source-binding execution and fresh post-merge schema/referee11/11 | Main is the sole release branch; PR91 contains unmerged complete provider/receipt integration and the independently verified row-identity repair; operator invoice/printing remains unfinished |
 | Native fiscal acceptance | Independent migration41/41, native116/116, compatibility89/89, catalogue23/23, exact schema and referee11/11; all five [PR83 CI jobs](https://github.com/dcpnode-maker/yellow/actions/runs/33993977811) passed | [Review434](../handoff/reviews/434-native-fiscal-source-completion.md) approves bounded native issuance, not provider activation or a retained hotel database |
 | GitHub work queue | All62 PRs in the original audit are closed with source preservation; PR82/83/84/85/87/88/89 are merged | [The manifest](../handoff/CONSOLIDATION-MANIFEST.json) preserves dispositions; [GitHub](https://github.com/dcpnode-maker/yellow/pulls) is authoritative for the live queue |
 | Database schema | Main80/128;118RLS/118policies/27FORCE/13permissions/2views | Applied1–80 remain immutable. Founder preview77/127 is not migrated by these isolated proofs |

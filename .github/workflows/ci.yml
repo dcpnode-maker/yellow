@@ -786,7 +786,14 @@ jobs:
 
       - name: Print database logs on failure
         if: failure()
-        run: docker compose logs --no-color postgres app
+        timeout-minutes: 1
+        run: |
+          echo "Bounded PostgreSQL/app tail; partial diagnostics only (40 records/container, 64 KiB, 25s maximum producer lifetime)."
+          set +e
+          timeout --kill-after=5s 20s docker compose logs --no-color --tail 40 postgres app | tail -c 65536
+          diagnostic_status=("${PIPESTATUS[@]}")
+          set -e
+          printf '\nDiagnostic producer exit=%s; tail exit=%s. This does not replace the failed acceptance result.\n' "${diagnostic_status[0]}" "${diagnostic_status[1]}"
 
       - name: Remove database stack and volumes
         if: always()

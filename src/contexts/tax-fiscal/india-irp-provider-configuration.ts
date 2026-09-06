@@ -257,7 +257,7 @@ export async function loadIndiaIrpAdapterRegistrationsFromEnvironment(
     }
 
     const registrations: Readonly<VerifiedIndiaIrpAdapterRegistration>[] = [];
-    const identities = new Set<string>();
+    const providerExtensionIds = new Set<string>();
     for (const providerValue of providers.items) {
       const provider = exactObject(providerValue, "invalid_manifest");
       const fields = ["providerExtensionId", "providerExtensionVersion",
@@ -267,6 +267,10 @@ export async function loadIndiaIrpAdapterRegistrationsFromEnvironment(
       if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/u.test(providerExtensionId)) {
         return fail("invalid_manifest");
       }
+      // extension.id is the canonical provider-row identity. Reject its reuse
+      // before inspecting any repeated entry's version, secrets, or adapter.
+      if (providerExtensionIds.has(providerExtensionId)) return fail("invalid_manifest");
+      providerExtensionIds.add(providerExtensionId);
       const providerExtensionVersion = positiveInteger(provider.members.providerExtensionVersion);
       const protocolConfigurationJson = stringValue(provider.members.protocolConfigurationJson, "invalid_manifest");
       const credentialsFile = stringValue(provider.members.credentialsFile, "invalid_manifest");
@@ -288,9 +292,6 @@ export async function loadIndiaIrpAdapterRegistrationsFromEnvironment(
         return fail("invalid_manifest");
       }
       const providerKey = configuredProviderKey(protocolConfigurationJson);
-      const identity = `${providerKey}\0${providerExtensionId}\0${providerExtensionVersion}`;
-      if (identities.has(identity)) return fail("invalid_manifest");
-      identities.add(identity);
       registrations.push(Object.freeze({
         kind: "registered_verified_india_irp_1_1_adapter" as const,
         providerKey, providerExtensionId, providerExtensionVersion,

@@ -527,3 +527,66 @@ and status tests. Preserve default-off behavior, empty registry when unconfigure
 all-or-nothing load before pools/listen, same registry for HTTP/worker, no inline
 secrets, complete HTTP composition and historical database proof. Do not restore
 stale hard-coded production or weaken snapshot, phase or activation assertions.
+
+### PR91 provider row-identity consistency
+
+Exact2381bd4 automated review identifies a constructor disagreement: the protected
+loader accepts two entries sharing providerExtensionId when their version/key
+differs, but the HTTP availability projection rejects them after pools are created.
+Independent reproduction confirms that disagreement, not a valid rolling-version
+recovery failure. Canonical extension.id is the row primary key; referenced fiscal
+provider id/version pairs cannot represent two simultaneous versions of one row.
+Valid old/new provider versions have distinct row UUIDs and must remain loadable.
+
+Within the already admitted configuration module and its test, reject any repeated
+providerExtensionId as sanitized invalid_manifest before reading that repeated
+entry's credentials or constructing its adapter. Preserve exact version/key binding,
+all-or-nothing loading, offline construction and the immutable shared registry.
+Test same UUID/different version, same UUID/different key, exact duplicates, and
+valid distinct UUIDs for the same provider key with different versions. The valid
+result must compose through both the real worker registry and HTTP availability
+projection; invalid results must return no partial registrations or sensitive data.
+
+Native configuration builder owns these two existing paths. A nonimplementing
+reviewer personally executes the final composition proof. Existing PR91 CI remains
+baseline evidence only; repaired exact-source CI and normal CodeQL are required
+before a normal guarded merge. No migration, runtime configuration, pool/worker
+activation, retained database or local preview change is admitted by this repair.
+
+### Bounded CI failure diagnostics
+
+Baseline CI34064668277 passed native81/upgrade and compatibility steps but failed
+deployment step17; final referee and app readiness were skipped. Its subsequent
+unbounded Compose log dump remained live for more than six minutes, withholding
+downloadable job logs. The original deployment assertion is not yet known.
+
+Within the admitted ci.yml and fiscal-replay-workflow.test.ts, bound only that
+supplementary failure-log step: one-minute step deadline, a20-second command with
+five-second forced termination grace, at most40 records per container and64KiB of
+printed tail. Explicitly label partial output and report pipeline exit statuses.
+The diagnostic may succeed after reporting truncation; it never changes the failed
+acceptance step or permits a merge. Preserve every required test/schema/referee/
+readiness gate and unconditional disposable-CI cleanup. No running job is cancelled
+or restarted by this source correction. Its first deployment failure remains open
+until the actual assertion is retrieved and addressed.
+
+### Independently reproduced catalogue-order correction
+
+The retained81 read-only capability test separately reproduces a deterministic
+oracle defect: `ORDER BY expected.name` returns claim/read/reconcile/request/retry/
+runtime, while the published expected array places reconcile before read. The
+already-admitted database-acceptance.integration.test.ts changes only those two
+entry positions. All six full signatures, owners, security-definer settings,
+search paths and exact app/runtime/PUBLIC grants remain asserted. Builder red0/1
+and green1/0, then nonimplementer green1/0, use the exact named catalogue test;
+23 other tests are filtered, not claimed executed. No DDL/DML or schema changes.
+
+Baseline run34064668277 ended cancelled at23:21:41Z after the earlier deployment
+failure. Its final referee/readiness remain skipped and job logs remain unavailable
+at this checkpoint. The independently reproduced test defect is sufficient for
+this bounded correction; it is not falsely identified as the original observed
+CI assertion without that log. Fresh exact-source full CI must discharge every
+required gate before independent merge. Root's final complete local standing is
+1768/0 plus1294 explicit environment skips,23591 assertions,110.19s; independent
+workflow15/0 and catalogue1/0 pass. GNU timeout runtime execution remains a Linux
+property; native source-wiring proof does not claim it was executed on Windows.
