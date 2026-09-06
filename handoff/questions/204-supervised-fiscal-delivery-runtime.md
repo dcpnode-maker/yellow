@@ -1,7 +1,9 @@
 # Question204 — Supervised fiscal delivery runtime
 
-**Status:** ADMITTED technical implementation under Order440; independent execution
-and exact-source CI remain mandatory before integration.
+**Status:** INDEPENDENTLY MERGED through PR88 at2a0ba41 after exacte4399cf
+all-six CI34049699932 and normal CodeQL; separate fresh post-merge80 schema and
+canonical seed/referee11/11 pass. Provider activation and local promotion remain
+separate; Question206 continues the full Order440 outcome.
 **Date:** 2026-09-06. **Owner:** Codex coordinator.
 **Predecessor:** Q203 at cb9a87ff5e94b47a9172f7e0f919c4df0e6f2ef5 passes all six
 CI34017067690 jobs and independent HTTP acceptance. PR87 is separate integration.

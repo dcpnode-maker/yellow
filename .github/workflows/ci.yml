@@ -818,6 +818,9 @@ jobs:
           bun install --frozen-lockfile
           python -m pip install --require-hashes --only-binary=:all: -r requirements-ci.txt
 
+      - name: Verify fiscal decoder and pinned RS256 on native ARM64
+        run: bun test tests/fiscal-exact-json.test.ts tests/fiscal-signed-jws.test.ts
+
       - name: Prove native ARM64 image targets and exact source identity
         shell: bash
         run: |

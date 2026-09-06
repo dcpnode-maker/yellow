@@ -822,3 +822,146 @@ including the previously skipped current80 readiness/compatibility/schema/refere
 gates, remains mandatory before any merge. Reviewer made no product/test edits and
 no commit/push/rerun/merge; only this admitted evidence was appended. Uncommitted
 Question206/order research remains excluded from PR88 review scope.
+
+## Exacte439 all-green CI and independent PR88 integration
+
+The non-implementing fiscal_http_acceptance reviewer personally followed automatic
+CI34049699932 to completion on e4399cf64fa41030d1f49c893298328c335ec32c.
+No duplicate dispatch, rerun, cancellation or local database/service action was
+performed. Actual stored job logs, not only status badges, were inspected using
+`gh run view ... --json headSha,status,conclusion,jobs` and the read-only
+`gh api --allow-escape-sequences repos/dcpnode-maker/yellow/actions/jobs/<job>/logs`
+endpoints. Final exact-head successful jobs:
+
+- local-review101530952342; windows-state101530952481;
+- quality101530952496; database101531219307;
+- free-host-arm64101531219319; container-smoke101531219325.
+
+Normal CodeQL34049697877 also succeeds on the exact head, including actions,
+JavaScript/TypeScript and Python analyses. All PR check-rollup entries are successful.
+The quality checkout log identifies test merge036a46ed9a141dbd7ed0166ba4ea9d046e3b87ed
+with parents22f1beddea23429ccd9111092dccf6176386adf2 and e4399cf64fa41030d1f49c893298328c335ec32c.
+GitHub commit APIs independently confirm its tree and published head tree are both
+`3e28e8c70905fba2069b8b863f8cebc7cfb49117`.
+
+Personally inspected exact Linux quality: isolated six-file gate24 pass,0 fail,
+227 assertions,36.52s. Full standing now retains its complete summary:1675 pass,
+1263 explicit database skips,0 fail,22300 assertions,2938 tests across504 files,
+64.40s (time-v64.44s,477812KiB max RSS,exit0). This full assertion count is observed
+on e439, not inferred from the earlier truncated1b7 log.
+
+The database job completes every required downstream step. Actual migration suite
+47 tests passes, including fresh80/schema-equivalent79-to80 upgrade2895.92ms;
+seed, Phase3 authority and all native fiscal suites pass. Exact fiscal summaries:
+
+- Issued wire4/0,230 assertions,6.11s; Q203 HTTP10/0,97 assertions,10.98s.
+- Q204 current80 delivery11/0,95 assertions,20.29s. Fresh-worker original-wire
+  lookup/no resend passes1532.62ms; actual competing-runtime single submission passes.
+- Required Linux server-process5/0,29 assertions,1.174s; real default-off SIGTERM
+  and two actual SIGTERMs during pending drain788.30ms pass.
+- Q205 genuine78-to79 immutable replay5/0,447 assertions,10.33s.
+- Repaired historical77-to78 durability19/0,227 assertions,60.88s.
+- Native containment/readiness19/0,68 assertions,9.49s. Actual75/77/79 predecessor
+  rejection, complete80 acceptance, owner/role denial, FORCE RLS/policy/configuration
+  drift and PUBLIC/app discovery ACL hostility with restoration all pass.
+- All ten isolated compatibility files pass: financial journey6, transfers8,
+  positive-tax correction8, final-component reversal7, business-day seal8,
+  check-in8, checkout6, security-definer3, quoted-rate recording18 and final-component
+  recording17. No downstream current-catalogue oracle remains skipped.
+- Deployment acceptance24/0,69 assertions; actual canonical schema check reports
+  exact match to tests/schema/expected.sql at current80.
+- Canonical unwrapped-seed referee reports11 passed,0 failed of11:50-way exclusive
+  winner1, six-bed capacity6, direct42501 denial,162 commits/0.82s, journal balance,
+  sealed-day denial,100 gapless invoice numbers,118 tenant RLS tables/policies and
+  both security-invoker views. Final exact health/readiness/database-backed runtime
+  step and cleanup also succeed.
+
+Before integration the reviewer rechecked PR88 exact head/base, all checks,
+conversations and protection. PR was OPEN,CLEAN,MERGEABLE; no review threads exist.
+Main protection still enforces administrators and conversation resolution, allows
+neither force push nor deletion, and has0 required approving reviews/no named status
+requirement. Project-required all-six CI and normal CodeQL were nevertheless fully
+satisfied; no bypass or policy weakening was used. All prior independent high-risk
+source/native proofs remain applicable. Q206/order research and private files are
+not part of this candidate. The refreshed PR body accurately distinguishes history
+and the latest evidence. No outstanding source or executable-proof finding remains
+within this bounded Q204 candidate; this is not provider certification or Phase7 closure.
+
+After a final API guard checked exact head, exact base,clean,mergeable andopen,
+reviewer executed the ordinary merge endpoint with
+`sha=e4399cf64fa41030d1f49c893298328c335ec32c` and `merge_method=merge`.
+GitHub confirms PR88 MERGED at2026-09-06T18:06:55Z, merge commit
+`2a0ba41ea5e018e44e69e87677b703721b0a2e33`. Remote main equals that SHA;
+its two parents are the verified base/head and its tree remains exactly3e28e8c7...
+above. No admin flag, bypass, branch deletion, local checkout/promotion, app restart,
+provider call or database operation occurred. Local HEAD remains e439 and all dirty
+Q206/order/.yellow files are preserved. Post-merge native proof is explicitly pending
+new target coordination and the coordinator's standing-suite completion.
+
+## Merged80 — personally executed bounded native post-merge referee
+
+After the coordinator confirmed its standing suite had terminated successfully,
+the independent reviewer reread Q204 authority/current status and the canonical
+seed/referee/schema runner. The status file still described pre-merge history;
+current GitHub identity and the preceding merge record establish actual integration.
+Remote main was reverified as2a0ba41ea5e018e44e69e87677b703721b0a2e33 with the
+same reviewed3e28e8c70905fba2069b8b863f8cebc7cfb49117 tree and exact22f1bed/e439
+parents. No local checkout or source synchronization was performed.
+
+Before allocating anything, reviewer compared binary `git show e4399cf:<path>`
+output with all85 local proof inputs:80 canonical migrations, scripts/migrate.ts,
+scripts/schema-drift.ts, tests/seed_fixture.sql, tests/run_invariants.py and the
+frozen expected schema. Every byte hash matched the reviewed/merged tree. The
+canonical directory has exactly versions1 through80. Untracked Q206 implementation
+and all dirty governance/private files are excluded from these proof inputs.
+
+The only authorized new target, `yellow_order440_q204_postmerge_90607`, was confirmed
+absent. Existing loopback127.0.0.1:55503 template yellow_order434_production was
+reverified as77 exact source hashes,127 public base tables,0 tenants,0 other
+sessions. After closing its connection, a second administrator-side check found0
+template sessions. Exact yellow_deploy CREATEDB authority was checked and one
+fixed-literal CREATE DATABASE ... TEMPLATE operation allocated the target. No
+existing database was reused, reset or dropped; no cluster or role was created.
+
+Protected Order442 seed.env/app.env keys were read and validated only inside the
+proof process, with pathname-only target substitution. Secrets were never printed
+or stored in a new file. Personally executed native operations were:
+
+```text
+runMigrations({databaseUrl:<private target URL>, logger:<quiet>})
+  discovered80; applied0078,0079,0080; backend16228; transactionPids16228/16228/16228
+pg_dump --schema-only --no-owner --no-comments
+  command-scoped PGHOST=127.0.0.1 PGPORT=55503 PGDATABASE=<target>
+  PGUSER=yellow_deploy PGPASSWORD=<private in-process value>
+normalizeSchemaDump(actualDump,true); schemaMismatch(actual,expected) === null
+psql --no-psqlrc --set ON_ERROR_STOP=1 --file tests/seed_fixture.sql
+  same command-scoped target authority; exit0, no transaction/observer wrapper
+YELLOW_DSN=<private target URL> PYTHONIOENCODING=utf-8
+  python tests/run_invariants.py yellow_order440_q204_postmerge_90607
+RESULT: 11 passed, 0 failed of 11; exit0
+```
+
+The native PostgreSQL16.15 dump has one strict matched restrict/unrestrict pair;
+canonical normalization yields1620228 bytes and SHA256
+`03796c8d46400892158875f6957525b5ec91e6406e7cb9d3f13787800ee32b8e`, exactly frozen80.
+No normalization beyond the canonical function was added. Seed SHA256 is
+`f8e8147800bc3ee24ba5020b70f95ad77a987c698d3c63dd664ed8d4cba1a409`;
+referee SHA256 is
+`2afa95bb7c02cd9637ffc9c3df00d1ddf7cfc5d8d31c4fd8fad29b950c1a418d`.
+Runner SHA2561c744395... and normalizer5b3815c3... likewise match the exact source.
+
+Actual referee:50-thread exclusive race winner1; private/beds never coexist;
+40 contenders produce exactly6 beds; direct INSERT denied42501;162 commits in0.97s;
+unbalanced journal rejected at COMMIT and balanced journal accepted; sealed day
+blocked;100 invoice numbers exactly1..100;118 tenant tables/RLS/policies with
+cross-tenant isolation; both views are security_invoker and isolate tenants.
+
+Afterward all85 source hashes remain unchanged. All80 target ledger checksums and
+all77 template checksums match canonical bytes. The retained post-merge target has
+2 synthetic fixture tenants and0 other sessions; pristine template has0 tenants
+and0 sessions. Global role attributes and role memberships were snapshotted in
+memory before/after and remain identical; final administrator-side count confirms0
+sessions on target/template after owned pools close. No live app/provider, role,
+existing database, cluster, checkout or private/Q206 file was changed. This is the
+personally executed post-merge80 schema/referee gate, not local promotion or provider
+activation. Only admitted review evidence was appended; no commit or push occurred.

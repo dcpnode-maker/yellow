@@ -49,4 +49,21 @@ describe("Order442 free-host native ARM64 preparation", () => {
     expect(workflow.replace(/\r\n/g, "\n")).toContain("  database:\n");
     expect(workflow).toContain("YELLOW_REQUIRE_ORDER440_DURABILITY=1");
   });
+
+  test("executes private fiscal signature proofs on the native ARM64 runner", async () => {
+    const workflow = await Bun.file(new URL("../.github/workflows/ci.yml", import.meta.url)).text();
+    const job = workflow.replace(/\r\n/g, "\n").split("\n  free-host-arm64:\n")[1];
+    expect(job).toBeDefined();
+    const install = job!.indexOf("bun install --frozen-lockfile");
+    const proof = job!.indexOf("      - name: Verify fiscal decoder and pinned RS256 on native ARM64\n");
+    const images = job!.indexOf("      - name: Prove native ARM64 image targets and exact source identity\n");
+    expect(install).toBeGreaterThanOrEqual(0);
+    expect(proof).toBeGreaterThan(install);
+    expect(images).toBeGreaterThan(proof);
+    const step = job!.slice(proof, images);
+    expect(step).toBe(
+      "      - name: Verify fiscal decoder and pinned RS256 on native ARM64\n" +
+      "        run: bun test tests/fiscal-exact-json.test.ts tests/fiscal-signed-jws.test.ts\n\n",
+    );
+  });
 });

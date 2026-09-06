@@ -8,6 +8,21 @@ a prior phase's public surface without a written note in `DECISIONS.log`.
 
 ## Current implementation status — 2026-09-06, consolidated Codex Yellow work
 
+D1399 closes Q204 integration: exacte4399cf passes all six CI34049699932 jobs
+and normal CodeQL. Non-implementer fiscal_http_acceptance personally verifies the
+complete migration/delivery/Linux/readiness/compatibility/schema/referee outputs
+and normally merges PR88 as2a0ba41. A separate fresh post-merge80 native database
+matches frozen schema and passes seed/referee11/11; template and global roles are
+unchanged. Main80/128 and stable local77/127 remain separate releases.
+Question206 is current implementation: signed provider artifacts and authorized
+receipt reads. Its independently approved private exact decoder passes12/12 plus
+10,000 differential cases and full standing1686/0 with1264 explicit environment
+skips. The private RS256 verifier is admitted next; real provider, full signed
+receipt integration, operator printing and sandbox acceptance remain unfinished.
+All18 phases and dependency-gated11→13→17 priority remain unchanged.
+
+### Historical checkpoints (not current integration blockers)
+
 D1398 repairs the sole stale worker caller exposed by exact1b7 CI34047572346.
 Five jobs pass, including full Linux quality; actual current80 delivery11/11 and
 Linux process5/5 pass before the older77-to78 durability case rejects its missing

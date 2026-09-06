@@ -356,8 +356,8 @@ export const PROJECT_BUILD_SNAPSHOT: ProjectBuildSnapshot = Object.freeze({
     Object.freeze({
       order: 440,
       state: "proof_in_progress" as const,
-      summary: "Order 440 is the current Phase-7 work: provider-neutral durable fiscal submission and reconciliation after accepted native issuance; the separately descriptive Order 440 hotel journeys and fictional design study are merged as design input with a fictional in-memory prototype only. The separate Order 441 Astra Ultra RMS paper is documented research only, with no algorithm runtime or measured uplift.",
-      remaining: "Private fiscal reducer and issued-wire projection are independently verified; durable persistence, claim/reconciliation worker, canonical issued payload assembly and authenticated provider normalization remain unfinished. IRP provider activation and operator invoice UI remain separate; new-department release, local refresh, cloud deployment and live sandbox evidence remain outstanding; the hotel prototype is not production and Phase 7 is not complete.",
+      summary: "Order 440 durable fiscal submission, immutable command replay and supervised delivery runtime are independently merged through PR88 at 2a0ba41 (80 migrations / 128 public tables), after all six CI jobs and separate post-merge schema/referee 11/11. The separately descriptive Order 440 hotel journeys and fictional design study are merged as design input with a fictional in-memory prototype only. The separate Order 441 Astra Ultra RMS paper is documented research only, with no algorithm runtime or measured uplift.",
+      remaining: "Authenticated provider normalization, verified signed invoice/QR retention and property-authorized receipt reads remain unfinished. IRP provider activation and operator invoice UI remain separate; new-department release, local refresh, cloud deployment and live sandbox evidence remain outstanding; the hotel prototype is not production and Phase 7 is not complete.",
     }),
   ] satisfies readonly ProjectRecordedWorkSnapshot[]),
   phases: Object.freeze([
