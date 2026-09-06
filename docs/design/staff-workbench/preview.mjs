@@ -17,6 +17,12 @@ const files = new Map([
   ['/compare-core.js', ['compare-core.js', 'text/javascript; charset=utf-8']],
   ['/compare.js', ['compare.js', 'text/javascript; charset=utf-8']],
 ]);
+// Fixed, same-origin design assets; never serve arbitrary repository paths.
+for (const name of ['guest-mira', 'staff-aditi']) files.set(`/assets/${name}.png`, [`assets/${name}.png`, 'image/png']);
+files.set('/assets/Urbanist.ttf', ['assets/Urbanist.ttf', 'font/ttf']);
+for (const name of ['arrow-up-right', 'bell', 'briefcase', 'broom', 'calendar-blank', 'chart-line-up', 'clock', 'confetti', 'cooking-pot', 'flower-lotus', 'fork-knife', 'handshake', 'house-line', 'identification-card', 'magnifying-glass']) {
+  files.set(`/assets/${name}.svg`, [`assets/${name}.svg`, 'image/svg+xml']);
+}
 const server = createServer(async (request, response) => {
   const path = new URL(request.url ?? '/', 'http://preview.invalid').pathname;
   const file = files.get(path);
@@ -25,7 +31,7 @@ const server = createServer(async (request, response) => {
   if (!file) { response.writeHead(404); response.end('Not found'); return; }
   try {
     const body = await readFile(fileURLToPath(new URL(file[0], import.meta.url)));
-    response.writeHead(200, { 'content-type': file[1], 'cache-control': 'no-store', 'x-content-type-options': 'nosniff', 'content-security-policy': "default-src 'self'; script-src 'self'; style-src 'self'; connect-src 'none'; img-src blob: data:; frame-ancestors 'self'; form-action 'none'; base-uri 'none'" });
+    response.writeHead(200, { 'content-type': file[1], 'cache-control': 'no-store', 'x-content-type-options': 'nosniff', 'content-security-policy': "default-src 'self'; script-src 'self'; style-src 'self'; connect-src 'none'; img-src 'self' blob: data:; font-src 'self'; frame-ancestors 'self'; form-action 'none'; base-uri 'none'" });
     response.end(request.method === 'HEAD' ? undefined : body);
   } catch { response.writeHead(500); response.end('Preview file unavailable'); }
 });

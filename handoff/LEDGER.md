@@ -1421,3 +1421,14 @@ appears here; dispatch/execution remain unverified.
 2026-09-06 | Order440/441 | CONCURRENT-REVIEWED-SOURCE-INTEGRATION-Q198-D1381 | Local296d8db plus reviewed main7829eae preserve native fiscal, private Q197, AstraUltra RMS research and hotel/STR journey study. Both descriptive440/196 histories retained, no renumbering or lost branch. Root1597/0+1195DBskips(21785),types/boundaries171/licences23/audit0/YAML/releaseworkflow4/0; independent native_migration_assembly personally status11/0+2DBskips(186),types and byte-identity checks. Exact Q197/paper hashes unchanged; no applied SQL/runtime/provider change. New combined-headCI including required genuine-issued wire proof remains required before independent PR85 integration. Prior13737a7 green CI cannot approve changed source.
 
 2026-09-06 | Order440 | CI-TEST-PURITY-AND-PROXY-REPAIR-D1382 | Preserve4ecee0b quality failure and skipped downstream database/container; Windows/local/CodeQL passed. Root exact matcher-mutation reproduction and red0/1; scalar+snapshot-purity repair. Builder revoked-proxy14pass/3fail then17/0(75); independent22/0(134)+types. Root1600/0+1195explicit DBskips(21797), no applied SQL/runtime change. New exact-head CI required. Q199 admits durable draft/private integration with legacy preservation, protected attempt history, runtime-only claims and no automatic unknown-delivery resend; not completion or activation.
+
+## 2026-09-06 — Order442 profile cards and workspace skins
+
+Codex implemented the founder's three-skin choice and profile-only Sophie reference
+in the existing app/study. Independent code review passed with corrected CSS findings;
+see [Review442](reviews/442-workspace-skins.md) for actual commands and file hashes.
+PR85 mainb5ef7084 remains the reviewed release baseline. The new candidate's browser
+rendering was denied by cloud URL policy before load, with no alternate-route retry.
+The [order](orders/442-profile-cards-and-workspace-skins.md) contains the authorized
+laptop continuation. Candidate publication is for exact CI and visual review; it is
+not a completed UI release or proof that the user's local/cloud app has changed.

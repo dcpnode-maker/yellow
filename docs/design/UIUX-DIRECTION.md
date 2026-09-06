@@ -24,12 +24,38 @@ original synthesis, not claims that Yellow already implements the proposed workf
 These are documented patterns, not hands-on benchmark measurements. Vendor claims
 about speed or revenue are not adopted as Yellow performance results.
 
-## Three screen directions to compare
+## Three selectable workspace skins — founder selection, 2026-09-06
+
+The founder selected **all three** directions as client-selectable skins of the
+same product. Order442 implements one native selector around the existing mounted
+workspace. A skin changes composition and density, never authority, command state,
+the selected subject or draft input. Selection is page-session only under the
+existing no-browser-storage contract. This is independent of the six appearance
+families and the Simple/Advanced/Expert detail setting.
+
+The later reference clarification selects the **right-hand Sophie Bennett profile
+card** specifically for guest profiles and staff/management user identities.
+The source is [Tran Mau Tri Tam / UI8, Profile Card](https://dribbble.com/shots/26033069-Profile-Card).
+The nested translucent rim, continuous portrait surface, gentle lower softness and
+raised action inform the design; appropriate fictional hotel identities and profile
+actions replace the original portrait, social metrics and Follow action.
+
+[Synthex by Jack R. / RonDesignLab](https://dribbble.com/shots/27131881-Synthex-UI-Analytics-SaaS-Dashboard)
+is a secondary palette/type reference. The founder expressly permits an improved
+original composition. This is not a whole-dashboard clone or a pixel-equality
+claim. The perspective marketing render cannot define a flat app's exact geometry.
+
+The earlier alternatives below remain the rationale for the three skins. The
+current code is a candidate: cloud browser URL policy blocked the new preview
+before rendering, so visual acceptance remains outstanding.
+
+## Original comparison and rationale
 
 All three use the same governed commands, tenancy, financial rules and future six
 appearance families. They are alternative information layouts, not competing apps.
 Keep Yellow as the working name until the [name review](../research/APP-NAME-SHORTLIST.md)
-produces a selected brand. A selected visual target is needed before a fidelity build.
+produces a selected brand. The founder-selected profile source now supplies a
+component-level visual target.
 
 | Direction | Composition and feel | Best test |
 |---|---|---|
@@ -40,8 +66,8 @@ produces a selected brand. A selected visual target is needed before a fidelity 
 Recommendation: develop the **calm workbench** as the initial FO learning surface,
 retain **precision desk** for high-volume reservations/finance, and use the **service
 timeline** as contextual evidence. Validate this combination; do not place all three
-complete layouts on one screen. The current fictional workbench is an interaction
-study, not proof that this visual direction is complete or selected.
+complete layouts on one screen. The fictional workbench remains an interaction
+study; selection does not itself prove rendered quality or an operational release.
 
 ## The actual screen contract
 
@@ -130,8 +156,8 @@ Use the [offline comparator](staff-workbench/compare.html) for strict RGBA diffe
 and combined visual inspection. Do not resize, hide changing regions or tolerate
 mismatches silently to manufacture a zero-difference result.
 
-The current [QA record](staff-workbench/design-qa.md) is blocked on a selected source
-visual. The comparator's math passed its two tests, but its browser page was blocked
+The current [QA record](staff-workbench/design-qa.md) has the selected source but is
+blocked on a new rendered implementation capture. The comparator's math passed its two tests, but its browser page was blocked
 in this cloud session before it loaded. The [laptop handoff](../../handoff/orders/440-hotel-journeys-and-schema-guide.md#laptop-session-handoff--visual-reference-and-measured-fidelity)
 keeps that local verification in the same Codex task. The founder reports a remote
 connection; it has not exposed a callable laptop surface here, so dispatch and local

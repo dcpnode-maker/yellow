@@ -11,6 +11,14 @@ same property, role and jurisdiction rules still govern both. See [staff
 journeys](design/STAFF-JOURNEYS.md), the [feature register](FEATURE-REGISTER.md)
 and the [design atlas](DESIGN.md).
 
+Order442 adds three founder-selected **workspace skins**: Calm Workbench,
+Precision Desk and Service Timeline. They change presentation around the same
+mounted controls; selection preserves input, subject, property and request identity.
+Selection is page-session only and performs no request or authorization change.
+Guest and staff/management identity cards take the Sophie-reference treatment;
+task records keep their own readable surfaces. The candidate's visual gate is
+still blocked; [design QA](../design-qa.md) records the required laptop proof.
+
 The six dedicated appearances are Apple, Android/Pixel, Win95/98, Glass, Neo and
 ERP. They may compose the same authorized journey differently while preserving
 truth, accessibility, focus and confirmation semantics. The existing global

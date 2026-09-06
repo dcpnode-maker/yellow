@@ -2130,3 +2130,109 @@ to { opacity: 1; transform: none; }
 @media (max-width:430px) { .trust-preview dl { grid-template-columns:minmax(0,1fr); } }
 @media (prefers-reduced-motion:reduce) { .trust-workbench * { animation:none!important; transition:none!important; transform:none!important; } }
 @media (forced-colors:active) { :is(.trust-command,.trust-preview,.trust-inbox,.trust-preview dl>div,.trust-approval-row) { border:1px solid CanvasText; background:Canvas; color:CanvasText; box-shadow:none; -webkit-backdrop-filter:none; backdrop-filter:none; } :is(.trust-command-actions,.trust-approval-actions,.trust-inbox) button { border:2px solid ButtonText; background:ButtonFace; color:ButtonText; forced-color-adjust:auto; } :is(.trust-command,.trust-preview,.trust-inbox) :focus-visible { outline:3px solid Highlight; outline-offset:3px; } }
+
+/* Order 442: three workspace compositions, independent of appearance and detail.
+   These rules retain document order and all mounted controls. */
+.workspace-skin-control { display: flex; align-items: center; gap: .55rem; min-width: 0; }
+.workspace-skin-control > span { color: var(--shell-muted); font-size: .72rem; font-weight: 750; }
+.workspace-skin-control select { width: auto; min-width: 11.5rem; min-height: 44px; color: var(--shell-ink); }
+.app-bar { flex-wrap: wrap; }
+.app-actions { min-width: 0; flex-wrap: wrap; }
+
+:root[data-workspace-skin="calm"] { --workspace-gap: 1.25rem; --workspace-panel-padding: 1.25rem; --workspace-row-padding: 1rem; }
+:root[data-workspace-skin="precision"] { --workspace-gap: .65rem; --workspace-panel-padding: .8rem; --workspace-row-padding: .65rem; }
+:root[data-workspace-skin="timeline"] { --workspace-gap: 1rem; --workspace-panel-padding: 1.1rem; --workspace-row-padding: .9rem; }
+:root[data-workspace-skin] :is(.today-lanes,.configuration-grid,.inventory-columns) { gap: var(--workspace-gap); }
+:root[data-workspace-skin] :is(.today-lane,.inventory-panel,.configuration-form) { padding: var(--workspace-panel-padding); }
+:root[data-workspace-skin] .today-lane-list { gap: var(--workspace-gap); }
+:root[data-workspace-skin] .today-lane-list .reservation-board-card { padding: var(--workspace-row-padding); }
+:root[data-workspace-skin="calm"] :is(.reservation-detail-section,.party-profile-panel) { padding: 1.25rem; }
+:root[data-workspace-skin="calm"] .reservation-segment-history { gap: 1rem; }
+
+/* Precision favours scanning and aligned records without reducing touch targets. */
+:root[data-workspace-skin="precision"] .workbench-head { min-height: 92px; padding-block: 1rem; }
+:root[data-workspace-skin="precision"] .section-heading { margin-bottom: .7rem; }
+:root[data-workspace-skin="precision"] :is(.reservation-board-table,.folio-statement-table) :is(th,td) { padding-block: .5rem; font-variant-numeric: tabular-nums; }
+:root[data-workspace-skin="precision"] :is(.metric,.reservation-detail-section,.party-profile-panel) { padding: .85rem; }
+:root[data-workspace-skin="precision"] .today-lane-list .reservation-board-card { gap: .3rem; box-shadow: none; }
+:root[data-workspace-skin="precision"] .reservation-segment-history { gap: .45rem; }
+:root[data-workspace-skin="precision"] .reservation-segment-history li { padding: .65rem .85rem; }
+
+/* Timeline presents the existing service lanes and recorded history in a vertical
+   reading sequence. It does not infer chronology or invent operational events. */
+:root[data-workspace-skin="timeline"] .today-lanes { grid-template-columns: minmax(0,1fr); }
+:root[data-workspace-skin="timeline"] .today-lane { border-inline-start: 3px solid var(--accent); }
+:root[data-workspace-skin="timeline"] .today-lane-head { padding-bottom: .55rem; margin-bottom: .5rem; border-bottom: 1px solid var(--line); }
+:root[data-workspace-skin="timeline"] .reservation-segment-history { padding-inline-start: 1rem; border-inline-start: 2px solid var(--line); gap: 1.1rem; }
+:root[data-workspace-skin="timeline"] .reservation-segment-history li { border-inline-start: 3px solid var(--accent); box-shadow: none; }
+:root[data-workspace-skin="timeline"] .housekeeping-sheet-history { padding-inline-start: 1rem; border-inline-start: 2px solid var(--line); }
+@media (min-width: 1180px) {
+ :root[data-workspace-skin="calm"] .workbench { column-gap: clamp(1.4rem,2.5vw,2.5rem); }
+ :root[data-workspace-skin="precision"] .workbench { column-gap: .85rem; padding-inline: 1rem; }
+ :root[data-workspace-skin="timeline"] .today-lane-list { grid-template-columns: repeat(2,minmax(0,1fr)); }
+}
+@media (max-width: 1100px) {
+ .app-actions { flex: 1 1 100%; justify-content: flex-start; gap: .65rem; }
+ .workspace-skin-control { flex: 1 1 13rem; }
+ .workspace-skin-control select { flex: 1; min-width: 0; }
+ .app-bar { position: relative; }
+ :root[data-theme] .domain-bar { top: .5rem; }
+}
+@media (max-width: 766px) {
+ .workspace-skin-control { flex: 1 1 100%; display: grid; grid-template-columns: 7rem minmax(0,1fr); }
+ .workspace-skin-control select { width: 100%; min-width: 0; }
+ :root[data-workspace-skin] :is(.today-lanes,.configuration-grid,.inventory-columns) { grid-template-columns: minmax(0,1fr); }
+ :root[data-workspace-skin] .today-lane-list { grid-template-columns: minmax(0,1fr); }
+ :root[data-workspace-skin] .today-lane { padding: .85rem; }
+ :root[data-workspace-skin="timeline"] .reservation-segment-history { padding-inline-start: .6rem; }
+}
+
+/* Glass now uses quiet, light surfaces. Depth belongs to identity cards; action
+   controls and evidence remain crisp. The other five appearances are unchanged. */
+@media (forced-colors: none) {
+ :root[data-theme="glass"] {
+  --ink: #192e2b; --muted: #4d625d; --paper: #eaf0ec; --card: #fafcf9;
+  --line: #b8c9bf; --accent: #315e50; --accent-strong: #254a3f; --accent-ink: #ffffff;
+  --focus: #254f9e; --nav: #f1f5f0; --shell-ink: #192e2b; --shell-muted: #4d625d;
+  --surface-subtle: #edf3ed; --control-radius: 12px; --card-radius: 20px;
+  --material-card: #fafcf9; --material-card-border: 1px solid #c8d4ca;
+  --material-card-shadow: 0 2px 6px rgba(29,56,43,.035); --material-card-filter: none;
+  --material-control: #ffffff; --material-control-border: 1px solid #728f7e;
+  --material-control-shadow: 0 1px 2px rgba(29,56,43,.04);
+  --material-control-active-shadow: inset 0 0 0 1px #315e50;
+  --material-primary: #315e50; --material-primary-border: 1px solid #254a3f;
+  --material-primary-shadow: 0 2px 4px rgba(29,56,43,.1);
+  --material-nav: #f1f5f0; --material-nav-border: 1px solid #c8d4ca;
+  --material-nav-shadow: none; --material-nav-filter: none; --material-hover-lift: none;
+ }
+ :root[data-theme="glass"] body { background: var(--paper); }
+ :root[data-theme="glass"] .ambient-stage { display: none; }
+ :root[data-theme="glass"] .workbench { perspective: none; }
+ :root[data-theme="glass"] :is(.domain-bar,.workbench-head) { border: 1px solid #c8d4ca; background: #f6f8f3; box-shadow: none; -webkit-backdrop-filter: none; backdrop-filter: none; }
+ :root[data-theme="glass"] .domain-tab.is-active { background: #dce8dd; color: #254a3f; box-shadow: inset 3px 0 #315e50; transform: none; }
+ :root[data-theme="glass"] :is(.metric:nth-child(1),.metric:nth-child(2),.metric:nth-child(3)) { background: #f1f6ef; }
+ :root[data-theme="glass"] :is(.option-card,.reservation-board-card):hover { transform: none; box-shadow: 0 2px 6px rgba(29,56,43,.08); }
+ :root[data-theme="glass"] :is(.arrival-room-cleaning-task,.pickup-task-detail-panel,.reservation-stay-changes-panel,.reservation-guest-allocation-panel,.reservation-travel-panel,.folio-settlement-panel,.folio-receivable-form fieldset,.departure-workbench,.housekeeping-task-detail-panel,.vehicle-parking-assignment,.housekeeping-sheet-task-receipt,.housekeeping-condition-initialization-form,.housekeeping-discrepancy-workbench,.pickup-task-detail-governed-actions,.pickup-task-assignee-picker fieldset,.management-journey-index,.day-close-seal,.day-close-seal-dialog,.trust-command,.trust-preview,.trust-inbox) { color: var(--ink); background: #fafcf9; border-color: #b8c9bf; box-shadow: 0 2px 6px rgba(29,56,43,.04); -webkit-backdrop-filter: none; backdrop-filter: none; }
+ :root[data-theme="glass"] :is(.arrival-room-cleaning-task-status,.arrival-room-cleaning-task-selected,.reservation-pickup-state,.pickup-task-detail-status,.reservation-stay-changes-action,.reservation-guest-allocation-action,.reservation-guest-row,.reservation-travel-action,.reservation-travel-summary,.folio-settlement-state span,.departure-readiness-badge,.departure-readiness-evidence > div,.departure-blocker-panel,.departure-blockers li,.departure-folio-panel,.departure-folio-card,.departure-checkout-confirm,.housekeeping-task-detail-summary,.housekeeping-task-detail-facts,.housekeeping-task-detail-identifiers,.housekeeping-task-read-only,.housekeeping-sheet-task-receipt-item,.management-journey-category,.trust-preview dl>div,.trust-approval-row) { color: var(--ink); background: #edf3ed; border-color: #b8c9bf; box-shadow: none; -webkit-backdrop-filter: none; backdrop-filter: none; }
+ :root[data-theme="glass"] :is(.cashier-workbench-head,.checkin-workbench,.checkin-room-assignment,.vehicle-register,.vehicle-detail-panel,.housekeeping-sheet-workbench,.housekeeping-condition-board) { color: var(--ink); background: #fafcf9; border-color: #b8c9bf; box-shadow: 0 2px 6px rgba(29,56,43,.04); -webkit-backdrop-filter: none; backdrop-filter: none; }
+ :root[data-theme="glass"] :is(.folio-receivable-preview,.cashier-summary > div,.checkin-readiness-badge,.checkin-confirm,.checkin-blockers li,.checkin-room-assignment-candidate,.vehicle-register-card,.vehicle-meta-item,.vehicle-result-summary,.vehicle-read-only,.vehicle-detail-summary,.vehicle-detail-facts .vehicle-meta-item,.housekeeping-task-card,.housekeeping-attendant-picker,.housekeeping-preview-room,.housekeeping-generate-bar,.housekeeping-sheet-row,.housekeeping-condition-card) { color: var(--ink); background: #edf3ed; border-color: #b8c9bf; box-shadow: none; -webkit-backdrop-filter: none; backdrop-filter: none; }
+ :root[data-theme="glass"] .vehicle-linked-reservation-action { color: #254a3f; background: #ffffff; border: 1px solid #728f7e; box-shadow: none; -webkit-backdrop-filter: none; backdrop-filter: none; }
+ :root[data-theme="glass"] :is(input,select,textarea) { color: var(--ink); background: #ffffff; border-color: #728f7e; -webkit-backdrop-filter: none; backdrop-filter: none; }
+ :root[data-theme="glass"] select option { color: var(--ink); background: #ffffff; }
+ :root[data-theme="glass"] .vehicle-parking-select { color: var(--ink); background: #ffffff; border-color: #728f7e; -webkit-backdrop-filter: none; backdrop-filter: none; }
+ :root[data-theme="glass"] :is(.vehicle-parking-assign,.vehicle-parking-retry,.folio-departure-return,.housekeeping-sheet-task-receipt-action,.housekeeping-task-detail-governed-action,.reservation-operational-preparation-action,.folio-reservation-return,.vehicle-register-linked-reservation-action,.checkin-housekeeping-action,.housekeeping-arrival-return,.checkout-housekeeping-action,.housekeeping-checkout-return,.housekeeping-condition-initialize-action,.pickup-task-detail-governed-action,.arrival-room-cleaning-task-results button) { color: #254a3f; background: #ffffff; border: 1px solid #728f7e; box-shadow: 0 1px 2px rgba(29,56,43,.05); -webkit-backdrop-filter: none; backdrop-filter: none; }
+ :root[data-theme="glass"] .primary { color: #ffffff; background: #315e50; }
+ :root[data-theme="glass"] .primary:hover { background: #254a3f; }
+ :root[data-theme="glass"] .folio-workspace-tabs { background: #edf3ed; border-color: #b8c9bf; box-shadow: none; }
+ :root[data-theme="glass"] .folio-workspace-tabs [aria-selected="true"] { transform: none; box-shadow: 0 1px 3px rgba(29,56,43,.1); }
+
+ /* Only authorized identity content receives the portrait-card surface treatment.
+    A missing authorized portrait remains text; no decorative person is substituted. */
+ :root[data-theme="glass"] :is(.party-profile-result,.party-profile-selected,.housekeeping-attendant-result,.housekeeping-attendant-selected,.pickup-task-assignee-result,.pickup-task-assignee-selected) { position: relative; isolation: isolate; padding: 1.15rem; border: 1px solid rgba(255,255,255,.96); border-radius: 22px; background: rgba(235,243,233,.84); color: var(--ink); box-shadow: inset 0 0 0 5px rgba(255,255,255,.36), 0 14px 28px -15px rgba(35,58,46,.35); -webkit-backdrop-filter: blur(18px); backdrop-filter: blur(18px); }
+ :root[data-theme="glass"] :is(.party-profile-result,.housekeeping-attendant-result,.pickup-task-assignee-result) button { border: 1px solid #b8c9bf; border-radius: 999px; background: #ffffff; color: #254a3f; box-shadow: 0 3px 7px rgba(35,58,46,.08); }
+}
+@media (forced-colors: active) {
+ .workspace-skin-control select { border: 1px solid ButtonText; background: ButtonFace; color: ButtonText; }
+ .workspace-skin-control > span { color: CanvasText; }
+ :root[data-workspace-skin="timeline"] :is(.today-lane,.reservation-segment-history,.reservation-segment-history li,.housekeeping-sheet-history) { border-inline-start-color: CanvasText; }
+}
