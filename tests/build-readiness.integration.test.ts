@@ -23,7 +23,7 @@ let deployment: SQL | undefined;
 let runtime: SQL | undefined;
 let deploymentDatabaseUrl = "";
 let runtimeDatabaseUrl = "";
-let release78Ready = false;
+let currentReleaseReady = false;
 
 async function readinessFailure(operation: Promise<void>): Promise<Error> {
   try {
@@ -35,15 +35,16 @@ async function readinessFailure(operation: Promise<void>): Promise<Error> {
   throw new Error("runtime readiness unexpectedly succeeded");
 }
 
-async function ensureRelease78(): Promise<void> {
-  if (release78Ready) return;
+async function ensureCurrentRelease(): Promise<void> {
+  if (currentReleaseReady) return;
   const result = await runMigrations({ databaseUrl: deploymentDatabaseUrl, logger: () => undefined });
   expect(result.appliedFiles).toEqual([
     "0078_fiscal_submission_durability.sql",
+    "0079_fiscal_immutable_command_receipts.sql",
   ]);
   deployment = new SQL(deploymentDatabaseUrl, { max: 1, prepare: false });
   runtime = new SQL(runtimeDatabaseUrl, { max: 1, prepare: false });
-  release78Ready = true;
+  currentReleaseReady = true;
 }
 
 databaseDescribe("Order438 runtime release readiness identity", () => {
@@ -125,19 +126,19 @@ databaseDescribe("Order438 runtime release readiness identity", () => {
     }
   });
 
-  test("accepts only a direct yellow_runtime login against the complete release-78 catalogue", async () => {
-    await ensureRelease78();
+  test("accepts only a direct yellow_runtime login against the complete current catalogue", async () => {
+    await ensureCurrentRelease();
     await expect(assertRuntimeReleaseReadiness(runtime!)).resolves.toBeUndefined();
   });
 
   test("rejects the deployment login", async () => {
-    await ensureRelease78();
+    await ensureCurrentRelease();
     const error = await readinessFailure(assertRuntimeReleaseReadiness(deployment!));
     expect(error.message).toBe("runtime release readiness is unavailable");
   });
 
   test("rejects a privileged deployment session after SET ROLE yellow_runtime", async () => {
-    await ensureRelease78();
+    await ensureCurrentRelease();
     const connection = await deployment!.reserve();
     try {
       await connection.unsafe("BEGIN");
@@ -151,7 +152,7 @@ databaseDescribe("Order438 runtime release readiness identity", () => {
   });
 
   test("rejects history without FORCE RLS and proves restoration", async () => {
-    await ensureRelease78();
+    await ensureCurrentRelease();
     try {
       await deployment!.unsafe("ALTER TABLE public.fiscal_submission_history NO FORCE ROW LEVEL SECURITY");
       const error = await readinessFailure(assertRuntimeReleaseReadiness(runtime!));
@@ -163,7 +164,7 @@ databaseDescribe("Order438 runtime release readiness identity", () => {
   });
 
   test("rejects permissive additional policy and proves restoration", async () => {
-    await ensureRelease78();
+    await ensureCurrentRelease();
     try {
       await deployment!.unsafe("CREATE POLICY order440_readiness_probe ON public.fiscal_submission_history USING (true) WITH CHECK (true)");
       const error = await readinessFailure(assertRuntimeReleaseReadiness(runtime!));
@@ -175,7 +176,7 @@ databaseDescribe("Order438 runtime release readiness identity", () => {
   });
 
   test("rejects modified tenant predicate and proves restoration", async () => {
-    await ensureRelease78();
+    await ensureCurrentRelease();
     try {
       await deployment!.unsafe("ALTER POLICY tenant_isolation ON public.fiscal_submission_history USING (true) WITH CHECK (true)");
       const error = await readinessFailure(assertRuntimeReleaseReadiness(runtime!));
@@ -189,7 +190,7 @@ databaseDescribe("Order438 runtime release readiness identity", () => {
   });
 
   test("rejects public history access and proves restoration", async () => {
-    await ensureRelease78();
+    await ensureCurrentRelease();
     try {
       await deployment!.unsafe("GRANT SELECT ON public.fiscal_submission_history TO PUBLIC");
       const error = await readinessFailure(assertRuntimeReleaseReadiness(runtime!));
@@ -201,7 +202,7 @@ databaseDescribe("Order438 runtime release readiness identity", () => {
   });
 
   test("rejects fiscal function configuration drift and proves restoration", async () => {
-    await ensureRelease78();
+    await ensureCurrentRelease();
     const signature = "public.request_india_fiscal_submission(uuid,uuid,uuid,uuid,uuid,text,uuid)";
     try {
       await deployment!.unsafe(`ALTER FUNCTION ${signature} SET TimeZone='Asia/Kolkata'`);
@@ -214,7 +215,7 @@ databaseDescribe("Order438 runtime release readiness identity", () => {
   });
 
   test("rejects wrong request authority and proves restoration", async () => {
-    await ensureRelease78();
+    await ensureCurrentRelease();
     const signature = "public.request_india_fiscal_submission(uuid,uuid,uuid,uuid,uuid,text,uuid)";
     try {
       await deployment!.unsafe(`GRANT EXECUTE ON FUNCTION ${signature} TO yellow_runtime`);
@@ -227,7 +228,7 @@ databaseDescribe("Order438 runtime release readiness identity", () => {
   });
 
   test("rejects public claim capability and proves restoration", async () => {
-    await ensureRelease78();
+    await ensureCurrentRelease();
     const signature = "public.claim_india_fiscal_submission(uuid,uuid,integer)";
     try {
       await deployment!.unsafe(`GRANT EXECUTE ON FUNCTION ${signature} TO PUBLIC`);

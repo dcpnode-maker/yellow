@@ -4,7 +4,7 @@
 <!-- current-phase: 7 -->
 <!-- current-task: Codex Yellow — fiscal completion, with free-hosting and recovery preparation in parallel -->
 <!-- current-order-files: handoff/orders/442-host-recovery-and-merged-local-review.md;handoff/orders/443-runtime-storage-containment.md;handoff/orders/440-fiscal-submission-lifecycle.md -->
-<!-- current-lifecycle: Q205 repairs PR87 late-replay defect with independent canonical79 upgrade proof; combined CI pending; Q204 delivery runtime in development; main77 preview preserved; provider and hosting inactive -->
+<!-- current-lifecycle: Q205 current79 readiness and compatibility test correction in verification after CI failure; Q204 delivery runtime has bounded actual PostgreSQL proof, final integration pending; main77 preview preserved; provider and hosting inactive -->
 
 This is the canonical current-state record. It identifies the consolidated source,
 verified behavior, release boundaries and active work. Historical orders, reviews,
@@ -12,6 +12,21 @@ decisions and ledger entries remain evidence; their filenames are not an active
 backlog. `state.sh` and `state.ps1` read the machine-readable comments above.
 
 ## Current task
+
+**Latest integration correction — D1392.** Exact7235e27 CI34021139814 attempt2
+passes five jobs, migration45/45, authenticated HTTP9/9, immutable replay5/5
+(447 assertions) and durability19/19. Readiness then fails because its helper
+expects only78 after running the complete79 catalogue. Root corrects that exact
+expectation and the two downstream full-current GST catalogue counts, preserving
+all predecessor and hostile permission checks. Local non-database checks pass20/20
+(1,039 assertions), with26 explicit database skips; typecheck passes. Actual Linux
+readiness and complete exact-source CI must run again. No blind retry or merge.
+
+Q204's separate unpublished delivery runtime now passes11 genuine PostgreSQL cases
+(93 assertions) independently, plus25 focused cases and9 additional ACL/rollback
+assertions. Complete current80 schema/referee, Linux process and integration gates
+remain pending. These are development proofs, not active provider transport. The
+stable local still returns ready at exact mainb5ef708/frontier77 without restart.
 
 **Latest correction — Q205.** PR87's six CI jobs passed, but subsequent independent
 testing found that repeated fiscal commands returned a later attempt's receipt.
@@ -22,8 +37,9 @@ proof passes5/5 (451 assertions): original request and all three retry keys reta
 their exact HTTP bytes through acceptance/rejection, with replay metadata only in
 the response header. Earlier bounded approvals below are superseded for integration;
 new exact-source CI and final integration are still required. Q204 provider-neutral
-runtime production/unit work is built but not yet database-integrated; its prospective
-migration is80. No Phase7 completion or stable-local promotion is claimed.
+runtime production/unit work is built and its bounded database integration is proved;
+migration80 and final release gates remain unpublished work. No Phase7 completion
+or stable-local promotion is claimed.
 
 The exact staged Q205 candidate now passes the full standing suite:1,644 tests,
 1,242 explicitly skipped database cases,zero failures,22,098 assertions across499

@@ -783,3 +783,122 @@ pending a repaired published candidate and complete exact-source gates. Root own
 the scoped three-point migration-test frontier correction. The passing local Q205
 repair proof is retained but cannot substitute for the failed full CI run. No PR
 comment-resolution, merge, push or production edit was performed by this reviewer.
+
+## Published 7235e27 integration observation — quality timeouts
+
+Independent reviewer `/root/fiscal_http_acceptance` inspected the complete tiny
+delta from b6ecada to `7235e27db69666886b6c2ade5a48122f98c65f00`: the three
+current-lineage expectations now name79, expect79 ledger rows and discover79 on
+no-op. The exact predecessor44 preservation and zero-effect no-op assertions remain.
+The other three files only retain review/status/decision evidence. No applied SQL,
+runtime code or Q204 production source was published by this correction.
+
+Automatic exact-head CI34021139814 completed FAILURE. Personally inspected with
+`gh run view 34021139814 --json headSha,status,conclusion,jobs` and
+`gh run view 34021139814 --job 101453830361 --log-failed`. The quality job failed on
+four timeouts: `canonical project status > drives the Unix report from valid
+metadata and real current orders` at5000ms; import-boundary real CLI fixture
+at5000ms; Order389 Chromium seal geometry at90000ms; Order386 Chromium owner-trust
+geometry at90000ms. The state-report timeout also produced an unhandled assertion
+at project-status.test.ts:79 (expected exitCode0, received null). These four tests
+and state.sh are unchanged from b6ecada, whose quality job passed. Logs establish
+the timeout symptoms, not a definitive underlying resource or product cause.
+No complete final test-count summary was available in the retrieved failed-step
+log, so none is inferred.
+
+Windows-state and local-review passed. Database, container-smoke and free-host-arm64
+were SKIPPED, not successful. Consequently neither the corrected lineage test nor
+the required genuine Q205 upgrade/replay gate executed at this exact head.
+Normal CodeQL34021138276 passed all three analyses. Final read-only PR snapshot
+still reports OPEN/BLOCKED at head7235e27, unchanged base
+`b5ef70842b658183f7b5b4c650c8e78c7a0b513d`.
+
+Disposition remains NO MERGE. The original P2 thread is not resolved merely by
+local repaired proof or a passing prior-source job. No workflow was dispatched,
+rerun, cancelled or weakened; no PR mutation, stable-local action or product edit
+was performed. Root was promptly notified of actual run/job handles and failures.
+
+Root subsequently authorized exactly one fresh-runner `gh run rerun 34021139814
+--failed`, conditional on the four unchanged-test timeouts and no substantive
+assertion preceding termination. Reviewer confirmed that condition from the logs,
+rechecked the PR and original run both at exact7235e27 and attempt1/completed,
+then issued that single request. GitHub returned the same run at attempt2, quality
+queued, retaining the two earlier successful jobs. This is a new verification
+attempt, not a waiver or new workflow dispatch. No further blind retry is allowed
+if the timeout recurs; exact-source database proof remains mandatory.
+
+### Attempt2 result: fiscal repair proven, deterministic readiness frontier gap
+
+The single authorized retry of CI34021139814 at exact7235e27 completed with five
+successful jobs: quality,windows-state,local-review,container-smoke,free-host-arm64.
+The quality timeouts did not recur. Database job101455149220 failed later in the
+native-release containment/readiness step; no additional rerun was issued.
+
+Reviewer personally inspected the completed job log, not just its status. Before
+the failure, canonical migration integration passed45/45 with280 assertions in
+106.75s, including the corrected lineage and Q205 rollback/fresh-upgrade proofs.
+The genuine native fiscal stage passed, including Q203 signed HTTP9/9(89), Q205
+actual78-to79 immutable replay5/5(447) in9.04s, and durability19/19(223).
+The Q205 output names all five required cases, including all-key late receipts,
+immediate exact-body replay, current authorization/semantic identity and the private
+history projection. This is actual published-source repair evidence.
+
+The deterministic first failure is
+`tests/build-readiness.integration.test.ts:41`: `ensureRelease78()` invokes the
+full canonical runner but expects only `0078_fiscal_submission_durability.sql`.
+The actual migration list correctly includes79. Because the assertion precedes
+the readiness flag assignment, the next nine checks call the helper again and
+fail against the now-correct no-op result. The stage reports5 pass,10 fail,
+51 assertions,7.55s. This is an incomplete current-frontier test expectation,
+not a transient process failure. Preserve the predecessor75/77 denial checks,
+all hostile readiness/ACL assertions and actual current-catalogue execution when
+repairing the helper. Do not pin this current-release case back to78.
+
+Subsequent operational compatibility, deployment, canonical referee and app-health
+steps were skipped. Therefore current exact-source all-gate acceptance is still
+absent and PR87 remains unmerged with its P2 conversation unresolved. Root received
+the exact failure and successful proof handles promptly. The known crashing Windows
+readiness suite was not executed. No product edit, test weakening, further rerun,
+conversation resolution or merge was performed by this reviewer.
+
+### Independent review of the three current79 test corrections
+
+Reviewer `/root/fiscal_http_acceptance` read the amended Q205 admission and complete
+three-file correction. Readiness now names a current-release helper/flag and expects
+exactly78+79 after the unchanged75/77 predecessor steps. The two GST recording
+suites update only their current-catalogue labels and migration count78-to79;
+tables128/RLS118/policies118/forced27/views2 remain exact. All negative authority,
+hostile readiness/restoration and historical-prefix assertions are preserved.
+
+An in-memory Bun harness mechanically reversed only those admitted substitutions
+and compared each complete file against immutable7235e27 git content. All three
+matched exactly after LF normalization; all three also passed TypeScript syntax
+transformation. Inspection of the published7235e27 CI compatibility step confirms
+it builds the full current migration catalogue, clones a separate unseeded target
+for each of these two recording suites and supplies distinct deployment/runtime
+URLs. These are current-source oracles, not historical78 proofs.
+
+Personally executed child with every YELLOW_* variable removed (no database access):
+
+```text
+bun test tests/build-readiness.integration.test.ts \
+  tests/india-gst-accommodation-final-component-tax-recording.integration.test.ts \
+  tests/india-gst-accommodation-quoted-rate-applicability-recording.integration.test.ts
+20 pass, 26 explicit database skips, 0 fail, 1039 assertions, 853ms
+```
+
+Scoped `git diff --check` on the three tests and Q205 admission passes. The known
+crashing Windows readiness database suite was NOT executed; its hooks/tests were
+skipped, not represented as genuine proof. No working-tree migration80 runtime,
+schema or readiness result is treated as PR87 source.
+
+Reviewed file SHA256s:
+
+- readiness: `17734ab525ce038e9a506d4f73de40ea4d424e827426aee47ad796426eb8c6c7`.
+- component-tax recording: `6b9628380539a74d5cad410c82a5ae58c18dc55ad22560da2c296c88e13b1650`.
+- quoted-rate recording: `656d67395c7a861bf719f0ca37739f991bf186db26d7adca0ff0b2b2d4e178bf`.
+
+Narrow disposition: no additional finding in this test-only correction. Fresh
+published-head Linux readiness/compatibility, final referee/deployment/app gates,
+all-six CI and final PR conversation/head/base review remain required. No product
+edit, workflow retry/dispatch, P2 resolution or merge occurred in this review.

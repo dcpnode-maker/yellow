@@ -53,6 +53,9 @@ scripts/local-review.sh
 .github/workflows/ci.yml
 .github/workflows/release.yml
 tests/build-readiness.test.ts
+tests/build-readiness.integration.test.ts (current79 helper only; historical75/77 and hostile readiness cases preserved)
+tests/india-gst-accommodation-final-component-tax-recording.integration.test.ts (current79 catalogue count only)
+tests/india-gst-accommodation-quoted-rate-applicability-recording.integration.test.ts (current79 catalogue count only)
 tests/free-host-arm64.test.ts
 tests/release-workflow.test.ts
 tests/native-fiscal-release-containment.integration.test.ts
@@ -75,6 +78,11 @@ D:\Yellow\temp (uniquely named Q205 proof artifacts only)
 ```
 
 Current-frontier files are admitted only for79 acceptance, not broad rewrites.
+CI34021139814 attempt2 personally reproduced the readiness helper expecting only78
+after running the full79 catalogue. Its ten dependent failures are repaired by the
+exact78+79 upgrade expectation and a current-release helper name. The two older
+fresh-catalogue fiscal suites likewise retain their structural/authority assertions
+while advancing only the current migration count. No historical prefix is advanced.
 Preserve all historical77→78 hash/upgrade evidence. No public role grants, provider
 call, secret output, retained database migration, Docker/WSL/cluster/app restart,
 worktree, dependency, spending or live activation. Verify pristine77 template before
