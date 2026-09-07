@@ -38,6 +38,7 @@ describe("release build identity and readiness", () => {
         nativeCreditBindingProtected: true,
         nativeCreditEntryAuthorityExact: true,
         nativeCreditPrivateAuthorityExact: true,
+        nativeCreditFiscalProjectionExact: true,
       }]);
     }), {
       begin: async (_options: string, operation: (transaction: SQL) => Promise<unknown>) => operation(Object.assign(
@@ -68,6 +69,35 @@ describe("release build identity and readiness", () => {
     expect(query).toContain("nativeCreditBindingProtected");
     expect(query).toContain("nativeCreditEntryAuthorityExact");
     expect(query).toContain("nativeCreditPrivateAuthorityExact");
+    expect(query).toContain("nativeCreditFiscalProjectionExact");
+    expect(query).toContain("public.india_fiscal_submission_project_wire(uuid,uuid,uuid)");
+    expect(query).toContain("b34eaf0095dad0df5cd55453b7e4bd1a42f5ae698a02c5ebca3dcac7645c9f96");
+    expect(query).toContain("pg_catalog.sha256");
+    expect(query).toContain("language.lanname='plpgsql'");
+    expect(query).toContain("privilege.grantee<>procedure.proowner");
+    expect(query).toContain("privilege.grantor<>procedure.proowner");
+    expect(query).toContain("pg_catalog.pg_get_function_result(procedure.oid)='jsonb'");
+    expect(query).not.toContain("FROM public.schema_migration");
+    const creditProjection = query.match(
+      /credit_fiscal_projection AS \((?<proof>[\s\S]*?)\n    \), credit_trigger/,
+    )?.groups?.proof;
+    expect(creditProjection).toBeDefined();
+    for (const guard of [
+      "count(procedure.oid)=1", "procedure.proowner='yellow_owner'::regrole",
+      "language.lanname='plpgsql'", "procedure.prokind='f'", "NOT procedure.prosecdef",
+      "procedure.provolatile='v'", "NOT procedure.proisstrict", "NOT procedure.proretset",
+      "procedure.proparallel='u'", "NOT procedure.proleakproof",
+      "procedure.pronargs=3", "procedure.pronargdefaults=0", "procedure.provariadic=0",
+      "procedure.proallargtypes IS NULL", "pg_catalog.pg_get_function_result(procedure.oid)='jsonb'",
+      "'search_path=pg_catalog, public, pg_temp','TimeZone=UTC','DateStyle=ISO,YMD'",
+      "pg_catalog.replace(procedure.prosrc,chr(13)||chr(10),chr(10))",
+      "b34eaf0095dad0df5cd55453b7e4bd1a42f5ae698a02c5ebca3dcac7645c9f96",
+      "has_function_privilege('yellow_owner',procedure.oid,'EXECUTE')",
+      "NOT pg_catalog.has_function_privilege('app_role',procedure.oid,'EXECUTE')",
+      "NOT pg_catalog.has_function_privilege('yellow_runtime',procedure.oid,'EXECUTE')",
+      "count(*)=1", "privilege.privilege_type='EXECUTE' AND NOT privilege.is_grantable",
+      "privilege.grantee<>procedure.proowner OR privilege.grantor<>procedure.proowner",
+    ]) expect(creditProjection).toContain(guard);
     expect(query).toContain("commit_india_native_fiscal_credit_note(uuid,uuid,uuid,uuid,text,text,uuid)");
     expect(query).toContain("read_india_native_fiscal_credit_note(uuid,uuid,uuid,uuid)");
     expect(query).toContain("india_native_credit_complete");
@@ -117,6 +147,7 @@ describe("release build identity and readiness", () => {
       "fiscalReceiptReadAuthorityExact", "fiscalRetryBindingAuthorityExact", "fiscalReceiptColumnsProtected",
       "q208PublicEntryAuthorityExact", "q208PrivateEntryAuthorityExact", "q208IndexesExact",
       "nativeCreditBindingProtected", "nativeCreditEntryAuthorityExact", "nativeCreditPrivateAuthorityExact",
+      "nativeCreditFiscalProjectionExact",
     ]) {
       let permissionChecks = 0;
       for (const value of [false, null, undefined]) {
@@ -131,6 +162,7 @@ describe("release build identity and readiness", () => {
           nativeCreditBindingProtected: true,
           nativeCreditEntryAuthorityExact: true,
           nativeCreditPrivateAuthorityExact: true,
+          nativeCreditFiscalProjectionExact: true,
           [failed]: value,
         }])), {
           begin: async () => { permissionChecks += 1; return [{ exact: true }]; },
@@ -153,6 +185,7 @@ describe("release build identity and readiness", () => {
       nativeCreditBindingProtected: true,
       nativeCreditEntryAuthorityExact: true,
       nativeCreditPrivateAuthorityExact: true,
+      nativeCreditFiscalProjectionExact: true,
     };
     for (const permissionRows of [[], [{ exact: false }]]) {
       let localRole = "";
@@ -167,13 +200,26 @@ describe("release build identity and readiness", () => {
     }
   });
 
+  test("rejects an omitted credit projector proof before reading permissions", async () => {
+    let permissionChecks = 0;
+    const sql = Object.assign((() => Promise.resolve([{
+      nativeCreditBindingProtected: true,
+      nativeCreditEntryAuthorityExact: true,
+      nativeCreditPrivateAuthorityExact: true,
+    }])), {
+      begin: async () => { permissionChecks += 1; return [{ exact: true }]; },
+    }) as unknown as SQL;
+    await expect(assertRuntimeReleaseReadiness(sql)).rejects.toThrow("runtime release readiness is unavailable");
+    expect(permissionChecks).toBe(0);
+  });
+
   test("accepts only an exact immutable Git revision", () => {
     expect(buildInfoFromEnvironment({ YELLOW_BUILD_SHA: REVISION })).toEqual({
       schemaVersion: 1,
       revision: REVISION,
-      expectedMigrationFrontier: 87,
+      expectedMigrationFrontier: 88,
     });
-    expect(CURRENT_MIGRATION_FRONTIER).toBe(87);
+    expect(CURRENT_MIGRATION_FRONTIER).toBe(88);
     expect(buildInfoFromEnvironment({})).toBe(UNKNOWN_BUILD_INFO);
     expect(buildInfoFromEnvironment({ YELLOW_BUILD_SHA: "" })).toBe(UNKNOWN_BUILD_INFO);
 
@@ -203,7 +249,7 @@ describe("release build identity and readiness", () => {
     expect(await response.json()).toEqual({
       status: "not_ready",
       reason: "build_revision_unavailable",
-      build: { schemaVersion: 1, revision: null, expectedMigrationFrontier: 87 },
+      build: { schemaVersion: 1, revision: null, expectedMigrationFrontier: 88 },
     });
     expect(probes).toBe(0);
   });
@@ -227,7 +273,7 @@ describe("release build identity and readiness", () => {
     expect(await noRuntime.json()).toEqual({
       status: "not_ready",
       reason: "runtime_not_configured",
-      build: { schemaVersion: 1, revision: REVISION, expectedMigrationFrontier: 87 },
+      build: { schemaVersion: 1, revision: REVISION, expectedMigrationFrontier: 88 },
     });
 
     const failed = await unavailable.handle(new Request("http://yellow.test/ready"));
@@ -238,7 +284,7 @@ describe("release build identity and readiness", () => {
       status: "not_ready",
       reason: "runtime_dependency_unavailable",
       target: "yellow_runtime_database",
-      build: { schemaVersion: 1, revision: REVISION, expectedMigrationFrontier: 87 },
+      build: { schemaVersion: 1, revision: REVISION, expectedMigrationFrontier: 88 },
     });
 
     const success = await ready.handle(new Request("http://yellow.test/ready"));
@@ -247,7 +293,7 @@ describe("release build identity and readiness", () => {
     expect(await success.json()).toEqual({
       status: "ready",
       target: "yellow_runtime_database",
-      build: { schemaVersion: 1, revision: REVISION, expectedMigrationFrontier: 87 },
+      build: { schemaVersion: 1, revision: REVISION, expectedMigrationFrontier: 88 },
     });
   });
 });

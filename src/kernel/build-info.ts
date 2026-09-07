@@ -1,7 +1,7 @@
 import type { ReservedSQL, SQL } from "bun";
 
 const GIT_SHA = /^[0-9a-f]{40}$/;
-export const CURRENT_MIGRATION_FRONTIER = 87 as const;
+export const CURRENT_MIGRATION_FRONTIER = 88 as const;
 
 // PostgreSQL16's normalized form of0087's Unicode-aware, nonblank reason CHECK.
 // Keep invisible Unicode separators escaped in source so reviews remain legible.
@@ -70,6 +70,7 @@ export async function assertRuntimeReleaseReadiness(
     nativeCreditBindingProtected: boolean;
     nativeCreditEntryAuthorityExact: boolean;
     nativeCreditPrivateAuthorityExact: boolean;
+    nativeCreditFiscalProjectionExact: boolean;
   }>>`
     WITH release_target AS (
       SELECT pg_catalog.to_regprocedure(
@@ -318,6 +319,36 @@ export async function assertRuntimeReleaseReadiness(
       ) AS exact
       FROM credit_private_entry LEFT JOIN pg_catalog.pg_proc procedure
         ON procedure.oid=pg_catalog.to_regprocedure(credit_private_entry.signature)
+    ), credit_fiscal_projection AS (
+      -- Exact independently executed0088 body; a copied CRN marker is not readiness.
+      SELECT count(procedure.oid)=1 AND bool_and(
+        procedure.proowner='yellow_owner'::regrole AND language.lanname='plpgsql'
+        AND procedure.prokind='f' AND NOT procedure.prosecdef
+        AND procedure.provolatile='v' AND NOT procedure.proisstrict AND NOT procedure.proretset
+        AND procedure.proparallel='u' AND NOT procedure.proleakproof
+        AND procedure.pronargs=3 AND procedure.pronargdefaults=0
+        AND procedure.provariadic=0 AND procedure.proallargtypes IS NULL
+        AND pg_catalog.pg_get_function_result(procedure.oid)='jsonb'
+        AND procedure.proconfig=ARRAY[
+          'search_path=pg_catalog, public, pg_temp','TimeZone=UTC','DateStyle=ISO,YMD'
+        ]::text[]
+        AND pg_catalog.encode(pg_catalog.sha256(pg_catalog.convert_to(
+          pg_catalog.replace(procedure.prosrc,chr(13)||chr(10),chr(10)),'UTF8'
+        )),'hex')='b34eaf0095dad0df5cd55453b7e4bd1a42f5ae698a02c5ebca3dcac7645c9f96'
+        AND pg_catalog.has_function_privilege('yellow_owner',procedure.oid,'EXECUTE')
+        AND NOT pg_catalog.has_function_privilege('app_role',procedure.oid,'EXECUTE')
+        AND NOT pg_catalog.has_function_privilege('yellow_runtime',procedure.oid,'EXECUTE')
+        AND (SELECT count(*)=1 AND bool_and(
+          privilege.privilege_type='EXECUTE' AND NOT privilege.is_grantable
+        ) FROM pg_catalog.aclexplode(procedure.proacl) privilege)
+        AND NOT EXISTS(SELECT 1 FROM pg_catalog.aclexplode(procedure.proacl) privilege
+          WHERE privilege.grantee<>procedure.proowner OR privilege.grantor<>procedure.proowner)
+      ) AS exact
+      FROM pg_catalog.pg_proc procedure
+      JOIN pg_catalog.pg_language language ON language.oid=procedure.prolang
+      WHERE procedure.oid=pg_catalog.to_regprocedure(
+        'public.india_fiscal_submission_project_wire(uuid,uuid,uuid)'
+      )
     ), credit_trigger(table_name, trigger_name, function_signature, trigger_type, deferred) AS (VALUES
       ('india_native_fiscal_credit_note','india_native_credit_immutable','public.prevent_india_native_credit_mutation()',27,false),
       ('india_native_fiscal_credit_note','india_native_credit_birth','public.guard_india_native_credit_birth()',7,false),
@@ -515,6 +546,7 @@ export async function assertRuntimeReleaseReadiness(
       credit_binding.protected AS "nativeCreditBindingProtected",
       credit_public.exact AS "nativeCreditEntryAuthorityExact",
       credit_private.exact AS "nativeCreditPrivateAuthorityExact",
+      credit_projection.exact AS "nativeCreditFiscalProjectionExact",
       target.function_oid IS NOT NULL AS "issueFunctionPresent",
       NOT EXISTS (
         SELECT 1
@@ -546,11 +578,12 @@ export async function assertRuntimeReleaseReadiness(
       CROSS JOIN q208_private_authority q208_private CROSS JOIN q208_index_shape q208_indexes
       CROSS JOIN credit_binding CROSS JOIN credit_public_authority credit_public
       CROSS JOIN credit_private_authority credit_private
+      CROSS JOIN credit_fiscal_projection credit_projection
   `;
   const proof = rows[0];
   if (rows.length !== 1 || !proof || Object.values(proof).some((value) => value !== true)
     || proof.nativeCreditBindingProtected !== true || proof.nativeCreditEntryAuthorityExact !== true
-    || proof.nativeCreditPrivateAuthorityExact !== true) {
+    || proof.nativeCreditPrivateAuthorityExact !== true || proof.nativeCreditFiscalProjectionExact !== true) {
     throw new Error("runtime release readiness is unavailable");
   }
   let permission: Array<{ exact: boolean }>;

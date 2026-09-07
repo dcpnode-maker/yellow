@@ -131,7 +131,8 @@ test("CI preserves historical fiscal frontiers and runs fresh and upgraded86 pro
   const q208 = workflow.indexOf('q208_database="yellow_order440_q208_fresh85_ci"');
   const q212Fresh = workflow.indexOf('q212_fresh_database="yellow_order440_q212_fresh86_ci"');
   const q212Upgrade = workflow.indexOf('q212_upgrade_database="yellow_order440_q212_upgrade85_ci"');
-  const order446 = workflow.indexOf("      - name: Prove Order446 credit-note backend on isolated fresh87 and populated86 targets");
+  const order446 = workflow.indexOf("      - name: Prove Order446 credit-note backend on isolated fresh88 and populated86 targets");
+  const order447 = workflow.indexOf("      - name: Prove Order447 credit submission on isolated current88 and populated87 targets");
   expect(historicalStart).toBeGreaterThan(0);
   expect(q203).toBeGreaterThan(historicalStart);
   expect(q204).toBeGreaterThan(q203);
@@ -142,6 +143,7 @@ test("CI preserves historical fiscal frontiers and runs fresh and upgraded86 pro
   expect(q212Fresh).toBeGreaterThan(q208);
   expect(q212Upgrade).toBeGreaterThan(q212Fresh);
   expect(order446).toBeGreaterThan(q212Upgrade);
+  expect(order447).toBeGreaterThan(order446);
   const historical = workflow.slice(historicalStart, upgrade);
   expect(historical).toContain('10#${filename:0:4} <= 80');
   expect(historical).toContain('export YELLOW_ORDER434_MIGRATIONS_DIR="$native_migrations"');
@@ -238,11 +240,11 @@ test("CI preserves historical fiscal frontiers and runs fresh and upgraded86 pro
     expect(step).not.toContain("--test-name-pattern");
   }
 
-  const order446Step = workflow.slice(order446, q208End);
+  const order446Step = workflow.slice(order446, order447);
   for (const required of [
-    'fresh_database="yellow_order446_fresh87_ci"',
+    'fresh_database="yellow_order446_fresh88_ci"',
     'upgrade_database="yellow_order446_upgrade86_ci"',
-    'readiness_database="yellow_order440_q212_current87_ci"',
+    'readiness_database="yellow_order440_q212_current88_ci"',
     'prefix86="$(mktemp -d "$RUNNER_TEMP/yellow-order446-prefix86.XXXXXX")"',
     '10#${filename:0:4} <= 86',
     'env -u YELLOW_MIGRATIONS_DIR YELLOW_DEPLOY_DATABASE_URL="$fresh_deploy_url" bun run db:migrate',
@@ -258,4 +260,33 @@ test("CI preserves historical fiscal frontiers and runs fresh and upgraded86 pro
   expect(order446Step).not.toContain("|| true");
   expect(order446Step).not.toContain("continue-on-error");
   expect(order446Step).not.toContain("--test-name-pattern");
+
+  const order447Step = workflow.slice(order447, q208End);
+  for (const required of [
+    'current_database="yellow_order447_current88_ci"',
+    'upgrade_database="yellow_order447_upgrade87_ci"',
+    'prefix87="$(mktemp -d "$RUNNER_TEMP/yellow-order447-prefix87.XXXXXX")"',
+    '10#${filename:0:4} <= 87',
+    'prepare_order447_prerequisites "$current_deploy_url"',
+    'prepare_order447_prerequisites "$upgrade_deploy_url"',
+    "YELLOW_ORDER447_TARGET_MODE=ci-canonical",
+    "YELLOW_REQUIRE_ORDER447_CI_CANONICAL=1",
+    'YELLOW_ORDER447_CI_DATABASE_ADDRESS="$POSTGRES_ADDRESS"',
+    "YELLOW_REQUIRE_ORDER447_DATABASE=1",
+    "YELLOW_REQUIRE_ORDER447_PROVIDER_JOURNEY=1",
+    "YELLOW_REQUIRE_ORDER447_OPERATOR_ORIGIN=1",
+    "YELLOW_REQUIRE_ORDER447_RECOVERY=1",
+    "bun test tests/india-native-credit-submission.integration.test.ts tests/india-native-credit-provider-journey.integration.test.ts tests/india-native-credit-operator-origin.integration.test.ts tests/india-native-credit-submission-recovery.integration.test.ts",
+    'YELLOW_MIGRATIONS_DIR="$prefix87" YELLOW_DEPLOY_DATABASE_URL="$upgrade_deploy_url" bun run db:migrate',
+    "YELLOW_REQUIRE_ORDER447_UPGRADE_DATABASE=1",
+    "bun test tests/india-native-credit-submission-upgrade.integration.test.ts",
+  ]) expect(order447Step).toContain(required);
+  expect(order447Step).toContain('INSERT INTO public.permission(code,description) VALUES(${permission.code},${permission.description})');
+  expect(order447Step).toContain('INSERT INTO public.extension_type(type,json_schema) VALUES(${provider.type},${JSON.stringify(provider.jsonSchema)}::jsonb)');
+  expect(order447Step).not.toContain("55503");
+  expect(order447Step).not.toContain("yellow_order446_credit_upgrade_20260907");
+  expect(order447Step).not.toContain("yellow_order446_referee87_20260907");
+  expect(order447Step).not.toContain("|| true");
+  expect(order447Step).not.toContain("continue-on-error");
+  expect(order447Step).not.toContain("--test-name-pattern");
 });

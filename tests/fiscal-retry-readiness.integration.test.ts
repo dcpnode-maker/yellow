@@ -326,7 +326,7 @@ databaseDescribe("Q212 direct-runtime retry-binding readiness hostility", () => 
              pg_catalog.to_regprocedure(${HELPER_SIGNATURE})::text AS helper
       FROM public.schema_migration
     `;
-    expect(frontier).toEqual({ migrations: 87, frontier: CURRENT_MIGRATION_FRONTIER,
+    expect(frontier).toEqual({ migrations: 88, frontier: CURRENT_MIGRATION_FRONTIER,
       checksum: MIGRATION_86_SHA256,
       helper: "india_fiscal_submission_retry_binding_v1(text,text,text,uuid,integer)" });
     const [reverseDependencies] = await deploy<Array<{ dependents: number }>>`

@@ -672,14 +672,14 @@ jobs:
           rm -r -- "$current86_migrations"
           current86_migrations=''
 
-      - name: Prove Order446 credit-note backend on isolated fresh87 and populated86 targets
+      - name: Prove Order446 credit-note backend on isolated fresh88 and populated86 targets
         shell: bash
         timeout-minutes: 35
         run: |
           set -euo pipefail
-          fresh_database="yellow_order446_fresh87_ci"
+          fresh_database="yellow_order446_fresh88_ci"
           upgrade_database="yellow_order446_upgrade86_ci"
-          readiness_database="yellow_order440_q212_current87_ci"
+          readiness_database="yellow_order440_q212_current88_ci"
           prefix86="$(mktemp -d "$RUNNER_TEMP/yellow-order446-prefix86.XXXXXX")"
           trap 'for database in "$fresh_database" "$upgrade_database" "$readiness_database"; do docker compose exec -T postgres psql --username yellow_deploy --dbname postgres --set ON_ERROR_STOP=1 --command "DROP DATABASE IF EXISTS ${database} WITH (FORCE)"; done; if [[ -d "$prefix86" && "$prefix86" == "$RUNNER_TEMP"/yellow-order446-prefix86.* ]]; then rm -r -- "$prefix86"; fi' EXIT
           for migration in "$GITHUB_WORKSPACE"/migrations/*.sql; do
@@ -720,6 +720,81 @@ jobs:
           YELLOW_ORDER446_UPGRADE_RUNTIME_DATABASE_URL="$upgrade_runtime_url" \
           YELLOW_REQUIRE_ORDER446_UPGRADE_DATABASE=1 \
             bun test tests/india-native-fiscal-credit-note-upgrade.integration.test.ts
+
+      - name: Prove Order447 credit submission on isolated current88 and populated87 targets
+        shell: bash
+        timeout-minutes: 35
+        run: |
+          set -euo pipefail
+          current_database="yellow_order447_current88_ci"
+          upgrade_database="yellow_order447_upgrade87_ci"
+          prefix87="$(mktemp -d "$RUNNER_TEMP/yellow-order447-prefix87.XXXXXX")"
+          trap 'for database in "$current_database" "$upgrade_database"; do docker compose exec -T postgres psql --username yellow_deploy --dbname postgres --set ON_ERROR_STOP=1 --command "DROP DATABASE IF EXISTS ${database} WITH (FORCE)"; done; if [[ -d "$prefix87" && "$prefix87" == "$RUNNER_TEMP"/yellow-order447-prefix87.* ]]; then rm -r -- "$prefix87"; fi' EXIT
+          for migration in "$GITHUB_WORKSPACE"/migrations/*.sql; do
+            filename="$(basename "$migration")"
+            if (( 10#${filename:0:4} <= 87 )); then cp "$migration" "$prefix87/$filename"; fi
+          done
+          prepare_order447_prerequisites() {
+            YELLOW_ORDER447_PREREQUISITE_URL="$1" bun -e '
+              import { SQL } from "bun";
+              import { LAUNCH_EXTENSION_TYPES } from "./scripts/seed";
+              const database = new SQL(process.env.YELLOW_ORDER447_PREREQUISITE_URL, { max: 1, prepare: false });
+              const permissions = [
+                { code: "financials.adjustments:write", description: "Create governed immutable folio adjustments" },
+                { code: "financials.adjustments:post-seal", description: "Post governed corrections referencing sealed source days" },
+              ];
+              const providers = LAUNCH_EXTENSION_TYPES.filter(value => value.type === "fiscal_provider");
+              if (providers.length !== 1) throw new Error("Expected one canonical fiscal_provider schema");
+              const provider = providers[0];
+              try {
+                await database.begin(async tx => {
+                  const [before] = await tx`SELECT
+                    (SELECT count(*)::int FROM public.permission WHERE code IN (${permissions[0].code},${permissions[1].code})) permissions,
+                    EXISTS(SELECT 1 FROM public.extension_type WHERE type=${provider.type}) provider`;
+                  if (before.permissions !== 0 || before.provider) throw new Error("Order447 CI prerequisites already exist");
+                  for (const permission of permissions) {
+                    await tx`INSERT INTO public.permission(code,description) VALUES(${permission.code},${permission.description})`;
+                  }
+                  await tx`INSERT INTO public.extension_type(type,json_schema) VALUES(${provider.type},${JSON.stringify(provider.jsonSchema)}::jsonb)`;
+                  const [after] = await tx`SELECT
+                    (SELECT count(*)::int FROM public.permission WHERE code IN (${permissions[0].code},${permissions[1].code})) permissions,
+                    EXISTS(SELECT 1 FROM public.extension_type WHERE type=${provider.type}) provider`;
+                  if (after.permissions !== 2 || !after.provider) throw new Error("Order447 CI prerequisites incomplete");
+                });
+              } finally { await database.close(); }
+            '
+          }
+
+          docker compose exec -T postgres psql --username yellow_deploy --dbname postgres --set ON_ERROR_STOP=1 \
+            --command "CREATE DATABASE ${current_database}"
+          current_deploy_url="postgres://yellow_deploy:${YELLOW_DEPLOY_DATABASE_PASSWORD}@${POSTGRES_ADDRESS}/${current_database}"
+          current_runtime_url="postgres://yellow_runtime:${YELLOW_RUNTIME_DATABASE_PASSWORD}@${POSTGRES_ADDRESS}/${current_database}"
+          env -u YELLOW_MIGRATIONS_DIR YELLOW_DEPLOY_DATABASE_URL="$current_deploy_url" bun run db:migrate
+          prepare_order447_prerequisites "$current_deploy_url"
+          YELLOW_ORDER447_TARGET_MODE=ci-canonical \
+          YELLOW_REQUIRE_ORDER447_CI_CANONICAL=1 \
+          YELLOW_ORDER447_CI_DATABASE_ADDRESS="$POSTGRES_ADDRESS" \
+          YELLOW_ORDER447_DEPLOY_DATABASE_URL="$current_deploy_url" \
+          YELLOW_ORDER447_RUNTIME_DATABASE_URL="$current_runtime_url" \
+          YELLOW_REQUIRE_ORDER447_DATABASE=1 \
+          YELLOW_REQUIRE_ORDER447_PROVIDER_JOURNEY=1 \
+          YELLOW_REQUIRE_ORDER447_OPERATOR_ORIGIN=1 \
+          YELLOW_REQUIRE_ORDER447_RECOVERY=1 \
+            bun test tests/india-native-credit-submission.integration.test.ts tests/india-native-credit-provider-journey.integration.test.ts tests/india-native-credit-operator-origin.integration.test.ts tests/india-native-credit-submission-recovery.integration.test.ts
+
+          docker compose exec -T postgres psql --username yellow_deploy --dbname postgres --set ON_ERROR_STOP=1 \
+            --command "CREATE DATABASE ${upgrade_database}"
+          upgrade_deploy_url="postgres://yellow_deploy:${YELLOW_DEPLOY_DATABASE_PASSWORD}@${POSTGRES_ADDRESS}/${upgrade_database}"
+          upgrade_runtime_url="postgres://yellow_runtime:${YELLOW_RUNTIME_DATABASE_PASSWORD}@${POSTGRES_ADDRESS}/${upgrade_database}"
+          YELLOW_MIGRATIONS_DIR="$prefix87" YELLOW_DEPLOY_DATABASE_URL="$upgrade_deploy_url" bun run db:migrate
+          prepare_order447_prerequisites "$upgrade_deploy_url"
+          YELLOW_ORDER447_TARGET_MODE=ci-canonical \
+          YELLOW_REQUIRE_ORDER447_CI_CANONICAL=1 \
+          YELLOW_ORDER447_CI_DATABASE_ADDRESS="$POSTGRES_ADDRESS" \
+          YELLOW_ORDER447_UPGRADE_DEPLOY_DATABASE_URL="$upgrade_deploy_url" \
+          YELLOW_ORDER447_UPGRADE_RUNTIME_DATABASE_URL="$upgrade_runtime_url" \
+          YELLOW_REQUIRE_ORDER447_UPGRADE_DATABASE=1 \
+            bun test tests/india-native-credit-submission-upgrade.integration.test.ts
 
       - name: Prove native fiscal release containment on fresh and upgraded databases
         shell: bash
@@ -895,7 +970,7 @@ jobs:
           READY_FILE="$proof_directory/readiness.json" bun -e '
             const body = await Bun.file(process.env.READY_FILE!).json();
             if (body.status !== "ready" || body.build?.revision !== process.env.YELLOW_BUILD_SHA
-                || body.build?.expectedMigrationFrontier !== 87
+                || body.build?.expectedMigrationFrontier !== 88
                 || body.target !== "yellow_runtime_database") process.exit(1);
           '
 

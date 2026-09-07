@@ -6,6 +6,10 @@ import {
 } from "../src/contexts/tax-fiscal/india-irp-issued-wire-candidate";
 
 const DOCUMENT_ID = "00000000-0000-4000-8000-000000000440";
+const ORIGINAL_DOCUMENT_ID = "aaaaaaaa-0000-4000-8000-000000000439";
+const CORRECTION_JOURNAL_ID = "00000000-0000-4000-8000-000000000441";
+const ORIGINAL_SHA256 = "a".repeat(64);
+const SOURCE_EVIDENCE_HASH = "b".repeat(64);
 
 type Mutable = Record<string, any>;
 
@@ -46,6 +50,20 @@ function issuedSource(family: "igst" | "split" = "igst", itemCount = 1): Mutable
   };
 }
 
+function issuedCreditSource(family: "igst" | "split" = "igst", itemCount = 1): Mutable {
+  const source = issuedSource(family, itemCount);
+  source.DocDtls = { Typ: "CRN", No: "C/44-1", Dt: "07/09/2044" };
+  source.RefDtls = { PrecDocDtls: [{ InvNo: "INV/44-1", InvDt: "06/09/2044" }] };
+  source.YellowCredit = {
+    originalDocumentId: ORIGINAL_DOCUMENT_ID,
+    originalSha256: ORIGINAL_SHA256,
+    reason: "Full credit for an incorrectly issued invoice",
+    correctionJournalId: CORRECTION_JOURNAL_ID,
+    sourceEvidenceHash: SOURCE_EVIDENCE_HASH,
+  };
+  return source;
+}
+
 function projectContent(contentJson: string): IssuedIndiaIrpWireCandidateResult {
   return projectIssuedIndiaIrpWireCandidate({
     documentId: DOCUMENT_ID,
@@ -65,7 +83,7 @@ function expectInvalid(source: Mutable): void {
   });
 }
 
-describe("Order440 issued India IRP wire candidate", () => {
+describe("Order440/447 issued India IRP wire candidate", () => {
   test("projects the exact seven issued sections with fixed numeric serialization", () => {
     const source = issuedSource();
     const before = JSON.stringify(source);
@@ -100,6 +118,64 @@ describe("Order440 issued India IRP wire candidate", () => {
     expect(first.ok && first.value.documentSha256).toBe(hash(spaced));
     expect(first.ok && first.value.wireSha256).toBe(first.ok ? hash(first.value.wireJson) : "");
     expect(first.ok && first.value.wireJson).toContain('"CgstAmt":6.00,"SgstAmt":6.00');
+  });
+
+  test("projects the exact native CRN wire with one preceding reference and omits validated Yellow metadata", () => {
+    const source = issuedCreditSource();
+    const contentJson = JSON.stringify(source);
+    const result = projectContent(contentJson);
+    expect(result.ok).toBeTrue();
+    if (!result.ok) throw new Error(result.error.message);
+    expect(result.value.documentSha256).toBe(hash(contentJson));
+    expect(result.value.wireJson).toBe('{"Version":"1.1","TranDtls":{"TaxSch":"GST","SupTyp":"B2B"},' +
+      '"DocDtls":{"Typ":"CRN","No":"C/44-1","Dt":"07/09/2044"},' +
+      '"SellerDtls":{"Gstin":"29AAPFU0939F1ZR","LglNm":"Hôtel Yellow","Addr1":"1 Main Road","Loc":"Bengaluru","Pin":560001,"Stcd":"29"},' +
+      '"BuyerDtls":{"Gstin":"27AAPFU0939F1ZV","LglNm":"Buyer & Sons","TrdNm":"Buyer Trading","Addr1":"1 Buyer Road","Loc":"Mumbai","Pin":400001,"Stcd":"27","Pos":"27"},' +
+      '"ItemList":[{"SlNo":"1","IsServc":"Y","HsnCd":"996311","Qty":1.000,"Unit":"OTH","UnitPrice":100.00,"TotAmt":100.00,"AssAmt":100.00,"GstRt":5.00,"IgstAmt":5.00,"TotItemVal":105.00}],' +
+      '"ValDtls":{"AssVal":100.00,"IgstVal":5.00,"TotInvVal":105.00},' +
+      '"RefDtls":{"PrecDocDtls":[{"InvNo":"INV/44-1","InvDt":"06/09/2044"}]}}');
+    expect(result.value.wireJson).not.toContain("YellowCredit");
+    expect(result.value.wireJson).not.toContain(ORIGINAL_DOCUMENT_ID);
+    expect(result.value.wireSha256).toBe(hash(result.value.wireJson));
+
+    const otherReason = issuedCreditSource();
+    otherReason.YellowCredit.reason = "Different valid internal reason";
+    const other = projectSource(otherReason);
+    expect(other.ok && other.value.wireJson).toBe(result.value.wireJson);
+    expect(other.ok && other.value.documentSha256).not.toBe(result.value.documentSha256);
+  });
+
+  test("requires the exact singleton preceding reference and strict five-field Yellow credit metadata", () => {
+    const cases: ((source: Mutable) => void)[] = [
+      (source) => { source.RefDtls = null; },
+      (source) => { source.RefDtls.extra = true; },
+      (source) => { source.RefDtls.PrecDocDtls = []; },
+      (source) => { source.RefDtls.PrecDocDtls.push({ InvNo: "INV/44-2", InvDt: "06/09/2044" }); },
+      (source) => { source.RefDtls.PrecDocDtls[0].InvNo = "bad space"; },
+      (source) => { source.RefDtls.PrecDocDtls[0].InvDt = "31/02/2044"; },
+      (source) => { delete source.YellowCredit.originalDocumentId; },
+      (source) => { source.YellowCredit.extra = true; },
+      (source) => { source.YellowCredit.originalDocumentId = DOCUMENT_ID; },
+      (source) => { source.YellowCredit.originalDocumentId = ORIGINAL_DOCUMENT_ID.toUpperCase(); },
+      (source) => { source.YellowCredit.correctionJournalId = "not-a-uuid"; },
+      (source) => { source.YellowCredit.originalSha256 = "A".repeat(64); },
+      (source) => { source.YellowCredit.sourceEvidenceHash = "b".repeat(63); },
+      (source) => { source.YellowCredit.reason = "   "; },
+      (source) => { source.YellowCredit.reason = "bad\u0000reason"; },
+      (source) => { source.YellowCredit.reason = "bad\ud800"; },
+      (source) => { source.DocDtls.Typ = "INV"; },
+    ];
+    for (const mutate of cases) {
+      const source = issuedCreditSource();
+      mutate(source);
+      expectInvalid(source);
+    }
+
+    const maximumReason = issuedCreditSource();
+    maximumReason.YellowCredit.reason = "💛".repeat(500);
+    expect(projectSource(maximumReason).ok).toBeTrue();
+    maximumReason.YellowCredit.reason += "💛";
+    expectInvalid(maximumReason);
   });
 
   test("checks the exact original UTF-8 hash before parsing", () => {
@@ -192,7 +268,9 @@ describe("Order440 issued India IRP wire candidate", () => {
 
   test("accepts exactly 366 dense items and rejects larger or mixed-family lists", () => {
     expect(projectSource(issuedSource("igst", 366)).ok).toBeTrue();
+    expect(projectSource(issuedCreditSource("split", 366)).ok).toBeTrue();
     expectInvalid(issuedSource("igst", 367));
+    expectInvalid(issuedCreditSource("split", 367));
     const mixed = issuedSource("igst", 2);
     mixed.ItemList[1] = issuedSource("split").ItemList[0];
     mixed.ItemList[1].SlNo = "2";
