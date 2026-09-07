@@ -5,6 +5,9 @@
  let activeView = "today";
  let inventoryData = { unitTypes: [], spaces: [], sellableUnits: [] };
  let propertiesData = [];
+ let invoiceWorkbench = null;
+ let invoiceWorkbenchProperty = "";
+ let invoiceRouteGeneration = 0;
  let restrictionsData = [];
  let rateData = { policies: [], ratePlans: [] };
  let rateBuilderData = { catalogue: [], modelDrafts: [], targetDrafts: [], releases: [] };
@@ -224,8 +227,7 @@
  const sessionState = $("#session-state");
  const operatorName = $("#operator-name");
  const signOutButton = $("#sign-out");
- const themeSelect = $("#theme-select");
- const experienceSelect = $("#experience-select");
+ const workspaceSkinSelect = $("#workspace-skin-select");
  const secondaryWorkspaces = $("#secondary-workspaces");
  const secondaryWorkspacesToggle = $("#secondary-workspaces-toggle");
  const workbenchTitle = $("#workbench-title");
@@ -307,6 +309,8 @@
  const operationsView = $("#operations-view");
  const reservationsView = $("#reservations-view");
  const foliosView = $("#folios-view");
+ const invoicesView = $("#invoices-view");
+ const invoicesMount = $("#invoices-mount");
  const cashiersView = $("#cashiers-view");
  const statusView = $("#status-view");
  const dayCloseView = $("#day-close-view");
@@ -760,6 +764,7 @@
  const folioWorkspace = $("#folio-workspace");
  const folioWorkspaceTitle = $("#folio-workspace-title");
  const folioWorkspaceBack = $("#folio-workspace-back");
+ const folioInvoiceReview = $("#folio-invoice-review");
  const operationStatus = $("#operation-status");
  const folioWindowTabs = $("#folio-window-tabs");
  const folioWindowNew = $("#folio-window-new");
@@ -836,120 +841,12 @@
  const folioCorrectionExpected = $("#folio-correction-expected");
  const SYSTEM_STATUS_SUFFIX = "/system-status";
  const MAX_MINOR = BigInt("9223372036854775807");
- const THEMES = new Set(["apple", "android", "win95", "glass", "neo", "erp"]);
- const EXPERIENCES = new Set(["simple", "advanced", "expert"]);
+ const WORKSPACE_SKINS = new Set(["calm", "precision", "timeline"]);
  const SECONDARY_VIEWS = new Set(["operations", "housekeeping", "vehicles", "inventory", "restrictions", "rates", "status"]);
-  function motionPreference(query) {
- return typeof window.matchMedia === "function" ? window.matchMedia(query) : { matches: true, addEventListener() {} };
- }
- const reducedMotion = motionPreference("(prefers-reduced-motion: reduce)");
- const coarsePointer = motionPreference("(pointer: coarse)");
- const forcedColours = motionPreference("(forced-colors: active)");
- let motionSequence = 0;
- let activeMotion = null;
-  function cancelWorkspaceMotion(commit = false) {
- motionSequence += 1;
- const motion = activeMotion;
- activeMotion = null;
- if (!motion) return;
- if (commit) motion.commit();
- motion.cancel();
- }
-  function workspaceMotionAllowed(nextTheme) {
- const supportsBackdrop = nextTheme !== "glass" || (typeof CSS !== "undefined" &&
-  typeof CSS.supports === "function" && (CSS.supports("backdrop-filter", "blur(2px)") ||
-  CSS.supports("-webkit-backdrop-filter", "blur(2px)")));
- return !workbenchView.hidden && document.visibilityState === "visible" &&
-  !reducedMotion.matches && !coarsePointer.matches && !forcedColours.matches && supportsBackdrop;
- }
-  function animateWorkspaceFallback(duration, sequence, commit) {
- commit();
- if (typeof workbenchView.animate !== "function") return;
- const animation = workbenchView.animate([
-  { opacity: 0.72, transform: "translate3d(0, 8px, 0) scale(.995)" },
-  { opacity: 1, transform: "none" },
- ], { duration, easing: "cubic-bezier(.2, .8, .2, 1)" });
- activeMotion = {
-  commit,
-  cancel() { animation.cancel(); },
- };
- animation.finished.catch(() => {}).finally(() => {
-  if (sequence === motionSequence) activeMotion = null;
- });
- }
-  function transitionWorkspace(change, { duration = 280, nextTheme = document.documentElement.dataset.theme } = {}) {
- cancelWorkspaceMotion();
- const sequence = motionSequence;
- const boundedDuration = Math.min(400, Math.max(0, duration));
- let committed = false;
- const commit = () => {
-  if (committed) return;
-  committed = true;
-  change();
- };
- if (!workspaceMotionAllowed(nextTheme)) {
-  commit();
-  return;
- }
- if (typeof document.startViewTransition !== "function") {
-  animateWorkspaceFallback(boundedDuration, sequence, commit);
-  return;
- }
- const rootTransitionName = document.documentElement.style.viewTransitionName;
- const workspaceTransitionName = workbenchView.style.viewTransitionName;
- document.documentElement.style.viewTransitionName = "none";
- workbenchView.style.viewTransitionName = "yellow-workspace";
- let cleaned = false;
- const cleanup = () => {
-  if (cleaned) return;
-  cleaned = true;
-  document.documentElement.style.viewTransitionName = rootTransitionName;
-  workbenchView.style.viewTransitionName = workspaceTransitionName;
- };
- try {
-  const transition = document.startViewTransition(() => {
-  if (sequence === motionSequence) commit();
-  });
-  activeMotion = {
-  commit,
-  cancel() {
-   transition.skipTransition?.();
-   cleanup();
-  },
-  };
-  transition.ready.then(() => {
-  if (sequence !== motionSequence || typeof document.getAnimations !== "function") return;
-  for (const animation of document.getAnimations()) {
-   const pseudo = animation.effect?.pseudoElement ?? "";
-   if (pseudo.startsWith("::view-transition")) animation.effect.updateTiming({ duration: boundedDuration });
-  }
-  }).catch(() => {});
-  transition.updateCallbackDone.catch(() => {
-  if (sequence === motionSequence) commit();
-  });
-  transition.finished.catch(() => {}).finally(() => {
-  cleanup();
-  if (sequence === motionSequence) activeMotion = null;
-  });
- } catch {
-  cleanup();
-  animateWorkspaceFallback(boundedDuration, sequence, commit);
- }
- }
-  function applyTheme(theme) {
- const next = THEMES.has(theme) ? theme : "apple";
- document.documentElement.dataset.theme = next;
- themeSelect.value = next;
- }
-  function applyExperience(experience, { preserveActive = true } = {}) {
- const next = EXPERIENCES.has(experience) ? experience : "simple";
- const keepSecondaryOpen = preserveActive && SECONDARY_VIEWS.has(activeView);
- document.documentElement.dataset.experience = next;
- experienceSelect.value = next;
- secondaryWorkspacesToggle.hidden = next !== "simple";
- secondaryWorkspaces.hidden = next === "simple" && !keepSecondaryOpen;
- secondaryWorkspacesToggle.setAttribute("aria-expanded", String(!secondaryWorkspaces.hidden));
- secondaryWorkspacesToggle.textContent = secondaryWorkspaces.hidden ? "More workspaces" : "Fewer workspaces";
+  function applyWorkspaceSkin(skin) {
+ const next = WORKSPACE_SKINS.has(skin) ? skin : "calm";
+ document.documentElement.dataset.workspaceSkin = next;
+ workspaceSkinSelect.value = next;
  }
   function localInputValue(date) {
  const offset = date.getTimezoneOffset() * 60_000;
@@ -1017,6 +914,7 @@
  if (loginForm.dispatchEvent(event)) loginForm.elements.password.value = "";
  }
   function showLogin() {
+ resetInvoiceWorkbench();
  closeReservationPickupTaskDetail({ history: false, restoreFocus: false });
  accessToken = "";
  operator = null;
@@ -1102,7 +1000,7 @@
  trustRequestGeneration += 1; trustAccounts = []; trustApprovals = []; trustApprovalCursor = null; trustMutationKeys.clear(); clearTrustPreview();
  pendingKeys.clear();
  history.replaceState(null, "", "/");
- applyExperience("simple", { preserveActive: false });
+ closeSecondaryWorkspaces();
  restoreLocalLoginDefaults();
  loginForm.elements.email.focus();
  }
@@ -1123,7 +1021,7 @@
   propertySelect.disabled = true;
  } else {
   propertySelect.disabled = false;
-  const pathProperty = location.pathname.match(/^\/p\/([0-9a-f-]+)\/(?:today|availability|inventory|operations|housekeeping(?:\/tasks\/[0-9a-f-]+)?|vehicles(?:\/[0-9a-f-]+)?|reservations|folios|cashiers|day-close|trust|restrictions|rates|status|res\/[0-9a-f-]+(?:\/pickup-task\/[0-9a-f-]+)?|folio\/[0-9a-f-]+)$/)?.[1];
+  const pathProperty = location.pathname.match(/^\/p\/([0-9a-f-]+)\/(?:today|availability|inventory|operations|housekeeping(?:\/tasks\/[0-9a-f-]+)?|vehicles(?:\/[0-9a-f-]+)?|reservations|folios|invoices(?:\/(?:new\/[0-9a-f-]+\/[0-9a-f-]+|[0-9a-f-]+))?|cashiers|day-close|trust|restrictions|rates|status|res\/[0-9a-f-]+(?:\/pickup-task\/[0-9a-f-]+)?|folio\/[0-9a-f-]+)$/)?.[1];
   if (pathProperty && body.properties.some(({ id }) => id === pathProperty)) propertySelect.value = pathProperty;
  }
  }
@@ -7573,6 +7471,7 @@ function checkoutHousekeepingCompletionActionIsCurrent(origin, section, action) 
  }
   function resetFolioPresentation() {
  folioStatementData = null;
+ folioInvoiceReview.hidden = true;
  folioNextCursor = null;
  folioRouteCursor = "";
  folioWorkspace.hidden = true;
@@ -8423,6 +8322,7 @@ function checkoutHousekeepingCompletionActionIsCurrent(origin, section, action) 
  }
   function renderFolioStatement(statement) {
  folioStatementData = statement;
+ folioInvoiceReview.hidden = !canonicalUuid(statement.reservationId) || !canonicalUuid(statement.folio.id);
  folioNextCursor = statement.nextCursor;
  folioStatementTitle.textContent = statement.folio.reference || statement.folio.id;
  folioWorkspaceTitle.textContent = statement.folio.reference || `Folio ${statement.folio.id}`;
@@ -9840,10 +9740,69 @@ function vehicleReturnPathFromState(state, property) {
   try { await request(`/api/v1/properties/${enc(property)}/trust/accounts/${enc(draft.accountId)}/expenses`, { method: "POST", headers: { "idempotency-key": key }, body: JSON.stringify({ amountMinor: draft.amountMinor, reason: draft.reason, ...(preview.approvalId ? { approvalRequestId: preview.approvalId } : {}) }) }); if (!trustIsCurrent(generation, property, preview.identity)) return; trustMutationKeys.delete(identity); trustAmount.value = ""; trustReason.value = ""; clearTrustPreview("Expense posted"); trustMessage.textContent = "Owner trust expense posted as immutable balanced financial evidence."; await loadTrustWorkbench({ focus: true });
   } catch (error) { if (error?.status) trustMutationKeys.delete(identity); if (trustIsCurrent(generation, property, preview.identity)) { trustMessage.textContent = error instanceof Error ? error.message : "Post outcome is unknown; retry preserves its exact identity."; trustMessage.classList.add("error"); trustPost.disabled = false; trustPost.focus({ preventScroll: true }); } }
  }
+ function invoiceNavigationRoute() {
+  const issue = location.pathname.match(/^\/p\/([0-9a-f-]+)\/invoices\/new\/([0-9a-f-]+)\/([0-9a-f-]+)$/);
+  if (issue && issue.slice(1).every(canonicalUuid)) return { property: issue[1], documentId: null, reservationId: issue[2], folioId: issue[3] };
+  const match = location.pathname.match(/^\/p\/([0-9a-f-]+)\/invoices(?:\/([0-9a-f-]+))?$/);
+  return match ? { property: match[1], documentId: match[2] || null } : null;
+ }
+ function resetInvoiceWorkbench() {
+  invoiceRouteGeneration += 1;
+  invoiceWorkbench?.dispose();
+  invoiceWorkbench = null;
+  invoiceWorkbenchProperty = "";
+  invoicesMount.replaceChildren();
+ }
+ async function syncInvoiceRoute() {
+  const route = invoiceNavigationRoute();
+  const property = propertySelect.value;
+  if (!accessToken || activeView !== "invoices" || !property || !route || route.property !== property) return;
+  if (location.search) history.replaceState(history.state, "", location.pathname);
+  if (invoiceWorkbenchProperty && invoiceWorkbenchProperty !== property) resetInvoiceWorkbench();
+  const generation = ++invoiceRouteGeneration;
+  try {
+   if (!invoiceWorkbench) {
+    invoicesMount.replaceChildren(node("p", "inventory-status", "Opening invoices…"));
+    const module = await import("/assets/operator-invoices.js");
+    if (generation !== invoiceRouteGeneration || !accessToken || activeView !== "invoices" || propertySelect.value !== property) return;
+    const selectedProperty = propertiesData.find(item => item.id === property);
+    invoiceWorkbench = module.createInvoiceWorkbench({
+     root: invoicesMount, request, propertyNode: property, timezone: selectedProperty?.timezone,
+     returnToFolio: folioId => {
+      if (!accessToken || activeView !== "invoices" || propertySelect.value !== property || !canonicalUuid(folioId)) return;
+      history.pushState({ yellowSurface: "folio-workspace" }, "", canonicalFolioPath(property, folioId));
+      setView("folios", false);
+      finishWorkspaceNavigation("folios");
+     },
+     navigate: documentId => {
+      if (!accessToken || activeView !== "invoices" || propertySelect.value !== property) return;
+      if (documentId !== null && !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(documentId)) return;
+      const path = "/p/" + property + "/invoices" + (documentId ? "/" + documentId : "");
+      if (location.pathname !== path) history.pushState({ yellowSurface: "invoices" }, "", path);
+      void syncInvoiceRoute();
+     },
+    });
+    invoiceWorkbenchProperty = property;
+   }
+   if (route.reservationId && route.folioId) await invoiceWorkbench.showIssue({ reservationId: route.reservationId, folioId: route.folioId });
+   else await invoiceWorkbench.show(route.documentId);
+  } catch {
+   if (generation !== invoiceRouteGeneration || !accessToken || activeView !== "invoices") return;
+   invoicesMount.replaceChildren(node("p", "form-message error", "Invoices could not be opened. Try again."));
+   const retry = node("button", "secondary", "Try again");
+   retry.type = "button";
+   retry.addEventListener("click", () => { resetInvoiceWorkbench(); void syncInvoiceRoute(); }, { once: true });
+   invoicesMount.append(retry);
+  }
+ }
   function setView(view, updateHistory = true) {
  const previousView = activeView;
- activeView = ["today", "availability", "inventory", "operations", "housekeeping", "vehicles", "reservations", "folios", "cashiers", "day-close", "trust", "restrictions", "rates", "status"].includes(view) ? view : "today";
- if (document.documentElement.dataset.experience === "simple" && SECONDARY_VIEWS.has(activeView)) {
+ activeView = ["today", "availability", "inventory", "operations", "housekeeping", "vehicles", "reservations", "folios", "invoices", "cashiers", "day-close", "trust", "restrictions", "rates", "status"].includes(view) ? view : "today";
+ if (previousView === "invoices" && activeView !== "invoices") {
+  invoiceRouteGeneration += 1;
+  invoiceWorkbench?.suspend();
+ }
+ if (SECONDARY_VIEWS.has(activeView)) {
   closeSecondaryWorkspaces();
  }
  if (previousView === "folios" && activeView !== "folios") {
@@ -9892,13 +9851,14 @@ function vehicleReturnPathFromState(state, property) {
  operationsView.hidden = activeView !== "operations";
  reservationsView.hidden = activeView !== "reservations";
  foliosView.hidden = activeView !== "folios";
+ invoicesView.hidden = activeView !== "invoices";
  cashiersView.hidden = activeView !== "cashiers";
  dayCloseView.hidden = activeView !== "day-close";
  trustView.hidden = activeView !== "trust";
  statusView.hidden = activeView !== "status";
  workbenchTitle.textContent = activeView === "today" ? "Today" : activeView === "inventory" ? "Inventory setup" :
   activeView === "operations" ? "Room outages" : activeView === "housekeeping" ? "Housekeeping" : activeView === "vehicles" ? "Vehicle Register" : activeView === "reservations" ? "Reservations" : activeView === "folios" ? "Folios" : activeView === "cashiers" ? "Cashiers" : activeView === "day-close" ? "Business-day close" : activeView === "trust" ? "Owner trust expenses" : activeView === "restrictions" ? "Restrictions" :
-  activeView === "rates" ? "Rates" : activeView === "status" ? "Project status" : "Availability";
+  activeView === "rates" ? "Rates" : activeView === "invoices" ? "Invoices" : activeView === "status" ? "Project status" : "Availability";
  for (const tab of navigation) {
   const selected = tab.dataset.view === activeView;
   tab.classList.toggle("is-active", selected);
@@ -9957,12 +9917,13 @@ function vehicleReturnPathFromState(state, property) {
   if (reservationBoardRows.length === 0) void loadReservationBoard();
  }
  if (activeView === "folios") syncFolioRoute();
+ if (activeView === "invoices") void syncInvoiceRoute();
  if (activeView === "cashiers") void loadCashierSession();
  if (activeView === "day-close") void loadDayCloseWorkbench();
  if (activeView === "trust") void loadTrustWorkbench();
  }
  function finishWorkspaceNavigation(view) {
-  if (document.documentElement.dataset.experience === "simple" && SECONDARY_VIEWS.has(view)) closeSecondaryWorkspaces();
+  if (SECONDARY_VIEWS.has(view)) closeSecondaryWorkspaces();
   const heading = document.getElementById(`${view}-title`);
   requestAnimationFrame(() => {
    if (activeView !== view || !heading || heading.closest("section")?.hidden) return;
@@ -11774,6 +11735,7 @@ function vehicleReturnPathFromState(state, property) {
   return;
  }
  if (!reservationCreatePanel.hidden) closeReservationCreate({ history: false, force: true });
+ resetInvoiceWorkbench();
  closeReservationPickupTaskDetail({ history: false, restoreFocus: false });
  clearHousekeepingTaskDetailState();
  reservationBookingSearchGeneration += 1;
@@ -11847,6 +11809,7 @@ function vehicleReturnPathFromState(state, property) {
  if (activeView === "day-close") void loadDayCloseWorkbench();
  if (activeView === "trust") void loadTrustWorkbench();
  reservationGuestData = null;
+ if (activeView === "invoices") void syncInvoiceRoute();
  reservationLifecycleData = null;
  reservationSegmentData = null;
  reservationGuestForm.hidden = true;
@@ -12170,6 +12133,25 @@ housekeepingSheetDate.addEventListener("change", () => {
   history.pushState({ yellowSurface: "reservation-create" }, "", `/p/${propertySelect.value}/reservations?new=1&step=${["stay", "guest", "offer", "review"][reservationCreateStep - 1]}`);
   return;
  }
+ const invoiceRoute = invoiceNavigationRoute();
+ if (invoiceRoute) {
+  if (!propertiesData.some(item => item.id === invoiceRoute.property)) {
+   resetInvoiceWorkbench();
+   setView("invoices", false);
+   invoicesMount.replaceChildren(node("p", "form-message error", "Invoice access is not granted for this property."));
+   return;
+  }
+  if (propertySelect.value !== invoiceRoute.property) {
+   const invoicePath = location.pathname;
+   propertySelect.value = invoiceRoute.property;
+   propertySelect.dispatchEvent(new Event("change"));
+   history.replaceState({ yellowSurface: "invoices" }, "", invoicePath);
+  }
+  closeReservationDetail({ history: false, restoreFocus: false });
+  if (activeView !== "invoices") setView("invoices", false);
+  else void syncInvoiceRoute();
+  return;
+ }
  if (route.kind !== "other") setView("reservations", false);
  syncReservationRoute();
  });
@@ -12178,6 +12160,15 @@ housekeepingSheetDate.addEventListener("change", () => {
  void lookupFolioStatement();
  });
  folioLoadOlder.addEventListener("click", () => void loadOlderFolioRows());
+ folioInvoiceReview.addEventListener("click", () => {
+  if (!accessToken || activeView !== "folios" || !folioStatementData || folioStatusPending) return;
+  const property = propertySelect.value, reservation = folioStatementData.reservationId, folio = folioStatementData.folio.id;
+  if (![property, reservation, folio].every(canonicalUuid) || !confirmFolioExit()) return;
+  clearFolioState();
+  history.pushState({ yellowSurface: "invoice-issue" }, "", "/p/" + property + "/invoices/new/" + reservation + "/" + folio);
+  setView("invoices", false);
+  finishWorkspaceNavigation("invoices");
+ });
  folioWorkspaceBack.addEventListener("click", () => {
  if (returnFromFolioWorkspaceToDeparture()) return;
  if (returnFromFolioWorkspaceToReservation()) return;
@@ -12729,22 +12720,8 @@ housekeepingSheetDate.addEventListener("change", () => {
  if (event.target !== builderExpertJson) renderBuilderCommand();
  });
  builderExpertJson.addEventListener("input", renderBuilderCommand);
- themeSelect.addEventListener("change", () => {
- const theme = themeSelect.value;
- transitionWorkspace(() => applyTheme(theme), { duration: theme === "glass" ? 400 : 280, nextTheme: theme });
- });
- experienceSelect.addEventListener("change", () => {
- transitionWorkspace(() => applyExperience(experienceSelect.value));
- });
- for (const preference of [reducedMotion, coarsePointer, forcedColours]) {
- if (typeof preference.addEventListener === "function") {
-  preference.addEventListener("change", () => cancelWorkspaceMotion(true));
- } else {
-  preference.addListener?.(() => cancelWorkspaceMotion(true));
- }
- }
- document.addEventListener("visibilitychange", () => {
- if (document.visibilityState !== "visible") cancelWorkspaceMotion(true);
+ workspaceSkinSelect.addEventListener("change", () => {
+ applyWorkspaceSkin(workspaceSkinSelect.value);
  });
  const workspaceMenuFocusable = () => Array.from(secondaryWorkspaces.querySelectorAll('a[href],button:not([disabled]),input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])'))
   .filter((element) => element.getClientRects().length > 0);
@@ -12817,8 +12794,8 @@ housekeepingSheetDate.addEventListener("change", () => {
  signOutButton.addEventListener("click", () => {
  if (activeView !== "folios" || folioWorkspace.hidden || confirmFolioExit()) showLogin();
  });
- applyTheme(themeSelect.value);
- applyExperience(experienceSelect.value);
+ applyWorkspaceSkin(workspaceSkinSelect.value);
+ closeSecondaryWorkspaces();
  initializeDates();
  addTier(createTierList, 1, "");
  addTier(createTierList, 2, "");
@@ -12828,6 +12805,7 @@ housekeepingSheetDate.addEventListener("change", () => {
  setBuilderStep(1);
  setBuilderMode("guided", false);
  const initialView = location.pathname.endsWith("/inventory") ? "inventory" :
+ (invoiceNavigationRoute() !== null) ? "invoices" :
  location.pathname.endsWith("/availability") ? "availability" :
  location.pathname.endsWith("/today") ? "today" :
  location.pathname.endsWith("/operations") ? "operations" :

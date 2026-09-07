@@ -2,9 +2,9 @@
 
 <!-- status-schema: yellow-project-status/v1 -->
 <!-- current-phase: 7 -->
-<!-- current-task: Codex Yellow — fiscal completion, with free-hosting and recovery preparation in parallel -->
-<!-- current-order-files: handoff/orders/442-host-recovery-and-merged-local-review.md;handoff/orders/443-runtime-storage-containment.md;handoff/orders/440-fiscal-submission-lifecycle.md -->
-<!-- current-lifecycle: PR90 merged main80; PR91 provider identity, catalogue-order and bounded-diagnostic repairs pass independent focused proof and full local standing1768/0; fresh exact-source CI/integration next; stable local77 preserved -->
+<!-- current-task: Codex Yellow — completed-feature review app and Astra UI integration alongside fiscal completion -->
+<!-- current-order-files: handoff/orders/444-partner-review-and-astra-ui-integration.md;handoff/orders/442-host-recovery-and-merged-local-review.md;handoff/orders/443-runtime-storage-containment.md;handoff/orders/440-fiscal-submission-lifecycle.md -->
+<!-- current-lifecycle: PR91 merged main81; Q20885 and first Astra three-layout shell pass local1839/0 plus explicit1310 environment skips; exact-source CI and verified review promotion pending; stable local77 preserved -->
 
 This is the canonical current-state record. It identifies the consolidated source,
 verified behavior, release boundaries and active work. Historical orders, reviews,
@@ -12,6 +12,114 @@ decisions and ledger entries remain evidence; their filenames are not an active
 backlog. `state.sh` and `state.ps1` read the machine-readable comments above.
 
 ## Current task
+
+**Founder priority — 2026-09-07.** Deliver completed functionality into the single
+review app without waiting for all of Phase7, and follow Astra's redesigned flows.
+[Order444](../handoff/orders/444-partner-review-and-astra-ui-integration.md) and the
+[personally read source handoff](design/ASTRA-IMPLEMENTATION-HANDOFF.md) record
+Calm Workbench, Precision Desk and Service Timeline; contextual task/role/property
+disclosure replaces global expertise selection. Neomorphism is deferred. The
+creative-freedom request was delivered to **Review Yellow Findings**, and Astra's
+definitive reply5564886892 was personally read and incorporated into that handoff. The forthcoming
+consolidated voice-agent document is separate and not yet received.
+
+Read-only inspection confirms the current native3000 app is healthy but still
+b5ef708/frontier77. Its fixed-version launcher, synthetic permissions and fixtures
+also need a verified update; merely copying new frontend files is insufficient.
+PR86's original five CI jobs and CodeQL are successful, but it remains
+draft/conflicting and still contains legacy expertise selection. Its source was
+preserved without a wholesale merge. The first integrated shell now exposes only
+Calm Workbench, Precision Desk and Service Timeline, replacing the public global
+expertise/appearance controls. The layouts change composition without remount,
+refetch, storage or a business command. This is source implementation, not the
+complete identity/department/STR redesign or a runtime promotion.
+
+Root's final current-source run passes1839 tests, zero failures and1310 explicit
+database/Unix skips, with24731 assertions across522 files in136.38s. Types,
+185 import boundaries,23 installed dependency licences and diff checks pass.
+Failed earlier runs remain evidence: stale oracles, delayed browser import,
+an unreproduced exact credential-size boundary failure, and a later1837/2 run
+with status/long-stay deadlines. The last two focused suites pass unchanged;
+the final full run changes no assertions, production calculation or deadline.
+No cause is asserted for the intermittent credential failure.
+
+Actual CDP viewport proof covers1440x900,1024x768,768x1024,390x844 and320x844,
+all three desktop compositions, reduced motion and forced colours. Root's final
+capture run passes124 assertions; screenshots caught and drove fixes for the
+320px clipped picker and excessively tall mobile navigation. Mounted invoice,
+draft/filter/selection/focus/property/request context and zero layout-only HTTP
+requests are checked. These are synthetic HTTP browser fixtures, not live-database
+journeys or200% browser-zoom/pixel-fidelity proof. The already-built Owner trust
+route now has its missing shell deep-GET, with unchanged protected API behaviour.
+[The capability manifest](design/BUILT-CAPABILITY-MANIFEST.md) maps all15 mounted
+workspaces to existing routes, permissions, proofs and review-fixture gaps.
+New exact-source CI, licensed identity/type integration, full journey acceptance
+and reversible single-local promotion remain active work.
+
+**Current checkpoint — 2026-09-07.** PR91 is independently merged at
+`3503b0c01f336637d2583963c17b792f6ad59efe`; remote GitHub merge state is verified.
+Main now has81 migrations and128 public tables. All six exact-source CI34067083341
+jobs and normal CodeQL passed, including native ARM64 execution, full80→81 signed
+durability14/14, historical compatibility, runtime/readiness and final referee11/11.
+A separate new-only postmerge PostgreSQL target reproduces the exact canonical
+schema and the genuine unmodified seed/referee11/11. Failed earlier runs remain
+recorded in [the independent review](../handoff/reviews/440-fiscal-provider-and-receipts.md).
+
+Q208 now implements the actual operator invoice workflow in a separate branch of
+the same worktree. Forward82–85 are applied only to its isolated synthetic build
+database. Forward83 closes the independently reproduced fresh-v2 issue-date supplier
+status bypass. Independently exercised forward84 corrects actual SQL execution,
+same-tenant role checks and stable buyer/confirmation projection. Forward85 adds
+durable public-command replay using the existing immutable native records; its
+proof-only application was independently authorized, not approved as a release.
+Independent strengthened PostgreSQL proof passes9/9, including committed concurrency,
+API-row-expiry replay, a genuinely eligible alternate buyer and exact eight-table
+artifact preservation on changed-input rejection. A separate clean77→81→85 upgrade
+passes the unfiltered10/10 suite, no-auto-grant preflight, canonical seed and actual
+referee11/11. Its normalized schema is copied mechanically into the current oracle.
+An empty1→85 run was not allocated on the shared native cluster because historical
+migration12 would change global-role membership; fresh and per-step rollback proof
+remain mandatory in disposable CI, not waived by the clean upgrade.
+
+Publication preflight independently rechecks all89 canonical inputs against that
+executed85 proof and the retained1,732,510-byte schema. Current migration tests
+start with an empty81 predecessor; they do not prove a populated81-to85 historical
+receipt/document preservation upgrade. That proof and a real UI/database journey
+remain explicit acceptance work, even if the new candidate CI is green.
+
+Independent testing exposed a real Bun SQL array-metadata incompatibility in the
+new readiness projection. The narrow own-data-row repair now passes45 focused tests
+and57 additional independent hostile assertions; nested JSON validation stays strict.
+Authenticated main-screen and rendered-geometry browser proof passes4/4, covering login/deep links,
+folio Back/Review, property change and late logout/import suppression. These use
+synthetic HTTP fixtures, not a full live-database browser journey. Actual320/375/768/
+1280CSS-pixel confirmation layouts,200% phone text and reduced motion pass without
+horizontal overflow; root personally inspected desktop and phone screenshots.
+
+Configured provider-choice backend is implemented and independently exercised:
+exact current database/configuration UUID/version/key intersection, truthful
+sandbox/production labels, current authority even with empty configuration, and
+no credential exposure. Its explicit staff request controls are implemented;
+the browser suite passes5/5 with120 assertions, including preserved document/
+provider/request identity across uncertain outcomes. Current85 catalogue/runtime/
+CI integration is implemented. The real runtime index-introspection mismatch was
+repaired: an independent actual85 baseline and12 rollback-only hostile ACL,
+configuration and ordering cases pass, with schema and global roles unchanged.
+
+The corrected local QR renderer independently decodes exact synthetic signed bytes
+in full-width screen previews and actual A4 PDFs, including near-capacity tokens.
+Narrow previews give a full-size-print instruction instead of shrinking or clipping
+the code. This is not physical-camera or fiscal-provider certification. Operator
+reload-safe retry-only provider binding, remaining Phase7 product work, fresh full release
+gates, provider onboarding and authentic sandbox acceptance remain outstanding.
+No phase classification changed.
+
+The single stable founder preview remains at its separately recorded77 release;
+it has not received Q208 or main81. No local restart, migration, provider activation
+or cloud deployment occurred. The checkpoints below are historical, superseded
+where they describe PR91 as unmerged or main as80.
+
+### Historical pre-merge checkpoint
 
 **Current development checkpoint — 2026-09-07.** Q207 implements authenticated
 ClearIRP transport, immutable source-bound signed invoice/QR retention, an authorized
@@ -490,14 +598,14 @@ vendor/person dependency. Independent high-risk proof remains required.
 
 | Surface | Verified baseline | Release boundary |
 |---|---|---|
-| Source and integration | PR90 independently merged at4ba1d6f after exact21794 all-six CI, actual ARM64 source-binding execution and fresh post-merge schema/referee11/11 | Main is the sole release branch; PR91 contains unmerged complete provider/receipt integration and the independently verified row-identity repair; operator invoice/printing remains unfinished |
+| Source and integration | PR91 independently merged at3503b0c after all-six CI34067083341, CodeQL and new-only postmerge referee11/11 | Main is the sole release branch. Q20885 operator invoice/print and the first Astra three-layout shell are verified local development; new exact-source CI and integration remain required |
 | Native fiscal acceptance | Independent migration41/41, native116/116, compatibility89/89, catalogue23/23, exact schema and referee11/11; all five [PR83 CI jobs](https://github.com/dcpnode-maker/yellow/actions/runs/33993977811) passed | [Review434](../handoff/reviews/434-native-fiscal-source-completion.md) approves bounded native issuance, not provider activation or a retained hotel database |
-| GitHub work queue | All62 PRs in the original audit are closed with source preservation; PR82/83/84/85/87/88/89 are merged | [The manifest](../handoff/CONSOLIDATION-MANIFEST.json) preserves dispositions; [GitHub](https://github.com/dcpnode-maker/yellow/pulls) is authoritative for the live queue |
-| Database schema | Main80/128;118RLS/118policies/27FORCE/13permissions/2views | Applied1–80 remain immutable. Founder preview77/127 is not migrated by these isolated proofs |
+| GitHub work queue | PR91 is merged; Astra PR86 remains draft/conflicting with its original CI successful | [The manifest](../handoff/CONSOLIDATION-MANIFEST.json) preserves earlier dispositions; [GitHub](https://github.com/dcpnode-maker/yellow/pulls) is authoritative for the live queue |
+| Database schema | Main81/128; candidate85 is applied only to named synthetic proof targets | Applied migrations remain immutable. Founder preview77/127 is not migrated by these isolated proofs |
 | Private issued-wire proof | Independent10/10 unit and4/4 real-issued tests, including exact unchanged financial rows and cross-tenant isolation | Source/wire hashes differ deliberately; no certified provider, durable submission writer or fiscal acceptance is claimed |
 | Hotel journey design | [Workbench specification](design/STAFF-WORKBENCH-SPEC.md), [casebook](design/HOTEL-CASEBOOK.md) and [research](research/HOTEL-OPERATIONS-REVIEW.md) are preserved from PR84 | Fictional interaction study; final visual fidelity needs an accessible reference and matched screenshot evidence |
 | Local app | Exactb5ef708 native Windows preview personally verified on the laptop: readiness77, source archive hash, synthetic login and referee11/11 | [Recovery details](RECOVERY.md) distinguish native startup from Compose; no new screenshot, production stability or unmerged fiscal activation is claimed |
-| Main verification and cloud | Mainb5ef708 CI34000319799 and runtime/migration image publication34000989837 succeeded | Registry digests were not retrieved; no approved cloud host, ingress or serving URL is connected. Publication is not deployment |
+| Main verification and cloud | Main81 exact-source CI34067083341 and independent postmerge referee11/11 pass | No cloud host, ingress or serving URL is connected. Image/source publication is not deployment; retained founder preview remains77 |
 
 A branch, document, test, container build, merge and deployment are separate evidence
 states. The runtime must identify its exact source and applied migration frontier.
@@ -510,7 +618,7 @@ states. The runtime must identify its exact source and applied migration frontie
 | Phase4 | Built; integration review outstanding | Preserve implementation and close remaining integration evidence |
 | Phase7 operational flows | Consolidated and independently approved baseline | PMS, stay, folio, payment, approval and fiscal-support flows remain preserved; this does not complete the whole phase |
 | Order434 native fiscal issuance | Independently approved and merged through PR83 | Real source-to-invoice, accounting, replay, concurrency, tenant isolation, bounds and migration proofs pass; no provider registration or operator invoice screen is implied |
-| Order440 fiscal submission | Canonical80 delivery/replay is independently merged; Q207 signed provider/storage/read integration passes native81 proof in development | Current compatibility/full CI remain before integration; operator invoice/print journey, runtime activation and authentic sandbox acceptance are still outstanding |
+| Order440 fiscal submission | Q207 authenticated provider, signed storage and authorized receipt read independently merged through PR91, main81; full CI and new-only postmerge referee11/11 pass | Q208 operator invoice/print workflow is unmerged development; runtime activation and authentic sandbox acceptance remain outstanding |
 | Order440 hotel journeys | Reviewed study merged through PR84 | Cross-department research and a fictional prototype; final reference-matched visual QA and laptop execution remain separate |
 | Order441 RMS research | Astra Ultra portfolio documented | Known methods, falsifiable proposals and experiment design; no live algorithm or measured uplift |
 | Phases8–17 | Planned | Requirements, research and department studies are preserved; documentation is not shipped behavior |

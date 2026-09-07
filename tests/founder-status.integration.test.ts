@@ -258,7 +258,7 @@ describe("Order 064 recorded build snapshot", () => {
     const rows = manifestRows(manifest);
     expect(rows.length).toBeGreaterThan(0);
     expect(PROJECT_BUILD_SNAPSHOT.schemaVersion).toBe(2);
-    expect(PROJECT_BUILD_SNAPSHOT.label).toBe("Signed fiscal provider integration; operator invoices next");
+    expect(PROJECT_BUILD_SNAPSHOT.label).toBe("Signed fiscal integration merged; operator invoice workflow in progress");
     expect(PROJECT_BUILD_SNAPSHOT.recordedAt).toBe("2026-09-07");
     expect(PROJECT_BUILD_SNAPSHOT.roadmap.latestBuiltOrder).toBe(439);
     expect(PROJECT_BUILD_SNAPSHOT.review.gate3Debt).toBe(0);
@@ -548,8 +548,8 @@ describe("Order 064 recorded build snapshot", () => {
       {
         order: 440,
         state: "proof_in_progress",
-        summary: "Order 440 durable fiscal submission, immutable replay, supervised delivery and private source-bound signature verification are independently merged through PR90 at 4ba1d6f (80 migrations / 128 public tables), with complete CI, native ARM64 execution and post-merge schema/referee 11/11. Q207 provider and signed-receipt integration passes independent actual81 storage, synthetic cryptographic recovery journey, authorized receipt GET, identical schema and clean seed/referee 11/11 in development. The separate Order 440 hotel-journey study remains a fictional design prototype; Order 441 Astra Ultra RMS remains documented research without algorithm runtime or measured uplift.",
-        remaining: "Development81 is not mergedmain80 or the preserved local77. Current/historical runtime compatibility and exact-source Linux/ARM64 CI remain integration gates. Operator invoice discovery, issuance and printing, provider onboarding and authentic sandbox acceptance remain unfinished. No local refresh, provider activation, new-department release or cloud deployment is claimed; Phase 7 is not complete.",
+        summary: "Order 440 durable fiscal submission, authenticated provider transport, immutable signed receipts and authorized receipt reads are independently merged through PR91 at 3503b0c (81 migrations / 128 public tables). All six CI jobs and normal CodeQL passed, including actual native ARM64 execution, full upgrade compatibility and post-merge schema/referee 11/11. Q208 operator invoice reads, confirmed issuance and print are active development. The separate hotel-journey study remains a fictional design prototype; Astra Ultra RMS remains documented research without algorithm runtime or measured uplift.",
+        remaining: "Merged main81 is not the preserved local77 or unmerged Q208 development. Operator invoice discovery, issuance and printing, provider onboarding and authentic sandbox acceptance remain unfinished. Q208 actual SQL execution is exposing and correcting runtime defects; full workflow and independent integration proofs remain required. No local refresh, provider activation, new-department release or cloud deployment is claimed; Phase 7 is not complete.",
       },
     ]);
     const recordedOrders = PROJECT_BUILD_SNAPSHOT.recordedWork.map(({ order }) => Number(order));

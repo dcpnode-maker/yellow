@@ -81,11 +81,14 @@ test("CI requires genuine pre79 receipt upgrade and late replay proof with isola
   expect(step).not.toContain("--test-name-pattern");
 });
 
-test("CI requires current81 genuine fiscal delivery and actual Linux process proof", async () => {
+test("CI pins genuine fiscal delivery to its exact historical81 catalogue", async () => {
   const workflow = await Bun.file(new URL("../.github/workflows/ci.yml", import.meta.url)).text();
+  const prefix = workflow.indexOf('signed_migrations="$(mktemp -d "$RUNNER_TEMP/yellow-order440-prefix81.XXXXXX")"');
   const start = workflow.indexOf('q204_database="yellow_order440_q204_ci"');
   const end = workflow.indexOf("# Q205 records real request/retry", start);
   expect(start).toBeGreaterThan(0);
+  expect(prefix).toBeGreaterThan(0);
+  expect(prefix).toBeLessThan(start);
   expect(end).toBeGreaterThan(start);
   const step = workflow.slice(start, end);
   for (const expected of [
@@ -103,7 +106,9 @@ test("CI requires current81 genuine fiscal delivery and actual Linux process pro
   ]) expect(step).toContain(expected);
   expect(step.indexOf("bun run db:migrate")).toBeGreaterThan(step.indexOf("CREATE DATABASE"));
   expect(step.indexOf("bun run db:migrate")).toBeLessThan(step.indexOf("bun test tests/fiscal-submission-delivery-runtime.integration.test.ts"));
-  expect(step).not.toContain("YELLOW_MIGRATIONS_DIR=");
+  const prefixStep = workflow.slice(prefix, start);
+  expect(prefixStep).toContain('10#${filename:0:4} <= 81');
+  expect(prefixStep).toContain('export YELLOW_MIGRATIONS_DIR="$signed_migrations"');
   expect(step).not.toContain("|| true");
   expect(step).not.toContain("continue-on-error");
   expect(step).not.toContain("--test-name-pattern");
@@ -122,11 +127,13 @@ test("CI preserves historical80 fixtures and runs signed frontier81 proofs in st
   const q204 = workflow.indexOf('q204_database="yellow_order440_q204_ci"');
   const upgrade = workflow.indexOf('q207_upgrade_database="yellow_order440_q207_upgrade_ci"');
   const current = workflow.indexOf('q207_database="yellow_order440_q207_ci"');
+  const q208 = workflow.indexOf('q208_database="yellow_order440_q208_fresh85_ci"');
   expect(historicalStart).toBeGreaterThan(0);
   expect(q203).toBeGreaterThan(historicalStart);
   expect(q204).toBeGreaterThan(q203);
   expect(upgrade).toBeGreaterThan(q204);
   expect(current).toBeGreaterThan(upgrade);
+  expect(q208).toBeGreaterThan(current);
   const historical = workflow.slice(historicalStart, upgrade);
   expect(historical).toContain('10#${filename:0:4} <= 80');
   expect(historical).toContain('export YELLOW_ORDER434_MIGRATIONS_DIR="$native_migrations"');
@@ -166,4 +173,17 @@ test("CI preserves historical80 fixtures and runs signed frontier81 proofs in st
   expect(currentStep).not.toContain("|| true");
   expect(currentStep).not.toContain("continue-on-error");
   expect(currentStep).not.toContain("--test-name-pattern");
+
+  const q208End = workflow.indexOf("      - name: Prove native fiscal release containment", q208);
+  const q208Step = workflow.slice(q208, q208End);
+  expect(q208Step).toContain("unset YELLOW_MIGRATIONS_DIR");
+  expect(q208Step).toContain('CREATE DATABASE ${q208_database}');
+  expect(q208Step).not.toContain('CREATE DATABASE ${q208_database} TEMPLATE');
+  expect(q208Step).toContain('YELLOW_ORDER440_Q208_DEPLOY_DATABASE_URL=');
+  expect(q208Step).toContain('YELLOW_ORDER440_Q208_RUNTIME_DATABASE_URL=');
+  expect(q208Step).toContain('YELLOW_REQUIRE_ORDER440_Q208_DATABASE=1');
+  expect(q208Step).toContain("bun test tests/india-native-fiscal-operator.integration.test.ts");
+  expect(q208Step).not.toContain("|| true");
+  expect(q208Step).not.toContain("continue-on-error");
+  expect(q208Step).not.toContain("--test-name-pattern");
 });

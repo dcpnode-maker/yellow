@@ -65,6 +65,7 @@ if (!providerConfiguration.ok) {
   throw new Error("India IRP provider deployment configuration is invalid");
 }
 const verifiedIndiaIrpAdapterRegistrations = providerConfiguration.value;
+const verifiedIndiaIrpAdapterPresentations = providerConfiguration.presentations;
 if (fiscalSubmissionDeliveryEnabled && verifiedIndiaIrpAdapterRegistrations.length === 0) {
   throw new Error("enabled fiscal submission worker requires a verified provider adapter");
 }
@@ -268,7 +269,8 @@ function runtimeApp() {
   const taxJurisdictionResolver = new TaxJurisdictionResolutionService(registry);
   const fiscalSubmissions = new FiscalSubmissionService();
   const fiscalAdapterRegistry = new VerifiedIndiaIrpAdapterRegistry(verifiedIndiaIrpAdapterRegistrations);
-  const fiscalSubmissionAdapters = new FiscalSubmissionAdapterAvailabilityService(fiscalAdapterRegistry.identities());
+  const fiscalSubmissionAdapters = new FiscalSubmissionAdapterAvailabilityService(
+    fiscalAdapterRegistry.identities(), verifiedIndiaIrpAdapterPresentations);
   const rateBuilder = {
     models: new RateModelService(registry),
     targets: new RateTargetService(registry),

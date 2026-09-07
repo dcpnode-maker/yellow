@@ -118,6 +118,12 @@ atd88ae59. This prepares free staging without deploying or activating a provider
 Historical milestones below preserve the
 evidence available when written and do not compete with PROJECT-STATUS.
 
+**Latest integration, 2026-09-07:** PR91 is independently merged at3503b0c,
+main81/128 tables, after all-six CI, CodeQL and new-only postmerge referee11/11.
+Q208 operator invoice workflow is active unmerged development, including actual SQL
+execution corrections. The stable founder preview remains77, not a deployment of
+these changes. See PROJECT-STATUS and the Q207/Q208 independent evidence.
+
 The plan retains **18 phases (0–17)** and the existing **13 bounded contexts**.
 Phases 0–3, 5 and 6 are reviewed; Phase 4 is built pending final integration and review;
 Phase 7 is active; Phases 8–17 remain planned. Definitions, dependencies and the

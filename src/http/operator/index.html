@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en" data-theme="apple" data-experience="simple">
+<html lang="en" data-theme="apple" data-workspace-skin="calm">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -28,21 +28,11 @@
 <span><strong>Yellow</strong><small>Hotel Operations</small></span>
 </div>
 <div class="app-actions">
-<label class="experience-control"><span>Workspace detail</span>
-<select id="experience-select" aria-label="Workspace detail">
-<option value="simple">Simple</option>
-<option value="advanced">Advanced</option>
-<option value="expert">Expert</option>
-</select>
-</label>
-<label class="theme-control"><span>Appearance</span>
-<select id="theme-select" aria-label="Appearance">
-<option value="apple">Apple iOS</option>
-<option value="android">Android · Material 3</option>
-<option value="win95">Windows 95 / 98</option>
-<option value="glass">Glassmorphism</option>
-<option value="neo">Neomorphism</option>
-<option value="erp">Enterprise ERP</option>
+<label class="workspace-skin-control"><span>Workspace layout</span>
+<select id="workspace-skin-select" aria-label="Workspace layout">
+<option value="calm">Calm Workbench</option>
+<option value="precision">Precision Desk</option>
+<option value="timeline">Service Timeline</option>
 </select>
 </label>
 <div class="session-state" id="session-state">Local review · signed out</div>
@@ -102,6 +92,7 @@
 <button class="domain-tab" id="nav-availability" type="button" data-view="availability" aria-controls="availability-view"><svg class="domain-icon" aria-hidden="true"><use href="#i-availability"/></svg><span>Availability</span></button>
 <button class="domain-tab" id="nav-reservations" type="button" data-view="reservations" aria-controls="reservations-view"><svg class="domain-icon" aria-hidden="true"><use href="#i-reservations"/></svg><span>Reservations</span></button>
 <button class="domain-tab" id="nav-folios" type="button" data-view="folios" aria-controls="folios-view"><svg class="domain-icon" aria-hidden="true"><use href="#i-folios"/></svg><span>Folios</span></button>
+<button class="domain-tab" id="nav-invoices" type="button" data-view="invoices" aria-controls="invoices-view"><svg class="domain-icon" aria-hidden="true"><use href="#i-folios"/></svg><span>Invoices</span></button>
 <button class="domain-tab" id="nav-cashiers" type="button" data-view="cashiers" aria-controls="cashiers-view"><svg class="domain-icon cashier-domain-icon" aria-hidden="true"><use href="#i-operations"/></svg><span>Cashiers</span></button>
 <button class="day-close-nav" id="nav-day-close" type="button" data-view="day-close" aria-controls="day-close-view"><svg class="day-close-icon" aria-hidden="true" viewBox="0 0 24 24"><use href="#i-status"/></svg><span>Day close</span></button>
 <button class="domain-tab" id="nav-trust" type="button" data-view="trust" aria-controls="trust-view"><svg class="domain-icon" aria-hidden="true"><use href="#i-folios"/></svg><span>Owner trust</span></button>
@@ -923,6 +914,10 @@
 <p class="inventory-status" id="reservation-detail-status" role="status" aria-live="polite"></p>
 </aside>
 </section>
+<section id="invoices-view" hidden aria-labelledby="invoices-title">
+<div class="section-heading"><div><p class="eyebrow">Finance</p><h2 id="invoices-title" tabindex="-1">Invoices</h2><p class="muted">Find an issued invoice, review its original details and print a guest copy.</p></div></div>
+<div id="invoices-mount" class="invoice-workbench"></div>
+</section>
 <section id="folios-view" hidden aria-labelledby="folios-title">
 <div class="section-heading">
 <div>
@@ -944,6 +939,7 @@
 <div class="folio-workspace-head">
 <button class="quiet" id="folio-workspace-back" type="button">Back to folio lookup</button>
 <div><p class="eyebrow">Immutable guest ledger</p><h3 id="folio-workspace-title">Folio workspace</h3></div>
+<button class="secondary" id="folio-invoice-review" type="button" hidden>Review invoice</button>
 </div>
 <div class="folio-summary folio-account-summary" aria-label="Stay folio totals">
 <span>Stay total <strong id="folio-stay-total">—</strong></span>

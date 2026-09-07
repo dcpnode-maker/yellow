@@ -14,7 +14,9 @@ const REVISION = "0123456789abcdef0123456789abcdef01234567";
 describe("release build identity and readiness", () => {
   test("requires the runtime-only fiscal delivery discovery capability", async () => {
     let query = "";
-    const sql = ((strings: TemplateStringsArray) => {
+    let permissionChecks = 0;
+    let permissionQuery = "";
+    const sql = Object.assign(((strings: TemplateStringsArray) => {
       query = strings.join("?");
       return Promise.resolve([{
         runtimeIdentity: true,
@@ -29,7 +31,19 @@ describe("release build identity and readiness", () => {
         publicIssueDenied: true,
         appIssueDenied: true,
         runtimeIssueDenied: true,
+        q208PublicEntryAuthorityExact: true,
+        q208PrivateEntryAuthorityExact: true,
+        q208IndexesExact: true,
       }]);
+    }), {
+      begin: async (_options: string, operation: (transaction: SQL) => Promise<unknown>) => operation(Object.assign(
+        ((strings: TemplateStringsArray) => {
+          permissionChecks += 1;
+          permissionQuery = strings.join("?");
+          return Promise.resolve([{ exact: true }]);
+        }),
+        { unsafe: () => Promise.resolve([]) },
+      ) as unknown as SQL),
     }) as unknown as SQL;
 
     await expect(assertRuntimeReleaseReadiness(sql)).resolves.toBeUndefined();
@@ -47,18 +61,72 @@ describe("release build identity and readiness", () => {
     expect(query).toContain("has_column_privilege");
     expect(query).toContain("fiscalReceiptReadAuthorityExact");
     expect(query).toContain("fiscalReceiptColumnsProtected");
+    expect(query).toContain("q208PublicEntryAuthorityExact");
+    expect(query).toContain("q208PrivateEntryAuthorityExact");
+    expect(query).toContain("q208IndexesExact");
+    expect(query).toContain("prepare_india_native_fiscal_invoice_v4");
+    expect(query).toContain("read_india_native_document_context_candidate");
+    const q208PublicEntries = query.match(
+      /q208_public_entry\(signature, volatility, expected_result, expected_config\) AS \(VALUES(?<entries>[\s\S]*?)\n    \), q208_public_authority/,
+    )?.groups?.entries;
+    const q208PrivateEntries = query.match(
+      /q208_private_entry\(signature, volatility, expected_config\) AS \(VALUES(?<entries>[\s\S]*?)\n    \), q208_private_authority/,
+    )?.groups?.entries;
+    expect(q208PublicEntries?.match(/\('public\./g)).toHaveLength(7);
+    expect(q208PrivateEntries?.match(/\('public\./g)).toHaveLength(2);
+    expect(query).toContain("india_native_operator_document_queue");
+    expect(query).toContain("india_native_operator_submission_document");
+    expect(query).toContain("ARRAY['tenant_id','property_node','business_date','issued_at','id']");
+    expect(query).toContain("'0 0 3 3 3'");
+    expect(query).toContain("'0 0 0 0'");
+    expect(query).toContain("index_row.indoption::text=q208_index.key_options");
+    expect(query).not.toContain("'business_date DESC'");
+    expect(permissionChecks).toBe(1);
+    expect(permissionQuery).toContain("tax-fiscal.documents:read");
+    expect(permissionQuery).not.toContain("role_permission");
   });
 
   test("refuses a ready claim when receipt read authority or column confinement fails", async () => {
-    for (const failed of ["fiscalReceiptReadAuthorityExact", "fiscalReceiptColumnsProtected"]) {
-      const sql = (() => Promise.resolve([{
+    for (const failed of [
+      "fiscalReceiptReadAuthorityExact", "fiscalReceiptColumnsProtected",
+      "q208PublicEntryAuthorityExact", "q208PrivateEntryAuthorityExact", "q208IndexesExact",
+    ]) {
+      let permissionChecks = 0;
+      const sql = Object.assign((() => Promise.resolve([{
         runtimeIdentity: true, coreSchemaPresent: true, nativeSourceSchemaPresent: true,
         nativeEntryAuthorityExact: true, fiscalHistoryProtected: true, fiscalEntryAuthorityExact: true,
         fiscalReceiptReadAuthorityExact: true, fiscalReceiptColumnsProtected: true,
         issueFunctionPresent: true, publicIssueDenied: true, appIssueDenied: true, runtimeIssueDenied: true,
+        q208PublicEntryAuthorityExact: true, q208PrivateEntryAuthorityExact: true,
+        q208IndexesExact: true,
         [failed]: false,
-      }])) as unknown as SQL;
+      }])), {
+        begin: async () => { permissionChecks += 1; return [{ exact: true }]; },
+      }) as unknown as SQL;
       await expect(assertRuntimeReleaseReadiness(sql)).rejects.toThrow("runtime release readiness is unavailable");
+      expect(permissionChecks).toBe(0);
+    }
+  });
+
+  test("requires the document-read permission entry without requiring it to be unassigned", async () => {
+    const catalogue = {
+      runtimeIdentity: true, coreSchemaPresent: true, nativeSourceSchemaPresent: true,
+      nativeEntryAuthorityExact: true, fiscalHistoryProtected: true, fiscalEntryAuthorityExact: true,
+      fiscalReceiptReadAuthorityExact: true, fiscalReceiptColumnsProtected: true,
+      issueFunctionPresent: true, publicIssueDenied: true, appIssueDenied: true, runtimeIssueDenied: true,
+      q208PublicEntryAuthorityExact: true, q208PrivateEntryAuthorityExact: true,
+      q208IndexesExact: true,
+    };
+    for (const permissionRows of [[], [{ exact: false }]]) {
+      let localRole = "";
+      const sql = Object.assign((() => Promise.resolve([catalogue])), {
+        begin: async (_options: string, operation: (transaction: SQL) => Promise<unknown>) => operation(Object.assign(
+          (() => Promise.resolve(permissionRows)),
+          { unsafe: (statement: string) => { localRole = statement; return Promise.resolve([]); } },
+        ) as unknown as SQL),
+      }) as unknown as SQL;
+      await expect(assertRuntimeReleaseReadiness(sql)).rejects.toThrow("runtime release readiness is unavailable");
+      expect(localRole).toBe("SET LOCAL ROLE app_role");
     }
   });
 
@@ -66,9 +134,9 @@ describe("release build identity and readiness", () => {
     expect(buildInfoFromEnvironment({ YELLOW_BUILD_SHA: REVISION })).toEqual({
       schemaVersion: 1,
       revision: REVISION,
-      expectedMigrationFrontier: 81,
+      expectedMigrationFrontier: 85,
     });
-    expect(CURRENT_MIGRATION_FRONTIER).toBe(81);
+    expect(CURRENT_MIGRATION_FRONTIER).toBe(85);
     expect(buildInfoFromEnvironment({})).toBe(UNKNOWN_BUILD_INFO);
     expect(buildInfoFromEnvironment({ YELLOW_BUILD_SHA: "" })).toBe(UNKNOWN_BUILD_INFO);
 
@@ -98,7 +166,7 @@ describe("release build identity and readiness", () => {
     expect(await response.json()).toEqual({
       status: "not_ready",
       reason: "build_revision_unavailable",
-      build: { schemaVersion: 1, revision: null, expectedMigrationFrontier: 81 },
+      build: { schemaVersion: 1, revision: null, expectedMigrationFrontier: 85 },
     });
     expect(probes).toBe(0);
   });
@@ -122,7 +190,7 @@ describe("release build identity and readiness", () => {
     expect(await noRuntime.json()).toEqual({
       status: "not_ready",
       reason: "runtime_not_configured",
-      build: { schemaVersion: 1, revision: REVISION, expectedMigrationFrontier: 81 },
+      build: { schemaVersion: 1, revision: REVISION, expectedMigrationFrontier: 85 },
     });
 
     const failed = await unavailable.handle(new Request("http://yellow.test/ready"));
@@ -133,7 +201,7 @@ describe("release build identity and readiness", () => {
       status: "not_ready",
       reason: "runtime_dependency_unavailable",
       target: "yellow_runtime_database",
-      build: { schemaVersion: 1, revision: REVISION, expectedMigrationFrontier: 81 },
+      build: { schemaVersion: 1, revision: REVISION, expectedMigrationFrontier: 85 },
     });
 
     const success = await ready.handle(new Request("http://yellow.test/ready"));
@@ -142,7 +210,7 @@ describe("release build identity and readiness", () => {
     expect(await success.json()).toEqual({
       status: "ready",
       target: "yellow_runtime_database",
-      build: { schemaVersion: 1, revision: REVISION, expectedMigrationFrontier: 81 },
+      build: { schemaVersion: 1, revision: REVISION, expectedMigrationFrontier: 85 },
     });
   });
 });

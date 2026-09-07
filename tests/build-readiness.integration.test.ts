@@ -40,6 +40,10 @@ async function ensureCurrentRelease(): Promise<void> {
   const result = await runMigrations({ databaseUrl: deploymentDatabaseUrl, logger: () => undefined });
   expect(result.appliedFiles).toEqual([
     "0081_fiscal_signed_delivery_receipts.sql",
+    "0082_india_native_fiscal_operator_workflow.sql",
+    "0083_india_native_fiscal_operator_calendar_bounds.sql",
+    "0084_india_native_fiscal_operator_query_execution.sql",
+    "0085_india_native_fiscal_operator_command.sql",
   ]);
   deployment = new SQL(deploymentDatabaseUrl, { max: 1, prepare: false });
   runtime = new SQL(runtimeDatabaseUrl, { max: 1, prepare: false });
@@ -376,5 +380,68 @@ databaseDescribe("Order438 runtime release readiness identity", () => {
       } finally { await deployment!.unsafe(`REVOKE SELECT(${column}) ON public.${table} FROM ${role}`); }
       await expect(assertRuntimeReleaseReadiness(runtime!)).resolves.toBeUndefined();
     }
+  });
+
+  test("rejects Q208 public and private capability authority drift and proves restoration", async () => {
+    await ensureCurrentRelease();
+    const publicSignature = "public.prepare_india_native_fiscal_invoice_v4(uuid,uuid,uuid,uuid,uuid,uuid,text,text,date,date[],text[],text,uuid,text,text)";
+    const privateSignature = "public.read_india_native_document_context_candidate(uuid,uuid,uuid,uuid,uuid,uuid)";
+    try {
+      await deployment!.unsafe(`GRANT EXECUTE ON FUNCTION ${publicSignature} TO yellow_runtime`);
+      await expect(assertRuntimeReleaseReadiness(runtime!)).rejects.toThrow("runtime release readiness is unavailable");
+    } finally {
+      await deployment!.unsafe(`REVOKE EXECUTE ON FUNCTION ${publicSignature} FROM yellow_runtime`);
+    }
+    try {
+      await deployment!.unsafe(`GRANT EXECUTE ON FUNCTION ${privateSignature} TO app_role`);
+      await expect(assertRuntimeReleaseReadiness(runtime!)).rejects.toThrow("runtime release readiness is unavailable");
+    } finally {
+      await deployment!.unsafe(`REVOKE EXECUTE ON FUNCTION ${privateSignature} FROM app_role`);
+    }
+    try {
+      await deployment!.unsafe(`ALTER FUNCTION ${publicSignature} SET TimeZone='Asia/Kolkata'`);
+      await expect(assertRuntimeReleaseReadiness(runtime!)).rejects.toThrow("runtime release readiness is unavailable");
+    } finally {
+      await deployment!.unsafe(`ALTER FUNCTION ${publicSignature} SET TimeZone='UTC'`);
+    }
+    await expect(assertRuntimeReleaseReadiness(runtime!)).resolves.toBeUndefined();
+  });
+
+  test("rejects a missing Q208 index or permission entry and proves restoration", async () => {
+    await ensureCurrentRelease();
+    try {
+      await deployment!.unsafe("DROP INDEX public.india_native_operator_submission_document");
+      await expect(assertRuntimeReleaseReadiness(runtime!)).rejects.toThrow("runtime release readiness is unavailable");
+    } finally {
+      await deployment!.unsafe(`CREATE INDEX india_native_operator_submission_document
+        ON public.fiscal_submission(tenant_id,property_node,document_id,id)`);
+    }
+    for (const wrongOrdering of [
+      "business_date ASC,issued_at DESC,id DESC",
+      "business_date DESC NULLS LAST,issued_at DESC,id DESC",
+    ]) {
+      try {
+        await deployment!.unsafe("DROP INDEX public.india_native_operator_document_queue");
+        await deployment!.unsafe(`CREATE INDEX india_native_operator_document_queue
+          ON public.document(tenant_id,property_node,${wrongOrdering})
+          WHERE kind='invoice' AND status='issued'`);
+        await expect(assertRuntimeReleaseReadiness(runtime!)).rejects.toThrow("runtime release readiness is unavailable");
+      } finally {
+        await deployment!.unsafe("DROP INDEX IF EXISTS public.india_native_operator_document_queue");
+        await deployment!.unsafe(`CREATE INDEX india_native_operator_document_queue
+          ON public.document(tenant_id,property_node,business_date DESC,issued_at DESC,id DESC)
+          WHERE kind='invoice' AND status='issued'`);
+      }
+      await expect(assertRuntimeReleaseReadiness(runtime!)).resolves.toBeUndefined();
+    }
+    try {
+      await deployment!`DELETE FROM public.permission WHERE code='tax-fiscal.documents:read'`;
+      await expect(assertRuntimeReleaseReadiness(runtime!)).rejects.toThrow("runtime release readiness is unavailable");
+    } finally {
+      await deployment!`INSERT INTO public.permission(code,description) VALUES
+        ('tax-fiscal.documents:read','Read property-authorized immutable fiscal documents')
+        ON CONFLICT(code) DO UPDATE SET description=EXCLUDED.description`;
+    }
+    await expect(assertRuntimeReleaseReadiness(runtime!)).resolves.toBeUndefined();
   });
 });

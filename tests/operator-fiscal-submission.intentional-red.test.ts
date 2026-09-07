@@ -19,9 +19,10 @@ test("Q203 edges remain composed while Q207 protected transport stays default-of
   );
   expect(server).toContain("const verifiedIndiaIrpAdapterRegistrations = providerConfiguration.value");
   expect(server).toContain("new VerifiedIndiaIrpAdapterRegistry(verifiedIndiaIrpAdapterRegistrations)");
-  expect(server).toContain(
-    "new FiscalSubmissionAdapterAvailabilityService(fiscalAdapterRegistry.identities())",
+  expect(server).toMatch(
+    /new FiscalSubmissionAdapterAvailabilityService\(\s*fiscalAdapterRegistry\.identities\(\), verifiedIndiaIrpAdapterPresentations\)/,
   );
+  expect(server).toContain("const verifiedIndiaIrpAdapterPresentations = providerConfiguration.presentations");
   expect(server).toContain("new FiscalSubmissionWorker(fiscalRepository, fiscalAdapterRegistry)");
   const load = server.indexOf("await loadIndiaIrpAdapterRegistrationsFromEnvironment(Bun.env)");
   const invalid = server.indexOf("if (!providerConfiguration.ok)");

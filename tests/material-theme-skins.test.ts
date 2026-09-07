@@ -18,7 +18,7 @@ function themeBlock(css: string, theme: string): string {
   return material;
 }
 
-test("Order195: the six founder-selected systems carry structural material vectors", async () => {
+test("Order195 / Order444: retained internal material systems carry structural vectors", async () => {
   const css = await Bun.file(cssFile).text();
   const categories = [
     /--(?:control|card)-radius:/, // geometry
@@ -47,7 +47,7 @@ test("Order185: material signatures, fallbacks and accessibility contracts are e
   expect(css).toMatch(/data-theme="win95"[\s\S]*outset/);
   expect(css).toMatch(/data-theme="win95"[\s\S]*inset/);
   expect(css).toMatch(/data-theme="android"[\s\S]*min-height:\s*48px/);
-  expect(css).toMatch(/data-theme="android"[^\n]*#theme-select[^\n]*#experience-select[^\n]*min-height:\s*48px/);
+  expect(css).toMatch(/#workspace-skin-select[^{}]*\{[^}]*min-height:\s*44px/);
   expect(css).toMatch(/data-theme="neo"[\s\S]*inset/);
   expect(css).toMatch(/@media \(prefers-reduced-motion: reduce\)/);
   expect(css).toContain("@keyframes glass-stage-in");

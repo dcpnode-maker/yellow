@@ -12,3 +12,7 @@
 # append on different branches. Without this, every parallel session collides here.
 DECISIONS.log merge=union
 handoff/LEDGER.md merge=union
+
+# Q208: retain byte-pinned upstream Nayuki code including its five EOL spaces.
+# Only this vendored file is exempt from blank-at-eol; other checks still apply.
+src/http/operator/vendor/qrcodegen-v1.8.0-es6.js whitespace=-blank-at-eol

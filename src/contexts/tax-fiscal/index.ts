@@ -446,6 +446,16 @@ export {
   snapshotRetryIndiaFiscalSubmissionInput,
 } from "./fiscal-submission-repository";
 export { FiscalSubmissionReceiptReadService, snapshotFiscalSubmissionDeliveryReceipt } from "./fiscal-submission-receipt";
+export { IndiaNativeFiscalOperatorReadService } from "./india-native-fiscal-operator";
+export type { IndiaNativeFiscalDocumentDelivery, IndiaNativeFiscalDocumentDeliveryResult } from "./india-native-fiscal-operator";
+export type { IndiaNativeFiscalOperatorReadiness, IndiaNativeFiscalOperatorReadinessResult } from "./india-native-fiscal-operator";
+export { IndiaNativeFiscalDocumentReadService } from "./india-native-fiscal-document-read";
+export type {
+  IndiaNativeFiscalDocumentReadResult,
+  IndiaNativeFiscalInvoiceSummary,
+  IndiaNativeFiscalInvoiceList,
+  IndiaNativeFiscalInvoiceDocument,
+} from "./india-native-fiscal-document-read";
 export type { FiscalSubmissionDeliveryReceipt, FiscalSubmissionDeliveryReadResult } from "./fiscal-submission-receipt";
 export type {
   FiscalSubmissionClaim,
@@ -665,6 +675,8 @@ export {
   IndiaNativeFiscalInvoiceService,
   IndiaNativeFiscalInvoiceNotFoundError,
   IndiaNativeFiscalInvoiceValidationError,
+  IndiaNativeFiscalInvoiceStaleEvidenceError,
+  snapshotIndiaNativeFiscalInvoiceCalendarEvidence,
   IndiaNativeFiscalSeriesAuthorizationError,
   IndiaNativeFiscalSeriesConfigurationService,
   IndiaNativeFiscalSeriesConflictError,
@@ -680,6 +692,8 @@ export type {
   IndiaNativeFiscalInvoiceCalendarEvidence,
   IndiaNativeFiscalInvoiceIssueInput,
   IndiaNativeFiscalInvoiceIssueNativeInput,
+  IndiaNativeFiscalInvoiceIssueNativeConfirmedInput,
+  IndiaNativeFiscalInvoiceOperatorIssueInput,
   IndiaNativeFiscalInvoiceReceipt,
   IndiaNativeFiscalInvoiceServiceOptions,
   IndiaNativeFiscalPreparedSourceInput,

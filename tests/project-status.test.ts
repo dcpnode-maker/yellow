@@ -71,9 +71,9 @@ describe("canonical project status", () => {
     expect(byOrder.get(434)?.summary).toContain("native");
     expect(byOrder.get(440)?.state).toBe("proof_in_progress");
     expect(byOrder.get(440)?.summary).toContain("durable fiscal submission");
-    expect(byOrder.get(440)?.summary).toContain("PR90 at 4ba1d6f");
-    expect(byOrder.get(440)?.summary).toContain("independent actual81 storage");
-    expect(byOrder.get(440)?.remaining).toContain("Development81 is not mergedmain80");
+    expect(byOrder.get(440)?.summary).toContain("PR91 at 3503b0c");
+    expect(byOrder.get(440)?.summary).toContain("81 migrations / 128 public tables");
+    expect(byOrder.get(440)?.remaining).toContain("Merged main81 is not the preserved local77");
     expect(byOrder.get(440)?.remaining).toContain("authentic sandbox acceptance remain unfinished");
 
     expect(PROJECT_BUILD_SNAPSHOT.phases).toHaveLength(18);

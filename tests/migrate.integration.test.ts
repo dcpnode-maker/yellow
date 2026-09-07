@@ -914,6 +914,110 @@ databaseDescribe("Bun SQL migration runner", () => {
     }, 180_000);
   });
 
+  describe("Order440/Q208 canonical migration 81 to 85 boundary", () => {
+    const q208Migrations = [
+      [82, "0082_india_native_fiscal_operator_workflow.sql",
+        "702f66b3e05547f397e2393ae5a608a6f0c3069ec534b2c947bfc309983bf185"],
+      [83, "0083_india_native_fiscal_operator_calendar_bounds.sql",
+        "5a8ac565f3aaebfee4245121a434dba5867f558091a58aad87f23bed5dee0705"],
+      [84, "0084_india_native_fiscal_operator_query_execution.sql",
+        "e9d8b75f832e687f567806e82faaece7672cdbcf4ee8813c9c7b56cfc78ecd69"],
+      [85, "0085_india_native_fiscal_operator_command.sql",
+        "c94c97efbb237fb99c5a35caf01faefa4d7fee98a07d8b30b89bec3ce0a7670c"],
+    ] as const;
+    let upgradedSchema: string | undefined;
+    let immutableLedger: readonly ExactLedgerRow[] | undefined;
+    let finalLedger: readonly ExactLedgerRow[] | undefined;
+
+    test("rolls back each forward step, upgrades exact 82-85, no-ops, and refuses checksum drift", async () => {
+      const through81 = await canonicalMigrationFiles(81);
+      await withDatabase(async ({ databaseUrl: targetUrl, sql }) => {
+        await withMigrationDirectory(through81, directory => runMigrations({
+          databaseUrl: targetUrl, migrationsDirectory: directory, logger: () => undefined,
+        }));
+        immutableLedger = await exactLedger(sql, 81);
+        expect(immutableLedger).toHaveLength(81);
+
+        for (const [version, filename, checksum] of q208Migrations) {
+          const previousLedger = await exactLedger(sql);
+          const previousSchema = await normalizedOrder434Dump(targetUrl);
+          const throughPrevious = await canonicalMigrationFiles(version - 1);
+          const throughCurrent = await canonicalMigrationFiles(version);
+          const canonical = await readFile(resolve(PROJECT_MIGRATIONS, filename));
+          expect(Object.keys(throughCurrent).filter(name => Number(name.slice(0, 4)) === version))
+            .toEqual([filename]);
+          expect(fileSha256(canonical)).toBe(checksum);
+          const injected = new Uint8Array([...canonical, ...new TextEncoder().encode(
+            `\nDO $q208_atomic_failure$ BEGIN RAISE EXCEPTION USING ERRCODE='55000', MESSAGE='Q208 injected migration ${version} rollback'; END $q208_atomic_failure$;\n`,
+          )]);
+          await withMigrationDirectory({ ...throughPrevious, [filename]: injected }, async directory => {
+            const failure = await migrationFailure(() => runMigrations({
+              databaseUrl: targetUrl, migrationsDirectory: directory, logger: () => undefined,
+            }));
+            expect(failure).toMatchObject({ errno: "55000", rollbackConnectionUsable: true });
+          });
+          expect(await exactLedger(sql)).toEqual(previousLedger);
+          expect(await normalizedOrder434Dump(targetUrl)).toBe(previousSchema);
+
+          const upgrade = await withMigrationDirectory(throughCurrent, directory => runMigrations({
+            databaseUrl: targetUrl, migrationsDirectory: directory, logger: () => undefined,
+          }));
+          expect(upgrade.appliedFiles).toEqual([filename]);
+          expect(upgrade.transactionBackendPids).toEqual([upgrade.backendPid]);
+          expect(await exactLedger(sql, version - 1)).toEqual(previousLedger);
+          expect(await sql<Array<{ filename: string; checksum_sha256: string }>>`
+            SELECT filename,checksum_sha256 FROM public.schema_migration WHERE version=${version}`)
+            .toEqual([{ filename, checksum_sha256: checksum }]);
+        }
+
+        finalLedger = await exactLedger(sql);
+        expect(finalLedger).toHaveLength(85);
+        expect(await exactLedger(sql, 81)).toEqual(immutableLedger);
+        upgradedSchema = await normalizedOrder434Dump(targetUrl);
+        const through85 = await canonicalMigrationFiles(85);
+        const noOp = await withMigrationDirectory(through85, directory => runMigrations({
+          databaseUrl: targetUrl, migrationsDirectory: directory, logger: () => undefined,
+        }));
+        expect(noOp).toMatchObject({ appliedFiles: [], discoveredFiles: 85, transactionBackendPids: [] });
+        expect(await exactLedger(sql)).toEqual(finalLedger);
+
+        const canonical85 = await readFile(resolve(PROJECT_MIGRATIONS, q208Migrations.at(-1)![1]));
+        await withMigrationDirectory({ ...through85,
+          [q208Migrations.at(-1)![1]]: new Uint8Array([...canonical85, 0x0a]),
+        }, async directory => {
+          const drift = await migrationFailure(() => runMigrations({
+            databaseUrl: targetUrl, migrationsDirectory: directory, logger: () => undefined,
+          }));
+          expect(drift.message).toContain("Applied migration checksum mismatch for version 85");
+        });
+        expect(await exactLedger(sql)).toEqual(finalLedger);
+        expect(await normalizedOrder434Dump(targetUrl)).toBe(upgradedSchema);
+      });
+    }, 360_000);
+
+    test("fresh canonical 85 is schema-identical to the canonical 81 upgrade", async () => {
+      if (!upgradedSchema || !immutableLedger || !finalLedger) {
+        throw new Error("Q208 upgrade proof must complete before fresh equivalence");
+      }
+      const expectedSchema = upgradedSchema;
+      const expectedImmutable = immutableLedger;
+      const expectedFinal = finalLedger;
+      const through85 = await canonicalMigrationFiles(85);
+      await withDatabase(async ({ databaseUrl: targetUrl, sql }) => {
+        const fresh = await withMigrationDirectory(through85, directory => runMigrations({
+          databaseUrl: targetUrl, migrationsDirectory: directory, logger: () => undefined,
+        }));
+        expect(fresh.appliedFiles).toHaveLength(85);
+        expect(fresh.appliedFiles.at(-1)).toBe("0085_india_native_fiscal_operator_command.sql");
+        expect((await exactLedger(sql, 81)).map(({ applied_at_bytes: _ignored, ...row }) => row))
+          .toEqual(expectedImmutable.map(({ applied_at_bytes: _ignored, ...row }) => row));
+        expect((await exactLedger(sql)).map(({ applied_at_bytes: _ignored, ...row }) => row))
+          .toEqual(expectedFinal.map(({ applied_at_bytes: _ignored, ...row }) => row));
+        expect(await normalizedOrder434Dump(targetUrl)).toBe(expectedSchema);
+      });
+    }, 240_000);
+  });
+
   test(
     "rejects migration 0015 atomically while yellow_runtime is connected, then retries after drain",
     async () => {
@@ -2368,6 +2472,10 @@ databaseDescribe("Bun SQL migration runner", () => {
           "0079_fiscal_immutable_command_receipts.sql",
           "0080_fiscal_submission_delivery_runtime.sql",
           "0081_fiscal_signed_delivery_receipts.sql",
+          "0082_india_native_fiscal_operator_workflow.sql",
+          "0083_india_native_fiscal_operator_calendar_bounds.sql",
+          "0084_india_native_fiscal_operator_query_execution.sql",
+          "0085_india_native_fiscal_operator_command.sql",
         ]);
 
         const preservedLedger = await sql<Array<{
@@ -2393,7 +2501,7 @@ databaseDescribe("Bun SQL migration runner", () => {
             FROM public.schema_migration
            ORDER BY version
         `;
-        expect(upgradedLedger).toHaveLength(81);
+        expect(upgradedLedger).toHaveLength(85);
 
         const noOpLog: string[] = [];
         const noOp = await runMigrations({
@@ -2402,7 +2510,7 @@ databaseDescribe("Bun SQL migration runner", () => {
           logger: (message) => noOpLog.push(message),
         });
         expect(noOp.appliedFiles).toEqual([]);
-        expect(noOp.discoveredFiles).toBe(81);
+        expect(noOp.discoveredFiles).toBe(85);
         expect(noOp.transactionBackendPids).toEqual([]);
         expect(noOpLog).toHaveLength(1);
         expect(noOpLog[0]).toContain("applied=0 status=no-op");

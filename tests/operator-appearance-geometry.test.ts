@@ -29,7 +29,7 @@ type GeometryProof = {
 };
 
 const geometryFixture = (stylesheet: string) => `<!doctype html>
-<html lang="en" data-theme="apple" data-experience="expert"><head><meta charset="utf-8">
+<html lang="en" data-theme="apple" data-workspace-skin="precision"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1"><link rel="stylesheet" href="${stylesheet}"></head>
 <body><header class="app-bar"><div class="brand"><span class="brand-mark">Y</span><strong>Yellow</strong></div></header>
 <main><div class="workbench"><header class="workbench-head"><div><p class="eyebrow">Live property operations</p><h1>Reservations</h1></div></header>

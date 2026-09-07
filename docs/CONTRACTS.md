@@ -3484,3 +3484,51 @@ evidence. Tenant identity is used only in evidence-hash preimages. This contract
 does not choose document origin, configure legal numbering, bind or advance a
 series, emit `DocDtls` or a full invoice number, create a document, submit to IRP,
 or write any database, event, fact, idempotency, provider, API, or UI state.
+
+## Operator invoice workflow — Order440/Q208, development contract
+
+This supersedes the historical blocked-only readiness journey above only through
+the new confirmed native operator path. Its implementation and release evidence
+are tracked in [Q208](../handoff/questions/208-operator-invoice-workflow.md) and
+[current status](PROJECT-STATUS.md); publication, local promotion and provider
+activation are separate. Other fiscal modes are not silently represented as India.
+
+| HTTP boundary under `/api/v1/properties/:property` | Input / result | Required permission |
+|---|---|---|
+| POST `/invoices/search` | Bounded property-local date interval and optional in-body search/folio/reservation/cursor; immutable summaries, count, next cursor | `tax-fiscal.documents:read` |
+| GET `/invoices/:document` | Exact validated immutable issued content and source/hash identity | `tax-fiscal.documents:read` |
+| POST `/reservations/:reservation/folios/:folio/invoice-readiness` | Explicit recipient UUID or null plus governed calendar or null; issued / selection / blocked / ready | Both `tax-fiscal.documents:issue` and `tax-fiscal.india-valuation:finalize` |
+| POST `/reservations/:reservation/folios/:folio/invoice-issue` | Explicit recipient/calendar, displayed selector/confirmation hashes and Idempotency-Key; immutable issue receipt | Same two issue permissions |
+| GET `/invoices/:document/receipt` | Scoped not-requested / ambiguous / legacy / existing authorized delivery receipt | `tax-fiscal.submissions:read` |
+| GET `/fiscal-provider-options` | No query; exact current database/configuration intersection with label and sandbox/production environment | `tax-fiscal.submissions:request` |
+| POST `/fiscal-submissions` | Exactly documentId/providerExtensionId, Idempotency-Key; durable request receipt | `tax-fiscal.submissions:request` |
+| POST `/fiscal-submissions/:submission/retry` | Exactly providerExtensionId, Idempotency-Key; eligible durable retry receipt | `tax-fiscal.submissions:retry` |
+
+Every boundary rechecks current property authority in addition to signed scopes.
+Tenant and actor come only from the verified session. PostgreSQL owner-mediated
+capabilities independently enforce authority; read access does not imply issue,
+delivery, retry or broad table access. All responses are non-cacheable. Guest search
+data stays out of URLs, persistent browser storage and errors. Unsupported
+jurisdiction is explicit after authorization, never a fabricated empty success.
+
+Search is keyset-paginated over business date, microsecond issued timestamp and
+document UUID. Maximum366 days,100 public rows/101 SQL sentinel and120 Unicode
+scalar search characters; counts share the same pre-cursor scope. Money is exact
+nonnegative int64 minor-unit strings. Source hashes and legal content are validated
+before public projection; no mutable party/configuration reread constructs an invoice.
+
+Readiness performs no writes. The legal buyer is never chosen implicitly. The v4
+command recovers immutable native selectors server-side, then the v3 preparation
+compares confirmation after existing source/day/series locks and before the first
+write. One transaction owns numbering, accounting, document, facts and outbox.
+Completed replay survives short-lived API-idempotency expiry but rechecks current
+authority and the original actor/route/recipient/calendar identity. Changed evidence
+returns409 and must be reviewed again; expected hashes confer no authority.
+
+Provider presentation is derived from the same successfully validated protected
+loader snapshot as the actual transport. Only exact extension UUID/version/key and
+environment are retained; no endpoints, credentials or trust keys reach staff.
+An absent configuration returns no choices while still executing SQL authorization.
+Provider choice does not configure or certify a provider, and queued/unknown outcomes
+are not registration success. Retry-only reload-safe provider binding remains a
+separate unfinished UI requirement, not an implied capability of this options list.

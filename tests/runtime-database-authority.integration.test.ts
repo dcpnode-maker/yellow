@@ -400,6 +400,56 @@ databaseDescribe("Order 127 runtime database authority (kernel boundary; HTTP P4
       public_execute: false, app_execute: true, runtime_execute: false,
     }]);
 
+    const q208Capabilities = await admin!<Array<{
+      signature: string; owner: string; security_definer: boolean; volatility: string;
+      result: string; config: string[]; public_execute: boolean;
+      app_execute: boolean; runtime_execute: boolean;
+    }>>`
+      SELECT p.oid::regprocedure::text AS signature,
+             pg_catalog.pg_get_userbyid(p.proowner) AS owner,
+             p.prosecdef AS security_definer,p.provolatile::text AS volatility,
+             pg_catalog.pg_get_function_result(p.oid) AS result,p.proconfig AS config,
+             pg_catalog.has_function_privilege('public',p.oid,'EXECUTE') AS public_execute,
+             pg_catalog.has_function_privilege('app_role',p.oid,'EXECUTE') AS app_execute,
+             pg_catalog.has_function_privilege('yellow_runtime',p.oid,'EXECUTE') AS runtime_execute
+        FROM pg_catalog.pg_proc p
+        JOIN pg_catalog.pg_namespace n ON n.oid=p.pronamespace
+       WHERE n.nspname='public' AND p.proname IN (
+         'list_india_native_fiscal_documents','read_india_native_fiscal_document',
+         'discover_india_native_fiscal_issue','read_india_fiscal_submission_delivery_receipt_by_document',
+         'list_india_fiscal_submission_provider_options','prepare_india_native_fiscal_invoice_v3',
+         'prepare_india_native_fiscal_invoice_v4','read_india_native_document_context_candidate',
+         'compose_india_native_operator_confirmation_v1'
+       ) ORDER BY signature
+    `;
+    expect(q208Capabilities).toHaveLength(9);
+    const privateFunctions = new Set([
+      "compose_india_native_operator_confirmation_v1(uuid,uuid,uuid,uuid,uuid,text,jsonb,jsonb,text,text,jsonb,jsonb)",
+      "read_india_native_document_context_candidate(uuid,uuid,uuid,uuid,uuid,uuid)",
+    ]);
+    const pgTempFunctions = new Set([
+      "list_india_fiscal_submission_provider_options(uuid,uuid,uuid)",
+      "read_india_fiscal_submission_delivery_receipt_by_document(uuid,uuid,uuid,uuid)",
+    ]);
+    const volatileFunctions = new Set([
+      "prepare_india_native_fiscal_invoice_v3(uuid,uuid,uuid,uuid,uuid,uuid,uuid,uuid,uuid,uuid,uuid,uuid,uuid,uuid,uuid,text,text,date,date[],text[],text,uuid,text,text)",
+      "prepare_india_native_fiscal_invoice_v4(uuid,uuid,uuid,uuid,uuid,uuid,text,text,date,date[],text[],text,uuid,text,text)",
+    ]);
+    for (const capability of q208Capabilities) {
+      const isPrivate = privateFunctions.has(capability.signature);
+      expect(capability.owner).toBe("yellow_owner");
+      expect(capability.security_definer).toBe(!isPrivate);
+      expect(capability.public_execute).toBe(false);
+      expect(capability.runtime_execute).toBe(false);
+      expect(capability.app_execute).toBe(!isPrivate);
+      expect(capability.config).toEqual(pgTempFunctions.has(capability.signature)
+        ? ["search_path=pg_catalog, public, pg_temp", "TimeZone=UTC"]
+        : ["search_path=pg_catalog, public", "TimeZone=UTC", "DateStyle=ISO,YMD"]);
+      expect(capability.volatility).toBe(capability.signature.startsWith("compose_") ? "i"
+        : volatileFunctions.has(capability.signature) ? "v" : "s");
+      expect(capability.result.length).toBeGreaterThan(0);
+    }
+
     const fiscalColumnAuthority = await admin!<Array<{
       relation: string; app_table_privileges: number; app_column_privileges: string;
       runtime_table_privileges: number; runtime_column_privileges: string;

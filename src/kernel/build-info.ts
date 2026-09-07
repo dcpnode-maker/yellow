@@ -1,7 +1,7 @@
 import type { ReservedSQL, SQL } from "bun";
 
 const GIT_SHA = /^[0-9a-f]{40}$/;
-export const CURRENT_MIGRATION_FRONTIER = 81 as const;
+export const CURRENT_MIGRATION_FRONTIER = 85 as const;
 
 export interface BuildInfo {
   readonly schemaVersion: 1;
@@ -56,6 +56,9 @@ export async function assertRuntimeReleaseReadiness(
     publicIssueDenied: boolean;
     appIssueDenied: boolean;
     runtimeIssueDenied: boolean;
+    q208PublicEntryAuthorityExact: boolean;
+    q208PrivateEntryAuthorityExact: boolean;
+    q208IndexesExact: boolean;
   }>>`
     WITH release_target AS (
       SELECT pg_catalog.to_regprocedure(
@@ -135,6 +138,96 @@ export async function assertRuntimeReleaseReadiness(
         AND attribute.attnum>0 AND NOT attribute.attisdropped
       WHERE namespace.nspname='public' AND relation.relkind='r'
         AND relation.relname IN ('fiscal_submission','fiscal_submission_history')
+    ), q208_public_entry(signature, volatility, expected_result, expected_config) AS (VALUES
+      ('public.list_india_native_fiscal_documents(uuid,uuid,uuid,date,date,uuid,uuid,text,date,timestamp with time zone,uuid,integer)',
+        's', 'TABLE(document_id uuid, business_date date, issued_at timestamp with time zone, summary jsonb, matching_count bigint)',
+        ARRAY['search_path=pg_catalog, public','TimeZone=UTC','DateStyle=ISO,YMD']::text[]),
+      ('public.read_india_native_fiscal_document(uuid,uuid,uuid,uuid)',
+        's', 'jsonb', ARRAY['search_path=pg_catalog, public','TimeZone=UTC','DateStyle=ISO,YMD']::text[]),
+      ('public.discover_india_native_fiscal_issue(uuid,uuid,uuid,uuid,uuid,uuid,text,text,date,date[],text[])',
+        's', 'jsonb', ARRAY['search_path=pg_catalog, public','TimeZone=UTC','DateStyle=ISO,YMD']::text[]),
+      ('public.read_india_fiscal_submission_delivery_receipt_by_document(uuid,uuid,uuid,uuid)',
+        's', 'jsonb', ARRAY['search_path=pg_catalog, public, pg_temp','TimeZone=UTC']::text[]),
+      ('public.list_india_fiscal_submission_provider_options(uuid,uuid,uuid)',
+        's', 'TABLE(extension_id uuid, extension_version integer, provider_key text, label text)',
+        ARRAY['search_path=pg_catalog, public, pg_temp','TimeZone=UTC']::text[]),
+      ('public.prepare_india_native_fiscal_invoice_v3(uuid,uuid,uuid,uuid,uuid,uuid,uuid,uuid,uuid,uuid,uuid,uuid,uuid,uuid,uuid,text,text,date,date[],text[],text,uuid,text,text)',
+        'v', 'TABLE(native_timing_id uuid, request_event_id uuid, posting_binding_id uuid, prepared_source_json text, completed_receipt jsonb)',
+        ARRAY['search_path=pg_catalog, public','TimeZone=UTC','DateStyle=ISO,YMD']::text[]),
+      ('public.prepare_india_native_fiscal_invoice_v4(uuid,uuid,uuid,uuid,uuid,uuid,text,text,date,date[],text[],text,uuid,text,text)',
+        'v', 'TABLE(native_timing_id uuid, request_event_id uuid, posting_binding_id uuid, prepared_source_json text, completed_receipt jsonb, internal_selectors jsonb)',
+        ARRAY['search_path=pg_catalog, public','TimeZone=UTC','DateStyle=ISO,YMD']::text[])
+    ), q208_public_authority AS (
+      SELECT count(procedure.oid)=7 AND bool_and(
+        procedure.proowner='yellow_owner'::regrole AND procedure.prosecdef
+        AND procedure.provolatile::text=q208_public_entry.volatility
+        AND procedure.proconfig=q208_public_entry.expected_config
+        AND pg_catalog.pg_get_function_result(procedure.oid)=q208_public_entry.expected_result
+        AND pg_catalog.has_function_privilege('app_role',procedure.oid,'EXECUTE')
+        AND NOT pg_catalog.has_function_privilege('yellow_runtime',procedure.oid,'EXECUTE')
+        AND NOT EXISTS(
+          SELECT 1 FROM pg_catalog.aclexplode(COALESCE(
+            procedure.proacl,pg_catalog.acldefault('f',procedure.proowner)
+          )) privilege WHERE privilege.grantee=0 AND privilege.privilege_type='EXECUTE'
+        )
+      ) AS exact
+      FROM q208_public_entry
+      LEFT JOIN pg_catalog.pg_proc procedure
+        ON procedure.oid=pg_catalog.to_regprocedure(q208_public_entry.signature)
+    ), q208_private_entry(signature, volatility, expected_config) AS (VALUES
+      ('public.read_india_native_document_context_candidate(uuid,uuid,uuid,uuid,uuid,uuid)',
+        's', ARRAY['search_path=pg_catalog, public','TimeZone=UTC','DateStyle=ISO,YMD']::text[]),
+      ('public.compose_india_native_operator_confirmation_v1(uuid,uuid,uuid,uuid,uuid,text,jsonb,jsonb,text,text,jsonb,jsonb)',
+        'i', ARRAY['search_path=pg_catalog, public','TimeZone=UTC','DateStyle=ISO,YMD']::text[])
+    ), q208_private_authority AS (
+      SELECT count(procedure.oid)=2 AND bool_and(
+        procedure.proowner='yellow_owner'::regrole AND NOT procedure.prosecdef
+        AND procedure.provolatile::text=q208_private_entry.volatility
+        AND procedure.proconfig=q208_private_entry.expected_config
+        AND pg_catalog.pg_get_function_result(procedure.oid)='jsonb'
+        AND NOT pg_catalog.has_function_privilege('app_role',procedure.oid,'EXECUTE')
+        AND NOT pg_catalog.has_function_privilege('yellow_runtime',procedure.oid,'EXECUTE')
+        AND NOT EXISTS(
+          SELECT 1 FROM pg_catalog.aclexplode(COALESCE(
+            procedure.proacl,pg_catalog.acldefault('f',procedure.proowner)
+          )) privilege WHERE privilege.grantee=0 AND privilege.privilege_type='EXECUTE'
+        )
+      ) AS exact
+      FROM q208_private_entry
+      LEFT JOIN pg_catalog.pg_proc procedure
+        ON procedure.oid=pg_catalog.to_regprocedure(q208_private_entry.signature)
+    ), q208_index(index_name, table_name, key_columns, key_options, predicate) AS (VALUES
+      ('india_native_operator_document_queue','document',
+        ARRAY['tenant_id','property_node','business_date','issued_at','id']::text[],
+        '0 0 3 3 3',
+        '((kind = ''invoice''::text) AND (status = ''issued''::text))'),
+      ('india_native_operator_submission_document','fiscal_submission',
+        ARRAY['tenant_id','property_node','document_id','id']::text[],
+        '0 0 0 0',NULL::text)
+    ), q208_index_shape AS (
+      SELECT count(index_relation.oid)=2 AND bool_and(
+        index_namespace.nspname='public' AND table_namespace.nspname='public'
+        AND table_relation.relname=q208_index.table_name
+        AND index_relation.relowner='yellow_owner'::regrole AND access_method.amname='btree'
+        AND index_row.indisvalid AND index_row.indisready AND index_row.indislive
+        AND NOT index_row.indisunique AND NOT index_row.indisprimary AND NOT index_row.indisexclusion
+        AND index_row.indnatts=index_row.indnkeyatts
+        AND ARRAY(
+          SELECT pg_catalog.pg_get_indexdef(index_relation.oid,key_ordinal,true)
+          FROM pg_catalog.generate_series(1,index_row.indnkeyatts) key_ordinal
+          ORDER BY key_ordinal
+        )=q208_index.key_columns
+        AND index_row.indoption::text=q208_index.key_options
+        AND CASE WHEN q208_index.predicate IS NULL THEN index_row.indpred IS NULL
+          ELSE pg_catalog.pg_get_expr(index_row.indpred,index_row.indrelid)=q208_index.predicate END
+      ) AS exact
+      FROM q208_index
+      LEFT JOIN pg_catalog.pg_class index_relation ON index_relation.relname=q208_index.index_name
+      LEFT JOIN pg_catalog.pg_namespace index_namespace ON index_namespace.oid=index_relation.relnamespace
+      LEFT JOIN pg_catalog.pg_index index_row ON index_row.indexrelid=index_relation.oid
+      LEFT JOIN pg_catalog.pg_class table_relation ON table_relation.oid=index_row.indrelid
+      LEFT JOIN pg_catalog.pg_namespace table_namespace ON table_namespace.oid=table_relation.relnamespace
+      LEFT JOIN pg_catalog.pg_am access_method ON access_method.oid=index_relation.relam
     ), fiscal_history AS (
       SELECT count(*)=1
         AND bool_and(relation.relrowsecurity AND relation.relforcerowsecurity
@@ -177,6 +270,9 @@ export async function assertRuntimeReleaseReadiness(
       fiscal.exact AS "fiscalEntryAuthorityExact",
       receipt_read.exact AS "fiscalReceiptReadAuthorityExact",
       receipt_columns.protected AS "fiscalReceiptColumnsProtected",
+      q208_public.exact AS "q208PublicEntryAuthorityExact",
+      q208_private.exact AS "q208PrivateEntryAuthorityExact",
+      q208_indexes.exact AS "q208IndexesExact",
       target.function_oid IS NOT NULL AS "issueFunctionPresent",
       NOT EXISTS (
         SELECT 1
@@ -203,9 +299,27 @@ export async function assertRuntimeReleaseReadiness(
       CROSS JOIN native_authority authority
       CROSS JOIN fiscal_authority fiscal CROSS JOIN fiscal_history history
       CROSS JOIN fiscal_receipt_read receipt_read CROSS JOIN fiscal_receipt_columns receipt_columns
+      CROSS JOIN q208_public_authority q208_public
+      CROSS JOIN q208_private_authority q208_private CROSS JOIN q208_index_shape q208_indexes
   `;
   const proof = rows[0];
   if (rows.length !== 1 || !proof || Object.values(proof).some((value) => value !== true)) {
+    throw new Error("runtime release readiness is unavailable");
+  }
+  let permission: Array<{ exact: boolean }>;
+  try {
+    permission = await sql.begin("read only", async (transaction) => {
+      await transaction.unsafe("SET LOCAL ROLE app_role");
+      return transaction<Array<{ exact: boolean }>>`
+        SELECT count(*)=1 AS exact
+        FROM public.permission
+        WHERE code='tax-fiscal.documents:read'
+      `;
+    });
+  } catch {
+    throw new Error("runtime release readiness is unavailable");
+  }
+  if (permission.length !== 1 || permission[0]?.exact !== true) {
     throw new Error("runtime release readiness is unavailable");
   }
 }

@@ -147,12 +147,19 @@ export function createApp(options: AppOptions = {}) {
       .get("/p/:property/reservations", ({ request }) => operatorAssets.html(options.operatorLocalReviewCredentials, request))
       .get("/p/:property/res/:reservation", ({ request }) => operatorAssets.html(options.operatorLocalReviewCredentials, request))
       .get("/p/:property/folios", ({ request }) => operatorAssets.html(options.operatorLocalReviewCredentials, request))
+      .get("/p/:property/invoices", ({ request }) => operatorAssets.html(options.operatorLocalReviewCredentials, request))
+      .get("/p/:property/invoices/new/:reservation/:folio", ({ request }) => operatorAssets.html(options.operatorLocalReviewCredentials, request))
+      .get("/p/:property/invoices/:document", ({ request }) => operatorAssets.html(options.operatorLocalReviewCredentials, request))
       .get("/p/:property/folio/:folio", ({ request }) => operatorAssets.html(options.operatorLocalReviewCredentials, request))
       .get("/p/:property/cashiers", ({ request }) => operatorAssets.html(options.operatorLocalReviewCredentials, request))
       .get("/p/:property/day-close", ({ request }) => operatorAssets.html(options.operatorLocalReviewCredentials, request))
+      .get("/p/:property/trust", ({ request }) => operatorAssets.html(options.operatorLocalReviewCredentials, request))
       .get("/p/:property/status", ({ request }) => operatorAssets.html(options.operatorLocalReviewCredentials, request))
       .get("/assets/operator.css", () => operatorAssets.css())
       .get("/assets/operator.js", () => operatorAssets.js())
+      .get("/assets/operator-invoices.js", () => operatorAssets.invoiceJs())
+      .get("/assets/operator-invoice-print.js", () => operatorAssets.invoicePrintJs())
+      .get("/assets/vendor/qrcodegen-v1.8.0-es6.js", () => operatorAssets.invoiceQrJs())
       .get("/assets/operator-deposits.css", () => operatorAssets.depositCss())
       .get("/assets/operator-deposits.js", () => operatorAssets.depositJs())
       .get("/assets/operator-local-prefill.js", () => operatorAssets.localPrefillJs())
@@ -197,6 +204,24 @@ export function createApp(options: AppOptions = {}) {
         withOperatorTenant(request, (context) => operator.fiscalSubmissionDeliveryReceipt(
           context, params.property, params.submission,
         ))
+      )
+      .get("/api/v1/properties/:property/invoices/:document/receipt", ({ request, params }) =>
+        withOperatorTenant(request, (context) => operator.invoiceDelivery(context, params.property, params.document))
+      )
+      .post("/api/v1/properties/:property/invoices/search", ({ request, params, body }) =>
+        withOperatorTenant(request, (context) => operator.invoiceSearch(context, params.property, body))
+      )
+      .post("/api/v1/properties/:property/reservations/:reservation/folios/:folio/invoice-readiness", ({ request, params, body }) =>
+        withOperatorTenant(request, (context) => operator.invoiceReadiness(context, params.property, params.reservation, params.folio, body))
+      )
+      .post("/api/v1/properties/:property/reservations/:reservation/folios/:folio/invoice-issue", ({ request, params, body }) =>
+        withOperatorTenant(request, (context) => operator.invoiceIssue(context, params.property, params.reservation, params.folio, body))
+      )
+      .get("/api/v1/properties/:property/invoices/:document", ({ request, params }) =>
+        withOperatorTenant(request, (context) => operator.invoiceDocument(context, params.property, params.document))
+      )
+      .get("/api/v1/properties/:property/fiscal-provider-options", ({ request, params }) =>
+        withOperatorTenant(request, (context) => operator.fiscalProviderOptions(context, params.property))
       )
       .post("/api/v1/properties/:property/fiscal-submissions", ({ request, params, body, tenantContext }) =>
         withOperatorTenant(request, (context) => operator.requestFiscalSubmission(context, params.property, body))

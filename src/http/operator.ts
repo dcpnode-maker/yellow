@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { types as utilTypes } from "node:util";
 import { fileURLToPath } from "node:url";
+import { issueIndiaNativeFiscalInvoiceForOperatorInTransaction } from "../commands/issue-india-native-fiscal-invoice";
 
 import { LocalLoginLimitedError, LocalLoginService, type LocalLoginInput } from "../contexts/identity";
 import {
@@ -215,6 +216,15 @@ import {
   FiscalSubmissionAdapterAvailabilityService,
   FiscalSubmissionService,
   FiscalSubmissionReceiptReadService,
+  IndiaNativeFiscalDocumentReadService,
+  IndiaNativeFiscalOperatorReadService,
+  IndiaNativeFiscalInvoiceValidationError,
+  IndiaNativeFiscalInvoiceAuthorizationError,
+  IndiaNativeFiscalInvoiceNotFoundError,
+  IndiaNativeFiscalInvoiceConflictError,
+  IndiaNativeFiscalInvoiceStaleEvidenceError,
+  snapshotIndiaNativeFiscalInvoiceCalendarEvidence,
+  type IndiaNativeFiscalInvoiceCalendarEvidence,
   snapshotFiscalSubmissionDeliveryReceipt,
   snapshotFiscalSubmissionReceipt,
   type FiscalSubmissionReceipt,
@@ -305,6 +315,8 @@ const HOUSEKEEPING_DISCREPANCY_REPORT_SCOPE = "housekeeping.discrepancies:report
 const FISCAL_SUBMISSION_REQUEST_SCOPE = "tax-fiscal.submissions:request";
 const FISCAL_SUBMISSION_RETRY_SCOPE = "tax-fiscal.submissions:retry";
 const FISCAL_SUBMISSION_READ_SCOPE = "tax-fiscal.submissions:read";
+const FISCAL_DOCUMENT_READ_SCOPE = "tax-fiscal.documents:read";
+const FISCAL_ISSUE_SCOPES = ["tax-fiscal.documents:issue", "tax-fiscal.india-valuation:finalize"] as const;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 const ISO_INSTANT = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2})(?:\.(\d{1,3}))?)?(Z|([+-])(\d{2}):(\d{2}))$/;
 const LOCAL_DATE = /^(\d{4})-(\d{2})-(\d{2})$/;
@@ -369,6 +381,61 @@ function fiscalSubmissionBody(
 function hasJsonContentType(request: Request): boolean {
   const value = request.headers.get("content-type");
   return value !== null && /^application\/json(?:\s*;\s*charset=utf-8)?$/i.test(value);
+}
+
+function invoiceStaffBody(value: unknown, issue: boolean): Readonly<{
+  recipientRegistrationId: string | null; calendarEvidence: IndiaNativeFiscalInvoiceCalendarEvidence | null;
+  expectedSelectorHash?: string; expectedConfirmationHash?: string;
+}> | null {
+  if (typeof value !== "object" || value === null || utilTypes.isProxy(value)) return null;
+  try {
+    if (Array.isArray(value) || ![Object.prototype, null].includes(Object.getPrototypeOf(value))) return null;
+    const keys = issue ? ["recipientRegistrationId", "calendarEvidence", "expectedSelectorHash", "expectedConfirmationHash"] : ["recipientRegistrationId", "calendarEvidence"];
+    const own = Reflect.ownKeys(value);
+    if (own.length !== keys.length || own.some(key => typeof key !== "string" || !keys.includes(key))) return null;
+    const input: Record<string, unknown> = Object.create(null);
+    for (const key of keys) {
+      const descriptor = Object.getOwnPropertyDescriptor(value, key);
+      if (!descriptor || !("value" in descriptor) || !descriptor.enumerable) return null;
+      input[key] = descriptor.value;
+    }
+    const recipient = input.recipientRegistrationId;
+    if ((recipient !== null || issue) && (typeof recipient !== "string" || !UUID.test(recipient))) return null;
+    const calendarEvidence = snapshotIndiaNativeFiscalInvoiceCalendarEvidence(input.calendarEvidence);
+    if (!issue) return Object.freeze({ recipientRegistrationId: recipient as string | null, calendarEvidence });
+    if (typeof input.expectedSelectorHash !== "string" || !/^[0-9a-f]{64}$/.test(input.expectedSelectorHash)
+      || typeof input.expectedConfirmationHash !== "string" || !/^[0-9a-f]{64}$/.test(input.expectedConfirmationHash)) return null;
+    return Object.freeze({ recipientRegistrationId: recipient as string, calendarEvidence,
+      expectedSelectorHash: input.expectedSelectorHash, expectedConfirmationHash: input.expectedConfirmationHash });
+  } catch { return null; }
+}
+
+function invoiceSqlState(error: unknown): string | null {
+  if (typeof error !== "object" || error === null || utilTypes.isProxy(error)) return null;
+  for (const key of ["errno", "sqlState", "code"]) {
+    const descriptor = Object.getOwnPropertyDescriptor(error, key);
+    if (descriptor && "value" in descriptor && typeof descriptor.value === "string"
+      && /^[A-Z0-9]{5}$/.test(descriptor.value)) return descriptor.value;
+  }
+  return null;
+}
+
+function invoiceSearchBody(value: unknown): Readonly<Record<string, unknown>> | null {
+  if (typeof value !== "object" || value === null || utilTypes.isProxy(value)) return null;
+  try {
+    if (Array.isArray(value) || (Object.getPrototypeOf(value) !== Object.prototype && Object.getPrototypeOf(value) !== null)) return null;
+    const keys = Reflect.ownKeys(value);
+    const allowed = ["issuedFrom", "issuedBefore", "reservationId", "folioId", "query", "after", "limit"];
+    if (!keys.includes("issuedFrom") || !keys.includes("issuedBefore") || keys.some(key => typeof key !== "string" || !allowed.includes(key))) return null;
+    const descriptors = Object.getOwnPropertyDescriptors(value);
+    const snapshot: Record<string, unknown> = Object.create(null);
+    for (const key of keys as string[]) {
+      const descriptor = descriptors[key];
+      if (!descriptor || !("value" in descriptor) || !descriptor.enumerable) return null;
+      snapshot[key] = descriptor.value;
+    }
+    return Object.freeze(snapshot);
+  } catch { return null; }
 }
 
 const POSITIVE_INT64 = /^[1-9][0-9]*$/;
@@ -2148,6 +2215,17 @@ interface FiscalSubmissionOperatorDependencies {
   readonly receipts?: Pick<FiscalSubmissionReceiptReadService, "read">;
 }
 
+class InvoiceReadPermissionFailure extends Error {
+  constructor() { super("Invoice access is not granted"); }
+}
+
+class InvoiceStaffFailure extends Error {
+  constructor(readonly kind: "invalid" | "conflict" | "stale" | "not_found") { super("Invoice command could not complete"); }
+}
+class InvoiceJurisdictionFailure extends Error {
+  constructor() { super("This invoice workflow is not supported for this property"); }
+}
+
 class FiscalSubmissionOperatorFailure extends Error {
   constructor() {
     super("fiscal submission operation is unavailable");
@@ -2226,6 +2304,8 @@ export class OperatorHttpApi {
     "listAccounts" | "previewExpense" | "requestApproval" | "listApprovals" | "decideApproval" | "postExpense">;
   readonly #fiscalSubmissions?: FiscalSubmissionOperatorDependencies;
   readonly #fiscalReceiptReader: Pick<FiscalSubmissionReceiptReadService, "read">;
+  readonly #invoiceReader = new IndiaNativeFiscalDocumentReadService();
+  readonly #invoiceOperatorReader = new IndiaNativeFiscalOperatorReadService();
 
   constructor(
     login: LocalLoginService,
@@ -2336,6 +2416,14 @@ export class OperatorHttpApi {
   }
 
   failure(request: Request, error: unknown): Response {
+    if (error instanceof InvoiceReadPermissionFailure) return apiError(request, 403, "auth/scope_missing", "Forbidden", "Invoice access is not granted");
+    if (error instanceof InvoiceJurisdictionFailure) return apiError(request, 422, "fiscal/unsupported_jurisdiction", "Unsupported fiscal mode", "This invoice workflow is not supported for this property");
+    if (error instanceof InvoiceStaffFailure) {
+      const status = error.kind === "invalid" ? 400 : error.kind === "not_found" ? 404 : 409;
+      return apiError(request, status, "fiscal/invoice_" + error.kind, "Invoice not issued",
+        error.kind === "stale" ? "Invoice details changed. Review the current details before confirming again."
+          : "The invoice request cannot be completed from the current information.");
+    }
     if (error instanceof FiscalSubmissionOperatorFailure) return this.unavailable(request);
     if (error instanceof OwnerTrustExpenseWorkbenchValidationError) {
       return apiError(request, 400, "request/invalid", "Invalid request", "Owner-trust expense input is invalid");
@@ -2586,6 +2674,134 @@ export class OperatorHttpApi {
     return this.unavailable(request);
   }
 
+  async invoiceReadiness(context: TenantRequestContext, propertyNode: string, reservationId: string, folioId: string, body: unknown): Promise<Response> {
+    return this.#invoiceStaff(context, propertyNode, reservationId, folioId, body, false);
+  }
+
+  async invoiceIssue(context: TenantRequestContext, propertyNode: string, reservationId: string, folioId: string, body: unknown): Promise<Response> {
+    return this.#invoiceStaff(context, propertyNode, reservationId, folioId, body, true);
+  }
+
+  async #invoiceStaff(context: TenantRequestContext, propertyNode: string, reservationId: string, folioId: string, body: unknown, issue: boolean): Promise<Response> {
+    if (!hasScope(context, FISCAL_ISSUE_SCOPES[0]) || !hasScope(context, FISCAL_ISSUE_SCOPES[1])) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Invoice preparation and issue access are required");
+    }
+    const input = invoiceStaffBody(body, issue), key = context.request.headers.get("idempotency-key");
+    if (!input || ![propertyNode, reservationId, folioId].every(value => UUID.test(value))
+      || !hasJsonContentType(context.request) || new URL(context.request.url).search !== ""
+      || (issue && (!key || !IDEMPOTENCY_KEY.test(key)))) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Invoice preparation input is invalid");
+    }
+    for (const scope of FISCAL_ISSUE_SCOPES) {
+      const grants = await listGrantedProperties(context, scope);
+      if (!grants.some(({ id }) => id === propertyNode)) {
+        return apiError(context.request, 403, "auth/property_forbidden", "Forbidden", "Property access is not granted");
+      }
+    }
+    const actorId = context.identity.actorId;
+    if (!issue) {
+      const result = await this.#invoiceOperatorReader.discover(context.tx, {
+        tenantId: context.tenantId, propertyNode, actorId, reservationId, folioId,
+        recipientRegistrationId: input.recipientRegistrationId, calendarEvidence: input.calendarEvidence,
+      });
+      if (!result.ok) {
+        if (result.error.code === "invalid_input") throw new InvoiceStaffFailure("invalid");
+        if (result.error.code === "permission_denied") throw new InvoiceReadPermissionFailure();
+        if (result.error.code === "unsupported_jurisdiction") throw new InvoiceJurisdictionFailure();
+        throw new Error("Invoice preparation is unavailable");
+      }
+      return apiResponse(context.request, { readiness: result.value });
+    }
+    const requestId = correlationId(context.request);
+    try {
+      const invoice = await issueIndiaNativeFiscalInvoiceForOperatorInTransaction(context.tx, {
+        tenantId: context.tenantId, propertyNode, actorId, reservationId, folioId,
+        recipientRegistrationId: input.recipientRegistrationId as string, calendarEvidence: input.calendarEvidence,
+        expectedSelectorHash: input.expectedSelectorHash as string, expectedConfirmationHash: input.expectedConfirmationHash as string,
+        idempotencyKey: key as string,
+        envelope: createAuditEnvelope({ actorId, tenantId: context.tenantId, propertyNode, requestId, operation: "document.issued" }),
+      });
+      return apiResponse(context.request, { invoice }, invoice.replayed ? 200 : 201,
+        { "idempotency-replayed": String(invoice.replayed), "x-correlation-id": requestId });
+    } catch (error) {
+      const state = invoiceSqlState(error);
+      if (error instanceof IndiaNativeFiscalInvoiceStaleEvidenceError || state === "P2081") throw new InvoiceStaffFailure("stale");
+      if (error instanceof IndiaNativeFiscalInvoiceAuthorizationError || state === "42501") throw new InvoiceReadPermissionFailure();
+      if (state === "P2082") throw new InvoiceJurisdictionFailure();
+      if (error instanceof IndiaNativeFiscalInvoiceValidationError || state === "22023") throw new InvoiceStaffFailure("invalid");
+      if (error instanceof IndiaNativeFiscalInvoiceNotFoundError) throw new InvoiceStaffFailure("not_found");
+      if (error instanceof IndiaNativeFiscalInvoiceConflictError || state === "23505" || state === "55000") throw new InvoiceStaffFailure("conflict");
+      throw error;
+    }
+  }
+
+  async invoiceSearch(context: TenantRequestContext, propertyNode: string, body: unknown): Promise<Response> {
+    if (!hasScope(context, FISCAL_DOCUMENT_READ_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Invoice access is not granted");
+    }
+    const input = invoiceSearchBody(body);
+    if (!input || !UUID.test(propertyNode) || !hasJsonContentType(context.request) || new URL(context.request.url).search !== "") {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Invoice search input is invalid");
+    }
+    const grants = await listGrantedProperties(context, FISCAL_DOCUMENT_READ_SCOPE);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 403, "auth/property_forbidden", "Forbidden", "Property access is not granted");
+    }
+    const result = await this.#invoiceReader.list(context.tx, { ...input,
+      tenantId: context.tenantId, propertyNode, actorId: context.identity.actorId });
+    if (!result.ok) {
+      if (result.error.code === "invalid_input") return apiError(context.request, 400, "request/invalid", "Invalid request", "Invoice search input is invalid");
+      if (result.error.code === "permission_denied") throw new InvoiceReadPermissionFailure();
+      if (result.error.code === "unsupported_jurisdiction") throw new InvoiceJurisdictionFailure();
+      throw new Error("Invoice read is unavailable");
+    }
+    return apiResponse(context.request, { invoices: result.value });
+  }
+
+  async invoiceDocument(context: TenantRequestContext, propertyNode: string, documentId: string): Promise<Response> {
+    if (!hasScope(context, FISCAL_DOCUMENT_READ_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Invoice access is not granted");
+    }
+    if (!UUID.test(propertyNode) || !UUID.test(documentId) || new URL(context.request.url).search !== "") {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Invoice identity is invalid");
+    }
+    const grants = await listGrantedProperties(context, FISCAL_DOCUMENT_READ_SCOPE);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 403, "auth/property_forbidden", "Forbidden", "Property access is not granted");
+    }
+    const result = await this.#invoiceReader.read(context.tx, {
+      tenantId: context.tenantId, propertyNode, actorId: context.identity.actorId, documentId });
+    if (!result.ok) {
+      if (result.error.code === "permission_denied") throw new InvoiceReadPermissionFailure();
+      if (result.error.code === "unsupported_jurisdiction") throw new InvoiceJurisdictionFailure();
+      throw new Error("Invoice read is unavailable");
+    }
+    if (result.value === null) return apiError(context.request, 404, "fiscal/invoice_not_found", "Not found", "Invoice is not available");
+    return apiResponse(context.request, { invoice: result.value });
+  }
+
+  async invoiceDelivery(context: TenantRequestContext, propertyNode: string, documentId: string): Promise<Response> {
+    if (!hasScope(context, FISCAL_SUBMISSION_READ_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Fiscal receipt access is not granted");
+    }
+    if (!UUID.test(propertyNode) || !UUID.test(documentId) || new URL(context.request.url).search !== "") {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Invoice identity is invalid");
+    }
+    const grants = await listGrantedProperties(context, FISCAL_SUBMISSION_READ_SCOPE);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 403, "auth/property_forbidden", "Forbidden", "Property access is not granted");
+    }
+    const result = await this.#invoiceOperatorReader.readDelivery(context.tx, {
+      tenantId: context.tenantId, propertyNode, documentId, actorId: context.identity.actorId });
+    if (!result.ok) {
+      if (result.error.code === "permission_denied") throw new InvoiceReadPermissionFailure();
+      if (result.error.code === "unsupported_jurisdiction") throw new InvoiceJurisdictionFailure();
+      throw new FiscalSubmissionOperatorFailure();
+    }
+    if (result.value === null) return apiError(context.request, 404, "fiscal/receipt_not_found", "Not found", "Fiscal receipt is not available");
+    return apiResponse(context.request, { delivery: result.value });
+  }
+
   async fiscalSubmissionDeliveryReceipt(
     context: TenantRequestContext,
     propertyNode: string,
@@ -2613,6 +2829,29 @@ export class OperatorHttpApi {
       || receipt.submissionId !== submissionId) throw new FiscalSubmissionOperatorFailure();
     return apiResponse(context.request, { fiscalSubmissionReceipt: receipt as unknown as JsonValue }, 200,
       { "cache-control": "no-store" });
+  }
+
+  async fiscalProviderOptions(context: TenantRequestContext, propertyNode: string): Promise<Response> {
+    if (!hasScope(context, FISCAL_SUBMISSION_REQUEST_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Fiscal submission request access is not granted");
+    }
+    if (!UUID.test(propertyNode) || new URL(context.request.url).search !== "") {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Fiscal provider request is invalid");
+    }
+    const grants = await listGrantedProperties(context, FISCAL_SUBMISSION_REQUEST_SCOPE);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 403, "auth/property_forbidden", "Forbidden", "Property access is not granted");
+    }
+    const adapters = this.#fiscalSubmissions?.adapters ?? new FiscalSubmissionAdapterAvailabilityService([]);
+    const result = await this.#invoiceOperatorReader.providers(context.tx, {
+      tenantId: context.tenantId, propertyNode, actorId: context.identity.actorId,
+    }, adapters);
+    if (!result.ok) {
+      if (result.error.code === "permission_denied") throw new InvoiceReadPermissionFailure();
+      if (result.error.code === "unsupported_jurisdiction") throw new InvoiceJurisdictionFailure();
+      throw new FiscalSubmissionOperatorFailure();
+    }
+    return apiResponse(context.request, { providers: result.value as unknown as JsonValue }, 200, { "cache-control": "no-store" });
   }
 
   async requestFiscalSubmission(
@@ -6411,6 +6650,9 @@ const ASSET_URLS = {
   html: new URL("./operator/index.html", import.meta.url),
   css: new URL("./operator/operator.css", import.meta.url),
   js: new URL("./operator/operator.js", import.meta.url),
+  invoiceJs: new URL("./operator/invoices.js", import.meta.url),
+  invoicePrintJs: new URL("./operator/invoice-print.js", import.meta.url),
+  invoiceQrJs: new URL("./operator/vendor/qrcodegen-v1.8.0-es6.js", import.meta.url),
   depositCss: new URL("./operator/operator-deposits.css", import.meta.url),
   depositJs: new URL("./operator/operator-deposits.js", import.meta.url),
 } as const;
@@ -6473,6 +6715,9 @@ export const operatorAssets = Object.freeze({
   },
   css(): Response { return assetResponse(ASSET_URLS.css, "text/css; charset=utf-8"); },
   js(): Response { return assetResponse(ASSET_URLS.js, "text/javascript; charset=utf-8"); },
+  invoiceJs(): Response { return assetResponse(ASSET_URLS.invoiceJs, "text/javascript; charset=utf-8"); },
+  invoicePrintJs(): Response { return assetResponse(ASSET_URLS.invoicePrintJs, "text/javascript; charset=utf-8"); },
+  invoiceQrJs(): Response { return assetResponse(ASSET_URLS.invoiceQrJs, "text/javascript; charset=utf-8"); },
   depositCss(): Response { return assetResponse(ASSET_URLS.depositCss, "text/css; charset=utf-8"); },
   depositJs(): Response { return assetResponse(ASSET_URLS.depositJs, "text/javascript; charset=utf-8"); },
   localPrefillJs(): Response {

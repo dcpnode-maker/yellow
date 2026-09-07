@@ -36,21 +36,22 @@ function contrast(foreground: string, background: string) {
     / (Math.min(foregroundLuminance, backgroundLuminance) + 0.05);
 }
 
-test("Order195: all six advertised appearances are allowlisted and keep one semantic app", async () => {
+test("Order195 / Order444: six historical CSS families remain internal behind one three-layout app", async () => {
   const html = await Bun.file(htmlFile).text();
   const script = await Bun.file(scriptFile).text();
-  const appearanceSelect = html.match(/<select id="theme-select"[\s\S]*?<\/select>/)?.[0] ?? "";
-  const advertised = [...appearanceSelect.matchAll(/<option value="([^"]+)">/g)].map((match) => match[1]);
-  expect(advertised).toEqual([...themes]);
-  expect(new Set(advertised).size).toBe(6);
-  for (const theme of advertised) {
-    expect(html).toContain(`<option value="${theme}">`);
-    expect(script).toContain(`"${theme}"`);
-  }
+  const workspaceSelect = html.match(/<select id="workspace-skin-select"[\s\S]*?<\/select>/)?.[0] ?? "";
+  const advertised = [...workspaceSelect.matchAll(/<option value="([^"]+)">([^<]+)<\/option>/g)]
+    .map((match) => [match[1], match[2]]);
+  expect(advertised).toEqual([
+    ["calm", "Calm Workbench"], ["precision", "Precision Desk"], ["timeline", "Service Timeline"],
+  ]);
+  expect(new Set(advertised.map(([value]) => value)).size).toBe(3);
   expect(html.match(/id="workbench-view"/g)).toHaveLength(1);
-  expect(script).toContain("document.documentElement.dataset.theme = next");
-  expect(script).toContain('const THEMES = new Set(["apple", "android", "win95", "glass", "neo", "erp"])');
-  expect(script).toContain('THEMES.has(theme) ? theme : "apple"');
+  expect(html).not.toMatch(/id="(?:theme|experience)-select"|>Appearance<|>Workspace detail</);
+  expect(script).toContain('const WORKSPACE_SKINS = new Set(["calm", "precision", "timeline"])');
+  expect(script).toContain('WORKSPACE_SKINS.has(skin) ? skin : "calm"');
+  expect(script).toContain("document.documentElement.dataset.workspaceSkin = next");
+  expect(script).not.toMatch(/document\.documentElement\.dataset\.(?:theme|experience)\s*=|\b(?:THEMES|EXPERIENCES)\b|applyTheme|applyExperience/);
   expect(script).not.toMatch(/localStorage|sessionStorage|document\.cookie|indexedDB/);
 });
 
