@@ -3532,3 +3532,42 @@ An absent configuration returns no choices while still executing SQL authorizati
 Provider choice does not configure or certify a provider, and queued/unknown outcomes
 are not registration success. Retry-only reload-safe provider binding remains a
 separate unfinished UI requirement, not an implied capability of this options list.
+
+### Native full credit notes — Order446 implementation contract (not released)
+
+The new non-UI command issues one complete credit for one previously issued native
+India invoice. It is not a refund, provider submission, partial credit, debit note
+or replacement invoice. Original documents, source postings and provider receipts
+remain immutable. Canonical0087 is published and independently verified on native
+synthetic databases, not promoted to the live app; PROJECT-STATUS.md records
+actual executable and release status.
+
+Both routes are beneath `/api/v1/properties/:property`:
+
+| Route | Input and authority | Result |
+|---|---|---|
+| POST `/invoices/:originalDocument/credit-notes` | Exact JSON `{reason}` plus Idempotency-Key; current `tax-fiscal.documents:issue` AND `financials.adjustments:write` |201 first issuance,200 exact replay; raw immutable receipt JSON |
+| GET `/credit-notes/:creditDocument` | Current `tax-fiscal.documents:read`; no query selectors |200 same receipt or concealed404 |
+
+Session supplies tenant and actor; route supplies property/original. No client
+amount, source, series, folio, accounting, number, tax, date or hash selector is
+accepted. Reason is1–500 Unicode scalar values, nonblank, without ASCII control
+characters/DEL; valid leading/trailing whitespace is preserved, not silently
+normalized. Input and envelope are snapshotted before asynchronous work, rejecting
+proxies/accessors. The database rechecks current authority, including the extra
+`financials.adjustments:post-seal` grant when an original/source day is sealed.
+The correction posts only to the property's current open business day.
+
+One caller-owned transaction binds the exact original source, inverse consideration
+and original rounded tax, correction journal, separately numbered C-series document,
+fact/outbox and replay receipt. Multi-root transfers are credited only for the
+invoice's persisted allocation. No whole-transfer reversal, source UPDATE/DELETE,
+current-tax recomputation or binary floating-point money operation is permitted.
+
+Success body is exactly the durable `receipt_json` returned by PostgreSQL, not a
+re-serialized wrapper. `idempotency-replayed` and correlation metadata are headers;
+they do not change the receipt bytes. All responses are `no-store`. Changed key
+reuse/current financial conflicts return409; invalid input400; denied authority403;
+unavailable/foreign objects404. Malformed storage replies or unexpected failures
+return sanitized503 and roll back, never a fabricated successful document.
+Normal invoice-only provider guards still reject credit-note transmission.

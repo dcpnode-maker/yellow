@@ -309,6 +309,20 @@ source, locking, accounting and executable acceptance contract.
 
 ## Consumer registry (who must exist by launch)
 
+### Order446 full credit note — implementation contract, not released
+
+The existing `document.issued` event represents a newly numbered `credit_note`;
+it does not mutate or re-emit the original invoice and is not an external IRP
+acceptance. Its payload is the same immutable receipt: credit/original document
+identities and numbers/hashes, correction journal, series, property/reservation/
+folio, supplier/recipient registrations, fiscal year, INR currency, issue/business
+date, chain/source hashes, positive exact minor-unit string and reason. Actor and
+correlation are envelope fields. One complete financial/document transaction owns
+the binding, posting lines, document, fact, event and idempotency receipt; publication
+comes after financial/day/series locks. Exact replay emits no second event and
+still rechecks current authority. New consumers or provider transmission are not
+implicitly enabled. See Order446 and PROJECT-STATUS.md for executable status.
+
 ### Order440 fiscal delivery events — current80 plus candidate81
 
 `fiscal.submission.requested`, `fiscal.submission.claimed`,

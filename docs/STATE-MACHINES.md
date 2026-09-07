@@ -235,6 +235,19 @@ error without changing that issued document. Issued→void is permitted only whe
 jurisdiction allows it; otherwise correction is a credit-note document. Emits
 document.issued / .cleared where the jurisdiction contract defines clearance.
 
+### Order446 native full credit — implementation contract, not released
+
+An issued invoice stays **issued and unchanged**. A distinct full-credit operation
+creates a new issued C-series `credit_note` and inverse correction journal in one
+transaction, with an immutable reference to the original invoice. No intermediate
+pending credit binding is updated to complete; preallocated identities and deferred
+artifact checks require the final complete graph at commit. One original permits
+at most one full credit. Same-key replay returns its original receipt with current
+authority checks and no new number/posting/event. Different payload or conflicting
+second credit fails; failed transactions consume no number. Current open-day and
+authorized post-seal rules apply. This is not an issued→void transition, refund,
+partial/debit correction or provider delivery transition.
+
 ### Order440 delivery head (durable source, not document mutation)
 
 Issued native documents and their number/content/chain remain immutable. The separate
