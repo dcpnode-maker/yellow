@@ -11,6 +11,13 @@ import {
   type NativeIssuanceFixtureOptions,
 } from "./india-native-fiscal-source-completion-fixture";
 
+export const OPERATOR_INVOICE_FIXTURE_TIMEZONES = Object.freeze({
+  initial: "Pacific/Kiritimati",
+  shifted: "Pacific/Pago_Pago",
+  // These property zones are25hours apart; replay crosses a date at any UTC hour.
+  replay: "Pacific/Kiritimati",
+});
+
 function statutoryHash(value: unknown): string {
   return new Bun.CryptoHasher("sha256").update(JSON.stringify(value)).digest("hex");
 }

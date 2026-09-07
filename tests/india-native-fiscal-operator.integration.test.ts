@@ -16,6 +16,7 @@ import {
   issueConfirmedOperatorInvoice,
   issueOperatorInvoice,
   moveOperatorFixtureIssueClock,
+  OPERATOR_INVOICE_FIXTURE_TIMEZONES,
   operatorInvoiceArtifactSnapshot,
 } from "./fixtures/order440-operator-invoices";
 
@@ -86,14 +87,14 @@ databaseDescribe("Order440 Q208 governed operator invoice workflow", () => {
   test("reproduces D1314 through v2 and proves the same shifted clock with dated status", async () => {
     for (const [label, withStatus] of [["q208-gap", false], ["q208-control", true]] as const) {
       const candidate = await createOperatorInvoiceFixture(deploy, runtime, label, {
-        timezone: "Pacific/Kiritimati",serviceProvisionDate: "2025-09-23",
+        timezone: OPERATOR_INVOICE_FIXTURE_TIMEZONES.initial,serviceProvisionDate: "2025-09-23",
         supplierBooksEntryDate: "2025-09-24",supplierBankCreditDate: "2025-09-24",
         calendarEvidence: null,
       });
       const originalDate = (await deploy<Array<{ value: string }>>`
         SELECT (transaction_timestamp() AT TIME ZONE timezone)::date::text value FROM org_node
          WHERE tenant_id=${candidate.fixture.tenant}::uuid AND id=${candidate.fixture.property}::uuid`)[0]!.value;
-      const shiftedDate = await moveOperatorFixtureIssueClock(deploy, candidate, "Pacific/Pago_Pago");
+      const shiftedDate = await moveOperatorFixtureIssueClock(deploy, candidate, OPERATOR_INVOICE_FIXTURE_TIMEZONES.shifted);
       expect(shiftedDate).not.toBe(originalDate);
       if (withStatus) await addOperatorIssueDateSupplierStatus(deploy, candidate, shiftedDate);
       const [status] = await deploy<Array<{ count: string }>>`
@@ -114,7 +115,7 @@ databaseDescribe("Order440 Q208 governed operator invoice workflow", () => {
       } else {
         const receipt = await issue();
         expect(receipt.status).toBe("issued");
-        const replayDate = await moveOperatorFixtureIssueClock(deploy, candidate, "UTC");
+        const replayDate = await moveOperatorFixtureIssueClock(deploy, candidate, OPERATOR_INVOICE_FIXTURE_TIMEZONES.replay);
         expect(replayDate).not.toBe(shiftedDate);
         const replay = await issue();
         expect(replay.documentId).toBe(receipt.documentId);
@@ -125,12 +126,12 @@ databaseDescribe("Order440 Q208 governed operator invoice workflow", () => {
 
   test("v3 rejects missing issue-date status, then issues and replays the locked confirmation", async () => {
     const candidate = await createOperatorInvoiceFixture(deploy, runtime, "q208-v3-status", {
-      timezone: "Pacific/Kiritimati",serviceProvisionDate: "2025-09-23",
+      timezone: OPERATOR_INVOICE_FIXTURE_TIMEZONES.initial,serviceProvisionDate: "2025-09-23",
       supplierBooksEntryDate: "2025-09-24",supplierBankCreditDate: "2025-09-24",calendarEvidence: null,
     });
     const initial = await discoverOperatorInvoice(runtime, candidate) as Record<string, unknown>;
     expect(initial.kind).toBe("ready");
-    const shiftedDate = await moveOperatorFixtureIssueClock(deploy, candidate, "Pacific/Pago_Pago");
+    const shiftedDate = await moveOperatorFixtureIssueClock(deploy, candidate, OPERATOR_INVOICE_FIXTURE_TIMEZONES.shifted);
     await expectState(() => issueConfirmedOperatorInvoice(runtime, candidate,
       String(initial.selectorHash),String(initial.evidenceHash)), "55000");
     await addOperatorIssueDateSupplierStatus(deploy, candidate, shiftedDate);
@@ -139,7 +140,8 @@ databaseDescribe("Order440 Q208 governed operator invoice workflow", () => {
     const issued = await issueConfirmedOperatorInvoice(runtime, candidate,
       String(ready.selectorHash),String(ready.evidenceHash));
     expect(issued.status).toBe("issued");
-    await moveOperatorFixtureIssueClock(deploy, candidate, "UTC");
+    const replayDate = await moveOperatorFixtureIssueClock(deploy, candidate, OPERATOR_INVOICE_FIXTURE_TIMEZONES.replay);
+    expect(replayDate).not.toBe(shiftedDate);
     const replay = await issueConfirmedOperatorInvoice(runtime, candidate,
       String(ready.selectorHash),String(ready.evidenceHash));
     expect(replay.documentId).toBe(issued.documentId);
