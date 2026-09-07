@@ -1,7 +1,7 @@
 import type { ReservedSQL, SQL } from "bun";
 
 const GIT_SHA = /^[0-9a-f]{40}$/;
-export const CURRENT_MIGRATION_FRONTIER = 85 as const;
+export const CURRENT_MIGRATION_FRONTIER = 86 as const;
 
 export interface BuildInfo {
   readonly schemaVersion: 1;
@@ -51,6 +51,7 @@ export async function assertRuntimeReleaseReadiness(
     fiscalHistoryProtected: boolean;
     fiscalEntryAuthorityExact: boolean;
     fiscalReceiptReadAuthorityExact: boolean;
+    fiscalRetryBindingAuthorityExact: boolean;
     fiscalReceiptColumnsProtected: boolean;
     issueFunctionPresent: boolean;
     publicIssueDenied: boolean;
@@ -122,6 +123,33 @@ export async function assertRuntimeReleaseReadiness(
       FROM pg_catalog.pg_proc procedure
       WHERE procedure.oid=pg_catalog.to_regprocedure(
         'public.read_india_fiscal_submission_delivery_receipt(uuid,uuid,uuid,uuid)'
+      )
+    ), fiscal_retry_binding AS (
+      SELECT count(procedure.oid)=1 AND bool_and(
+        procedure.proowner='yellow_owner'::regrole
+        AND procedure.provolatile='i' AND NOT procedure.prosecdef
+        AND NOT procedure.proisstrict AND procedure.proparallel='u'
+        AND NOT procedure.proleakproof AND NOT procedure.proretset
+        AND procedure.prorettype='pg_catalog.jsonb'::regtype
+        AND procedure.proconfig=ARRAY['search_path=pg_catalog, public']
+        AND language.lanname='sql'
+        AND NOT pg_catalog.has_function_privilege('app_role',procedure.oid,'EXECUTE')
+        AND NOT pg_catalog.has_function_privilege('yellow_runtime',procedure.oid,'EXECUTE')
+        AND NOT EXISTS(
+          SELECT 1 FROM pg_catalog.aclexplode(COALESCE(
+            procedure.proacl,pg_catalog.acldefault('f',procedure.proowner)
+          )) privilege WHERE privilege.grantee=0 AND privilege.privilege_type='EXECUTE'
+        )
+        AND pg_catalog.strpos(pg_catalog.pg_get_functiondef(receipt.oid),
+          'public.india_fiscal_submission_retry_binding_v1(')>0
+      ) AS exact
+      FROM pg_catalog.pg_proc procedure
+      JOIN pg_catalog.pg_language language ON language.oid=procedure.prolang
+      LEFT JOIN pg_catalog.pg_proc receipt ON receipt.oid=pg_catalog.to_regprocedure(
+        'public.read_india_fiscal_submission_delivery_receipt(uuid,uuid,uuid,uuid)'
+      )
+      WHERE procedure.oid=pg_catalog.to_regprocedure(
+        'public.india_fiscal_submission_retry_binding_v1(text,text,text,uuid,integer)'
       )
     ), fiscal_receipt_columns AS (
       SELECT count(DISTINCT relation.oid)=2 AND bool_and(
@@ -269,6 +297,7 @@ export async function assertRuntimeReleaseReadiness(
       history.protected AS "fiscalHistoryProtected",
       fiscal.exact AS "fiscalEntryAuthorityExact",
       receipt_read.exact AS "fiscalReceiptReadAuthorityExact",
+      retry_binding.exact AS "fiscalRetryBindingAuthorityExact",
       receipt_columns.protected AS "fiscalReceiptColumnsProtected",
       q208_public.exact AS "q208PublicEntryAuthorityExact",
       q208_private.exact AS "q208PrivateEntryAuthorityExact",
@@ -298,7 +327,8 @@ export async function assertRuntimeReleaseReadiness(
     FROM release_target target CROSS JOIN native_source_schema source_schema
       CROSS JOIN native_authority authority
       CROSS JOIN fiscal_authority fiscal CROSS JOIN fiscal_history history
-      CROSS JOIN fiscal_receipt_read receipt_read CROSS JOIN fiscal_receipt_columns receipt_columns
+      CROSS JOIN fiscal_receipt_read receipt_read CROSS JOIN fiscal_retry_binding retry_binding
+      CROSS JOIN fiscal_receipt_columns receipt_columns
       CROSS JOIN q208_public_authority q208_public
       CROSS JOIN q208_private_authority q208_private CROSS JOIN q208_index_shape q208_indexes
   `;

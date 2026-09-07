@@ -1,7 +1,8 @@
 import { describe, expect, test } from "bun:test";
 import { SQL } from "bun";
-import { readdir, readFile } from "node:fs/promises";
-import { fileURLToPath } from "node:url";
+import { mkdtemp, readdir, readFile, rm, writeFile } from "node:fs/promises";
+import { join, resolve } from "node:path";
+import { tmpdir } from "node:os";
 import { runMigrations } from "../scripts/migrate";
 import { IssueIndiaNativeFiscalInvoiceCommand } from "../src/commands/issue-india-native-fiscal-invoice";
 import { Hs256TokenSigner } from "../src/contexts/identity";
@@ -57,11 +58,29 @@ const forwardHashes = [
 const sha256 = (value: string | Uint8Array) => new Bun.CryptoHasher("sha256").update(value).digest("hex");
 
 async function inputs() {
-  const files = (await readdir(migrationDirectory)).filter(name => /^\d{4}_.*\.sql$/.test(name)).sort();
+  const files = (await readdir(migrationDirectory)).filter(name =>
+    /^\d{4}_.*\.sql$/.test(name) && Number(name.slice(0, 4)) <= 85).sort();
   expect(files).toHaveLength(85);
   expect(files.map(name => Number(name.slice(0, 4)))).toEqual(Array.from({ length: 85 }, (_, i) => i + 1));
   return Promise.all(files.map(async filename => ({ filename,
     checksum_sha256: sha256(await readFile(new URL(filename, migrationDirectory))) })));
+}
+async function withCanonical85Migrations<T>(run: (directory: string) => Promise<T>): Promise<T> {
+  const directory = await mkdtemp(join(tmpdir(), "yellow-order440-q209-prefix85-"));
+  try {
+    const files = (await readdir(migrationDirectory)).filter(name =>
+      /^\d{4}_.*\.sql$/.test(name) && Number(name.slice(0, 4)) <= 85);
+    expect(files).toHaveLength(85);
+    await Promise.all(files.map(async filename => writeFile(resolve(directory, filename),
+      await readFile(new URL(filename, migrationDirectory)))));
+    return await run(directory);
+  } finally {
+    const resolved = resolve(directory), temporaryRoot = resolve(tmpdir());
+    if (!resolved.startsWith(temporaryRoot + "/") && !resolved.startsWith(temporaryRoot + "\\")) {
+      throw new Error("Q209 migration-prefix cleanup escaped the temporary directory");
+    }
+    await rm(resolved, { recursive: true, force: true });
+  }
 }
 async function ledger(sql: SQL) {
   return sql<{ version: number; filename: string; checksum_sha256: string; bytes: string }[]>`
@@ -230,8 +249,8 @@ databaseDescribe("Q209 genuine populated canonical81 to85 preservation", () => {
       }
       const grantsBefore = await assignments(deploy);
       expect(grantsBefore.length).toBeGreaterThan(0);
-      const upgrade = await runMigrations({ databaseUrl: deployUrl!,
-        migrationsDirectory: fileURLToPath(migrationDirectory), logger: () => {} });
+      const upgrade = await withCanonical85Migrations(directory => runMigrations({ databaseUrl: deployUrl!,
+        migrationsDirectory: directory, logger: () => {} }));
       expect(upgrade.appliedFiles).toEqual(sourceBefore.slice(81).map(row => row.filename));
       expect(upgrade.transactionBackendPids).toEqual(Array(4).fill(upgrade.backendPid));
       const finalLedger = await ledger(deploy);

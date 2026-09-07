@@ -1018,6 +1018,98 @@ databaseDescribe("Bun SQL migration runner", () => {
     }, 240_000);
   });
 
+  describe("Order440/Q212 canonical migration 85 to 86 boundary", () => {
+    const filename = "0086_fiscal_submission_retry_binding.sql";
+    const checksum = "40c55de6a34fb0f0ba354e5e37d210500038018fa649cf9437e29813fa0b915e";
+    let upgradedSchema: string | undefined;
+    let predecessorLedger: readonly ExactLedgerRow[] | undefined;
+    let finalLedger: readonly ExactLedgerRow[] | undefined;
+
+    test("rolls back 86, preserves exact 1-85, upgrades, no-ops and refuses checksum drift", async () => {
+      const through85 = await canonicalMigrationFiles(85);
+      const through86 = await canonicalMigrationFiles(86);
+      const canonical = await readFile(resolve(PROJECT_MIGRATIONS, filename));
+      expect(Object.keys(through86).filter(name => Number(name.slice(0, 4)) === 86)).toEqual([filename]);
+      expect(fileSha256(canonical)).toBe(checksum);
+      await withDatabase(async ({ databaseUrl: targetUrl, sql }) => {
+        const predecessor = await withMigrationDirectory(through85, directory => runMigrations({
+          databaseUrl: targetUrl, migrationsDirectory: directory, logger: () => undefined,
+        }));
+        expect(predecessor.appliedFiles).toHaveLength(85);
+        expect(predecessor.appliedFiles.at(-1)).toBe("0085_india_native_fiscal_operator_command.sql");
+        predecessorLedger = await exactLedger(sql);
+        const predecessorSchema = await normalizedOrder434Dump(targetUrl);
+        const injected = new Uint8Array([...canonical, ...new TextEncoder().encode(
+          "\nDO $q212_atomic_failure$ BEGIN RAISE EXCEPTION USING ERRCODE='55000', MESSAGE='Q212 injected migration 86 rollback'; END $q212_atomic_failure$;\n",
+        )]);
+        await withMigrationDirectory({ ...through85, [filename]: injected }, async directory => {
+          const failure = await migrationFailure(() => runMigrations({
+            databaseUrl: targetUrl, migrationsDirectory: directory, logger: () => undefined,
+          }));
+          expect(failure).toMatchObject({
+            errno: "55000",
+            rollbackConnectionUsable: true,
+            message: "Q212 injected migration 86 rollback (SQLSTATE 55000)",
+          });
+        });
+        expect(await exactLedger(sql)).toEqual(predecessorLedger);
+        expect(await normalizedOrder434Dump(targetUrl)).toBe(predecessorSchema);
+
+        const upgrade = await withMigrationDirectory(through86, directory => runMigrations({
+          databaseUrl: targetUrl, migrationsDirectory: directory, logger: () => undefined,
+        }));
+        expect(upgrade.appliedFiles).toEqual([filename]);
+        expect(upgrade.transactionBackendPids).toEqual([upgrade.backendPid]);
+        expect(await exactLedger(sql, 85)).toEqual(predecessorLedger);
+        expect(await sql<Array<{ filename: string; checksum_sha256: string }>>`
+          SELECT filename,checksum_sha256 FROM public.schema_migration WHERE version=86`)
+          .toEqual([{ filename, checksum_sha256: checksum }]);
+        finalLedger = await exactLedger(sql);
+        expect(finalLedger).toHaveLength(86);
+        upgradedSchema = await normalizedOrder434Dump(targetUrl);
+
+        const noOp = await withMigrationDirectory(through86, directory => runMigrations({
+          databaseUrl: targetUrl, migrationsDirectory: directory, logger: () => undefined,
+        }));
+        expect(noOp).toMatchObject({ appliedFiles: [], discoveredFiles: 86, transactionBackendPids: [] });
+        expect(await exactLedger(sql)).toEqual(finalLedger);
+
+        await withMigrationDirectory({ ...through86,
+          [filename]: new Uint8Array([...canonical, 0x0a]),
+        }, async directory => {
+          const drift = await migrationFailure(() => runMigrations({
+            databaseUrl: targetUrl, migrationsDirectory: directory, logger: () => undefined,
+          }));
+          expect(drift.message).toContain("Applied migration checksum mismatch for version 86");
+        });
+        expect(await exactLedger(sql)).toEqual(finalLedger);
+        expect(await normalizedOrder434Dump(targetUrl)).toBe(upgradedSchema);
+      });
+    }, 300_000);
+
+    test("fresh canonical 86 is schema-identical to the canonical 85 upgrade", async () => {
+      if (!upgradedSchema || !predecessorLedger || !finalLedger) {
+        throw new Error("Q212 upgrade proof must complete before fresh equivalence");
+      }
+      const expectedSchema = upgradedSchema;
+      const expectedPredecessor = predecessorLedger;
+      const expectedFinal = finalLedger;
+      const through86 = await canonicalMigrationFiles(86);
+      await withDatabase(async ({ databaseUrl: targetUrl, sql }) => {
+        const fresh = await withMigrationDirectory(through86, directory => runMigrations({
+          databaseUrl: targetUrl, migrationsDirectory: directory, logger: () => undefined,
+        }));
+        expect(fresh.appliedFiles).toHaveLength(86);
+        expect(fresh.appliedFiles.at(-1)).toBe(filename);
+        expect((await exactLedger(sql, 85)).map(({ applied_at_bytes: _ignored, ...row }) => row))
+          .toEqual(expectedPredecessor.map(({ applied_at_bytes: _ignored, ...row }) => row));
+        expect((await exactLedger(sql)).map(({ applied_at_bytes: _ignored, ...row }) => row))
+          .toEqual(expectedFinal.map(({ applied_at_bytes: _ignored, ...row }) => row));
+        expect(await normalizedOrder434Dump(targetUrl)).toBe(expectedSchema);
+      });
+    }, 240_000);
+  });
+
   test(
     "rejects migration 0015 atomically while yellow_runtime is connected, then retries after drain",
     async () => {
@@ -2476,6 +2568,7 @@ databaseDescribe("Bun SQL migration runner", () => {
           "0083_india_native_fiscal_operator_calendar_bounds.sql",
           "0084_india_native_fiscal_operator_query_execution.sql",
           "0085_india_native_fiscal_operator_command.sql",
+          "0086_fiscal_submission_retry_binding.sql",
         ]);
 
         const preservedLedger = await sql<Array<{
@@ -2501,7 +2594,7 @@ databaseDescribe("Bun SQL migration runner", () => {
             FROM public.schema_migration
            ORDER BY version
         `;
-        expect(upgradedLedger).toHaveLength(85);
+        expect(upgradedLedger).toHaveLength(86);
 
         const noOpLog: string[] = [];
         const noOp = await runMigrations({
@@ -2510,7 +2603,7 @@ databaseDescribe("Bun SQL migration runner", () => {
           logger: (message) => noOpLog.push(message),
         });
         expect(noOp.appliedFiles).toEqual([]);
-        expect(noOp.discoveredFiles).toBe(85);
+        expect(noOp.discoveredFiles).toBe(86);
         expect(noOp.transactionBackendPids).toEqual([]);
         expect(noOpLog).toHaveLength(1);
         expect(noOpLog[0]).toContain("applied=0 status=no-op");

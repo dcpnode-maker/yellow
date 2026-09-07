@@ -38,13 +38,7 @@ async function readinessFailure(operation: Promise<void>): Promise<Error> {
 async function ensureCurrentRelease(): Promise<void> {
   if (currentReleaseReady) return;
   const result = await runMigrations({ databaseUrl: deploymentDatabaseUrl, logger: () => undefined });
-  expect(result.appliedFiles).toEqual([
-    "0081_fiscal_signed_delivery_receipts.sql",
-    "0082_india_native_fiscal_operator_workflow.sql",
-    "0083_india_native_fiscal_operator_calendar_bounds.sql",
-    "0084_india_native_fiscal_operator_query_execution.sql",
-    "0085_india_native_fiscal_operator_command.sql",
-  ]);
+  expect(result.appliedFiles).toEqual(["0086_fiscal_submission_retry_binding.sql"]);
   deployment = new SQL(deploymentDatabaseUrl, { max: 1, prepare: false });
   runtime = new SQL(runtimeDatabaseUrl, { max: 1, prepare: false });
   currentReleaseReady = true;
@@ -190,6 +184,49 @@ databaseDescribe("Order438 runtime release readiness identity", () => {
       const error = await readinessFailure(assertRuntimeReleaseReadiness(predecessorRuntime));
       expect(error.message).toBe("runtime release readiness is unavailable");
     } finally { await predecessorRuntime.close({ timeout: 5 }); }
+  });
+
+  test("rejects the exact release-85 predecessor without durable retry binding", async () => {
+    const prefixDirectory = await mkdtemp(join(tmpdir(), "yellow-order440-readiness-85-"));
+    try {
+      const names = (await readdir(MIGRATIONS)).filter(name =>
+        name.endsWith(".sql") && Number(name.slice(0, 4)) <= 85);
+      await Promise.all(names.map(async name => writeFile(resolve(prefixDirectory, name),
+        await readFile(resolve(MIGRATIONS, name)))));
+      const result = await runMigrations({ databaseUrl: deploymentDatabaseUrl,
+        migrationsDirectory: prefixDirectory, logger: () => undefined });
+      expect(result.appliedFiles).toEqual([
+        "0081_fiscal_signed_delivery_receipts.sql",
+        "0082_india_native_fiscal_operator_workflow.sql",
+        "0083_india_native_fiscal_operator_calendar_bounds.sql",
+        "0084_india_native_fiscal_operator_query_execution.sql",
+        "0085_india_native_fiscal_operator_command.sql",
+      ]);
+    } finally {
+      if (!resolve(prefixDirectory).startsWith(resolve(tmpdir()) + "/")
+          && !resolve(prefixDirectory).startsWith(resolve(tmpdir()) + "\\")) {
+        throw new Error("readiness proof cleanup escaped temporary directory");
+      }
+      await rm(prefixDirectory, { recursive: true, force: true });
+    }
+    const predecessorDeployment = new SQL(deploymentDatabaseUrl, { max: 1, prepare: false });
+    const predecessorRuntime = new SQL(runtimeDatabaseUrl, { max: 1, prepare: false });
+    try {
+      const [identity] = await predecessorDeployment<{
+        applied: number; frontier: number; retry_binding: string | null;
+      }[]>`
+        SELECT count(*)::integer AS applied,max(version)::integer AS frontier,
+               to_regprocedure('public.india_fiscal_submission_retry_binding_v1(text,text,text,uuid,integer)')::text
+                 AS retry_binding
+          FROM public.schema_migration
+      `;
+      expect(identity).toEqual({ applied: 85, frontier: 85, retry_binding: null });
+      const error = await readinessFailure(assertRuntimeReleaseReadiness(predecessorRuntime));
+      expect(error.message).toBe("runtime release readiness is unavailable");
+    } finally {
+      await predecessorRuntime.close({ timeout: 5 });
+      await predecessorDeployment.close({ timeout: 5 });
+    }
   });
 
   test("accepts only a direct yellow_runtime login against the complete current catalogue", async () => {
@@ -361,6 +398,39 @@ databaseDescribe("Order438 runtime release readiness identity", () => {
       expect(error.message).toBe("runtime release readiness is unavailable");
     } finally { await deployment!.unsafe(`ALTER FUNCTION ${signature} STABLE`); }
     await expect(assertRuntimeReleaseReadiness(runtime!)).resolves.toBeUndefined();
+  });
+
+  test("rejects retry-binding metadata and ACL drift and proves restoration", async () => {
+    await ensureCurrentRelease();
+    const signature = "public.india_fiscal_submission_retry_binding_v1(text,text,text,uuid,integer)";
+    for (const role of ["PUBLIC", "app_role", "yellow_runtime"]) {
+      try {
+        await deployment!.unsafe(`GRANT EXECUTE ON FUNCTION ${signature} TO ${role}`);
+        await expect(assertRuntimeReleaseReadiness(runtime!)).rejects.toThrow(
+          "runtime release readiness is unavailable",
+        );
+      } finally {
+        await deployment!.unsafe(`REVOKE EXECUTE ON FUNCTION ${signature} FROM ${role}`);
+      }
+      await expect(assertRuntimeReleaseReadiness(runtime!)).resolves.toBeUndefined();
+    }
+    const metadataDrifts = [
+      [`ALTER FUNCTION ${signature} STABLE`, `ALTER FUNCTION ${signature} IMMUTABLE`],
+      [`ALTER FUNCTION ${signature} STRICT`, `ALTER FUNCTION ${signature} CALLED ON NULL INPUT`],
+      [`ALTER FUNCTION ${signature} PARALLEL SAFE`, `ALTER FUNCTION ${signature} PARALLEL UNSAFE`],
+      [`ALTER FUNCTION ${signature} SECURITY DEFINER`, `ALTER FUNCTION ${signature} SECURITY INVOKER`],
+      [`ALTER FUNCTION ${signature} SET search_path TO public`,
+        `ALTER FUNCTION ${signature} SET search_path TO pg_catalog, public`],
+    ] as const;
+    for (const [mutate, restore] of metadataDrifts) {
+      try {
+        await deployment!.unsafe(mutate);
+        await expect(assertRuntimeReleaseReadiness(runtime!)).rejects.toThrow(
+          "runtime release readiness is unavailable",
+        );
+      } finally { await deployment!.unsafe(restore); }
+      await expect(assertRuntimeReleaseReadiness(runtime!)).resolves.toBeUndefined();
+    }
   });
 
   test("rejects effective extra head and history column grants and proves restoration", async () => {

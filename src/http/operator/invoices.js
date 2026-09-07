@@ -324,14 +324,108 @@ function fiscalSubmissionEnvelope(value, documentId, provider) {
     || (row.status === "submitted" && row.disposition !== "lookup")
     || (["accepted", "rejected"].includes(row.status) && row.disposition !== "none")
     || (row.status === "error" && !["retry", "none"].includes(row.disposition))
-    || row.replayed !== false || identity.key !== provider.providerKey
+    || typeof row.replayed !== "boolean" || identity.key !== provider.providerKey
     || identity.extensionId !== provider.providerExtensionId
     || identity.extensionVersion !== provider.providerExtensionVersion) return null;
   return Object.freeze({ submissionId: row.submissionId, documentId: row.documentId,
     attemptId: row.attemptId, attemptNumber: row.attemptNumber, retryCount: row.retryCount,
     status: row.status, disposition: row.disposition, transitionSeq: row.transitionSeq,
     provider: Object.freeze({ key: identity.key, extensionId: identity.extensionId,
-      extensionVersion: identity.extensionVersion }), replayed: false });
+      extensionVersion: identity.extensionVersion }), replayed: row.replayed });
+}
+
+function retryCapability(delivery, documentValue) {
+  if (delivery.kind !== "receipt") return null;
+  const receipt = exactRecord(delivery.receipt, ["kind", "submissionId", "tenantId", "propertyNode", "documentId",
+    "documentSha256", "wireSha256", "providerKey", "attemptId", "attemptNumber", "status", "disposition",
+    "transitionSeq", "retryBinding"]);
+  if (!receipt || receipt.kind !== "pending" || receipt.status !== "error" || receipt.disposition !== "retry"
+    || receipt.documentId !== documentValue.documentId || receipt.propertyNode !== documentValue.propertyNode
+    || receipt.documentSha256 !== documentValue.documentSha256
+    || ![receipt.submissionId, receipt.tenantId, receipt.attemptId].every((value) => matches(value, UUID))
+    || !matches(receipt.wireSha256, HASH) || !matches(receipt.providerKey, PROVIDER_KEY)
+    || !Number.isSafeInteger(receipt.attemptNumber) || receipt.attemptNumber < 1 || receipt.attemptNumber > 4
+    || !Number.isSafeInteger(receipt.transitionSeq) || receipt.transitionSeq < 1) return null;
+  const binding = exactRecord(receipt.retryBinding, ["providerExtensionId", "providerExtensionVersion"]);
+  if (!binding || !matches(binding.providerExtensionId, UUID)
+    || !Number.isSafeInteger(binding.providerExtensionVersion) || binding.providerExtensionVersion < 1
+    || binding.providerExtensionVersion > 2147483647) return null;
+  return Object.freeze({ submissionId: receipt.submissionId, attemptId: receipt.attemptId,
+    attemptNumber: receipt.attemptNumber, transitionSeq: receipt.transitionSeq, provider: Object.freeze({
+    providerKey: receipt.providerKey, providerExtensionId: binding.providerExtensionId,
+    providerExtensionVersion: binding.providerExtensionVersion,
+  }) });
+}
+
+const DELIVERY_RECEIPT_BASE_KEYS = ["kind", "submissionId", "tenantId", "propertyNode", "documentId",
+  "documentSha256", "wireSha256", "providerKey", "attemptId", "attemptNumber", "status", "disposition",
+  "transitionSeq"];
+
+function coherentRetryProgress(delivery, documentValue, retained) {
+  if (delivery.kind !== "receipt") return false;
+  const nextRetry = retryCapability(delivery, documentValue);
+  if (nextRetry) {
+    return nextRetry.submissionId === retained.submissionId
+      && nextRetry.provider.providerKey === retained.provider.providerKey
+      && nextRetry.provider.providerExtensionId === retained.provider.providerExtensionId
+      && nextRetry.provider.providerExtensionVersion === retained.provider.providerExtensionVersion
+      && nextRetry.attemptId !== retained.attemptId
+      && nextRetry.attemptNumber === retained.attemptNumber + 1
+      && nextRetry.attemptNumber <= 4 && nextRetry.transitionSeq > retained.transitionSeq;
+  }
+  const candidate = ownRecord(delivery.receipt, 32);
+  if (!candidate) return false;
+  const extras = candidate.kind === "pending" ? []
+    : candidate.kind === "legacy_hash_only" ? ["authorityRef", "responseSha256"]
+      : candidate.kind === "rejected" ? ["environment", "responseSha256", "errorCodes"]
+        : candidate.kind === "provider_cancelled" ? ["environment", "responseSha256", "providerStatus"]
+          : candidate.kind === "accepted_signed_v1" ? ["environment", "responseSha256", "irn", "ackNo", "ackDt",
+            "signedInvoice", "signedQRCode", "signedInvoiceSha256", "signedQrSha256", "verification"] : null;
+  if (!extras || Object.keys(candidate).length !== DELIVERY_RECEIPT_BASE_KEYS.length + extras.length
+    || ![...DELIVERY_RECEIPT_BASE_KEYS, ...extras].every((key) => Object.hasOwn(candidate, key))
+    || candidate.documentId !== documentValue.documentId || candidate.propertyNode !== documentValue.propertyNode
+    || candidate.documentSha256 !== documentValue.documentSha256
+    || candidate.submissionId !== retained.submissionId || candidate.providerKey !== retained.provider.providerKey
+    || !matches(candidate.tenantId, UUID) || !matches(candidate.attemptId, UUID)
+    || candidate.attemptId === retained.attemptId || !Number.isSafeInteger(candidate.attemptNumber)
+    || candidate.attemptNumber < 1 || candidate.attemptNumber > 4
+    || candidate.attemptNumber !== retained.attemptNumber + 1
+    || !matches(candidate.wireSha256, HASH) || !Number.isSafeInteger(candidate.transitionSeq)
+    || candidate.transitionSeq <= retained.transitionSeq) return false;
+  if (candidate.kind === "pending") {
+    return (candidate.status === "pending" && candidate.disposition === "send")
+      || (candidate.status === "submitted" && candidate.disposition === "lookup");
+  }
+  if (candidate.disposition !== "none") return false;
+  if (candidate.kind === "legacy_hash_only") {
+    return (candidate.status === "accepted" || candidate.status === "rejected")
+      && (candidate.authorityRef === null || validText(candidate.authorityRef, 256))
+      && (candidate.responseSha256 === null || matches(candidate.responseSha256, HASH));
+  }
+  if ((candidate.environment !== "sandbox" && candidate.environment !== "production")
+    || !matches(candidate.responseSha256, HASH)) return false;
+  if (candidate.kind === "rejected") {
+    const codes = ownArray(candidate.errorCodes, 32);
+    return candidate.status === "rejected" && !!codes && codes.length > 0
+      && codes.every((code, index) => validText(code, 64) && codes.indexOf(code) === index);
+  }
+  if (candidate.kind === "provider_cancelled") {
+    return candidate.status === "error" && candidate.providerStatus === "CNL";
+  }
+  const verification = exactRecord(candidate.verification, ["profileVersion", "issuer", "verificationUnixMs",
+    "invoiceKeyId", "invoiceKeySpkiSha256", "invoiceBundleVersion", "qrKeyId", "qrKeySpkiSha256", "qrBundleVersion"]);
+  return candidate.status === "accepted" && matches(candidate.irn, HASH)
+    && typeof candidate.ackNo === "string" && /^[1-9][0-9]{0,63}$/.test(candidate.ackNo)
+    && typeof candidate.ackDt === "string" && /^(?!0000)[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}$/.test(candidate.ackDt)
+    && typeof candidate.signedInvoice === "string" && candidate.signedInvoice.length > 0
+    && typeof candidate.signedQRCode === "string" && candidate.signedQRCode.length > 0
+    && matches(candidate.signedInvoiceSha256, HASH) && matches(candidate.signedQrSha256, HASH)
+    && !!verification && verification.profileVersion === "yellow_native_india_1_1_v1"
+    && validText(verification.issuer, 128) && Number.isSafeInteger(verification.verificationUnixMs)
+    && verification.verificationUnixMs >= 0 && validText(verification.invoiceKeyId, 256)
+    && matches(verification.invoiceKeySpkiSha256, HASH) && validText(verification.invoiceBundleVersion, 128)
+    && validText(verification.qrKeyId, 256) && matches(verification.qrKeySpkiSha256, HASH)
+    && validText(verification.qrBundleVersion, 128);
 }
 
 function minorText(value) {
@@ -369,7 +463,13 @@ function receiptText(delivery, documentValue) {
     ? "Accepted by sandbox provider — not a production registration" : "Accepted by provider";
   if (receipt.kind === "rejected") return "Registration rejected by provider";
   if (receipt.kind === "provider_cancelled") return "Registration cancelled by provider";
-  if (receipt.kind === "pending") return "Registration pending";
+  if (receipt.kind === "pending") {
+    if (receipt.status === "error" && receipt.disposition === "retry") {
+      return retryCapability(delivery, documentValue) ? "Known not sent; retry required"
+        : "Known not sent; original provider binding unavailable";
+    }
+    return "Registration pending";
+  }
   return "Legacy provider response retained";
 }
 
@@ -403,6 +503,7 @@ export function createInvoiceWorkbench({ root, request, propertyNode, timezone, 
   let printModulePromise = null;
   let previewStyleSheet = null;
   const registrationRequests = new Map();
+  const deliveryRetries = new Map();
   const controllers = new Set();
   const searchControllers = new Set();
   const detailControllers = new Set();
@@ -596,6 +697,13 @@ export function createInvoiceWorkbench({ root, request, propertyNode, timezone, 
     return `fiscal-registration-${globalThis.crypto.randomUUID()}`;
   }
 
+  function newRetryKey() {
+    if (!globalThis.crypto || typeof globalThis.crypto.randomUUID !== "function") {
+      throw new Error("secure command identity is unavailable");
+    }
+    return `fiscal-retry-${globalThis.crypto.randomUUID()}`;
+  }
+
   function retainRegistration(documentId, value) {
     if (!registrationRequests.has(documentId) && registrationRequests.size >= MAX_RETAINED_INVOICES) {
       for (const [candidate, retained] of registrationRequests) {
@@ -614,6 +722,89 @@ export function createInvoiceWorkbench({ root, request, propertyNode, timezone, 
     }
     if (alert) message.setAttribute("role", "alert"); else message.removeAttribute("role");
     message.textContent = text; return message;
+  }
+
+  function retainDeliveryRetry(documentId, value) {
+    if (!deliveryRetries.has(documentId) && deliveryRetries.size >= MAX_RETAINED_INVOICES) return false;
+    deliveryRetries.set(documentId, value); return true;
+  }
+
+  async function submitDeliveryRetry(documentValue, slot, retained, scope, generation) {
+    if (retained.inFlight || !current(scope, generation, "detail")) return;
+    retained.inFlight = true;
+    const submit = slot.querySelector(".invoice-workbench__provider-submit");
+    if (submit) submit.disabled = true;
+    providerMessage(slot, "Retrying the original provider delivery…");
+    setState("loading", "Retrying original provider delivery…");
+    const controller = controlled("detail");
+    try {
+      const response = await request(`/api/v1/properties/${encodeURIComponent(propertyNode)}/fiscal-submissions/${encodeURIComponent(retained.submissionId)}/retry`, {
+        method: "POST", headers: { "Content-Type": "application/json", "Idempotency-Key": retained.idempotencyKey },
+        body: JSON.stringify({ providerExtensionId: retained.provider.providerExtensionId }), signal: controller.signal,
+      });
+      if (!current(scope, generation, "detail")) return;
+      if (!fiscalSubmissionEnvelope(response, documentValue.documentId, retained.provider)) {
+        throw new Error("invalid fiscal submission response");
+      }
+      deliveryRetries.delete(documentValue.documentId);
+      const delivery = await readDelivery(documentValue.documentId, scope, generation);
+      if (!delivery || !current(scope, generation, "detail")) return;
+      renderDetail(documentValue, delivery, scope, generation);
+      setState("ready", "Original provider delivery retried; authorized receipt refreshed.");
+    } catch (error) {
+      if (!current(scope, generation, "detail") || controller.signal.aborted) return;
+      const status = errorField(error, "status");
+      if (status === 401 || status === 403 || status === 422) {
+        deliveryRetries.delete(documentValue.documentId);
+        const message = status === 422 ? "This provider delivery can no longer be retried."
+          : "You do not have permission to retry provider delivery.";
+        providerMessage(slot, message, true);
+        setState(status === 422 ? "unsupported" : "permission", message);
+        return;
+      }
+      retained.status = "unknown";
+      providerMessage(slot, "The retry outcome is unknown. Retry only with the same request identity and original provider.", true);
+      if (submit) { submit.textContent = "Retry same delivery request"; submit.disabled = false; }
+      setState("unknown", "The provider retry outcome is unknown; retain the same request identity.");
+    } finally {
+      retained.inFlight = false; release(controller);
+      if (current(scope, generation, "detail") && retained.status === "unknown" && submit) submit.disabled = false;
+    }
+  }
+
+  function renderDeliveryRetry(documentValue, slot, capability, scope, generation) {
+    let retained = deliveryRetries.get(documentValue.documentId);
+    if (retained && (retained.submissionId !== capability.submissionId
+      || retained.attemptId !== capability.attemptId || retained.attemptNumber !== capability.attemptNumber
+      || retained.provider.providerExtensionId !== capability.provider.providerExtensionId
+      || retained.provider.providerExtensionVersion !== capability.provider.providerExtensionVersion
+      || retained.provider.providerKey !== capability.provider.providerKey)) {
+      if (retained.status === "unknown") {
+        providerMessage(slot, "The retry outcome is unknown. Retry only with the same request identity and original provider.", true);
+        return;
+      }
+      deliveryRetries.delete(documentValue.documentId); retained = null;
+    }
+    if (!retained) {
+      let idempotencyKey;
+      try { idempotencyKey = newRetryKey(); } catch {
+        providerMessage(slot, "A secure retry identity is unavailable. No provider request was sent.", true);
+        return;
+      }
+      retained = { ...capability, idempotencyKey, status: "ready", inFlight: false };
+      if (!retainDeliveryRetry(documentValue.documentId, retained)) {
+        providerMessage(slot, "Too many unresolved provider retries are retained. Resolve them before retrying another invoice.", true);
+        return;
+      }
+    }
+    const submit = element("button", "invoice-workbench__provider-submit",
+      retained.status === "unknown" ? "Retry same delivery request" : "Retry original provider delivery");
+    submit.type = "button";
+    submit.addEventListener("click", () => { void submitDeliveryRetry(documentValue, slot, retained, scope, generation); });
+    if (retained.status === "unknown") {
+      providerMessage(slot, "The retry outcome is unknown. Retry only with the same request identity and original provider.", true);
+    }
+    slot.append(submit);
   }
 
   function renderRetainedRegistration(documentValue, slot, retained, scope, generation) {
@@ -806,6 +997,9 @@ export function createInvoiceWorkbench({ root, request, propertyNode, timezone, 
         intent.addEventListener("click", () => { void loadProviderOptions(documentValue, issueSlot, intent, scope, generation); });
         issueSlot.append(intent);
       }
+    } else {
+      const capability = retryCapability(delivery, documentValue);
+      if (capability) renderDeliveryRetry(documentValue, issueSlot, capability, scope, generation);
     }
   }
 
@@ -1153,10 +1347,16 @@ export function createInvoiceWorkbench({ root, request, propertyNode, timezone, 
       if (!documentValue) throw new Error("invalid invoice response");
       const delivery = await readDelivery(documentId, scope, generation);
       if (!delivery || !current(scope, generation, "detail")) return;
+      const retainedRetry = deliveryRetries.get(documentValue.documentId);
+      if (retainedRetry?.status === "unknown" && coherentRetryProgress(delivery, documentValue, retainedRetry)) {
+        deliveryRetries.delete(documentValue.documentId);
+      }
       renderDetail(documentValue, delivery, scope, generation);
       const retained = delivery.kind === "not_requested" ? registrationRequests.get(documentValue.documentId) : null;
       if (retained?.status === "unknown") {
         setState("unknown", "The provider registration outcome is unknown; retain the same request identity.");
+      } else if (deliveryRetries.get(documentValue.documentId)?.status === "unknown") {
+        setState("unknown", "The provider retry outcome is unknown; retain the same request identity.");
       } else {
         setState("ready", "Invoice detail loaded from immutable issued source.");
       }
@@ -1229,7 +1429,7 @@ export function createInvoiceWorkbench({ root, request, propertyNode, timezone, 
       if (disposed) return;
       active = false; disposed = true; scopeGeneration += 1; searchGeneration += 1; detailGeneration += 1; issueGeneration += 1;
       currentIssueRoute = null;
-      abortAll(); rows = []; nextCursor = null; printModulePromise = null; registrationRequests.clear();
+      abortAll(); rows = []; nextCursor = null; printModulePromise = null; registrationRequests.clear(); deliveryRetries.clear();
       if (previewStyleSheet instanceof CSSStyleSheet && "adoptedStyleSheets" in document) {
         document.adoptedStyleSheets = document.adoptedStyleSheets.filter((sheet) => sheet !== previewStyleSheet);
       } else if (previewStyleSheet && typeof previewStyleSheet.remove === "function") previewStyleSheet.remove();

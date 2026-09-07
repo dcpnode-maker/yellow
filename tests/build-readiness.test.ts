@@ -26,6 +26,7 @@ describe("release build identity and readiness", () => {
         fiscalHistoryProtected: true,
         fiscalEntryAuthorityExact: true,
         fiscalReceiptReadAuthorityExact: true,
+        fiscalRetryBindingAuthorityExact: true,
         fiscalReceiptColumnsProtected: true,
         issueFunctionPresent: true,
         publicIssueDenied: true,
@@ -60,12 +61,21 @@ describe("release build identity and readiness", () => {
     );
     expect(query).toContain("has_column_privilege");
     expect(query).toContain("fiscalReceiptReadAuthorityExact");
+    expect(query).toContain("fiscalRetryBindingAuthorityExact");
     expect(query).toContain("fiscalReceiptColumnsProtected");
     expect(query).toContain("q208PublicEntryAuthorityExact");
     expect(query).toContain("q208PrivateEntryAuthorityExact");
     expect(query).toContain("q208IndexesExact");
     expect(query).toContain("prepare_india_native_fiscal_invoice_v4");
     expect(query).toContain("read_india_native_document_context_candidate");
+    expect(query).toContain("india_fiscal_submission_retry_binding_v1(text,text,text,uuid,integer)");
+    expect(query).toContain("procedure.provolatile='i'");
+    expect(query).toContain("NOT procedure.prosecdef");
+    expect(query).toContain("NOT procedure.proisstrict");
+    expect(query).toContain("procedure.proparallel='u'");
+    expect(query).toContain("NOT procedure.proleakproof");
+    expect(query).toContain("language.lanname='sql'");
+    expect(query).toContain("pg_get_functiondef");
     const q208PublicEntries = query.match(
       /q208_public_entry\(signature, volatility, expected_result, expected_config\) AS \(VALUES(?<entries>[\s\S]*?)\n    \), q208_public_authority/,
     )?.groups?.entries;
@@ -88,14 +98,15 @@ describe("release build identity and readiness", () => {
 
   test("refuses a ready claim when receipt read authority or column confinement fails", async () => {
     for (const failed of [
-      "fiscalReceiptReadAuthorityExact", "fiscalReceiptColumnsProtected",
+      "fiscalReceiptReadAuthorityExact", "fiscalRetryBindingAuthorityExact", "fiscalReceiptColumnsProtected",
       "q208PublicEntryAuthorityExact", "q208PrivateEntryAuthorityExact", "q208IndexesExact",
     ]) {
       let permissionChecks = 0;
       const sql = Object.assign((() => Promise.resolve([{
         runtimeIdentity: true, coreSchemaPresent: true, nativeSourceSchemaPresent: true,
         nativeEntryAuthorityExact: true, fiscalHistoryProtected: true, fiscalEntryAuthorityExact: true,
-        fiscalReceiptReadAuthorityExact: true, fiscalReceiptColumnsProtected: true,
+        fiscalReceiptReadAuthorityExact: true, fiscalRetryBindingAuthorityExact: true,
+        fiscalReceiptColumnsProtected: true,
         issueFunctionPresent: true, publicIssueDenied: true, appIssueDenied: true, runtimeIssueDenied: true,
         q208PublicEntryAuthorityExact: true, q208PrivateEntryAuthorityExact: true,
         q208IndexesExact: true,
@@ -112,7 +123,8 @@ describe("release build identity and readiness", () => {
     const catalogue = {
       runtimeIdentity: true, coreSchemaPresent: true, nativeSourceSchemaPresent: true,
       nativeEntryAuthorityExact: true, fiscalHistoryProtected: true, fiscalEntryAuthorityExact: true,
-      fiscalReceiptReadAuthorityExact: true, fiscalReceiptColumnsProtected: true,
+      fiscalReceiptReadAuthorityExact: true, fiscalRetryBindingAuthorityExact: true,
+      fiscalReceiptColumnsProtected: true,
       issueFunctionPresent: true, publicIssueDenied: true, appIssueDenied: true, runtimeIssueDenied: true,
       q208PublicEntryAuthorityExact: true, q208PrivateEntryAuthorityExact: true,
       q208IndexesExact: true,
@@ -134,9 +146,9 @@ describe("release build identity and readiness", () => {
     expect(buildInfoFromEnvironment({ YELLOW_BUILD_SHA: REVISION })).toEqual({
       schemaVersion: 1,
       revision: REVISION,
-      expectedMigrationFrontier: 85,
+      expectedMigrationFrontier: 86,
     });
-    expect(CURRENT_MIGRATION_FRONTIER).toBe(85);
+    expect(CURRENT_MIGRATION_FRONTIER).toBe(86);
     expect(buildInfoFromEnvironment({})).toBe(UNKNOWN_BUILD_INFO);
     expect(buildInfoFromEnvironment({ YELLOW_BUILD_SHA: "" })).toBe(UNKNOWN_BUILD_INFO);
 
@@ -166,7 +178,7 @@ describe("release build identity and readiness", () => {
     expect(await response.json()).toEqual({
       status: "not_ready",
       reason: "build_revision_unavailable",
-      build: { schemaVersion: 1, revision: null, expectedMigrationFrontier: 85 },
+      build: { schemaVersion: 1, revision: null, expectedMigrationFrontier: 86 },
     });
     expect(probes).toBe(0);
   });
@@ -190,7 +202,7 @@ describe("release build identity and readiness", () => {
     expect(await noRuntime.json()).toEqual({
       status: "not_ready",
       reason: "runtime_not_configured",
-      build: { schemaVersion: 1, revision: REVISION, expectedMigrationFrontier: 85 },
+      build: { schemaVersion: 1, revision: REVISION, expectedMigrationFrontier: 86 },
     });
 
     const failed = await unavailable.handle(new Request("http://yellow.test/ready"));
@@ -201,7 +213,7 @@ describe("release build identity and readiness", () => {
       status: "not_ready",
       reason: "runtime_dependency_unavailable",
       target: "yellow_runtime_database",
-      build: { schemaVersion: 1, revision: REVISION, expectedMigrationFrontier: 85 },
+      build: { schemaVersion: 1, revision: REVISION, expectedMigrationFrontier: 86 },
     });
 
     const success = await ready.handle(new Request("http://yellow.test/ready"));
@@ -210,7 +222,7 @@ describe("release build identity and readiness", () => {
     expect(await success.json()).toEqual({
       status: "ready",
       target: "yellow_runtime_database",
-      build: { schemaVersion: 1, revision: REVISION, expectedMigrationFrontier: 85 },
+      build: { schemaVersion: 1, revision: REVISION, expectedMigrationFrontier: 86 },
     });
   });
 });

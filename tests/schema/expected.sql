@@ -7032,6 +7032,27 @@ $$;
 
 
 --
+-- Name: india_fiscal_submission_retry_binding_v1(text, text, text, uuid, integer); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.india_fiscal_submission_retry_binding_v1(p_status text, p_disposition text, p_reconciliation_reason text, p_provider_extension_id uuid, p_provider_extension_version integer) RETURNS jsonb
+    LANGUAGE sql IMMUTABLE
+    SET search_path TO 'pg_catalog', 'public'
+    AS $$
+  SELECT CASE
+    WHEN p_status='error' AND p_disposition='retry'
+      AND p_reconciliation_reason='known_not_sent'
+      AND p_provider_extension_id IS NOT NULL
+      AND p_provider_extension_version BETWEEN 1 AND 2147483647
+    THEN pg_catalog.jsonb_build_object('retryBinding',pg_catalog.jsonb_build_object(
+      'providerExtensionId',p_provider_extension_id,
+      'providerExtensionVersion',p_provider_extension_version))
+    ELSE '{}'::pg_catalog.jsonb
+  END
+$$;
+
+
+--
 -- Name: india_native_accounting_journal_graph(uuid, uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -11370,7 +11391,9 @@ BEGIN
     RETURN v_common||pg_catalog.jsonb_build_object('kind','legacy_hash_only',
       'authorityRef',v_head.authority_ref,'responseSha256',v_head.response_sha256);
   END IF;
-  RETURN v_common;
+  RETURN v_common||public.india_fiscal_submission_retry_binding_v1(
+    v_head.status,v_head.disposition,v_head.reconciliation_reason,
+    v_head.provider_extension_id,v_head.provider_extension_version);
 END;
 $$;
 
@@ -29912,6 +29935,13 @@ REVOKE ALL ON FUNCTION public.india_fiscal_submission_record_transition(p_submis
 --
 
 REVOKE ALL ON FUNCTION public.india_fiscal_submission_reference(p_value text) FROM PUBLIC;
+
+
+--
+-- Name: FUNCTION india_fiscal_submission_retry_binding_v1(p_status text, p_disposition text, p_reconciliation_reason text, p_provider_extension_id uuid, p_provider_extension_version integer); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.india_fiscal_submission_retry_binding_v1(p_status text, p_disposition text, p_reconciliation_reason text, p_provider_extension_id uuid, p_provider_extension_version integer) FROM PUBLIC;
 
 
 --

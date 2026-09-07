@@ -120,20 +120,26 @@ test("CI pins genuine fiscal delivery to its exact historical81 catalogue", asyn
   expect(historical).toContain("Number(name.slice(0, 4)) <= 79");
 });
 
-test("CI preserves historical80 fixtures and runs signed frontier81 proofs in strict isolated order", async () => {
+test("CI preserves historical fiscal frontiers and runs fresh and upgraded86 proofs in strict isolation", async () => {
   const workflow = await Bun.file(new URL("../.github/workflows/ci.yml", import.meta.url)).text();
   const historicalStart = workflow.indexOf('native_migrations="$(mktemp -d "$RUNNER_TEMP/yellow-order434-prefix80.XXXXXX")"');
   const q203 = workflow.indexOf('q203_database="yellow_order440_q203_ci"');
   const q204 = workflow.indexOf('q204_database="yellow_order440_q204_ci"');
   const upgrade = workflow.indexOf('q207_upgrade_database="yellow_order440_q207_upgrade_ci"');
   const current = workflow.indexOf('q207_database="yellow_order440_q207_ci"');
+  const q209 = workflow.indexOf('q209_database="yellow_order440_q209_populated_ci"');
   const q208 = workflow.indexOf('q208_database="yellow_order440_q208_fresh85_ci"');
+  const q212Fresh = workflow.indexOf('q212_fresh_database="yellow_order440_q212_fresh86_ci"');
+  const q212Upgrade = workflow.indexOf('q212_upgrade_database="yellow_order440_q212_upgrade85_ci"');
   expect(historicalStart).toBeGreaterThan(0);
   expect(q203).toBeGreaterThan(historicalStart);
   expect(q204).toBeGreaterThan(q203);
   expect(upgrade).toBeGreaterThan(q204);
   expect(current).toBeGreaterThan(upgrade);
-  expect(q208).toBeGreaterThan(current);
+  expect(q209).toBeGreaterThan(current);
+  expect(q208).toBeGreaterThan(q209);
+  expect(q212Fresh).toBeGreaterThan(q208);
+  expect(q212Upgrade).toBeGreaterThan(q212Fresh);
   const historical = workflow.slice(historicalStart, upgrade);
   expect(historical).toContain('10#${filename:0:4} <= 80');
   expect(historical).toContain('export YELLOW_ORDER434_MIGRATIONS_DIR="$native_migrations"');
@@ -181,9 +187,44 @@ test("CI preserves historical80 fixtures and runs signed frontier81 proofs in st
   expect(q208Step).not.toContain('CREATE DATABASE ${q208_database} TEMPLATE');
   expect(q208Step).toContain('YELLOW_ORDER440_Q208_DEPLOY_DATABASE_URL=');
   expect(q208Step).toContain('YELLOW_ORDER440_Q208_RUNTIME_DATABASE_URL=');
+  expect(q208Step).toContain('YELLOW_MIGRATIONS_DIR="$current85_migrations"');
   expect(q208Step).toContain('YELLOW_REQUIRE_ORDER440_Q208_DATABASE=1');
   expect(q208Step).toContain("bun test tests/india-native-fiscal-operator.integration.test.ts");
   expect(q208Step).not.toContain("|| true");
   expect(q208Step).not.toContain("continue-on-error");
   expect(q208Step).not.toContain("--test-name-pattern");
+
+  const current85Start = workflow.lastIndexOf(
+    'current85_migrations="$(mktemp -d "$RUNNER_TEMP/yellow-order440-prefix85.XXXXXX")"',
+    q209,
+  );
+  expect(current85Start).toBeGreaterThan(current);
+  const current85Prefix = workflow.slice(current85Start, q209);
+  expect(current85Prefix).toContain('10#${filename:0:4} <= 85');
+  const q209Source = await Bun.file(new URL(
+    "./india-native-fiscal-populated-upgrade.integration.test.ts", import.meta.url,
+  )).text();
+  expect(q209Source).toContain("Number(name.slice(0, 4)) <= 85");
+  expect(q209Source).toContain("withCanonical85Migrations");
+
+  const q212FreshStep = workflow.slice(q212Fresh, q212Upgrade);
+  expect(q212FreshStep).toContain('CREATE DATABASE ${q212_fresh_database}');
+  expect(q212FreshStep).toContain('YELLOW_DEPLOY_DATABASE_URL="$q212_fresh_deploy_url" bun run db:migrate');
+  expect(q212FreshStep).toContain("YELLOW_REQUIRE_ORDER440_Q212_DATABASE=1");
+  expect(q212FreshStep).toContain("bun test tests/fiscal-retry-binding.integration.test.ts");
+  expect(q212FreshStep).toContain("bun test tests/fiscal-retry-readiness.integration.test.ts");
+  expect(q212FreshStep).not.toContain("YELLOW_ORDER440_Q212_APPLY_UPGRADE=1");
+  const q212UpgradeStep = workflow.slice(q212Upgrade, q208End);
+  expect(q212UpgradeStep).toContain('CREATE DATABASE ${q212_upgrade_database}');
+  expect(q212UpgradeStep).toContain('YELLOW_MIGRATIONS_DIR="$current85_migrations"');
+  expect(q212UpgradeStep).toContain("env -u YELLOW_MIGRATIONS_DIR");
+  expect(q212UpgradeStep).toContain("YELLOW_ORDER440_Q212_APPLY_UPGRADE=1");
+  expect(q212UpgradeStep).toContain("bun test tests/fiscal-retry-binding.integration.test.ts");
+  expect(q212UpgradeStep).toContain("bun test tests/fiscal-retry-readiness.integration.test.ts");
+  expect(q212UpgradeStep).toContain('rm -r -- "$current85_migrations"');
+  for (const step of [q212FreshStep, q212UpgradeStep]) {
+    expect(step).not.toContain("|| true");
+    expect(step).not.toContain("continue-on-error");
+    expect(step).not.toContain("--test-name-pattern");
+  }
 });

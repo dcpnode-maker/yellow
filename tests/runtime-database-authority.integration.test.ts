@@ -400,6 +400,43 @@ databaseDescribe("Order 127 runtime database authority (kernel boundary; HTTP P4
       public_execute: false, app_execute: true, runtime_execute: false,
     }]);
 
+    const retryBinding = await admin!<Array<{
+      signature: string; owner: string; language: string; security_definer: boolean;
+      volatility: string; strict: boolean; parallel: string; leakproof: boolean;
+      returns_set: boolean; result: string; config: string[];
+      public_execute: boolean; app_execute: boolean; runtime_execute: boolean;
+      used_by_receipt_read: boolean;
+    }>>`
+      SELECT procedure.oid::regprocedure::text AS signature,
+             pg_catalog.pg_get_userbyid(procedure.proowner) AS owner,
+             language.lanname AS language,procedure.prosecdef AS security_definer,
+             procedure.provolatile::text AS volatility,procedure.proisstrict AS strict,
+             procedure.proparallel::text AS parallel,procedure.proleakproof AS leakproof,
+             procedure.proretset AS returns_set,
+             pg_catalog.pg_get_function_result(procedure.oid) AS result,
+             procedure.proconfig AS config,
+             pg_catalog.has_function_privilege('public',procedure.oid,'EXECUTE') AS public_execute,
+             pg_catalog.has_function_privilege('app_role',procedure.oid,'EXECUTE') AS app_execute,
+             pg_catalog.has_function_privilege('yellow_runtime',procedure.oid,'EXECUTE') AS runtime_execute,
+             pg_catalog.strpos(pg_catalog.pg_get_functiondef(
+               pg_catalog.to_regprocedure('public.read_india_fiscal_submission_delivery_receipt(uuid,uuid,uuid,uuid)')),
+               'public.india_fiscal_submission_retry_binding_v1(')>0 AS used_by_receipt_read
+        FROM pg_catalog.pg_proc procedure
+        JOIN pg_catalog.pg_namespace namespace ON namespace.oid=procedure.pronamespace
+        JOIN pg_catalog.pg_language language ON language.oid=procedure.prolang
+       WHERE namespace.nspname='public'
+         AND procedure.oid=pg_catalog.to_regprocedure(
+           'public.india_fiscal_submission_retry_binding_v1(text,text,text,uuid,integer)')
+    `;
+    expect(retryBinding).toEqual([{
+      signature: "india_fiscal_submission_retry_binding_v1(text,text,text,uuid,integer)",
+      owner: "yellow_owner", language: "sql", security_definer: false,
+      volatility: "i", strict: false, parallel: "u", leakproof: false,
+      returns_set: false, result: "jsonb", config: ["search_path=pg_catalog, public"],
+      public_execute: false, app_execute: false, runtime_execute: false,
+      used_by_receipt_read: true,
+    }]);
+
     const q208Capabilities = await admin!<Array<{
       signature: string; owner: string; security_definer: boolean; volatility: string;
       result: string; config: string[]; public_execute: boolean;

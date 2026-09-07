@@ -174,6 +174,8 @@ describe("Q208 reload-safe document delivery reads", () => {
     documentId: uuid(10), documentSha256: "a".repeat(64), wireSha256: "b".repeat(64),
     providerKey: "clearirp", attemptId: uuid(21), attemptNumber: 1, status: "pending",
     disposition: "send", transitionSeq: 1 } as const;
+  const retryable = { ...pending, status: "error", disposition: "retry",
+    retryBinding: { providerExtensionId: uuid(60), providerExtensionVersion: 7 } } as const;
 
   test("retains exact no-request, ambiguous, legacy and absent outcomes", async () => {
     for (const delivery of [null, { kind: "not_requested", documentId: uuid(10) },
@@ -195,6 +197,26 @@ describe("Q208 reload-safe document delivery reads", () => {
       const result = await service.readDelivery(query([{ delivery: { ...delivery, receipt } }]).tx, selected);
       expect(result).toMatchObject({ ok: false, error: { code: "invalid_receipt" } });
       expect(JSON.stringify(result)).not.toContain("must-not-leak");
+    }
+  });
+
+  test("preserves only a detached validated retry binding through the by-document wrapper", async () => {
+    const delivery = { kind: "receipt", documentId: uuid(10), receipt: retryable } as const;
+    const result = await service.readDelivery(query([{ delivery }]).tx, selected);
+    expect(result).toEqual({ ok: true, value: delivery });
+    if (!result.ok || !result.value || result.value.kind !== "receipt"
+      || result.value.receipt.kind !== "pending" || !("retryBinding" in result.value.receipt)
+      || !result.value.receipt.retryBinding) throw new Error("validated retry binding missing");
+    expect(result.value.receipt.retryBinding).not.toBe(retryable.retryBinding);
+    expect(Object.isFrozen(result.value.receipt.retryBinding)).toBe(true);
+
+    for (const binding of [
+      { ...retryable.retryBinding, providerExtensionId: uuid(61), private: true },
+      { ...retryable.retryBinding, providerExtensionVersion: 0 },
+    ]) {
+      expect(await service.readDelivery(query([{ delivery: { ...delivery,
+        receipt: { ...retryable, retryBinding: binding } } }]).tx, selected))
+        .toMatchObject({ ok: false, error: { code: "invalid_receipt" } });
     }
   });
 

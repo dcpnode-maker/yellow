@@ -168,7 +168,7 @@ function providerRegistrationPage(): string {
   const calls=[];let scenario='request',receiptKind='not_requested',postAttempts=0;
   const provider={providerExtensionId:uuid(61),providerExtensionVersion:7,providerKey:'fictional-clearirp',label:'Fictional ClearIRP',environment:'sandbox'};
   const submission={submissionId:uuid(71),documentId:uuid(10),attemptId:uuid(72),attemptNumber:1,retryCount:0,status:'pending',disposition:'send',transitionSeq:1,provider:{key:provider.providerKey,extensionId:provider.providerExtensionId,extensionVersion:provider.providerExtensionVersion},replayed:false};
-  const pendingReceipt={kind:'pending',tenantId:uuid(1),propertyNode:uuid(2),submissionId:uuid(71),documentId:uuid(10),documentSha256:documentValue.documentSha256,providerKey:provider.providerKey,providerExtensionId:provider.providerExtensionId,providerExtensionVersion:provider.providerExtensionVersion};
+  const pendingReceipt={kind:'pending',tenantId:uuid(1),propertyNode:uuid(2),submissionId:uuid(71),documentId:uuid(10),documentSha256:documentValue.documentSha256,wireSha256:'f'.repeat(64),providerKey:provider.providerKey,attemptId:uuid(72),attemptNumber:1,status:'pending',disposition:'send',transitionSeq:1};
   const fail=(status,type)=>{const error=new Error(type);error.status=status;throw error};
   async function request(path,options={}){calls.push({scenario,path,method:options.method||'GET',headers:{...(options.headers||{})},body:options.body?JSON.parse(options.body):null});
     if(path.endsWith('/'+uuid(10)))return {invoice:documentValue};
@@ -238,6 +238,143 @@ test("Q208 configured provider registration is explicit, bound and ambiguity-saf
     expect(proof.succeeded.permission).toEqual({ state: "permission", message: "You do not have permission to request provider registration.", posts: 0 });
     expect(proof.succeeded.unsupported).toEqual({ state: "unsupported", message: "Provider registration is not supported for this property.", posts: 0 });
     expect(proof.late).toEqual({ state: "suspended", hidden: true, select: false, posts: 0 });
+  } finally {
+    server.stop(true);
+    await rm(directory, { recursive: true, force: true });
+  }
+}, 30_000);
+
+function retryBindingRecoveryPage(): string {
+  return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"></head>
+  <body><main id="root" class="invoice-workbench"></main><pre id="proof"></pre><script type="module">
+  ${fixture}
+  const sleep=ms=>new Promise(resolve=>setTimeout(resolve,ms));
+  const until=async(test,label,timeout=3000)=>{const end=performance.now()+timeout;while(performance.now()<end){if(test())return;await sleep(10)}throw new Error('timed out waiting for '+label)};
+  const calls=[];let head='retryable',mode='same-key',attempt=0;
+  const provider={providerExtensionId:uuid(61),providerExtensionVersion:7,providerKey:'fictional-clearirp'};
+  const common={kind:'pending',tenantId:uuid(1),propertyNode:uuid(2),submissionId:uuid(71),documentId:uuid(10),documentSha256:documentValue.documentSha256,wireSha256:'f'.repeat(64),providerKey:provider.providerKey};
+  const retryable={...common,attemptId:uuid(72),attemptNumber:1,status:'error',disposition:'retry',transitionSeq:3,retryBinding:{providerExtensionId:provider.providerExtensionId,providerExtensionVersion:provider.providerExtensionVersion}};
+  const nextRetryable={...common,attemptId:uuid(73),attemptNumber:2,status:'error',disposition:'retry',transitionSeq:6,retryBinding:{providerExtensionId:provider.providerExtensionId,providerExtensionVersion:provider.providerExtensionVersion}};
+  const historical={...common,attemptId:uuid(72),attemptNumber:1,status:'error',disposition:'retry',transitionSeq:3};
+  const pending={...common,attemptId:uuid(73),attemptNumber:2,status:'pending',disposition:'send',transitionSeq:4};
+  const pendingThird={...common,attemptId:uuid(75),attemptNumber:3,status:'pending',disposition:'send',transitionSeq:7};
+  const submitted={...common,attemptId:uuid(73),attemptNumber:2,status:'submitted',disposition:'lookup',transitionSeq:4};
+  const terminal={...common,kind:'rejected',attemptId:uuid(73),attemptNumber:2,status:'rejected',disposition:'none',transitionSeq:5,
+    environment:'sandbox',responseSha256:'e'.repeat(64),errorCodes:['FICTIONAL-E100']};
+  const submission={submissionId:uuid(71),documentId:uuid(10),attemptId:uuid(73),attemptNumber:2,retryCount:1,status:'pending',disposition:'send',transitionSeq:4,provider:{key:provider.providerKey,extensionId:provider.providerExtensionId,extensionVersion:provider.providerExtensionVersion},replayed:false};
+  const thirdSubmission={...submission,attemptId:uuid(75),attemptNumber:3,retryCount:2,transitionSeq:7};
+  const receipt=()=>head==='retryable'?retryable:head==='historical'?historical
+    :head==='next-retryable'?nextRetryable
+    :head==='malformed'?{...nextRetryable,retryBinding:{...nextRetryable.retryBinding,providerExtensionVersion:0}}
+    :head==='unrelated'?{...nextRetryable,submissionId:uuid(79)}:head==='submitted'?submitted:head==='terminal'?terminal
+    :head==='pending-third'?pendingThird:pending;
+  async function request(path,options={}){calls.push({mode,path,method:options.method||'GET',headers:{...(options.headers||{})},body:options.body?JSON.parse(options.body):null});
+    if(path.endsWith('/'+uuid(10)))return {invoice:documentValue};
+    if(path.endsWith('/receipt')){if(head==='unavailable')throw new TypeError('receipt unavailable');
+      if(head==='ambiguous')return {delivery:{kind:'ambiguous',documentId:uuid(10)}};
+      return {delivery:{kind:'receipt',documentId:uuid(10),receipt:receipt()}}}
+    if(path.endsWith('/fiscal-provider-options'))throw new Error('retry-only flow requested provider options');
+    if(path.endsWith('/'+uuid(71)+'/retry')){attempt+=1;
+      if((mode==='same-key'||mode==='preserve')&&attempt===1)throw new TypeError('connection lost before commit');
+      if(mode==='committed-loss'&&attempt===1){head='pending';throw new TypeError('connection lost after commit')}
+      if(mode==='advance-submitted'&&attempt===1){head='submitted';throw new TypeError('connection lost after submitted commit')}
+      if(mode==='advance-terminal'&&attempt===1){head='terminal';throw new TypeError('connection lost after terminal commit')}
+      if(mode==='next-known'&&attempt===1){head='next-retryable';throw new TypeError('connection lost before next known-not-sent read')}
+      if(mode==='next-known'){head='pending-third';return {fiscalSubmission:thirdSubmission}}
+      head='pending';return {fiscalSubmission:{...submission,replayed:attempt>1}};
+    }
+    throw new Error('unexpected request '+path);
+  }
+  const {createInvoiceWorkbench}=await import('/assets/operator-invoices.js');const root=document.querySelector('#root');
+  try {
+    let workbench=createInvoiceWorkbench({root,request,propertyNode:uuid(2),timezone:'Asia/Kolkata',navigate:()=>{}});
+    await workbench.show(uuid(10));
+    const loaded={state:root.dataset.invoiceState,status:root.querySelector('.invoice-workbench__registration')?.textContent,retry:root.querySelector('.invoice-workbench__provider-submit')?.textContent,options:calls.filter(call=>call.path.endsWith('/fiscal-provider-options')).length};
+    root.querySelector('.invoice-workbench__provider-submit').click();await until(()=>root.dataset.invoiceState==='unknown','retry unknown');
+    const unknown={message:root.querySelector('.invoice-workbench__provider-message')?.textContent,retry:root.querySelector('.invoice-workbench__provider-submit')?.textContent};
+    root.querySelector('.invoice-workbench__provider-submit').click();await until(()=>root.querySelector('.invoice-workbench__registration')?.textContent==='Registration pending','same-key recovery');
+    const sameKeyCalls=calls.filter(call=>call.path.endsWith('/'+uuid(71)+'/retry')&&call.mode==='same-key');
+    const sameKey={count:sameKeyCalls.length,same:sameKeyCalls.every(call=>call.headers['Idempotency-Key']===sameKeyCalls[0]?.headers['Idempotency-Key']),body:sameKeyCalls[0]?.body,status:root.querySelector('.invoice-workbench__registration')?.textContent};
+
+    workbench.dispose();root.hidden=false;head='retryable';mode='committed-loss';attempt=0;
+    workbench=createInvoiceWorkbench({root,request,propertyNode:uuid(2),timezone:'Asia/Kolkata',navigate:()=>{}});await workbench.show(uuid(10));
+    root.querySelector('.invoice-workbench__provider-submit').click();await until(()=>root.dataset.invoiceState==='unknown','committed response loss');
+    const committedKey=calls.filter(call=>call.path.endsWith('/'+uuid(71)+'/retry')&&call.mode==='committed-loss')[0]?.headers['Idempotency-Key'];
+    await workbench.show(uuid(10));
+    const sameController={state:root.dataset.invoiceState,status:root.querySelector('.invoice-workbench__registration')?.textContent,
+      message:root.querySelector('.invoice-workbench__status')?.textContent,retry:!!root.querySelector('.invoice-workbench__provider-submit'),
+      posts:calls.filter(call=>call.path.endsWith('/'+uuid(71)+'/retry')&&call.mode==='committed-loss').length};
+
+    const advanced={};
+    for(const candidate of ['submitted','terminal']){head='retryable';mode='advance-'+candidate;attempt=0;await workbench.show(uuid(10));
+      root.querySelector('.invoice-workbench__provider-submit').click();await until(()=>root.dataset.invoiceState==='unknown','advanced '+candidate+' unknown');
+      await workbench.show(uuid(10));advanced[candidate]={state:root.dataset.invoiceState,retry:!!root.querySelector('.invoice-workbench__provider-submit'),
+        posts:calls.filter(call=>call.path.endsWith('/'+uuid(71)+'/retry')&&call.mode==='advance-'+candidate).length};}
+
+    head='retryable';mode='next-known';attempt=0;await workbench.show(uuid(10));
+    root.querySelector('.invoice-workbench__provider-submit').click();await until(()=>root.dataset.invoiceState==='unknown','next known-not-sent unknown');
+    await workbench.show(uuid(10));
+    const nextKnownHead={state:root.dataset.invoiceState,status:root.querySelector('.invoice-workbench__registration')?.textContent,
+      retry:root.querySelector('.invoice-workbench__provider-submit')?.textContent};
+    root.querySelector('.invoice-workbench__provider-submit').click();await until(()=>root.querySelector('.invoice-workbench__registration')?.textContent==='Registration pending','next known-not-sent fresh retry');
+    const nextKnownCalls=calls.filter(call=>call.path.endsWith('/'+uuid(71)+'/retry')&&call.mode==='next-known');
+    const nextKnown={head:nextKnownHead,count:nextKnownCalls.length,fresh:nextKnownCalls[0]?.headers['Idempotency-Key']!==nextKnownCalls[1]?.headers['Idempotency-Key']};
+
+    head='retryable';mode='preserve';attempt=0;await workbench.show(uuid(10));
+    root.querySelector('.invoice-workbench__provider-submit').click();await until(()=>root.dataset.invoiceState==='unknown','preserved unknown');
+    const preservedFirst=calls.filter(call=>call.path.endsWith('/'+uuid(71)+'/retry')&&call.mode==='preserve')[0]?.headers['Idempotency-Key'];
+    const preservation={};
+    for(const candidate of ['malformed','ambiguous','unavailable','unrelated','retryable']){head=candidate;await workbench.show(uuid(10));
+      preservation[candidate]={state:root.dataset.invoiceState,retry:root.querySelector('.invoice-workbench__provider-submit')?.textContent||null};}
+    root.querySelector('.invoice-workbench__provider-submit').click();await until(()=>root.querySelector('.invoice-workbench__registration')?.textContent==='Registration pending','preserved same-key recovery');
+    const preservedCalls=calls.filter(call=>call.path.endsWith('/'+uuid(71)+'/retry')&&call.mode==='preserve');
+    const preserved={...preservation,count:preservedCalls.length,same:preservedCalls.every(call=>call.headers['Idempotency-Key']===preservedFirst)};
+    workbench.dispose();root.hidden=false;
+    workbench=createInvoiceWorkbench({root,request,propertyNode:uuid(2),timezone:'Asia/Kolkata',navigate:()=>{}});await workbench.show(uuid(10));await sleep(80);
+    const afterReload={state:root.dataset.invoiceState,status:root.querySelector('.invoice-workbench__registration')?.textContent,retry:!!root.querySelector('.invoice-workbench__provider-submit'),posts:calls.filter(call=>call.path.endsWith('/'+uuid(71)+'/retry')&&call.mode==='committed-loss').length};
+
+    workbench.dispose();root.hidden=false;head='historical';mode='historical';
+    workbench=createInvoiceWorkbench({root,request,propertyNode:uuid(2),timezone:'Asia/Kolkata',navigate:()=>{}});await workbench.show(uuid(10));
+    const missing={status:root.querySelector('.invoice-workbench__registration')?.textContent,retry:!!root.querySelector('.invoice-workbench__provider-submit')};
+    workbench.dispose();
+    document.querySelector('#proof').textContent=JSON.stringify({loaded,unknown,sameKey,committedKey,sameController,advanced,nextKnown,preserved,afterReload,missing,providerOptions:calls.filter(call=>call.path.endsWith('/fiscal-provider-options')).length});
+  }catch(error){document.querySelector('#proof').textContent=JSON.stringify({driverError:String(error?.stack||error)})}
+  </script></body></html>`;
+}
+
+test("Q212 reload reconstructs only durable known-not-sent retry authority and never duplicates a committed retry", async () => {
+  if (!browser) throw new Error("Chrome or Edge is required for the Q212 retry binding browser proof");
+  const server = Bun.serve({ port: 0, hostname: "127.0.0.1", fetch(request) {
+    const path = new URL(request.url).pathname;
+    if (path === "/") return new Response(retryBindingRecoveryPage(), { headers: { "content-type": "text/html; charset=utf-8" } });
+    if (path === "/assets/operator-invoices.js") return new Response(Bun.file(resolve(repository, "src/http/operator/invoices.js")), { headers: { "content-type": "text/javascript; charset=utf-8" } });
+    return new Response("not found", { status: 404 });
+  } });
+  const directory = await mkdtemp(resolve(tmpdir(), "yellow-q212-retry-binding-"));
+  try {
+    const result = await runOwnedProofProcess([browser, "--headless=new", "--disable-gpu", "--no-sandbox", "--disable-dev-shm-usage", "--no-first-run", "--no-default-browser-check", `--user-data-dir=${resolve(directory, "profile")}`, "--window-size=1280,900", "--virtual-time-budget=5000", "--dump-dom", `http://127.0.0.1:${server.port}/`], { timeoutMs: 20_000 });
+    expect(result.exitCode).toBe(0);
+    const encoded = result.stdout.match(/<pre id="proof">([^<]+)<\/pre>/)?.[1];
+    if (!encoded) throw new Error(`retry binding browser proof did not complete: ${result.stderr.slice(-500)}`);
+    const proof = JSON.parse(encoded.replaceAll("&quot;", '"').replaceAll("&amp;", "&"));
+    expect(proof.driverError).toBeUndefined();
+    expect(proof.loaded).toEqual({ state: "ready", status: "Known not sent; retry required", retry: "Retry original provider delivery", options: 0 });
+    expect(proof.unknown).toEqual({ message: "The retry outcome is unknown. Retry only with the same request identity and original provider.", retry: "Retry same delivery request" });
+    expect(proof.sameKey).toEqual({ count: 2, same: true, body: { providerExtensionId: uuid(61) }, status: "Registration pending" });
+    expect(proof.committedKey).toMatch(/^fiscal-retry-[0-9a-f-]{36}$/);
+    expect(proof.sameController).toEqual({ state: "ready", status: "Registration pending",
+      message: "Invoice detail loaded from immutable issued source.", retry: false, posts: 1 });
+    expect(proof.advanced).toEqual({ submitted: { state: "ready", retry: false, posts: 1 },
+      terminal: { state: "ready", retry: false, posts: 1 } });
+    expect(proof.nextKnown).toEqual({ head: { state: "ready", status: "Known not sent; retry required",
+      retry: "Retry original provider delivery" }, count: 2, fresh: true });
+    expect(proof.preserved).toEqual({ malformed: { state: "unknown", retry: null },
+      ambiguous: { state: "unknown", retry: null }, unavailable: { state: "unknown", retry: null },
+      unrelated: { state: "unknown", retry: null },
+      retryable: { state: "unknown", retry: "Retry same delivery request" }, count: 2, same: true });
+    expect(proof.afterReload).toEqual({ state: "ready", status: "Registration pending", retry: false, posts: 1 });
+    expect(proof.missing).toEqual({ status: "Known not sent; original provider binding unavailable", retry: false });
+    expect(proof.providerOptions).toBe(0);
   } finally {
     server.stop(true);
     await rm(directory, { recursive: true, force: true });

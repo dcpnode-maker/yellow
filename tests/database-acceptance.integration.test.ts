@@ -430,6 +430,11 @@ const EXPECTED_MIGRATIONS = [
     filename: "0085_india_native_fiscal_operator_command.sql",
     checksum_sha256: "c94c97efbb237fb99c5a35caf01faefa4d7fee98a07d8b30b89bec3ce0a7670c",
   },
+  {
+    version: 86,
+    filename: "0086_fiscal_submission_retry_binding.sql",
+    checksum_sha256: "40c55de6a34fb0f0ba354e5e37d210500038018fa649cf9437e29813fa0b915e",
+  },
 ];
 
 if (REQUIRE_DATABASE && !DATABASE_URL) {
@@ -508,7 +513,7 @@ databaseDescribe("fresh deployment database acceptance", () => {
             AND class.relforcerowsecurity) AS "forceRlsTables"
     `;
     expect(catalogue).toEqual([{
-      migrations: 85, tables: 128, rlsTables: 118, policies: 118, forceRlsTables: 27,
+      migrations: 86, tables: 128, rlsTables: 118, policies: 118, forceRlsTables: 27,
       permissions: 15, permissionGrants: 0,
     }]);
   });
@@ -819,6 +824,43 @@ databaseDescribe("fresh deployment database acceptance", () => {
          ])
     `;
     expect(helpers).toEqual([{ count: 10, ownerOnly: true }]);
+
+    const retryBindingHelper = await sql!<Array<{
+      signature: string; owner: string; language: string; securityDefiner: boolean;
+      volatility: string; strict: boolean; parallel: string; leakproof: boolean;
+      returnsSet: boolean; result: string; config: string[];
+      appExecute: boolean; runtimeExecute: boolean; publicExecute: boolean;
+      usedByReceiptRead: boolean;
+    }>>`
+      SELECT procedure.oid::regprocedure::text AS signature,
+             pg_catalog.pg_get_userbyid(procedure.proowner) AS owner,
+             language.lanname AS language,procedure.prosecdef AS "securityDefiner",
+             procedure.provolatile::text AS volatility,procedure.proisstrict AS strict,
+             procedure.proparallel::text AS parallel,procedure.proleakproof AS leakproof,
+             procedure.proretset AS "returnsSet",
+             pg_catalog.pg_get_function_result(procedure.oid) AS result,
+             procedure.proconfig AS config,
+             pg_catalog.has_function_privilege('app_role',procedure.oid,'EXECUTE') AS "appExecute",
+             pg_catalog.has_function_privilege('yellow_runtime',procedure.oid,'EXECUTE') AS "runtimeExecute",
+             pg_catalog.has_function_privilege('public',procedure.oid,'EXECUTE') AS "publicExecute",
+             pg_catalog.strpos(pg_catalog.pg_get_functiondef(
+               pg_catalog.to_regprocedure('public.read_india_fiscal_submission_delivery_receipt(uuid,uuid,uuid,uuid)')),
+               'public.india_fiscal_submission_retry_binding_v1(')>0 AS "usedByReceiptRead"
+        FROM pg_catalog.pg_proc procedure
+        JOIN pg_catalog.pg_namespace namespace ON namespace.oid=procedure.pronamespace
+        JOIN pg_catalog.pg_language language ON language.oid=procedure.prolang
+       WHERE namespace.nspname='public'
+         AND procedure.oid=pg_catalog.to_regprocedure(
+           'public.india_fiscal_submission_retry_binding_v1(text,text,text,uuid,integer)')
+    `;
+    expect(retryBindingHelper).toEqual([{
+      signature: "india_fiscal_submission_retry_binding_v1(text,text,text,uuid,integer)",
+      owner: "yellow_owner", language: "sql", securityDefiner: false,
+      volatility: "i", strict: false, parallel: "u", leakproof: false,
+      returnsSet: false, result: "jsonb", config: ["search_path=pg_catalog, public"],
+      appExecute: false, runtimeExecute: false, publicExecute: false,
+      usedByReceiptRead: true,
+    }]);
   });
 
   test("has the exact configured positive-tax semantic-route schema and read-only runtime ACL", async () => {
