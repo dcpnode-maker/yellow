@@ -171,6 +171,12 @@ describe("canonical project status", () => {
     expect(script).toContain('grep -LZ \'^## MERGED\' -- "${order_files[@]}"');
     expect(script).toContain('grep -LEZ \'^## (RESOLVED|RATIFIED)\' -- "${question_candidates[@]}"');
     expect(script).toContain('name=${file##*/}');
+    expect(script).toContain("command -v timeout >/dev/null 2>&1");
+    expect(script).toContain("timeout --signal=KILL 1s bash -s <<'YELLOW_DOCKER_PROBE'");
+    expect(script).toContain("docker compose ps --services --status running");
+    expect(script).toContain("docker compose exec -T postgres psql");
+    expect(script.match(/docker compose /g)).toHaveLength(2);
+    expect(script).not.toContain("docker info");
     expect(script).not.toContain('grep -q \'^## MERGED\' "$file"');
     expect(script).not.toContain('name=$(basename "$file")');
   });
@@ -227,6 +233,170 @@ describe("canonical project status", () => {
       await symlink("004-ARCHITECT-RESPONSE.md", join(directory, "handoff", "questions", "007-ARCHITECT-RESPONSE.md"));
       expect(await historicalCounts(directory)).toBe("Historical records: orders=5 total (3 lack legacy MERGED marker) reviews=1 total questions=3 without legacy resolution marker (9 total)");
       await report(2);
+    } finally {
+      await rm(directory, { recursive: true, force: true });
+    }
+  });
+
+  test.skipIf(process.platform === "win32")("Unix status bounds the complete optional Docker probe without a survivor", async () => {
+    const directory = await mkdtemp(join(tmpdir(), "yellow-project-status-docker-bound-"));
+    const bash = Bun.which("bash");
+    if (!bash) throw new Error("Unix status proof requires bash");
+    try {
+      for (const kind of ["orders", "reviews", "questions"]) {
+        await mkdir(join(directory, "handoff", kind), { recursive: true });
+      }
+      const bin = join(directory, "bin");
+      await mkdir(bin);
+      const survivor = join(directory, "docker-survivor");
+      await Bun.write(join(directory, "state.sh"), await Bun.file(join(root, "state.sh")).text());
+      await Bun.write(join(directory, "current.md"), "Current fixture order");
+      const statusFile = join(directory, "status.md");
+      await Bun.write(statusFile, [
+        "<!-- status-schema: yellow-project-status/v1 -->", "<!-- current-phase: 7 -->",
+        "<!-- current-task: bounded Docker fixture -->", "<!-- current-lifecycle: fixture -->",
+        "<!-- current-order-files: current.md -->",
+      ].join("\n"));
+      await Bun.write(join(bin, "git"), "#!/usr/bin/env bash\nexit 0\n");
+      await Bun.write(join(bin, "docker"), [
+        "#!/usr/bin/env bash",
+        'if [ "$*" = "compose ps --services --status running" ]; then',
+        "  printf 'postgres\\n'",
+        "  exit 0",
+        "fi",
+        'if [ "${1:-}" != compose ] || [ "${2:-}" != exec ]; then exit 91; fi',
+        '( sleep 2; printf survived > "$YELLOW_DOCKER_SURVIVOR_FILE" ) &',
+        "wait",
+      ].join("\n") + "\n");
+      for (const command of ["docker", "git"]) await chmod(join(bin, command), 0o755);
+      const started = performance.now();
+      const report = await runOwnedProofProcess([bash, join(directory, "state.sh")], {
+        cwd: directory,
+        env: {
+          ...process.env,
+          PATH: `${bin}:${process.env.PATH ?? ""}`,
+          YELLOW_PROJECT_STATUS_FILE: statusFile,
+          YELLOW_DOCKER_SURVIVOR_FILE: survivor,
+        },
+        timeoutMs: 4_500,
+      });
+      const elapsed = performance.now() - started;
+      expect(report.exitCode).toBe(0);
+      expect(report.stderr).toBe("");
+      expect(report.stdout).toContain("Service app: down");
+      expect(report.stdout).toContain("Service postgres: down");
+      expect(report.stdout).toContain("Service valkey: down");
+      expect(report.stdout).toContain("Phase: 7 · fixture");
+      expect(elapsed).toBeLessThan(3_500);
+      await Bun.sleep(1_500);
+      expect(await Bun.file(survivor).exists()).toBe(false);
+    } finally {
+      await rm(directory, { recursive: true, force: true });
+    }
+  });
+
+  test.skipIf(process.platform === "win32")("Unix status reports a successful bounded Docker snapshot", async () => {
+    const directory = await mkdtemp(join(tmpdir(), "yellow-project-status-docker-happy-"));
+    const bash = Bun.which("bash");
+    if (!bash) throw new Error("Unix status proof requires bash");
+    try {
+      for (const kind of ["orders", "reviews", "questions"]) {
+        await mkdir(join(directory, "handoff", kind), { recursive: true });
+      }
+      const bin = join(directory, "bin");
+      await mkdir(bin);
+      const dockerLog = join(directory, "docker.log");
+      await Bun.write(join(directory, "state.sh"), await Bun.file(join(root, "state.sh")).text());
+      await Bun.write(join(directory, "current.md"), "Current fixture order");
+      const statusFile = join(directory, "status.md");
+      await Bun.write(statusFile, [
+        "<!-- status-schema: yellow-project-status/v1 -->", "<!-- current-phase: 7 -->",
+        "<!-- current-task: bounded Docker fixture -->", "<!-- current-lifecycle: fixture -->",
+        "<!-- current-order-files: current.md -->",
+      ].join("\n"));
+      await Bun.write(join(bin, "git"), "#!/usr/bin/env bash\nexit 0\n");
+      await Bun.write(join(bin, "docker"), [
+        "#!/usr/bin/env bash",
+        'printf \'%s\\n\' "$*" >> "$YELLOW_DOCKER_LOG_FILE"',
+        'if [ "$*" = "compose ps --services --status running" ]; then',
+        "  printf 'app\\npostgres\\nvalkey\\n'",
+        "  exit 0",
+        "fi",
+        'if [ "${1:-}" = compose ] && [ "${2:-}" = exec ]; then',
+        "  printf '129\\n'",
+        "  exit 0",
+        "fi",
+        "exit 91",
+      ].join("\n") + "\n");
+      for (const command of ["docker", "git"]) await chmod(join(bin, command), 0o755);
+      const report = await runOwnedProofProcess([bash, join(directory, "state.sh")], {
+        cwd: directory,
+        env: {
+          ...process.env,
+          PATH: `${bin}:${process.env.PATH ?? ""}`,
+          YELLOW_PROJECT_STATUS_FILE: statusFile,
+          YELLOW_DOCKER_LOG_FILE: dockerLog,
+        },
+        timeoutMs: 4_500,
+      });
+      expect(report.exitCode).toBe(0);
+      expect(report.stderr).toBe("");
+      expect(report.stdout).toContain("Service app: up");
+      expect(report.stdout).toContain("Service postgres: up");
+      expect(report.stdout).toContain("Service valkey: up");
+      expect(report.stdout).toContain("yellow_test public tables: 129");
+      const invocations = (await Bun.file(dockerLog).text()).trim().split("\n");
+      expect(invocations).toHaveLength(2);
+      expect(invocations[0]).toBe("compose ps --services --status running");
+      expect(invocations[1]).toStartWith("compose exec -T postgres psql ");
+    } finally {
+      await rm(directory, { recursive: true, force: true });
+    }
+  });
+
+  test.skipIf(process.platform === "win32")("Unix status fails closed without a timeout executable", async () => {
+    const directory = await mkdtemp(join(tmpdir(), "yellow-project-status-no-timeout-"));
+    const bash = Bun.which("bash");
+    if (!bash) throw new Error("Unix status proof requires bash");
+    try {
+      for (const kind of ["orders", "reviews", "questions"]) {
+        await mkdir(join(directory, "handoff", kind), { recursive: true });
+      }
+      const bin = join(directory, "bin");
+      await mkdir(bin);
+      const dockerMarker = join(directory, "docker-invoked");
+      await Bun.write(join(directory, "state.sh"), await Bun.file(join(root, "state.sh")).text());
+      await Bun.write(join(directory, "current.md"), "Current fixture order");
+      const statusFile = join(directory, "status.md");
+      await Bun.write(statusFile, [
+        "<!-- status-schema: yellow-project-status/v1 -->", "<!-- current-phase: 7 -->",
+        "<!-- current-task: no-timeout fixture -->", "<!-- current-lifecycle: fixture -->",
+        "<!-- current-order-files: current.md -->",
+      ].join("\n"));
+      await Bun.write(join(bin, "git"), "#!/usr/bin/env bash\nexit 0\n");
+      await Bun.write(join(bin, "docker"), "#!/usr/bin/env bash\nprintf invoked > \"$YELLOW_DOCKER_MARKER_FILE\"\nexit 0\n");
+      for (const command of ["bash", "basename", "dirname", "grep", "head", "sed", "tr", "wc"]) {
+        const executable = Bun.which(command);
+        if (!executable) throw new Error(`Unix status proof requires ${command}`);
+        await symlink(executable, join(bin, command));
+      }
+      for (const command of ["docker", "git"]) await chmod(join(bin, command), 0o755);
+      const report = await runOwnedProofProcess([bash, join(directory, "state.sh")], {
+        cwd: directory,
+        env: {
+          ...process.env,
+          PATH: bin,
+          YELLOW_PROJECT_STATUS_FILE: statusFile,
+          YELLOW_DOCKER_MARKER_FILE: dockerMarker,
+        },
+        timeoutMs: 4_500,
+      });
+      expect(report.exitCode).toBe(0);
+      expect(report.stderr).toBe("");
+      expect(report.stdout).toContain("Service app: down");
+      expect(report.stdout).toContain("Service postgres: down");
+      expect(report.stdout).toContain("Service valkey: down");
+      expect(await Bun.file(dockerMarker).exists()).toBe(false);
     } finally {
       await rm(directory, { recursive: true, force: true });
     }
