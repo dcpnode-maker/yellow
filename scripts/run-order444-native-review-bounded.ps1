@@ -178,6 +178,17 @@ function Read-ExactEnvironment([string]$Path) {
     return ,$values
 }
 
+function Assert-DependencyJunctionIdentity([object]$Junction,[string]$ExpectedTarget) {
+    $targets=@($Junction.Target)
+    if($Junction.LinkType-cne'Junction'-or$targets.Count-ne1-or$targets[0]-isnot[string]-or
+       -not[IO.Path]::IsPathFullyQualified([string]$targets[0])-or-not[IO.Path]::IsPathFullyQualified($ExpectedTarget)){
+        throw 'Candidate dependency junction differs from receipt'
+    }
+    try{$actual=[IO.Path]::GetFullPath([string]$targets[0]);$expected=[IO.Path]::GetFullPath($ExpectedTarget)}
+    catch{throw 'Candidate dependency junction differs from receipt'}
+    if($actual-ine$expected){throw 'Candidate dependency junction differs from receipt'}
+}
+
 function New-SanitizedStartInfo([string]$Executable,[string]$WorkingDirectory,[string[]]$Arguments,
     [Collections.Generic.Dictionary[string,string]]$RuntimeEnvironment) {
     $info = [Diagnostics.ProcessStartInfo]::new()
@@ -267,7 +278,7 @@ if ($TestMode) {
     if((Get-Sha256Hex $paths.EnvironmentPath)-cne$receipt.appEnvironmentSha256){throw 'Protected runtime environment differs from receipt'}
     foreach($identity in @(@('package.json','packageJsonSha256'),@('bun.lock','bunLockSha256'),@('bunfig.toml','bunfigSha256'))){if((Get-Sha256Hex(Join-Path $paths.SourceRoot $identity[0]))-cne[string]$receipt.($identity[1])){throw 'Candidate dependency identity changed'}}
     $junction=Get-Item -LiteralPath (Join-Path $paths.SourceRoot 'node_modules') -Force
-    if($junction.LinkType-cne'Junction'-or@($junction.Target).Count-ne1-or[IO.Path]::GetFullPath([string]$junction.Target[0])-ine[IO.Path]::GetFullPath([string]$receipt.dependencyJunction)){throw 'Candidate dependency junction differs from receipt'}
+    Assert-DependencyJunctionIdentity $junction ([string]$receipt.dependencyJunction)
     $runtimeRoot = $paths.ControlRoot
     $childExecutable = $productionBunPath
     $workingDirectory = $paths.SourceRoot

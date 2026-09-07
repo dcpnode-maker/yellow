@@ -287,6 +287,17 @@ function Invoke-PrivateTool([string]$Executable,[string[]]$Arguments,[string]$Wo
 
 function New-RandomSecret{return [Convert]::ToHexString([Security.Cryptography.RandomNumberGenerator]::GetBytes(32)).ToLowerInvariant()}
 
+function Assert-DependencyJunctionIdentity([object]$Junction,[string]$ExpectedTarget) {
+    $targets=@($Junction.Target)
+    if($Junction.LinkType-cne'Junction'-or$targets.Count-ne1-or$targets[0]-isnot[string]-or
+       -not[IO.Path]::IsPathFullyQualified([string]$targets[0])-or-not[IO.Path]::IsPathFullyQualified($ExpectedTarget)){
+        throw 'Candidate dependency junction differs from receipt'
+    }
+    try{$actual=[IO.Path]::GetFullPath([string]$targets[0]);$expected=[IO.Path]::GetFullPath($ExpectedTarget)}
+    catch{throw 'Candidate dependency junction differs from receipt'}
+    if($actual-ine$expected){throw 'Candidate dependency junction differs from receipt'}
+}
+
 function Read-CandidateIdentity([object]$Paths) {
     Assert-PrivateDirectory $Paths.ControlRoot
     $receipt=Read-BoundedPrivateJson $Paths.ReceiptPath 32768;Assert-CandidateReceiptShape $receipt $Paths $CandidateRevision
@@ -299,9 +310,7 @@ function Read-CandidateIdentity([object]$Paths) {
         if((Get-Sha256Hex(Join-Path $Paths.SourceRoot $identity[0]))-cne[string]$receipt.($identity[1])){throw 'Candidate dependency manifest differs from receipt'}
     }
     $junction=Get-Item -LiteralPath (Join-Path $Paths.SourceRoot 'node_modules') -Force
-    if($junction.LinkType-cne'Junction'-or@($junction.Target).Count-ne1-or[IO.Path]::GetFullPath([string]$junction.Target[0])-ine[IO.Path]::GetFullPath([string]$receipt.dependencyJunction)){
-        throw 'Candidate dependency junction differs from receipt'
-    }
+    Assert-DependencyJunctionIdentity $junction ([string]$receipt.dependencyJunction)
     return [pscustomobject]@{Receipt=$receipt;Manifest=$manifest}
 }
 

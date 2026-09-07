@@ -137,6 +137,51 @@ foreach($change in @(
     expect(result.exitCode, result.stderr.toString()).toBe(0);
   });
 
+  nativeTest("both candidate preflights accept the real scalar junction target and reject every ambiguous identity", async () => {
+    const junctionRoot = join(fixtureRoot, "dependency-junction");
+    const target = join(junctionRoot, "target");
+    const otherTarget = join(junctionRoot, "other-target");
+    const link = join(junctionRoot, "node_modules");
+    const ordinaryDirectory = join(junctionRoot, "ordinary-directory");
+    const probe = await writeProbe("dependency-junction-proof.ps1", String.raw`
+$root='${junctionRoot.replaceAll("'", "''")}'
+$target='${target.replaceAll("'", "''")}'
+$other='${otherTarget.replaceAll("'", "''")}'
+$link='${link.replaceAll("'", "''")}'
+$ordinary='${ordinaryDirectory.replaceAll("'", "''")}'
+[IO.Directory]::CreateDirectory($target)|Out-Null
+[IO.Directory]::CreateDirectory($other)|Out-Null
+[IO.Directory]::CreateDirectory($ordinary)|Out-Null
+$junction=New-Item -ItemType Junction -Path $link -Target $target
+try {
+  if($junction.Target-isnot[string]){throw "PowerShell did not expose the real junction target as a scalar string: $($junction.Target.GetType().FullName)"}
+  foreach($path in @('${orchestratorPath.replaceAll("'", "''")}','${supervisorPath.replaceAll("'", "''")}')){
+    $source=[IO.File]::ReadAllText($path)
+    if($source-match'\.Target\s*\[\s*0\s*\]'){throw "scalar target indexing remains in $path"}
+    $tokens=$null;$errors=$null
+    $ast=[Management.Automation.Language.Parser]::ParseFile($path,[ref]$tokens,[ref]$errors)
+    $fn=@($ast.FindAll({param($n)$n-is[Management.Automation.Language.FunctionDefinitionAst]-and$n.Name-eq'Assert-DependencyJunctionIdentity'},$true))
+    if($fn.Count-ne1){throw "dependency junction identity guard missing in $path"}
+    . ([scriptblock]::Create($fn[0].Extent.Text))
+    Assert-DependencyJunctionIdentity $junction $target
+    foreach($case in @(
+      @((Get-Item -LiteralPath $ordinary -Force),$ordinary),
+      @($junction,$other),
+      @([pscustomobject]@{LinkType='Junction';Target=@($target,$other)},$target)
+    )){
+      $rejected=$false
+      try{Assert-DependencyJunctionIdentity $case[0] $case[1]}catch{$rejected=$true}
+      if(-not$rejected){throw "wrong-type, mismatched or multiple dependency target was accepted by $path"}
+    }
+  }
+} finally {
+  if(Test-Path -LiteralPath $link){Remove-Item -LiteralPath $link -Force}
+}
+`);
+    const result = runPowerShell(probe);
+    expect(result.exitCode, result.stderr.toString()).toBe(0);
+  });
+
   nativeTest("listener ownership rejects foreign, public, stale and ambiguous listeners without killing them", async () => {
     const probe = await writeProbe("listener-proof.ps1", String.raw`
 $tokens=$null;$errors=$null
