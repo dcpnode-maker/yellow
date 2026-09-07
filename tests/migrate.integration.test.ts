@@ -1110,6 +1110,98 @@ databaseDescribe("Bun SQL migration runner", () => {
     }, 240_000);
   });
 
+  describe("Order446 canonical migration 86 to 87 boundary", () => {
+    const filename = "0087_india_native_fiscal_credit_note.sql";
+    const checksum = "c8b4ada5702807a0705a13e888e95730e0dbcc8ac7796e0ad2358208a5f873ba";
+    let upgradedSchema: string | undefined;
+    let predecessorLedger: readonly ExactLedgerRow[] | undefined;
+    let finalLedger: readonly ExactLedgerRow[] | undefined;
+
+    test("rolls back 87, preserves exact 1-86, applies once, no-ops and refuses checksum drift", async () => {
+      const through86 = await canonicalMigrationFiles(86);
+      const through87 = await canonicalMigrationFiles(87);
+      const canonical = await readFile(resolve(PROJECT_MIGRATIONS, filename));
+      expect(Object.keys(through87).filter(name => Number(name.slice(0, 4)) === 87)).toEqual([filename]);
+      expect(fileSha256(canonical)).toBe(checksum);
+      await withDatabase(async ({ databaseUrl: targetUrl, sql }) => {
+        const predecessor = await withMigrationDirectory(through86, directory => runMigrations({
+          databaseUrl: targetUrl, migrationsDirectory: directory, logger: () => undefined,
+        }));
+        expect(predecessor.appliedFiles).toHaveLength(86);
+        expect(predecessor.appliedFiles.at(-1)).toBe("0086_fiscal_submission_retry_binding.sql");
+        predecessorLedger = await exactLedger(sql);
+        const predecessorSchema = await normalizedOrder434Dump(targetUrl);
+        const injected = new Uint8Array([...canonical, ...new TextEncoder().encode(
+          "\nDO $order446_atomic_failure$ BEGIN RAISE EXCEPTION USING ERRCODE='55000', MESSAGE='Order446 injected migration 87 rollback'; END $order446_atomic_failure$;\n",
+        )]);
+        await withMigrationDirectory({ ...through86, [filename]: injected }, async directory => {
+          const failure = await migrationFailure(() => runMigrations({
+            databaseUrl: targetUrl, migrationsDirectory: directory, logger: () => undefined,
+          }));
+          expect(failure).toMatchObject({
+            errno: "55000",
+            rollbackConnectionUsable: true,
+            message: "Order446 injected migration 87 rollback (SQLSTATE 55000)",
+          });
+        });
+        expect(await exactLedger(sql)).toEqual(predecessorLedger);
+        expect(await normalizedOrder434Dump(targetUrl)).toBe(predecessorSchema);
+
+        const upgrade = await withMigrationDirectory(through87, directory => runMigrations({
+          databaseUrl: targetUrl, migrationsDirectory: directory, logger: () => undefined,
+        }));
+        expect(upgrade.appliedFiles).toEqual([filename]);
+        expect(upgrade.transactionBackendPids).toEqual([upgrade.backendPid]);
+        expect(await exactLedger(sql, 86)).toEqual(predecessorLedger);
+        expect(await sql<Array<{ filename: string; checksum_sha256: string }>>`
+          SELECT filename,checksum_sha256 FROM public.schema_migration WHERE version=87`)
+          .toEqual([{ filename, checksum_sha256: checksum }]);
+        finalLedger = await exactLedger(sql);
+        expect(finalLedger).toHaveLength(87);
+        upgradedSchema = await normalizedOrder434Dump(targetUrl);
+
+        const noOp = await withMigrationDirectory(through87, directory => runMigrations({
+          databaseUrl: targetUrl, migrationsDirectory: directory, logger: () => undefined,
+        }));
+        expect(noOp).toMatchObject({ appliedFiles: [], discoveredFiles: 87, transactionBackendPids: [] });
+        expect(await exactLedger(sql)).toEqual(finalLedger);
+
+        await withMigrationDirectory({ ...through87,
+          [filename]: new Uint8Array([...canonical, 0x0a]),
+        }, async directory => {
+          const drift = await migrationFailure(() => runMigrations({
+            databaseUrl: targetUrl, migrationsDirectory: directory, logger: () => undefined,
+          }));
+          expect(drift.message).toContain("Applied migration checksum mismatch for version 87");
+        });
+        expect(await exactLedger(sql)).toEqual(finalLedger);
+        expect(await normalizedOrder434Dump(targetUrl)).toBe(upgradedSchema);
+      });
+    }, 300_000);
+
+    test("fresh canonical 87 is schema-identical to the canonical 86 upgrade", async () => {
+      if (!upgradedSchema || !predecessorLedger || !finalLedger) {
+        throw new Error("Order446 upgrade proof must complete before fresh equivalence");
+      }
+      const expectedSchema = upgradedSchema;
+      const expectedPredecessor = predecessorLedger;
+      const expectedFinal = finalLedger;
+      const through87 = await canonicalMigrationFiles(87);
+      await withDatabase(async ({ databaseUrl: targetUrl, sql }) => {
+        const fresh = await withMigrationDirectory(through87, directory => runMigrations({
+          databaseUrl: targetUrl, migrationsDirectory: directory, logger: () => undefined,
+        }));
+        expect(fresh.appliedFiles).toHaveLength(87);
+        expect(fresh.appliedFiles.at(-1)).toBe(filename);
+        expect((await exactLedger(sql, 86)).map(({ applied_at_bytes: _ignored, ...row }) => row))
+          .toEqual(expectedPredecessor.map(({ applied_at_bytes: _ignored, ...row }) => row));
+        expect((await exactLedger(sql)).map(({ applied_at_bytes: _ignored, ...row }) => row))
+          .toEqual(expectedFinal.map(({ applied_at_bytes: _ignored, ...row }) => row));
+        expect(await normalizedOrder434Dump(targetUrl)).toBe(expectedSchema);
+      });
+    }, 240_000);
+  });
+
   test(
     "rejects migration 0015 atomically while yellow_runtime is connected, then retries after drain",
     async () => {

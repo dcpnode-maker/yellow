@@ -27,6 +27,7 @@ import {
 const migration = new URL("../migrations/0086_fiscal_submission_retry_binding.sql", import.meta.url);
 const deployUrl = process.env.YELLOW_ORDER440_Q212_DEPLOY_DATABASE_URL;
 const runtimeUrl = process.env.YELLOW_ORDER440_Q212_RUNTIME_DATABASE_URL;
+const migrationsDirectory = process.env.YELLOW_ORDER440_Q212_MIGRATIONS_DIR;
 const applyUpgrade = process.env.YELLOW_ORDER440_Q212_APPLY_UPGRADE === "1";
 const required = process.env.YELLOW_REQUIRE_ORDER440_Q212_DATABASE === "1";
 const READ_SCOPE = "tax-fiscal.submissions:read";
@@ -40,6 +41,9 @@ const RECEIPT_READER_SIGNATURE =
 
 if ((required || applyUpgrade) && (!deployUrl || !runtimeUrl)) {
   throw new Error("Q212 retry binding proof requires explicit deploy and runtime URLs");
+}
+if (applyUpgrade && !migrationsDirectory) {
+  throw new Error("Q212 upgrade proof requires the explicit canonical86 migrations directory");
 }
 
 function target(value: string, role: "yellow_deploy" | "yellow_runtime"): Readonly<{
@@ -414,7 +418,7 @@ databaseDescribe("Q212 signed-session retry binding recovery", () => {
           public: false, app: false, runtime: false });
 
         const failure = await migrationFailure(runMigrations({
-          databaseUrl: deployUrl!, logger: () => undefined,
+          databaseUrl: deployUrl!, migrationsDirectory, logger: () => undefined,
         }));
         expect(failure).toMatchObject({ errno: "PZ086", rollbackConnectionUsable: true });
         expect(failure.message).toBe("Q212 migration86 ledger insertion reached (SQLSTATE PZ086)");
@@ -448,7 +452,9 @@ databaseDescribe("Q212 signed-session retry binding recovery", () => {
       expect(await exactLedger(deploy)).toEqual(ledgerBefore);
       expect(await receiptReaderAuthority(deploy)).toEqual(readerBefore);
 
-      const applied = await runMigrations({ databaseUrl: deployUrl!, logger: () => undefined });
+      const applied = await runMigrations({
+        databaseUrl: deployUrl!, migrationsDirectory, logger: () => undefined,
+      });
       expect(applied.appliedFiles).toEqual([MIGRATION_86_FILENAME]);
       expect(applied.transactionBackendPids).toEqual([applied.backendPid]);
       expect(await tenantSnapshot(deploy, scenario.tenantId)).toEqual(before);

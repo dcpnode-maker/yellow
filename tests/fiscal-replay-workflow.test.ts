@@ -131,6 +131,7 @@ test("CI preserves historical fiscal frontiers and runs fresh and upgraded86 pro
   const q208 = workflow.indexOf('q208_database="yellow_order440_q208_fresh85_ci"');
   const q212Fresh = workflow.indexOf('q212_fresh_database="yellow_order440_q212_fresh86_ci"');
   const q212Upgrade = workflow.indexOf('q212_upgrade_database="yellow_order440_q212_upgrade85_ci"');
+  const order446 = workflow.indexOf("      - name: Prove Order446 credit-note backend on isolated fresh87 and populated86 targets");
   expect(historicalStart).toBeGreaterThan(0);
   expect(q203).toBeGreaterThan(historicalStart);
   expect(q204).toBeGreaterThan(q203);
@@ -140,6 +141,7 @@ test("CI preserves historical fiscal frontiers and runs fresh and upgraded86 pro
   expect(q208).toBeGreaterThan(q209);
   expect(q212Fresh).toBeGreaterThan(q208);
   expect(q212Upgrade).toBeGreaterThan(q212Fresh);
+  expect(order446).toBeGreaterThan(q212Upgrade);
   const historical = workflow.slice(historicalStart, upgrade);
   expect(historical).toContain('10#${filename:0:4} <= 80');
   expect(historical).toContain('export YELLOW_ORDER434_MIGRATIONS_DIR="$native_migrations"');
@@ -209,22 +211,51 @@ test("CI preserves historical fiscal frontiers and runs fresh and upgraded86 pro
 
   const q212FreshStep = workflow.slice(q212Fresh, q212Upgrade);
   expect(q212FreshStep).toContain('CREATE DATABASE ${q212_fresh_database}');
-  expect(q212FreshStep).toContain('YELLOW_DEPLOY_DATABASE_URL="$q212_fresh_deploy_url" bun run db:migrate');
+  expect(q212FreshStep).toContain('YELLOW_MIGRATIONS_DIR="$current86_migrations" YELLOW_DEPLOY_DATABASE_URL="$q212_fresh_deploy_url" bun run db:migrate');
   expect(q212FreshStep).toContain("YELLOW_REQUIRE_ORDER440_Q212_DATABASE=1");
   expect(q212FreshStep).toContain("bun test tests/fiscal-retry-binding.integration.test.ts");
-  expect(q212FreshStep).toContain("bun test tests/fiscal-retry-readiness.integration.test.ts");
+  expect(q212FreshStep).not.toContain("fiscal-retry-readiness.integration.test.ts");
   expect(q212FreshStep).not.toContain("YELLOW_ORDER440_Q212_APPLY_UPGRADE=1");
-  const q212UpgradeStep = workflow.slice(q212Upgrade, q208End);
+  const current86Start = workflow.lastIndexOf(
+    'current86_migrations="$(mktemp -d "$RUNNER_TEMP/yellow-order440-prefix86.XXXXXX")"',
+    q212Fresh,
+  );
+  expect(current86Start).toBeGreaterThan(q208);
+  expect(workflow.slice(current86Start, q212Fresh)).toContain('10#${filename:0:4} <= 86');
+  const q212UpgradeStep = workflow.slice(q212Upgrade, order446);
   expect(q212UpgradeStep).toContain('CREATE DATABASE ${q212_upgrade_database}');
   expect(q212UpgradeStep).toContain('YELLOW_MIGRATIONS_DIR="$current85_migrations"');
-  expect(q212UpgradeStep).toContain("env -u YELLOW_MIGRATIONS_DIR");
+  expect(q212UpgradeStep).toContain('YELLOW_ORDER440_Q212_MIGRATIONS_DIR="$current86_migrations"');
+  expect(q212UpgradeStep).not.toContain("env -u YELLOW_MIGRATIONS_DIR");
   expect(q212UpgradeStep).toContain("YELLOW_ORDER440_Q212_APPLY_UPGRADE=1");
   expect(q212UpgradeStep).toContain("bun test tests/fiscal-retry-binding.integration.test.ts");
-  expect(q212UpgradeStep).toContain("bun test tests/fiscal-retry-readiness.integration.test.ts");
+  expect(q212UpgradeStep).not.toContain("fiscal-retry-readiness.integration.test.ts");
   expect(q212UpgradeStep).toContain('rm -r -- "$current85_migrations"');
+  expect(q212UpgradeStep).toContain('rm -r -- "$current86_migrations"');
   for (const step of [q212FreshStep, q212UpgradeStep]) {
     expect(step).not.toContain("|| true");
     expect(step).not.toContain("continue-on-error");
     expect(step).not.toContain("--test-name-pattern");
   }
+
+  const order446Step = workflow.slice(order446, q208End);
+  for (const required of [
+    'fresh_database="yellow_order446_fresh87_ci"',
+    'upgrade_database="yellow_order446_upgrade86_ci"',
+    'readiness_database="yellow_order440_q212_current87_ci"',
+    'prefix86="$(mktemp -d "$RUNNER_TEMP/yellow-order446-prefix86.XXXXXX")"',
+    '10#${filename:0:4} <= 86',
+    'env -u YELLOW_MIGRATIONS_DIR YELLOW_DEPLOY_DATABASE_URL="$fresh_deploy_url" bun run db:migrate',
+    "YELLOW_REQUIRE_ORDER446_DATABASE=1",
+    "bun test tests/india-native-fiscal-credit-note.integration.test.ts",
+    "bun test tests/operator-fiscal-credit-note.integration.test.ts",
+    'env -u YELLOW_MIGRATIONS_DIR YELLOW_DEPLOY_DATABASE_URL="$readiness_deploy_url" bun run db:migrate',
+    "bun test tests/fiscal-retry-readiness.integration.test.ts",
+    'YELLOW_MIGRATIONS_DIR="$prefix86" YELLOW_DEPLOY_DATABASE_URL="$upgrade_deploy_url" bun run db:migrate',
+    "YELLOW_REQUIRE_ORDER446_UPGRADE_DATABASE=1",
+    "bun test tests/india-native-fiscal-credit-note-upgrade.integration.test.ts",
+  ]) expect(order446Step).toContain(required);
+  expect(order446Step).not.toContain("|| true");
+  expect(order446Step).not.toContain("continue-on-error");
+  expect(order446Step).not.toContain("--test-name-pattern");
 });

@@ -712,3 +712,20 @@ export type {
   IndiaNativeFiscalSourceInput,
   IndiaNativeFiscalSourceResult,
 } from "./india-native-fiscal-source";
+export {
+  IndiaNativeFiscalCreditNoteAuthorizationError,
+  IndiaNativeFiscalCreditNoteConflictError,
+  IndiaNativeFiscalCreditNoteDatabaseError,
+  IndiaNativeFiscalCreditNoteNotFoundError,
+  IndiaNativeFiscalCreditNoteService,
+  IndiaNativeFiscalCreditNoteValidationError,
+  snapshotIndiaNativeFiscalCreditNoteIssueInput,
+  snapshotIndiaNativeFiscalCreditNoteReadInput,
+} from "./india-native-fiscal-credit-note";
+export type {
+  IndiaNativeFiscalCreditNoteIssueInput,
+  IndiaNativeFiscalCreditNoteIssueResult,
+  IndiaNativeFiscalCreditNoteReadInput,
+  IndiaNativeFiscalCreditNoteReadResult,
+  IndiaNativeFiscalCreditNoteReceipt,
+} from "./india-native-fiscal-credit-note";

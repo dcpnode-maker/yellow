@@ -38,7 +38,7 @@ async function readinessFailure(operation: Promise<void>): Promise<Error> {
 async function ensureCurrentRelease(): Promise<void> {
   if (currentReleaseReady) return;
   const result = await runMigrations({ databaseUrl: deploymentDatabaseUrl, logger: () => undefined });
-  expect(result.appliedFiles).toEqual(["0086_fiscal_submission_retry_binding.sql"]);
+  expect(result.appliedFiles).toEqual(["0087_india_native_fiscal_credit_note.sql"]);
   deployment = new SQL(deploymentDatabaseUrl, { max: 1, prepare: false });
   runtime = new SQL(runtimeDatabaseUrl, { max: 1, prepare: false });
   currentReleaseReady = true;
@@ -221,6 +221,45 @@ databaseDescribe("Order438 runtime release readiness identity", () => {
           FROM public.schema_migration
       `;
       expect(identity).toEqual({ applied: 85, frontier: 85, retry_binding: null });
+      const error = await readinessFailure(assertRuntimeReleaseReadiness(predecessorRuntime));
+      expect(error.message).toBe("runtime release readiness is unavailable");
+    } finally {
+      await predecessorRuntime.close({ timeout: 5 });
+      await predecessorDeployment.close({ timeout: 5 });
+    }
+  });
+
+  test("rejects the populated release-86 predecessor without the credit-note authority", async () => {
+    const prefixDirectory = await mkdtemp(join(tmpdir(), "yellow-order446-readiness-86-"));
+    try {
+      const names = (await readdir(MIGRATIONS)).filter(name =>
+        name.endsWith(".sql") && Number(name.slice(0, 4)) <= 86);
+      await Promise.all(names.map(async name => writeFile(resolve(prefixDirectory, name),
+        await readFile(resolve(MIGRATIONS, name)))));
+      const result = await runMigrations({ databaseUrl: deploymentDatabaseUrl,
+        migrationsDirectory: prefixDirectory, logger: () => undefined });
+      expect(result.appliedFiles).toEqual(["0086_fiscal_submission_retry_binding.sql"]);
+    } finally {
+      if (!resolve(prefixDirectory).startsWith(resolve(tmpdir()) + "/")
+          && !resolve(prefixDirectory).startsWith(resolve(tmpdir()) + "\\")) {
+        throw new Error("readiness proof cleanup escaped temporary directory");
+      }
+      await rm(prefixDirectory, { recursive: true, force: true });
+    }
+    const predecessorDeployment = new SQL(deploymentDatabaseUrl, { max: 1, prepare: false });
+    const predecessorRuntime = new SQL(runtimeDatabaseUrl, { max: 1, prepare: false });
+    try {
+      const [identity] = await predecessorDeployment<{
+        applied: number; frontier: number; credit_binding: string | null;
+        credit_commit: string | null;
+      }[]>`
+        SELECT count(*)::integer AS applied,max(version)::integer AS frontier,
+               to_regclass('public.india_native_fiscal_credit_note')::text AS credit_binding,
+               to_regprocedure('public.commit_india_native_fiscal_credit_note(uuid,uuid,uuid,uuid,text,text,uuid)')::text
+                 AS credit_commit
+          FROM public.schema_migration
+      `;
+      expect(identity).toEqual({ applied: 86, frontier: 86, credit_binding: null, credit_commit: null });
       const error = await readinessFailure(assertRuntimeReleaseReadiness(predecessorRuntime));
       expect(error.message).toBe("runtime release readiness is unavailable");
     } finally {
@@ -429,6 +468,88 @@ databaseDescribe("Order438 runtime release readiness identity", () => {
           "runtime release readiness is unavailable",
         );
       } finally { await deployment!.unsafe(restore); }
+      await expect(assertRuntimeReleaseReadiness(runtime!)).resolves.toBeUndefined();
+    }
+  });
+
+  test("rejects Order446 credit-note catalogue drift and restores exact readiness", async () => {
+    await ensureCurrentRelease();
+    const commit = "public.commit_india_native_fiscal_credit_note(uuid,uuid,uuid,uuid,text,text,uuid)";
+    const templates = "public.india_native_credit_line_templates(uuid,uuid)";
+    const cases: ReadonlyArray<Readonly<{
+      mutate: readonly string[];
+      restore: readonly string[];
+    }>> = [
+      {
+        mutate: ["ALTER TABLE public.india_native_fiscal_credit_note NO FORCE ROW LEVEL SECURITY"],
+        restore: ["ALTER TABLE public.india_native_fiscal_credit_note FORCE ROW LEVEL SECURITY"],
+      },
+      {
+        mutate: ["ALTER POLICY tenant_isolation ON public.india_native_fiscal_credit_note USING (true) WITH CHECK (true)"],
+        restore: [`ALTER POLICY tenant_isolation ON public.india_native_fiscal_credit_note
+          USING (tenant_id=NULLIF(pg_catalog.current_setting('app.tenant_id',true),'')::uuid)
+          WITH CHECK (tenant_id=NULLIF(pg_catalog.current_setting('app.tenant_id',true),'')::uuid)`],
+      },
+      {
+        mutate: ["GRANT INSERT ON public.india_native_fiscal_credit_note TO app_role"],
+        restore: ["REVOKE INSERT ON public.india_native_fiscal_credit_note FROM app_role"],
+      },
+      {
+        mutate: [
+          "ALTER TABLE public.india_native_fiscal_credit_note DROP CONSTRAINT india_native_fiscal_credit_note_check",
+          `ALTER TABLE public.india_native_fiscal_credit_note
+            ADD CONSTRAINT india_native_fiscal_credit_note_check CHECK (true)`,
+        ],
+        restore: [
+          "ALTER TABLE public.india_native_fiscal_credit_note DROP CONSTRAINT india_native_fiscal_credit_note_check",
+          `ALTER TABLE public.india_native_fiscal_credit_note
+            ADD CONSTRAINT india_native_fiscal_credit_note_check CHECK (document_id<>original_document_id)`,
+        ],
+      },
+      {
+        mutate: ["DROP INDEX public.india_native_credit_property"],
+        restore: [`CREATE INDEX india_native_credit_property
+          ON public.india_native_fiscal_credit_note
+          (tenant_id,property_node,business_date,document_id)`],
+      },
+      {
+        mutate: [`ALTER FUNCTION ${commit} SET search_path TO public`],
+        restore: [`ALTER FUNCTION ${commit} SET search_path TO pg_catalog,public,pg_temp`],
+      },
+      {
+        mutate: [`GRANT EXECUTE ON FUNCTION ${commit} TO yellow_runtime`],
+        restore: [`REVOKE EXECUTE ON FUNCTION ${commit} FROM yellow_runtime`],
+      },
+      {
+        mutate: [`ALTER FUNCTION ${templates} STABLE`],
+        restore: [`ALTER FUNCTION ${templates} VOLATILE`],
+      },
+      {
+        mutate: [
+          "DROP TRIGGER india_native_credit_complete ON public.india_native_fiscal_credit_note",
+          `CREATE CONSTRAINT TRIGGER india_native_credit_complete
+            AFTER INSERT ON public.india_native_fiscal_credit_note
+            DEFERRABLE INITIALLY IMMEDIATE FOR EACH ROW
+            EXECUTE FUNCTION public.assert_india_native_credit_complete()`,
+        ],
+        restore: [
+          "DROP TRIGGER IF EXISTS india_native_credit_complete ON public.india_native_fiscal_credit_note",
+          `CREATE CONSTRAINT TRIGGER india_native_credit_complete
+            AFTER INSERT ON public.india_native_fiscal_credit_note
+            DEFERRABLE INITIALLY DEFERRED FOR EACH ROW
+            EXECUTE FUNCTION public.assert_india_native_credit_complete()`,
+        ],
+      },
+    ];
+    for (const probe of cases) {
+      try {
+        for (const statement of probe.mutate) await deployment!.unsafe(statement);
+        await expect(assertRuntimeReleaseReadiness(runtime!)).rejects.toThrow(
+          "runtime release readiness is unavailable",
+        );
+      } finally {
+        for (const statement of probe.restore) await deployment!.unsafe(statement);
+      }
       await expect(assertRuntimeReleaseReadiness(runtime!)).resolves.toBeUndefined();
     }
   });

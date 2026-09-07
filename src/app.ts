@@ -211,6 +211,12 @@ export function createApp(options: AppOptions = {}) {
       .post("/api/v1/properties/:property/invoices/search", ({ request, params, body }) =>
         withOperatorTenant(request, (context) => operator.invoiceSearch(context, params.property, body))
       )
+      .post("/api/v1/properties/:property/invoices/:originalDocument/credit-notes", ({ request, params, body }) =>
+        withOperatorTenant(request, (context) => operator.fiscalCreditNoteIssue(context, params.property, params.originalDocument, body))
+      )
+      .get("/api/v1/properties/:property/credit-notes/:creditDocument", ({ request, params }) =>
+        withOperatorTenant(request, (context) => operator.fiscalCreditNoteRead(context, params.property, params.creditDocument))
+      )
       .post("/api/v1/properties/:property/reservations/:reservation/folios/:folio/invoice-readiness", ({ request, params, body }) =>
         withOperatorTenant(request, (context) => operator.invoiceReadiness(context, params.property, params.reservation, params.folio, body))
       )

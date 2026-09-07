@@ -35,6 +35,9 @@ describe("release build identity and readiness", () => {
         q208PublicEntryAuthorityExact: true,
         q208PrivateEntryAuthorityExact: true,
         q208IndexesExact: true,
+        nativeCreditBindingProtected: true,
+        nativeCreditEntryAuthorityExact: true,
+        nativeCreditPrivateAuthorityExact: true,
       }]);
     }), {
       begin: async (_options: string, operation: (transaction: SQL) => Promise<unknown>) => operation(Object.assign(
@@ -62,6 +65,19 @@ describe("release build identity and readiness", () => {
     expect(query).toContain("has_column_privilege");
     expect(query).toContain("fiscalReceiptReadAuthorityExact");
     expect(query).toContain("fiscalRetryBindingAuthorityExact");
+    expect(query).toContain("nativeCreditBindingProtected");
+    expect(query).toContain("nativeCreditEntryAuthorityExact");
+    expect(query).toContain("nativeCreditPrivateAuthorityExact");
+    expect(query).toContain("commit_india_native_fiscal_credit_note(uuid,uuid,uuid,uuid,text,text,uuid)");
+    expect(query).toContain("read_india_native_fiscal_credit_note(uuid,uuid,uuid,uuid)");
+    expect(query).toContain("india_native_credit_complete");
+    expect(query).toContain("trigger_row.tgdeferrable AND trigger_row.tginitdeferred");
+    expect(query).toContain("count(attribute.attnum)=22");
+    expect(query).toContain("credit_key_shape");
+    expect(query).toContain("credit_foreign_key_shape");
+    expect(query).toContain("credit_check_shape");
+    expect(query).toContain("credit_index_shape");
+    expect(query).toContain("india_native_consumed_posting_line_guard");
     expect(query).toContain("fiscalReceiptColumnsProtected");
     expect(query).toContain("q208PublicEntryAuthorityExact");
     expect(query).toContain("q208PrivateEntryAuthorityExact");
@@ -100,22 +116,28 @@ describe("release build identity and readiness", () => {
     for (const failed of [
       "fiscalReceiptReadAuthorityExact", "fiscalRetryBindingAuthorityExact", "fiscalReceiptColumnsProtected",
       "q208PublicEntryAuthorityExact", "q208PrivateEntryAuthorityExact", "q208IndexesExact",
+      "nativeCreditBindingProtected", "nativeCreditEntryAuthorityExact", "nativeCreditPrivateAuthorityExact",
     ]) {
       let permissionChecks = 0;
-      const sql = Object.assign((() => Promise.resolve([{
-        runtimeIdentity: true, coreSchemaPresent: true, nativeSourceSchemaPresent: true,
-        nativeEntryAuthorityExact: true, fiscalHistoryProtected: true, fiscalEntryAuthorityExact: true,
-        fiscalReceiptReadAuthorityExact: true, fiscalRetryBindingAuthorityExact: true,
-        fiscalReceiptColumnsProtected: true,
-        issueFunctionPresent: true, publicIssueDenied: true, appIssueDenied: true, runtimeIssueDenied: true,
-        q208PublicEntryAuthorityExact: true, q208PrivateEntryAuthorityExact: true,
-        q208IndexesExact: true,
-        [failed]: false,
-      }])), {
-        begin: async () => { permissionChecks += 1; return [{ exact: true }]; },
-      }) as unknown as SQL;
-      await expect(assertRuntimeReleaseReadiness(sql)).rejects.toThrow("runtime release readiness is unavailable");
-      expect(permissionChecks).toBe(0);
+      for (const value of [false, null, undefined]) {
+        const sql = Object.assign((() => Promise.resolve([{
+          runtimeIdentity: true, coreSchemaPresent: true, nativeSourceSchemaPresent: true,
+          nativeEntryAuthorityExact: true, fiscalHistoryProtected: true, fiscalEntryAuthorityExact: true,
+          fiscalReceiptReadAuthorityExact: true, fiscalRetryBindingAuthorityExact: true,
+          fiscalReceiptColumnsProtected: true,
+          issueFunctionPresent: true, publicIssueDenied: true, appIssueDenied: true, runtimeIssueDenied: true,
+          q208PublicEntryAuthorityExact: true, q208PrivateEntryAuthorityExact: true,
+          q208IndexesExact: true,
+          nativeCreditBindingProtected: true,
+          nativeCreditEntryAuthorityExact: true,
+          nativeCreditPrivateAuthorityExact: true,
+          [failed]: value,
+        }])), {
+          begin: async () => { permissionChecks += 1; return [{ exact: true }]; },
+        }) as unknown as SQL;
+        await expect(assertRuntimeReleaseReadiness(sql)).rejects.toThrow("runtime release readiness is unavailable");
+        expect(permissionChecks).toBe(0);
+      }
     }
   });
 
@@ -128,6 +150,9 @@ describe("release build identity and readiness", () => {
       issueFunctionPresent: true, publicIssueDenied: true, appIssueDenied: true, runtimeIssueDenied: true,
       q208PublicEntryAuthorityExact: true, q208PrivateEntryAuthorityExact: true,
       q208IndexesExact: true,
+      nativeCreditBindingProtected: true,
+      nativeCreditEntryAuthorityExact: true,
+      nativeCreditPrivateAuthorityExact: true,
     };
     for (const permissionRows of [[], [{ exact: false }]]) {
       let localRole = "";
@@ -146,9 +171,9 @@ describe("release build identity and readiness", () => {
     expect(buildInfoFromEnvironment({ YELLOW_BUILD_SHA: REVISION })).toEqual({
       schemaVersion: 1,
       revision: REVISION,
-      expectedMigrationFrontier: 86,
+      expectedMigrationFrontier: 87,
     });
-    expect(CURRENT_MIGRATION_FRONTIER).toBe(86);
+    expect(CURRENT_MIGRATION_FRONTIER).toBe(87);
     expect(buildInfoFromEnvironment({})).toBe(UNKNOWN_BUILD_INFO);
     expect(buildInfoFromEnvironment({ YELLOW_BUILD_SHA: "" })).toBe(UNKNOWN_BUILD_INFO);
 
@@ -178,7 +203,7 @@ describe("release build identity and readiness", () => {
     expect(await response.json()).toEqual({
       status: "not_ready",
       reason: "build_revision_unavailable",
-      build: { schemaVersion: 1, revision: null, expectedMigrationFrontier: 86 },
+      build: { schemaVersion: 1, revision: null, expectedMigrationFrontier: 87 },
     });
     expect(probes).toBe(0);
   });
@@ -202,7 +227,7 @@ describe("release build identity and readiness", () => {
     expect(await noRuntime.json()).toEqual({
       status: "not_ready",
       reason: "runtime_not_configured",
-      build: { schemaVersion: 1, revision: REVISION, expectedMigrationFrontier: 86 },
+      build: { schemaVersion: 1, revision: REVISION, expectedMigrationFrontier: 87 },
     });
 
     const failed = await unavailable.handle(new Request("http://yellow.test/ready"));
@@ -213,7 +238,7 @@ describe("release build identity and readiness", () => {
       status: "not_ready",
       reason: "runtime_dependency_unavailable",
       target: "yellow_runtime_database",
-      build: { schemaVersion: 1, revision: REVISION, expectedMigrationFrontier: 86 },
+      build: { schemaVersion: 1, revision: REVISION, expectedMigrationFrontier: 87 },
     });
 
     const success = await ready.handle(new Request("http://yellow.test/ready"));
@@ -222,7 +247,7 @@ describe("release build identity and readiness", () => {
     expect(await success.json()).toEqual({
       status: "ready",
       target: "yellow_runtime_database",
-      build: { schemaVersion: 1, revision: REVISION, expectedMigrationFrontier: 86 },
+      build: { schemaVersion: 1, revision: REVISION, expectedMigrationFrontier: 87 },
     });
   });
 });
