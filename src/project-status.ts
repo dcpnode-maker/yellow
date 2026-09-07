@@ -16,7 +16,7 @@ export interface ProjectRecordedWorkSnapshot {
     | 126 | 127 | 148 | 154 | 155 | 156 | 160 | 161 | 162 | 163 | 164
     | 165 | 166 | 168 | 169 | 170 | 171 | 173 | 174 | 175 | 176 | 177 | 178
     | 179 | 180 | 181 | 182 | 183 | 184 | 185 | 186 | 188 | 189
-    | 190 | 191 | 192 | 193 | 195 | 199 | 236 | 310 | 396 | 429 | 434 | 438 | 440;
+    | 190 | 191 | 192 | 193 | 195 | 199 | 236 | 310 | 396 | 429 | 434 | 438 | 440 | 444;
   readonly state: ProjectRecordedWorkState;
   readonly summary: string;
   readonly remaining?: string;
@@ -71,11 +71,11 @@ export const DEFAULT_OPERATOR_RUNTIME_STATUS: OperatorRuntimeStatus = Object.fre
 export const PROJECT_BUILD_SNAPSHOT: ProjectBuildSnapshot = Object.freeze({
   schemaVersion: 2,
   recordedAt: "2026-09-07",
-  label: "Signed fiscal integration merged; operator invoice workflow in progress",
+  label: "Order 444 partner-preview candidate built; integration and promotion pending",
   roadmap: Object.freeze({
     phaseCount: 18,
     latestBuiltOrder: 439,
-    currentOrder: 440,
+    currentOrder: 444,
     activePhase: 7,
   }),
   review: Object.freeze({
@@ -356,8 +356,14 @@ export const PROJECT_BUILD_SNAPSHOT: ProjectBuildSnapshot = Object.freeze({
     Object.freeze({
       order: 440,
       state: "proof_in_progress" as const,
-      summary: "Order 440 durable fiscal submission, authenticated provider transport, immutable signed receipts and authorized receipt reads are independently merged through PR91 at 3503b0c (81 migrations / 128 public tables). All six CI jobs and normal CodeQL passed, including actual native ARM64 execution, full upgrade compatibility and post-merge schema/referee 11/11. Q208 operator invoice reads, confirmed issuance and print are active development. The separate hotel-journey study remains a fictional design prototype; Astra Ultra RMS remains documented research without algorithm runtime or measured uplift.",
-      remaining: "Merged main81 is not the preserved local77 or unmerged Q208 development. Operator invoice discovery, issuance and printing, provider onboarding and authentic sandbox acceptance remain unfinished. Q208 actual SQL execution is exposing and correcting runtime defects; full workflow and independent integration proofs remain required. No local refresh, provider activation, new-department release or cloud deployment is claimed; Phase 7 is not complete.",
+      summary: "Order 440 Q207 durable fiscal submission, authenticated provider transport, immutable signed receipts and authorized receipt reads are independently merged through PR91 at 3503b0c (81 migrations / 128 public tables). All six CI jobs and normal CodeQL passed, including actual native ARM64 execution, full upgrade compatibility and post-merge schema/referee 11/11. The separate hotel-journey study remains a fictional design prototype; Astra Ultra RMS remains documented research without algorithm runtime or measured uplift.",
+      remaining: "Merged main81 is not the preserved local77 or the current Order444 candidate85 development. Provider onboarding, authentic external-provider sandbox acceptance and activation remain unfinished. No local refresh, native promotion, new-department release or cloud deployment is claimed; Phase 7 is not complete.",
+    }),
+    Object.freeze({
+      order: 444,
+      state: "proof_in_progress" as const,
+      summary: "Order 444 current source builds the three-layout Calm Workbench, Precision Desk and Service Timeline shell plus Q208 operator invoice queue/detail, readiness, confirmed issuance, explicit submission/current receipt and exact print workflow. Q209 independent actual proofs pass populated81-to-85 preservation 2/0 and the synthetic fiscal review seed through genuine production services 8/0 on isolated candidate85 targets.",
+      remaining: "Order 444 is not merged main81 or preserved local77, and candidate85 is not the founder runtime. Exact current-head all-six CI and CodeQL, guarded native promotion, full Astra identity/journey design, authentic external-provider sandbox acceptance and provider activation remain required. Order 444, Phase 7 and the whole application are not complete.",
     }),
   ] satisfies readonly ProjectRecordedWorkSnapshot[]),
   phases: Object.freeze([

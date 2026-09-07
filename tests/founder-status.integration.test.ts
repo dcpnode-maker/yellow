@@ -258,12 +258,12 @@ describe("Order 064 recorded build snapshot", () => {
     const rows = manifestRows(manifest);
     expect(rows.length).toBeGreaterThan(0);
     expect(PROJECT_BUILD_SNAPSHOT.schemaVersion).toBe(2);
-    expect(PROJECT_BUILD_SNAPSHOT.label).toBe("Signed fiscal integration merged; operator invoice workflow in progress");
+    expect(PROJECT_BUILD_SNAPSHOT.label).toBe("Order 444 partner-preview candidate built; integration and promotion pending");
     expect(PROJECT_BUILD_SNAPSHOT.recordedAt).toBe("2026-09-07");
     expect(PROJECT_BUILD_SNAPSHOT.roadmap.latestBuiltOrder).toBe(439);
     expect(PROJECT_BUILD_SNAPSHOT.review.gate3Debt).toBe(0);
     expect(PROJECT_BUILD_SNAPSHOT.review.state).toBe("built_unverified");
-    expect(PROJECT_BUILD_SNAPSHOT.roadmap.currentOrder).toBe(440);
+    expect(PROJECT_BUILD_SNAPSHOT.roadmap.currentOrder).toBe(444);
     expect(PROJECT_BUILD_SNAPSHOT.roadmap.activePhase).toBe(7);
     expect(PROJECT_BUILD_SNAPSHOT.roadmap.phaseCount).toBe(18);
     expect(reviewCoverage.throughOrder).toBe(91);
@@ -548,8 +548,14 @@ describe("Order 064 recorded build snapshot", () => {
       {
         order: 440,
         state: "proof_in_progress",
-        summary: "Order 440 durable fiscal submission, authenticated provider transport, immutable signed receipts and authorized receipt reads are independently merged through PR91 at 3503b0c (81 migrations / 128 public tables). All six CI jobs and normal CodeQL passed, including actual native ARM64 execution, full upgrade compatibility and post-merge schema/referee 11/11. Q208 operator invoice reads, confirmed issuance and print are active development. The separate hotel-journey study remains a fictional design prototype; Astra Ultra RMS remains documented research without algorithm runtime or measured uplift.",
-        remaining: "Merged main81 is not the preserved local77 or unmerged Q208 development. Operator invoice discovery, issuance and printing, provider onboarding and authentic sandbox acceptance remain unfinished. Q208 actual SQL execution is exposing and correcting runtime defects; full workflow and independent integration proofs remain required. No local refresh, provider activation, new-department release or cloud deployment is claimed; Phase 7 is not complete.",
+        summary: "Order 440 Q207 durable fiscal submission, authenticated provider transport, immutable signed receipts and authorized receipt reads are independently merged through PR91 at 3503b0c (81 migrations / 128 public tables). All six CI jobs and normal CodeQL passed, including actual native ARM64 execution, full upgrade compatibility and post-merge schema/referee 11/11. The separate hotel-journey study remains a fictional design prototype; Astra Ultra RMS remains documented research without algorithm runtime or measured uplift.",
+        remaining: "Merged main81 is not the preserved local77 or the current Order444 candidate85 development. Provider onboarding, authentic external-provider sandbox acceptance and activation remain unfinished. No local refresh, native promotion, new-department release or cloud deployment is claimed; Phase 7 is not complete.",
+      },
+      {
+        order: 444,
+        state: "proof_in_progress",
+        summary: "Order 444 current source builds the three-layout Calm Workbench, Precision Desk and Service Timeline shell plus Q208 operator invoice queue/detail, readiness, confirmed issuance, explicit submission/current receipt and exact print workflow. Q209 independent actual proofs pass populated81-to-85 preservation 2/0 and the synthetic fiscal review seed through genuine production services 8/0 on isolated candidate85 targets.",
+        remaining: "Order 444 is not merged main81 or preserved local77, and candidate85 is not the founder runtime. Exact current-head all-six CI and CodeQL, guarded native promotion, full Astra identity/journey design, authentic external-provider sandbox acceptance and provider activation remain required. Order 444, Phase 7 and the whole application are not complete.",
       },
     ]);
     const recordedOrders = PROJECT_BUILD_SNAPSHOT.recordedWork.map(({ order }) => Number(order));
@@ -557,7 +563,7 @@ describe("Order 064 recorded build snapshot", () => {
       126, 127, 148, 154, 155, 156, 160, 161, 162, 163, 164,
       165, 166, 168, 169, 170, 171, 173, 174, 175, 176, 177, 178,
       179, 180, 181, 182, 183, 184, 185, 186, 188, 189,
-      190, 191, 192, 193, 195, 199, 236, 310, 396, 429, 434, 438, 440,
+      190, 191, 192, 193, 195, 199, 236, 310, 396, 429, 434, 438, 440, 444,
     ]);
     expect(recordedOrders).not.toContain(167);
     expect(recordedOrders).not.toContain(172);
@@ -566,7 +572,10 @@ describe("Order 064 recorded build snapshot", () => {
     expect(PROJECT_BUILD_SNAPSHOT.recordedWork.filter(({ order }) => Number(order) >= 190 && Number(order) <= 195)
       .filter(({ state }) => state === "independently_approved").map(({ order }) => Number(order)))
       .toEqual([190, 191, 192, 193, 195]);
-    expect(PROJECT_BUILD_SNAPSHOT.recordedWork.slice(0, -1).every(({ state }) => state === "independently_approved")).toBeTrue();
+    expect(PROJECT_BUILD_SNAPSHOT.recordedWork.slice(0, -2).every(({ state }) => state === "independently_approved")).toBeTrue();
+    expect(PROJECT_BUILD_SNAPSHOT.recordedWork.slice(-2).map(({ order, state }) => [order, state])).toEqual([
+      [440, "proof_in_progress"], [444, "proof_in_progress"],
+    ]);
     expect(PROJECT_BUILD_SNAPSHOT.recordedWork.at(-1)?.state).toBe("proof_in_progress");
     expect(PROJECT_BUILD_SNAPSHOT.recordedWork.find(({ order }) => order === 199)?.summary).toMatch(/196–199/);
     expect(PROJECT_BUILD_SNAPSHOT.recordedWork.find(({ order }) => order === 199)?.state).toBe("independently_approved");

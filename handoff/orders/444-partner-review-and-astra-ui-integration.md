@@ -53,6 +53,14 @@ authority, not requests to wait for a model or ask for routine approval.
 
 ## Delivery sequence and acceptance
 
+Question209, `handoff/questions/209-current-review-fixtures-and-preserved-upgrade.md`,
+admits the exact next native tooling and synthetic fiscal fixture files/owners.
+Question210, `handoff/questions/210-partner-preview-status-snapshot.md`, admits
+the exact source/test alignment of the in-app recorded status before publication.
+It does not authorize runtime mutation before an exact frozen target/rollback
+appendix here. PR92/3a0a013 is the prior independently publication-approved
+development checkpoint, with its own currently running CI.
+
 ### Scoped first product slice — three-layout shell
 
 Admitted 2026-09-07 after the coordinator personally read Astra's definitive
@@ -151,6 +159,20 @@ journey already exists. Publish current source/status with exact evidence; never
 claim the founder app has updated before its actual runtime/login/journey proof.
 
 ## First shell implementation receipt — 2026-09-07
+
+### Scoped follow-on presentation slice — invoice evidence disclosure
+
+Coordinator owns `src/http/operator/invoices.js`,
+`src/http/operator/operator.css`, and
+`tests/operator-workspace-layout.browser.test.ts` for the next presentation-only
+slice. Show issued document number/date and actual registration state ahead of
+print actions; place complete existing technical identifiers/hashes in a native
+keyboard-operable disclosure. Preserve source values, print freshness checks,
+current route/subject and request identities. Do not parse a second financial
+truth, change API/DTO/issuance logic, infer a provider outcome, or hide legal
+confirmation facts before issuance. Test real rendered disclosure, keyboard,
+layout switching, narrow screens and no additional network calls. The prior
+PR92 frozen-source receipt below does not cover this later slice.
 
 Coordinator execution, not a substitute for the separate independent fiscal
 database proofs recorded under Order440. Final frozen production files:

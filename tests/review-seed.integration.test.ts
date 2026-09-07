@@ -20,6 +20,8 @@ import {
   REVIEW_DISCREPANCY_CARRY_APPROVE_PERMISSION,
   REVIEW_DISCREPANCY_CARRY_PERMISSION,
   REVIEW_EMAIL,
+  REVIEW_FISCAL_PERMISSIONS,
+  REVIEW_PERMISSIONS,
   REVIEW_ROLE_NAME,
 } from "../scripts/seed-review";
 import { runSeed, SEED_PROPERTY, SEED_TENANT } from "../scripts/seed";
@@ -30,6 +32,20 @@ const PASSWORD = process.env.YELLOW_REVIEW_SEED_PASSWORD;
 const APPROVER_PASSWORD = PASSWORD ? `${PASSWORD}-approver` : undefined;
 const REQUIRE_DATABASE = process.env.YELLOW_REQUIRE_REVIEW_SEED === "1";
 const SECRET = "yellow-order-046-test-token-secret-exactly-long-enough";
+
+test("Order 444 fiscal review permissions are the exact existing five and exclude checker authority", () => {
+  expect(REVIEW_FISCAL_PERMISSIONS).toEqual([
+    { code: "tax-fiscal.documents:read", description: "Read property-authorized immutable fiscal documents" },
+    { code: "tax-fiscal.documents:issue", description: "Issue one governed India native fiscal invoice" },
+    { code: "tax-fiscal.submissions:read", description: "Read a property-authorized durable fiscal delivery receipt" },
+    { code: "tax-fiscal.submissions:request", description: "Request durable registration of one issued fiscal document" },
+    { code: "tax-fiscal.submissions:retry", description: "Explicitly retry one fiscal delivery proven not sent" },
+  ]);
+  expect(REVIEW_PERMISSIONS.filter(({ code }) => code.startsWith("tax-fiscal."))).toEqual([
+    { code: "tax-fiscal.india-valuation:finalize", description: "Finalize governed India accommodation valuation evidence" },
+    ...REVIEW_FISCAL_PERMISSIONS,
+  ]);
+});
 
 if (REQUIRE_DATABASE && (!DEPLOY_DATABASE_URL || !RUNTIME_DATABASE_URL || !PASSWORD)) {
   throw new Error("YELLOW_DEPLOY_DATABASE_URL, YELLOW_RUNTIME_DATABASE_URL and YELLOW_REVIEW_SEED_PASSWORD are required by the Order 046 proof");
@@ -457,6 +473,23 @@ afterAll(async () => {
 });
 
 databaseDescribe("Order 046 reproducible local-review seed", () => {
+  test("Order 444 grants only the five operator fiscal permissions and none to the checker", async () => {
+    const grants = await admin<Array<{ role_name: string; permission_code: string }>>`
+      SELECT role.name AS role_name, role_permission.permission_code
+      FROM role_permission
+      JOIN role ON role.id=role_permission.role_id
+      WHERE role.name IN (${REVIEW_ROLE_NAME},${REVIEW_APPROVER_ROLE_NAME})
+        AND role_permission.permission_code IN (
+          ${REVIEW_FISCAL_PERMISSIONS[0].code},${REVIEW_FISCAL_PERMISSIONS[1].code},
+          ${REVIEW_FISCAL_PERMISSIONS[2].code},${REVIEW_FISCAL_PERMISSIONS[3].code},
+          ${REVIEW_FISCAL_PERMISSIONS[4].code})
+      ORDER BY role.name,role_permission.permission_code`;
+    expect(grants).toEqual(REVIEW_FISCAL_PERMISSIONS
+      .map(permission => ({ role_name: REVIEW_ROLE_NAME, permission_code: permission.code }))
+      .sort((left, right) => left.permission_code.localeCompare(right.permission_code)));
+    expect(grants.some(grant => grant.role_name === REVIEW_APPROVER_ROLE_NAME)).toBeFalse();
+  });
+
   test("Order 387 grants maker and checker capability to distinct exact roles", async () => {
     const grants = await admin<Array<{ role_name: string; permission_code: string }>>`
       SELECT role.name AS role_name, role_permission.permission_code
@@ -1378,7 +1411,7 @@ databaseDescribe("Order 046 reproducible local-review seed", () => {
     expect(await tokens.verify(loginBody.accessToken)).toMatchObject({
       sub: first.userId,
       tid: SEED_TENANT.id,
-      scp: "crm.parties:read crm.parties:write financials.adjustments:write financials.business-day:carry-discrepancy financials.business-days:read financials.business-days:seal financials.cashiers:operate financials.cashiers:read financials.charges:write financials.folios:close financials.folios:open financials.folios:read financials.folios:settle financials.receivables:read financials.receivables:transfer financials.transfers:write financials.trust:post housekeeping.arrival-tasks:create housekeeping.arrival-tasks:read housekeeping.conditions:initialize housekeeping.discrepancies:read housekeeping.discrepancies:report housekeeping.sheets:generate housekeeping.sheets:read housekeeping.tasks:read housekeeping.tasks:work inventory.availability:read inventory.blocks:read inventory.blocks:write inventory.configuration:read inventory.configuration:write inventory.holds:read inventory.holds:write inventory.offline_leases:read inventory.offline_leases:write inventory.policy:read inventory.policy:write inventory.restriction:read inventory.restriction:write rates.configuration:read rates.configuration:write rates.pricing:read rates.pricing:write reservations.booking:write reservations.guests:read reservations.guests:write reservations.lifecycle:read reservations.lifecycle:write reservations.segments:read reservations.segments:write stay-operations.checkin:commit stay-operations.checkin:read stay-operations.checkout:commit stay-operations.checkout:read stay-operations.pickup-tasks:dispatch stay-operations.pickup-tasks:work stay-operations.vehicles:park stay-operations.vehicles:read tax-fiscal.india-valuation:finalize",
+      scp: "crm.parties:read crm.parties:write financials.adjustments:write financials.business-day:carry-discrepancy financials.business-days:read financials.business-days:seal financials.cashiers:operate financials.cashiers:read financials.charges:write financials.folios:close financials.folios:open financials.folios:read financials.folios:settle financials.receivables:read financials.receivables:transfer financials.transfers:write financials.trust:post housekeeping.arrival-tasks:create housekeeping.arrival-tasks:read housekeeping.conditions:initialize housekeeping.discrepancies:read housekeeping.discrepancies:report housekeeping.sheets:generate housekeeping.sheets:read housekeeping.tasks:read housekeeping.tasks:work inventory.availability:read inventory.blocks:read inventory.blocks:write inventory.configuration:read inventory.configuration:write inventory.holds:read inventory.holds:write inventory.offline_leases:read inventory.offline_leases:write inventory.policy:read inventory.policy:write inventory.restriction:read inventory.restriction:write rates.configuration:read rates.configuration:write rates.pricing:read rates.pricing:write reservations.booking:write reservations.guests:read reservations.guests:write reservations.lifecycle:read reservations.lifecycle:write reservations.segments:read reservations.segments:write stay-operations.checkin:commit stay-operations.checkin:read stay-operations.checkout:commit stay-operations.checkout:read stay-operations.pickup-tasks:dispatch stay-operations.pickup-tasks:work stay-operations.vehicles:park stay-operations.vehicles:read tax-fiscal.documents:issue tax-fiscal.documents:read tax-fiscal.india-valuation:finalize tax-fiscal.submissions:read tax-fiscal.submissions:request tax-fiscal.submissions:retry",
     });
     const approverLogin = await app.handle(new Request("http://yellow.test/api/v1/auth/local:login", {
       method: "POST",

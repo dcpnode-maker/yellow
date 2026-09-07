@@ -769,10 +769,20 @@ export function createInvoiceWorkbench({ root, request, propertyNode, timezone, 
     });
     const heading = element("h3", "invoice-workbench__detail-heading", documentValue.documentNumber);
     heading.tabIndex = -1;
+    const identity = element("header", "invoice-workbench__identity");
+    const title = element("div", "invoice-workbench__identity-title");
+    title.append(element("p", "invoice-workbench__identity-label", "Issued invoice"), heading);
+    const date = element("time", "invoice-workbench__identity-date", documentValue.businessDate);
+    date.dateTime = documentValue.businessDate;
+    identity.append(title, date);
+    const audit = element("details", "invoice-workbench__audit");
+    const auditSummary = element("summary", "invoice-workbench__audit-summary", "Document history & verification");
     const metadata = element("dl", "invoice-workbench__metadata");
     metadata.append(detailRow("Invoice date", documentValue.businessDate), detailRow("Issued at (UTC)", documentValue.issuedAt),
       detailRow("Reservation ID", documentValue.reservationId), detailRow("Folio ID", documentValue.folioId),
       detailRow("Document SHA-256", documentValue.documentSha256), detailRow("Source evidence SHA-256", documentValue.sourceEvidenceHash));
+    audit.append(auditSummary, element("p", "invoice-workbench__audit-guidance",
+      "Original identifiers and source fingerprints retained for reconciliation and audit."), metadata);
     const registration = element("p", "invoice-workbench__registration", receiptText(delivery, documentValue));
     const actions = element("div", "invoice-workbench__actions");
     const preview = element("button", "invoice-workbench__preview-action", "Preview invoice for print");
@@ -786,7 +796,7 @@ export function createInvoiceWorkbench({ root, request, propertyNode, timezone, 
     preview.addEventListener("click", () => { void preparePrint(documentValue.documentId, false, previewSurface, preview, print); });
     print.addEventListener("click", () => { void preparePrint(documentValue.documentId, true, previewSurface, preview, print); });
     actions.append(preview, print);
-    detail.append(back, heading, metadata, registration, actions, issueSlot, previewSurface);
+    detail.append(back, identity, registration, actions, issueSlot, audit, previewSurface);
     if (delivery.kind === "not_requested") {
       const retained = registrationRequests.get(documentValue.documentId);
       if (retained) renderRetainedRegistration(documentValue, issueSlot, retained, scope, generation);

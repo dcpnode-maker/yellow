@@ -117,8 +117,19 @@ function driver(skin: string): string {
     await until(()=>document.querySelector('.invoice-workbench__queue-item'),'real invoice queue');
     document.querySelector('.invoice-workbench__queue-item').click();
     await until(()=>document.querySelector('.invoice-workbench__detail')?.textContent.includes('INV/STUDY/17'),'real invoice detail');
+    const audit=document.querySelector('.invoice-workbench__audit');
+    if(!audit)throw new Error('Document verification disclosure is missing');
+    const auditProof={closedInitially:!audit.open,tag:audit.tagName,
+      label:audit.querySelector('summary')?.textContent,
+      documentHash:audit.textContent.includes('b'.repeat(64)),sourceHash:audit.textContent.includes('a'.repeat(64)),
+      reservation:audit.textContent.includes(${JSON.stringify(id(4))}),folio:audit.textContent.includes(${JSON.stringify(id(5))}),
+      identityOutsideAudit:!audit.contains(document.querySelector('.invoice-workbench__detail-heading')),
+      date:document.querySelector('.invoice-workbench__identity-date')?.getAttribute('datetime')};
+    audit.querySelector('summary').click();
     const query=document.querySelector('.invoice-workbench__query');
-    query.value='Unsubmitted guest filter';query.focus();query.setSelectionRange(2,9);
+    query.value='Unsubmitted guest filter';query.setSelectionRange(2,9);
+    const focusedControl=innerWidth<=1020?document.querySelector('.invoice-workbench__print'):query;
+    focusedControl.focus();
     const mount=document.querySelector('#invoices-mount'),detail=document.querySelector('.invoice-workbench__detail');
     const before={route:location.pathname,property:document.querySelector('#property-select').value,calls:performance.getEntriesByType('resource').length};
     const picker=document.querySelector('#workspace-skin-select');
@@ -131,7 +142,9 @@ function driver(skin: string): string {
       const surface=getComputedStyle(document.documentElement);
       samples.push({layout,root:document.documentElement.dataset.workspaceSkin,
         sameMount:mount===document.querySelector('#invoices-mount'),sameDetail:detail===document.querySelector('.invoice-workbench__detail'),
-        query:query.value,selection:[query.selectionStart,query.selectionEnd],focus:document.activeElement===query,
+        sameAudit:audit===document.querySelector('.invoice-workbench__audit'),auditOpen:audit.open,
+        query:query.value,selection:[query.selectionStart,query.selectionEnd],focus:document.activeElement===focusedControl,
+        searchVisible:query.getClientRects().length>0,
         route:location.pathname,property:document.querySelector('#property-select').value,
         nav:{x:nav.x,y:nav.y,width:nav.width,height:nav.height,bottom:nav.bottom},heading:{x:heading.x,y:heading.y},content:{x:content.x,y:content.y},
         overflow:document.documentElement.scrollWidth>innerWidth+1,
@@ -139,13 +152,14 @@ function driver(skin: string): string {
         ink:surface.getPropertyValue('--ink').trim(),paper:surface.getPropertyValue('--paper').trim(),muted:surface.getPropertyValue('--muted').trim()});
     }
     const afterCalls=performance.getEntriesByType('resource').length;
+    audit.querySelector('summary').click();
     const toggle=document.querySelector('#secondary-workspaces-toggle');toggle.click();await sleep(0);
     const menu=document.querySelector('#secondary-workspaces');const menuRect=menu.getBoundingClientRect();
     const menuProof={open:!menu.hidden,contained:menuRect.left>=0&&menuRect.right<=innerWidth+1,
       visibleControls:[...menu.querySelectorAll('button')].filter(button=>getComputedStyle(button).display!=='none').length};
     menu.dispatchEvent(new KeyboardEvent('keydown',{key:'Escape',bubbles:true}));await sleep(0);
     menuProof.closed=menu.hidden;menuProof.focus=document.activeElement===toggle;
-    finish({width:innerWidth,height:innerHeight,before,afterCalls,samples,menu:menuProof,
+    finish({width:innerWidth,height:innerHeight,before,afterCalls,samples,menu:menuProof,audit:auditProof,
       reducedMotion:matchMedia('(prefers-reduced-motion: reduce)').matches,
       forcedColors:matchMedia('(forced-colors: active)').matches,
       legacy:!!document.querySelector('#experience-select,#theme-select'),
@@ -214,10 +228,13 @@ test("Order444 three layouts retain real invoice context, dirty controls and acc
         expect(proof.legacy).toBe(false);
         expect(proof.choices).toEqual(["calm","precision","timeline"]);
         expect(proof.afterCalls).toBe(proof.before.calls);
+        expect(proof.audit).toEqual({closedInitially:true,tag:"DETAILS",label:"Document history & verification",
+          documentHash:true,sourceHash:true,reservation:true,folio:true,identityOutsideAudit:true,date:"2044-09-06"});
         expect(proof.menu).toMatchObject({open:true,contained:true,closed:true,focus:true,visibleControls:7});
         for (const sample of proof.samples) {
-          expect(sample).toMatchObject({root:sample.layout,sameMount:true,sameDetail:true,query:"Unsubmitted guest filter",selection:[2,9],focus:true,route:proof.before.route,property:id(2),overflow:false});
+          expect(sample).toMatchObject({root:sample.layout,sameMount:true,sameDetail:true,sameAudit:true,auditOpen:true,query:"Unsubmitted guest filter",selection:[2,9],focus:true,route:proof.before.route,property:id(2),overflow:false});
           if (width <= 1020) expect(sample.nav.height).toBeLessThanOrEqual(184);
+          expect(sample.searchVisible).toBe(width>1020);
         }
         if (proof.width >= 1200) {
           const [calm,precision,timeline] = proof.samples;
@@ -227,6 +244,15 @@ test("Order444 three layouts retain real invoice context, dirty controls and acc
           expect(timeline.nav.width).toBeGreaterThan(calm.nav.width*3);
           expect(timeline.nav.bottom).toBeLessThanOrEqual(timeline.content.y);
           expect(new Set([calm.columns,precision.columns,timeline.columns]).size).toBe(3);
+        }
+        await send("Runtime.evaluate", {expression:"document.querySelector('.invoice-workbench__audit-summary').focus()"});
+        for (const expectedOpen of [true, false]) {
+          await send("Input.dispatchKeyEvent", {type:"keyDown",key:"Enter",code:"Enter",windowsVirtualKeyCode:13,text:"\r",unmodifiedText:"\r"});
+          await send("Input.dispatchKeyEvent", {type:"keyUp",key:"Enter",code:"Enter",windowsVirtualKeyCode:13});
+          const keyboard = await send<{result?:{value?:unknown}}>("Runtime.evaluate", {
+            expression:"({open:document.querySelector('.invoice-workbench__audit').open,focus:document.activeElement===document.querySelector('.invoice-workbench__audit-summary'),calls:performance.getEntriesByType('resource').length})",returnByValue:true,
+          });
+          expect(keyboard.result?.value).toEqual({open:expectedOpen,focus:true,calls:proof.afterCalls});
         }
         if (captures) {
           const scroll = await send<{ result?: { value?: { x: number; y: number } } }>("Runtime.evaluate", {

@@ -4,7 +4,7 @@
 <!-- current-phase: 7 -->
 <!-- current-task: Codex Yellow — completed-feature review app and Astra UI integration alongside fiscal completion -->
 <!-- current-order-files: handoff/orders/444-partner-review-and-astra-ui-integration.md;handoff/orders/442-host-recovery-and-merged-local-review.md;handoff/orders/443-runtime-storage-containment.md;handoff/orders/440-fiscal-submission-lifecycle.md -->
-<!-- current-lifecycle: PR91 merged main81; Q20885 and first Astra three-layout shell pass local1839/0 plus explicit1310 environment skips; exact-source CI and verified review promotion pending; stable local77 preserved -->
+<!-- current-lifecycle: Q209 independent preservation2/0, fiscal seed8/0, native18/0 and final Q210 full1863/0 accepted; new PR92 publication and exact-source native preparation next; stable local77 preserved -->
 
 This is the canonical current-state record. It identifies the consolidated source,
 verified behavior, release boundaries and active work. Historical orders, reviews,
@@ -34,7 +34,7 @@ expertise/appearance controls. The layouts change composition without remount,
 refetch, storage or a business command. This is source implementation, not the
 complete identity/department/STR redesign or a runtime promotion.
 
-Root's final current-source run passes1839 tests, zero failures and1310 explicit
+The published3a0a013 checkpoint's final full run passed1839 tests, zero failures and1310 explicit
 database/Unix skips, with24731 assertions across522 files in136.38s. Types,
 185 import boundaries,23 installed dependency licences and diff checks pass.
 Failed earlier runs remain evidence: stale oracles, delayed browser import,
@@ -53,8 +53,60 @@ journeys or200% browser-zoom/pixel-fidelity proof. The already-built Owner trust
 route now has its missing shell deep-GET, with unchanged protected API behaviour.
 [The capability manifest](design/BUILT-CAPABILITY-MANIFEST.md) maps all15 mounted
 workspaces to existing routes, permissions, proofs and review-fixture gaps.
-New exact-source CI, licensed identity/type integration, full journey acceptance
-and reversible single-local promotion remain active work.
+PR92's exact published commit `3a0a01316fbf8acc760e1cba38384042edbb86d2`
+now passes all six CI34087312357 jobs and all three normal CodeQL34087310665
+analyses. Root inspected the database job's actual final referee11/11 and fresh
+deployment acceptance24/0(73). These results cover that commit, not laterQ209 edits.
+
+**Current follow-on work.** Root independently executed the frozen populated81→85
+proof on a separate newly admitted database:2passed,0failed,143 assertions,21.78s.
+It preserves genuine original document bytes, signed receipts, initial/three retry
+response bodies, financial chains and all retained tenant rows, then issues from
+an81-era unissued source through the current85 confirmation path. All89 canonical
+inputs, pristine77 template,19 roles,4 memberships and44 outside databases remain
+unchanged. The first author's116-assertion failed run remains recorded; its detail
+denial expectation was corrected against the retained NULL policy, with explicit
+list-denial coverage added. No production authority was relaxed.
+
+The next invoice presentation slice puts number/date and actual registration
+state ahead of print actions, keeps technical evidence in a native disclosure,
+and returns narrow screens to the selected task without discarding search drafts.
+Real browser proof passes6/0(293), including keyboard Enter, retained disclosure
+across all layouts, exact widths and zero layout/disclosure-only requests. The
+first keyboard harness omitted Enter's character payload and failed; the complete
+browser input sequence passes without replacing native activation in product code.
+This remains a synthetic browser proof, not a runtime-promotion receipt.
+
+Q209's new fiscal fixture is independently accepted:8pass/0fail/79 assertions,
+5.38s, with a genuine issued invoice and a separate eligible source. Exact original
+service dates, all eight balanced posting rows, documents, series and event lineage
+survive rerun. Its service evidence predates the issue day; this exercises retained
+prior-day evidence, not a claim of observing a later calendar day. Real signed-session
+list/detail/readiness, unauthorized/checker denial and valid foreign-tenant positive
+control followed by cross-tenant denial pass. Fresh baseline seed27/0(117) remains
+a separate receipt. Failed setup/oracle attempts and the explicit60-second fixture
+construction bound are retained in the review; no production guard was loosened.
+Outside46 databases,19 roles,4 memberships, pristine77 and89 canonical inputs were
+unchanged; the proof target has two synthetic tenants, one invoice and zero sessions.
+
+Root independently executed the final native helper tests18/0(33),44.60s, then
+personally verified the actual retained child5716/supervisor16176 identity read-only.
+The earlier16/0 suite had missed joined PowerShell filter/JSON arguments; real
+preflight and parameter-binding proofs found and drove their correction, including
+the reserved home-variable collision. All failed evidence remains in
+[the native review](../handoff/reviews/444-native-review-and-ci.md).
+Windows-native and serial baseline/fiscal CI gates are wired and independently
+source-checked, not yet run at a new commit. The first follow-on full suite1856/1
+retained an Order239 deadline failure; its unchanged focused suite passes12/0.
+A subsequent full run passes1861/0 with1316 explicit environment skips and24861
+assertions in188.26s. That run precedes the final native repair and Q210 snapshot
+alignment. Final frozen Q210/native source passes1863/0 with1316 explicit
+environment skips,24884 assertions across525 files in201.13s. Types,
+185 boundaries,23 licences and dependency audit0 vulnerabilities pass. Two
+focused status-report timeouts remain recorded; that unchanged case passes in
+the final whole run at3.30s. No timeout or assertion was relaxed.
+Licensed identity/type integration, full journey acceptance, new-head CI and
+reversible single-local promotion remain active. The founder app is still77.
 
 **Current checkpoint — 2026-09-07.** PR91 is independently merged at
 `3503b0c01f336637d2583963c17b792f6ad59efe`; remote GitHub merge state is verified.
@@ -81,11 +133,11 @@ An empty1→85 run was not allocated on the shared native cluster because histor
 migration12 would change global-role membership; fresh and per-step rollback proof
 remain mandatory in disposable CI, not waived by the clean upgrade.
 
-Publication preflight independently rechecks all89 canonical inputs against that
-executed85 proof and the retained1,732,510-byte schema. Current migration tests
-start with an empty81 predecessor; they do not prove a populated81-to85 historical
-receipt/document preservation upgrade. That proof and a real UI/database journey
-remain explicit acceptance work, even if the new candidate CI is green.
+The earlier publication preflight independently rechecked all89 canonical inputs
+against that executed85 proof and retained1,732,510-byte schema. Its original
+migration tests started with an empty81 predecessor; Q209's separately executed
+populated proof above now covers retained receipt/document preservation. A real
+UI/database journey and exact-source release gates remain required.
 
 Independent testing exposed a real Bun SQL array-metadata incompatibility in the
 new readiness projection. The narrow own-data-row repair now passes45 focused tests

@@ -1244,3 +1244,374 @@ promotion, commit or merge occurred. The reproduced canary false-negative is
 discharged for this frozen source. These completed-function readiness results may
 support a separately verified review-app update; they neither require all Phase7
 work to be finished nor themselves establish complete Phase7 or exact-source CI.
+
+## Q209 populated predecessor proof construction — 2026-09-07
+
+Under the accepted Q209 two-path ownership, fiscal_http_acceptance authored only
+tests/india-native-fiscal-populated-upgrade.integration.test.ts and this evidence.
+This is proof implementation, not independent approval of that new test; root must
+inspect and personally execute it. No production SQL or source was changed.
+
+The test requires an explicitly isolated, empty canonical81 target. It uses genuine
+native issuance and authenticated HTTP fiscal request/retry, runtime claim/reconcile,
+and the existing fresh-RSA signing/actual issued-source binding-verifier fixture.
+It prepares accepted attempt4 with all three retry keys, rejected, pending and
+in-flight submissions, two genuinely linked same-series native invoices, and an
+unissued statutory/valuation graph before applying unchanged82–85. Full retained
+tenant-row snapshots, original response bytes, prior ledger and role assignments
+are compared. New85 reads and confirmation use separately recorded synthetic
+read grants, with unauthorized and foreign-tenant controls. No provider network
+execution is claimed by this direct-capability/real-crypto construction.
+
+Personally ran `bun run typecheck` (exit0), and the final
+`bun test tests/india-native-fiscal-populated-upgrade.integration.test.ts`:
+1passed/1explicit database skip/0failed,5assertions,373ms. The executed test is only
+the connection-free target guard. Current test SHA256:
+78cabed514a5b8797ce84adc80c29c5a2b066f34b219e4fd4197464b1959dc05.
+Earlier construction caught a test-only unknown-receipt TypeScript mismatch;
+source inspection corrected the old HTTP replay201 oracle and document prev_hash
+column before any database execution. None is an observed production failure.
+
+Proposed exactly one native target to root:
+yellow_order440_q209_populated_review_20260907, existing127.0.0.1:55503, from the
+reverified pristine yellow_order434_production77 template. Target absence,
+template77 hashes/zero tenants/zero other sessions, global roles/memberships and
+database inventory must be recorded before allocation. Canonical byte-copy78–81
+preparation precedes this test; no historical1–12/global-role path is permitted.
+No database was allocated, queried or mutated in this construction turn. Actual
+populated preservation remains pending explicit native admission and execution;
+PR92 published3a0a013/CI34087312357 does not cover this later uncommitted test.
+
+### Q209 first genuine populated run and retained test-oracle failure
+
+Read root's exact native admission before mutation. Created only the absent
+yellow_order440_q209_populated_review_20260907 from verified pristine77. All89
+canonical inputs matched inventory0f7d6d44037d05eecbcc8f130398e1e9a88283ab518a40afb10e8d42b11d7d1d.
+Template77 had127tables,0tenants/0other sessions; captured template rows/state hash
+772c6f02352f6a295fa301271bd876cb0e2f13fe8b442eecd3edaeb0f863d720.
+Complete outside43database,19role and4membership inventories were compared in
+memory before/after; combined hash
+0b3b3f8dacff9ff4cf53853045adedc11ce72a9fa8124cbaf308adb97bd3ea94.
+
+PowerShell mechanically copied canonical1–81, without content changes, into
+D:/Yellow/temp/q209-populated-review-65095b713571494088f44024d558f596/migrations-81.
+In-process Bun read only the protected Order442 seed.env deploy key and app.env
+runtime key, checked127.0.0.1:55503/exact split users, and replaced pathname only.
+No secret values were printed. Canonical runner applied only78–81 (backend4108,
+all four transaction PIDs4108), then a child process ran the full new test with
+Q209 deploy/runtime environment variables and requiredflag1. No helper was saved
+to disk; the exact memory-only orchestration is retained as q209CreateAndRun in
+this agent's tool store. No reset, role mutation or existing-target cleanup occurred.
+
+Actual first run:1passed/1failed,116assertions,15.41s, exit1. Before failure, the
+populated81→85 migration, complete tenant-row and assignment preservation, original
+request/three retry bodies, signed receipts and both real native chain replays
+passed. The failure was my test line260 expecting permission_denied for ungranted
+detail; actual result was {ok:true,value:null}. Exact82 lines147–151, document-read
+service lines306–307 and existing authority integration lines472–482 explicitly
+retain NULL for detail/by-document denial while list denies42501. This is a test
+oracle defect, not a production authorization regression or a full passing run.
+
+Corrected both detail-denial expectations and added the pregrant list-denial
+assertion. Current test hash6104d175a9db09d30be0190236abb1b355f782a15d7319f3d45237db8e964d91;
+typecheck exit0, connection-free run1passed/1explicit DBskip/0failed,5assertions321ms.
+The original target is preserved at85 with6tenants/6documents/0other sessions.
+Outside inventories, pristine template and all89canonical source inputs matched;
+all owned pools closed. A separately admitted new target is necessary for a full
+rerun; no conversion of the retained85 target back to81 is authorized or attempted.
+
+## Root independent populated predecessor execution — 2026-09-07
+
+Reviewer `/root` did not implement the populated proof or fiscal services. Root
+read the complete corrected test, canonical NULL detail-denial service mapping
+and existing revoked-authority integration proof, then personally executed frozen
+`6104d175a9db09d30be0190236abb1b355f782a15d7319f3d45237db8e964d91`.
+Question209 admits only new absent
+`yellow_order440_q209_populated_repaired_review_20260907` on127.0.0.1:55503.
+Protected values were read in-process; none appeared in arguments or output.
+
+Preflight: canonical89 inventory
+`0f7d6d44037d05eecbcc8f130398e1e9a88283ab518a40afb10e8d42b11d7d1d`,
+pristine77/127tables/zero tenants/zero other sessions template
+`772c6f02352f6a295fa301271bd876cb0e2f13fe8b442eecd3edaeb0f863d720`,
+19 global roles/4 memberships/44 outside databases inventory
+`ef924958a9feff88bae13aacfb18afc19f85c7afb5dec973950f0f84d562a097`.
+Root cloned the exact template once; canonical78–81 applied on backend15272,
+all four transaction PIDs15272. Child Bun ran the entire test with the two explicit
+Q209 split-authority URL environment keys and requiredflag1.
+
+Actual result: **2passed,0failed,143 assertions,21.78s**, child and wrapper exit0.
+Final target85/6tenants/7documents/zero other sessions. All three inventories
+above rechecked unchanged, as did all canonical inputs and frozen test bytes;
+the outer unconditional finally closed the admin handle. No template/global-role/
+outside-database/app mutation or cleanup. The first failed author's target remains.
+
+This accepts populated81→85 document/receipt/replay preservation and current85
+composition, not an external provider transport, seed acceptance or runtime update.
+CI wiring added after this proof requires execution on its own published head.
+
+## Independent Q209 review-seed execution — blocking findings, 2026-09-07
+
+Nonimplementer fiscal_http_acceptance read the new seed scope and PostgreSQL/entity
+patterns, the four frozen seed files and their reused baseline setup. No seed
+implementation was edited. Frozen SHA256:
+
+- scripts/seed-review.ts: b767ed9783f2e0de39255af16c7ffc614505d2403789842bd964c809c543c294
+- scripts/seed-fiscal-review.ts: 92b1a255e1216073059ccce22fe017401470c1d24b9b519662911ac5ebd06027
+- tests/review-seed.integration.test.ts: bce9a74dc24af84c6ee3e1d485c2dda9afc638fa2c9ec6fbde48dcf1976b9ece
+- tests/fiscal-review-seed.integration.test.ts: 4df344eec977f1158b751d51cc6d4b69f167e9526b9060e534f7a018d1e5b54b
+
+The connection-free two-file run passed5 with29explicit database skips,0failures,
+24assertions431ms. Neither test drops/truncates/resets a database. Existing baseline
+setup does delete two exact synthetic checker/operator grants and one synthetic
+initialization-room condition; its hostile rate test restores the exact extension
+content in finally. Those effects were explicitly admitted only on the new target.
+
+After reading root's exact target admission, verified absent
+yellow_order444_q209_seed_review_20260907 at127.0.0.1:55503 and cloned pristine
+yellow_order434_production77 once. Template127tables/0tenants/0other sessions and
+hash772c6f02352f6a295fa301271bd876cb0e2f13fe8b442eecd3edaeb0f863d720 matched.
+All89canonical inputs matched inventory0f7d6d44037d05eecbcc8f130398e1e9a88283ab518a40afb10e8d42b11d7d1d.
+Complete outside45database/19role/4membership inventories were captured and compared;
+combined fingerprint3684deb97356e095f02ab1bae09e7d1d6860b76fda56ac664488633d790f2e87.
+Canonical78–85 applied on backend14636, all eight transaction PIDs14636. No1–12,
+cluster role, template, retained-runtime or prior-database mutation was performed.
+
+The memory-only q209SeedCreateAndRun orchestration used the protected Order442
+deploy/runtime env keys, verified split users/loopback endpoint and replaced only
+the new pathname. A fresh fictional password was generated only in-process; no
+founder password was read/replaced or printed. The first child command was:
+`bun test tests/review-seed.integration.test.ts`, with command-scoped deploy/runtime
+URLs, YELLOW_REVIEW_SEED_PASSWORD and YELLOW_REQUIRE_REVIEW_SEED=1.
+
+Actual result **25passed/2failed,110assertions,6.39s**. Concrete findings:
+
+1. **Blocking grant leak:** the real checker login contains all five new operator
+   fiscal scopes. scripts/seed-review.ts:766–773 iterates the expanded shared
+   REVIEW_PERMISSIONS for the checker and excludes only three existing financial
+   permissions. This violates Q209's operator-only fiscal grant contract. The
+   existing exact checker-token assertion at test1424 caught it. Do not repair the
+   test by broadening expected checker scopes.
+2. The new grant query passes a JavaScript array directly to ANY(...::text[]),
+   producing PostgreSQL22P02 malformed array literal. The same raw-array pattern
+   exists in new fiscal seed/static-check and fiscal-test paths. Reported to the
+   implementer for scoped repair, not changed by this reviewer.
+
+The dependent fiscal-review-seed suite was NOT started after baseline failure.
+Target retained at85/1tenant/0documents/0other sessions; outside inventories,
+template, all89inputs and four seed hashes were unchanged. All handles closed and
+root notified the native lane was free. No reset or cleanup was attempted.
+
+Separate unexecuted coverage concerns were sent to the implementer: fiscalDates
+recomputes property dates despite constant original command keys/statutory IDs, so
+next-day rerun needs explicit proof; the current fiscal snapshot omits series,
+facts/outbox and may omit non-folio contra lines. The fiscal test currently lacks
+real signed-session invoice list/detail/readiness and denied/foreign controls.
+These are not claimed as executed failures or discharged acceptance.
+
+Read-only CI check: workflowe094d89b05b6962f0ca92f22e4eb9b53adb086de3942e12ac0e4ac57cb7bbf15
+places required isolated Q20980clone→81prefix→populated85 test before Q208, with
+existing cleanup trap and no inherited prefix in the child. Current Compose146
+publishes127.0.0.1 and CI331 resolves `docker compose port postgres 5432`, not a172.x
+container address. Keep the test's loopback guard; this is source verification,
+not an actual new Linux CI result. No Docker/WSL command was run locally.
+
+### Independent repaired seed execution — baseline green, fiscal composition red
+
+Reviewer: fiscal_http_acceptance, nonimplementer of both seed scripts/tests.
+Root explicitly admitted new-only `yellow_order444_q209_seed_repaired_review_20260907`
+after the original ephemeral proof password was lost when its process ended.
+The prior failed target was preserved, not reset or given a replacement password.
+The admitted unique `D:\Yellow\temp\q209-seed-proof-ce3bf7c91fde4b3daf7f067a6eadcaf0`
+directory has inheritance disabled and only the current user ASTHA\astha FullControl;
+its small proof.env retains generated synthetic credentials for this exact target.
+No credential values are recorded here or in the command output.
+
+Frozen source SHA256: seed-review `31b4851fc296e49185ef7a8ee705236d82b4b3dbf861df53a89f4e7e3914144b`;
+seed-fiscal-review `249bd94f720f367ea35fb3e4a5b720107074bf810ce24b918638f206b8682d35`;
+review-seed test `e7840d288d746c7efb38450a8265805de2ddac2d4e6d0c5f178557d1a068682e`;
+fiscal-review-seed test `0a715f4f2860dc8231d5f54d7d50eebc602e48d10467a795602f85e9631fc8b4`.
+
+Personally executed inline Bun orchestration: read protected Order442 deploy/runtime
+URLs in-process, verify exact loopback55503 and split users, replace pathname only;
+verify target absent and pristine77/all canonical checksums; clone once; call the
+unchanged production runMigrations to85; run `bun test tests/review-seed.integration.test.ts`
+then `bun test tests/fiscal-review-seed.integration.test.ts` as separate serial child
+processes. Each child receives command-scoped deploy/runtime and retained synthetic
+passwords, with respectively YELLOW_REQUIRE_REVIEW_SEED=1 and
+YELLOW_REQUIRE_FISCAL_REVIEW_SEED=1. No test-name filter or skip substitution.
+
+Canonical78–85 applied8 on backend17924, all eight transaction PIDs17924.
+Baseline: **27 pass, 0 fail, 117 assertions, 5.37s**. This includes the original
+checker least-scope token assertion and exact five operator/no-checker fiscal grants.
+Fiscal: **0 pass, 1 fail, 680ms**, beforeAll failed before any fiscal assertion:
+PartyProfileValidationError `audit operation must be party.created`, parties.ts207,
+seed-fiscal-review.ts694. Seed supplied `profiles.party.create` at693; the real
+production service requires `party.created`. Sent defect to the implementation owner;
+no reviewed production source was edited. No fiscal issuance, signed-session fiscal
+HTTP or cross-day acceptance is claimed from this failed run.
+
+Final target85/one tenant/zero documents/zero other sessions. Before/after outside
+inventory covers46 databases,19 roles,4 memberships, fingerprint
+`0a54f588b823aec6eaba2e68425fa5c0ff59098d180503c141b0381abb40eb7a` unchanged.
+Pristine template77/127 tables/zero tenants/zero other sessions fingerprint
+`772c6f02352f6a295fa301271bd876cb0e2f13fe8b442eecd3edaeb0f863d720` unchanged.
+All89 canonical inputs fingerprint
+`0f7d6d44037d05eecbcc8f130398e1e9a88283ab518a40afb10e8d42b11d7d1d`
+and all four frozen seed source hashes rechecked unchanged. Handles closed in finally.
+No old runtime, global role, template, applied SQL or other database changes.
+
+### Retained-target operation repair — next exact production boundary failure
+
+Reviewed seed-fiscal SHA `03e2f00078fbb350e3ff00b70d3921f2e3ed7d15d072b276e00053b1e9f21ede`
+and fiscal-test SHA `585440168203c3f0916334bf52e69ca2a490c7b43a0e6e4eb9ea0ec52ea857e2`;
+baseline script/test hashes remain31b4851f/e7840d28 above. Party operation now matches
+`party.created`. Independently compared all other eleven service operation literals
+against production guards; no second operation mismatch found. The test now creates
+an active real foreign tenant/property/actor/current document-read role and positively
+checks its signed-session property list before denying access to the first tenant.
+Prior-day initial service selection plus exact retained service snapshots are added;
+these are source observations, not yet successful executed acceptance.
+
+Reviewer orchestration mistakenly repeated the entire baseline on this already
+populated/partially fiscal-seeded target. Result **25 pass, 2 fail, 78 assertions,
+11.01s**: P1 expects fresh-created6 rooms/2 types and rate.created=true, while the
+retained target correctly returned existing counts; P5 expects exactly two old
+properties while the earlier partial fiscal setup added its legitimate third.
+This is a fresh-fixture prerequisite mismatch; no test assertions were weakened,
+no data reset, and the original fresh27/0 remains the baseline acceptance receipt.
+
+Then personally ran the full fiscal test alone with the same retained synthetic
+identity and all preflight/finally checks. Actual **0 pass, 1 fail, 1.42s** in beforeAll:
+`TaxAttributionSnapshotError: snapshot component tax shape conflicts with its rounding mode`.
+Production attribution.ts401 requires null component taxMinor for document rounding;
+the seed supplied500 while declaring document rounding. Aggregate tax remains500;
+the reviewer did not change this input or any production assertion. Sent exact defect
+to the implementation owner. No fiscal issuance or signed-session assertions ran.
+
+Both attempts preserved target85/one tenant/zero documents/zero other sessions,
+outside46DB/19roles/4memberships fingerprint0a54f588…eb7a, pristine template772c6f…d720,
+all89 canonical inputs and their respective frozen seed hashes. All handles closed.
+The original failed proof database and retained application were untouched. No
+additional target, auth rotation, global privilege change or cleanup was performed.
+
+### Rounding/status repair — genuine progress, five-second setup deadline
+
+Reviewed source `a4c5903395b659f9df6ca85f8b2391dca62a8a3559129a810e8e7b57a7cbc5ae`
+and test `b96d998f8081a5e648bea4e2962d68c0436ac435299a573bdf81a8910c3d8576`.
+Component taxMinor is now null under document rounding, aggregate tax remains500;
+deterministic active supplier registration snapshots cover distinct service/TOS
+and issue dates without rewriting existing rows. Personally executed fiscal suite
+ONLY on the same retained repaired target/private identity, unchanged canonical85.
+Actual **0 pass, 1 fail, 6.16s**: unnamed beforeAll hook exceeded the default5s
+at5003.95ms; no assertion-specific error preceded it. No blind rerun/deadline edit.
+
+Read-only post-failure census established forward progress:2 service snapshots,
+2 payment snapshots,2 final valuations,0 native document origins; API operations
+party1/reservation2/folio2/charge2/attribution2. Supplier active status dates are
+2026-09-06 and2026-09-07. The initial diagnostic incorrectly referenced a plaintext
+api_idempotency key column and returned42703; after reading canonical4, the corrected
+operation-count SELECT succeeded. Neither diagnostic mutated data.
+
+All frozen sources,89 canonical inputs, outside46DB/19roles/4memberships fingerprint
+0a54f588…eb7a and pristine template772c6f…d720 were preserved. Target85/one tenant/
+zero documents/zero other sessions; all handles closed. The implementation owner
+and root received the completed-stage census and default-hook boundary. No issuance,
+immutable fiscal rerun or signed-session fiscal acceptance is claimed yet.
+
+### Bounded setup completes — actual invoice and replay, two test-oracle defects
+
+Root admitted beforeAll60s only. Verified fiscal test SHA
+`f424d025bdd447b493d9b6f1d4c2638f628563f0fbddcb324c81a05128e31bfe`
+and unchanged fiscal sourceA4c59033…c5ae; ran full fiscal test ONLY with same target
+and retained identity. Reviewer child watchdog90s bounds the overall process; it
+did not fire. Actual **6 pass, 2 fail, 73 assertions, 6.31s**.
+
+Genuine invoice issuance and complete before/after fiscal/accounting snapshot
+equality now passed. Prior-day service evidence and exact active service/issue
+status-date assertions passed. Real operator login/list/detail/readiness, no-auth401
+and checker403 also reached and passed. Remaining failures were exact test oracles:
+the snapshot expected6 postings but returned8; the real foreign identity's positive
+`/me/properties` control returned403 because that route requires availability scope,
+not the fiscal document-read scope actually granted to the foreign role/token.
+
+Personally queried all eight actual fiscal-property posting rows: two room journals
+each guest+10000/revenue−10000; one tax journal contains CGST guest+250/payable−250
+and SGST guest+250/payable−250. All three journals balance; the extra rows are required
+contra postings, not duplicate charges. An initial read-only diagnostic referenced
+nonexistent journal.source_id and returned42703; the corrected catalogue-grounded
+SELECT succeeded. No diagnostic changed data. Recommended exact8 plus explicit
+balanced posting assertions, and a positive own-property fiscal search using the
+same granted fiscal capability before cross-tenant denial, without broadening roles.
+
+Target85/two tenants/one document/zero other sessions. Outside46 databases,19 roles,
+4 memberships fingerprint0a54f588…eb7a, template772c6f…d720, all89 canonical inputs
+and frozen source hashes remain unchanged. Pools and child closed normally. Both
+test findings sent to their implementer; reviewer did not edit source or assertions.
+
+### Foreign fiscal positive control reaches jurisdiction guard
+
+Test-only correction SHA `4499f3a9816a440c380904613dfd18847f978ffa6f951fc5f86d2d14044089ac`
+retains all production/source bytes and now expects canonical8 postings and uses
+own-property fiscal search under the exact documents:read capability. Personally
+ran the complete fiscal suite on the same retained target: **7 pass, 1 fail,
+77 assertions, 6.53s**. All source/prior-day/status-date/immutable snapshot/role
+checks passed. The foreign positive fiscal search returned422, not expected200.
+Canonical84 lines72–77 explicitly require an in-gst-lodging tax_assignment even
+for an empty list; the foreign test property has none. Reported this incomplete
+positive fixture to its owner; no production guard or grant was relaxed. The final
+cross-tenant assertion was not reached. Target85/two tenants/one document/zero other
+sessions; source89/template/outside fingerprints above all preserved, handles closed.
+
+### Independent final Q209 synthetic fiscal seed acceptance
+
+Final source SHA256:
+
+- scripts/seed-review.ts: `31b4851fc296e49185ef7a8ee705236d82b4b3dbf861df53a89f4e7e3914144b`
+- scripts/seed-fiscal-review.ts: `a4c5903395b659f9df6ca85f8b2391dca62a8a3559129a810e8e7b57a7cbc5ae`
+- tests/review-seed.integration.test.ts: `e7840d288d746c7efb38450a8265805de2ddac2d4e6d0c5f178557d1a068682e`
+- tests/fiscal-review-seed.integration.test.ts: `d5b0268722f54a7ef5930d0b3640ae7c0109069759aea808cb772e763ab3ba32`
+
+Reviewed the exact final test-only foreign in-gst-lodging assignment and its current
+catalogue assertion. It adds no permission or production bypass. Personally ran
+`bun test tests/fiscal-review-seed.integration.test.ts` with the same retained-target
+protected split URLs and synthetic passwords, required fiscal flag1,60s beforeAll
+and reviewer90s child watchdog: **8 pass, 0 fail, 79 assertions, 5.38s**, child/wrapper0.
+No filtering; all four real DB cases and four pure cases executed.
+
+Executed acceptance includes one production-issued invoice and a second eligible
+source; component rounding null with aggregate500; exact eight posting rows across
+three balanced journals; immutable original document/hash/origin/reservation/folio/
+valuation/service/status/series/fact/outbox/submission and all contra posting bytes
+unchanged on rerun. Both service dates precede the issued business date, and active
+supplier status evidence matches retained service/TOS plus issue dates. This proves
+the older-service-date and retained-date branch without changing clocks or existing
+financial evidence. It is not a claim that wall-clock midnight was crossed, arbitrary
+multi-day delay remains eligible, or the statutory ordinary issuance window disappears.
+
+Actual signed operator login/list/detail/readiness passed. No-auth401 and checker403
+passed. A real active second-tenant actor with exact current property-scoped fiscal
+read authority and supported jurisdiction received200/coherent empty own-property
+invoice search, then403 for the first tenant's document. No availability grant was
+added. Setup-only series permission remains separate from operator and checker.
+
+The initial fresh baseline receipt remains **27/0,117 assertions,5.37s** against its
+unchanged source/test. The retained baseline prerequisite failure is recorded above,
+not presented as green or repaired by resets. Earlier genuine fiscal setup and test
+failures remain in this report; this final proof did not recreate the target.
+
+Final retained target `yellow_order444_q209_seed_repaired_review_20260907` is85/two
+tenants/one document/zero other sessions. Complete outside46DB/19roles/4memberships
+fingerprint `0a54f588b823aec6eaba2e68425fa5c0ff59098d180503c141b0381abb40eb7a`
+unchanged; pristine77/127tables/zero tenants/zero other sessions fingerprint
+`772c6f02352f6a295fa301271bd876cb0e2f13fe8b442eecd3edaeb0f863d720` unchanged.
+All89 canonical input inventory fingerprint
+`0f7d6d44037d05eecbcc8f130398e1e9a88283ab518a40afb10e8d42b11d7d1d`
+and all four final source hashes verified before/after. All child/pools closed;
+heavy native database lane explicitly released to root. Original failed target,
+template, global roles and retained review application were untouched. No provider
+calls, fabricated receipts, database cleanup, app promotion or integration approval.
+
+Narrow disposition: independent seed source/database acceptance discharged for this
+scoped synthetic fixture workflow. Exact-source CI and the separately reviewed native
+runtime update remain required; this does not merge PR92 or claim complete Phase7.

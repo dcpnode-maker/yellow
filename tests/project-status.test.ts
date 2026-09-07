@@ -53,13 +53,13 @@ async function historicalCounts(directory: string): Promise<string> {
 }
 
 describe("canonical project status", () => {
-  test("records the accepted native closure and current durable-submission work", () => {
+  test("records the accepted native closure and current Order 444 partner-preview work", () => {
     const originalSnapshot = JSON.stringify(PROJECT_BUILD_SNAPSHOT);
     expect(PROJECT_BUILD_SNAPSHOT.recordedAt).toBe("2026-09-07");
     expect(PROJECT_BUILD_SNAPSHOT.roadmap).toMatchObject({
       phaseCount: 18,
       latestBuiltOrder: 439,
-      currentOrder: 440,
+      currentOrder: 444,
       activePhase: 7,
     });
     expect(PROJECT_BUILD_SNAPSHOT.review.independentlyReviewedThroughOrder).toBeGreaterThanOrEqual(91);
@@ -73,8 +73,19 @@ describe("canonical project status", () => {
     expect(byOrder.get(440)?.summary).toContain("durable fiscal submission");
     expect(byOrder.get(440)?.summary).toContain("PR91 at 3503b0c");
     expect(byOrder.get(440)?.summary).toContain("81 migrations / 128 public tables");
-    expect(byOrder.get(440)?.remaining).toContain("Merged main81 is not the preserved local77");
-    expect(byOrder.get(440)?.remaining).toContain("authentic sandbox acceptance remain unfinished");
+    expect(byOrder.get(440)?.remaining).toContain("Merged main81 is not the preserved local77 or the current Order444 candidate85 development");
+    expect(byOrder.get(440)?.remaining).toContain("authentic external-provider sandbox acceptance and activation remain unfinished");
+    expect(byOrder.get(444)?.state).toBe("proof_in_progress");
+    expect(byOrder.get(444)?.summary).toContain("three-layout Calm Workbench, Precision Desk and Service Timeline shell");
+    expect(byOrder.get(444)?.summary).toContain("Q208 operator invoice queue/detail, readiness, confirmed issuance");
+    expect(byOrder.get(444)?.summary).toContain("populated81-to-85 preservation 2/0");
+    expect(byOrder.get(444)?.summary).toContain("synthetic fiscal review seed through genuine production services 8/0");
+    expect(byOrder.get(444)?.remaining).toContain("not merged main81 or preserved local77");
+    expect(byOrder.get(444)?.remaining).toContain("candidate85 is not the founder runtime");
+    expect(byOrder.get(444)?.remaining).toContain("Exact current-head all-six CI and CodeQL");
+    expect(byOrder.get(444)?.remaining).toContain("guarded native promotion");
+    expect(byOrder.get(444)?.remaining).toContain("full Astra identity/journey design");
+    expect(byOrder.get(444)?.remaining).toContain("Phase 7 and the whole application are not complete");
 
     expect(PROJECT_BUILD_SNAPSHOT.phases).toHaveLength(18);
     expect(PROJECT_BUILD_SNAPSHOT.phases.map(({ number, state }) => [number, state])).toEqual([
