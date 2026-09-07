@@ -1,6 +1,15 @@
 # Order447 — Native credit-note fiscal submission and signed receipts
 
 **Status:** ACTIVE, non-UI implementation admission; no database or provider activation.
+**Executed checkpoint:** core native SQL8/0(81), rollback1/0(15), real encrypted
+signed journey3/0(64), operator-v3-origin2/0(28), direct recovery5/0(156), actual
+populated87-to88 preservation/no-op, clean88 referee11/11 and13 runtime startup
+denials/exact restorations independently pass. Exact backend tree849c86e5 passes
+1911 standing tests,0 failures,1404 explicit environment skips and34153 assertions;
+typecheck and187 import boundaries pass. Licence policy passes with0 installed
+packages scanned in the isolated artifact, not a nonvacuous dependency audit.
+Publication and exact-source CI remain active. External provider activation,
+live promotion and release remain open; no whole Phase7 completion is claimed.
 **Owner:** Codex coordinator. **Phase:**7. **Date:**2026-09-08 (Asia/Kolkata).
 **Authority:** PROJECT.md, Q187/D1302, founder functional-only directive D1426.
 **Predecessor:** independently verified Order446 native full-credit backend,
@@ -101,14 +110,18 @@ Coordinator integration scope (only if exact existing composition requires it):
 - docs/CONTRACTS.md, docs/EVENTS.md, docs/STATE-MACHINES.md
 - docs/PROJECT-STATUS.md, DECISIONS.log, handoff/LEDGER.md
 - this order and handoff/reviews/447-native-credit-note-fiscal-submission.md
+- handoff/questions/223-native-credit-current88-release-wiring.md and its exact Lane R/C/O paths (post-proof technical scope)
+- handoff/questions/224-credit-current88-native-proof.md (separately frozen canonical native execution)
+- handoff/questions/225-credit-submission-recovery-proof.md and its two new bounded test files (direct acceptance3 proof)
+- handoff/questions/226-credit-functional-candidate-revision.md (exact corrected functional candidate and verification)
 - .yellow/evidence/order447/ (bounded private evidence only; excluded from Git)
 
 Before editing a named path, confirm that it exists or is the intended new file;
 if actual filenames or necessary scope differ, raise a scoped written question.
-No edits to0087 or predecessors, build-frontier/schema/release files, provider
-configuration, live app, UI, credentials, deployment, database creation or shared
-roles are authorized yet. Canonical0088 and readiness/release promotion require
-separate exact scope after executed draft proof. Preserve frozen446 publication
+No edits to0087 or predecessors, provider configuration, live app, UI, credentials,
+deployment, database creation or shared roles are authorized. After executed draft
+proof, Q223 admits exact canonical0088/readiness/release preparation paths; actual
+canonical database execution still requires a separate frozen handoff. Preserve frozen446 publication
 inputs while447's disjoint source work proceeds; never mix447 into its exact tree.
 
 ## Acceptance
@@ -209,3 +222,12 @@ types and source-only crypto1/0(6) pass with four explicit database skips.
 All other pinned sources remain unchanged. Admit a new reviewed preflight followed
 by independent Journey only, preserving prior failed cohorts and evidence. No
 product fix, SQL alteration, receipt-semantics change or weakened assertion.
+
+The repaired Journey now passes independently3/0(64); all prior rows and outside
+identities are preserved. Review447 records SQL8/0(81), upgrade rollback1/0(15),
+the retained failed oracle and genuine encrypted/signed green journey. Q222 now
+admits separately gated operator-v3-origin execution with frozen test538e3ba2,
+private helper28136147/ca548787 and fresh full snapshot195059-277,
+SHA256e9e023f7defb39cd8f861f2b1ac237d5b166cf2170c77d58084a4da916f9111c.
+Only the retained candidate may receive a new synthetic cohort; all previous
+source/row/catalogue/ledger/authority/outside/live preservation remains binding.

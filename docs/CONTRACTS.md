@@ -3570,4 +3570,12 @@ they do not change the receipt bytes. All responses are `no-store`. Changed key
 reuse/current financial conflicts return409; invalid input400; denied authority403;
 unavailable/foreign objects404. Malformed storage replies or unexpected failures
 return sanitized503 and roll back, never a fabricated successful document.
-Normal invoice-only provider guards still reject credit-note transmission.
+Order447 extends the existing provider guards to exact native full-credit CRN sources; see below.
+
+## Native full-credit fiscal submission (Order447)
+
+The existing fiscal-submission request, delivery worker and authorized receipt GET now support a genuinely issued native full credit (CRN). SQL authenticates the immutable native credit binding and complete correction graph. The original INV projection remains unchanged. Exactly one preceding invoice number/date is emitted; the five-field internal YellowCredit metadata is validated but never sent to the provider.
+
+The signed invoice and QR must cryptographically bind the CRN type, document number/date, supplier, totals and exact preceding invoice reference. Existing provider-version, idempotency, lookup-only uncertain-send recovery, authenticated rejection and immutable receipt rules remain. Full credits issued from both native-v2 and operator-v3 preparation retain native source_version2. This does not add partial/debit/refund behavior, enable a provider or establish external IRP certification.
+
+Order448's original-invoice discovery GET is separately in implementation; it is not yet accepted or available in the running local.

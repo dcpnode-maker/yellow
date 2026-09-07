@@ -2,9 +2,9 @@
 
 <!-- status-schema: yellow-project-status/v1 -->
 <!-- current-phase: 7 -->
-<!-- current-task: Codex Yellow — completed-feature review app and Astra UI integration alongside fiscal completion -->
-<!-- current-order-files: handoff/orders/444-partner-review-and-astra-ui-integration.md;handoff/orders/442-host-recovery-and-merged-local-review.md;handoff/orders/443-runtime-storage-containment.md;handoff/orders/440-fiscal-submission-lifecycle.md -->
-<!-- current-lifecycle: Q209 independent preservation2/0, fiscal seed8/0, native18/0 and final Q210 full1863/0 accepted; new PR92 publication and exact-source native preparation next; stable local77 preserved -->
+<!-- current-task: Codex Yellow — remaining functional backend build; all UI/UX paused -->
+<!-- current-order-files: handoff/orders/448-native-credit-note-original-discovery.md;handoff/orders/447-native-credit-note-fiscal-submission.md;handoff/orders/440-fiscal-submission-lifecycle.md -->
+<!-- current-lifecycle: Order447 published25d3b979, native88/referee/recovery and standing1911/0 proved; Linux CI subprocess failure under investigation; Order448 read-only discovery implementation active; no local/UI promotion -->
 
 This is the canonical current-state record. It identifies the consolidated source,
 verified behavior, release boundaries and active work. Historical orders, reviews,
@@ -12,6 +12,22 @@ decisions and ledger entries remain evidence; their filenames are not an active
 backlog. `state.sh` and `state.ps1` read the machine-readable comments above.
 
 ## Current task
+
+**Functional build checkpoint — 2026-09-08.** UI/UX, prototypes and animation are paused by the founder. Backend work continues in parallel, without changing the running local app.
+
+Order447's native full-credit fiscal submission is published as **25d3b979278c409621f0c70ea5a2951558ecb982**, exact backend tree849c86e550843a8c71ccfe41389180ead7d9b412, on draft PR92. It reuses the existing fiscal worker and signed-receipt pipeline, preserves original invoices/accounting, strips private credit metadata outbound and binds the original-invoice reference. It does not activate an external provider.
+
+Independently executed PostgreSQL proofs: core8/0(81), rollback1/0(15), real encrypted/signed synthetic journey3/0(64), operator-origin2/0(28), corrected recovery5/0(156), populated87-to88 preservation/no-op, clean88 referee11/11 and13 startup denials/exact restorations. Earlier failed attempts and narrow repairs remain in the review. Canonical0088 SHA256214754e94bdfb0a2163395c9ab4449b0b5e87da7830c45e69d77ac05a2cddb64; normalized clean/upgrade schema616afe24b78507e93a4eedebea3da7a4d939e3f185c9e1f82088872ccf0dd4b6.
+
+Exact isolated standing passes1911/0,1404 explicit environment/database skips,34153 assertions across537 files. Typecheck and187 import boundaries pass. Its licence check scanned0 installed packages; actual GitHub frozen-dependency licence and vulnerability checks pass separately. Skips are not database proof.
+
+Exact-head CI34163554694 found a Linux subprocess-isolation failure before its database job; local-review and Windows-state jobs pass. Investigation is active; source CI and release acceptance remain open. The earlier850c78 checkpoint CI and normal CodeQL pass; the optional AI-review job is separate and does not supply review evidence.
+
+[Order448](../handoff/orders/448-native-credit-note-original-discovery.md) is now implementing the read-only original-invoice-to-existing-credit discovery API in two bounded lanes. It adds no migration, table, posting, event, numbering path or UI. Current88 CI and a separately admitted native proof are required before its acceptance.
+
+The running local remains the separately verified a1085178/frontier85 build, not these newly published functions. No local restart/promotion, main merge, production/provider acceptance, or whole Phase7 completion is claimed. The entries below are retained historical checkpoints and do not override this current functional-only direction.
+
+## Historical checkpoints (superseded)
 
 **Founder priority — 2026-09-07.** Deliver completed functionality into the single
 review app without waiting for all of Phase7, and follow Astra's redesigned flows.
