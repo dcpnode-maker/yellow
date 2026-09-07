@@ -1513,7 +1513,7 @@ databaseDescribe("Bun SQL migration runner", () => {
         const tableCount = await sql<{ count: number }[]>`
           SELECT count(*)::int AS count FROM pg_catalog.pg_tables WHERE schemaname = 'public'
         `;
-        expect(tableCount).toEqual([{ count: 128 }]);
+        expect(tableCount).toEqual([{ count: 129 }]);
       });
     },
     60_000,
@@ -1698,7 +1698,7 @@ databaseDescribe("Bun SQL migration runner", () => {
                   'open_cashier_session', 'append_cashier_count', 'close_cashier_session'
                 )) AS functions
         `;
-        expect(shape).toEqual([{ tables: 128, policies: 118, functions: 3 }]);
+        expect(shape).toEqual([{ tables: 129, policies: 119, functions: 3 }]);
       });
     },
     60_000,
@@ -1745,7 +1745,7 @@ databaseDescribe("Bun SQL migration runner", () => {
               WHERE table_schema = 'public' AND table_name = 'journal'
                 AND column_name = 'approval_request_id') AS "approvalColumns"
         `;
-        expect(shape).toEqual([{ tables: 128, policies: 118, functions: 1, approvalColumns: 1 }]);
+        expect(shape).toEqual([{ tables: 129, policies: 119, functions: 1, approvalColumns: 1 }]);
       });
     },
     60_000,
@@ -1788,7 +1788,7 @@ databaseDescribe("Bun SQL migration runner", () => {
               WHERE namespace.nspname = 'public'
                 AND procedure.proname = 'transition_housekeeping_task') AS functions
         `;
-        expect(shape).toEqual([{ tables: 128, policies: 118, functions: 1 }]);
+        expect(shape).toEqual([{ tables: 129, policies: 119, functions: 1 }]);
       });
     },
     60_000,
@@ -2559,8 +2559,8 @@ databaseDescribe("Bun SQL migration runner", () => {
          WHERE class.oid = 'public.tax_semantic_route'::regclass
         `;
         expect(relation).toEqual([{
-          tables: 128,
-          policies: 118,
+          tables: 129,
+          policies: 119,
           owner: "yellow_owner",
           rls: true,
           appSelect: true,
@@ -2661,6 +2661,7 @@ databaseDescribe("Bun SQL migration runner", () => {
           "0084_india_native_fiscal_operator_query_execution.sql",
           "0085_india_native_fiscal_operator_command.sql",
           "0086_fiscal_submission_retry_binding.sql",
+          "0087_india_native_fiscal_credit_note.sql",
         ]);
 
         const preservedLedger = await sql<Array<{
@@ -2686,7 +2687,7 @@ databaseDescribe("Bun SQL migration runner", () => {
             FROM public.schema_migration
            ORDER BY version
         `;
-        expect(upgradedLedger).toHaveLength(86);
+        expect(upgradedLedger).toHaveLength(87);
 
         const noOpLog: string[] = [];
         const noOp = await runMigrations({
@@ -2695,7 +2696,7 @@ databaseDescribe("Bun SQL migration runner", () => {
           logger: (message) => noOpLog.push(message),
         });
         expect(noOp.appliedFiles).toEqual([]);
-        expect(noOp.discoveredFiles).toBe(86);
+        expect(noOp.discoveredFiles).toBe(87);
         expect(noOp.transactionBackendPids).toEqual([]);
         expect(noOpLog).toHaveLength(1);
         expect(noOpLog[0]).toContain("applied=0 status=no-op");
@@ -2931,7 +2932,7 @@ databaseDescribe("Bun SQL migration runner", () => {
                 AND class.relforcerowsecurity) AS "forceRlsTables"
         `;
         expect(counts).toEqual([{
-          tables: 128, rlsTables: 118, policies: 118, forceRlsTables: 27,
+          tables: 129, rlsTables: 119, policies: 119, forceRlsTables: 28,
         }]);
 
         const registration = await sql<Array<{
@@ -3409,7 +3410,7 @@ databaseDescribe("Bun SQL migration runner", () => {
         const tableCount = await sql<{ count: number }[]>`
           SELECT count(*)::int AS count FROM pg_tables WHERE schemaname = 'public'
         `;
-        expect(tableCount).toEqual([{ count: 128 }]);
+        expect(tableCount).toEqual([{ count: 129 }]);
 
         const privileges = await sql<{
           route_rls: boolean;
