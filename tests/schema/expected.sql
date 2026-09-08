@@ -5003,66 +5003,77 @@ $$;
 
 CREATE FUNCTION public.create_india_native_fiscal_series(p_tenant_id uuid, p_property_node uuid, p_supplier_registration_id uuid, p_document_kind text, p_prefix text, p_actor_id uuid) RETURNS TABLE(series_id uuid, tenant_id uuid, property_node uuid, supplier_registration_id uuid, document_kind text, prefix text, financial_year_start date, next_no bigint, created boolean)
     LANGUAGE plpgsql SECURITY DEFINER
-    SET search_path TO 'pg_catalog', 'public'
+    SET search_path TO 'pg_catalog', 'public', 'pg_temp'
     AS $_$
 DECLARE
-  v_context_tenant uuid; v_issue_date date; v_financial_year date;
-  v_existing public.document_series%ROWTYPE;
+  v_issue_date date; v_financial_year date; v_existing public.document_series%ROWTYPE;
+  v_payload jsonb; v_correlation_id uuid;
 BEGIN
-  IF session_user<>'yellow_runtime' OR pg_catalog.current_setting('role',true) IS DISTINCT FROM 'app_role' OR current_user<>'yellow_owner' THEN
-    RAISE EXCEPTION USING ERRCODE='42501',MESSAGE='India native fiscal series requires the governed runtime app role';
+  -- One state-changing publication per transaction: authenticate before reporting
+  -- an inverted lock order, then reacquire authoritative membership under locks.
+  PERFORM public.assert_india_native_credit_authority(p_tenant_id,p_property_node,p_actor_id,
+    ARRAY['tax-fiscal.series:configure']);
+  IF EXISTS(SELECT 1 FROM pg_catalog.pg_locks l WHERE l.pid=pg_catalog.pg_backend_pid() AND l.locktype='advisory' AND l.granted
+      AND l.objsubid=1 AND l.classid=((6441674055002974568::bigint>>32)&4294967295)::oid
+      AND l.objid=(6441674055002974568::bigint&4294967295)::oid) THEN
+    RAISE EXCEPTION USING ERRCODE='55000',MESSAGE='native fiscal series requires transaction without prior publication';
   END IF;
-  BEGIN v_context_tenant:=NULLIF(pg_catalog.current_setting('app.tenant_id',true),'')::uuid;
-  EXCEPTION WHEN invalid_text_representation THEN RAISE EXCEPTION USING ERRCODE='42501',MESSAGE='India native fiscal series tenant context is invalid'; END;
-  IF p_tenant_id IS NULL OR p_property_node IS NULL OR p_supplier_registration_id IS NULL OR p_actor_id IS NULL
-     OR v_context_tenant IS NULL OR v_context_tenant<>p_tenant_id
-     OR p_document_kind NOT IN ('invoice','credit_note','debit_note')
-     OR p_prefix IS NULL OR p_prefix<>pg_catalog.btrim(p_prefix) OR pg_catalog.char_length(p_prefix) NOT BETWEEN 1 AND 12
-     OR p_prefix !~ '^[A-Za-z0-9/-]+$' THEN
+  -- Includes current runtime identity/context and ordered, tenant-coherent locks.
+  -- Authority is required even for absent supplier/property and exact replay.
+  PERFORM public.assert_india_native_credit_authority(p_tenant_id,p_property_node,p_actor_id,
+    ARRAY['tax-fiscal.series:configure'],true);
+  IF p_supplier_registration_id IS NULL OR p_document_kind IS NULL
+      OR p_document_kind NOT IN ('invoice','credit_note','debit_note')
+      OR p_prefix IS NULL OR p_prefix<>pg_catalog.btrim(p_prefix)
+      OR pg_catalog.char_length(p_prefix) NOT BETWEEN 1 AND 12 OR p_prefix !~ '^[A-Za-z0-9/-]+$' THEN
     RAISE EXCEPTION USING ERRCODE='22023',MESSAGE='India native fiscal series input is invalid';
   END IF;
   SELECT (pg_catalog.transaction_timestamp() AT TIME ZONE property.timezone)::date
     INTO v_issue_date FROM public.org_node property
-   WHERE property.tenant_id=p_tenant_id AND property.id=p_property_node AND property.kind='property' AND property.currency='INR';
+    WHERE property.tenant_id=p_tenant_id AND property.id=p_property_node AND property.kind='property' AND property.currency='INR';
   IF NOT FOUND THEN RAISE EXCEPTION USING ERRCODE='55000',MESSAGE='India native fiscal property is unavailable'; END IF;
-  v_financial_year:=pg_catalog.make_date(pg_catalog.date_part('year',v_issue_date)::integer-CASE WHEN pg_catalog.date_part('month',v_issue_date)<4 THEN 1 ELSE 0 END,4,1);
-  IF pg_catalog.char_length(p_prefix||'1')>16 THEN RAISE EXCEPTION USING ERRCODE='22023',MESSAGE='India native fiscal prefix exceeds Rule-46 document reference limit'; END IF;
-  PERFORM 1 FROM public.app_user actor JOIN public.user_role ur ON ur.tenant_id=actor.tenant_id AND ur.user_id=actor.id
-    JOIN public.role_permission rp ON rp.role_id=ur.role_id AND rp.permission_code='tax-fiscal.series:configure'
-    JOIN public.org_node grant_node ON grant_node.tenant_id=ur.tenant_id AND grant_node.id=ur.scope_node
-    JOIN public.org_node property ON property.tenant_id=actor.tenant_id AND property.id=p_property_node AND grant_node.path @> property.path
-   WHERE actor.tenant_id=p_tenant_id AND actor.id=p_actor_id AND actor.status='active';
-  IF NOT FOUND THEN RAISE EXCEPTION USING ERRCODE='42501',MESSAGE='actor lacks property fiscal-series authority'; END IF;
-  -- Configuration must not bind a legal series to a merely shaped registration.
-  -- Order289 is a separate dated status root, so re-resolve its active portal
-  -- snapshot for the property-local legal issue date before creating or replaying
-  -- a fiscal series.
+  v_financial_year:=pg_catalog.make_date(pg_catalog.date_part('year',v_issue_date)::integer
+    -CASE WHEN pg_catalog.date_part('month',v_issue_date)<4 THEN 1 ELSE 0 END,4,1);
+  IF pg_catalog.char_length(p_prefix||'1')>16 THEN
+    RAISE EXCEPTION USING ERRCODE='22023',MESSAGE='India native fiscal prefix exceeds Rule-46 document reference limit';
+  END IF;
   PERFORM 1 FROM public.property_fiscal_registration registration
     JOIN public.india_gst_supplier_registration_status_snapshot registration_status
       ON registration_status.tenant_id=registration.tenant_id
-     AND registration_status.supplier_registration_id=registration.id
-     AND registration_status.status_as_of=v_issue_date
-     AND registration_status.gst_registration_status='active'
-   WHERE registration.tenant_id=p_tenant_id AND registration.id=p_supplier_registration_id
-     AND registration.property_node=p_property_node AND registration.scheme='in-gstin' AND registration.currency='INR'
-   FOR KEY SHARE OF registration,registration_status;
+      AND registration_status.supplier_registration_id=registration.id
+      AND registration_status.status_as_of=v_issue_date AND registration_status.gst_registration_status='active'
+    WHERE registration.tenant_id=p_tenant_id AND registration.id=p_supplier_registration_id
+      AND registration.property_node=p_property_node AND registration.scheme='in-gstin' AND registration.currency='INR'
+    FOR KEY SHARE OF registration,registration_status;
   IF NOT FOUND THEN RAISE EXCEPTION USING ERRCODE='55000',MESSAGE='India native fiscal supplier registration is unavailable'; END IF;
   PERFORM pg_catalog.pg_advisory_xact_lock(pg_catalog.hashtextextended(
     'india-native-fiscal-series:'||p_tenant_id::text||':'||p_property_node::text||':'||p_supplier_registration_id::text||':'||p_document_kind||':'||v_financial_year::text,430));
   SELECT * INTO v_existing FROM public.document_series series
-   WHERE series.tenant_id=p_tenant_id AND series.property_node=p_property_node
-     AND series.supplier_registration_id=p_supplier_registration_id AND series.kind=p_document_kind
-     AND series.financial_year_start=v_financial_year AND series.fiscal
-   FOR UPDATE;
+    WHERE series.tenant_id=p_tenant_id AND series.property_node=p_property_node
+      AND series.supplier_registration_id=p_supplier_registration_id AND series.kind=p_document_kind
+      AND series.financial_year_start=v_financial_year AND series.fiscal FOR UPDATE;
   IF FOUND THEN
     IF v_existing.prefix<>p_prefix THEN RAISE EXCEPTION USING ERRCODE='23505',MESSAGE='India native fiscal series already has a different locked prefix'; END IF;
     RETURN QUERY SELECT v_existing.id,v_existing.tenant_id,v_existing.property_node,v_existing.supplier_registration_id,
       v_existing.kind,v_existing.prefix,v_existing.financial_year_start,v_existing.next_no,false;
     RETURN;
   END IF;
+  -- Publication last, after authority/supplier/series locks, before allocating seq.
+  PERFORM pg_catalog.pg_advisory_xact_lock(6441674055002974568::bigint);
   INSERT INTO public.document_series(tenant_id,property_node,kind,prefix,next_no,fiscal,supplier_registration_id,financial_year_start)
-  VALUES(p_tenant_id,p_property_node,p_document_kind,p_prefix,1,true,p_supplier_registration_id,v_financial_year)
-  RETURNING * INTO v_existing;
+    VALUES(p_tenant_id,p_property_node,p_document_kind,p_prefix,1,true,p_supplier_registration_id,v_financial_year)
+    RETURNING * INTO v_existing;
+  v_payload:=pg_catalog.jsonb_build_object('seriesId',v_existing.id,'propertyNode',v_existing.property_node,
+    'supplierRegistrationId',v_existing.supplier_registration_id,'documentKind',v_existing.kind,
+    'prefix',v_existing.prefix,'financialYearStart',pg_catalog.to_char(v_existing.financial_year_start,'YYYY-MM-DD'));
+  -- Generated correlation is not the service envelope's requestId (not an argument).
+  v_correlation_id:=pg_catalog.gen_random_uuid();
+  INSERT INTO public.fact_log(tenant_id,entity_type,entity_id,fact_type,valid_from,business_date,actor_id,payload)
+    VALUES(p_tenant_id,'document_series',v_existing.id,'configured',pg_catalog.transaction_timestamp(),v_issue_date,p_actor_id,v_payload);
+  INSERT INTO public.outbox(tenant_id,property_node,business_date,aggregate_type,aggregate_id,event_type,event_version,
+    actor_id,correlation_id,causation_id,payload)
+    VALUES(p_tenant_id,p_property_node,v_issue_date,'document_series',v_existing.id,'document.series.configured',1,
+      p_actor_id,v_correlation_id,NULL,v_payload);
   RETURN QUERY SELECT v_existing.id,v_existing.tenant_id,v_existing.property_node,v_existing.supplier_registration_id,
     v_existing.kind,v_existing.prefix,v_existing.financial_year_start,v_existing.next_no,true;
 END;

@@ -3,8 +3,8 @@
 <!-- status-schema: yellow-project-status/v1 -->
 <!-- current-phase: 7 -->
 <!-- current-task: Codex Yellow — remaining functional backend build; all UI/UX paused -->
-<!-- current-order-files: handoff/orders/452-native-credit-delivery-discovery.md;handoff/orders/440-fiscal-submission-lifecycle.md -->
-<!-- current-lifecycle: Published0b1ff327 all six CI jobs pass; Order452 native SQL11/0 HTTP3/0 canonical89 upgrade/referee11/11 and30 readiness faults pass; full standing/publication in progress; UI and live app unchanged -->
+<!-- current-order-files: handoff/orders/453-native-fiscal-series-configuration.md;handoff/orders/440-fiscal-submission-lifecycle.md -->
+<!-- current-lifecycle: Order453 native/canonical90 proof passes, but first full standing1982pass/1458skip/1fail requires provider-configuration diagnosis before publication. Order454 source/tests prepared in parallel; UI/live unchanged -->
 
 This is the canonical current-state record. It identifies the consolidated source,
 verified behavior, release boundaries and active work. Historical orders, reviews,
@@ -14,76 +14,131 @@ backlog. `state.sh` and `state.ps1` read the machine-readable comments above.
 ## Current task
 
 **Functional build — 2026-09-08.** All UI/UX, prototypes, animation and guest-picker
-work is paused by the founder; existing files are preserved. The running local
-remains the separately verified a1085178/frontier85 build, not the published branch.
-No restart, migration or promotion was performed by this checkpoint.
+work remains paused. The running local stays a1085178/frontier85; it is NOT the
+latest published branch. No restart, migration or promotion of the live app occurred.
 
-**Published:** 0b1ff327d289c611542d81f272d7e3a2e7223b06 on draftPR92,
-tree754250713ebf548d6fda72016bf49a947b2c15c0, parentffb03441.
-Orders449/450/451 are now implemented, independently scoped-tested and published:
-complete immutable credit documents, authorized date-bounded credit listing and
-private immutable long-stay pricing evaluation reuse. No print/UI renderer or
-external fiscal-provider activation is implied.
+**Published:** 557dd0315945bb551a3409704d70ff1cf9d4c4a3 on
+[existing draftPR92](https://github.com/dcpnode-maker/yellow/pull/92),
+treef10fe28afdb5a5592a22572054d919379d9b37a6, parent0b1ff327.
+Order452 adds authorized credit-document delivery discovery, requiring BOTH current
+document-read and submission-read permissions. It reads the durable fiscal state
+and stored signed receipt without needing the caller to retain a submission UUID.
+It does not create a document, submit/retry anything, print or change the UI.
 
-Exact standalone full standing passes **1,956 tests / 0 failures**, with1,410
-explicit environment/database skips,34,947 assertions and540 test files in197.04s.
-Typecheck and189 import boundaries pass. The local license script scanned0
-installed packages; CI's installed-dependency license/audit checks passed.
-The skips are not substitutes for separately executed native database proofs.
-CI34202983111 passes all six jobs: quality, local-review, Windows-state,
-container-smoke, nativeARM64 and the complete database suite.
-NormalCodeQL34202979566 passed; optional AI review is separate.
+Actual standalone full standing passes **1,966 tests / 0 failures**, with1,432
+explicit environment/database skips,35,170 assertions and544files in189.29seconds.
+Typecheck and191 import boundaries pass. Local license script scanned0 installed
+packages; this is not an installed-dependency census. Exact557dd031 CI34218945855
+finished with five jobs passing and database failing: its canonical88 readiness
+test used a shared deployment connection before initialization. Independent log
+diagnosis found34 pass/1 fail/267 assertions in the affected15.49-second step.
+The narrow local predecessor-connection/finally-close repair preserves exact88
+denial and later89 acceptance; pure readiness8/0 with33 explicit DB skips and
+typecheck pass. Actual database re-execution/publication of this repair remains
+pending. Parent CI or skipped tests do not make this head verified.
 
-Order449's real signed-session PostgreSQL API passes1/0(48), including12 concurrent
-reads of exact stored credit content/receipt and denied revoked/foreign access.
-Order450's real API passes1/0(24), plus seven actual planner/denial cases.
-All1,773 pre-existing rows remain in the final2,054-row synthetic target; protected
-metadata, companion databases and live host identities are unchanged.
+Independently executed native452 proof: rollback3/0(19), finalSQL11/0(164),
+signedHTTP3/0(83), populated88→89/no-op, clean77→89 schema equality and unchanged
+**11/11 invariants**. All30 runtime-readiness fault denials and exact restorations
+pass. Generated schema is78e76f92. Every3,080 preceding functional row and2,054
+original clone row is preserved; final functional candidate has4,122rows. Complete
+companion databases, global roles and live host identities are unchanged.
+Initial clone-ordering and test-oracle failures remain recorded, not erased.
 
-Order451's final root benchmark proves complete-output equality across nine
-old/new workloads. The366/367-night median fixture times fell3027→283ms and
-3152→231ms; these are controlled in-memory results, not production SLOs.
-Root final focused42/0(382), hostile-input and genuine-green/two-mutation-red
-checks pass. Q239 repaired only ownership/lifecycle of the existing browser test,
-preserving all seven cases, assertions and30s deadline; no UI design changed.
-All three earlier failed standing runs and intermediate proof failures remain
-recorded, not silently replaced by the final passing run.
+Exact publication preserved all2,106 original tracked working files, outside
+staging and full projected index modes/OIDs/paths/stages/flags. Its12 newly scoped
+paths were explicitly admitted; paused UI and new453 work were excluded. Raw Git
+stat/cache refreshes were recorded separately from content preservation.
+No force push, main merge, provider activation or local promotion occurred.
 
-The first publication attempt stopped before any commit/ref/index/push because
-its reverse-patch audit assumed identical audit-file context. The corrected
-publisher committed and pushed the exact verified tree, then its raw-index guard
-reported a difference. Root's subsequent read-only binary/semantic audit proves
-only37 timestamp-cache blocks changed: all mode/OID/path/stage/flags,2,064 unrelated
-staged entries,2,081 original working files and42 scoped inputs were preserved.
-No reset/restore was needed; the original failure receipt remains immutable.
-See [Order451 review](../handoff/reviews/451-rate-quote-evaluation-reuse.md).
+**Active now:** [Order453](../handoff/orders/453-native-fiscal-series-configuration.md),
+authenticated native fiscal-series configuration. Parallel SQL/proof and typed/API
+lanes are implementing the approved supplier/property/document-kind/FY-bound
+numbering setup. Current active-tenant and tenant-coherent role checks precede
+creation or replay. A new series plus its minimized configuration fact/outbox event
+must commit atomically; repeating the same configuration preserves its counter
+and emits nothing. This adds no table, dependency or provider.
+The typed command/API is implemented. Independent checks found and corrected
+unsafe driver-container decoding and unavailable/corrupt-state error mapping;
+historical malformed-row expectations were aligned without changing real23505
+conflicts. Root's focused compatibility run passes21/0 with3 explicit native-DB
+skips/179 assertions. Additional real signed-HTTP proof is prepared, not yet run.
+Root's first actual native453 run stopped before draft installation:2 passed,
+2 failed,1 canonical-only skip/21 assertions. The driver-result guard rejected
+actual Bun SQLResultArray prototype and metadata while preparing genuine fixture
+history. A separate read-only diagnostic confirmed the exact driver shape; a
+narrow compatibility repair and regression are active. The isolated candidate
+retains2 incomplete synthetic cohorts/6 codes,2183 total rows. All2055 original
+clone rows, predecessor functions, ledger89 and seven other databases/global roles
+are preserved; fault helpers are absent and live listeners are unchanged.
+The stopped run/evidence remains intact. The repaired Bun compatibility then
+passed actual upgrade4/0 with1 canonical-only skip(34 assertions), including real
+production-migrator rollback, followed by exact draft0090 installation. Authority
+tests stopped at9/2(361 assertions): a missing test parameter type and a lazy
+PostgreSQL trigger-presence flag in the test snapshot. Both test-only repairs are
+complete; a new runtime-only continuation is being prepared, not a reinstall.
+Current candidate has3054 rows,14 synthetic cohorts/42 owned codes; all2055
+original and2183 preceding rows plus complete external state are preserved.
+The next runtime run reached later test assertions but stopped9/2(907 assertions):
+a reserved SQL alias and automatic planner-statistics changes in the snapshot.
+These scoped test repairs are active. Current candidate3711 rows preserves every
+prior row;23 cumulative synthetic cohorts/69 owned codes, external state unchanged.
+The final separately admitted runtime run now passes **SQL12/0 (933 assertions)**
+and **signedHTTP5/0 (376 assertions)**. Concurrency, scoped authority/revocation,
+property/FY separation, exact replay, both publication failures and late rollback
+are verified. Final candidate4438 rows preserves every2055/2183/3054/3711 earlier
+row;33 cumulative synthetic cohorts/99 owned codes, no leftover helpers, complete
+external state and live identities unchanged. All failed runs remain recorded.
 
-**Active now:** [Order452](../handoff/orders/452-native-credit-delivery-discovery.md),
-authorized credit-document fiscal-delivery discovery. SQL, typed service/command
-and HTTP source are built. Root personally executed rollback3/0(19), then final
-SQL11/0(164) and signed-session HTTP3/0(83) on one isolated retained candidate.
-Two earlier test-oracle failures were corrected without changing production logic;
-all failure logs remain. Full final preservation proves all3,080 preceding rows,
-all2,054 original clone rows, companion databases, roles and live app unchanged.
-Canonical0089 source and release wiring are integrated. Actual populated88→89
-upgrade/no-op and separate pristine77→89 clean schema equality pass, along with
-the unchanged11/11 referee and30 actual readiness fault denials/exact restorations.
-Generated schema matches both databases at78e76f92. The initial workflow-test
-declaration error was repaired; root focused25/0(571), compiler and191 boundaries
-pass. Full standing and publication remain in progress. This feature is not yet
-published or promoted into the running local app.
-The read-only route requires
-BOTH current document-read and submission-read permissions. Draft0089 adds one
-narrow owner-mediated function, not tables or broad direct SELECT grants.
-Both functional and canonical executions used separately frozen Q241 handoffs;
-the complete-candidate standing/CI/publication gate is still open.
+Root now executed the populated canonical89-to-90 production upgrade: exactly
+0090 applied, the next run was a no-op, every existing business row/ledger prefix,
+other function, catalogue and sequence was preserved. The target moved2055→2056
+rows only through its migration-ledger entry. Schema-only normalized output is
+f96a2876. Fresh-install/referee/readiness and functional-only standing/publication
+remain pending. Root caught a fresh-referee row-count oracle error before running
+it; expected clean90 total is1264, not clean89's1263. A finish-only helper will
+consume the completed upgrade evidence; no upgrade rerun or reset is authorized.
 
-**Remaining boundaries:** native debit-note issuance is substantive Q187 scope;
-a debit-series configuration is not issuance/accounting/submission. Its exact
-economic-source contract remains to be bounded before implementation.
-Authentic provider onboarding/sandbox acceptance remains separate from synthetic
-worker/adapter proofs. Phase7 is NOT complete. Founder priority11→13→17 remains
-dependency-gated by the build plan. No main merge or whole-app completion is claimed.
+Parallel, not-yet-published Order454 preparation now
+has a migration-free read service and pure tests: root independently ran8/0 with
+234 assertions. It discovers the current supplier/property/kind/FY configuration
+without guessing a prefix, writes or counter allocation. Native test preparation
+continues in new files only; no database execution or API integration is claimed.
+Root now also completed clean77-to90/no-op: both actual normalized schemas equal
+f96a2876 and generated expected.sql; unchanged referee11/11 passes. All50 runtime
+fault cases deny startup and exactly restore, including full original series
+pg_proc/OID for20 series cases. Final complete state is byte-identical b94f0e78;
+only the admitted clean90 database was created on the existing server. No live
+app, other database, global role or provider change occurred. Release/startup/CI
+source is frozen. Functional-only standing/publication and exact new-head CI are
+next; Phase7 and whole-app completion are NOT claimed.
+
+The first functional-only453 standing now finished:1,982 passed,1,458 explicit
+environment/database skips and1 failure,35,419 assertions across548 files in
+161.86 seconds. The failing Q207 provider-configuration positive control returned
+ok=false; its cause is being investigated, not labeled harmless. Types and module
+boundaries pass. The failed standing receipt and logs remain immutable, and the
+validation runner restored only its owned artifact changes. No publication or
+live promotion is admitted from this failed run.
+
+Independent focused active/scrubbed/artifact runs each pass7/0 with1 POSIX skip,
+and25 targeted repetitions pass; these do not identify the original cause. Root
+added only the existing sanitized error code to the unchanged positive assertion
+and personally reran7/0 with1skip/151assertions. Q242 admits the exact additional
+test path; a fresh43path successor must pass the complete four gates before
+publication. No production loader/security predicate or test timeout changed.
+
+Prior published449/450/451 work remains intact: complete immutable credit-document
+reading, authorized date-bounded listing, and private long-stay pricing evaluation
+reuse. Their separate actualAPI1/0(48), API1/0(24)+seven planner cases and nine-workload
+complete-output parity proofs remain recorded. Controlled366/367-night median
+times3027→283ms and3152→231ms are fixture results, not production SLOs.
+
+**Remaining boundaries:** native debit-note economic-source policy and issuance,
+authentic provider onboarding/sandbox acceptance and final Phase7 completion remain
+open. Configuring a debit series is not debit issuance/accounting/submission.
+Founder priority11→13→17 remains dependency-gated. The executable roadmap remains
+7→8→9→10→11→12→13→17→14→15→16. No whole-app completion is claimed.
 
 ## Historical checkpoints (superseded)
 

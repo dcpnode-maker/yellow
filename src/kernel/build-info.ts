@@ -1,7 +1,7 @@
 import type { ReservedSQL, SQL } from "bun";
 
 const GIT_SHA = /^[0-9a-f]{40}$/;
-export const CURRENT_MIGRATION_FRONTIER = 89 as const;
+export const CURRENT_MIGRATION_FRONTIER = 90 as const;
 
 // PostgreSQL16's normalized form of0087's Unicode-aware, nonblank reason CHECK.
 // Keep invisible Unicode separators escaped in source so reviews remain legible.
@@ -72,6 +72,7 @@ export async function assertRuntimeReleaseReadiness(
     nativeCreditPrivateAuthorityExact: boolean;
     nativeCreditFiscalProjectionExact: boolean;
     indiaNativeCreditDeliveryExact: boolean;
+    indiaNativeFiscalSeriesConfigurationExact: boolean;
   }>>`
     WITH release_target AS (
       SELECT pg_catalog.to_regprocedure(
@@ -384,6 +385,46 @@ export async function assertRuntimeReleaseReadiness(
       WHERE procedure.oid=pg_catalog.to_regprocedure(
         'public.read_india_native_credit_delivery_by_document(uuid,uuid,uuid,uuid)'
       )
+    ), native_fiscal_series AS (
+      SELECT count(procedure.oid)=1 AND bool_and(
+        procedure.proowner='yellow_owner'::regrole AND language.lanname='plpgsql'
+        AND procedure.prokind='f' AND procedure.prosecdef AND procedure.provolatile='v'
+        AND NOT procedure.proisstrict AND procedure.proretset
+        AND procedure.prorettype='pg_catalog.record'::regtype
+        AND procedure.proparallel='u' AND NOT procedure.proleakproof
+        AND procedure.pronargs=6 AND procedure.pronargdefaults=0
+        AND procedure.proargdefaults IS NULL AND procedure.provariadic=0
+        AND procedure.proargnames=ARRAY[
+          'p_tenant_id','p_property_node','p_supplier_registration_id','p_document_kind','p_prefix','p_actor_id',
+          'series_id','tenant_id','property_node','supplier_registration_id','document_kind','prefix',
+          'financial_year_start','next_no','created'
+        ]::text[]
+        AND procedure.proargmodes=ARRAY['i','i','i','i','i','i','t','t','t','t','t','t','t','t','t']::"char"[]
+        AND procedure.proallargtypes=ARRAY[
+          'pg_catalog.uuid'::regtype::oid,'pg_catalog.uuid'::regtype::oid,'pg_catalog.uuid'::regtype::oid,'pg_catalog.text'::regtype::oid,'pg_catalog.text'::regtype::oid,'pg_catalog.uuid'::regtype::oid,
+          'pg_catalog.uuid'::regtype::oid,'pg_catalog.uuid'::regtype::oid,'pg_catalog.uuid'::regtype::oid,'pg_catalog.uuid'::regtype::oid,'pg_catalog.text'::regtype::oid,'pg_catalog.text'::regtype::oid,
+          'pg_catalog.date'::regtype::oid,'pg_catalog.int8'::regtype::oid,'pg_catalog.bool'::regtype::oid
+        ]::oid[]
+        AND pg_catalog.pg_get_function_result(procedure.oid)=
+          'TABLE(series_id uuid, tenant_id uuid, property_node uuid, supplier_registration_id uuid, document_kind text, prefix text, financial_year_start date, next_no bigint, created boolean)'
+        AND procedure.proconfig=ARRAY['search_path=pg_catalog, public, pg_temp']::text[]
+        AND pg_catalog.encode(pg_catalog.sha256(pg_catalog.convert_to(
+          pg_catalog.replace(procedure.prosrc,chr(13)||chr(10),chr(10)),'UTF8'
+        )),'hex')='ba1a60e916897ff634b288ab20b7717708987ad63f416fcd9109cf463d9ff365'
+        AND pg_catalog.has_function_privilege('yellow_owner',procedure.oid,'EXECUTE')
+        AND pg_catalog.has_function_privilege('app_role',procedure.oid,'EXECUTE')
+        AND NOT pg_catalog.has_function_privilege('yellow_runtime',procedure.oid,'EXECUTE')
+        AND (SELECT count(*)=2 AND bool_and(
+          privilege.privilege_type='EXECUTE' AND NOT privilege.is_grantable
+          AND privilege.grantee IN (procedure.proowner,'app_role'::regrole::oid)
+          AND privilege.grantor=procedure.proowner
+        ) FROM pg_catalog.aclexplode(procedure.proacl) privilege)
+      ) AS exact
+      FROM pg_catalog.pg_proc procedure
+      JOIN pg_catalog.pg_language language ON language.oid=procedure.prolang
+      WHERE procedure.oid=pg_catalog.to_regprocedure(
+        'public.create_india_native_fiscal_series(uuid,uuid,uuid,text,text,uuid)'
+      )
     ), credit_trigger(table_name, trigger_name, function_signature, trigger_type, deferred) AS (VALUES
       ('india_native_fiscal_credit_note','india_native_credit_immutable','public.prevent_india_native_credit_mutation()',27,false),
       ('india_native_fiscal_credit_note','india_native_credit_birth','public.guard_india_native_credit_birth()',7,false),
@@ -583,6 +624,7 @@ export async function assertRuntimeReleaseReadiness(
       credit_private.exact AS "nativeCreditPrivateAuthorityExact",
       credit_projection.exact AS "nativeCreditFiscalProjectionExact",
       credit_delivery.exact AS "indiaNativeCreditDeliveryExact",
+      native_fiscal_series.exact AS "indiaNativeFiscalSeriesConfigurationExact",
       target.function_oid IS NOT NULL AS "issueFunctionPresent",
       NOT EXISTS (
         SELECT 1
@@ -616,12 +658,13 @@ export async function assertRuntimeReleaseReadiness(
       CROSS JOIN credit_private_authority credit_private
       CROSS JOIN credit_fiscal_projection credit_projection
       CROSS JOIN credit_delivery
+      CROSS JOIN native_fiscal_series
   `;
   const proof = rows[0];
   if (rows.length !== 1 || !proof || Object.values(proof).some((value) => value !== true)
     || proof.nativeCreditBindingProtected !== true || proof.nativeCreditEntryAuthorityExact !== true
     || proof.nativeCreditPrivateAuthorityExact !== true || proof.nativeCreditFiscalProjectionExact !== true
-    || proof.indiaNativeCreditDeliveryExact !== true) {
+    || proof.indiaNativeCreditDeliveryExact !== true || proof.indiaNativeFiscalSeriesConfigurationExact !== true) {
     throw new Error("runtime release readiness is unavailable");
   }
   let permission: Array<{ exact: boolean }>;
@@ -629,12 +672,12 @@ export async function assertRuntimeReleaseReadiness(
     permission = await sql.begin("read only", async (transaction) => {
       await transaction.unsafe("SET LOCAL ROLE app_role");
       return transaction<Array<{ exact: boolean }>>`
-        SELECT count(*)=2
+        SELECT count(*)=3
           AND pg_catalog.array_agg(code ORDER BY code)=ARRAY[
-            'tax-fiscal.documents:read','tax-fiscal.submissions:read'
+            'tax-fiscal.documents:read','tax-fiscal.series:configure','tax-fiscal.submissions:read'
           ]::text[] AS exact
         FROM public.permission
-        WHERE code IN ('tax-fiscal.documents:read','tax-fiscal.submissions:read')
+        WHERE code IN ('tax-fiscal.documents:read','tax-fiscal.series:configure','tax-fiscal.submissions:read')
       `;
     });
   } catch {

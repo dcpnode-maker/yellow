@@ -450,6 +450,11 @@ const EXPECTED_MIGRATIONS = [
     filename: "0089_native_credit_delivery_discovery.sql",
     checksum_sha256: "26aac42e59146dfa29f558dc75209166420a5aa7621bc34b1f6ec0f9c834c1cd",
   },
+  {
+    version: 90,
+    filename: "0090_india_native_fiscal_series_configuration.sql",
+    checksum_sha256: "67802156fe1a35d76023361dc8461699dad204017ff727441523fa9fb2b1faf9",
+  },
 ];
 
 if (REQUIRE_DATABASE && !DATABASE_URL) {
@@ -528,7 +533,7 @@ databaseDescribe("fresh deployment database acceptance", () => {
             AND class.relforcerowsecurity) AS "forceRlsTables"
     `;
     expect(catalogue).toEqual([{
-      migrations: 89, tables: 129, rlsTables: 119, policies: 119, forceRlsTables: 28,
+      migrations: 90, tables: 129, rlsTables: 119, policies: 119, forceRlsTables: 28,
       permissions: 15, permissionGrants: 0,
     }]);
   });

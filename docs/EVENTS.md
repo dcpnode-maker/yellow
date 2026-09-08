@@ -26,6 +26,31 @@ outbox by `seq` (SQL) or JetStream by offset.
 
 ## Catalogue v1 (producer → notable consumers)
 
+### document.series.configured — native India fiscal-series configuration
+
+Order453 introduces this v1 producer contract; implementation/native acceptance is
+in progress, not a claim that historical series emitted this event.
+New configuration atomically inserts its document_series row, fact_log configured
+fact and outbox event. Aggregate/entity type=document_series, aggregate/entity ID
+is the new series UUID. Both minimized payloads contain exactly
+{seriesId,propertyNode,supplierRegistrationId,documentKind,prefix,financialYearStart},
+derived from the stored series. FY is YYYY-MM-DD. No GSTIN, Party/guest details,
+money/tax, document number/content, credentials or provider data.
+
+Tenant/property/actor are authenticated; business_date is the transaction-stable
+property-local configuration date. Fact valid_from uses transaction_timestamp;
+outbox event_version=1, causation_id=NULL and SQL generates correlation_id. The
+existing six-argument capability cannot persist the service envelope requestId;
+do not treat that validated value as the event correlation or idempotency receipt.
+The existing publication advisory lock is acquired last before immutable writes.
+Prior publication in the same transaction is denied after initial authority;
+new configuration and its publication commit together or all roll back.
+
+Exact same-key/prefix replay changes no counter and emits nothing. Historical
+unaudited series receive no fabricated events. No consumer is added by this order.
+Consumers must not infer issuance, number allocation, debit-note accounting,
+payment, IRN/registration, cancellation or provider activity from configuration.
+
 **inventory** · space.created · unit_type.created · sellable_unit.created {unit_type_id,space_claims[{space_id,claim_mode}]} · inventory.policy.changed {policy,previous,value} · occupancy.recorded {slot_kind,space_id,period,claim} · occupancy.released · hold.created/.consumed/.expired/.released · restriction.changed · ooo.opened/.closed
 → availability-projection rebuilder, ARI push, Valkey invalidator
 

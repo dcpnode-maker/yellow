@@ -4,9 +4,9 @@ import { createHash } from "node:crypto";
 
 import { assertRuntimeReleaseReadiness, CURRENT_MIGRATION_FRONTIER } from "../src/kernel";
 
-const DEPLOY_URL = process.env.YELLOW_ORDER440_Q212_DEPLOY_DATABASE_URL;
-const RUNTIME_URL = process.env.YELLOW_ORDER440_Q212_RUNTIME_DATABASE_URL;
-const REQUIRED = process.env.YELLOW_REQUIRE_ORDER440_Q212_DATABASE === "1";
+const DEPLOY_URL = process.env.YELLOW_ORDER453_Q212_DEPLOY_DATABASE_URL;
+const RUNTIME_URL = process.env.YELLOW_ORDER453_Q212_RUNTIME_DATABASE_URL;
+const REQUIRED = process.env.YELLOW_REQUIRE_ORDER453_Q212_DATABASE === "1";
 const MIGRATION_86_SHA256 = "40c55de6a34fb0f0ba354e5e37d210500038018fa649cf9437e29813fa0b915e";
 const HELPER_SIGNATURE =
   "public.india_fiscal_submission_retry_binding_v1(text,text,text,uuid,integer)";
@@ -27,7 +27,7 @@ function parseTarget(value: string, expectedRole: "yellow_deploy" | "yellow_runt
   try {
     parsed = new URL(value);
   } catch {
-    throw new Error("Q212 readiness proof target is invalid");
+    throw new Error("Order453 Q212 readiness proof target is invalid");
   }
   let username: string;
   let database: string;
@@ -35,7 +35,7 @@ function parseTarget(value: string, expectedRole: "yellow_deploy" | "yellow_runt
     username = decodeURIComponent(parsed.username);
     database = decodeURIComponent(parsed.pathname.slice(1));
   } catch {
-    throw new Error("Q212 readiness proof target is invalid");
+    throw new Error("Order453 Q212 readiness proof target is invalid");
   }
   const authorityStart = value.indexOf("://") + 3;
   const pathStart = value.indexOf("/", authorityStart);
@@ -47,8 +47,8 @@ function parseTarget(value: string, expectedRole: "yellow_deploy" | "yellow_runt
     || username !== expectedRole || parsed.username !== expectedRole || parsed.password === ""
     || parsed.pathname !== `/${database}` || rawPath !== `/${database}`
     || parsed.search !== "" || parsed.hash !== ""
-    || !/^yellow_order440_q212_[a-z0-9_]+$/.test(database)) {
-    throw new Error("Q212 readiness proof target is invalid");
+    || !/^yellow_order453_q212_[a-z0-9_]+$/.test(database)) {
+    throw new Error("Order453 Q212 readiness proof target is invalid");
   }
   return Object.freeze({
     authority: `${parsed.hostname.toLowerCase()}:${port}`,
@@ -60,16 +60,16 @@ function assertSameTarget(deployUrl: string, runtimeUrl: string): ProofTarget {
   const deploy = parseTarget(deployUrl, "yellow_deploy");
   const runtime = parseTarget(runtimeUrl, "yellow_runtime");
   if (deploy.authority !== runtime.authority || deploy.database !== runtime.database) {
-    throw new Error("Q212 readiness deploy and runtime URLs must identify one target");
+    throw new Error("Order453 Q212 readiness deploy and runtime URLs must identify one target");
   }
   return deploy;
 }
 
 if (REQUIRED && (!DEPLOY_URL || !RUNTIME_URL)) {
-  throw new Error("Q212 readiness proof requires explicit deploy and runtime URLs");
+  throw new Error("Order453 Q212 readiness proof requires explicit deploy and runtime URLs");
 }
 if ((DEPLOY_URL || RUNTIME_URL) && (!DEPLOY_URL || !RUNTIME_URL)) {
-  throw new Error("Q212 readiness proof requires both deploy and runtime URLs");
+  throw new Error("Order453 Q212 readiness proof requires both deploy and runtime URLs");
 }
 const configuredTarget = DEPLOY_URL && RUNTIME_URL
   ? assertSameTarget(DEPLOY_URL, RUNTIME_URL)
@@ -92,15 +92,15 @@ async function readinessFailure(operation: Promise<void>): Promise<Error> {
 
 describe("Q212 retained readiness target admission", () => {
   test("accepts only paired loopback URLs with split exact roles", () => {
-    const deploy = "postgres://yellow_deploy:protected@127.0.0.1:55503/yellow_order440_q212_readiness";
-    const runtime = "postgres://yellow_runtime:protected@127.0.0.1:55503/yellow_order440_q212_readiness";
+    const deploy = "postgres://yellow_deploy:protected@127.0.0.1:5544/yellow_order453_q212_readiness";
+    const runtime = "postgres://yellow_runtime:protected@127.0.0.1:5544/yellow_order453_q212_readiness";
     expect(assertSameTarget(deploy, runtime)).toEqual({
-      authority: "127.0.0.1:55503",
-      database: "yellow_order440_q212_readiness",
+      authority: "127.0.0.1:5544",
+      database: "yellow_order453_q212_readiness",
     });
     for (const [left, right] of [
       [deploy.replace("q212", "q211"), runtime],
-      [deploy, runtime.replace("55503", "55504")],
+      [deploy, runtime.replace("5544", "5545")],
       [deploy, runtime.replace("yellow_runtime", "yellow_deploy")],
       [deploy, runtime.replace("127.0.0.1", "database.example")],
       [deploy, `${runtime}?options=private`],
@@ -326,7 +326,7 @@ databaseDescribe("Q212 direct-runtime retry-binding readiness hostility", () => 
              pg_catalog.to_regprocedure(${HELPER_SIGNATURE})::text AS helper
       FROM public.schema_migration
     `;
-    expect(frontier).toEqual({ migrations: 89, frontier: CURRENT_MIGRATION_FRONTIER,
+    expect(frontier).toEqual({ migrations: 90, frontier: CURRENT_MIGRATION_FRONTIER,
       checksum: MIGRATION_86_SHA256,
       helper: "india_fiscal_submission_retry_binding_v1(text,text,text,uuid,integer)" });
     const [reverseDependencies] = await deploy<Array<{ dependents: number }>>`

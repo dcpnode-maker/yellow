@@ -128,7 +128,7 @@ describe("Q207 protected India IRP provider configuration", () => {
     const result = await loadIndiaIrpAdapterRegistrationsFromEnvironment(environment(files.manifest), {
       fetch: testFetch, clock: () => now,
     });
-    expect(result.ok).toBe(true);
+    expect(result.ok, result.ok ? "provider registry loaded" : result.error.code).toBe(true);
     if (!result.ok) throw new Error(result.error.code);
     expect(fetchCalls).toBe(0);
     expect(Object.isFrozen(result)).toBe(true);

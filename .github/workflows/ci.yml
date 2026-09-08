@@ -822,12 +822,13 @@ jobs:
           set -euo pipefail
           current_database="yellow_order452_current89_ci"
           upgrade_database="yellow_order452_upgrade88_ci"
-          readiness_database="yellow_order440_q212_current89_ci"
           prefix88="$(mktemp -d "$RUNNER_TEMP/yellow-order452-prefix88.XXXXXX")"
-          trap 'for database in "$current_database" "$upgrade_database" "$readiness_database"; do docker compose exec -T postgres psql --username yellow_deploy --dbname postgres --set ON_ERROR_STOP=1 --command "DROP DATABASE IF EXISTS ${database} WITH (FORCE)"; done; if [[ -d "$prefix88" && "$prefix88" == "$RUNNER_TEMP"/yellow-order452-prefix88.* ]]; then rm -r -- "$prefix88"; fi' EXIT
+          prefix89="$(mktemp -d "$RUNNER_TEMP/yellow-order452-prefix89.XXXXXX")"
+          trap 'for database in "$current_database" "$upgrade_database"; do docker compose exec -T postgres psql --username yellow_deploy --dbname postgres --set ON_ERROR_STOP=1 --command "DROP DATABASE IF EXISTS ${database} WITH (FORCE)"; done; if [[ -d "$prefix88" && "$prefix88" == "$RUNNER_TEMP"/yellow-order452-prefix88.* ]]; then rm -r -- "$prefix88"; fi; if [[ -d "$prefix89" && "$prefix89" == "$RUNNER_TEMP"/yellow-order452-prefix89.* ]]; then rm -r -- "$prefix89"; fi' EXIT
           for migration in "$GITHUB_WORKSPACE"/migrations/*.sql; do
             filename="$(basename "$migration")"
             if (( 10#${filename:0:4} <= 88 )); then cp "$migration" "$prefix88/$filename"; fi
+            if (( 10#${filename:0:4} <= 89 )); then cp "$migration" "$prefix89/$filename"; fi
           done
           prepare_order452_prerequisites() {
             YELLOW_ORDER452_PREREQUISITE_URL="$1" bun -e '
@@ -864,7 +865,7 @@ jobs:
             --command "CREATE DATABASE ${current_database}"
           current_deploy_url="postgres://yellow_deploy:${YELLOW_DEPLOY_DATABASE_PASSWORD}@${POSTGRES_ADDRESS}/${current_database}"
           current_runtime_url="postgres://yellow_runtime:${YELLOW_RUNTIME_DATABASE_PASSWORD}@${POSTGRES_ADDRESS}/${current_database}"
-          env -u YELLOW_MIGRATIONS_DIR YELLOW_DEPLOY_DATABASE_URL="$current_deploy_url" bun run db:migrate
+          YELLOW_MIGRATIONS_DIR="$prefix89" YELLOW_DEPLOY_DATABASE_URL="$current_deploy_url" bun run db:migrate
           prepare_order452_prerequisites "$current_deploy_url"
           YELLOW_ORDER452_TARGET_MODE=ci-canonical \
           YELLOW_REQUIRE_ORDER452_CI_CANONICAL=1 \
@@ -889,14 +890,58 @@ jobs:
           YELLOW_REQUIRE_ORDER452_CANONICAL_UPGRADE=1 \
             bun test tests/india-native-credit-delivery-upgrade.integration.test.ts
 
+      - name: Prove Order453 fiscal series on isolated current90 and populated89 targets
+        shell: bash
+        timeout-minutes: 35
+        run: |
+          set -euo pipefail
+          current_database="yellow_order453_current90_ci"
+          upgrade_database="yellow_order453_upgrade89_ci"
+          readiness_database="yellow_order453_q212_current90_ci"
+          prefix89="$(mktemp -d "$RUNNER_TEMP/yellow-order453-prefix89.XXXXXX")"
+          trap 'for database in "$current_database" "$upgrade_database" "$readiness_database"; do docker compose exec -T postgres psql --username yellow_deploy --dbname postgres --set ON_ERROR_STOP=1 --command "DROP DATABASE IF EXISTS ${database} WITH (FORCE)"; done; if [[ -d "$prefix89" && "$prefix89" == "$RUNNER_TEMP"/yellow-order453-prefix89.* ]]; then rm -r -- "$prefix89"; fi' EXIT
+          for migration in "$GITHUB_WORKSPACE"/migrations/*.sql; do
+            filename="$(basename "$migration")"
+            if (( 10#${filename:0:4} <= 89 )); then cp "$migration" "$prefix89/$filename"; fi
+          done
+
+          docker compose exec -T postgres psql --username yellow_deploy --dbname postgres --set ON_ERROR_STOP=1 \
+            --command "CREATE DATABASE ${current_database}"
+          current_deploy_url="postgres://yellow_deploy:${YELLOW_DEPLOY_DATABASE_PASSWORD}@${POSTGRES_ADDRESS}/${current_database}"
+          current_runtime_url="postgres://yellow_runtime:${YELLOW_RUNTIME_DATABASE_PASSWORD}@${POSTGRES_ADDRESS}/${current_database}"
+          env -u YELLOW_MIGRATIONS_DIR YELLOW_DEPLOY_DATABASE_URL="$current_deploy_url" bun run db:migrate
+          YELLOW_ORDER453_TARGET_MODE=ci-canonical \
+          YELLOW_REQUIRE_ORDER453_CI_CANONICAL=1 \
+          YELLOW_ORDER453_CI_DATABASE_ADDRESS="$POSTGRES_ADDRESS" \
+          YELLOW_ORDER453_DEPLOY_DATABASE_URL="$current_deploy_url" \
+          YELLOW_ORDER453_RUNTIME_DATABASE_URL="$current_runtime_url" \
+          YELLOW_REQUIRE_ORDER453_DATABASE=1 \
+          YELLOW_ORDER453_NATIVE_EXECUTE_AFTER_HANDOFF=1 \
+            bun test tests/india-native-fiscal-series-authority.integration.test.ts tests/operator-native-fiscal-series.integration.test.ts
+
+          docker compose exec -T postgres psql --username yellow_deploy --dbname postgres --set ON_ERROR_STOP=1 \
+            --command "CREATE DATABASE ${upgrade_database}"
+          upgrade_deploy_url="postgres://yellow_deploy:${YELLOW_DEPLOY_DATABASE_PASSWORD}@${POSTGRES_ADDRESS}/${upgrade_database}"
+          upgrade_runtime_url="postgres://yellow_runtime:${YELLOW_RUNTIME_DATABASE_PASSWORD}@${POSTGRES_ADDRESS}/${upgrade_database}"
+          YELLOW_MIGRATIONS_DIR="$prefix89" YELLOW_DEPLOY_DATABASE_URL="$upgrade_deploy_url" bun run db:migrate
+          YELLOW_ORDER453_TARGET_MODE=ci-canonical \
+          YELLOW_REQUIRE_ORDER453_CI_CANONICAL=1 \
+          YELLOW_ORDER453_CI_DATABASE_ADDRESS="$POSTGRES_ADDRESS" \
+          YELLOW_ORDER453_UPGRADE_DEPLOY_DATABASE_URL="$upgrade_deploy_url" \
+          YELLOW_ORDER453_UPGRADE_RUNTIME_DATABASE_URL="$upgrade_runtime_url" \
+          YELLOW_REQUIRE_ORDER453_UPGRADE_DATABASE=1 \
+          YELLOW_REQUIRE_ORDER453_CANONICAL_UPGRADE=1 \
+          YELLOW_ORDER453_NATIVE_EXECUTE_AFTER_HANDOFF=1 \
+            bun test tests/india-native-fiscal-series-upgrade.integration.test.ts
+
           docker compose exec -T postgres psql --username yellow_deploy --dbname postgres --set ON_ERROR_STOP=1 \
             --command "CREATE DATABASE ${readiness_database}"
           readiness_deploy_url="postgres://yellow_deploy:${YELLOW_DEPLOY_DATABASE_PASSWORD}@${POSTGRES_ADDRESS}/${readiness_database}"
           readiness_runtime_url="postgres://yellow_runtime:${YELLOW_RUNTIME_DATABASE_PASSWORD}@${POSTGRES_ADDRESS}/${readiness_database}"
           env -u YELLOW_MIGRATIONS_DIR YELLOW_DEPLOY_DATABASE_URL="$readiness_deploy_url" bun run db:migrate
-          YELLOW_ORDER440_Q212_DEPLOY_DATABASE_URL="$readiness_deploy_url" \
-          YELLOW_ORDER440_Q212_RUNTIME_DATABASE_URL="$readiness_runtime_url" \
-          YELLOW_REQUIRE_ORDER440_Q212_DATABASE=1 \
+          YELLOW_ORDER453_Q212_DEPLOY_DATABASE_URL="$readiness_deploy_url" \
+          YELLOW_ORDER453_Q212_RUNTIME_DATABASE_URL="$readiness_runtime_url" \
+          YELLOW_REQUIRE_ORDER453_Q212_DATABASE=1 \
             bun test tests/fiscal-retry-readiness.integration.test.ts
 
       - name: Prove native fiscal release containment on fresh and upgraded databases
@@ -1073,7 +1118,7 @@ jobs:
           READY_FILE="$proof_directory/readiness.json" bun -e '
             const body = await Bun.file(process.env.READY_FILE!).json();
             if (body.status !== "ready" || body.build?.revision !== process.env.YELLOW_BUILD_SHA
-                || body.build?.expectedMigrationFrontier !== 89
+                || body.build?.expectedMigrationFrontier !== 90
                 || body.target !== "yellow_runtime_database") process.exit(1);
           '
 

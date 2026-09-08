@@ -3674,3 +3674,28 @@ are no-store, without an idempotency-replayed header.
 This is unpromoted working source. Independent rollback and draft-install checks
 passed; complete native functional acceptance and canonical89/release integration
 remain pending. See Order452's review for actual results, failures and corrections.
+
+## Native fiscal-series configuration (Order453; implementation in progress)
+
+POST `/api/v1/properties/:property/fiscal-series` accepts exactly
+{supplierRegistrationId,documentKind,prefix}. Signed tenant/actor plus current
+property-scoped tax-fiscal.series:configure are required; SQL rechecks active
+tenant/actor, tenant-coherent role and ancestor-property grant before absence/replay.
+FY/date/counter/series identity are server-owned. Success201 creates one series;
+200 reuses the exact existing key/prefix and returns its unchanged current counter.
+Prefix conflicts409, invalid400, authority403 and sanitized unavailable503 are
+no-store. There is no browser-assigned number or idempotency-header promise.
+
+New series/fact/outbox writes are atomic in the preserved six-argument capability.
+The event contract is documented in EVENTS; replay emits nothing and older series
+receive no backfilled events. AuditEnvelope.requestId is validated, not persisted
+as event correlation; SQL generates a correlation UUID for each new configuration.
+Publication lock is acquired last; a prior publication in the same transaction is
+denied after authorization to avoid inverted lock order. API commands own fresh
+transactions; multi-command publication batching is not claimed. No document is
+issued or number allocated, and configuring debit_note does not implement debit
+valuation/accounting/submission. Independent native proof passes upgrade4/0,
+authority12/0 and signedHTTP5/0, preserving prior financial records. Canonical0090
+matches the tested draft; populated upgrade/no-op and clean-install schema equality,
+11/11 referee and50 runtime-readiness denials/restorations pass. Full standing and
+publication remain pending. This is not live-app activation or Phase7 completion.

@@ -230,7 +230,7 @@ databaseRun("Order 367 fresh PostgreSQL integration", () => {
   const runtimeDb = new SQL(runtimeDatabaseUrl!, { max: 4 });
   afterAll(async () => { await Promise.all([db.close(), runtimeDb.close()]); });
 
-  test("has the exact canonical 0089 catalogue frontier", async () => {
+  test("has the exact canonical 0090 catalogue frontier", async () => {
     const [actual] = await db<Array<{
       migrations: number; tables: number; rls: number; policies: number;
       forced: number; views: number;
@@ -246,7 +246,7 @@ databaseRun("Order 367 fresh PostgreSQL integration", () => {
         (SELECT count(*)::int FROM pg_views WHERE schemaname='public') views
     `;
     expect(actual).toEqual({
-      migrations: 89, tables: 129, rls: 119, policies: 119, forced: 28, views: 2,
+      migrations: 90, tables: 129, rls: 119, policies: 119, forced: 28, views: 2,
     });
   });
 

@@ -4,6 +4,7 @@ import { fileURLToPath } from "node:url";
 import { issueIndiaNativeFiscalInvoiceForOperatorInTransaction } from "../commands/issue-india-native-fiscal-invoice";
 import { listIndiaNativeFiscalCreditNotesInTransaction } from "../commands/list-india-native-fiscal-credit-notes";
 import { readIndiaNativeCreditDeliveryInTransaction } from "../commands/read-india-native-credit-delivery";
+import { configureIndiaNativeFiscalSeriesInTransaction } from "../commands/configure-india-native-fiscal-series";
 import {
   discoverIndiaNativeFiscalCreditNoteInTransaction,
   issueIndiaNativeFiscalCreditNoteInTransaction,
@@ -241,6 +242,10 @@ import {
   IndiaNativeFiscalInvoiceNotFoundError,
   IndiaNativeFiscalInvoiceConflictError,
   IndiaNativeFiscalInvoiceStaleEvidenceError,
+  IndiaNativeFiscalSeriesAuthorizationError,
+  IndiaNativeFiscalSeriesDatabaseError,
+  IndiaNativeFiscalSeriesConflictError,
+  IndiaNativeFiscalSeriesValidationError,
   IndiaNativeCreditDeliveryAuthorizationError,
   IndiaNativeCreditDeliveryDatabaseError,
   IndiaNativeCreditDeliveryValidationError,
@@ -337,6 +342,7 @@ const FISCAL_SUBMISSION_REQUEST_SCOPE = "tax-fiscal.submissions:request";
 const FISCAL_SUBMISSION_RETRY_SCOPE = "tax-fiscal.submissions:retry";
 const FISCAL_SUBMISSION_READ_SCOPE = "tax-fiscal.submissions:read";
 const FISCAL_DOCUMENT_READ_SCOPE = "tax-fiscal.documents:read";
+const FISCAL_SERIES_CONFIGURE_SCOPE = "tax-fiscal.series:configure";
 const FISCAL_ISSUE_SCOPES = ["tax-fiscal.documents:issue", "tax-fiscal.india-valuation:finalize"] as const;
 const FISCAL_CREDIT_SCOPES = ["tax-fiscal.documents:issue", "financials.adjustments:write"] as const;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
@@ -360,6 +366,35 @@ interface FiscalSubmissionRequestBody {
 
 interface FiscalSubmissionRetryBody {
   readonly providerExtensionId: string;
+}
+
+interface FiscalSeriesConfigurationBody {
+  readonly supplierRegistrationId: string;
+  readonly documentKind: "invoice" | "credit_note" | "debit_note";
+  readonly prefix: string;
+}
+
+function fiscalSeriesConfigurationBody(value: unknown): Readonly<FiscalSeriesConfigurationBody> | null {
+  if (typeof value !== "object" || value === null || Array.isArray(value) || utilTypes.isProxy(value)) return null;
+  try {
+    const prototype = Object.getPrototypeOf(value);
+    if (prototype !== Object.prototype && prototype !== null) return null;
+    const descriptors = Object.getOwnPropertyDescriptors(value);
+    const keys = Reflect.ownKeys(value);
+    const expected = ["supplierRegistrationId", "documentKind", "prefix"] as const;
+    if (keys.length !== expected.length || keys.some((key) => typeof key !== "string" || !expected.includes(key as typeof expected[number]))) return null;
+    for (const key of expected) {
+      const descriptor = descriptors[key];
+      if (!descriptor || !("value" in descriptor) || descriptor.get !== undefined || descriptor.set !== undefined || descriptor.enumerable !== true) return null;
+    }
+    const supplierRegistrationId = descriptors.supplierRegistrationId!.value;
+    const documentKind = descriptors.documentKind!.value;
+    const prefix = descriptors.prefix!.value;
+    if (typeof supplierRegistrationId !== "string" || !UUID.test(supplierRegistrationId) ||
+        (documentKind !== "invoice" && documentKind !== "credit_note" && documentKind !== "debit_note") ||
+        typeof prefix !== "string" || prefix.trim() !== prefix || prefix.length < 1 || prefix.length > 12 || !/^[A-Za-z0-9/-]+$/.test(prefix) || prefix.length + 1 > 16) return null;
+    return Object.freeze({ supplierRegistrationId, documentKind, prefix });
+  } catch { return null; }
 }
 
 function fiscalSubmissionBody(
@@ -2736,6 +2771,44 @@ export class OperatorHttpApi {
 
   async invoiceReadiness(context: TenantRequestContext, propertyNode: string, reservationId: string, folioId: string, body: unknown): Promise<Response> {
     return this.#invoiceStaff(context, propertyNode, reservationId, folioId, body, false);
+  }
+
+  async fiscalSeriesConfigure(context: TenantRequestContext, propertyNode: string, body: unknown): Promise<Response> {
+    if (!hasScope(context, FISCAL_SERIES_CONFIGURE_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Fiscal-series configuration access is not granted");
+    }
+    const publicInput = fiscalSeriesConfigurationBody(body);
+    if (!publicInput || !UUID.test(propertyNode) || !hasJsonContentType(context.request) || new URL(context.request.url).search !== "") {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Fiscal-series configuration input is invalid");
+    }
+    const grants = await listGrantedProperties(context, FISCAL_SERIES_CONFIGURE_SCOPE);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 403, "auth/property_forbidden", "Forbidden", "Property access is not granted");
+    }
+    const requestId = correlationId(context.request);
+    try {
+      const series = await configureIndiaNativeFiscalSeriesInTransaction(context.tx, {
+        tenantId: context.tenantId,
+        propertyNode,
+        supplierRegistrationId: publicInput.supplierRegistrationId,
+        documentKind: publicInput.documentKind,
+        prefix: publicInput.prefix,
+        envelope: createAuditEnvelope({ actorId: context.identity.actorId, tenantId: context.tenantId,
+          propertyNode, requestId, operation: "document.series.configured" }),
+      });
+      return apiResponse(context.request, { series }, series.replayed ? 200 : 201, { "x-correlation-id": requestId });
+    } catch (error) {
+      const state = invoiceSqlState(error);
+      if (error instanceof IndiaNativeFiscalSeriesAuthorizationError || state === "42501") throw new InvoiceReadPermissionFailure();
+      if (error instanceof IndiaNativeFiscalSeriesValidationError || state === "22023") {
+        return apiError(context.request, 400, "request/invalid", "Invalid request", "Fiscal-series configuration input is invalid");
+      }
+      if (error instanceof IndiaNativeFiscalSeriesConflictError || state === "23505" || state === "40001" || state === "40P01") {
+        return apiError(context.request, 409, "fiscal/series_conflict", "Conflict", "Fiscal-series configuration conflicts with existing state");
+      }
+      if (error instanceof IndiaNativeFiscalSeriesDatabaseError || state === "55000") throw new Error("Fiscal-series configuration is unavailable");
+      throw error;
+    }
   }
 
   async fiscalCreditNoteIssue(context: TenantRequestContext, propertyNode: string, originalDocumentId: string, body: unknown): Promise<Response> {

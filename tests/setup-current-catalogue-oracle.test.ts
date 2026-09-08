@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
 import { join } from "node:path";
 
 describe("Order 371 current setup catalogue oracle", () => {
-  test("full-project migration acceptance stays current89 without relabeling the historical86/87/88 boundaries", async () => {
+  test("full-project migration acceptance stays current90 without relabeling the historical86/87/88/89 boundaries", async () => {
     const source = await Bun.file(new URL("migrate.integration.test.ts", import.meta.url)).text();
     const testBlock = (name: string): string => {
       const start = source.indexOf(`  test(\n    "${name}"`);
@@ -29,8 +29,9 @@ describe("Order 371 current setup catalogue oracle", () => {
       '"0087_india_native_fiscal_credit_note.sql"',
       '"0088_native_credit_fiscal_submission.sql"',
       '"0089_native_credit_delivery_discovery.sql"',
-      "expect(upgradedLedger).toHaveLength(89)",
-      "expect(noOp.discoveredFiles).toBe(89)",
+      '"0090_india_native_fiscal_series_configuration.sql"',
+      "expect(upgradedLedger).toHaveLength(90)",
+      "expect(noOp.discoveredFiles).toBe(90)",
       "tables: 129, rlsTables: 119, policies: 119, forceRlsTables: 28",
     ]) expect(fullUpgrade).toContain(current);
     expect(testBlock("applies exact posting integrity, read-only routes, and authority-safe day sealing"))
@@ -61,14 +62,14 @@ describe("Order 371 current setup catalogue oracle", () => {
     expect(historical88).toContain("expect(fresh.appliedFiles).toHaveLength(88)");
   });
 
-  test("other full-current acceptance suites retain the exact current89 catalogue", async () => {
+  test("other full-current acceptance suites retain the exact current90 catalogue", async () => {
     const financial = await Bun.file(new URL("financial-postings.integration.test.ts", import.meta.url)).text();
     const applicability = await Bun.file(new URL("india-gst-accommodation-quoted-rate-applicability-recording.integration.test.ts", import.meta.url)).text();
     expect({
       financial129: financial.includes("table_type='BASE TABLE'`)[0]!.n).toBe(129)"),
-      applicabilityTitle89: applicability.includes("fresh catalogue is exactly 89/129/119/119/28/2"),
-      applicabilityShape89: applicability.includes("migrations:89, tables:129, rls:119, policies:119, forced:28, views:2"),
-    }).toEqual({ financial129: true, applicabilityTitle89: true, applicabilityShape89: true });
+      applicabilityTitle90: applicability.includes("fresh catalogue is exactly 90/129/119/119/28/2"),
+      applicabilityShape90: applicability.includes("migrations:90, tables:129, rls:119, policies:119, forced:28, views:2"),
+    }).toEqual({ financial129: true, applicabilityTitle90: true, applicabilityShape90: true });
   });
 
   test("derives the migration and public-table frontier before checking setup", async () => {
@@ -83,14 +84,14 @@ describe("Order 371 current setup catalogue oracle", () => {
     const publicBaseTables = expectedSchema.match(/^CREATE TABLE public\./gm)?.length ?? 0;
 
     expect({ migrationCount: migrations.length, highestMigration, publicBaseTables }).toEqual({
-      migrationCount: 89,
-      highestMigration: 89,
+      migrationCount: 90,
+      highestMigration: 90,
       publicBaseTables: 129,
     });
     expect(setup).toContain("[ \"$tables\" = '129' ]");
     for (const entrypoint of [setup, nativeSetup]) {
-      expect(entrypoint).toContain("expected 129 after migrations 1-89");
-      expect(entrypoint).toContain("yellow_test tables: 129 after migrations 1-89");
+      expect(entrypoint).toContain("expected 129 after migrations 1-90");
+      expect(entrypoint).toContain("yellow_test tables: 129 after migrations 1-90");
     }
     expect(setup).not.toContain("expected 116 after migrations 1-64");
     expect(setup).not.toContain("expected 115 after migrations 1-62");
