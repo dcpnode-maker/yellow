@@ -2,6 +2,8 @@
 
 Founder priority: bring the market research, multiple acquisition methods and private PriceLabs snapshot into the active Yellow build. This document belongs to Order RMS-20260908, based on fetched main `3503b0c01f336637d2583963c17b792f6ad59efe`. PR92 (`phase-7/operator-invoice-workflow`) is the verified current development handoff. Prior research remains in PR86. Publication to either thread is a handoff receipt, not proof that a desktop agent has executed it.
 
+**Later same-day scope update — RMS-20260908B:** the founder now requires client-selected OTAs and a rolling three- or four-calendar-month future-arrival window. The 180+ cadence and earlier arithmetic below describe the previous general policy, not the new planner's collection scope. Provider-specific ingestion, bounded Google HTTP transport, actual Booking/trivago probes and the incomplete Google capture are documented in [Live market acquisition](LIVE-MARKET-PIPELINES-20260908.md). Historical proof below remains the result of the earlier foundation order.
+
 ## Preserve one Yellow
 
 The verified implementation stack remains strict TypeScript, Bun 1.3.14, Elysia and PostgreSQL. Market collection belongs behind the distribution context, with Phase14 RMS consuming evidence through governed services. Existing rate economics, rate publication, inventory authority, finance, authentication and app UI are preserved. The archive is research staging: it does not supply authority to create occupancy or financial history.

@@ -1,0 +1,20 @@
+{
+  "schemaVersion": "yellow.market-source-batch/v1",
+  "policy": {
+    "tenantId": "synthetic-demo",
+    "managedPropertyId": "synthetic-dubai-property",
+    "permissionScope": "market-research-demo",
+    "entitlement": "example-only",
+    "propertyTimezone": "Asia/Dubai",
+    "lookaheadMonths": 3,
+    "selectedSources": ["booking-mcp", "trivago-mcp", "google-hotels-serpapi"],
+    "competitorScope": ["synthetic-dubai-compset"],
+    "destination": "Dubai, United Arab Emirates",
+    "guests": { "rooms": 1, "adults": 2, "childAges": [] },
+    "currency": "AED",
+    "pointOfSaleMarket": "AE",
+    "language": "en",
+    "lengthsOfStayNights": [1]
+  },
+  "run": { "now": "2026-09-08T18:00:00Z", "maxBatchSize": 3, "maxRequestsThisRun": 6 }
+}
