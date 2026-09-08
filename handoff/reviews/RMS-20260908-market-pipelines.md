@@ -1,9 +1,13 @@
 # Independent review — Order RMS-20260908 market pipelines
 
-**Reviewer:** `/root/market_import_reviewer`, non-implementing  
-**Review date:** 2026-09-08  
-**Order baseline:** reviewed remote main `3503b0c01f336637d2583963c17b792f6ad59efe`  
-**Review worktree HEAD:** `cb4803e68c8c7f018d1856c48d089a196f7647ef`  
+**Reviewer:** `/root/market_import_reviewer`, non-implementing
+
+**Review date:** 2026-09-08
+
+**Order baseline:** reviewed remote main `3503b0c01f336637d2583963c17b792f6ad59efe`
+
+**Review worktree HEAD:** `cb4803e68c8c7f018d1856c48d089a196f7647ef`
+
 **Disposition:** **APPROVED for the bounded single-process market collection and POSIX private-staging scope.** This is focused source acceptance. The unavailable canonical database wrapper remains a release gate and is not approved by this review.
 
 ## Final reviewed source
@@ -39,6 +43,8 @@ pass
 ```
 
 The first boundary invocation used the pinned Bun executable without placing its directory on `PATH`. Its child script stopped with `bun: command not found` and exit 127. The corrected invocation above passed; the first environment failure is not counted as proof.
+
+The initial full baseline-to-worktree diff check found four Markdown hard-break whitespace warnings in the review metadata above. Those trailing spaces were removed; the corrected full diff check passes.
 
 An additional reviewer probe reproduced a cache-provenance defect before repair: a correctly keyed initial cache entry carrying an HTML route ID, an invalid method and an unsafe upstream string returned an actionable cache hit. Against the final hashes, the same probe returns `status: failed, cacheHit: false`. Permanent tests also prove context-key isolation, the cache fallback path and sanitized audited output.
 
