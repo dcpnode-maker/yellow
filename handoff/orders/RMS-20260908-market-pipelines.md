@@ -3,7 +3,7 @@
 **Author:** Codex, from the founder's 8 September 2026 research-to-build directive.
 **Phase:** 9 collection prerequisite for Phase 14 RMS; existing fiscal and UI work remains owned by the active build.
 **Baseline:** reviewed remote main `3503b0c01f336637d2583963c17b792f6ad59efe`; separate worktree. PR92 is the current development receiving lane.
-**Status:** planned before implementation.
+**Status:** implemented and independently reviewed within the bounded collection/POSIX staging scope; delivery receipt and remaining integration gates are recorded below. This order was committed as `cb4803e6` before implementation.
 
 ## Scope
 
@@ -44,3 +44,11 @@ No migrations, protected schema/referee edits, direct database mutations, produc
 `bun scripts/research/pricelabs-import.ts --archive /private/PriceLabs-Research-Archive-2026-09-08 --output /private/Yellow-PriceLabs-Staging`
 
 `./setup.sh --db-only` only against a collision-proof disposable Compose project, never the active founder environment.
+
+## Completion evidence and remaining gates
+
+Root executed the final market/import and existing RMS economics/provider tests together: **38 pass, 0 fail, 271 assertions** on Bun 1.3.14. Typecheck passed; import boundaries passed for 184 TypeScript files. A separate reviewer executed the new tests and verified two byte-identical imports of the private archive; exact source hashes and adversarial repair history are in the admitted review.
+
+The writer establishes private POSIX file modes and deliberately rejects native Windows before filesystem effects (`unsupported_windows_acl`); an identity-bound NTFS ACL implementation remains required for a native Windows writer. Existing staging/HTML can be reviewed privately without rerunning that writer. An imported listing is not yet an operational Yellow property.
+
+The isolated database setup stopped immediately at `Missing docker. Install Docker Engine/Desktop with the Compose plugin.` No canonical database/referee acceptance is claimed, so this branch is a reviewed source handoff, not a merge-ready PR. Live adapter activation, durable worker/time-window coordination, tenant and physical-unit mapping, operational import and dashboard/RMS wiring remain explicit next work. The underlying Windows/WSL crash and disk-growth problem also remains a desktop-host task; no host repair was performed here.
