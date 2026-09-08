@@ -1,7 +1,10 @@
 # Order450 — Independent issued-credit listing proof
 
 Reviewer: root Codex, not the service/command/test implementer. 2026-09-08.
-Status: native/focused proof passed; standing and source publication remain pending.
+Status: independent scoped proofs and combined standing pass; published
+0b1ff327 on draftPR92. All six CI jobs pass in34202983111.
+Order451's publication record retains all prior failures and the separate index
+preservation audit. No UI, local promotion or Phase7 completion.
 No UI, migration, live promotion or provider activation.
 
 Root read the full service, command, typed and HTTP tests and reviewed route/export

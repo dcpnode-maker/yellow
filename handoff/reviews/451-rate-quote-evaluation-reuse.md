@@ -1,8 +1,10 @@
 # Order451 — Independent pricing correctness and performance proof
 
 Reviewer: root Codex, not the production/test implementer. 2026-09-08.
-Status: implementation, independent focused/differential/mutation proofs passed;
-combined standing and source publication pending. No UI, database or live change.
+Status: independent scoped proofs and combined standing pass; published
+0b1ff327 on draftPR92. All six CI jobs pass in34202983111.
+Order451's publication record retains all prior failures and the separate index
+preservation audit. No UI, local promotion or Phase7 completion.
 
 Root inspected both production diffs, normalization/context constructors and their
 nested evidence reconstruction, all new hostile/parity tests, and the unchanged
@@ -128,3 +130,39 @@ Root admits preparation of one new functional candidate containing449/450/451 an
 Q239, followed by exact-source standing checks. Publication remains separate from
 these focused proofs. No main merge, provider activation, app restart, schema/data
 change or Phase7-complete claim is authorized here.
+
+## Exact combined standing and publication — D1436
+
+Root personally executed the final42-path tree754250713ebf548d6fda72016bf49a947b2c15c0
+in the existing isolated artifact:1,956 pass/0 fail/1,410 explicit skips,
+34,947 assertions/540 files/197.04s. Typecheck and189 boundaries pass. The local
+license script's0-package census is explicitly not an installed-dependency scan.
+Standing receipt0b559eeef41f14a3a8673482963f99cd5051fe045026394268b7d80f3d3935e7;
+full log27363a48913e70892ae2d7aa30e3ea11ca34d9c8ed7db61ec3862c6723531552.
+
+Published commit0b1ff327d289c611542d81f272d7e3a2e7223b06 has that exact tree and
+parentffb03441a16d50aa050c5d6f715d35ed9223601b. Both local and remote branch were
+read-back verified. No main merge, live promotion or paused UI integration.
+
+First helper02f4bb9e stopped before commit/ref/index/push when its reverse patch
+assumed identical audit context; failure641eeee4 remains. Corrected root helper
+fc32b76e proved40 non-audit reverse paths plus append-only preservation of the two
+audit histories, then committed/pushed. Its post-push raw-index guard FAILED and
+that failure remains; no completed.json is fabricated.
+
+Root separately executed a read-only binary/semantic index audit:
+`.yellow/evidence/order451/post-push-index-audit.json`,
+SHA256d15461e2992a43a24b0553a0379734143e3c3be6a5b401bc3146e55f145150c0.
+It proves only37 stat-cache blocks changed, identical header/extensions and all
+mode/OID/path/stage/flags, exact projected entries and2,064 unrelated staged
+entries. All2,081 original working files and42 scoped inputs match frozen hashes.
+This subsequent evidence satisfies preservation without reclassifying the original
+raw-hash failure. No reset, restore or source deletion was required.
+
+CI34202983111 five jobs pass; database is still running. NormalCodeQL34202979566
+passes; optional AI review34202985189 supplies no required proof. Current source
+status is published/standing-green, NOT Phase7 complete or live available.
+
+Subsequent exact-head CI34202983111 completed all six jobs successfully, including
+the full database job. This closes the earlier pending-CI status, not any remaining
+Phase7 or live-promotion gate; see D1437 and the current project status.

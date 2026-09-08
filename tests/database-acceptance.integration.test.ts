@@ -445,6 +445,11 @@ const EXPECTED_MIGRATIONS = [
     filename: "0088_native_credit_fiscal_submission.sql",
     checksum_sha256: "214754e94bdfb0a2163395c9ab4449b0b5e87da7830c45e69d77ac05a2cddb64",
   },
+  {
+    version: 89,
+    filename: "0089_native_credit_delivery_discovery.sql",
+    checksum_sha256: "26aac42e59146dfa29f558dc75209166420a5aa7621bc34b1f6ec0f9c834c1cd",
+  },
 ];
 
 if (REQUIRE_DATABASE && !DATABASE_URL) {
@@ -523,7 +528,7 @@ databaseDescribe("fresh deployment database acceptance", () => {
             AND class.relforcerowsecurity) AS "forceRlsTables"
     `;
     expect(catalogue).toEqual([{
-      migrations: 88, tables: 129, rlsTables: 119, policies: 119, forceRlsTables: 28,
+      migrations: 89, tables: 129, rlsTables: 119, policies: 119, forceRlsTables: 28,
       permissions: 15, permissionGrants: 0,
     }]);
   });
@@ -724,6 +729,7 @@ databaseDescribe("fresh deployment database acceptance", () => {
       WITH expected(name) AS (VALUES
         ('list_india_native_fiscal_documents(uuid,uuid,uuid,date,date,uuid,uuid,text,date,timestamp with time zone,uuid,integer)'),
         ('read_india_native_fiscal_document(uuid,uuid,uuid,uuid)'),
+        ('read_india_native_credit_delivery_by_document(uuid,uuid,uuid,uuid)'),
         ('discover_india_native_fiscal_issue(uuid,uuid,uuid,uuid,uuid,uuid,text,text,date,date[],text[])'),
         ('read_india_fiscal_submission_delivery_receipt_by_document(uuid,uuid,uuid,uuid)'),
         ('list_india_fiscal_submission_provider_options(uuid,uuid,uuid)'),
@@ -767,6 +773,10 @@ databaseDescribe("fresh deployment database acceptance", () => {
       { name: "read_india_fiscal_submission_delivery_receipt_by_document(uuid,uuid,uuid,uuid)",
         owner: "yellow_owner", securityDefiner: true, volatility: "s", result: "jsonb",
         config: receiptConfig, appExecute: true, runtimeExecute: false, publicExecute: false },
+      { name: "read_india_native_credit_delivery_by_document(uuid,uuid,uuid,uuid)",
+        owner: "yellow_owner", securityDefiner: true, volatility: "v", result: "jsonb",
+        config: ["search_path=pg_catalog, public, pg_temp", "TimeZone=UTC", "DateStyle=ISO,YMD"],
+        appExecute: true, runtimeExecute: false, publicExecute: false },
       { name: "read_india_native_fiscal_document(uuid,uuid,uuid,uuid)",
         owner: "yellow_owner", securityDefiner: true, volatility: "s", result: "jsonb",
         config: stableConfig, appExecute: true, runtimeExecute: false, publicExecute: false },

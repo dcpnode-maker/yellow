@@ -1,7 +1,9 @@
 # Order449 — Independent complete-credit document retrieval proof
 
-**Status:** focused and native API/containment pass; exact candidate standing,
-publication and source CI pending. No local promotion or Phase7-complete claim.
+**Status:** independent scoped proofs and combined standing pass; published
+0b1ff327 on draftPR92. All six CI jobs pass in34202983111.
+Order451's publication record retains all prior failures and the separate index
+preservation audit. No UI, local promotion or Phase7 completion.
 **Reviewer/executor:** root Codex coordinator, not implementer of the service,
 command, route or actual database test. Backend and HTTP were disjoint agent lanes.
 

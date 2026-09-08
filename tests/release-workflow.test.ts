@@ -21,7 +21,7 @@ describe("Order 438 immutable release and local-review contracts", () => {
     expect(workflow).toContain('runtime_tag="$IMAGE:$RELEASE_SHA-amd64"');
     expect(workflow).toContain('migration_tag="$IMAGE:$RELEASE_SHA-migrations-amd64"');
     expect(workflow).toContain('--build-arg "YELLOW_BUILD_SHA=$RELEASE_SHA"');
-    expect(workflow).toContain("MIGRATION_FRONTIER: '88'");
+    expect(workflow).toContain("MIGRATION_FRONTIER: '89'");
     expect(workflow).toContain('Expected migration frontier: \\`$MIGRATION_FRONTIER\\`');
     expect(workflow).not.toMatch(/\blatest\b|kamal deploy|ssh |production-preview/);
   });
@@ -92,11 +92,11 @@ describe("Order 438 immutable release and local-review contracts", () => {
     expect(launcher).toContain("seed bun scripts/seed-review.ts");
     expect(launcher).toContain('/ready"');
     expect(launcher).toContain('body.target !== "yellow_runtime_database"');
-    expect(launcher).toContain("body.build?.expectedMigrationFrontier !== 88");
+    expect(launcher).toContain("body.build?.expectedMigrationFrontier !== 89");
     const setup = await Bun.file(new URL("../setup.sh", import.meta.url)).text();
     const windowsSetup = await Bun.file(new URL("../setup.ps1", import.meta.url)).text();
-    expect(setup).toContain("expected 129 after migrations 1-88");
-    expect(windowsSetup).toContain("expected 129 after migrations 1-88");
+    expect(setup).toContain("expected 129 after migrations 1-89");
+    expect(windowsSetup).toContain("expected 129 after migrations 1-89");
     expect(launcher).toContain("/api/v1/auth/local:login");
     expect(launcher).toContain('YELLOW_APP_PORT="${YELLOW_APP_PORT:-3000}"');
     expect(launcher).toContain("crypto.getRandomValues");

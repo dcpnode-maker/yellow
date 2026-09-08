@@ -3,6 +3,7 @@ import { types as utilTypes } from "node:util";
 import { fileURLToPath } from "node:url";
 import { issueIndiaNativeFiscalInvoiceForOperatorInTransaction } from "../commands/issue-india-native-fiscal-invoice";
 import { listIndiaNativeFiscalCreditNotesInTransaction } from "../commands/list-india-native-fiscal-credit-notes";
+import { readIndiaNativeCreditDeliveryInTransaction } from "../commands/read-india-native-credit-delivery";
 import {
   discoverIndiaNativeFiscalCreditNoteInTransaction,
   issueIndiaNativeFiscalCreditNoteInTransaction,
@@ -240,6 +241,9 @@ import {
   IndiaNativeFiscalInvoiceNotFoundError,
   IndiaNativeFiscalInvoiceConflictError,
   IndiaNativeFiscalInvoiceStaleEvidenceError,
+  IndiaNativeCreditDeliveryAuthorizationError,
+  IndiaNativeCreditDeliveryDatabaseError,
+  IndiaNativeCreditDeliveryValidationError,
   snapshotIndiaNativeFiscalInvoiceCalendarEvidence,
   type IndiaNativeFiscalInvoiceCalendarEvidence,
   snapshotFiscalSubmissionDeliveryReceipt,
@@ -2805,6 +2809,39 @@ export class OperatorHttpApi {
       return apiError(context.request, 404, "fiscal/credit_note_not_found", "Not found", "Credit note or its original invoice is not available");
     }
     return apiResponse(context.request, result);
+  }
+
+  async fiscalCreditNoteDelivery(context: TenantRequestContext, propertyNode: string, creditDocumentId: string): Promise<Response> {
+    if (!hasScope(context, FISCAL_DOCUMENT_READ_SCOPE) || !hasScope(context, FISCAL_SUBMISSION_READ_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Credit delivery access is not granted");
+    }
+    if (!UUID.test(propertyNode) || !UUID.test(creditDocumentId) || new URL(context.request.url).search !== "") {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Credit delivery identity is invalid");
+    }
+    const documentGrants = await listGrantedProperties(context, FISCAL_DOCUMENT_READ_SCOPE);
+    if (!documentGrants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 403, "auth/property_forbidden", "Forbidden", "Property access is not granted");
+    }
+    const submissionGrants = await listGrantedProperties(context, FISCAL_SUBMISSION_READ_SCOPE);
+    if (!submissionGrants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 403, "auth/property_forbidden", "Forbidden", "Property access is not granted");
+    }
+    try {
+      const delivery = await readIndiaNativeCreditDeliveryInTransaction(context.tx, {
+        tenantId: context.tenantId, propertyNode, actorId: context.identity.actorId, creditDocumentId,
+      });
+      if (delivery === null) {
+        return apiError(context.request, 404, "fiscal/credit_delivery_not_found", "Not found", "Credit delivery is not available");
+      }
+      return apiResponse(context.request, { delivery });
+    } catch (error) {
+      if (error instanceof IndiaNativeCreditDeliveryValidationError) {
+        return apiError(context.request, 400, "request/invalid", "Invalid request", "Credit delivery input is invalid");
+      }
+      if (error instanceof IndiaNativeCreditDeliveryAuthorizationError) throw new InvoiceReadPermissionFailure();
+      if (error instanceof IndiaNativeCreditDeliveryDatabaseError) throw new FiscalSubmissionOperatorFailure();
+      throw error;
+    }
   }
 
   async fiscalCreditNoteList(context: TenantRequestContext, propertyNode: string): Promise<Response> {

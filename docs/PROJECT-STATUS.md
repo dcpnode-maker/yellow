@@ -3,8 +3,8 @@
 <!-- status-schema: yellow-project-status/v1 -->
 <!-- current-phase: 7 -->
 <!-- current-task: Codex Yellow — remaining functional backend build; all UI/UX paused -->
-<!-- current-order-files: handoff/orders/450-native-credit-note-listing.md;handoff/orders/451-rate-quote-evaluation-reuse.md;handoff/orders/449-native-credit-note-document-read.md;handoff/orders/440-fiscal-submission-lifecycle.md -->
-<!-- current-lifecycle: Published ffb03441 is CI-green; credit document/list native and pricing parity/performance proofs pass; combined functional standing pending; no UI or local promotion -->
+<!-- current-order-files: handoff/orders/452-native-credit-delivery-discovery.md;handoff/orders/440-fiscal-submission-lifecycle.md -->
+<!-- current-lifecycle: Published0b1ff327 all six CI jobs pass; Order452 native SQL11/0 HTTP3/0 canonical89 upgrade/referee11/11 and30 readiness faults pass; full standing/publication in progress; UI and live app unchanged -->
 
 This is the canonical current-state record. It identifies the consolidated source,
 verified behavior, release boundaries and active work. Historical orders, reviews,
@@ -13,72 +13,77 @@ backlog. `state.sh` and `state.ps1` read the machine-readable comments above.
 
 ## Current task
 
-**Functional build — 2026-09-08.** UI/UX, prototypes and animation are paused by
-the founder. Backend implementation continues in parallel. The running local is
-still the separately verified a1085178/frontier85 build; it has not been restarted
-or promoted by these checks.
+**Functional build — 2026-09-08.** All UI/UX, prototypes, animation and guest-picker
+work is paused by the founder; existing files are preserved. The running local
+remains the separately verified a1085178/frontier85 build, not the published branch.
+No restart, migration or promotion was performed by this checkpoint.
 
-**Published and CI-green:** ffb03441a16d50aa050c5d6f715d35ed9223601b on draft PR92,
-exact tree e4125e6e01b3e6336717bf6997887d74b7da5ef0. CI34187393111 passes all six jobs:
-quality, local-review, Windows-state, container-smoke, ARM64 and database. Normal
-CodeQL34187390750 passes; optional AI review is separate and supplies no required
-proof. Native full-credit issuance, signed submission and original-invoice credit
-discovery are implemented. External fiscal-provider activation is not implied.
+**Published:** 0b1ff327d289c611542d81f272d7e3a2e7223b06 on draftPR92,
+tree754250713ebf548d6fda72016bf49a947b2c15c0, parentffb03441.
+Orders449/450/451 are now implemented, independently scoped-tested and published:
+complete immutable credit documents, authorized date-bounded credit listing and
+private immutable long-stay pricing evaluation reuse. No print/UI renderer or
+external fiscal-provider activation is implied.
 
-[Order448](../handoff/orders/448-native-credit-note-original-discovery.md) passes
-root-executed actual API1/0(34) and the separate Q229 containment audit. Exact
-combined standing passes1,921/0,1,407 explicit environment/database skips and34,390
-assertions; types and187 boundaries pass. The local license census was0, while CI
-runs its installed-dependency check. Earlier Linux/native-status, SQL replacement
-and transient browser-timeout failures are retained with their repairs in the
-[review](../handoff/reviews/448-native-credit-note-original-discovery.md), not
-presented as still-current blockers. Skipped local cases are not database proof.
+Exact standalone full standing passes **1,956 tests / 0 failures**, with1,410
+explicit environment/database skips,34,947 assertions and540 test files in197.04s.
+Typecheck and189 import boundaries pass. The local license script scanned0
+installed packages; CI's installed-dependency license/audit checks passed.
+The skips are not substitutes for separately executed native database proofs.
+CI34202983111 passes all six jobs: quality, local-review, Windows-state,
+container-smoke, nativeARM64 and the complete database suite.
+NormalCodeQL34202979566 passed; optional AI review is separate.
 
-**Built, publication pending:** [Order449](../handoff/orders/449-native-credit-note-document-read.md)
-is built and independently native-tested: complete immutable issued-credit
-retrieval, beyond receipt/discovery. Root's focused run passes50/0(650) with3
-explicit DB skips. The separate real PostgreSQL signed-session API passes1/0(48),
-including twelve concurrent reads, exact stored bytes, foreign/missing/noncredit
-concealment and revoked authority. All1,574 prior rows are preserved within1,773
-final rows; only two admitted synthetic fixture cohorts were added. Complete
-metadata/ledger/companion databases and the live host are unchanged.
-[Order450](../handoff/orders/450-native-credit-note-listing.md) adds date-bounded,
-keyset-paginated issued-credit listing and exact document-number lookup. Root's
-combined focused checks pass 51/0 with six explicit DB skips and 810 assertions;
-typecheck and 189 import boundaries pass. The separately executed real PostgreSQL
-signed-session test passes 1/0 with 24 assertions, including same-day pagination,
-tenant/property isolation and revoked access on empty and later pages. All 1,773
-prior rows are preserved within 2,054 final rows. Seven real planner/denial cases
-pass; reads leave the financial graph and protected database/host state unchanged.
+Order449's real signed-session PostgreSQL API passes1/0(48), including12 concurrent
+reads of exact stored credit content/receipt and denied revoked/foreign access.
+Order450's real API passes1/0(24), plus seven actual planner/denial cases.
+All1,773 pre-existing rows remain in the final2,054-row synthetic target; protected
+metadata, companion databases and live host identities are unchanged.
 
-**Current work:** [Order451](../handoff/orders/451-rate-quote-evaluation-reuse.md)
-repairs redundant calendar/context validation in long-stay pricing. Root captured
-nine deterministic baseline workloads before implementation, then independently
-proved exact complete-output parity across every old/new sample. The366/367-night
-median quote times fell from3027/3152ms to283/231ms in the final controlled in-memory
-benchmark, reductions of91%/93%; all shorter/fixed workloads also improved. These
-are measured fixture results, not production latency guarantees. Root focused
-pricing checks pass42/0 with17 explicit DB skips and382 assertions; both deliberate
-provenance-bypass mutations correctly fail while the genuine version passes.
-Root found and required a bounded eligibility scan before final acceptance:
-oversized arrays and deep/wide inputs retain their original validation behavior.
-The existing browser-test lifecycle is repaired separately underQ239: all original
-seven cases and the30s deadline remain, with root5/0(51) in1.97s. No UI design changed.
-[Q238](../handoff/questions/238-credit-candidate-performance-repair-and-continuation.md)
-retains all three failed Order449 standing attempts. The last isolated run had
-1,944 passed, 1,421 explicit skips and two timing failures (long-stay pricing and
-the existing browser harness); a private documentation-patch accident was exactly
-restored and is recorded. No failure or skip counts as passing. Orders449/450
-and451 remain unpublished pending the repaired combined candidate and its exact checks.
-The existing local app and published parent remain unchanged.
+Order451's final root benchmark proves complete-output equality across nine
+old/new workloads. The366/367-night median fixture times fell3027→283ms and
+3152→231ms; these are controlled in-memory results, not production SLOs.
+Root final focused42/0(382), hostile-input and genuine-green/two-mutation-red
+checks pass. Q239 repaired only ownership/lifecycle of the existing browser test,
+preserving all seven cases, assertions and30s deadline; no UI design changed.
+All three earlier failed standing runs and intermediate proof failures remain
+recorded, not silently replaced by the final passing run.
+
+The first publication attempt stopped before any commit/ref/index/push because
+its reverse-patch audit assumed identical audit-file context. The corrected
+publisher committed and pushed the exact verified tree, then its raw-index guard
+reported a difference. Root's subsequent read-only binary/semantic audit proves
+only37 timestamp-cache blocks changed: all mode/OID/path/stage/flags,2,064 unrelated
+staged entries,2,081 original working files and42 scoped inputs were preserved.
+No reset/restore was needed; the original failure receipt remains immutable.
+See [Order451 review](../handoff/reviews/451-rate-quote-evaluation-reuse.md).
+
+**Active now:** [Order452](../handoff/orders/452-native-credit-delivery-discovery.md),
+authorized credit-document fiscal-delivery discovery. SQL, typed service/command
+and HTTP source are built. Root personally executed rollback3/0(19), then final
+SQL11/0(164) and signed-session HTTP3/0(83) on one isolated retained candidate.
+Two earlier test-oracle failures were corrected without changing production logic;
+all failure logs remain. Full final preservation proves all3,080 preceding rows,
+all2,054 original clone rows, companion databases, roles and live app unchanged.
+Canonical0089 source and release wiring are integrated. Actual populated88→89
+upgrade/no-op and separate pristine77→89 clean schema equality pass, along with
+the unchanged11/11 referee and30 actual readiness fault denials/exact restorations.
+Generated schema matches both databases at78e76f92. The initial workflow-test
+declaration error was repaired; root focused25/0(571), compiler and191 boundaries
+pass. Full standing and publication remain in progress. This feature is not yet
+published or promoted into the running local app.
+The read-only route requires
+BOTH current document-read and submission-read permissions. Draft0089 adds one
+narrow owner-mediated function, not tables or broad direct SELECT grants.
+Both functional and canonical executions used separately frozen Q241 handoffs;
+the complete-candidate standing/CI/publication gate is still open.
 
 **Remaining boundaries:** native debit-note issuance is substantive Q187 scope;
-a debit-series configuration is not an issuance/accounting/submission backend.
-Its exact source/issuance policy must be bounded before implementation. Authentic
-provider onboarding and sandbox acceptance also remain separate from synthetic
-worker/adapter proofs. These gaps prohibit a Phase7-complete claim. Founder
-priority11→13→17 remains dependency-gated by the current plan. No main merge, UI
-change, local promotion or whole-app completion is claimed.
+a debit-series configuration is not issuance/accounting/submission. Its exact
+economic-source contract remains to be bounded before implementation.
+Authentic provider onboarding/sandbox acceptance remains separate from synthetic
+worker/adapter proofs. Phase7 is NOT complete. Founder priority11→13→17 remains
+dependency-gated by the build plan. No main merge or whole-app completion is claimed.
 
 ## Historical checkpoints (superseded)
 

@@ -1,10 +1,10 @@
 # Order451 — Private immutable rate-evaluation reuse
 
-**Status:** BUILT; root independent focused, hostile, old/new complete-output and
-controlled mutation proofs pass. Final bounded-code long-stay medians improve90.66–92.68% in the pure
-fixture; no production latency claim. Q240 admits combined exact-source standing
-preparation, not publication. Parent remainsffb03441 and all failed449 evidence is
-retained. See handoff/reviews/451-rate-quote-evaluation-reuse.md for executed proof.
+**Status:** BUILT AND PUBLISHED in 0b1ff327d289c611542d81f272d7e3a2e7223b06
+on draft PR92. Independent scoped proofs and exact combined standing1,956/0 pass,
+with1,410 explicit environment/database skips and34,947 assertions. All six source CI
+jobs pass in34202983111. Earlier failures remain evidence.
+No UI, local promotion, provider activation or phase completion is claimed.
 **Owner:** Codex. **Date:** 2026-09-08.
 **Classification:** Backend performance/correctness preservation; no UI and no
 new financial or commercial policy. Independent non-implementing high-risk review

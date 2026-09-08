@@ -1,9 +1,10 @@
 # Order450 — Authorized issued-credit list and lookup
 
-**Status:** BUILT; root independently passes focused 51/0(810), typecheck and
-189 boundaries, real PostgreSQL signed API 1/0(24), all prior-row containment and
-seven planner/authority cases. Q238 released integration; combined standing and
-publication remain pending. Neither UI nor local runtime was changed.
+**Status:** BUILT AND PUBLISHED in 0b1ff327d289c611542d81f272d7e3a2e7223b06
+on draft PR92. Independent scoped proofs and exact combined standing1,956/0 pass,
+with1,410 explicit environment/database skips and34,947 assertions. All six source CI
+jobs pass in34202983111. Earlier failures remain evidence.
+No UI, local promotion, provider activation or phase completion is claimed.
 **Phase:**7. **Owner:**Codex. **Date:**2026-09-08.
 **Authority:**Q187 approved native correction/read principles; founder functional-
 only continuation; immutable Order446 credit binding and documents:read capability.

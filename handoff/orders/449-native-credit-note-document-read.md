@@ -1,10 +1,10 @@
 # Order449 — Complete immutable credit-note document retrieval
 
-**Status:** BUILT, backend-only; root independently executed actual PostgreSQL
-API1/0(48), full containment and focused50/0(650) with3 explicit database skips.
-Exact seven-path standing/publication under Q234 and source CI remain pending.
-Published parent is ffb03441a16d50aa050c5d6f715d35ed9223601b on draft PR92.
-No local promotion or phase-completion claim.
+**Status:** BUILT AND PUBLISHED in 0b1ff327d289c611542d81f272d7e3a2e7223b06
+on draft PR92. Independent scoped proofs and exact combined standing1,956/0 pass,
+with1,410 explicit environment/database skips and34,947 assertions. All six source CI
+jobs pass in34202983111. Earlier failures remain evidence.
+No UI, local promotion, provider activation or phase completion is claimed.
 **Phase:** 7. **Owner:** Codex. **Date:** 2026-09-08.
 **Authority:** PROJECT.md, founder-approved Q187 clauses1/5/7, native Order446
 issuance/read capability and Order447's lossless issued-credit validator. No new

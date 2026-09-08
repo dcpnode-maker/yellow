@@ -3647,3 +3647,30 @@ Root's real PostgreSQL signed API passes1/0(24); actual planner checks use the
 existing credit/property index and deny revoked authority with SQLSTATE42501.
 All pre-existing rows and financial/fiscal read graphs remain unchanged. This is
 built working source with combined publication pending, not an enabled live UI.
+
+## Credit-document delivery discovery (Order452; working source)
+
+GET `/api/v1/properties/:property/credit-notes/:creditDocument/delivery` takes no
+query selectors. The signed session supplies tenant and actor. BOTH current
+`tax-fiscal.documents:read` and `tax-fiscal.submissions:read` are required at the
+signed-session/property boundary and inside the database, before resolving absence.
+No client-selected provider, submission, tenant, actor or hash is accepted.
+
+The four-UUID typed input is snapshotted before asynchronous work. One parameterized
+owner-mediated read authenticates the issued CRN, original immutable invoice,
+content hashes, correction lineage and stored issuance receipt. It selects at most
+two durable submission heads and reuses the unchanged signed-receipt projector.
+It does not depend on retained outbox events, widen direct table access, issue,
+retry, allocate a number, or call a provider.
+
+Success is200 `{delivery}` with one frozen union: `not_requested` and `ambiguous`
+carry documentId only; `legacy_unsupported` also carries submissionId; `receipt`
+carries the existing validated receipt and documentId. Ambiguity grants no action
+or chosen head. Canonical legacy and second-head creation guards remain unchanged;
+those defensive states do not imply a supported CRN legacy/multi-head lifecycle.
+Authorized absence404, denied403, invalid400 and sanitized corruption/failure503
+are no-store, without an idempotency-replayed header.
+
+This is unpromoted working source. Independent rollback and draft-install checks
+passed; complete native functional acceptance and canonical89/release integration
+remain pending. See Order452's review for actual results, failures and corrections.

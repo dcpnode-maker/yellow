@@ -12231,6 +12231,111 @@ $$;
 
 
 --
+-- Name: read_india_native_credit_delivery_by_document(uuid, uuid, uuid, uuid); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.read_india_native_credit_delivery_by_document(p_tenant uuid, p_property uuid, p_actor uuid, p_document uuid) RETURNS jsonb
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'pg_catalog', 'public', 'pg_temp'
+    SET "TimeZone" TO 'UTC'
+    SET "DateStyle" TO 'ISO,YMD'
+    AS $_$
+DECLARE
+  c public.india_native_fiscal_credit_note%ROWTYPE; d public.document%ROWTYPE; original public.document%ROWTYPE;
+  origin public.india_gst_native_fiscal_document_origin%ROWTYPE; correction public.journal%ROWTYPE;
+  series public.document_series%ROWTYPE; head public.fiscal_submission%ROWTYPE;
+  head_ids uuid[]; issued jsonb; receipt jsonb;
+BEGIN
+  -- Authority is deliberately before even the missing-document result.
+  PERFORM public.assert_india_native_credit_authority(p_tenant,p_property,p_actor,
+    ARRAY['tax-fiscal.documents:read','tax-fiscal.submissions:read']);
+  IF p_document IS NULL THEN
+    RAISE EXCEPTION USING ERRCODE='22023',MESSAGE='credit delivery document is required';
+  END IF;
+  SELECT * INTO c FROM public.india_native_fiscal_credit_note
+    WHERE tenant_id=p_tenant AND property_node=p_property AND document_id=p_document;
+  IF NOT FOUND THEN RETURN NULL; END IF;
+  SELECT * INTO d FROM public.document WHERE tenant_id=p_tenant AND id=c.document_id;
+  SELECT * INTO original FROM public.document WHERE tenant_id=p_tenant AND id=c.original_document_id;
+  SELECT * INTO origin FROM public.india_gst_native_fiscal_document_origin WHERE tenant_id=p_tenant AND id=c.original_origin_id;
+  SELECT * INTO correction FROM public.journal WHERE tenant_id=p_tenant AND id=c.correction_journal_id;
+  SELECT * INTO series FROM public.document_series WHERE tenant_id=p_tenant AND id=c.series_id;
+  IF d.id IS NULL OR original.id IS NULL OR origin.id IS NULL OR correction.id IS NULL OR series.id IS NULL
+      OR to_jsonb(d) IS DISTINCT FROM c.planned_document
+      OR d.id IS DISTINCT FROM p_document OR d.kind IS DISTINCT FROM 'credit_note' OR d.status IS DISTINCT FROM 'issued'
+      OR d.property_node IS DISTINCT FROM p_property OR d.series_id IS DISTINCT FROM c.series_id
+      OR d.business_date IS DISTINCT FROM c.business_date OR d.issued_at IS DISTINCT FROM c.created_at
+      OR d.created_at IS DISTINCT FROM c.created_at OR d.doc_no IS NULL OR d.sha256 IS NULL
+      OR d.sha256!~'^[0-9a-f]{64}$' OR original.sha256 IS NULL OR original.sha256!~'^[0-9a-f]{64}$'
+      OR original.kind IS DISTINCT FROM 'invoice' OR original.status IS DISTINCT FROM 'issued'
+      OR original.property_node IS DISTINCT FROM p_property OR original.id=d.id
+      OR origin.document_id IS DISTINCT FROM original.id OR origin.property_node IS DISTINCT FROM p_property
+      OR origin.document_kind IS DISTINCT FROM 'invoice' OR origin.source_kind IS DISTINCT FROM 'native_current_transaction_graph'
+      OR origin.source_version IS DISTINCT FROM 2 OR origin.native_accounting_binding_id IS DISTINCT FROM c.accounting_binding_id
+      OR origin.issue_date IS DISTINCT FROM original.business_date OR origin.created_at IS DISTINCT FROM original.issued_at
+      OR origin.native_timing_id IS NULL OR origin.native_source_basis_hash IS NULL
+      OR series.property_node IS DISTINCT FROM p_property OR series.kind IS DISTINCT FROM 'credit_note'
+      OR series.fiscal IS DISTINCT FROM true OR series.supplier_registration_id IS DISTINCT FROM origin.supplier_registration_id
+      OR d.subject_type IS DISTINCT FROM 'folio' OR d.subject_id IS DISTINCT FROM origin.folio_id
+      OR correction.kind IS DISTINCT FROM 'correction' OR correction.property_node IS DISTINCT FROM p_property
+      OR correction.business_date IS DISTINCT FROM c.business_date OR correction.created_at IS DISTINCT FROM c.created_at
+      OR correction.created_by IS DISTINCT FROM c.actor_id OR correction.currency IS DISTINCT FROM 'INR'
+      OR correction.reverses IS NOT NULL OR correction.description IS DISTINCT FROM c.reason
+      OR correction.source IS DISTINCT FROM jsonb_build_object('interface','financials.india-native-credit-note.post','credit_note_id',c.id) THEN
+    RAISE EXCEPTION USING ERRCODE='55000',MESSAGE='credit delivery immutable native ancestry differs';
+  END IF;
+  -- Never invoke birth/fact/outbox completeness guards: published events may be pruned.
+  IF encode(public.digest(convert_to(d.content::text,'UTF8'),'sha256'),'hex') IS DISTINCT FROM d.sha256
+      OR encode(public.digest(convert_to(original.content::text,'UTF8'),'sha256'),'hex') IS DISTINCT FROM original.sha256
+      OR d.content->'DocDtls' IS DISTINCT FROM jsonb_build_object('Typ','CRN','No',d.doc_no,'Dt',to_char(c.business_date,'DD/MM/YYYY'))
+      OR d.content->'YellowCredit' IS DISTINCT FROM jsonb_build_object('originalDocumentId',original.id,
+        'originalSha256',original.sha256,'reason',c.reason,'correctionJournalId',c.correction_journal_id,'sourceEvidenceHash',c.source_evidence_hash)
+      OR d.content->'RefDtls' IS DISTINCT FROM jsonb_build_object('PrecDocDtls',jsonb_build_array(jsonb_build_object(
+        'InvNo',original.doc_no,'InvDt',to_char(original.business_date,'DD/MM/YYYY'))))
+      OR (SELECT jsonb_agg(to_jsonb(line) ORDER BY line.seq) FROM public.posting_line line
+        WHERE line.tenant_id=p_tenant AND line.journal_id=c.correction_journal_id)
+        IS DISTINCT FROM (SELECT jsonb_agg(item->'line' ORDER BY (item->'line'->>'seq')::integer)
+          FROM jsonb_array_elements(c.planned_lines) item)
+      OR NOT EXISTS(SELECT 1 FROM public.india_gst_accommodation_final_component_tax_journal_binding b
+        WHERE b.tenant_id=p_tenant AND b.id=c.accounting_binding_id AND b.valuation_id=c.valuation_id) THEN
+    RAISE EXCEPTION USING ERRCODE='55000',MESSAGE='credit delivery content hash or original reference differs';
+  END IF;
+  BEGIN issued:=c.receipt_json::jsonb;
+  EXCEPTION WHEN invalid_text_representation THEN
+    RAISE EXCEPTION USING ERRCODE='55000',MESSAGE='credit delivery issuance receipt is invalid'; END;
+  IF issued->>'documentId' IS DISTINCT FROM d.id::text OR issued->>'sha256' IS DISTINCT FROM d.sha256
+      OR issued->>'documentKind' IS DISTINCT FROM 'credit_note' OR issued->>'propertyNode' IS DISTINCT FROM p_property::text
+      OR issued->>'originalDocumentId' IS DISTINCT FROM original.id::text OR issued->>'originalSha256' IS DISTINCT FROM original.sha256
+      OR issued->>'correctionJournalId' IS DISTINCT FROM correction.id::text OR issued->>'seriesId' IS DISTINCT FROM series.id::text
+      OR issued->>'docNo' IS DISTINCT FROM d.doc_no OR issued->>'sourceEvidenceHash' IS DISTINCT FROM c.source_evidence_hash THEN
+    RAISE EXCEPTION USING ERRCODE='55000',MESSAGE='credit delivery issuance receipt binding differs';
+  END IF;
+  SELECT array_agg(id ORDER BY id) INTO head_ids FROM (
+    SELECT id FROM public.fiscal_submission WHERE tenant_id=p_tenant AND property_node=p_property AND document_id=p_document
+      ORDER BY id LIMIT 2
+  ) bounded_heads;
+  IF coalesce(cardinality(head_ids),0)=0 THEN RETURN jsonb_build_object('kind','not_requested','documentId',p_document); END IF;
+  IF cardinality(head_ids)=2 THEN RETURN jsonb_build_object('kind','ambiguous','documentId',p_document); END IF;
+  SELECT * INTO head FROM public.fiscal_submission WHERE tenant_id=p_tenant AND property_node=p_property
+    AND document_id=p_document AND id=head_ids[1];
+  IF NOT FOUND THEN RAISE EXCEPTION USING ERRCODE='55000',MESSAGE='credit delivery selected head disappeared'; END IF;
+  IF head.delivery_version IS DISTINCT FROM 1 THEN
+    RETURN jsonb_build_object('kind','legacy_unsupported','documentId',p_document,'submissionId',head.id);
+  END IF;
+  IF head.document_sha256 IS DISTINCT FROM d.sha256 THEN
+    RAISE EXCEPTION USING ERRCODE='55000',MESSAGE='credit delivery head document hash differs'; END IF;
+  receipt:=public.read_india_fiscal_submission_delivery_receipt(p_tenant,p_property,head.id,p_actor);
+  IF receipt IS NULL OR receipt->>'tenantId' IS DISTINCT FROM p_tenant::text
+      OR receipt->>'propertyNode' IS DISTINCT FROM p_property::text OR receipt->>'documentId' IS DISTINCT FROM p_document::text
+      OR receipt->>'submissionId' IS DISTINCT FROM head.id::text OR receipt->>'documentSha256' IS DISTINCT FROM d.sha256
+      OR receipt->>'wireSha256' IS DISTINCT FROM head.wire_sha256 THEN
+    RAISE EXCEPTION USING ERRCODE='55000',MESSAGE='credit delivery receipt identity differs';
+  END IF;
+  RETURN jsonb_build_object('kind','receipt','documentId',p_document,'receipt',receipt);
+END $_$;
+
+
+--
 -- Name: read_india_native_document_context_candidate(uuid, uuid, uuid, uuid, uuid, uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -31275,6 +31380,14 @@ REVOKE ALL ON FUNCTION public.read_india_native_completed_receipt(p_tenant uuid,
 --
 
 REVOKE ALL ON FUNCTION public.read_india_native_component_tax_amounts(p_tenant uuid, p_tax uuid) FROM PUBLIC;
+
+
+--
+-- Name: FUNCTION read_india_native_credit_delivery_by_document(p_tenant uuid, p_property uuid, p_actor uuid, p_document uuid); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.read_india_native_credit_delivery_by_document(p_tenant uuid, p_property uuid, p_actor uuid, p_document uuid) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.read_india_native_credit_delivery_by_document(p_tenant uuid, p_property uuid, p_actor uuid, p_document uuid) TO app_role;
 
 
 --

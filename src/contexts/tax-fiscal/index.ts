@@ -457,6 +457,17 @@ export type {
   IndiaNativeFiscalInvoiceDocument,
 } from "./india-native-fiscal-document-read";
 export type { FiscalSubmissionDeliveryReceipt, FiscalSubmissionDeliveryReadResult } from "./fiscal-submission-receipt";
+export {
+  IndiaNativeCreditDeliveryService,
+  IndiaNativeCreditDeliveryAuthorizationError,
+  IndiaNativeCreditDeliveryDatabaseError,
+  IndiaNativeCreditDeliveryValidationError,
+  snapshotIndiaNativeCreditDeliveryInput,
+} from "./india-native-credit-delivery";
+export type {
+  IndiaNativeCreditDelivery,
+  IndiaNativeCreditDeliveryInput,
+} from "./india-native-credit-delivery";
 export type {
   FiscalSubmissionClaim,
   FiscalSubmissionDisposition,

@@ -400,6 +400,28 @@ databaseDescribe("Order 127 runtime database authority (kernel boundary; HTTP P4
       public_execute: false, app_execute: true, runtime_execute: false,
     }]);
 
+    const creditDeliveryRead = await admin!<Array<{
+      signature: string; owner: string; security_definer: boolean; config: string[];
+      public_execute: boolean; app_execute: boolean; runtime_execute: boolean;
+    }>>`
+      SELECT p.oid::regprocedure::text AS signature,pg_catalog.pg_get_userbyid(p.proowner) AS owner,
+             p.prosecdef AS security_definer,p.proconfig AS config,
+             pg_catalog.has_function_privilege('public',p.oid,'EXECUTE') AS public_execute,
+             pg_catalog.has_function_privilege('app_role',p.oid,'EXECUTE') AS app_execute,
+             pg_catalog.has_function_privilege('yellow_runtime',p.oid,'EXECUTE') AS runtime_execute
+        FROM pg_catalog.pg_proc p
+        JOIN pg_catalog.pg_namespace n ON n.oid=p.pronamespace
+       WHERE n.nspname='public'
+         AND p.oid=pg_catalog.to_regprocedure(
+           'public.read_india_native_credit_delivery_by_document(uuid,uuid,uuid,uuid)')
+    `;
+    expect(creditDeliveryRead).toEqual([{
+      signature: "read_india_native_credit_delivery_by_document(uuid,uuid,uuid,uuid)",
+      owner: "yellow_owner", security_definer: true,
+      config: ["search_path=pg_catalog, public, pg_temp", "TimeZone=UTC", "DateStyle=ISO,YMD"],
+      public_execute: false, app_execute: true, runtime_execute: false,
+    }]);
+
     const retryBinding = await admin!<Array<{
       signature: string; owner: string; language: string; security_definer: boolean;
       volatility: string; strict: boolean; parallel: string; leakproof: boolean;
@@ -623,6 +645,11 @@ databaseDescribe("Order 127 runtime database authority (kernel boundary; HTTP P4
         current_user: "yellow_runtime", session_user: "yellow_runtime", tenant_clear: true,
         search_path: '"$user", public', prepared_count: 0,
       }]);
+      let creditReadDenied: string | null = null;
+      try {
+        await observer`SELECT public.read_india_native_credit_delivery_by_document(NULL::uuid,NULL::uuid,NULL::uuid,NULL::uuid)`;
+      } catch (error) { creditReadDenied = sqlstate(error); }
+      expect(creditReadDenied).toBe("42501");
     } finally { observer.release(); await observerPool.close(); }
 
     await closeWithin(database);
