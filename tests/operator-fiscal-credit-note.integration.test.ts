@@ -1,6 +1,8 @@
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { SQL } from "bun";
 import { createApp } from "../src/app";
+import { discoverIndiaNativeFiscalCreditNoteInTransaction } from "../src/commands/issue-india-native-fiscal-credit-note";
+import { IndiaNativeFiscalCreditNoteAuthorizationError } from "../src/contexts/tax-fiscal";
 import { BearerTenantResolver, Hs256TokenSigner, type LocalLoginService } from "../src/contexts/identity";
 import { OperatorHttpApi } from "../src/http/operator";
 import { Database, type Tx } from "../src/kernel";
@@ -102,7 +104,18 @@ async function read(h: ReturnType<typeof harness>, options: {
   ));
 }
 
-describe("Order446 signed-session credit-note HTTP composition (database authority proven separately)", () => {
+async function discover(h: ReturnType<typeof harness>, options: {
+  scopes?: readonly string[]; suffix?: string; property?: string; original?: string; authenticated?: boolean;
+} = {}) {
+  const headers: Record<string, string> = options.authenticated === false ? {} : { authorization: await authorization(options.scopes ?? [readScope]) };
+  return h.app.handle(new Request(
+    `http://yellow.test/api/v1/properties/${options.property ?? id(2)}` +
+      `/invoices/${options.original ?? id(4)}/credit-notes${options.suffix ?? ""}`,
+    { headers },
+  ));
+}
+
+describe("Order446/448 signed-session credit-note HTTP composition (database authority proven separately)", () => {
   test("issues in the middleware transaction with verified identities and exact stored receipt bytes", async () => {
     const h = harness(), response = await issue(h);
     expect(response.status).toBe(201);
@@ -148,14 +161,36 @@ describe("Order446 signed-session credit-note HTTP composition (database authori
     expect(h.log).toContain(`grant:${readScope}`);
   });
 
+  test("discovers the same raw receipt by original invoice without shadowing the method-disjoint POST", async () => {
+    const h = harness();
+    const response = await discover(h);
+    expect(response.status).toBe(200);
+    expect(await response.text()).toBe(receiptJson);
+    expect(response.headers.get("idempotency-replayed")).toBeNull();
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(h.calls).toHaveLength(1);
+    expect(h.calls[0]!.sql).toContain("FROM public.india_native_fiscal_credit_note");
+    expect(h.calls[0]!.sql).toContain("public.read_india_native_fiscal_credit_note(");
+    expect(h.calls[0]!.values).toEqual([id(1), id(2), id(3), id(4)]);
+    expect(h.log).toContain(`grant:${readScope}`);
+
+    const issueHarness = harness(), issued = await issue(issueHarness);
+    expect(issued.status).toBe(201);
+    expect(await issued.text()).toBe(receiptJson);
+    expect(issueHarness.calls[0]!.sql).toContain("commit_india_native_fiscal_credit_note");
+  });
+
   test("requires authentication and both issue scopes without calling the financial capability", async () => {
     for (const scopes of [[], [readScope], [issueScopes[0]!], [issueScopes[1]!]]) {
       const h = harness(); expect((await issue(h, { scopes })).status).toBe(403); expect(h.calls).toHaveLength(0);
     }
-    for (const execute of [issue, read]) {
+    for (const execute of [issue, read, discover]) {
       const h = harness(); expect((await execute(h, { authenticated: false })).status).toBe(401); expect(h.calls).toHaveLength(0);
     }
     const h = harness(); expect((await read(h, { scopes: issueScopes })).status).toBe(403); expect(h.calls).toHaveLength(0);
+    const discovery = harness();
+    expect((await discover(discovery, { scopes: issueScopes })).status).toBe(403);
+    expect(discovery.calls).toHaveLength(0);
   });
 
   test("checks each current property grant even with an otherwise valid signed session or replay", async () => {
@@ -165,6 +200,8 @@ describe("Order446 signed-session credit-note HTTP composition (database authori
     }
     const h = harness(); h.control.revokedScope = readScope;
     expect((await read(h)).status).toBe(403); expect(h.calls).toHaveLength(0);
+    const discovery = harness(); discovery.control.revokedScope = readScope;
+    expect((await discover(discovery)).status).toBe(403); expect(discovery.calls).toHaveLength(0);
     const foreign = harness(); expect((await issue(foreign, { property: id(99) })).status).toBe(403);
     expect(foreign.calls).toHaveLength(0);
   });
@@ -183,6 +220,9 @@ describe("Order446 signed-session credit-note HTTP composition (database authori
     for (const options of [{ document: "bad" }, { suffix: "?tenant=other" }]) {
       const h = harness(); expect((await read(h, options)).status).toBe(400); expect(h.calls).toHaveLength(0);
     }
+    for (const options of [{ original: "bad" }, { property: "bad" }, { suffix: "?creditDocumentId=other" }]) {
+      const h = harness(); expect((await discover(h, options)).status).toBe(400); expect(h.calls).toHaveLength(0);
+    }
   });
 
   test("conceals missing and cross-tenant credit notes behind the same not-found response", async () => {
@@ -191,6 +231,12 @@ describe("Order446 signed-session credit-note HTTP composition (database authori
     expect(first.status).toBe(404); expect(second.status).toBe(404);
     const one = await first.json() as Record<string, unknown>, two = await second.json() as Record<string, unknown>;
     delete one.correlation_id; delete two.correlation_id; expect(one).toEqual(two);
+
+    const c = harness(), d = harness(); c.control.missing = d.control.missing = true;
+    const absent = await discover(c), foreign = await discover(d, { original: id(99) });
+    expect(absent.status).toBe(404); expect(foreign.status).toBe(404);
+    const three = await absent.json() as Record<string, unknown>, four = await foreign.json() as Record<string, unknown>;
+    delete three.correlation_id; delete four.correlation_id; expect(three).toEqual(four);
   });
 
   test("rolls back authority, validation, conflict and unexpected failures without exposing SQL details", async () => {
@@ -202,11 +248,26 @@ describe("Order446 signed-session credit-note HTTP composition (database authori
     }
   });
 
+  test("maps discovery authority and storage failures without leaking SQL details", async () => {
+    for (const [state, status] of [["42501", 403], ["XX000", 503]] as const) {
+      const h = harness(); h.control.sqlError = state;
+      const response = await discover(h); expect(response.status).toBe(status);
+      expect(await response.text()).not.toContain("private SQL");
+      expect(h.log).toContain("ROLLBACK"); expect(h.log).not.toContain("COMMIT");
+    }
+  });
+
   test("malformed or foreign durable receipts fail closed and roll back, rather than returning successful issuance", async () => {
     for (const invalid of ["not-json", "null", JSON.stringify({ ...receipt, propertyNode: id(99) }),
       JSON.stringify({ ...receipt, originalDocumentId: id(99) }), JSON.stringify({ ...receipt, totalMinor: 11800 })]) {
       const h = harness(); h.control.receiptJson = invalid;
       const response = await issue(h); expect(response.status).toBe(503);
+      expect(h.log).toContain("ROLLBACK"); expect(h.log).not.toContain("COMMIT");
+    }
+    for (const invalid of ["not-json", JSON.stringify({ ...receipt, propertyNode: id(99) }),
+      JSON.stringify({ ...receipt, originalDocumentId: id(99) })]) {
+      const h = harness(); h.control.receiptJson = invalid;
+      const response = await discover(h); expect(response.status).toBe(503);
       expect(h.log).toContain("ROLLBACK"); expect(h.log).not.toContain("COMMIT");
     }
   });
@@ -261,7 +322,74 @@ async function actualRead(
   ));
 }
 
-actualDatabaseDescribe("Order446 ACTUAL PostgreSQL + signed-session HTTP proof (not a database mock)", () => {
+async function actualDiscover(
+  app: ReturnType<typeof createApp>,
+  candidate: CreditFixture,
+  options: { property?: string; original?: string } = {},
+): Promise<Response> {
+  return app.handle(new Request(
+    `http://yellow.test/api/v1/properties/${options.property ?? candidate.fixture.property}` +
+      `/invoices/${options.original ?? candidate.invoice.documentId}/credit-notes`,
+    { headers: { authorization: await actualAuthorization(candidate) } },
+  ));
+}
+
+async function creditDiscoveryGraph(deploy: SQL, candidate: CreditFixture): Promise<string> {
+  const [row] = await deploy<{ value: string }[]>`SELECT jsonb_build_object(
+    'credit',(SELECT to_jsonb(credit) FROM public.india_native_fiscal_credit_note credit
+      WHERE credit.tenant_id=${candidate.fixture.tenant}::uuid
+        AND credit.original_document_id=${candidate.invoice.documentId}::uuid),
+    'documents',(SELECT COALESCE(jsonb_agg(to_jsonb(document) ORDER BY document.id),'[]'::jsonb)
+      FROM public.document document WHERE document.tenant_id=${candidate.fixture.tenant}::uuid
+        AND (document.id=${candidate.invoice.documentId}::uuid OR document.id IN (
+          SELECT credit.document_id FROM public.india_native_fiscal_credit_note credit
+          WHERE credit.tenant_id=${candidate.fixture.tenant}::uuid
+            AND credit.original_document_id=${candidate.invoice.documentId}::uuid))),
+    'series',(SELECT COALESCE(jsonb_agg(to_jsonb(series) ORDER BY series.id),'[]'::jsonb)
+      FROM public.document_series series WHERE series.tenant_id=${candidate.fixture.tenant}::uuid
+        AND series.id IN (SELECT document.series_id FROM public.document document
+          WHERE document.tenant_id=${candidate.fixture.tenant}::uuid
+            AND (document.id=${candidate.invoice.documentId}::uuid OR document.id IN (
+              SELECT credit.document_id FROM public.india_native_fiscal_credit_note credit
+              WHERE credit.tenant_id=${candidate.fixture.tenant}::uuid
+                AND credit.original_document_id=${candidate.invoice.documentId}::uuid)))),
+    'journals',(SELECT COALESCE(jsonb_agg(to_jsonb(journal) ORDER BY journal.id),'[]'::jsonb)
+      FROM public.journal journal WHERE journal.tenant_id=${candidate.fixture.tenant}::uuid
+        AND journal.id IN (SELECT credit.correction_journal_id FROM public.india_native_fiscal_credit_note credit
+          WHERE credit.tenant_id=${candidate.fixture.tenant}::uuid
+            AND credit.original_document_id=${candidate.invoice.documentId}::uuid)),
+    'postings',(SELECT COALESCE(jsonb_agg(to_jsonb(line) ORDER BY line.journal_id,line.seq),'[]'::jsonb)
+      FROM public.posting_line line WHERE line.tenant_id=${candidate.fixture.tenant}::uuid
+        AND line.journal_id IN (SELECT credit.correction_journal_id FROM public.india_native_fiscal_credit_note credit
+          WHERE credit.tenant_id=${candidate.fixture.tenant}::uuid
+            AND credit.original_document_id=${candidate.invoice.documentId}::uuid)),
+    'facts',(SELECT COALESCE(jsonb_agg(to_jsonb(fact) ORDER BY fact.recorded_at,fact.id),'[]'::jsonb)
+      FROM public.fact_log fact WHERE fact.tenant_id=${candidate.fixture.tenant}::uuid
+        AND (fact.entity_id=${candidate.invoice.documentId}::uuid OR fact.entity_id IN (
+          SELECT credit.document_id FROM public.india_native_fiscal_credit_note credit
+          WHERE credit.tenant_id=${candidate.fixture.tenant}::uuid
+            AND credit.original_document_id=${candidate.invoice.documentId}::uuid))),
+    'outbox',(SELECT COALESCE(jsonb_agg(to_jsonb(event) ORDER BY event.seq),'[]'::jsonb)
+      FROM public.outbox event WHERE event.tenant_id=${candidate.fixture.tenant}::uuid
+        AND (event.aggregate_id=${candidate.invoice.documentId}::uuid OR event.aggregate_id IN (
+          SELECT credit.document_id FROM public.india_native_fiscal_credit_note credit
+          WHERE credit.tenant_id=${candidate.fixture.tenant}::uuid
+            AND credit.original_document_id=${candidate.invoice.documentId}::uuid))),
+    'idempotency',(SELECT COALESCE(jsonb_agg(to_jsonb(replay) ORDER BY replay.key_hash),'[]'::jsonb)
+      FROM public.api_idempotency replay WHERE replay.tenant_id=${candidate.fixture.tenant}::uuid
+        AND replay.operation='document.credit_note.issued'),
+    'submissions',(SELECT COALESCE(jsonb_agg(to_jsonb(submission) ORDER BY submission.id),'[]'::jsonb)
+      FROM public.fiscal_submission submission WHERE submission.tenant_id=${candidate.fixture.tenant}::uuid
+        AND (submission.document_id=${candidate.invoice.documentId}::uuid OR submission.document_id IN (
+          SELECT credit.document_id FROM public.india_native_fiscal_credit_note credit
+          WHERE credit.tenant_id=${candidate.fixture.tenant}::uuid
+            AND credit.original_document_id=${candidate.invoice.documentId}::uuid)))
+  )::text AS value`;
+  if (!row) throw new Error("Credit discovery graph is unavailable");
+  return row.value;
+}
+
+actualDatabaseDescribe("Order446/448 ACTUAL PostgreSQL + signed-session HTTP proof (not a database mock)", () => {
   let deploy: SQL;
   let realDatabase: Database;
   let app: ReturnType<typeof createApp>;
@@ -287,22 +415,43 @@ actualDatabaseDescribe("Order446 ACTUAL PostgreSQL + signed-session HTTP proof (
     await deploy?.close();
   });
 
-  test("issues, reads and replays exact durable bytes while authority and source invariants remain real", async () => {
+  test("issues, discovers, reads and replays exact durable bytes while authority and source invariants remain real", async () => {
     const candidate = await createCreditFixture(deploy, realDatabase);
     const foreign = await createCreditFixture(deploy, realDatabase);
     const sourceBefore = await originalCreditGraph(deploy, candidate);
     const key = `actual-http-credit-${candidate.invoice.documentId}`;
     const reason = "Full cancellation through signed-session HTTP";
 
+    const graphBeforeAbsent = await creditDiscoveryGraph(deploy, candidate);
+    const absentBeforeIssue = await actualDiscover(app, candidate);
+    expect(absentBeforeIssue.status).toBe(404);
+    expect(await creditDiscoveryGraph(deploy, candidate)).toBe(graphBeforeAbsent);
+    expect(await originalCreditGraph(deploy, candidate)).toBe(sourceBefore);
+
     const issued = await actualIssue(app, candidate, { reason, key });
     expect(issued.status).toBe(201);
     expect(issued.headers.get("idempotency-replayed")).toBe("false");
     const exactReceipt = await issued.text();
     const parsed = JSON.parse(exactReceipt) as { documentId: string; correctionJournalId: string };
+    const creditBeforeDiscovery = await creditDiscoveryGraph(deploy, candidate);
 
     const readResponse = await actualRead(app, candidate, parsed.documentId);
     expect(readResponse.status).toBe(200);
     expect(await readResponse.text()).toBe(exactReceipt);
+
+    const discovered = await actualDiscover(app, candidate);
+    expect(discovered.status).toBe(200);
+    expect(discovered.headers.get("cache-control")).toBe("no-store");
+    expect(discovered.headers.get("idempotency-replayed")).toBeNull();
+    expect(await discovered.text()).toBe(exactReceipt);
+    const concurrent = await Promise.all(Array.from({ length: 12 }, () => actualDiscover(app, candidate)));
+    expect(concurrent.every(response => response.status === 200)).toBeTrue();
+    expect(await Promise.all(concurrent.map(response => response.text()))).toEqual(Array(12).fill(exactReceipt));
+
+    expect((await actualDiscover(app, candidate, { original: foreign.invoice.documentId })).status).toBe(404);
+    expect((await actualDiscover(app, candidate, { original: parsed.documentId })).status).toBe(404);
+    expect((await actualDiscover(app, candidate, { original: crypto.randomUUID() })).status).toBe(404);
+    expect((await actualDiscover(app, candidate, { property: foreign.fixture.property })).status).toBe(403);
 
     const replay = await actualIssue(app, candidate, { reason, key });
     expect(replay.status).toBe(200);
@@ -321,6 +470,7 @@ actualDatabaseDescribe("Order446 ACTUAL PostgreSQL + signed-session HTTP proof (
     expect((await actualIssue(app, candidate, { original: crypto.randomUUID(), key })).status).toBe(409);
 
     expect(await originalCreditGraph(deploy, candidate)).toBe(sourceBefore);
+    expect(await creditDiscoveryGraph(deploy, candidate)).toBe(creditBeforeDiscovery);
     const [effects] = await deploy<{
       credits: number; journals: number; documents: number; facts: number; events: number; replays: number;
     }[]>`SELECT
@@ -350,5 +500,15 @@ actualDatabaseDescribe("Order446 ACTUAL PostgreSQL + signed-session HTTP proof (
       WHERE tenant_id=${candidate.fixture.tenant}::uuid AND user_id=${candidate.fixture.actor}::uuid RETURNING role_id`;
     expect(removed.length).toBeGreaterThan(0);
     expect((await actualIssue(app, candidate, { reason, key })).status).toBe(403);
+    expect((await actualDiscover(app, candidate)).status).toBe(403);
+    await expect(realDatabase.withTenantTransaction(candidate.fixture.tenant, tx =>
+      discoverIndiaNativeFiscalCreditNoteInTransaction(tx, {
+        tenantId: candidate.fixture.tenant,
+        propertyNode: candidate.fixture.property,
+        actorId: candidate.fixture.actor,
+        originalDocumentId: crypto.randomUUID(),
+      }))).rejects.toBeInstanceOf(IndiaNativeFiscalCreditNoteAuthorizationError);
+    expect(await originalCreditGraph(deploy, candidate)).toBe(sourceBefore);
+    expect(await creditDiscoveryGraph(deploy, candidate)).toBe(creditBeforeDiscovery);
   }, 180_000);
 });

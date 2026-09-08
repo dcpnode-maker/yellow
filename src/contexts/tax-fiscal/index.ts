@@ -721,9 +721,11 @@ export {
   IndiaNativeFiscalCreditNoteValidationError,
   snapshotIndiaNativeFiscalCreditNoteIssueInput,
   snapshotIndiaNativeFiscalCreditNoteReadInput,
+  snapshotIndiaNativeFiscalCreditNoteDiscoveryInput,
 } from "./india-native-fiscal-credit-note";
 export type {
   IndiaNativeFiscalCreditNoteIssueInput,
+  IndiaNativeFiscalCreditNoteDiscoveryInput,
   IndiaNativeFiscalCreditNoteIssueResult,
   IndiaNativeFiscalCreditNoteReadInput,
   IndiaNativeFiscalCreditNoteReadResult,

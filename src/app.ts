@@ -214,6 +214,9 @@ export function createApp(options: AppOptions = {}) {
       .post("/api/v1/properties/:property/invoices/:originalDocument/credit-notes", ({ request, params, body }) =>
         withOperatorTenant(request, (context) => operator.fiscalCreditNoteIssue(context, params.property, params.originalDocument, body))
       )
+      .get("/api/v1/properties/:property/invoices/:document/credit-notes", ({ request, params }) =>
+        withOperatorTenant(request, (context) => operator.fiscalCreditNoteDiscover(context, params.property, params.document))
+      )
       .get("/api/v1/properties/:property/credit-notes/:creditDocument", ({ request, params }) =>
         withOperatorTenant(request, (context) => operator.fiscalCreditNoteRead(context, params.property, params.creditDocument))
       )

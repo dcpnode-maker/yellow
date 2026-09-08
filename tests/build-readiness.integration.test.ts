@@ -27,6 +27,19 @@ let currentReleaseReady = false;
 let originalProjectorDefinition = "";
 const CREDIT_PROJECTOR = "public.india_fiscal_submission_project_wire(uuid,uuid,uuid)";
 const CREDIT_PROJECTOR_BODY_SHA = "b34eaf0095dad0df5cd55453b7e4bd1a42f5ae698a02c5ebca3dcac7645c9f96";
+const BODY_DRIFT_COMMENT = "-- unrelated body drift must also fail closed";
+
+function appendLiteralBodyDrift(definition: string, body: string): string {
+  return definition.replace(body, literalBody => `${literalBody}\n${BODY_DRIFT_COMMENT}\n`);
+}
+
+test("projector body drift preserves JavaScript replacement-token bytes", () => {
+  const body = "BEGIN\n  IF value~'^[0-9]+$' THEN value:='$$'; END IF;\nEND";
+  const definition = `CREATE FUNCTION probe() RETURNS void AS $function$\n${body}\n$function$;`;
+  expect(appendLiteralBodyDrift(definition, body)).toBe(
+    `CREATE FUNCTION probe() RETURNS void AS $function$\n${body}\n${BODY_DRIFT_COMMENT}\n\n$function$;`,
+  );
+});
 
 async function projectorCatalogue(): Promise<string> {
   const [row] = await deployment!<{ snapshot: string }[]>`
@@ -368,7 +381,7 @@ databaseDescribe("Order438 runtime release readiness identity", () => {
       ...["PUBLIC", "app_role", "yellow_runtime", "yellow_deploy"].map(role =>
         `GRANT EXECUTE ON FUNCTION ${CREDIT_PROJECTOR} TO ${role}`),
       originalProjectorDefinition,
-      definition.replace(row!.body, `${row!.body}\n-- unrelated body drift must also fail closed\n`),
+      appendLiteralBodyDrift(definition, row!.body),
     ];
     for (const mutate of mutations) {
       try {

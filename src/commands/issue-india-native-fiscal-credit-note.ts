@@ -3,6 +3,7 @@ import {
   IndiaNativeFiscalCreditNoteValidationError,
   snapshotIndiaNativeFiscalCreditNoteIssueInput,
   snapshotIndiaNativeFiscalCreditNoteReadInput,
+  snapshotIndiaNativeFiscalCreditNoteDiscoveryInput,
   type IndiaNativeFiscalCreditNoteIssueResult,
   type IndiaNativeFiscalCreditNoteReadResult,
 } from "../contexts/tax-fiscal";
@@ -58,6 +59,46 @@ export class ReadIndiaNativeFiscalCreditNoteCommand {
   ): Promise<Readonly<IndiaNativeFiscalCreditNoteReadResult> | null> {
     return this.#service.read(tx, inputValue);
   }
+}
+
+export class DiscoverIndiaNativeFiscalCreditNoteCommand {
+  readonly #database: Database;
+  readonly #service: IndiaNativeFiscalCreditNoteService;
+
+  constructor(database: Database) {
+    this.#database = database;
+    this.#service = new IndiaNativeFiscalCreditNoteService();
+  }
+
+  async execute(inputValue: unknown): Promise<Readonly<IndiaNativeFiscalCreditNoteReadResult> | null> {
+    const input = snapshotIndiaNativeFiscalCreditNoteDiscoveryInput(inputValue);
+    if (!input) throw new IndiaNativeFiscalCreditNoteValidationError();
+    return this.#database.withTenantTransaction(
+      input.tenantId,
+      (tx) => this.executeInTransaction(tx, input),
+    );
+  }
+
+  async executeInTransaction(
+    tx: Tx,
+    inputValue: unknown,
+  ): Promise<Readonly<IndiaNativeFiscalCreditNoteReadResult> | null> {
+    return this.#service.discover(tx, inputValue);
+  }
+}
+
+export function discoverIndiaNativeFiscalCreditNote(
+  database: Database,
+  inputValue: unknown,
+): Promise<Readonly<IndiaNativeFiscalCreditNoteReadResult> | null> {
+  return new DiscoverIndiaNativeFiscalCreditNoteCommand(database).execute(inputValue);
+}
+
+export function discoverIndiaNativeFiscalCreditNoteInTransaction(
+  tx: Tx,
+  inputValue: unknown,
+): Promise<Readonly<IndiaNativeFiscalCreditNoteReadResult> | null> {
+  return new IndiaNativeFiscalCreditNoteService().discover(tx, inputValue);
 }
 
 export function issueIndiaNativeFiscalCreditNote(

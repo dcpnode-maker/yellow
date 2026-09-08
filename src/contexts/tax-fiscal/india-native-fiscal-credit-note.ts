@@ -15,6 +15,7 @@ const ISSUE_KEYS = [
   "idempotencyKey", "envelope",
 ] as const;
 const READ_KEYS = ["tenantId", "propertyNode", "actorId", "creditDocumentId"] as const;
+const DISCOVERY_KEYS = ["tenantId", "propertyNode", "actorId", "originalDocumentId"] as const;
 const ENVELOPE_KEYS = ["actorId", "tenantId", "propertyNode", "requestId", "operation"] as const;
 const RECEIPT_KEYS = [
   "documentId", "documentKind", "originalDocumentId", "originalDocNo", "originalSha256",
@@ -40,6 +41,13 @@ export interface IndiaNativeFiscalCreditNoteReadInput {
   readonly propertyNode: string;
   readonly actorId: string;
   readonly creditDocumentId: string;
+}
+
+export interface IndiaNativeFiscalCreditNoteDiscoveryInput {
+  readonly tenantId: string;
+  readonly propertyNode: string;
+  readonly actorId: string;
+  readonly originalDocumentId: string;
 }
 
 export interface IndiaNativeFiscalCreditNoteReceipt {
@@ -229,6 +237,20 @@ export function snapshotIndiaNativeFiscalCreditNoteReadInput(
   });
 }
 
+export function snapshotIndiaNativeFiscalCreditNoteDiscoveryInput(
+  value: unknown,
+): Readonly<IndiaNativeFiscalCreditNoteDiscoveryInput> | null {
+  const input = record(value, DISCOVERY_KEYS);
+  if (!input || !uuid(input.tenantId) || !uuid(input.propertyNode) || !uuid(input.actorId) ||
+      !uuid(input.originalDocumentId)) return null;
+  return Object.freeze({
+    tenantId: input.tenantId,
+    propertyNode: input.propertyNode,
+    actorId: input.actorId,
+    originalDocumentId: input.originalDocumentId,
+  });
+}
+
 function snapshotReceipt(receiptJson: unknown): Readonly<IndiaNativeFiscalCreditNoteReceipt> | null {
   if (typeof receiptJson !== "string" || receiptJson.length < 2 || receiptJson.length > MAX_RECEIPT_BYTES ||
       !wellFormedUtf16(receiptJson)) return null;
@@ -347,6 +369,41 @@ function mapDatabaseError(error: unknown): never {
 }
 
 export class IndiaNativeFiscalCreditNoteService {
+  async discover(tx: Tx, value: unknown): Promise<Readonly<IndiaNativeFiscalCreditNoteReadResult> | null> {
+    const input = snapshotIndiaNativeFiscalCreditNoteDiscoveryInput(value);
+    if (!input || typeof tx !== "function") throw new IndiaNativeFiscalCreditNoteValidationError();
+    try {
+      // The scalar lookup deliberately returns NULL on absence and errors on any
+      // duplicate binding. The non-strict VOLATILE read capability still runs on
+      // that NULL, independently checking current actor/property read authority.
+      const rows: unknown = await tx<Array<{ receipt_json: string | null }>>`
+        WITH input AS (
+          SELECT ${input.tenantId}::uuid AS tenant_id, ${input.propertyNode}::uuid AS property_node,
+            ${input.actorId}::uuid AS actor_id, ${input.originalDocumentId}::uuid AS original_document_id
+        )
+        SELECT public.read_india_native_fiscal_credit_note(
+          input.tenant_id, input.property_node, input.actor_id,
+          (SELECT credit.document_id FROM public.india_native_fiscal_credit_note AS credit
+            WHERE credit.tenant_id = input.tenant_id AND credit.property_node = input.property_node
+              AND credit.original_document_id = input.original_document_id)
+        ) AS receipt_json FROM input
+      `;
+      const row = returnedRow(onlyRow(rows), ["receipt_json"]);
+      if (!row) throw new IndiaNativeFiscalCreditNoteDatabaseError();
+      if (row.receipt_json === null) return null;
+      const receipt = snapshotReceipt(row.receipt_json);
+      if (!receipt || receipt.originalDocumentId !== input.originalDocumentId || receipt.propertyNode !== input.propertyNode) {
+        throw new IndiaNativeFiscalCreditNoteDatabaseError();
+      }
+      return Object.freeze({ receipt, receiptJson: row.receipt_json as string });
+    } catch (error) {
+      // Discovery has no issue/conflict/validation SQL outcomes: absence is NULL,
+      // authority is 42501, and every other storage failure must fail closed.
+      if (sqlState(error) === "42501") throw new IndiaNativeFiscalCreditNoteAuthorizationError();
+      throw new IndiaNativeFiscalCreditNoteDatabaseError();
+    }
+  }
+
   async issue(tx: Tx, value: unknown): Promise<Readonly<IndiaNativeFiscalCreditNoteIssueResult>> {
     const input = snapshotIndiaNativeFiscalCreditNoteIssueInput(value);
     if (!input || typeof tx !== "function") throw new IndiaNativeFiscalCreditNoteValidationError();

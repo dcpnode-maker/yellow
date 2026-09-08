@@ -8,6 +8,7 @@ import {
   IndiaNativeFiscalCreditNoteValidationError,
   snapshotIndiaNativeFiscalCreditNoteIssueInput,
   snapshotIndiaNativeFiscalCreditNoteReadInput,
+  snapshotIndiaNativeFiscalCreditNoteDiscoveryInput,
   type IndiaNativeFiscalCreditNoteReceipt,
 } from "../src/contexts/tax-fiscal/india-native-fiscal-credit-note";
 import {
@@ -15,6 +16,9 @@ import {
   ReadIndiaNativeFiscalCreditNoteCommand,
   issueIndiaNativeFiscalCreditNoteInTransaction,
   readIndiaNativeFiscalCreditNoteInTransaction,
+  DiscoverIndiaNativeFiscalCreditNoteCommand,
+  discoverIndiaNativeFiscalCreditNote,
+  discoverIndiaNativeFiscalCreditNoteInTransaction,
 } from "../src/commands/issue-india-native-fiscal-credit-note";
 import { Database, type ConnectionPool } from "../src/kernel";
 
@@ -361,5 +365,155 @@ describe("Order446 typed India native fiscal credit note", () => {
       .rejects.toBeInstanceOf(IndiaNativeFiscalCreditNoteValidationError);
     expect(invalid.reserves()).toBe(0);
     expect(invalid.steps).toEqual([]);
+  });
+});
+
+describe("Order448 existing full-credit discovery", () => {
+  const input = (extra: Record<string, unknown> = {}) => ({
+    tenantId: TENANT, propertyNode: PROPERTY, actorId: ACTOR, originalDocumentId: ORIGINAL, ...extra,
+  });
+
+  test("rejects hostile input without getters, proxy traps, checkout or SQL", async () => {
+    let touched = 0;
+    const hostile = Object.defineProperty(input(), "actorId", {
+      enumerable: true, get() { touched += 1; return ACTOR; },
+    });
+    const proxy = new Proxy(input(), { getPrototypeOf() { touched += 1; throw new Error("secret"); } });
+    const revoked = Proxy.revocable(input(), {}); revoked.revoke();
+    const hidden = Object.defineProperty(input(), "actorId", { enumerable: false });
+    const invalid: unknown[] = [null, [], "input", hostile, proxy, revoked.proxy, hidden,
+      Object.create(input()), input({ extra: true }), input({ creditDocumentId: CREDIT }),
+      input({ [Symbol("extra")]: true }),
+    ];
+    for (const key of ["tenantId", "propertyNode", "actorId", "originalDocumentId"]) {
+      for (const value of [undefined, null, 1, "not-a-uuid", SUPPLIER.toUpperCase()]) invalid.push(input({ [key]: value }));
+    }
+    const tx = (async () => { touched += 1; return []; }) as never;
+    const database = new Database({ reserve: async () => { touched += 1; throw new Error("unexpected checkout"); } });
+    for (const value of invalid) {
+      expect(snapshotIndiaNativeFiscalCreditNoteDiscoveryInput(value)).toBeNull();
+      await expect(new IndiaNativeFiscalCreditNoteService().discover(tx, value))
+        .rejects.toBeInstanceOf(IndiaNativeFiscalCreditNoteValidationError);
+      await expect(new DiscoverIndiaNativeFiscalCreditNoteCommand(database).execute(value))
+        .rejects.toBeInstanceOf(IndiaNativeFiscalCreditNoteValidationError);
+    }
+    expect(touched).toBe(0);
+    const snapshot = snapshotIndiaNativeFiscalCreditNoteDiscoveryInput(input());
+    expect(snapshot).toEqual(input());
+    expect(Object.isFrozen(snapshot)).toBeTrue();
+  });
+
+  test("binds one authoritative scalar lookup statement and preserves reordered receipt bytes", async () => {
+    const calls: Array<{ sql: string; values: readonly unknown[] }> = [];
+    const json = JSON.stringify(Object.fromEntries(Object.entries(receipt()).reverse()), null, 2);
+    const result = await discoverIndiaNativeFiscalCreditNoteInTransaction(txReturning([{ receipt_json: json }], calls), input());
+    expect(calls).toHaveLength(1);
+    expect(calls[0]!.values).toEqual([TENANT, PROPERTY, ACTOR, ORIGINAL]);
+    const sql = calls[0]!.sql.replace(/\s+/g, " ").trim();
+    expect(sql).toBe("WITH input AS ( SELECT ?::uuid AS tenant_id, ?::uuid AS property_node, ?::uuid AS actor_id, ?::uuid AS original_document_id ) SELECT public.read_india_native_fiscal_credit_note( input.tenant_id, input.property_node, input.actor_id, (SELECT credit.document_id FROM public.india_native_fiscal_credit_note AS credit WHERE credit.tenant_id = input.tenant_id AND credit.property_node = input.property_node AND credit.original_document_id = input.original_document_id) ) AS receipt_json FROM input");
+    expect(sql).not.toMatch(/\b(?:INSERT|UPDATE|DELETE|LIMIT|BEGIN|COMMIT)\b/i);
+    expect(sql).not.toContain("credit.receipt_json");
+    expect(result).toEqual({ receipt: receipt(), receiptJson: json });
+    expect(Object.isFrozen(result)).toBeTrue();
+    expect(Object.isFrozen(result?.receipt)).toBeTrue();
+    expect(Object.hasOwn(result!, "replayed")).toBeFalse();
+    const absentCalls: Array<{ sql: string; values: readonly unknown[] }> = [];
+    expect(await new IndiaNativeFiscalCreditNoteService().discover(txReturning([{ receipt_json: null }], absentCalls), input())).toBeNull();
+    expect(absentCalls).toEqual(calls);
+  });
+
+  test("accepts native driver metadata and delegates the supplied transaction without checkout", async () => {
+    class SQLResultArray extends Array<unknown> {}
+    const rows = Object.assign(new SQLResultArray({ receipt_json: receiptJson() }), {
+      count: 1, command: "SELECT", lastInsertRowid: null, affectedRows: 0,
+    });
+    const calls: Array<{ sql: string; values: readonly unknown[] }> = [];
+    const database = new Database({ reserve: async () => { throw new Error("must not check out"); } });
+    const result = await new DiscoverIndiaNativeFiscalCreditNoteCommand(database)
+      .executeInTransaction(txReturning(rows, calls), input());
+    expect(result?.receiptJson).toBe(receiptJson());
+    expect(calls).toHaveLength(1);
+    expect(calls[0]!.values).toEqual([TENANT, PROPERTY, ACTOR, ORIGINAL]);
+    await expect(new IndiaNativeFiscalCreditNoteService().discover(null as never, input()))
+      .rejects.toBeInstanceOf(IndiaNativeFiscalCreditNoteValidationError);
+    let touched = 0;
+    Object.defineProperty(rows, "count", { get() { touched += 1; return 1; } });
+    await expect(new IndiaNativeFiscalCreditNoteService().discover(txReturning(rows, []), input()))
+      .rejects.toThrow(new IndiaNativeFiscalCreditNoteDatabaseError());
+    expect(touched).toBe(0);
+  });
+
+  test("rejects malformed, selector-divergent and hostile storage without invoking it", async () => {
+    let touched = 0;
+    const accessor = Object.defineProperty({}, "receipt_json", {
+      enumerable: true, get() { touched += 1; return receiptJson(); },
+    });
+    const proxy = new Proxy({ receipt_json: receiptJson() }, { getPrototypeOf() { touched += 1; throw new Error("secret"); } });
+    const arrayAccessor = Object.defineProperty([null], "0", { get() { touched += 1; return accessor; } });
+    const cases: unknown[][] = [[], [{ receipt_json: null }, { receipt_json: null }],
+      [{ receipt_json: receiptJson(), extra: 1 }], [accessor], [proxy], arrayAccessor,
+      new Proxy([{ receipt_json: receiptJson() }], {}),
+    ];
+    for (const value of [undefined, 1, {}, "not-json", "{}", "[]", receiptJson({ originalDocumentId: TENANT }),
+      receiptJson({ propertyNode: TENANT }), receiptJson({ totalMinor: "0" }), receiptJson({ currency: "USD" }),
+      receiptJson({ surplus: true }), receiptJson({ reason: "bad\ud800" })]) cases.push([{ receipt_json: value }]);
+    for (const rows of cases) {
+      await expect(new IndiaNativeFiscalCreditNoteService().discover(txReturning(rows, []), input()))
+        .rejects.toThrow(new IndiaNativeFiscalCreditNoteDatabaseError());
+    }
+    expect(touched).toBe(0);
+  });
+
+  test("sanitizes denied authority and every unexpected SQL failure including duplicate binding", async () => {
+    for (const code of ["42501", "21000", "P0002", "22023", "23505", "08006"]) {
+      const tx = (async () => { throw { code, message: "secret database detail" }; }) as never;
+      await expect(new IndiaNativeFiscalCreditNoteService().discover(tx, input())).rejects.toThrow(
+        code === "42501" ? new IndiaNativeFiscalCreditNoteAuthorizationError() : new IndiaNativeFiscalCreditNoteDatabaseError(),
+      );
+    }
+    let touched = 0;
+    const hostile = new Proxy({}, { getPrototypeOf() { touched += 1; throw new Error("secret"); } });
+    await expect(new IndiaNativeFiscalCreditNoteService().discover((async () => { throw hostile; }) as never, input()))
+      .rejects.toThrow(new IndiaNativeFiscalCreditNoteDatabaseError());
+    expect(touched).toBe(0);
+  });
+
+  test("snapshots before checkout, uses one tenant transaction, and rolls storage failures back", async () => {
+    async function run(reply: unknown[], failure?: { code: string }) {
+      const caller = input();
+      const steps: string[] = [];
+      const bound: unknown[][] = [];
+      let reserves = 0;
+      const connection = Object.assign(async (strings: TemplateStringsArray, ...values: unknown[]) => {
+        const sql = Array.from(strings).join(" ");
+        if (sql.includes("set_config('app.tenant_id'")) { expect(values).toEqual([TENANT]); return [{ tenant_id: TENANT }]; }
+        if (sql.includes("role_reset")) return [{ role_reset: true, tenant_reset: true }];
+        if (sql.includes("read_india_native_fiscal_credit_note")) {
+          bound.push(values);
+          if (failure) throw failure;
+          return reply;
+        }
+        throw new Error("unexpected SQL");
+      }, {
+        unsafe: async (sql: string) => { steps.push(sql); return []; },
+        release: () => { steps.push("RELEASE"); }, close: async () => { steps.push("CLOSE"); },
+      });
+      const database = new Database({ reserve: async () => {
+        reserves += 1;
+        caller.tenantId = CREDIT; caller.actorId = CREDIT; caller.propertyNode = CREDIT; caller.originalDocumentId = CREDIT;
+        await Promise.resolve();
+        return connection as never;
+      } });
+      const promise = discoverIndiaNativeFiscalCreditNote(database, caller);
+      if (failure || reply.length !== 1) {
+        await expect(promise).rejects.toBeInstanceOf(failure ? IndiaNativeFiscalCreditNoteAuthorizationError : IndiaNativeFiscalCreditNoteDatabaseError);
+      } else expect((await promise)?.receiptJson).toBe(receiptJson());
+      expect(reserves).toBe(1);
+      expect(bound).toEqual([[TENANT, PROPERTY, ACTOR, ORIGINAL]]);
+      expect(steps).toEqual(["BEGIN", "SET LOCAL ROLE app_role", failure || reply.length !== 1 ? "ROLLBACK" : "COMMIT", "RELEASE"]);
+    }
+    await run([{ receipt_json: receiptJson() }]);
+    await run([], { code: "42501" });
+    await run([]);
   });
 });

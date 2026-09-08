@@ -8,6 +8,16 @@ import { runOwnedProofProcess } from "./helpers/owned-proof-process";
 
 const root = fileURLToPath(new URL("..", import.meta.url));
 
+function processExists(pid: number): boolean {
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ESRCH") return false;
+    throw error;
+  }
+}
+
 function runState(environment?: NodeJS.ProcessEnv) {
   const command = process.platform === "win32"
     ? ["powershell.exe", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", join(root, "state.ps1")]
@@ -401,6 +411,145 @@ describe("canonical project status", () => {
       await rm(directory, { recursive: true, force: true });
     }
   });
+
+  test.skipIf(process.platform !== "win32")("native status bounds unavailable, successful and slow optional Docker probes", async () => {
+    const directory = await mkdtemp(join(tmpdir(), "yellow-project-status-native-docker-"));
+    const powerShell = join(
+      process.env.SystemRoot ?? "C:\\Windows", "System32", "WindowsPowerShell", "v1.0", "powershell.exe",
+    );
+    const bin = join(directory, "bin");
+    const dockerLog = join(directory, "docker.log");
+    const dockerPid = join(directory, "docker.pid");
+    const survivor = join(directory, "docker-survivor");
+    let ownedPid: number | undefined;
+    try {
+      for (const kind of ["orders", "reviews", "questions"]) {
+        await mkdir(join(directory, "handoff", kind), { recursive: true });
+      }
+      await mkdir(bin);
+      await Bun.write(join(directory, "state.ps1"), await Bun.file(join(root, "state.ps1")).text());
+      await Bun.write(join(directory, "current.md"), "Current fixture order");
+      const statusFile = join(directory, "status.md");
+      await Bun.write(statusFile, [
+        "<!-- status-schema: yellow-project-status/v1 -->", "<!-- current-phase: 7 -->",
+        "<!-- current-task: native Docker fixture -->", "<!-- current-lifecycle: fixture -->",
+        "<!-- current-order-files: current.md -->",
+      ].join("\n"));
+      await Bun.write(join(bin, "git.cmd"), "@echo off\r\nexit /b 0\r\n");
+
+      const environment = (mode: string): NodeJS.ProcessEnv => {
+        const child = { ...process.env };
+        for (const name of Object.keys(child)) if (name.toLowerCase() === "path") delete child[name];
+        return {
+          ...child,
+          PATH: `${bin};${process.env.SystemRoot ?? "C:\\Windows"}\\System32`,
+          YELLOW_PROJECT_STATUS_FILE: statusFile,
+          YELLOW_DOCKER_MODE: mode,
+          YELLOW_DOCKER_LOG_FILE: dockerLog,
+          YELLOW_DOCKER_PID_FILE: dockerPid,
+          YELLOW_DOCKER_SURVIVOR_FILE: survivor,
+          YELLOW_BUN_EXE: process.execPath,
+          YELLOW_DOCKER_SHIM: join(directory, "docker-shim.ts"),
+        };
+      };
+      const invoke = (mode: string) => runOwnedProofProcess(
+        [powerShell, "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", join(directory, "state.ps1")],
+        { cwd: directory, env: environment(mode), timeoutMs: 4_500 },
+      );
+
+      const unavailable = await invoke("unavailable");
+      expect(unavailable.stderr).toBe("");
+      expect(unavailable.exitCode).toBe(0);
+      expect(unavailable.stdout).toContain("Service app: down");
+      expect(unavailable.stdout).toContain("Service postgres: down");
+      expect(unavailable.stdout).toContain("Service valkey: down");
+      expect(unavailable.stdout).toContain("Phase: 7 · fixture");
+      expect(await Bun.file(dockerLog).exists()).toBe(false);
+
+      await Bun.write(join(directory, "docker-shim.ts"), [
+        'import { writeFileSync } from "node:fs";',
+        'const args = process.argv.slice(2);',
+        'const joined = args.join(" ");',
+        'const slow = process.env.YELLOW_DOCKER_MODE === "slow" && joined === "compose ps --services --status running";',
+        'const slowTable = process.env.YELLOW_DOCKER_MODE === "slow-table" && args[0] === "compose" && args[1] === "exec";',
+        'if (slow || slowTable) {',
+        '  writeFileSync(process.env.YELLOW_DOCKER_PID_FILE!, String(process.pid));',
+        '  await Bun.sleep(1_500);',
+        '  writeFileSync(process.env.YELLOW_DOCKER_SURVIVOR_FILE!, "survived");',
+        '  await Bun.sleep(30_000);',
+        '}',
+        'if (joined === "compose ps --services --status running") {',
+        '  process.stdout.write("app\\npostgres\\nvalkey\\n"); process.exit(0);',
+        '}',
+        'if (args[0] === "compose" && args[1] === "exec") { process.stdout.write("129\\n"); process.exit(0); }',
+        'process.exit(91);',
+      ].join("\n") + "\n");
+      await Bun.write(join(bin, "docker.cmd"), [
+        "@echo off", "setlocal", "call :record %*", 'if /I "%YELLOW_DOCKER_MODE%"=="success" goto success',
+        '"%YELLOW_BUN_EXE%" "%YELLOW_DOCKER_SHIM%" %*', "exit /b %ERRORLEVEL%", ":success",
+        'if "%~2"=="ps" (echo app& echo postgres& echo valkey& exit /b 0)',
+        'if "%~2"=="exec" (echo 129& exit /b 0)', "exit /b 91", ":record",
+        '>>"%YELLOW_DOCKER_LOG_FILE%" echo BEGIN', ":record-loop", 'if "%~1"=="" goto record-done',
+        '>>"%YELLOW_DOCKER_LOG_FILE%" echo ARG:%~1', "shift", "goto record-loop", ":record-done",
+        '>>"%YELLOW_DOCKER_LOG_FILE%" echo END', "exit /b 0",
+      ].join("\r\n") + "\r\n");
+
+      const successful = await invoke("success");
+      expect(successful.stderr).toBe("");
+      expect(successful.exitCode).toBe(0);
+      expect((await Bun.file(dockerLog).text()).trim().split(/\r?\n/)).toEqual([
+        "BEGIN", "ARG:compose", "ARG:ps", "ARG:--services", "ARG:--status", "ARG:running", "END",
+        "BEGIN", "ARG:compose", "ARG:exec", "ARG:-T", "ARG:postgres", "ARG:psql", "ARG:-U",
+        "ARG:yellow_deploy", "ARG:-d", "ARG:yellow_test", "ARG:-tAc",
+        "ARG:SELECT count(*) FROM pg_tables WHERE schemaname='public';", "END",
+      ]);
+      expect(successful.stdout).toContain("Service app: up");
+      expect(successful.stdout).toContain("Service postgres: up");
+      expect(successful.stdout).toContain("Service valkey: up");
+      expect(successful.stdout).toContain("yellow_test public tables: 129");
+
+      await Bun.write(dockerLog, "");
+      const started = performance.now();
+      const slow = await invoke("slow");
+      const elapsed = performance.now() - started;
+      expect(slow.exitCode).toBe(0);
+      expect(slow.stderr).toBe("");
+      expect(slow.stdout).toContain("Service app: down");
+      expect(slow.stdout).toContain("Service postgres: down");
+      expect(slow.stdout).toContain("Service valkey: down");
+      expect(slow.stdout).toContain("Phase: 7 · fixture");
+      expect(elapsed).toBeLessThan(3_500);
+      ownedPid = Number((await Bun.file(dockerPid).text()).trim());
+      expect(Number.isSafeInteger(ownedPid) && ownedPid > 0).toBe(true);
+      expect(processExists(ownedPid)).toBe(false);
+      await Bun.sleep(1_000);
+      expect(await Bun.file(survivor).exists()).toBe(false);
+
+      await rm(dockerPid, { force: true });
+      await rm(survivor, { force: true });
+      await Bun.write(dockerLog, "");
+      ownedPid = undefined;
+      const slowTable = await invoke("slow-table");
+      expect(slowTable.exitCode).toBe(0);
+      expect(slowTable.stderr).toBe("");
+      expect(slowTable.stdout).toContain("Service app: down");
+      expect(slowTable.stdout).toContain("Service postgres: down");
+      expect(slowTable.stdout).toContain("Service valkey: down");
+      expect(slowTable.stdout).not.toContain("yellow_test public tables:");
+      ownedPid = Number((await Bun.file(dockerPid).text()).trim());
+      expect(Number.isSafeInteger(ownedPid) && ownedPid > 0).toBe(true);
+      expect(processExists(ownedPid)).toBe(false);
+      await Bun.sleep(1_000);
+      expect(await Bun.file(survivor).exists()).toBe(false);
+    } finally {
+      if (ownedPid === undefined && await Bun.file(dockerPid).exists()) {
+        const recorded = Number((await Bun.file(dockerPid).text()).trim());
+        if (Number.isSafeInteger(recorded) && recorded > 0) ownedPid = recorded;
+      }
+      if (ownedPid !== undefined && processExists(ownedPid)) process.kill(ownedPid, "SIGKILL");
+      await rm(directory, { recursive: true, force: true, maxRetries: 2, retryDelay: 50 });
+    }
+  }, 15_000);
 
   test.skipIf(process.platform !== "win32")("native batch scans preserve marker and response-path semantics", async () => {
     const directory = await mkdtemp(join(tmpdir(), "yellow-project-status-native-batch-"));
