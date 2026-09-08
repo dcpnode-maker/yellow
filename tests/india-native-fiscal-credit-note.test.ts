@@ -19,8 +19,12 @@ import {
   DiscoverIndiaNativeFiscalCreditNoteCommand,
   discoverIndiaNativeFiscalCreditNote,
   discoverIndiaNativeFiscalCreditNoteInTransaction,
+  ReadIndiaNativeFiscalCreditNoteDocumentCommand,
+  readIndiaNativeFiscalCreditNoteDocument,
+  readIndiaNativeFiscalCreditNoteDocumentInTransaction,
 } from "../src/commands/issue-india-native-fiscal-credit-note";
 import { Database, type ConnectionPool } from "../src/kernel";
+import { projectIssuedIndiaIrpWireCandidate } from "../src/contexts/tax-fiscal/india-irp-issued-wire-candidate";
 
 const TENANT = "11111111-1111-4111-8111-111111111111";
 const PROPERTY = "22222222-2222-4222-8222-222222222222";
@@ -108,6 +112,169 @@ function txReturning(rows: unknown[], calls: Array<{ sql: string; values: readon
     return rows;
   }) as never;
 }
+
+describe("Order449 immutable issued credit document read", () => {
+  function source() {
+    return {
+      Version: "1.1", TranDtls: { TaxSch: "GST", SupTyp: "B2B" },
+      DocDtls: { Typ: "CRN", No: "C/2627/4", Dt: "07/09/2026" },
+      SellerDtls: { Gstin: "29AAPFU0939F1ZR", LglNm: "Hôtel Yellow", Addr1: "1 Main Road", Loc: "Bengaluru", Pin: 560001, Stcd: "29" },
+      BuyerDtls: { Gstin: "27AAPFU0939F1ZV", LglNm: "Buyer & Sons", Addr1: "1 Buyer Road", Loc: "Mumbai", Pin: 400001, Stcd: "27", Pos: "27" },
+      ItemList: [{ SlNo: "1", IsServc: "Y", HsnCd: "996311", Qty: "1.000", Unit: "OTH", UnitPrice: "100.00", TotAmt: "100.00", AssAmt: "100.00", GstRt: "5.00", IgstAmt: "5.00", TotItemVal: "105.00" }],
+      ValDtls: { AssVal: "100.00", IgstVal: "5.00", TotInvVal: "105.00" },
+      RefDtls: { PrecDocDtls: [{ InvNo: "I/2627/18", InvDt: "06/09/2026" }] },
+      YellowCredit: { originalDocumentId: ORIGINAL, originalSha256: HASH_A, correctionJournalId: JOURNAL, sourceEvidenceHash: HASH_C, reason: receipt().reason },
+    };
+  }
+  const hash = (json: string) => new Bun.CryptoHasher("sha256").update(json).digest("hex");
+  function documentRow(contentJson = JSON.stringify(source())) {
+    return { receipt_json: receiptJson({ sha256: hash(contentJson), totalMinor: "10500" }), tenant_id: TENANT,
+      property_node: PROPERTY, document_id: CREDIT, content_json: contentJson, sha256: hash(contentJson) };
+  }
+  const absent = () => ({ receipt_json: null, tenant_id: null, property_node: null, document_id: null, content_json: null, sha256: null });
+
+  test("returns frozen exact content bytes through one authority-first four-parameter query", async () => {
+    const json = JSON.stringify(Object.fromEntries(Object.entries(source()).reverse()), null, 2);
+    const row = documentRow(json), calls: Array<{ sql: string; values: readonly unknown[] }> = [];
+    expect(projectIssuedIndiaIrpWireCandidate({ documentId: CREDIT, documentSha256: row.sha256, contentJson: json }).ok).toBeTrue();
+    const result = await readIndiaNativeFiscalCreditNoteDocumentInTransaction(txReturning([row], calls), readInput());
+    expect(result).toEqual({ kind: "india_native_credit_note_v1", receipt: JSON.parse(row.receipt_json), contentJson: json });
+    expect(Object.keys(result!)).toEqual(["kind", "receipt", "contentJson"]);
+    expect(Object.isFrozen(result)).toBeTrue(); expect(Object.isFrozen(result?.receipt)).toBeTrue();
+    expect(calls).toHaveLength(1); expect(calls[0]!.values).toEqual([TENANT, PROPERTY, ACTOR, CREDIT]);
+    const sql = calls[0]!.sql.replace(/\s+/g, " ").trim();
+    expect(sql).toBe("WITH input AS ( SELECT ?::uuid AS tenant_id, ?::uuid AS property_node, ?::uuid AS actor_id, ?::uuid AS document_id ), authority AS MATERIALIZED ( SELECT input.*, public.read_india_native_fiscal_credit_note( input.tenant_id, input.property_node, input.actor_id, input.document_id ) AS receipt_json FROM input ) SELECT authority.receipt_json, issued.tenant_id, issued.property_node, issued.document_id, issued.content_json, issued.sha256 FROM authority LEFT JOIN LATERAL ( SELECT document.tenant_id, document.property_node, document.id AS document_id, document.content::text AS content_json, document.sha256 FROM public.document AS document WHERE authority.receipt_json IS NOT NULL AND document.tenant_id = authority.tenant_id AND document.property_node = authority.property_node AND document.id = authority.document_id AND document.kind = 'credit_note' AND document.status = 'issued' ) AS issued ON true");
+    expect(sql).not.toMatch(/\b(?:INSERT|UPDATE|DELETE|LIMIT|BEGIN|COMMIT)\b/i);
+    const missingCalls: typeof calls = [];
+    expect(await new IndiaNativeFiscalCreditNoteService().readDocument(txReturning([absent()], missingCalls), readInput())).toBeNull();
+    expect(missingCalls).toEqual(calls);
+  });
+
+  test("rejects hostile inputs before SQL, checkout or asynchronous caller mutation", async () => {
+    let touched = 0;
+    const tx = (async () => { touched += 1; return []; }) as never;
+    const database = new Database({ reserve: async () => { touched += 1; throw Error("must not reserve"); } });
+    const accessor = Object.defineProperty(readInput(), "actorId", { enumerable: true, get() { touched += 1; return ACTOR; } });
+    const values = [null, [], {}, readInput({ extra: true }), readInput({ tenantId: "bad" }), readInput({ propertyNode: PROPERTY.toUpperCase().replace("2", "A") }),
+      accessor, new Proxy(readInput(), { ownKeys() { touched += 1; throw Error("secret"); } }), Object.assign(Object.create({ inherited: true }), readInput())];
+    for (const value of values) {
+      await expect(new IndiaNativeFiscalCreditNoteService().readDocument(tx, value)).rejects.toBeInstanceOf(IndiaNativeFiscalCreditNoteValidationError);
+      await expect(new ReadIndiaNativeFiscalCreditNoteDocumentCommand(database).execute(value)).rejects.toBeInstanceOf(IndiaNativeFiscalCreditNoteValidationError);
+    }
+    await expect(new IndiaNativeFiscalCreditNoteService().readDocument(null as never, readInput())).rejects.toBeInstanceOf(IndiaNativeFiscalCreditNoteValidationError);
+    expect(touched).toBe(0);
+  });
+
+  test("rejects absent, duplicate, hostile and selector-divergent stored content", async () => {
+    let touched = 0;
+    const row = documentRow();
+    const accessor = Object.defineProperty({ ...row }, "content_json", { enumerable: true, get() { touched += 1; return row.content_json; } });
+    const proxy = new Proxy(row, { getPrototypeOf() { touched += 1; throw Error("secret"); } });
+    const cases: unknown[][] = [[], [row, row], [accessor], [proxy], new Proxy([row], {}), [{ ...row, extra: 1 }],
+      Object.defineProperty([row], "count", { get() { touched += 1; return 1; } }),
+      [{ ...row, receipt_json: null }], [{ ...absent(), receipt_json: row.receipt_json }]];
+    for (const field of ["tenant_id", "property_node", "document_id"]) cases.push([{ ...row, [field]: ORIGINAL }]);
+    for (const content of [undefined, null, 1, {}, "{}", "not JSON"]) cases.push([{ ...row, content_json: content }]);
+    for (const sha256 of [HASH_A, null, 1, row.sha256.toUpperCase()]) cases.push([{ ...row, sha256 }]);
+    for (const change of [{ documentId: ORIGINAL }, { propertyNode: TENANT }, { sha256: HASH_A }, { totalMinor: "0" }, { extra: 1 }]) cases.push([{ ...row, receipt_json: receiptJson(change) }]);
+    for (const rows of cases) await expect(new IndiaNativeFiscalCreditNoteService().readDocument(txReturning(rows, []), readInput())).rejects.toThrow(new IndiaNativeFiscalCreditNoteDatabaseError());
+    expect(touched).toBe(0);
+  });
+
+  test("binds every credit lineage field, document identity/date and preceding number to its receipt", async () => {
+    const mutations: Array<(value: ReturnType<typeof source>) => void> = [
+      value => { value.DocDtls.No = "C/2627/5"; }, value => { value.DocDtls.Dt = "08/09/2026"; },
+      value => { value.RefDtls.PrecDocDtls[0]!.InvNo = "I/2627/19"; },
+      value => { value.YellowCredit.originalDocumentId = TENANT; }, value => { value.YellowCredit.originalSha256 = HASH_B; },
+      value => { value.YellowCredit.reason = "Another valid reason"; }, value => { value.YellowCredit.correctionJournalId = TENANT; },
+      value => { value.YellowCredit.sourceEvidenceHash = HASH_A; },
+    ];
+    for (const mutate of mutations) {
+      const value = source(); mutate(value); const row = documentRow(JSON.stringify(value));
+      expect(projectIssuedIndiaIrpWireCandidate({ documentId: CREDIT, documentSha256: row.sha256, contentJson: row.content_json }).ok).toBeTrue();
+      await expect(new IndiaNativeFiscalCreditNoteService().readDocument(txReturning([row], []), readInput())).rejects.toThrow(new IndiaNativeFiscalCreditNoteDatabaseError());
+    }
+    const prior = source(); prior.RefDtls.PrecDocDtls[0]!.InvDt = "01/04/2026";
+    const row = documentRow(JSON.stringify(prior));
+    expect((await new IndiaNativeFiscalCreditNoteService().readDocument(txReturning([row], []), readInput()))?.contentJson).toBe(row.content_json);
+  });
+
+  test("reuses lossless CRN validation, rejects duplicate names and never rounds money through Number", async () => {
+    const original = source();
+    const invalid = [JSON.stringify(original).replace('"Typ":"CRN"', '"Typ":"INV"'),
+      JSON.stringify(original).replace('"Version":"1.1"', '"Version":"1.1","Version":"1.1"'),
+      JSON.stringify(original).replace('"105.00"', '105.00'),
+      JSON.stringify(original).replace('"105.00"', '"105.01"'),
+      JSON.stringify(original).replace('"InvDt":"06/09/2026"', '"InvDt":"31/02/2026"'), " ".repeat(1024 * 1024 + 1)];
+    const invoice = { ...original, DocDtls: { ...original.DocDtls, Typ: "INV" } } as Record<string, unknown>;
+    delete invoice.RefDtls; delete invoice.YellowCredit; invalid.push(JSON.stringify(invoice));
+    for (const json of invalid) await expect(new IndiaNativeFiscalCreditNoteService().readDocument(txReturning([documentRow(json)], []), readInput())).rejects.toThrow(new IndiaNativeFiscalCreditNoteDatabaseError());
+    const big = source(), amount = "90071992547409.93";
+    Object.assign(big.ItemList[0]!, { UnitPrice: amount, TotAmt: amount, AssAmt: amount, IgstAmt: "0.00", TotItemVal: amount });
+    Object.assign(big.ValDtls, { AssVal: amount, IgstVal: "0.00", TotInvVal: amount });
+    const row = documentRow(JSON.stringify(big)); row.receipt_json = receiptJson({ sha256: row.sha256, totalMinor: "9007199254740993" });
+    expect((await new IndiaNativeFiscalCreditNoteService().readDocument(txReturning([row], []), readInput()))?.receipt.totalMinor).toBe("9007199254740993");
+    row.receipt_json = receiptJson({ sha256: row.sha256, totalMinor: "9007199254740992" });
+    await expect(new IndiaNativeFiscalCreditNoteService().readDocument(txReturning([row], []), readInput())).rejects.toThrow(new IndiaNativeFiscalCreditNoteDatabaseError());
+  });
+
+  test("sanitizes authority and storage errors without leaking or invoking hostile error fields", async () => {
+    for (const code of ["42501", "21000", "P0002", "23505", "22023", "08006"]) {
+      const tx = (async () => { throw { code, message: "secret database detail" }; }) as never;
+      await expect(new IndiaNativeFiscalCreditNoteService().readDocument(tx, readInput())).rejects.toThrow(code === "42501" ? new IndiaNativeFiscalCreditNoteAuthorizationError() : new IndiaNativeFiscalCreditNoteDatabaseError());
+    }
+    let touched = 0;
+    const error = Object.defineProperty({}, "code", { get() { touched += 1; return "42501"; } });
+    await expect(new IndiaNativeFiscalCreditNoteService().readDocument((async () => { throw error; }) as never, readInput())).rejects.toThrow(new IndiaNativeFiscalCreditNoteDatabaseError());
+    expect(touched).toBe(0);
+  });
+
+  test("snapshots before checkout and preserves caller-Tx delegation and driver metadata", async () => {
+    const row = documentRow(), caller = readInput(), steps: string[] = [], values: unknown[][] = [];
+    const connection = Object.assign(async (strings: TemplateStringsArray, ...bound: unknown[]) => {
+      const sql = Array.from(strings).join(" ");
+      if (sql.includes("set_config('app.tenant_id'")) { expect(bound).toEqual([TENANT]); return [{ tenant_id: TENANT }]; }
+      if (sql.includes("role_reset")) return [{ role_reset: true, tenant_reset: true }];
+      values.push(bound); return [row];
+    }, { unsafe: async (sql: string) => { steps.push(sql); return []; }, release: () => { steps.push("RELEASE"); }, close: async () => {} });
+    const database = new Database({ reserve: async () => {
+      caller.tenantId = ORIGINAL; caller.propertyNode = ORIGINAL; caller.actorId = ORIGINAL; caller.creditDocumentId = ORIGINAL;
+      await Promise.resolve(); return connection as never;
+    } });
+    const result = await readIndiaNativeFiscalCreditNoteDocument(database, caller);
+    expect(result?.contentJson).toBe(row.content_json); expect(values).toEqual([[TENANT, PROPERTY, ACTOR, CREDIT]]);
+    expect(steps).toEqual(["BEGIN", "SET LOCAL ROLE app_role", "COMMIT", "RELEASE"]);
+    class SQLResultArray extends Array<unknown> {}
+    const rows = Object.assign(new SQLResultArray(row), { count: 1, command: "SELECT", lastInsertRowid: null, affectedRows: 0 });
+    const unused = new Database({ reserve: async () => { throw Error("must not reserve"); } });
+    expect(await new ReadIndiaNativeFiscalCreditNoteDocumentCommand(unused).executeInTransaction(txReturning(rows, []), readInput())).toEqual(result);
+  });
+
+  test("retains direct-service selectors across the await and rolls malformed storage back", async () => {
+    const caller = readInput(), row = documentRow();
+    const tx = (async (_strings: TemplateStringsArray, ...values: unknown[]) => {
+      expect(values).toEqual([TENANT, PROPERTY, ACTOR, CREDIT]);
+      caller.tenantId = ORIGINAL; caller.propertyNode = ORIGINAL; caller.creditDocumentId = ORIGINAL;
+      await Promise.resolve(); return [row];
+    }) as never;
+    expect((await new IndiaNativeFiscalCreditNoteService().readDocument(tx, caller))?.receipt.documentId).toBe(CREDIT);
+    for (const failure of [null, { code: "42501", message: "private authority detail" }]) {
+      const steps: string[] = [];
+      const connection = Object.assign(async (strings: TemplateStringsArray) => {
+        const sql = Array.from(strings).join(" ");
+        if (sql.includes("set_config('app.tenant_id'")) return [{ tenant_id: TENANT }];
+        if (sql.includes("role_reset")) return [{ role_reset: true, tenant_reset: true }];
+        if (failure) throw failure;
+        return [{ ...row, content_json: null }];
+      }, { unsafe: async (sql: string) => { steps.push(sql); return []; }, release: () => { steps.push("RELEASE"); }, close: async () => {} });
+      const database = new Database({ reserve: async () => connection as never });
+      await expect(readIndiaNativeFiscalCreditNoteDocument(database, readInput())).rejects.toBeInstanceOf(
+        failure ? IndiaNativeFiscalCreditNoteAuthorizationError : IndiaNativeFiscalCreditNoteDatabaseError,
+      );
+      expect(steps).toEqual(["BEGIN", "SET LOCAL ROLE app_role", "ROLLBACK", "RELEASE"]);
+    }
+  });
+});
 
 describe("Order446 typed India native fiscal credit note", () => {
   test("snapshots exact issue and read inputs without invoking hostile accessors", () => {

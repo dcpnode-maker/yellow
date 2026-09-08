@@ -2,9 +2,11 @@ import { readFileSync } from "node:fs";
 import { types as utilTypes } from "node:util";
 import { fileURLToPath } from "node:url";
 import { issueIndiaNativeFiscalInvoiceForOperatorInTransaction } from "../commands/issue-india-native-fiscal-invoice";
+import { listIndiaNativeFiscalCreditNotesInTransaction } from "../commands/list-india-native-fiscal-credit-notes";
 import {
   discoverIndiaNativeFiscalCreditNoteInTransaction,
   issueIndiaNativeFiscalCreditNoteInTransaction,
+  readIndiaNativeFiscalCreditNoteDocumentInTransaction,
   readIndiaNativeFiscalCreditNoteInTransaction,
 } from "../commands/issue-india-native-fiscal-credit-note";
 import {
@@ -14,6 +16,8 @@ import {
   IndiaNativeFiscalCreditNoteValidationError,
   snapshotIndiaNativeFiscalCreditNoteDiscoveryInput,
   snapshotIndiaNativeFiscalCreditNoteIssueInput,
+  snapshotIndiaNativeFiscalCreditNoteListInput,
+  type IndiaNativeFiscalCreditNoteListResult,
 } from "../contexts/tax-fiscal";
 
 import { LocalLoginLimitedError, LocalLoginService, type LocalLoginInput } from "../contexts/identity";
@@ -2781,6 +2785,58 @@ export class OperatorHttpApi {
       return apiError(context.request, 404, "fiscal/credit_note_not_found", "Not found", "Credit note or its original invoice is not available");
     }
     return fiscalCreditNoteResponse(context.request, result.receiptJson);
+  }
+
+  async fiscalCreditNoteDocument(context: TenantRequestContext, propertyNode: string, creditDocumentId: string): Promise<Response> {
+    if (!hasScope(context, FISCAL_DOCUMENT_READ_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Credit-note access is not granted");
+    }
+    if (!UUID.test(propertyNode) || !UUID.test(creditDocumentId) || new URL(context.request.url).search !== "") {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Credit-note identity is invalid");
+    }
+    const grants = await listGrantedProperties(context, FISCAL_DOCUMENT_READ_SCOPE);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 403, "auth/property_forbidden", "Forbidden", "Property access is not granted");
+    }
+    const result = await readIndiaNativeFiscalCreditNoteDocumentInTransaction(context.tx, {
+      tenantId: context.tenantId, propertyNode, actorId: context.identity.actorId, creditDocumentId,
+    });
+    if (result === null) {
+      return apiError(context.request, 404, "fiscal/credit_note_not_found", "Not found", "Credit note or its original invoice is not available");
+    }
+    return apiResponse(context.request, result);
+  }
+
+  async fiscalCreditNoteList(context: TenantRequestContext, propertyNode: string): Promise<Response> {
+    if (!hasScope(context, FISCAL_DOCUMENT_READ_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Credit-note access is not granted");
+    }
+    const url = new URL(context.request.url);
+    const query = url.searchParams;
+    const allowed = ["issuedFrom", "issuedBefore", "docNo", "after", "limit"];
+    if (!UUID.test(propertyNode) || [...query.keys()].some((key) => !allowed.includes(key)) ||
+        allowed.some((key) => query.getAll(key).length > 1) ||
+        query.get("issuedFrom") === null || query.get("issuedBefore") === null) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Credit-note list query is invalid");
+    }
+    const rawLimit = query.get("limit");
+    const input = snapshotIndiaNativeFiscalCreditNoteListInput({
+      tenantId: context.tenantId, propertyNode, actorId: context.identity.actorId,
+      issuedFrom: query.get("issuedFrom"), issuedBefore: query.get("issuedBefore"),
+      ...(query.has("docNo") ? { docNo: query.get("docNo") } : {}),
+      ...(query.has("after") ? { after: query.get("after") } : {}),
+      ...(rawLimit !== null ? { limit: /^(?:[1-9]|[1-9][0-9]|100)$/.test(rawLimit) ? Number(rawLimit) : NaN } : {}),
+    });
+    if (!input) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Credit-note list query is invalid");
+    }
+    const grants = await listGrantedProperties(context, FISCAL_DOCUMENT_READ_SCOPE);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 403, "auth/property_forbidden", "Forbidden", "Property access is not granted");
+    }
+    const result: Readonly<IndiaNativeFiscalCreditNoteListResult> =
+      await listIndiaNativeFiscalCreditNotesInTransaction(context.tx, input);
+    return apiResponse(context.request, result);
   }
 
   async fiscalCreditNoteDiscover(context: TenantRequestContext, propertyNode: string, originalDocumentId: string): Promise<Response> {

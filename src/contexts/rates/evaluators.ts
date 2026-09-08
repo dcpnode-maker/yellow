@@ -1,3 +1,4 @@
+import { types as utilTypes } from "node:util";
 import type { RateModelKey } from "./models";
 import type {
   RateRecommendationFallbackReason,
@@ -15,6 +16,30 @@ const RULE_KEY = /^[a-z0-9][a-z0-9._-]{0,63}$/;
 const BAR_LEVEL = /^[A-Z0-9][A-Z0-9._-]{0,63}$/;
 const INSTANT = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/;
 const DAY_MS = 86_400_000;
+
+const normalizedSpecs = new WeakSet<RateEvaluatorSpec>();
+const derivedContexts = new WeakSet<RateEvaluationContext>();
+
+// Eligibility for private provenance, NOT another input validator. Accessors and
+// proxies can change values between the existing validator's reads. Preserve that
+// validator's behavior, but never authenticate outputs constructed from them.
+function inertInput(value: unknown, seen = new Set<object>(), depth = 0, budget = { remaining: 100_000 }): boolean {
+  if (--budget.remaining < 0) return false;
+  if (value === null || typeof value !== "object") return typeof value !== "function";
+  if (depth > 32 || seen.size > 20_000) return false;
+  if (utilTypes.isProxy(value)) return false;
+  // Reject oversized arrays before allocating their own-key list. The visit
+  // budget also counts primitives; it does not bound ownKeys on wide objects.
+  if (Array.isArray(value) && value.length > 731) return false;
+  const prototype = Object.getPrototypeOf(value);
+  if (prototype !== null && prototype !== Object.prototype && prototype !== Array.prototype) return false;
+  if (seen.has(value)) return true;
+  seen.add(value);
+  return Reflect.ownKeys(value).every(key => {
+    const descriptor = Object.getOwnPropertyDescriptor(value, key)!;
+    return "value" in descriptor && inertInput(descriptor.value, seen, depth + 1, budget);
+  });
+}
 
 export const DIRECT_RATE_EVALUATOR_MODELS = Object.freeze([
   "simple-fixed",
@@ -462,6 +487,8 @@ function validateModelContract(spec: RateEvaluatorSpec): void {
 }
 
 export function normalizeRateEvaluatorSpec(value: unknown): RateEvaluatorSpec {
+  if (normalizedSpecs.has(value as RateEvaluatorSpec)) return value as RateEvaluatorSpec;
+  const reusable = inertInput(value);
   const source = requireObject(value, "rate evaluator spec");
   requireOnlyKeys(source, [
     "modelKey",
@@ -506,6 +533,8 @@ export function normalizeRateEvaluatorSpec(value: unknown): RateEvaluatorSpec {
     eligibleTargetRuleKeys: Object.freeze([...eligibleTargetRuleKeys].sort()),
   });
   validateModelContract(spec);
+  // Every retained base/rule/condition/array is rebuilt and frozen above.
+  if (reusable) normalizedSpecs.add(spec);
   return spec;
 }
 
@@ -665,6 +694,7 @@ function normalizeTargetResolution(value: unknown): RateTargetResolution {
 }
 
 export function deriveRateEvaluationContext(value: unknown): RateEvaluationContext {
+  const reusable = inertInput(value);
   const source = requireObject(value, "rate evaluation context");
   requireOnlyKeys(source, [
     "propertyTimeZone",
@@ -722,7 +752,7 @@ export function deriveRateEvaluationContext(value: unknown): RateEvaluationConte
   const reference = source.reference === undefined ? null : normalizeReference(source.reference);
   const recommendation = source.recommendation === undefined ? null : normalizeRecommendation(source.recommendation);
   const targetResolution = source.targetResolution === undefined ? null : normalizeTargetResolution(source.targetResolution);
-  return Object.freeze({
+  const context = Object.freeze({
     propertyTimeZone: source.propertyTimeZone,
     bookingInstant: booking.text,
     stayStartInstant: stayStart.text,
@@ -741,6 +771,10 @@ export function deriveRateEvaluationContext(value: unknown): RateEvaluationConte
     recommendation,
     targetResolution,
   });
+  // References, recommendations and target arrays are normalized copies; no Date
+  // object or caller-owned mutable evidence survives in this output.
+  if (reusable) derivedContexts.add(context);
+  return context;
 }
 
 function conditionMatches(
@@ -803,6 +837,7 @@ function result(
 }
 
 function requireEvaluationContext(value: unknown): RateEvaluationContext {
+  if (derivedContexts.has(value as RateEvaluationContext)) return value as RateEvaluationContext;
   if (!Object.isFrozen(value) || !isObject(value)) {
     throw new RateEvaluationError("context must come from deriveRateEvaluationContext");
   }

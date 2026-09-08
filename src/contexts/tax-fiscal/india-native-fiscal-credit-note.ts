@@ -1,5 +1,6 @@
 import { types as utilTypes } from "node:util";
 import type { AuditEnvelope, Tx } from "../../kernel";
+import { projectIssuedIndiaIrpWireCandidate } from "./india-irp-issued-wire-candidate";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
 const SHA256 = /^[0-9a-f]{64}$/;
@@ -87,6 +88,13 @@ export interface IndiaNativeFiscalCreditNoteIssueResult {
 export interface IndiaNativeFiscalCreditNoteReadResult {
   readonly receipt: Readonly<IndiaNativeFiscalCreditNoteReceipt>;
   readonly receiptJson: string;
+}
+
+export interface IndiaNativeFiscalCreditNoteDocumentReadResult {
+  readonly kind: "india_native_credit_note_v1";
+  readonly receipt: Readonly<IndiaNativeFiscalCreditNoteReceipt>;
+  /** Exact immutable content::text bytes; never the projected provider wire. */
+  readonly contentJson: string;
 }
 
 export class IndiaNativeFiscalCreditNoteValidationError extends Error {
@@ -369,6 +377,72 @@ function mapDatabaseError(error: unknown): never {
 }
 
 export class IndiaNativeFiscalCreditNoteService {
+  async readDocument(tx: Tx, value: unknown): Promise<Readonly<IndiaNativeFiscalCreditNoteDocumentReadResult> | null> {
+    const input = snapshotIndiaNativeFiscalCreditNoteReadInput(value);
+    if (!input || typeof tx !== "function") throw new IndiaNativeFiscalCreditNoteValidationError();
+    try {
+      // Materialization preserves the current-authority call even on absence.
+      // Only its non-null receipt admits the correlated immutable document read.
+      const rows: unknown = await tx<Array<Record<string, unknown>>>`
+        WITH input AS (
+          SELECT ${input.tenantId}::uuid AS tenant_id, ${input.propertyNode}::uuid AS property_node,
+            ${input.actorId}::uuid AS actor_id, ${input.creditDocumentId}::uuid AS document_id
+        ), authority AS MATERIALIZED (
+          SELECT input.*, public.read_india_native_fiscal_credit_note(
+            input.tenant_id, input.property_node, input.actor_id, input.document_id
+          ) AS receipt_json FROM input
+        )
+        SELECT authority.receipt_json, issued.tenant_id, issued.property_node, issued.document_id,
+          issued.content_json, issued.sha256
+        FROM authority LEFT JOIN LATERAL (
+          SELECT document.tenant_id, document.property_node, document.id AS document_id,
+            document.content::text AS content_json, document.sha256
+          FROM public.document AS document
+          WHERE authority.receipt_json IS NOT NULL AND document.tenant_id = authority.tenant_id
+            AND document.property_node = authority.property_node AND document.id = authority.document_id
+            AND document.kind = 'credit_note' AND document.status = 'issued'
+        ) AS issued ON true
+      `;
+      const contentKeys = ["tenant_id", "property_node", "document_id", "content_json", "sha256"] as const;
+      const row = returnedRow(onlyRow(rows), ["receipt_json", ...contentKeys]);
+      if (!row) throw new IndiaNativeFiscalCreditNoteDatabaseError();
+      if (row.receipt_json === null) {
+        if (contentKeys.some(key => row[key] !== null)) throw new IndiaNativeFiscalCreditNoteDatabaseError();
+        return null;
+      }
+      const receipt = snapshotReceipt(row.receipt_json);
+      if (!receipt || receipt.documentId !== input.creditDocumentId || receipt.propertyNode !== input.propertyNode ||
+          row.tenant_id !== input.tenantId || row.property_node !== input.propertyNode ||
+          row.document_id !== input.creditDocumentId || row.sha256 !== receipt.sha256 ||
+          typeof row.content_json !== "string") throw new IndiaNativeFiscalCreditNoteDatabaseError();
+      const validated = projectIssuedIndiaIrpWireCandidate({
+        documentId: receipt.documentId, documentSha256: receipt.sha256, contentJson: row.content_json,
+      });
+      if (!validated.ok) throw new IndiaNativeFiscalCreditNoteDatabaseError();
+      // The shared validator has already checked duplicate names, complete source
+      // shape, decimal strings, dates and bigint item/tax totals. Parse the original
+      // source (not numeric provider wire) solely to bind it to the trusted receipt.
+      const source = JSON.parse(row.content_json) as {
+        DocDtls: { Typ: string; No: string; Dt: string };
+        YellowCredit?: Record<string, string>;
+        RefDtls?: { PrecDocDtls: Array<{ InvNo: string }> };
+        ValDtls: { TotInvVal: string };
+      };
+      const creditFields = ["originalDocumentId", "originalSha256", "reason", "correctionJournalId", "sourceEvidenceHash"] as const;
+      if (source.DocDtls.Typ !== "CRN" || source.DocDtls.No !== receipt.docNo ||
+          source.DocDtls.Dt !== receipt.businessDate.split("-").reverse().join("/") ||
+          creditFields.some(key => source.YellowCredit?.[key] !== receipt[key]) ||
+          source.RefDtls?.PrecDocDtls[0]?.InvNo !== receipt.originalDocNo ||
+          BigInt(source.ValDtls.TotInvVal.replace(".", "")) !== BigInt(receipt.totalMinor)) {
+        throw new IndiaNativeFiscalCreditNoteDatabaseError();
+      }
+      return Object.freeze({ kind: "india_native_credit_note_v1", receipt, contentJson: row.content_json });
+    } catch (error) {
+      if (sqlState(error) === "42501") throw new IndiaNativeFiscalCreditNoteAuthorizationError();
+      throw new IndiaNativeFiscalCreditNoteDatabaseError();
+    }
+  }
+
   async discover(tx: Tx, value: unknown): Promise<Readonly<IndiaNativeFiscalCreditNoteReadResult> | null> {
     const input = snapshotIndiaNativeFiscalCreditNoteDiscoveryInput(value);
     if (!input || typeof tx !== "function") throw new IndiaNativeFiscalCreditNoteValidationError();

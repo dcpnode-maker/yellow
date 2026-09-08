@@ -729,5 +729,15 @@ export type {
   IndiaNativeFiscalCreditNoteIssueResult,
   IndiaNativeFiscalCreditNoteReadInput,
   IndiaNativeFiscalCreditNoteReadResult,
+  IndiaNativeFiscalCreditNoteDocumentReadResult,
   IndiaNativeFiscalCreditNoteReceipt,
 } from "./india-native-fiscal-credit-note";
+export {
+  IndiaNativeFiscalCreditNoteListService,
+  snapshotIndiaNativeFiscalCreditNoteListInput,
+} from "./india-native-fiscal-credit-note-list";
+export type {
+  IndiaNativeFiscalCreditNoteListInput,
+  IndiaNativeFiscalCreditNoteListResult,
+  IndiaNativeFiscalCreditNoteSummary,
+} from "./india-native-fiscal-credit-note-list";

@@ -3,8 +3,8 @@
 <!-- status-schema: yellow-project-status/v1 -->
 <!-- current-phase: 7 -->
 <!-- current-task: Codex Yellow — remaining functional backend build; all UI/UX paused -->
-<!-- current-order-files: handoff/orders/448-native-credit-note-original-discovery.md;handoff/orders/447-native-credit-note-fiscal-submission.md;handoff/orders/440-fiscal-submission-lifecycle.md -->
-<!-- current-lifecycle: Order447 published25d3b979, native88/referee/recovery and standing1911/0 proved; Linux CI subprocess failure under investigation; Order448 read-only discovery implementation active; no local/UI promotion -->
+<!-- current-order-files: handoff/orders/450-native-credit-note-listing.md;handoff/orders/451-rate-quote-evaluation-reuse.md;handoff/orders/449-native-credit-note-document-read.md;handoff/orders/440-fiscal-submission-lifecycle.md -->
+<!-- current-lifecycle: Published ffb03441 is CI-green; credit document/list native and pricing parity/performance proofs pass; combined functional standing pending; no UI or local promotion -->
 
 This is the canonical current-state record. It identifies the consolidated source,
 verified behavior, release boundaries and active work. Historical orders, reviews,
@@ -13,19 +13,72 @@ backlog. `state.sh` and `state.ps1` read the machine-readable comments above.
 
 ## Current task
 
-**Functional build checkpoint — 2026-09-08.** UI/UX, prototypes and animation are paused by the founder. Backend work continues in parallel, without changing the running local app.
+**Functional build — 2026-09-08.** UI/UX, prototypes and animation are paused by
+the founder. Backend implementation continues in parallel. The running local is
+still the separately verified a1085178/frontier85 build; it has not been restarted
+or promoted by these checks.
 
-Order447's native full-credit fiscal submission is published as **25d3b979278c409621f0c70ea5a2951558ecb982**, exact backend tree849c86e550843a8c71ccfe41389180ead7d9b412, on draft PR92. It reuses the existing fiscal worker and signed-receipt pipeline, preserves original invoices/accounting, strips private credit metadata outbound and binds the original-invoice reference. It does not activate an external provider.
+**Published and CI-green:** ffb03441a16d50aa050c5d6f715d35ed9223601b on draft PR92,
+exact tree e4125e6e01b3e6336717bf6997887d74b7da5ef0. CI34187393111 passes all six jobs:
+quality, local-review, Windows-state, container-smoke, ARM64 and database. Normal
+CodeQL34187390750 passes; optional AI review is separate and supplies no required
+proof. Native full-credit issuance, signed submission and original-invoice credit
+discovery are implemented. External fiscal-provider activation is not implied.
 
-Independently executed PostgreSQL proofs: core8/0(81), rollback1/0(15), real encrypted/signed synthetic journey3/0(64), operator-origin2/0(28), corrected recovery5/0(156), populated87-to88 preservation/no-op, clean88 referee11/11 and13 startup denials/exact restorations. Earlier failed attempts and narrow repairs remain in the review. Canonical0088 SHA256214754e94bdfb0a2163395c9ab4449b0b5e87da7830c45e69d77ac05a2cddb64; normalized clean/upgrade schema616afe24b78507e93a4eedebea3da7a4d939e3f185c9e1f82088872ccf0dd4b6.
+[Order448](../handoff/orders/448-native-credit-note-original-discovery.md) passes
+root-executed actual API1/0(34) and the separate Q229 containment audit. Exact
+combined standing passes1,921/0,1,407 explicit environment/database skips and34,390
+assertions; types and187 boundaries pass. The local license census was0, while CI
+runs its installed-dependency check. Earlier Linux/native-status, SQL replacement
+and transient browser-timeout failures are retained with their repairs in the
+[review](../handoff/reviews/448-native-credit-note-original-discovery.md), not
+presented as still-current blockers. Skipped local cases are not database proof.
 
-Exact isolated standing passes1911/0,1404 explicit environment/database skips,34153 assertions across537 files. Typecheck and187 import boundaries pass. Its licence check scanned0 installed packages; actual GitHub frozen-dependency licence and vulnerability checks pass separately. Skips are not database proof.
+**Built, publication pending:** [Order449](../handoff/orders/449-native-credit-note-document-read.md)
+is built and independently native-tested: complete immutable issued-credit
+retrieval, beyond receipt/discovery. Root's focused run passes50/0(650) with3
+explicit DB skips. The separate real PostgreSQL signed-session API passes1/0(48),
+including twelve concurrent reads, exact stored bytes, foreign/missing/noncredit
+concealment and revoked authority. All1,574 prior rows are preserved within1,773
+final rows; only two admitted synthetic fixture cohorts were added. Complete
+metadata/ledger/companion databases and the live host are unchanged.
+[Order450](../handoff/orders/450-native-credit-note-listing.md) adds date-bounded,
+keyset-paginated issued-credit listing and exact document-number lookup. Root's
+combined focused checks pass 51/0 with six explicit DB skips and 810 assertions;
+typecheck and 189 import boundaries pass. The separately executed real PostgreSQL
+signed-session test passes 1/0 with 24 assertions, including same-day pagination,
+tenant/property isolation and revoked access on empty and later pages. All 1,773
+prior rows are preserved within 2,054 final rows. Seven real planner/denial cases
+pass; reads leave the financial graph and protected database/host state unchanged.
 
-Exact-head CI34163554694 found a Linux subprocess-isolation failure before its database job; local-review and Windows-state jobs pass. Investigation is active; source CI and release acceptance remain open. The earlier850c78 checkpoint CI and normal CodeQL pass; the optional AI-review job is separate and does not supply review evidence.
+**Current work:** [Order451](../handoff/orders/451-rate-quote-evaluation-reuse.md)
+repairs redundant calendar/context validation in long-stay pricing. Root captured
+nine deterministic baseline workloads before implementation, then independently
+proved exact complete-output parity across every old/new sample. The366/367-night
+median quote times fell from3027/3152ms to283/231ms in the final controlled in-memory
+benchmark, reductions of91%/93%; all shorter/fixed workloads also improved. These
+are measured fixture results, not production latency guarantees. Root focused
+pricing checks pass42/0 with17 explicit DB skips and382 assertions; both deliberate
+provenance-bypass mutations correctly fail while the genuine version passes.
+Root found and required a bounded eligibility scan before final acceptance:
+oversized arrays and deep/wide inputs retain their original validation behavior.
+The existing browser-test lifecycle is repaired separately underQ239: all original
+seven cases and the30s deadline remain, with root5/0(51) in1.97s. No UI design changed.
+[Q238](../handoff/questions/238-credit-candidate-performance-repair-and-continuation.md)
+retains all three failed Order449 standing attempts. The last isolated run had
+1,944 passed, 1,421 explicit skips and two timing failures (long-stay pricing and
+the existing browser harness); a private documentation-patch accident was exactly
+restored and is recorded. No failure or skip counts as passing. Orders449/450
+and451 remain unpublished pending the repaired combined candidate and its exact checks.
+The existing local app and published parent remain unchanged.
 
-[Order448](../handoff/orders/448-native-credit-note-original-discovery.md) is now implementing the read-only original-invoice-to-existing-credit discovery API in two bounded lanes. It adds no migration, table, posting, event, numbering path or UI. Current88 CI and a separately admitted native proof are required before its acceptance.
-
-The running local remains the separately verified a1085178/frontier85 build, not these newly published functions. No local restart/promotion, main merge, production/provider acceptance, or whole Phase7 completion is claimed. The entries below are retained historical checkpoints and do not override this current functional-only direction.
+**Remaining boundaries:** native debit-note issuance is substantive Q187 scope;
+a debit-series configuration is not an issuance/accounting/submission backend.
+Its exact source/issuance policy must be bounded before implementation. Authentic
+provider onboarding and sandbox acceptance also remain separate from synthetic
+worker/adapter proofs. These gaps prohibit a Phase7-complete claim. Founder
+priority11→13→17 remains dependency-gated by the current plan. No main merge, UI
+change, local promotion or whole-app completion is claimed.
 
 ## Historical checkpoints (superseded)
 

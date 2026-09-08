@@ -1,7 +1,10 @@
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { SQL } from "bun";
 import { createApp } from "../src/app";
-import { discoverIndiaNativeFiscalCreditNoteInTransaction } from "../src/commands/issue-india-native-fiscal-credit-note";
+import {
+  discoverIndiaNativeFiscalCreditNoteInTransaction,
+  readIndiaNativeFiscalCreditNoteDocumentInTransaction,
+} from "../src/commands/issue-india-native-fiscal-credit-note";
 import { IndiaNativeFiscalCreditNoteAuthorizationError } from "../src/contexts/tax-fiscal";
 import { BearerTenantResolver, Hs256TokenSigner, type LocalLoginService } from "../src/contexts/identity";
 import { OperatorHttpApi } from "../src/http/operator";
@@ -15,7 +18,26 @@ import {
 const id = (n: number) => `00000000-0000-4000-8000-${String(n).padStart(12, "0")}`;
 const issueScopes = ["tax-fiscal.documents:issue", "financials.adjustments:write"];
 const readScope = "tax-fiscal.documents:read";
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 const signer = new Hs256TokenSigner("order446-fictional-http-signing-key-not-for-a-live-system");
+const documentContentSeed = {
+  Version: "1.1",
+  TranDtls: { TaxSch: "GST", SupTyp: "B2B" },
+  DocDtls: { Typ: "CRN", No: "C/4445/1", Dt: "07/09/2044" },
+  SellerDtls: { Gstin: "29AAPFU0939F1ZR", LglNm: "Fictional Hotel", Addr1: "1 Fictional Road",
+    Loc: "Bengaluru", Pin: 560001, Stcd: "29" },
+  BuyerDtls: { Gstin: "27AAPFU0939F1ZV", LglNm: "Fictional Buyer", Addr1: "2 Fictional Road",
+    Loc: "Mumbai", Pin: 400001, Stcd: "27", Pos: "27" },
+  ItemList: [{ SlNo: "1", IsServc: "Y", HsnCd: "996311", Qty: "1.000", Unit: "OTH",
+    UnitPrice: "100.00", TotAmt: "100.00", AssAmt: "100.00", GstRt: "18.00",
+    IgstAmt: "18.00", TotItemVal: "118.00" }],
+  ValDtls: { AssVal: "100.00", IgstVal: "18.00", TotInvVal: "118.00" },
+  RefDtls: { PrecDocDtls: [{ InvNo: "I/4445/17", InvDt: "06/09/2044" }] },
+  YellowCredit: { originalDocumentId: id(4), originalSha256: "a".repeat(64),
+    reason: "Incorrect invoice — पूर्ण सुधार", correctionJournalId: id(11), sourceEvidenceHash: "c".repeat(64) },
+};
+const documentContentSeedJson = JSON.stringify(documentContentSeed);
+const documentContentSha256 = new Bun.CryptoHasher("sha256").update(documentContentSeedJson).digest("hex");
 const receipt = Object.freeze({
   documentId: id(10), documentKind: "credit_note", originalDocumentId: id(4),
   originalDocNo: "I/4445/17", originalSha256: "a".repeat(64),
@@ -24,11 +46,13 @@ const receipt = Object.freeze({
   supplierRegistrationId: id(7), recipientRegistrationId: id(8),
   financialYearStart: "2044-04-01", currency: "INR", status: "issued",
   businessDate: "2044-09-07", issuedAt: "2044-09-07T12:00:00.000Z",
-  prevHash: null, sha256: "b".repeat(64), sourceEvidenceHash: "c".repeat(64),
+  prevHash: null, sha256: documentContentSha256, sourceEvidenceHash: "c".repeat(64),
   totalMinor: "11800", reason: "Incorrect invoice — पूर्ण सुधार",
 });
 // Deliberate whitespace proves HTTP does not parse/re-serialize durable receipt bytes.
 const receiptJson = JSON.stringify(receipt, null, 2);
+const documentContentJson = documentContentSeedJson;
+const documentSha256 = documentContentSha256;
 
 function harness() {
   const log: string[] = [];
@@ -39,6 +63,9 @@ function harness() {
     replayed: false,
     missing: false,
     receiptJson,
+    documentMissing: false,
+    documentContentJson,
+    documentSha256,
   };
   const connection = Object.assign(async (parts: TemplateStringsArray, ...values: unknown[]) => {
     const sql = parts.join("?");
@@ -59,6 +86,15 @@ function harness() {
       return [{ receipt_json: control.receiptJson, replayed: control.replayed }];
     }
     if (sql.includes("read_india_native_fiscal_credit_note")) {
+      if (sql.includes("content::text") || sql.includes("content_json")) {
+        return [control.documentMissing ? {
+          receipt_json: null, tenant_id: null, property_node: null, document_id: null, content_json: null, sha256: null,
+        } : {
+          receipt_json: control.missing ? null : control.receiptJson,
+          tenant_id: id(1), property_node: id(2), document_id: id(10),
+          content_json: control.documentContentJson, sha256: control.documentSha256,
+        }];
+      }
       return [{ receipt_json: control.missing ? null : control.receiptJson }];
     }
     throw new Error("Unexpected SQL in credit-note HTTP composition");
@@ -100,6 +136,16 @@ async function read(h: ReturnType<typeof harness>, options: {
   const headers: Record<string, string> = options.authenticated === false ? {} : { authorization: await authorization(options.scopes ?? [readScope]) };
   return h.app.handle(new Request(
     `http://yellow.test/api/v1/properties/${options.property ?? id(2)}/credit-notes/${options.document ?? id(10)}${options.suffix ?? ""}`,
+    { headers },
+  ));
+}
+
+async function readDocument(h: ReturnType<typeof harness>, options: {
+  scopes?: readonly string[]; suffix?: string; property?: string; document?: string; authenticated?: boolean;
+} = {}) {
+  const headers: Record<string, string> = options.authenticated === false ? {} : { authorization: await authorization(options.scopes ?? [readScope]) };
+  return h.app.handle(new Request(
+    `http://yellow.test/api/v1/properties/${options.property ?? id(2)}/credit-notes/${options.document ?? id(10)}/document${options.suffix ?? ""}`,
     { headers },
   ));
 }
@@ -184,10 +230,11 @@ describe("Order446/448 signed-session credit-note HTTP composition (database aut
     for (const scopes of [[], [readScope], [issueScopes[0]!], [issueScopes[1]!]]) {
       const h = harness(); expect((await issue(h, { scopes })).status).toBe(403); expect(h.calls).toHaveLength(0);
     }
-    for (const execute of [issue, read, discover]) {
+    for (const execute of [issue, read, discover, readDocument]) {
       const h = harness(); expect((await execute(h, { authenticated: false })).status).toBe(401); expect(h.calls).toHaveLength(0);
     }
     const h = harness(); expect((await read(h, { scopes: issueScopes })).status).toBe(403); expect(h.calls).toHaveLength(0);
+    const document = harness(); expect((await readDocument(document, { scopes: issueScopes })).status).toBe(403); expect(document.calls).toHaveLength(0);
     const discovery = harness();
     expect((await discover(discovery, { scopes: issueScopes })).status).toBe(403);
     expect(discovery.calls).toHaveLength(0);
@@ -200,6 +247,8 @@ describe("Order446/448 signed-session credit-note HTTP composition (database aut
     }
     const h = harness(); h.control.revokedScope = readScope;
     expect((await read(h)).status).toBe(403); expect(h.calls).toHaveLength(0);
+    const document = harness(); document.control.revokedScope = readScope;
+    expect((await readDocument(document)).status).toBe(403); expect(document.calls).toHaveLength(0);
     const discovery = harness(); discovery.control.revokedScope = readScope;
     expect((await discover(discovery)).status).toBe(403); expect(discovery.calls).toHaveLength(0);
     const foreign = harness(); expect((await issue(foreign, { property: id(99) })).status).toBe(403);
@@ -220,9 +269,50 @@ describe("Order446/448 signed-session credit-note HTTP composition (database aut
     for (const options of [{ document: "bad" }, { suffix: "?tenant=other" }]) {
       const h = harness(); expect((await read(h, options)).status).toBe(400); expect(h.calls).toHaveLength(0);
     }
+    for (const options of [{ document: "bad" }, { suffix: "?tenant=other" }]) {
+      const h = harness(); expect((await readDocument(h, options)).status).toBe(400); expect(h.calls).toHaveLength(0);
+    }
     for (const options of [{ original: "bad" }, { property: "bad" }, { suffix: "?creditDocumentId=other" }]) {
       const h = harness(); expect((await discover(h, options)).status).toBe(400); expect(h.calls).toHaveLength(0);
     }
+  });
+
+  test("reads the complete frozen document with exact stored source bytes and the same authority boundary", async () => {
+    const h = harness();
+    const response = await readDocument(h, { suffix: "?selector=forbidden" });
+    expect(response.status).toBe(400);
+    expect(h.calls).toHaveLength(0);
+
+    const success = harness();
+    const ok = await readDocument(success);
+    expect(ok.status).toBe(200);
+    expect(ok.headers.get("cache-control")).toBe("no-store");
+    expect(ok.headers.get("x-correlation-id")).toMatch(UUID);
+    const body = await ok.json() as Record<string, unknown>;
+    expect(body.kind).toBe("india_native_credit_note_v1");
+    expect(body.receipt).toEqual(receipt);
+    expect(body.contentJson).toBe(documentContentJson);
+    expect(Object.keys(body).sort()).toEqual(["contentJson", "kind", "receipt"]);
+    expect(success.calls).toHaveLength(1);
+    expect(success.calls[0]!.values).toEqual([id(1), id(2), id(3), id(10)]);
+
+    const absent = harness(); absent.control.documentMissing = true;
+    expect((await readDocument(absent)).status).toBe(404);
+    expect(absent.calls).toHaveLength(1);
+  });
+
+  test("sanitizes complete-document storage failures and never exposes source or SQL details", async () => {
+    for (const invalid of ["not-json", JSON.stringify({ ...receipt, propertyNode: id(99) }), documentContentJson + " "]) {
+      const h = harness(); h.control.documentContentJson = invalid;
+      h.control.documentSha256 = new Bun.CryptoHasher("sha256").update(invalid).digest("hex");
+      const response = await readDocument(h);
+      expect(response.status).toBe(503);
+      expect(await response.text()).not.toContain("private SQL");
+    }
+    const sqlFailure = harness(); sqlFailure.control.sqlError = "XX000";
+    const response = await readDocument(sqlFailure);
+    expect(response.status).toBe(503);
+    expect(await response.text()).not.toContain("private SQL");
   });
 
   test("conceals missing and cross-tenant credit notes behind the same not-found response", async () => {
@@ -318,6 +408,18 @@ async function actualRead(
 ): Promise<Response> {
   return app.handle(new Request(
     `http://yellow.test/api/v1/properties/${candidate.fixture.property}/credit-notes/${creditDocumentId}`,
+    { headers: { authorization: await actualAuthorization(candidate) } },
+  ));
+}
+
+async function actualReadDocument(
+  app: ReturnType<typeof createApp>,
+  candidate: CreditFixture,
+  creditDocumentId: string,
+  options: { property?: string } = {},
+): Promise<Response> {
+  return app.handle(new Request(
+    `http://yellow.test/api/v1/properties/${options.property ?? candidate.fixture.property}/credit-notes/${creditDocumentId}/document`,
     { headers: { authorization: await actualAuthorization(candidate) } },
   ));
 }
@@ -439,6 +541,35 @@ actualDatabaseDescribe("Order446/448 ACTUAL PostgreSQL + signed-session HTTP pro
     expect(readResponse.status).toBe(200);
     expect(await readResponse.text()).toBe(exactReceipt);
 
+    const [storedDocument] = await deploy<{ contentJson: string }[]>`SELECT content::text AS "contentJson"
+      FROM public.document WHERE tenant_id=${candidate.fixture.tenant}::uuid
+        AND property_node=${candidate.fixture.property}::uuid AND id=${parsed.documentId}::uuid
+        AND kind='credit_note' AND status='issued'`;
+    if (!storedDocument) throw new Error("Issued native credit document source is unavailable");
+    const documentResponse = await actualReadDocument(app, candidate, parsed.documentId);
+    expect(documentResponse.status).toBe(200);
+    expect(documentResponse.headers.get("cache-control")).toBe("no-store");
+    expect(documentResponse.headers.get("idempotency-replayed")).toBeNull();
+    expect(await documentResponse.json()).toEqual({
+      kind: "india_native_credit_note_v1",
+      receipt: JSON.parse(exactReceipt),
+      contentJson: storedDocument.contentJson,
+    });
+    const concurrentDocuments = await Promise.all(Array.from({ length: 12 }, () =>
+      actualReadDocument(app, candidate, parsed.documentId)));
+    expect(concurrentDocuments.every(response => response.status === 200)).toBeTrue();
+    const expectedDocument = {
+      kind: "india_native_credit_note_v1",
+      receipt: JSON.parse(exactReceipt),
+      contentJson: storedDocument.contentJson,
+    };
+    expect(await Promise.all(concurrentDocuments.map(response => response.json())))
+      .toEqual(Array(12).fill(expectedDocument));
+    expect((await actualReadDocument(app, foreign, parsed.documentId)).status).toBe(404);
+    expect((await actualReadDocument(app, candidate, candidate.invoice.documentId)).status).toBe(404);
+    expect((await actualReadDocument(app, candidate, crypto.randomUUID())).status).toBe(404);
+    expect((await actualReadDocument(app, candidate, parsed.documentId, { property: foreign.fixture.property })).status).toBe(403);
+
     const discovered = await actualDiscover(app, candidate);
     expect(discovered.status).toBe(200);
     expect(discovered.headers.get("cache-control")).toBe("no-store");
@@ -501,12 +632,28 @@ actualDatabaseDescribe("Order446/448 ACTUAL PostgreSQL + signed-session HTTP pro
     expect(removed.length).toBeGreaterThan(0);
     expect((await actualIssue(app, candidate, { reason, key })).status).toBe(403);
     expect((await actualDiscover(app, candidate)).status).toBe(403);
+    expect((await actualReadDocument(app, candidate, parsed.documentId)).status).toBe(403);
+    expect((await actualReadDocument(app, candidate, crypto.randomUUID())).status).toBe(403);
     await expect(realDatabase.withTenantTransaction(candidate.fixture.tenant, tx =>
       discoverIndiaNativeFiscalCreditNoteInTransaction(tx, {
         tenantId: candidate.fixture.tenant,
         propertyNode: candidate.fixture.property,
         actorId: candidate.fixture.actor,
         originalDocumentId: crypto.randomUUID(),
+      }))).rejects.toBeInstanceOf(IndiaNativeFiscalCreditNoteAuthorizationError);
+    await expect(realDatabase.withTenantTransaction(candidate.fixture.tenant, tx =>
+      readIndiaNativeFiscalCreditNoteDocumentInTransaction(tx, {
+        tenantId: candidate.fixture.tenant,
+        propertyNode: candidate.fixture.property,
+        actorId: candidate.fixture.actor,
+        creditDocumentId: parsed.documentId,
+      }))).rejects.toBeInstanceOf(IndiaNativeFiscalCreditNoteAuthorizationError);
+    await expect(realDatabase.withTenantTransaction(candidate.fixture.tenant, tx =>
+      readIndiaNativeFiscalCreditNoteDocumentInTransaction(tx, {
+        tenantId: candidate.fixture.tenant,
+        propertyNode: candidate.fixture.property,
+        actorId: candidate.fixture.actor,
+        creditDocumentId: crypto.randomUUID(),
       }))).rejects.toBeInstanceOf(IndiaNativeFiscalCreditNoteAuthorizationError);
     expect(await originalCreditGraph(deploy, candidate)).toBe(sourceBefore);
     expect(await creditDiscoveryGraph(deploy, candidate)).toBe(creditBeforeDiscovery);

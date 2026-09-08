@@ -1,9 +1,12 @@
 # Order448 — Existing full-credit discovery from the original invoice
 
-**Status:** ACTIVE non-UI implementation, activated by root after exact Order447
-publication25d3b979278c409621f0c70ea5a2951558ecb982. Its CI34163554694 is running;
-disjoint typed/API implementation and pure tests may proceed now. Native proof,
-final acceptance and publication require the separate current88 CI/target checks.
+**Status:** BUILT AND PUBLISHED, native API and Q229 containment accepted locally;
+all six exact-source CI jobs in34187393111 pass. Commit ffb03441a16d50aa050c5d6f715d35ed9223601b on draft
+PR92 contains only ten functional paths, including Q230/Q232 proof repairs.
+Final unchanged combined standing passes1,921 cases with1,407 explicit skips,
+0 failures and34,390 assertions; types and187 boundaries pass. Local licence
+census is0 and does not replace CI's installed-dependency check. Earlier failed
+status/browser-timeout runs remain recorded. No local or main promotion.
 **Owner:** Codex coordinator. **Phase:** 7. **Date:** 2026-09-08 (Asia/Kolkata).
 **Authority:** PROJECT.md; founder-approved Q187/D1302 clauses 1, 5 and 7;
 D1426 functional-only directive; independently verified Order446 native full-credit

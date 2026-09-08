@@ -6,8 +6,46 @@ import {
   snapshotIndiaNativeFiscalCreditNoteDiscoveryInput,
   type IndiaNativeFiscalCreditNoteIssueResult,
   type IndiaNativeFiscalCreditNoteReadResult,
+  type IndiaNativeFiscalCreditNoteDocumentReadResult,
 } from "../contexts/tax-fiscal";
 import type { Database, Tx } from "../kernel";
+
+export class ReadIndiaNativeFiscalCreditNoteDocumentCommand {
+  readonly #database: Database;
+  readonly #service: IndiaNativeFiscalCreditNoteService;
+
+  constructor(database: Database) {
+    this.#database = database;
+    this.#service = new IndiaNativeFiscalCreditNoteService();
+  }
+
+  async execute(inputValue: unknown): Promise<Readonly<IndiaNativeFiscalCreditNoteDocumentReadResult> | null> {
+    const input = snapshotIndiaNativeFiscalCreditNoteReadInput(inputValue);
+    if (!input) throw new IndiaNativeFiscalCreditNoteValidationError();
+    return this.#database.withTenantTransaction(input.tenantId, tx => this.executeInTransaction(tx, input));
+  }
+
+  async executeInTransaction(
+    tx: Tx,
+    inputValue: unknown,
+  ): Promise<Readonly<IndiaNativeFiscalCreditNoteDocumentReadResult> | null> {
+    return this.#service.readDocument(tx, inputValue);
+  }
+}
+
+export function readIndiaNativeFiscalCreditNoteDocument(
+  database: Database,
+  inputValue: unknown,
+): Promise<Readonly<IndiaNativeFiscalCreditNoteDocumentReadResult> | null> {
+  return new ReadIndiaNativeFiscalCreditNoteDocumentCommand(database).execute(inputValue);
+}
+
+export function readIndiaNativeFiscalCreditNoteDocumentInTransaction(
+  tx: Tx,
+  inputValue: unknown,
+): Promise<Readonly<IndiaNativeFiscalCreditNoteDocumentReadResult> | null> {
+  return new IndiaNativeFiscalCreditNoteService().readDocument(tx, inputValue);
+}
 
 export class IssueIndiaNativeFiscalCreditNoteCommand {
   readonly #database: Database;

@@ -3578,4 +3578,72 @@ The existing fiscal-submission request, delivery worker and authorized receipt G
 
 The signed invoice and QR must cryptographically bind the CRN type, document number/date, supplier, totals and exact preceding invoice reference. Existing provider-version, idempotency, lookup-only uncertain-send recovery, authenticated rejection and immutable receipt rules remain. Full credits issued from both native-v2 and operator-v3 preparation retain native source_version2. This does not add partial/debit/refund behavior, enable a provider or establish external IRP certification.
 
-Order448's original-invoice discovery GET is separately in implementation; it is not yet accepted or available in the running local.
+## Existing full-credit discovery (Order448)
+
+`GET /api/v1/properties/:property/invoices/:document/credit-notes` discovers the
+at-most-one existing full credit from its original invoice UUID. The existing POST
+at the same URL is unchanged. The signed session supplies tenant and actor; current
+`tax-fiscal.documents:read`, property grant and database authority are required.
+No query selectors are accepted. One four-parameter SQL statement always invokes
+the existing non-strict read capability, including on a missing binding, so revoked
+authority cannot become unauthoritative absence.
+
+Success returns200 and the exact immutable receipt_json bytes, with no-store and
+no idempotency-replayed header. Unknown, non-native or foreign originals are the
+same concealed404; missing/currently revoked authority403; invalid selectors400;
+malformed storage or unexpected database failures503. The operation cannot issue,
+retry, submit, post, number or mutate any financial document or record. This is a
+receipt lookup, not a full credit-document content or invoice printing endpoint.
+
+The typed and signed-session API, actual database API proof and separate fixture
+containment audit pass. Exact ten-path source ffb03441 is published with green
+combined local standing and all six CI jobs in34187393111. Local promotion is
+separate: this endpoint is not yet in the running local.
+
+## Complete issued credit document (Order449)
+
+GET `/api/v1/properties/:property/credit-notes/:creditDocument/document` returns
+`{kind:"india_native_credit_note_v1",receipt,contentJson}`. The receipt is the
+existing immutable validated issuance receipt; contentJson is the exact stored
+document string, not newly calculated tax or current guest/registration data.
+Current signed-session scope/property grant and database read authority apply,
+including on absent IDs. No query selectors are accepted.
+
+The service validates stored hash, receipt identity, CRN number/date, original
+invoice reference, all private credit lineage fields and exact integer total
+using the existing lossless fiscal source validator. Success200 is no-store;
+concealed absence404, denied403, invalid input400 and corrupt/unexpected storage503
+reuse existing sanitized responses. Reads issue no financial document, posting,
+number, retry or provider request. This API does not add a UI/print renderer.
+
+Root independently executed the actual PostgreSQL API1/0(48) and complete prior-row
+containment after focused50/0(650) with3 explicit DB skips. Q238 retains the failed
+standing attempts and admits scoped performance repair before combined publication.
+The source is not published or promoted to the running local.
+
+## Authorized issued-credit listing (Order450)
+
+GET `/api/v1/properties/:property/credit-notes` requires canonical `issuedFrom`
+and `issuedBefore` dates, inclusive/exclusive, spanning 1–366 days. Optional `docNo`
+matches an exact fiscal number; `after` is a canonical scope/filter-bound keyset
+cursor; `limit` defaults to 25 and accepts 1–100. Unknown or duplicate selectors,
+malformed cursors and forged tenant/actor selectors are rejected before SQL.
+
+Success returns `{items,nextCursor}` with nine immutable summary fields:
+documentId, originalDocumentId, docNo, originalDocNo, businessDate, propertyNode,
+currency, totalMinor and sha256. Money remains the exact positive integer string
+in the immutable receipt. The service checks typed storage/receipt bindings and
+rejects malformed rows, including overfetch, without returning a partial page.
+
+One authority-first parameterized query rechecks current database permission even
+when a result is empty. Tenant/property/date/UUID ordering uses keyset pagination
+with limit+1, not OFFSET or a matching-count query. Page size bounds returned rows,
+not necessarily rows examined by the database. The cursor grants no authority.
+Signed scope and current property access are checked on every HTTP request.
+Authorized emptiness is 200 with empty items and null cursor; malformed input400,
+denied403 and sanitized storage failure503 retain no-store responses.
+
+Root's real PostgreSQL signed API passes1/0(24); actual planner checks use the
+existing credit/property index and deny revoked authority with SQLSTATE42501.
+All pre-existing rows and financial/fiscal read graphs remain unchanged. This is
+built working source with combined publication pending, not an enabled live UI.

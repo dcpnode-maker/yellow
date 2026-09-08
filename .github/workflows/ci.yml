@@ -700,6 +700,10 @@ jobs:
           YELLOW_ORDER446_RUNTIME_DATABASE_URL="$fresh_runtime_url" \
           YELLOW_REQUIRE_ORDER446_DATABASE=1 \
             bun test tests/operator-fiscal-credit-note.integration.test.ts
+          YELLOW_ORDER446_DEPLOY_DATABASE_URL="$fresh_deploy_url" \
+          YELLOW_ORDER446_RUNTIME_DATABASE_URL="$fresh_runtime_url" \
+          YELLOW_REQUIRE_ORDER450_DATABASE=1 \
+            bun test tests/operator-fiscal-credit-note-list.integration.test.ts
 
           docker compose exec -T postgres psql --username yellow_deploy --dbname postgres --set ON_ERROR_STOP=1 \
             --command "CREATE DATABASE ${readiness_database}"
