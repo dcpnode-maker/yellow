@@ -4,6 +4,7 @@ import { fileURLToPath } from "node:url";
 import { issueIndiaNativeFiscalInvoiceForOperatorInTransaction } from "../commands/issue-india-native-fiscal-invoice";
 import { listIndiaNativeFiscalCreditNotesInTransaction } from "../commands/list-india-native-fiscal-credit-notes";
 import { readIndiaNativeCreditDeliveryInTransaction } from "../commands/read-india-native-credit-delivery";
+import { readIndiaNativeFiscalSeriesInTransaction } from "../commands/read-india-native-fiscal-series";
 import { configureIndiaNativeFiscalSeriesInTransaction } from "../commands/configure-india-native-fiscal-series";
 import {
   discoverIndiaNativeFiscalCreditNoteInTransaction,
@@ -246,6 +247,7 @@ import {
   IndiaNativeFiscalSeriesDatabaseError,
   IndiaNativeFiscalSeriesConflictError,
   IndiaNativeFiscalSeriesValidationError,
+  snapshotIndiaNativeFiscalSeriesDiscoveryInput,
   IndiaNativeCreditDeliveryAuthorizationError,
   IndiaNativeCreditDeliveryDatabaseError,
   IndiaNativeCreditDeliveryValidationError,
@@ -2807,6 +2809,48 @@ export class OperatorHttpApi {
         return apiError(context.request, 409, "fiscal/series_conflict", "Conflict", "Fiscal-series configuration conflicts with existing state");
       }
       if (error instanceof IndiaNativeFiscalSeriesDatabaseError || state === "55000") throw new Error("Fiscal-series configuration is unavailable");
+      throw error;
+    }
+  }
+
+  async fiscalSeriesDiscover(context: TenantRequestContext, propertyNode: string): Promise<Response> {
+    if (!hasScope(context, FISCAL_SERIES_CONFIGURE_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Fiscal-series discovery access is not granted");
+    }
+    const query = new URL(context.request.url).searchParams;
+    const keys = [...query.keys()];
+    if (!UUID.test(propertyNode) || keys.length !== 2 ||
+        keys.filter(key => key === "supplierRegistrationId").length !== 1 ||
+        keys.filter(key => key === "documentKind").length !== 1) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Fiscal-series discovery query is invalid");
+    }
+    const input = snapshotIndiaNativeFiscalSeriesDiscoveryInput({
+      tenantId: context.tenantId,
+      propertyNode,
+      supplierRegistrationId: query.get("supplierRegistrationId"),
+      documentKind: query.get("documentKind"),
+      actorId: context.identity.actorId,
+    });
+    if (!input) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Fiscal-series discovery query is invalid");
+    }
+    const grants = await listGrantedProperties(context, FISCAL_SERIES_CONFIGURE_SCOPE);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 403, "auth/property_forbidden", "Forbidden", "Property access is not granted");
+    }
+    try {
+      const series = await readIndiaNativeFiscalSeriesInTransaction(context.tx, input);
+      return apiResponse(context.request, { series });
+    } catch (error) {
+      if (error instanceof IndiaNativeFiscalSeriesAuthorizationError) {
+        return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Fiscal-series discovery access is not granted");
+      }
+      if (error instanceof IndiaNativeFiscalSeriesValidationError) {
+        return apiError(context.request, 400, "request/invalid", "Invalid request", "Fiscal-series discovery query is invalid");
+      }
+      if (error instanceof IndiaNativeFiscalSeriesDatabaseError) {
+        return apiError(context.request, 503, "service/unavailable", "Service unavailable", "Fiscal-series discovery is temporarily unavailable");
+      }
       throw error;
     }
   }
@@ -6942,11 +6986,16 @@ const ASSET_URLS = {
   html: new URL("./operator/index.html", import.meta.url),
   css: new URL("./operator/operator.css", import.meta.url),
   js: new URL("./operator/operator.js", import.meta.url),
+  interfacesCss: new URL("./operator/operator-interfaces.css", import.meta.url),
+  interfacesJs: new URL("./operator/operator-interfaces.js", import.meta.url),
+  layoutsJs: new URL("./operator/operator-layouts.js", import.meta.url),
   invoiceJs: new URL("./operator/invoices.js", import.meta.url),
   invoicePrintJs: new URL("./operator/invoice-print.js", import.meta.url),
   invoiceQrJs: new URL("./operator/vendor/qrcodegen-v1.8.0-es6.js", import.meta.url),
   depositCss: new URL("./operator/operator-deposits.css", import.meta.url),
   depositJs: new URL("./operator/operator-deposits.js", import.meta.url),
+  urbanistFont: new URL("./operator/vendor/urbanist-v1.330/Urbanist[ital,wght].woff2", import.meta.url),
+  phosphorNav: new URL("./operator/vendor/phosphor-core-2.1.1/phosphor-nav-regular.svg", import.meta.url),
 } as const;
 
 export interface OperatorLocalReviewCredentials {
@@ -7007,11 +7056,16 @@ export const operatorAssets = Object.freeze({
   },
   css(): Response { return assetResponse(ASSET_URLS.css, "text/css; charset=utf-8"); },
   js(): Response { return assetResponse(ASSET_URLS.js, "text/javascript; charset=utf-8"); },
+  interfacesCss(): Response { return assetResponse(ASSET_URLS.interfacesCss, "text/css; charset=utf-8"); },
+  interfacesJs(): Response { return assetResponse(ASSET_URLS.interfacesJs, "text/javascript; charset=utf-8"); },
+  layoutsJs(): Response { return assetResponse(ASSET_URLS.layoutsJs, "text/javascript; charset=utf-8"); },
   invoiceJs(): Response { return assetResponse(ASSET_URLS.invoiceJs, "text/javascript; charset=utf-8"); },
   invoicePrintJs(): Response { return assetResponse(ASSET_URLS.invoicePrintJs, "text/javascript; charset=utf-8"); },
   invoiceQrJs(): Response { return assetResponse(ASSET_URLS.invoiceQrJs, "text/javascript; charset=utf-8"); },
   depositCss(): Response { return assetResponse(ASSET_URLS.depositCss, "text/css; charset=utf-8"); },
   depositJs(): Response { return assetResponse(ASSET_URLS.depositJs, "text/javascript; charset=utf-8"); },
+  urbanistFont(): Response { return assetResponse(ASSET_URLS.urbanistFont, "font/woff2"); },
+  phosphorNav(): Response { return assetResponse(ASSET_URLS.phosphorNav, "image/svg+xml"); },
   localPrefillJs(): Response {
     return new Response("(()=>{const f=document.querySelector('#login-form[autocomplete=off]'),v=new Map;if(!f)return;for(const e of f.elements)if(e instanceof HTMLInputElement&&e.dataset.localDefault){v.set(e,e.dataset.localDefault);delete e.dataset.localDefault}const r=(o=false)=>{for(const[e,s]of v)if(o||!e.value)e.value=s},h=e=>{r(true);e.preventDefault()},w=()=>r();r(true);addEventListener('pageshow',w);addEventListener('focus',w);document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')r()});f.addEventListener('yellow:restore-local-login-defaults',h);setTimeout(w,0);requestAnimationFrame(()=>requestAnimationFrame(w))})()", {
       headers: { "cache-control": "no-store", "content-type": "text/javascript; charset=utf-8" },

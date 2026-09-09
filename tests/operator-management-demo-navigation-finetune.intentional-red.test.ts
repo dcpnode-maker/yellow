@@ -79,13 +79,13 @@ test("Order 316 intentional red: journey copy does not advertise deferred author
   expect(index).not.toMatch(/data-(?:property|reservation|folio|task|vehicle)-id=/i);
 });
 
-test("Order316 / Order444: one shared navigation path owns journey controls and contextual menu settlement", () => {
+test("Order459: the shared guarded navigation path reveals the destination workflow group", () => {
   expect(script).toContain('const managementJourneyControls = document.querySelectorAll("[data-journey-view]")');
   expect(script).toContain("for (const control of managementJourneyControls)");
   expect(script).toContain("setView(control.dataset.journeyView)");
 
   const finish = functionSource("finishWorkspaceNavigation");
-  expect(finish).toContain("if (SECONDARY_VIEWS.has(view)) closeSecondaryWorkspaces();");
+  expect(finish).toContain("revealWorkspaceGroup(view);");
   expect(finish).not.toContain("dataset.experience");
   expect(finish).toContain('document.getElementById(`${view}-title`)');
   expect(finish).toContain("focus({ preventScroll: true })");
@@ -99,17 +99,20 @@ test("Order316 / Order444: one shared navigation path owns journey controls and 
   expect(script).toContain("finishWorkspaceNavigation(control.dataset.journeyView)");
 });
 
-test("Order444: layout switching is session-local while every explicit route survives", async () => {
+test("Order458: interface switching is session-local while every explicit route survives", async () => {
   const applyWorkspaceSkin = functionSource("applyWorkspaceSkin");
-  expect(applyWorkspaceSkin).toContain('const next = WORKSPACE_SKINS.has(skin) ? skin : "calm"');
+  expect(applyWorkspaceSkin).toContain('const next = WORKSPACE_SKINS.has(skin) ? skin : "ledger"');
   expect(applyWorkspaceSkin).toContain("document.documentElement.dataset.workspaceSkin = next");
   expect(applyWorkspaceSkin).toContain("workspaceSkinSelect.value = next");
   expect(applyWorkspaceSkin).not.toMatch(/request\(|fetch\(|setView\(|history\.|replaceChildren|append\(|localStorage|sessionStorage/);
-  expect(script).toContain('const WORKSPACE_SKINS = new Set(["calm", "precision", "timeline"])');
+  expect(script).toContain('const WORKSPACE_SKINS = new Set(["ledger", "aura", "relay", "journey", "orbit", "atlas", "focus", "index"])');
   expect(script).toContain('workspaceSkinSelect.addEventListener("change"');
   expect(`${html}\n${script}`).not.toMatch(/data-experience|experience-select|theme-select|applyExperience|applyTheme|\b(?:EXPERIENCES|THEMES)\b/);
   for (const [value, label] of [
-    ["calm", "Calm Workbench"], ["precision", "Precision Desk"], ["timeline", "Service Timeline"],
+    ["ledger", "Ledger · Precision desk"], ["aura", "Aura · Spatial glass"],
+    ["relay", "Relay · Operations board"], ["journey", "Journey · Guided workspace"],
+    ["orbit", "Orbit · Command centre"], ["atlas", "Atlas · Portfolio studio"],
+    ["focus", "Focus · Task companion"], ["index", "Index · Planning desk"],
   ]) expect(html).toContain(`<option value="${value}">${label}</option>`);
   expect(html.match(/class="domain-tab(?: is-active)?"/g)).toHaveLength(14);
   expect(html).toContain('id="nav-invoices" type="button" data-view="invoices" aria-controls="invoices-view"');

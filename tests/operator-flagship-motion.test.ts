@@ -4,7 +4,7 @@ const scriptFile = new URL("../src/http/operator/operator.js", import.meta.url);
 const pageFile = new URL("../src/http/operator/index.html", import.meta.url);
 const styleFile = new URL("../src/http/operator/operator.css", import.meta.url);
 
-test("Order444: layout switching is direct and state-preserving with accessible CSS fallbacks", async () => {
+test("Order458: interface switching is direct and state-preserving with accessible CSS fallbacks", async () => {
   const [script, page, styles] = await Promise.all([
     Bun.file(scriptFile).text(),
     Bun.file(pageFile).text(),
@@ -12,15 +12,15 @@ test("Order444: layout switching is direct and state-preserving with accessible 
   ]);
   const setter = script.match(/function applyWorkspaceSkin\(skin\) \{([\s\S]*?)\n \}/)?.[1] ?? "";
 
-  expect(script).toContain('const WORKSPACE_SKINS = new Set(["calm", "precision", "timeline"]);');
-  expect(setter).toContain('const next = WORKSPACE_SKINS.has(skin) ? skin : "calm";');
+  expect(script).toContain('const WORKSPACE_SKINS = new Set(["ledger", "aura", "relay", "journey", "orbit", "atlas", "focus", "index"]);');
+  expect(setter).toContain('const next = WORKSPACE_SKINS.has(skin) ? skin : "ledger";');
   expect(setter).toContain("document.documentElement.dataset.workspaceSkin = next;");
   expect(setter).toContain("workspaceSkinSelect.value = next;");
   expect(setter).not.toMatch(/fetch|request|setView|history|location|replaceChildren|reset|storage|animate/i);
   expect(script).toContain('workspaceSkinSelect.addEventListener("change", () => {\n applyWorkspaceSkin(workspaceSkinSelect.value);\n });');
   expect(script).not.toMatch(/motionPreference|startViewTransition|cancelWorkspaceMotion|viewTransitionName/);
   expect(script).not.toMatch(/localStorage|sessionStorage|document\.cookie|indexedDB/);
-  expect(page).toContain('<html lang="en" data-theme="apple" data-workspace-skin="calm">');
+  expect(page).toContain('<html lang="en" data-theme="apple" data-workspace-skin="ledger"');
   expect(page).toContain('<select id="workspace-skin-select" aria-label="Workspace layout">');
 
   expect(styles).toContain("@media (prefers-reduced-motion:reduce)");
@@ -43,8 +43,14 @@ test("Order195: the six flagship systems have structural identity without unsafe
   const invoiceTab = page.match(/<button[^>]*id="nav-invoices"[^>]*>[\s\S]*?<\/button>/)?.[0] ?? "";
   expect(invoiceTab).toContain('data-view="invoices"');
   expect(invoiceTab).toContain('class="domain-icon"');
-  expect(invoiceTab).toContain('<use href="#i-folios"/>');
-  expect(page.match(/<symbol id="i-/g)?.length).toBe(9);
+  expect(invoiceTab).toContain('<use href="#ph-invoice"/>');
+  const symbolIds = [...page.matchAll(/<symbol id="(ph-[a-z-]+)"/g)].map(match => match[1]);
+  expect(symbolIds).toEqual([
+    "ph-calendar-check", "ph-chart-bar", "ph-calendar-dots", "ph-notebook", "ph-invoice",
+    "ph-cash-register", "ph-calendar-x", "ph-hand-coins", "ph-bed", "ph-broom", "ph-car",
+    "ph-package", "ph-prohibit", "ph-tag", "ph-chart-line-up",
+  ]);
+  expect(new Set(symbolIds).size).toBe(15);
   expect(page).toContain('class="ambient-stage" aria-hidden="true"');
   expect(page.match(/class="depth-plane /g)?.length).toBe(3);
   expect(page).toContain('class="win-window-chrome" aria-hidden="true"');

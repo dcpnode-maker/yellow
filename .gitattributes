@@ -7,6 +7,8 @@
 *.md text eol=lf
 *.json text eol=lf
 *.yml text eol=lf
+*.woff2 binary
+*.svg text eol=lf
 
 # Append-only logs: union merge prevents conflicts when Codex and Claude both
 # append on different branches. Without this, every parallel session collides here.
@@ -16,3 +18,6 @@ handoff/LEDGER.md merge=union
 # Q208: retain byte-pinned upstream Nayuki code including its five EOL spaces.
 # Only this vendored file is exempt from blank-at-eol; other checks still apply.
 src/http/operator/vendor/qrcodegen-v1.8.0-es6.js whitespace=-blank-at-eol
+
+# Q211: the byte-pinned upstream OFL notice includes one trailing space.
+src/http/operator/vendor/urbanist-v1.330/OFL.txt whitespace=-blank-at-eol

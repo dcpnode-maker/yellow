@@ -87,6 +87,11 @@ test("Order195: skins remain responsive and dependency-free without the retired 
   expect(css).toMatch(/@media \(max-width:\s*900px\)/);
   expect(css).toMatch(/@media \(max-width:\s*560px\)/);
   const all = `${html}\n${css}\n${script}`;
-  expect(all).not.toMatch(/https?:\/\/|@import|url\s*\(/i);
+  expect(html.match(/xmlns="http:\/\/www\.w3\.org\/2000\/svg"/g)).toHaveLength(1);
+  expect(css.match(/url\("\/static\/fonts\/urbanist-v1\.330\.woff2"\)/g)).toHaveLength(1);
+  expect(script).not.toMatch(/https?:\/\/|@import|url\s*\(/i);
+  expect(all.replace('xmlns="http://www.w3.org/2000/svg"', "")
+    .replace('url("/static/fonts/urbanist-v1.330.woff2")', ""))
+    .not.toMatch(/https?:\/\/|@import|url\s*\(/i);
   expect(new TextEncoder().encode(all).byteLength).toBeGreaterThan(0);
 });

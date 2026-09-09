@@ -3618,8 +3618,8 @@ number, retry or provider request. This API does not add a UI/print renderer.
 
 Root independently executed the actual PostgreSQL API1/0(48) and complete prior-row
 containment after focused50/0(650) with3 explicit DB skips. Q238 retains the failed
-standing attempts and admits scoped performance repair before combined publication.
-The source is not published or promoted to the running local.
+standing attempts and their scoped repairs. Combined standing1,956/0 now passes
+and source is published in0b1ff327 on draftPR92, not promoted to the running local.
 
 ## Authorized issued-credit listing (Order450)
 
@@ -3646,9 +3646,9 @@ denied403 and sanitized storage failure503 retain no-store responses.
 Root's real PostgreSQL signed API passes1/0(24); actual planner checks use the
 existing credit/property index and deny revoked authority with SQLSTATE42501.
 All pre-existing rows and financial/fiscal read graphs remain unchanged. This is
-built working source with combined publication pending, not an enabled live UI.
+published source in0b1ff327 with combined standing1,956/0, not an enabled live UI.
 
-## Credit-document delivery discovery (Order452; working source)
+## Credit-document delivery discovery (Order452)
 
 GET `/api/v1/properties/:property/credit-notes/:creditDocument/delivery` takes no
 query selectors. The signed session supplies tenant and actor. BOTH current
@@ -3671,11 +3671,12 @@ those defensive states do not imply a supported CRN legacy/multi-head lifecycle.
 Authorized absence404, denied403, invalid400 and sanitized corruption/failure503
 are no-store, without an idempotency-replayed header.
 
-This is unpromoted working source. Independent rollback and draft-install checks
-passed; complete native functional acceptance and canonical89/release integration
-remain pending. See Order452's review for actual results, failures and corrections.
+Published557dd031 on draftPR92 after nativeSQL11/0, signedHTTP3/0, rollback3/0,
+canonical89 upgrade/no-op/clean schema equality/referee11/11 and30 readiness fault
+denials/restores. Exact full standing1966/0 passes; new-head CI remains separate.
+This is not live-app promotion. See Order452's review for all failures/corrections.
 
-## Native fiscal-series configuration (Order453; implementation in progress)
+## Native fiscal-series configuration (Order453; source published)
 
 POST `/api/v1/properties/:property/fiscal-series` accepts exactly
 {supplierRegistrationId,documentKind,prefix}. Signed tenant/actor plus current
@@ -3697,5 +3698,32 @@ issued or number allocated, and configuring debit_note does not implement debit
 valuation/accounting/submission. Independent native proof passes upgrade4/0,
 authority12/0 and signedHTTP5/0, preserving prior financial records. Canonical0090
 matches the tested draft; populated upgrade/no-op and clean-install schema equality,
-11/11 referee and50 runtime-readiness denials/restorations pass. Full standing and
-publication remain pending. This is not live-app activation or Phase7 completion.
+11/11 referee and50 runtime-readiness denials/restorations pass. Full standing
+1,983/0 and publication87da26f3 are recorded; its exact CI is red in the test cases
+addressed by455. This is not live-app activation or Phase7 completion.
+
+## Native fiscal-series discovery (Order454; native SQL and HTTP proved)
+
+GET `/api/v1/properties/:property/fiscal-series` accepts exactly two query
+parameters, each once: `supplierRegistrationId` and `documentKind` (invoice,
+credit_note or debit_note). Extra, duplicate or invalid selectors are400. Tenant
+and actor come from the signed session; property-scoped
+`tax-fiscal.series:configure` is required. The tenant transaction rechecks active
+tenant/actor, same-tenant role membership and ancestor-property scope before
+resolving absence. Property-local date and April1 financial-year start are server
+derived; the supplier must have active registration evidence for that exact date.
+
+Success200 is `{series:null}` for an authorized, available but unconfigured kind,
+or `{series:{seriesId,tenantId,propertyNode,supplierRegistrationId,documentKind,
+prefix,financialYearStart,nextNo}}`. `nextNo` is an exact positive int64 decimal
+string, not an allocated/reserved number. Denial is403; unavailable current-day
+supplier evidence or malformed database results produce sanitized503. Responses
+are no-store. The read performs no durable writes, locks, events, numbering,
+configuration replay or provider call; it grants no fiscal issuance authority.
+
+Root native SQL10/0(253) and independent preservation audit pass. Root and
+independent signed HTTP5/0(66 each) preserve all public rows/catalogue/sequences.
+The old HTTP503 remains recorded: its synthetic status was for the prior local
+day. Fresh current-day fixture cohorts passed with production/test unchanged;
+no stale supplier evidence was accepted or backfilled. Exact-source standing,
+publication/CI and local activation remain separate from this functional proof.

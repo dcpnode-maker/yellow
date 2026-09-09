@@ -43,6 +43,102 @@ function clone<T>(value: T): T {
   return JSON.parse(JSON.stringify(value)) as T;
 }
 
+// Independently enumerate the public accepted projection from0081 and the public
+// FiscalSubmissionDeliveryReceipt/FiscalReceiptVerification contracts. This is a
+// disclosure-shape oracle, not another signature or metadata-value validator.
+const ACCEPTED_DISPLAY_KEYS = ["kind", "submissionId", "tenantId", "propertyNode", "documentId", "documentSha256",
+  "wireSha256", "providerKey", "attemptId", "attemptNumber", "status", "disposition", "transitionSeq",
+  "environment", "responseSha256", "irn", "ackNo", "ackDt", "signedInvoice", "signedQRCode",
+  "signedInvoiceSha256", "signedQrSha256", "verification"] as const;
+const DISPLAY_VERIFICATION_KEYS = ["profileVersion", "issuer", "verificationUnixMs", "invoiceKeyId",
+  "invoiceKeySpkiSha256", "invoiceBundleVersion", "qrKeyId", "qrKeySpkiSha256", "qrBundleVersion"] as const;
+
+function expectDisplayDataFields(value: unknown, keys: readonly string[], numbers: readonly string[], nested: readonly string[] = []): void {
+  expect(value !== null && typeof value === "object" && !Array.isArray(value)).toBe(true);
+  const row = value as Record<string, unknown>;
+  expect([Object.prototype, null]).toContain(Object.getPrototypeOf(row));
+  const actual = Reflect.ownKeys(row);
+  expect(actual).toHaveLength(keys.length);
+  expect(actual.every(key => typeof key === "string" && keys.includes(key))).toBe(true);
+  for (const key of keys) {
+    const descriptor = Object.getOwnPropertyDescriptor(row, key);
+    expect(descriptor && "value" in descriptor && descriptor.enumerable).toBe(true);
+    if (!nested.includes(key)) expect(typeof descriptor!.value).toBe(numbers.includes(key) ? "number" : "string");
+  }
+}
+
+function expectAcceptedDisplayFields(value: Record<string, unknown>): void {
+  expectDisplayDataFields(value, ACCEPTED_DISPLAY_KEYS, ["attemptNumber", "transitionSeq"], ["verification"]);
+  expectDisplayDataFields(value.verification, DISPLAY_VERIFICATION_KEYS, ["verificationUnixMs"]);
+}
+
+function opaqueAcceptedDisplay(): Record<string, unknown> {
+  // Shape-only deterministic strings, not a claim of authentic provider signatures.
+  // The actual database test below still verifies the real bound signed pair.
+  const signedInvoice = "eyJhbGciOiJSUzI1NiJ9.e30.AASEKAA";
+  const signedQRCode = "eyJhbGciOiJSUzI1NiJ9.e30.BBSEKBB";
+  return {
+    kind: "accepted_signed_v1", submissionId: "00000000-0000-4000-8000-000000000001",
+    tenantId: "00000000-0000-4000-8000-000000000002", propertyNode: "00000000-0000-4000-8000-000000000003",
+    documentId: "00000000-0000-4000-8000-000000000004", documentSha256: "a".repeat(64),
+    wireSha256: "b".repeat(64), providerKey: "india-irp", attemptId: "00000000-0000-4000-8000-000000000005",
+    attemptNumber: 1, status: "accepted", disposition: "none", transitionSeq: 3, environment: "sandbox",
+    responseSha256: "c".repeat(64), irn: "d".repeat(64), ackNo: "90071992547409991", ackDt: "2044-09-07 12:34:56",
+    signedInvoice, signedQRCode, signedInvoiceSha256: sha256(signedInvoice), signedQrSha256: sha256(signedQRCode),
+    verification: { profileVersion: "yellow_native_india_1_1_v1", issuer: "YELLOW-FICTIONAL-IRP",
+      verificationUnixMs: 1800000000000, invoiceKeyId: "fictional-key", invoiceKeySpkiSha256: "e".repeat(64),
+      invoiceBundleVersion: "fictional-bundle", qrKeyId: "fictional-key", qrKeySpkiSha256: "e".repeat(64),
+      qrBundleVersion: "fictional-bundle" },
+  };
+}
+
+describe("Order455 accepted display disclosure oracle", () => {
+  test("allows SEK inside the opaque signed values without changing their bytes", () => {
+    const display = opaqueAcceptedDisplay(), before = JSON.stringify(display);
+    expect(display.signedInvoice).toContain("SEK");
+    expect(display.signedQRCode).toContain("SEK");
+    expect(() => expectAcceptedDisplayFields(display)).not.toThrow();
+    expect(JSON.stringify(display)).toBe(before);
+  });
+
+  test("rejects every forbidden disclosure key and arbitrary extra field at both public object levels", () => {
+    const forbidden = ["rawResponse", "rawResponseBase64", "decryptedData", "decryptedDataBase64", "decryptedDataSha256",
+      "sourceContent", "sourceContentJson", "wireJson", "claimToken", "password", "AppKey", "SEK", "unexpectedField"];
+    for (const key of forbidden) {
+      const top = opaqueAcceptedDisplay();
+      top[key] = "not public";
+      expect(() => expectAcceptedDisplayFields(top)).toThrow();
+      const nested = opaqueAcceptedDisplay();
+      (nested.verification as Record<string, unknown>)[key] = "not public";
+      expect(() => expectAcceptedDisplayFields(nested)).toThrow();
+    }
+  });
+
+  test("rejects missing fields and nested disclosures substituted for any allowed scalar", () => {
+    for (const key of ACCEPTED_DISPLAY_KEYS) {
+      const missing = opaqueAcceptedDisplay();
+      delete missing[key];
+      expect(() => expectAcceptedDisplayFields(missing)).toThrow();
+      if (key === "verification") continue;
+      for (const value of [{ SEK: "not public" }, [{ password: "not public" }]]) {
+        const nested = opaqueAcceptedDisplay();
+        nested[key] = value;
+        expect(() => expectAcceptedDisplayFields(nested)).toThrow();
+      }
+    }
+    for (const key of DISPLAY_VERIFICATION_KEYS) {
+      const missing = opaqueAcceptedDisplay();
+      delete (missing.verification as Record<string, unknown>)[key];
+      expect(() => expectAcceptedDisplayFields(missing)).toThrow();
+      for (const value of [{ rawResponse: "not public" }, [{ AppKey: "not public" }]]) {
+        const nested = opaqueAcceptedDisplay();
+        (nested.verification as Record<string, unknown>)[key] = value;
+        expect(() => expectAcceptedDisplayFields(nested)).toThrow();
+      }
+    }
+  });
+});
+
 describe("Q207 signed fiscal receipt migration source", () => {
   test("has one forward migration with no replacement artifact table or source digest", async () => {
     expect(await Bun.file(migration).exists()).toBe(true);
@@ -326,7 +422,7 @@ databaseDescribe("Q207 generated-signature fiscal receipt durability (not authen
       irn: authorityRef,
       signedInvoice: (result.receipt as Record<string, unknown>).signedInvoice,
       signedQRCode: (result.receipt as Record<string, unknown>).signedQRCode });
-    expect(JSON.stringify(display)).not.toMatch(/rawResponse|decryptedData|sourceContent|wireJson|claimToken|password|AppKey|SEK/u);
+    expectAcceptedDisplayFields(display);
     const history = await deploy<{ response_sha256: string | null; authority_ref: string | null }[]>`
       SELECT response_sha256,authority_ref FROM public.fiscal_submission_history
        WHERE tenant_id=${scenario.tenantId}::uuid AND submission_id=${scenario.submissionId}::uuid

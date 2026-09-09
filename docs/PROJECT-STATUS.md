@@ -2,9 +2,9 @@
 
 <!-- status-schema: yellow-project-status/v1 -->
 <!-- current-phase: 7 -->
-<!-- current-task: Codex Yellow — remaining functional backend build; all UI/UX paused -->
-<!-- current-order-files: handoff/orders/453-native-fiscal-series-configuration.md;handoff/orders/440-fiscal-submission-lifecycle.md -->
-<!-- current-lifecycle: Order453 native/canonical90 proof passes, but first full standing1982pass/1458skip/1fail requires provider-configuration diagnosis before publication. Order454 source/tests prepared in parallel; UI/live unchanged -->
+<!-- current-task: Codex Yellow — finish fiscal discovery and receipt proof, then promote complete current source with corrected interfaces to the sole local -->
+<!-- current-order-files: handoff/orders/454-native-fiscal-series-discovery.md;handoff/orders/455-exact-head-ci-test-reliability.md;handoff/orders/460-current-source-single-local-promotion.md;handoff/orders/459-interface-composition-and-grouped-navigation.md -->
+<!-- current-lifecycle: Order454 nativeSQL10/0 and root/independentHTTP5/0 pass.455 independent current81 receipt16/0+1upgrade-onlyskip(4177) and full59-companion/global preservation pass.460 embedded status updated through459/current460; exact combined source, standing/CI and runtime promotion pending. Local3000 stopped; UI source not live -->
 
 This is the canonical current-state record. It identifies the consolidated source,
 verified behavior, release boundaries and active work. Historical orders, reviews,
@@ -13,11 +13,192 @@ backlog. `state.sh` and `state.ps1` read the machine-readable comments above.
 
 ## Current task
 
-**Functional build — 2026-09-08.** All UI/UX, prototypes, animation and guest-picker
-work remains paused. The running local stays a1085178/frontier85; it is NOT the
-latest published branch. No restart, migration or promotion of the live app occurred.
+**Exact candidate standing — 9 September.** The first current-source candidate ran
+2015 passing tests,1472 existing DB/platform skips and2 failures(40839 assertions).
+Typecheck,194 import boundaries and licence check pass; all source/index/ref/object,
+dependency and listener state was preserved and the validation artifact restored.
+Q249 fixes an obsolete test-only closing-tag assumption for the new disclosure and
+includes the eight approved prototype HTML files required by the composition test.
+No failed assertion is skipped; complete standing is being rerun on the successor.
+Source is not yet published and local3000 remains stopped.
 
-**Published:** 557dd0315945bb551a3409704d70ff1cf9d4c4a3 on
+**Continuation — 2026-09-09.** With Order459 source proof recorded, backend454/455
+work has resumed. Full454 native SQL and fresh signed HTTP now pass;455's repaired
+receipt oracle has passed independent native execution with all59 prior databases
+preserved. The release target is the complete current source plus the
+corrected interfaces, not an85-only UI backport. Read-only mapping confirms the
+serving database is `yellow_order444_review_a10851786f17`; the separate invariant
+database is not a replacement. Forward86–90 are already individually proved, but
+the exact final source, remaining tests, protected recovery, retained-data upgrade
+and bounded worker convergence require fresh release proof. No app has been
+started and the serving database has not been migrated, reseeded or promoted.
+
+**Executable progress in this continuation.** The454 isolated settled-rejection
+successor passes root and independent2/0 (63 assertions each,5.76s/5.71s). All
+seven actual database inputs rejected correctly; complete snapshots stayed equal
+and both pools closed. Independent's earlier PowerShell5.1 invocation failed
+before Bun/DB and is retained; an explicit bundled7.6.5 guard and corrected native
+invocation then passed. Q247 applies the verified pattern to the canonical full
+test without changing production, fixtures, cases or deadlines. Root focused
+15pass/14 explicit DB-and-hook skips/0fail (292 assertions), typecheck and194
+import boundaries pass. Root then executed the complete native suite:10pass/0fail,
+253 assertions,38.19s. Its final audit preserves all1,437 prior rows, all eight
+companions, globals/catalogue/ledger and protected sequences, adding only the
+admitted two synthetic cohorts/six codes/173 rows to the existing referee database
+(now1,610 rows). Independent personal read-only audit59bc5056 passed in15.34s,
+recapturing exact state and ownership without rerunning fixtures. The original
+matcher RED remains retained; the first successor Review's key-order comparison
+failure was repaired without changing test deadlines or predicates.
+
+Signed HTTP first returned4pass/1fail: the configured request received503.
+Read-only diagnostic78ae371b confirms all three old supplier/property pairs have
+September8 status evidence but a September9 local date, with actor authority valid.
+Production's current-day requirement and HTTP test8837cb39 remain unchanged.
+The successor selects existing current-day cohorts from the full-suite receipt;
+it creates no new fixtures and backfills no statuses. Fresh manifest9fb1b9e3 binds
+root and independent actual signed HTTP runs:5pass/0fail/no skips,66 assertions
+each,2.39s/2.70s. Logs280ebd39/7e47c918 preserve all public rows/catalogue/sequences
+and exact five series identities. The original red log remains retained.
+
+The455 current81 native proof is now independently executed and accepted:
+16pass/one-upgrade-only-skip/0fail,4,177 assertions,35.07s. Exactly78–81 applied
+to one new retained isolated target. Root independently inspected all stages:
+all59 pre-existing databases and complete global roles/memberships/settings/ACLs
+remain unchanged; final81 has12 synthetic tenants/submissions and no fault-grant
+residue or open sessions. Testa9122b5c/final7faf84ff bind this result. Missing-table,
+culture-sort and UTC-string-roundtrip preflight failures remain retained; all
+stopped before creating a database. Minimal fixes preserved all safety bounds.
+The separately required80–81 upgrade17/0 will use the existing exact-source CI
+lane after publication, not another local target. Order460 has pure migration-prefix
+and worker-receipt checks prepared; these are not actual upgrade or convergence
+proof. Independent460 findings were repaired: malformed input now fails closed,
+and worker aggregates are explicitly only a shape prefilter requiring a separate
+row audit, never launch/convergence authority. Root personally executes11/0 with
+64 assertions. The actual data upgrade and worker proof remain unexecuted.
+Q248 now also corrects the embedded application status from Order444 to the
+recorded current source: latest built459/current460, with six recent milestones,
+all old records and18 phase states preserved. Root pure/founder checks8/0 with
+two explicit DB skips(196), selected status1/0(36), typecheck and194 boundaries
+pass. The new source is not yet published or visible on3000. Exact mixed-file
+projection is preparing accepted Q211/454/455/458/459 source while preserving and
+excluding unfinished445 guest-picker work; no whole-dirty-tree commit is allowed.
+Independent status inspection and the same bounded pure tests pass8/0 with two
+expected DB skips(196) and the selected status test1/0(36). Two earlier anchored
+filters selected zero tests and are not counted as proof. Root personally ran the
+four-file mixed projector tests9/0(51); these are source preparation only.
+
+**Latest founder direction — 2026-09-09 / Order459.** The approved mockups remain
+the reference; the actual implementation is rejected for retaining substantially
+the same workspace composition. Earlier458 technical tests did not establish
+design acceptance. Root is replacing the catch-all menu with five hotel workflow
+groups and coordinating separate CSS, presentation-controller and browser-proof
+workers for real mounted screen layouts. The supplied Hotel PMS URL's public
+navigation groups were verified from its served application source: Overview,
+Operations, Guests, Property, Finance and Insights. Yellow adapts that grouping
+principle to its existing15 modules without advertising unavailable destinations.
+Backend tests were paused for this priority and have now resumed as recorded above.
+Root verified the corrected source:
+five native groups preserve all15 destinations, compact desktop Ledger navigation
+measures116px, and real Today/invoice screens have dedicated compositions across
+eight interfaces. Journey's chapter tabs are confined to Today; Orbit's launcher
+opens the real module catalogue. Root final Chromium capture proof passes1/0 with
+1,143 assertions; focused source27/0, geometry5/0, types and194 boundaries pass.
+UI/UX Pro Max informed touch, contrast, focus and reduced-motion checks; root
+visual inspection separately found and corrected layout defects the earlier tests
+missed. Actual-source synthetic captures and limits are recorded in
+`.yellow/evidence/order459/index.html` and `ACCEPTANCE.md`.
+No changed source or new local runtime has been published;3000 is still stopped.
+Founder visual acceptance is not inferred from technical success. Current source
+requiresfrontier90 while the retained review runtime/database isfrontier85;
+version-correct release/promotion remains separate, not a blind restart.
+
+**Latest founder direction — 2026-09-08.** The founder selects Order456 concepts
+03/04/07/08/09/10, excludes01/02, and allows05/06 as inspiration rather than
+literal skins. Order458 implements eight selectable light interfaces: Ledger,
+Aura, Relay (05 reinterpretation), Journey (06 reinterpretation), Orbit, Atlas,
+Focus and Index. Selection preserves mounted forms, values, permissions and routes.
+Spatial presentation and original OTA-informed composition are admitted, not fake
+AI processing or invented operational results. A canonical unique-variable OTA
+dictionary plus provider-depth and mapping requirements are documentary scope now;
+no distribution database or provider integration is created through a skin order.
+**Order458 source proof complete, not live:** root actual Chromium passes all eight
+modes across desktop/tablet/phone (627 assertions), and focused tests pass25/0
+with8 explicit DB-gated skips (532 assertions). Types and194-file boundaries pass.
+Spatial gallery layering, Relay contrast and Journey's queue-first composition
+were visually corrected and recaptured. The comparison and honest limits are in
+`.yellow/evidence/order458/index.html` and `ACCEPTANCE.md`; all data is synthetic.
+The source is not yet committed/published or promoted, and this is not native-app,
+game-engine, provider-integration or phase-completion acceptance.
+The remaining backend plan continues unchanged. The retained local release is
+a1085178/frontier85, NOT the latest published branch. Its supervisor stopped the
+app at2026-09-08T17:02:12.9927276Z with critical_low_space/exit20. Processes7568/
+9508 and ports3000/3001 are now absent; PostgreSQL15956/55503 is still alive.
+Order457's exact retained-release restart has not occurred. Root/independent review
+holds the prepared helper: it enables background workers while demanding complete
+database immutability. A separately bounded quiescence or convergence contract is
+needed before execution; stopping a process cannot undo committed worker effects.
+A delegated status probe incorrectly invoked system32/bash.exe/WSL despite the
+explicit exclusion; a new small WSL dump appeared at the same time. Exact causal
+attribution is unproven. Only explicitly named native tools are admitted now.
+
+**Latest published:**87da26f354d08b545bc6b9127031cc29b38881ef, exact43path
+treef587df27f1fe7aad046aefea8577632609713b2e on existing draftPR92. Root full
+standing passes1,983/0 with1,458 explicit environment/database skips,35,441
+assertions/548files201.75s; types and192boundaries pass. The earlier unclassified
+provider positive-control failure is retained below. Only sanitized assertion
+diagnostics changed; no production acceptance was weakened. License script
+reports0 installed packages, not an installed-dependency census. Publication
+preserved all2,118 earlier tracked working files and complete outside staging/
+projected index semantics. Exact-headCI34244482395 is now terminal RED: four jobs
+pass, Windows-state and database fail. Order455 separately scopes the supervisor
+test deadline/diagnostics and the signed-display disclosure-shape oracle. These
+are not grounds to weaken product acceptance. Main remains unchanged; the local
+safety stop is recorded above.
+
+### Earlier backend diagnostics — superseded by the successful proof above
+
+**Original backend checkpoint:**Order454 service/command/authenticated GET is built;
+root focused13/0(276) passes. Its actual native suite is RED: the combined
+wrong-property/actor/tenant/supplier test times out, followed by a close-hook
+timeout. Seven isolated read-only inputs on the same cohorts subsequently return
+their expected errors in96–119ms; the pooled wrapper remains under diagnosis.
+The final audit's apparent outbox gap is a text-sort oracle error (1,10…19,2…9),
+not an observed numeric gap: actual sequence is1–19. A separate read-only audit
+successor is prepared, not yet executed; the original failed evidence remains.
+Root's fresh wrong-property and shared seven-case diagnostics now pass through
+the real tenant wrapper, with unchanged row/catalogue/sequence snapshots and
+completed pool close. They use manual error catching and diagnostic timeouts,
+and a separate retained-cohort Bun assertion reproduction subsequently retained
+the same timeout, as recorded below. These results do not establish its root cause.
+The read-only final audit
+stopped at its host guard before DB access after the local app exited.
+
+**2026-09-09 local proof update:**root's retained original-matcher reproduction
+again hangs on the first wrong-property case after SQL-start/matcher-entry, before
+SQL-return. It retains the120s test and5s hook failures;180s outer process cap ends
+the owned child. Original RED log7cf19b62 remains, no after-snapshot success claim.
+A successor will explicitly await the rejection before asserting its exact type,
+with negative controls and unchanged no-write/snapshot/deadline requirements.
+Separately,455 Windows test8d2ca721 now passes root and independent full20/0
+(37 assertions),44.36s/44.60s. Receipt actual-database and repaired exact-source CI
+remain open; no production supervisor or database acceptance is inferred.
+Signed-HTTP native acceptance is prepared and unexecuted. No new fiscal counter,
+table, provider activation or live change occurs through these read paths.
+
+**Prototype implementation:**Order456's ten light concepts are built, with ten
+initial screenshots, ten interaction screenshots and a comparison gallery. Three
+bounded workers plus root used different organizing principles and compositions:
+editorial, spatial, master/detail, layered glass, handoffs, guided chapters,
+command-first, geographic STR, mobile tasks and a precision room tape. All ten
+local demo/reset checks pass with no JavaScript exceptions or remote requests;
+final screenshots fit 1440×1000. Root visually checked each. This is fictional
+approval-only prototype evidence, not product-function or phase completion.
+Founder selection is now recorded in Order458; the historical prototypes remain
+unchanged references. Backend completion does not wait on future design references.
+
+## Earlier checkpoint chronology
+
+**Previous published checkpoint:** 557dd0315945bb551a3409704d70ff1cf9d4c4a3 on
 [existing draftPR92](https://github.com/dcpnode-maker/yellow/pull/92),
 treef10fe28afdb5a5592a22572054d919379d9b37a6, parent0b1ff327.
 Order452 adds authorized credit-document delivery discovery, requiring BOTH current

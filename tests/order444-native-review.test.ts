@@ -39,6 +39,133 @@ async function writeProbe(name: string, body: string): Promise<string> {
   return path;
 }
 
+type SyntheticChildIdentity = Readonly<{
+  pid: number;
+  startedUtc: string;
+  startedSource: "process" | "cim";
+  executable: string;
+}>;
+type SyntheticStreamObservation = Readonly<{ exists: boolean; size: number; tailComplete: boolean }>;
+
+const syntheticChildCleanupProbe = String.raw`
+function Invoke-SyntheticChildCleanup {
+  param(
+    [string] $TargetPidText,
+    [string] $ExpectedParentPidText,
+    [string] $StartedSource,
+    [string] $StartedUtc,
+    [string] $Executable,
+    [string] $Script
+  )
+  $targetPid=0;$expectedParentPid=0
+  if (-not [int]::TryParse($TargetPidText, [ref] $targetPid) -or $targetPid -lt 1 -or
+      -not [int]::TryParse($ExpectedParentPidText, [ref] $expectedParentPid) -or $expectedParentPid -lt 1 -or
+      $StartedSource -notin @('process','cim')) {
+    throw 'synthetic child identity is malformed'
+  }
+  $row=Get-CimInstance Win32_Process -Filter "ProcessId = $targetPid"
+  if ($null -eq $row) { return 0 }
+  $owned=[Diagnostics.Process]::GetProcessById($targetPid)
+  $started=if ($StartedSource -ceq 'process') { $owned.StartTime.ToUniversalTime().ToString('o') } else { $row.CreationDate.ToUniversalTime().ToString('o') }
+  $scriptPattern=[regex]::Escape($Script)
+  $fileArgumentPattern='(?i)(?:^|\s)-File\s+(?:"'+$scriptPattern+'"|'+$scriptPattern+')\s*$'
+  if ($started -cne $StartedUtc -or [int] $row.ParentProcessId -ne $expectedParentPid -or
+      [IO.Path]::GetFullPath([string] $row.ExecutablePath) -ine [IO.Path]::GetFullPath($Executable) -or
+      -not [regex]::IsMatch([string] $row.CommandLine,$fileArgumentPattern)) {
+    throw 'synthetic child ownership changed'
+  }
+  $owned.Kill($false)
+  if (-not $owned.WaitForExit(600)) { throw 'synthetic child cleanup exceeded its bound' }
+  return 7
+}
+$exitCode=Invoke-SyntheticChildCleanup -TargetPidText $env:YELLOW_TEST_CHILD_PID -ExpectedParentPidText $env:YELLOW_TEST_CHILD_PARENT_PID -StartedSource $env:YELLOW_TEST_CHILD_STARTED_SOURCE -StartedUtc $env:YELLOW_TEST_CHILD_STARTED_UTC -Executable $env:YELLOW_TEST_CHILD_EXECUTABLE -Script $env:YELLOW_TEST_CHILD_SCRIPT
+exit $exitCode
+`;
+
+function syntheticChildIdentity(value: unknown, startedSource: "process" | "cim"): SyntheticChildIdentity | undefined {
+  if (value === null || typeof value !== "object" || Array.isArray(value)) return undefined;
+  const record = value as Record<string, unknown>;
+  if (Reflect.ownKeys(record).sort().join("\n") !== "executable\npid\nstartedUtc") return undefined;
+  if (!Number.isSafeInteger(record.pid) || (record.pid as number) < 1) return undefined;
+  if (typeof record.startedUtc !== "string" || !/^\d{4}-\d{2}-\d{2}T/.test(record.startedUtc)) return undefined;
+  if (typeof record.executable !== "string" || record.executable.length === 0) return undefined;
+  return { pid: record.pid as number, startedUtc: record.startedUtc, startedSource, executable: record.executable };
+}
+
+async function waitForSyntheticChildIdentity(path: string, timeoutMs: number): Promise<SyntheticChildIdentity> {
+  const deadline = performance.now() + timeoutMs;
+  while (performance.now() < deadline) {
+    if (existsSync(path)) {
+      try {
+        const identity = syntheticChildIdentity(JSON.parse(await readFile(path, "utf8")), "process");
+        if (identity !== undefined) return identity;
+      } catch { /* The uniquely owned child may still be completing its receipt. */ }
+    }
+    await Bun.sleep(20);
+  }
+  throw new Error("Synthetic child did not publish an exact identity inside its bound");
+}
+
+async function observeSyntheticSupervisor(caseRoot: string, childReceiptPath: string) {
+  const statusPath = join(caseRoot, "supervisor.3000.status.json");
+  const statusText = existsSync(statusPath) ? await readFile(statusPath, "utf8") : undefined;
+  let status: unknown;
+  try { status = statusText === undefined ? undefined : JSON.parse(statusText); }
+  catch { status = { malformed: true, bytes: Buffer.byteLength(statusText ?? "", "utf8") }; }
+  let childIdentity: SyntheticChildIdentity | undefined;
+  if (existsSync(childReceiptPath)) {
+    try { childIdentity = syntheticChildIdentity(JSON.parse(await readFile(childReceiptPath, "utf8")), "process"); }
+    catch { childIdentity = undefined; }
+  }
+  if (childIdentity === undefined && status !== null && typeof status === "object" && !Array.isArray(status)) {
+    const record = status as Record<string, unknown>;
+    childIdentity = syntheticChildIdentity({
+      pid: record.childPid,
+      startedUtc: record.childStartedUtc,
+      executable: powerShellPath(),
+    }, "cim");
+  }
+  const streams: Record<string, SyntheticStreamObservation> = {};
+  for (const stream of ["stdout", "stderr"]) {
+    for (const index of [0, 1, 2]) {
+      const path = join(caseRoot, `supervisor.3000.${stream}.${index}.log`);
+      if (!existsSync(path)) { streams[`${stream}.${index}`] = { exists: false, size: 0, tailComplete: false }; continue; }
+      const bytes = await readFile(path);
+      streams[`${stream}.${index}`] = {
+        exists: true,
+        size: bytes.byteLength,
+        tailComplete: bytes.subarray(Math.max(0, bytes.byteLength - 64)).toString("utf8").endsWith("TAIL-COMPLETE"),
+      };
+    }
+  }
+  return { status, childIdentity, streams };
+}
+
+async function stopOwnedSyntheticChild(
+  cleanupProbe: string,
+  childIdentity: SyntheticChildIdentity | undefined,
+  expectedParentPid: number,
+  expectedScript: string,
+) {
+  if (childIdentity === undefined) return { attempted: false, reason: "identity_unavailable" } as const;
+  const result = runPowerShell(cleanupProbe, [], {
+    ...process.env,
+    YELLOW_TEST_CHILD_PID: String(childIdentity.pid),
+    YELLOW_TEST_CHILD_STARTED_UTC: childIdentity.startedUtc,
+    YELLOW_TEST_CHILD_STARTED_SOURCE: childIdentity.startedSource,
+    YELLOW_TEST_CHILD_EXECUTABLE: childIdentity.executable,
+    YELLOW_TEST_CHILD_PARENT_PID: String(expectedParentPid),
+    YELLOW_TEST_CHILD_SCRIPT: expectedScript,
+  }, 1_200);
+  return {
+    attempted: true,
+    exitCode: result.exitCode as number | null,
+    signalCode: result.signalCode ?? null,
+    exitedDueToTimeout: result.exitedDueToTimeout ?? false,
+    stderrBytes: result.stderr.byteLength,
+  } as const;
+}
+
 beforeAll(async () => { if (process.platform === "win32") fixtureRoot = await mkdtemp(join(tmpdir(), "yellow-order444-native-test-")); });
 afterAll(async () => { if (fixtureRoot !== "") await rm(fixtureRoot, { recursive: true, force: true }); });
 
@@ -317,12 +444,30 @@ foreach($change in @(@{password='secret'},@{schema='wrong'},@{propertyNode=$id1.
   nativeTest("bounded supervisor records one nonzero child, drains its final output and retains only capped logs", async () => {
     const caseRoot = join(fixtureRoot, "supervisor-nonzero");
     const child = join(fixtureRoot, "nonzero-child.ps1");
-    await writeFile(child, "$text=('é' * 4096)+'TAIL-COMPLETE';[Console]::Out.Write($text);[Console]::Error.Write($text);exit 7\n", "utf8");
+    const childReceipt = join(fixtureRoot, "nonzero-child.identity.json");
+    const cleanupProbe = await writeProbe("nonzero-child-cleanup.ps1", syntheticChildCleanupProbe);
+    await writeFile(child, `$self=[Diagnostics.Process]::GetCurrentProcess();$identity=[ordered]@{pid=$PID;startedUtc=$self.StartTime.ToUniversalTime().ToString('o');executable=$self.MainModule.FileName};[IO.File]::WriteAllText('${childReceipt.replaceAll("'", "''")}',($identity|ConvertTo-Json -Compress),[Text.UTF8Encoding]::new($false));$text=('é' * 4096)+'TAIL-COMPLETE';[Console]::Out.Write($text);[Console]::Error.Write($text);exit 7\n`, "utf8");
     const result = runPowerShell(supervisorPath, [
       "-TestMode", "-TestRoot", caseRoot, "-TestChildScript", child,
       "-TestPerFileByteLimit", "1024", "-TestMaximumRuntimeMilliseconds", "4000", "-TestPollMilliseconds", "20",
-    ]);
-    expect(result.exitCode, result.stderr.toString()).toBe(7);
+    ], process.env, 8_000);
+    const exitCode = result.exitCode as number | null;
+    let observation: Awaited<ReturnType<typeof observeSyntheticSupervisor>> | undefined;
+    let cleanup: Awaited<ReturnType<typeof stopOwnedSyntheticChild>> | undefined;
+    if (exitCode !== 7) {
+      observation = await observeSyntheticSupervisor(caseRoot, childReceipt);
+      if (exitCode === null) cleanup = await stopOwnedSyntheticChild(cleanupProbe, observation.childIdentity, result.pid, child);
+    }
+    const diagnostic = JSON.stringify({
+      exitCode,
+      signalCode: result.signalCode ?? null,
+      exitedDueToTimeout: result.exitedDueToTimeout ?? false,
+      stdoutBytes: result.stdout.byteLength,
+      stderrBytes: result.stderr.byteLength,
+      observation,
+      cleanup,
+    });
+    expect(exitCode, diagnostic).toBe(7);
     const status = JSON.parse(await readFile(join(caseRoot, "supervisor.3000.status.json"), "utf8"));
     expect(status).toMatchObject({ schema: "yellow-order444-native-bounded/v1", launchCount: 1, reason: "child_exit", childExitCode: 7, automaticRestart: false });
     for (const stream of ["stdout", "stderr"]) {
@@ -335,6 +480,63 @@ foreach($change in @(@{password='secret'},@{schema='wrong'},@{propertyNode=$id1.
       expect(await readFile(join(caseRoot, `supervisor.3000.${stream}.0.log`), "utf8")).toEndWith("TAIL-COMPLETE");
     }
   }, 10_000);
+
+  nativeTest("synthetic timeout cleanup denies a mismatched script and stops only its exact owned child", async () => {
+    const cleanupProbe = await writeProbe("owned-child-cleanup-proof.ps1", syntheticChildCleanupProbe);
+    const ownedScript = join(fixtureRoot, "owned-sleeping-child.ps1");
+    const ownedReceipt = join(fixtureRoot, "owned-sleeping-child.identity.json");
+    const unrelatedScript = join(fixtureRoot, "unrelated-sleeping-child.ps1");
+    const unrelatedReceipt = join(fixtureRoot, "unrelated-sleeping-child.identity.json");
+    const sleepingChild = (receipt: string) => `$self=[Diagnostics.Process]::GetCurrentProcess();$identity=[ordered]@{pid=$PID;startedUtc=$self.StartTime.ToUniversalTime().ToString('o');executable=$self.MainModule.FileName};[IO.File]::WriteAllText('${receipt.replaceAll("'", "''")}',($identity|ConvertTo-Json -Compress),[Text.UTF8Encoding]::new($false));Start-Sleep -Seconds 30\n`;
+    await Promise.all([
+      writeFile(ownedScript, sleepingChild(ownedReceipt), "utf8"),
+      writeFile(unrelatedScript, sleepingChild(unrelatedReceipt), "utf8"),
+    ]);
+    const command = (script: string) => [powerShellPath(), "-NoLogo", "-NoProfile", "-NonInteractive", "-File", script];
+    const owned = Bun.spawn({ cmd: command(ownedScript), cwd: repositoryRoot, stdout: "ignore", stderr: "ignore" });
+    const unrelated = Bun.spawn({ cmd: command(unrelatedScript), cwd: repositoryRoot, stdout: "ignore", stderr: "ignore" });
+    try {
+      const [ownedIdentity, unrelatedIdentity] = await Promise.all([
+        waitForSyntheticChildIdentity(ownedReceipt, 1_500),
+        waitForSyntheticChildIdentity(unrelatedReceipt, 1_500),
+      ]);
+      const proof = await writeProbe("owned-child-cleanup-single-process-proof.ps1", String.raw`
+$tokens=$null;$errors=$null
+$ast=[Management.Automation.Language.Parser]::ParseFile('${cleanupProbe.replaceAll("'", "''")}',[ref]$tokens,[ref]$errors)
+if($errors.Count-ne0){throw ($errors|ForEach-Object Message|Out-String)}
+$fn=@($ast.FindAll({param($n)$n-is[Management.Automation.Language.FunctionDefinitionAst]-and$n.Name-eq'Invoke-SyntheticChildCleanup'},$true))
+if($fn.Count-ne1){throw 'exact synthetic cleanup function missing'}
+. ([scriptblock]::Create($fn[0].Extent.Text))
+$ownedPid='${String(ownedIdentity.pid)}';$parentPid='${String(process.pid)}';$source='${ownedIdentity.startedSource}';$started='${ownedIdentity.startedUtc.replaceAll("'", "''")}';$executable='${ownedIdentity.executable.replaceAll("'", "''")}';$ownedScript='${ownedScript.replaceAll("'", "''")}';$unrelatedScript='${unrelatedScript.replaceAll("'", "''")}'
+$ownedHandle=[Diagnostics.Process]::GetProcessById(${String(ownedIdentity.pid)});$unrelatedHandle=[Diagnostics.Process]::GetProcessById(${String(unrelatedIdentity.pid)})
+function Assert-Alive([Diagnostics.Process]$Handle,[string]$Label){$Handle.Refresh();if($Handle.HasExited){throw "$Label exited unexpectedly"}}
+function Assert-Denied([string]$CandidateStarted,[string]$CandidateScript,[string]$Label){
+  $denied=$false
+  try{Invoke-SyntheticChildCleanup -TargetPidText $ownedPid -ExpectedParentPidText $parentPid -StartedSource $source -StartedUtc $CandidateStarted -Executable $executable -Script $CandidateScript|Out-Null}catch{if($_.Exception.Message-cne'synthetic child ownership changed'){throw};$denied=$true}
+  if(-not$denied){throw "$Label was accepted"}
+  Assert-Alive $ownedHandle 'owned child after denial'
+  Assert-Alive $unrelatedHandle 'unrelated child after denial'
+}
+Assert-Denied '1970-01-01T00:00:00.0000000Z' $ownedScript 'mismatched start identity'
+Assert-Denied $started $unrelatedScript 'mismatched script identity'
+$exitCode=Invoke-SyntheticChildCleanup -TargetPidText $ownedPid -ExpectedParentPidText $parentPid -StartedSource $source -StartedUtc $started -Executable $executable -Script $ownedScript
+if($exitCode-ne7){throw 'exact owned child cleanup exit changed'}
+$ownedHandle.Refresh();if(-not$ownedHandle.HasExited){throw 'exact owned child survived cleanup'}
+Assert-Alive $unrelatedHandle 'unrelated child after exact cleanup'
+`);
+      const proofResult = runPowerShell(proof, [], process.env, 5_000);
+      expect(proofResult.exitCode, proofResult.stderr.toString()).toBe(0);
+      expect(await Promise.race([owned.exited, Bun.sleep(600).then(() => null)])).not.toBeNull();
+      expect(unrelated.exitCode).toBeNull();
+    } finally {
+      for (const child of [owned, unrelated]) {
+        if (child.exitCode === null) child.kill();
+        if (await Promise.race([child.exited.then(() => true), Bun.sleep(600).then(() => false)]) === false) {
+          throw new Error("Exact synthetic fixture did not exit inside its cleanup bound");
+        }
+      }
+    }
+  }, 8_000);
 
   nativeTest("bounded supervisor removes inherited runtime and PostgreSQL overrides at child creation", async () => {
     const caseRoot = join(fixtureRoot, "supervisor-environment");

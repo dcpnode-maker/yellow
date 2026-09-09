@@ -754,3 +754,11 @@ export type {
   IndiaNativeFiscalCreditNoteListResult,
   IndiaNativeFiscalCreditNoteSummary,
 } from "./india-native-fiscal-credit-note-list";
+export {
+  IndiaNativeFiscalSeriesDiscoveryService,
+  snapshotIndiaNativeFiscalSeriesDiscoveryInput,
+} from "./india-native-fiscal-series-discovery";
+export type {
+  IndiaNativeFiscalSeriesDiscoveryInput,
+  IndiaNativeFiscalSeriesDiscoveryResult,
+} from "./india-native-fiscal-series-discovery";

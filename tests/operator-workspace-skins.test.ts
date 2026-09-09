@@ -27,7 +27,7 @@ function workspaceSkinHarness(script: string) {
   );
 
   const writes: Array<[PropertyKey, unknown]> = [];
-  const dataset = new Proxy<Record<string, string>>({ workspaceSkin: "calm" }, {
+  const dataset = new Proxy<Record<string, string>>({ workspaceSkin: "ledger" }, {
     set(target, property, value) {
       if (property !== "workspaceSkin") throw new Error(`Unexpected dataset write: ${String(property)}`);
       writes.push([property, value]);
@@ -41,7 +41,7 @@ function workspaceSkinHarness(script: string) {
   });
   const listeners = new Map<string, () => void>();
   const workspaceSkinSelect = {
-    value: "calm",
+    value: "ledger",
     addEventListener(type: string, handler: () => void) {
       listeners.set(type, handler);
     },
@@ -84,13 +84,13 @@ function workspaceSkinHarness(script: string) {
   return { api, dataset, focusTarget, listeners, workspaceSkinSelect, writes };
 }
 
-test("Order444 exposes exactly the three Astra workspace layouts", async () => {
+test("Order458 exposes exactly the eight approved light interfaces", async () => {
   const [html, script] = await Promise.all([
     Bun.file(htmlFile).text(),
     Bun.file(scriptFile).text(),
   ]);
 
-  expect(html).toContain('<html lang="en" data-theme="apple" data-workspace-skin="calm">');
+  expect(html).toContain('<html lang="en" data-theme="apple" data-workspace-skin="ledger"');
   const picker = requireMatch(
     html,
     /<select id="workspace-skin-select"[\s\S]*?<\/select>/,
@@ -98,17 +98,22 @@ test("Order444 exposes exactly the three Astra workspace layouts", async () => {
   );
   expect(picker).toContain('aria-label="Workspace layout"');
   expect([...picker.matchAll(/<option value="([^"]+)">([^<]+)<\/option>/g)].map((match) => match.slice(1))).toEqual([
-    ["calm", "Calm Workbench"],
-    ["precision", "Precision Desk"],
-    ["timeline", "Service Timeline"],
+    ["ledger", "Ledger · Precision desk"],
+    ["aura", "Aura · Spatial glass"],
+    ["relay", "Relay · Operations board"],
+    ["journey", "Journey · Guided workspace"],
+    ["orbit", "Orbit · Command centre"],
+    ["atlas", "Atlas · Portfolio studio"],
+    ["focus", "Focus · Task companion"],
+    ["index", "Index · Planning desk"],
   ]);
   expect(html).not.toMatch(/data-experience=|id="experience-select"|id="theme-select"/);
-  expect(picker).not.toMatch(/Simple|Advanced|Expert|Apple|Android|Windows|Glass|Neo|ERP/i);
-  expect(script).toContain('const WORKSPACE_SKINS = new Set(["calm", "precision", "timeline"])');
+  expect(picker).not.toMatch(/Simple|Advanced|Expert|Apple|Android|Windows|Neo|ERP/i);
+  expect(script).toContain('const WORKSPACE_SKINS = new Set(["ledger", "aura", "relay", "journey", "orbit", "atlas", "focus", "index"])');
   expect(script).not.toMatch(/\b(?:THEMES|EXPERIENCES|applyTheme|applyExperience|themeSelect|experienceSelect)\b/);
 });
 
-test("Order444 keeps every mounted workspace and invoice deep-route anchor", async () => {
+test("Order458 keeps every mounted workspace and invoice deep-route anchor", async () => {
   const html = await Bun.file(htmlFile).text();
   const navigation = [...html.matchAll(/<button class="(?:domain-tab(?: is-active)?|day-close-nav)"[^>]*data-view="([^"]+)"/g)]
     .map((match) => match[1]);
@@ -122,14 +127,17 @@ test("Order444 keeps every mounted workspace and invoice deep-route anchor", asy
     'id="invoices-view"',
     'id="invoices-mount"',
     'id="folio-invoice-review"',
-    'id="secondary-workspaces-toggle"',
-    'id="secondary-workspaces" hidden',
+    'data-workspace-group="front-desk"',
+    'data-workspace-group="finance"',
+    'data-workspace-group="operations"',
+    'data-workspace-group="revenue"',
+    'data-workspace-group="system"',
   ]) {
     expect(html).toContain(anchor);
   }
 });
 
-test("Order444 layout changes preserve the mounted subject, draft, filter, focus and request identity", async () => {
+test("Order458 interface changes preserve the mounted subject, draft, filter, focus and request identity", async () => {
   const script = await Bun.file(scriptFile).text();
   const harness = workspaceSkinHarness(script);
   const mountedWorkflow = {
@@ -145,7 +153,7 @@ test("Order444 layout changes preserve the mounted subject, draft, filter, focus
   const change = harness.listeners.get("change");
 
   expect(change).toBeFunction();
-  for (const skin of ["precision", "timeline", "calm"]) {
+  for (const skin of ["aura", "relay", "journey", "orbit", "atlas", "focus", "index", "ledger"]) {
     harness.workspaceSkinSelect.value = skin;
     change?.();
     expect(harness.dataset.workspaceSkin).toBe(skin);
@@ -158,12 +166,14 @@ test("Order444 layout changes preserve the mounted subject, draft, filter, focus
 
   harness.workspaceSkinSelect.value = "expert";
   change?.();
-  expect(harness.dataset.workspaceSkin).toBe("calm");
-  expect(harness.workspaceSkinSelect.value).toBe("calm");
-  expect(harness.writes.map(([, value]) => value)).toEqual(["precision", "timeline", "calm", "calm"]);
+  expect(harness.dataset.workspaceSkin).toBe("ledger");
+  expect(harness.workspaceSkinSelect.value).toBe("ledger");
+  expect(harness.writes.map(([, value]) => value)).toEqual([
+    "aura", "relay", "journey", "orbit", "atlas", "focus", "index", "ledger", "ledger",
+  ]);
 });
 
-test("Order444 switching is page-session presentation only and contextual navigation stays uniform", async () => {
+test("Order458 switching is page-session presentation only and contextual navigation stays uniform", async () => {
   const script = await Bun.file(scriptFile).text();
   const setter = requireMatch(
     script,
@@ -178,10 +188,11 @@ test("Order444 switching is page-session presentation only and contextual naviga
 
   expect(`${setter}\n${listener}`).not.toMatch(/fetch|request\(|localStorage|sessionStorage|indexedDB|cookie|history\.|setView\(|transitionWorkspace|replaceChildren|innerHTML|location\./);
   expect(script).not.toMatch(/data-experience|dataset\.experience/);
-  expect(script).toContain("if (SECONDARY_VIEWS.has(activeView)) {");
-  expect(script).toContain("if (SECONDARY_VIEWS.has(view)) closeSecondaryWorkspaces();");
-  expect(script).toContain('secondaryWorkspacesToggle.addEventListener("click"');
-  expect(script).toContain('if (event.key === "Escape")');
-  expect(script).toContain("closeSecondaryWorkspaces(true)");
+  expect(script.includes("revealWorkspaceGroup(activeView);")).toBe(true);
+  expect(script.includes("revealWorkspaceGroup(view);")).toBe(true);
+  expect(script.includes('group.addEventListener("keydown"')).toBe(true);
+  expect(script.includes('if (event.key !== "Escape" || !group.open) return;')).toBe(true);
+  expect(script.includes('group.querySelector("summary")?.focus({ preventScroll: true })')).toBe(true);
+  expect(script).not.toMatch(/secondaryWorkspaces|SECONDARY_VIEWS/);
   expect(script).not.toMatch(/localStorage|sessionStorage|document\.cookie|indexedDB/);
 });

@@ -231,19 +231,17 @@ const withBrowserSession = async <T>(
   }
 };
 
-test("Order195: disclosure is a viewport overlay at every responsive width", async () => {
+test("Order459: current navigation stays in native groups; historical overlay CSS is retained only internally", async () => {
   const [css, script] = await Promise.all([Bun.file(cssFile).text(), Bun.file(scriptFile).text()]);
   const responsiveStart = css.indexOf("@media (max-width: 1020px)");
   const responsive = css.slice(responsiveStart, css.indexOf("@media (max-width: 600px)", responsiveStart));
   expect(css).toMatch(/\.secondary-workspaces:not\(\[hidden\]\)\s*\{[^}]*position:\s*fixed/);
   expect(css).toMatch(/\.secondary-workspaces:not\(\[hidden\]\)\s*\{[^}]*top:\s*var\(--workspace-menu-top/);
   expect(responsive).not.toContain("display: contents");
-  expect(script).toContain("positionSecondaryWorkspaces");
-  expect(script).toContain("document.body.append(secondaryWorkspaces)");
-  expect(script).toContain('event.key === "Escape"');
-  expect(script).toContain('event.key !== "Tab"');
-  expect(script).toContain("event.shiftKey");
-  expect(script).toContain("closeSecondaryWorkspaces(true)");
+  expect(script.includes("revealWorkspaceGroup(activeView)")).toBe(true);
+  expect(script.includes('if (event.key !== "Escape" || !group.open) return;')).toBe(true);
+  expect(script.includes('group.querySelector("summary")?.focus({ preventScroll: true })')).toBe(true);
+  expect(script).not.toMatch(/positionSecondaryWorkspaces|document\.body\.append\(secondaryWorkspaces\)|closeSecondaryWorkspaces/);
   expect(script.match(/focus\(\{ preventScroll: true \}\)/g)?.length ?? 0).toBeGreaterThanOrEqual(4);
   expect(css).toMatch(/@media \(max-width: 600px\)[\s\S]*\.search-bar \.search-button \{[^}]*grid-row:\s*1/);
 });

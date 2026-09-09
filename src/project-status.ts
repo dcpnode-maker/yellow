@@ -16,7 +16,8 @@ export interface ProjectRecordedWorkSnapshot {
     | 126 | 127 | 148 | 154 | 155 | 156 | 160 | 161 | 162 | 163 | 164
     | 165 | 166 | 168 | 169 | 170 | 171 | 173 | 174 | 175 | 176 | 177 | 178
     | 179 | 180 | 181 | 182 | 183 | 184 | 185 | 186 | 188 | 189
-    | 190 | 191 | 192 | 193 | 195 | 199 | 236 | 310 | 396 | 429 | 434 | 438 | 440 | 444;
+    | 190 | 191 | 192 | 193 | 195 | 199 | 236 | 310 | 396 | 429 | 434 | 438 | 440 | 444
+    | 453 | 454 | 455 | 458 | 459 | 460;
   readonly state: ProjectRecordedWorkState;
   readonly summary: string;
   readonly remaining?: string;
@@ -70,12 +71,12 @@ export const DEFAULT_OPERATOR_RUNTIME_STATUS: OperatorRuntimeStatus = Object.fre
 
 export const PROJECT_BUILD_SNAPSHOT: ProjectBuildSnapshot = Object.freeze({
   schemaVersion: 2,
-  recordedAt: "2026-09-07",
-  label: "Order 444 partner-preview candidate built; integration and promotion pending",
+  recordedAt: "2026-09-09",
+  label: "Current-source release in progress; fiscal discovery and interface source verified",
   roadmap: Object.freeze({
     phaseCount: 18,
-    latestBuiltOrder: 439,
-    currentOrder: 444,
+    latestBuiltOrder: 459,
+    currentOrder: 460,
     activePhase: 7,
   }),
   review: Object.freeze({
@@ -357,13 +358,49 @@ export const PROJECT_BUILD_SNAPSHOT: ProjectBuildSnapshot = Object.freeze({
       order: 440,
       state: "proof_in_progress" as const,
       summary: "Order 440 Q207 durable fiscal submission, authenticated provider transport, immutable signed receipts and authorized receipt reads are independently merged through PR91 at 3503b0c (81 migrations / 128 public tables). All six CI jobs and normal CodeQL passed, including actual native ARM64 execution, full upgrade compatibility and post-merge schema/referee 11/11. The separate hotel-journey study remains a fictional design prototype; Astra Ultra RMS remains documented research without algorithm runtime or measured uplift.",
-      remaining: "Merged main81 is not the preserved local77 or the current Order444 candidate85 development. Provider onboarding, authentic external-provider sandbox acceptance and activation remain unfinished. No local refresh, native promotion, new-department release or cloud deployment is claimed; Phase 7 is not complete.",
+      remaining: "Merged main81 remains distinct from the historically verified Order444 preview85 and retained rollback77. Provider onboarding, authentic external-provider sandbox acceptance and activation remain unfinished. No new-department release or cloud deployment is claimed; Phase 7 is not complete.",
     }),
     Object.freeze({
       order: 444,
       state: "proof_in_progress" as const,
-      summary: "Order 444 current source builds the three-layout Calm Workbench, Precision Desk and Service Timeline shell plus Q208 operator invoice queue/detail, readiness, confirmed issuance, explicit submission/current receipt and exact print workflow. Q209 independent actual proofs pass populated81-to-85 preservation 2/0 and the synthetic fiscal review seed through genuine production services 8/0 on isolated candidate85 targets.",
-      remaining: "Order 444 is not merged main81 or preserved local77, and candidate85 is not the founder runtime. Exact current-head all-six CI and CodeQL, guarded native promotion, full Astra identity/journey design, authentic external-provider sandbox acceptance and provider activation remain required. Order 444, Phase 7 and the whole application are not complete.",
+      summary: "Order 444 current source builds the three-layout Calm Workbench, Precision Desk and Service Timeline shell plus Q208 operator invoice queue/detail, readiness, confirmed issuance, explicit submission/current receipt and exact print workflow. Q209 independent actual proofs pass populated81-to-85 preservation 2/0 and the synthetic fiscal review seed through genuine production services 8/0 on isolated candidate85 targets. Historical preview receipt: exact a10851786f17f2fdea0cf970320ee8c46a45b670/frontier85 passed all six CI34095296622 jobs and normal CodeQL34095293723, then native promotion was verified on 2026-09-07 at 08:09:38Z. Real browser proof at 08:14:30Z used three prefilled sign-in fields and the actual login button, read synthetic invoice YR/1, mounted 15 destinations, inspected three desktop layouts and the 390px phone view, and signed out with zero business commands.",
+      remaining: "This is a historical verified preview receipt, not a claim that this snapshot's source is serving: dynamic runtime build information owns the actual serving revision/frontier. Old b5ef708/frontier77 is retained for rollback. Mounted destinations are not full transaction acceptance of all 15 workspaces; providers remain unconfigured/default-off. Full Astra identity/journey design, authentic external-provider sandbox acceptance and provider activation remain required. No main merge is claimed. Order 444, Phase 7 and the whole application are not complete.",
+    }),
+    Object.freeze({
+      order: 453,
+      state: "independently_approved" as const,
+      summary: "Order 453 independently proved native fiscal-series configuration, populated upgrade, clean-install schema equality, referee 11/11 and 50 readiness denials/restorations at 90 migrations. Source 87da26f3 was published to draft PR92 after full standing 1983/0; earlier native credit-note and delivery work is included in that source lineage.",
+      remaining: "Exact-head CI exposed the Windows and receipt-test failures now repaired under Order 455. Publication is not main merge, local activation, provider acceptance or Phase-7 completion.",
+    }),
+    Object.freeze({
+      order: 454,
+      state: "independently_approved" as const,
+      summary: "Order 454 adds authorized read-only discovery of configured or absent current-year fiscal numbering. Actual native SQL 10/0 and independent preservation audit pass; root and independent signed HTTP 5/0 each preserve all public rows, catalogue and sequences. Current-day supplier status and current tenant/actor/property authority remain required.",
+      remaining: "Exact-source standing, publication and CI remain release gates. Discovery allocates no number, issues no document, calls no provider and does not complete Phase 7.",
+    }),
+    Object.freeze({
+      order: 455,
+      state: "proof_in_progress" as const,
+      summary: "Order 455 repairs the Windows test harness and signed-receipt disclosure oracle without weakening production safeguards. Root and independent Windows runs pass 20/0. Independent native receipt proof has 16 passed, one upgrade-only skip, zero failures and 4177 assertions; all 59 pre-existing databases and global role/settings state are preserved.",
+      remaining: "The existing 80-to-81 upgrade lane and repaired exact-source CI remain required. Earlier test and preflight failures are retained; no production crypto, SQL or supervisor rule was weakened.",
+    }),
+    Object.freeze({
+      order: 458,
+      state: "built_unverified" as const,
+      summary: "Order 458 builds eight light interfaces: Ledger, Aura, Relay, Journey, Orbit, Atlas, Focus and Index, with selectable spatial depth and reduced-motion support. The separate OTA field/depth/mapping catalogue is documented research, not a live integration.",
+      remaining: "The founder rejected this initial implementation's layout fidelity. Order 459 supersedes its workspace composition; the earlier browser pass is not visual approval or local activation.",
+    }),
+    Object.freeze({
+      order: 459,
+      state: "built_unverified" as const,
+      summary: "Order 459 replaces the flat menu with five hotel-workflow groups while preserving all 15 destinations, routes, permissions and drafts. Eight distinct mounted Today/invoice compositions pass the actual-source browser proof with 1143 assertions, plus responsive geometry and focused regressions; captures use synthetic data.",
+      remaining: "Founder visual acceptance and version-correct local promotion remain separate. These checks do not establish complete transaction coverage of every workspace or native mobile-app delivery.",
+    }),
+    Object.freeze({
+      order: 460,
+      state: "proof_in_progress" as const,
+      summary: "Order 460 is preparing the complete accepted backend and corrected interfaces for one local release, excluding preserved unfinished guest-picker changes. The serving database's retained frontier is 85; current source requires 90. The stale Order-444-only embedded status is being replaced with these recorded milestones.",
+      remaining: "Exact source and CI, protected recovery, retained-data upgrade and independently observed worker deltas must pass before promotion. Dynamic runtime build information owns the actual serving revision and schema; these milestones do not claim they are live. Phase 7 and the whole application are not complete.",
     }),
   ] satisfies readonly ProjectRecordedWorkSnapshot[]),
   phases: Object.freeze([

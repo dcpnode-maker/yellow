@@ -1,5 +1,24 @@
 # Order444 — Partner review app and Astra workflow integration
 
+## Current successor — 9 September 2026
+
+The dated scope and receipts below are historical. Founder selection subsequently
+admitted eight light interfaces under Order458; its implementation was rejected
+for weak layout fidelity. Order459 corrects the actual source composition and
+groups all15 destinations into five native hotel-workflow menus, using the
+founder-provided Hotel PMS reference. Its actual-source Chromium proof passes1/0
+with1,143 assertions on synthetic data; founder visual acceptance remains open.
+Q211's pinned licensed font/icon dependencies are retained in that current source.
+
+Order460 now coordinates complete accepted frontier90 source publication and
+version-correct release, including the embedded status update. Local3000 remains
+stopped; no historical ready/live statement below means it is running now. Paused
+Order445 guest-picker work is preserved but excluded. Orders454/455 backend proof
+has resumed and passed the native gates recorded in current project status; no
+whole-Phase7, provider activation or final UI acceptance is inferred.
+
+## Earlier Order444 scope and receipts — historical
+
 **Status:** ACTIVE — first three-layout shell implemented and locally verified;
 complete journey/identity integration and native review promotion remain.
 **Date:** 2026-09-07. **Owner:** Codex coordinator. **Phase:** cross-phase UI and

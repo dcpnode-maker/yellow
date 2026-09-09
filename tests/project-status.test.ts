@@ -63,13 +63,13 @@ async function historicalCounts(directory: string): Promise<string> {
 }
 
 describe("canonical project status", () => {
-  test("records the accepted native closure and current Order 444 partner-preview work", () => {
+  test("records current release work while preserving the historical Order 444 preview", () => {
     const originalSnapshot = JSON.stringify(PROJECT_BUILD_SNAPSHOT);
-    expect(PROJECT_BUILD_SNAPSHOT.recordedAt).toBe("2026-09-07");
+    expect(PROJECT_BUILD_SNAPSHOT.recordedAt).toBe("2026-09-09");
     expect(PROJECT_BUILD_SNAPSHOT.roadmap).toMatchObject({
       phaseCount: 18,
-      latestBuiltOrder: 439,
-      currentOrder: 444,
+      latestBuiltOrder: 459,
+      currentOrder: 460,
       activePhase: 7,
     });
     expect(PROJECT_BUILD_SNAPSHOT.review.independentlyReviewedThroughOrder).toBeGreaterThanOrEqual(91);
@@ -83,18 +83,29 @@ describe("canonical project status", () => {
     expect(byOrder.get(440)?.summary).toContain("durable fiscal submission");
     expect(byOrder.get(440)?.summary).toContain("PR91 at 3503b0c");
     expect(byOrder.get(440)?.summary).toContain("81 migrations / 128 public tables");
-    expect(byOrder.get(440)?.remaining).toContain("Merged main81 is not the preserved local77 or the current Order444 candidate85 development");
+    expect(byOrder.get(440)?.remaining).toContain("historically verified Order444 preview85 and retained rollback77");
     expect(byOrder.get(440)?.remaining).toContain("authentic external-provider sandbox acceptance and activation remain unfinished");
     expect(byOrder.get(444)?.state).toBe("proof_in_progress");
     expect(byOrder.get(444)?.summary).toContain("three-layout Calm Workbench, Precision Desk and Service Timeline shell");
     expect(byOrder.get(444)?.summary).toContain("Q208 operator invoice queue/detail, readiness, confirmed issuance");
     expect(byOrder.get(444)?.summary).toContain("populated81-to-85 preservation 2/0");
     expect(byOrder.get(444)?.summary).toContain("synthetic fiscal review seed through genuine production services 8/0");
-    expect(byOrder.get(444)?.remaining).toContain("not merged main81 or preserved local77");
-    expect(byOrder.get(444)?.remaining).toContain("candidate85 is not the founder runtime");
-    expect(byOrder.get(444)?.remaining).toContain("Exact current-head all-six CI and CodeQL");
-    expect(byOrder.get(444)?.remaining).toContain("guarded native promotion");
-    expect(byOrder.get(444)?.remaining).toContain("full Astra identity/journey design");
+    expect(byOrder.get(444)?.summary).toContain("a10851786f17f2fdea0cf970320ee8c46a45b670/frontier85");
+    expect(byOrder.get(444)?.summary).toContain("all six CI34095296622 jobs and normal CodeQL34095293723");
+    expect(byOrder.get(444)?.summary).toContain("2026-09-07 at 08:09:38Z");
+    expect(byOrder.get(444)?.summary).toContain("08:14:30Z");
+    expect(byOrder.get(444)?.summary).toContain("three prefilled sign-in fields and the actual login button");
+    expect(byOrder.get(444)?.summary).toContain("synthetic invoice YR/1");
+    expect(byOrder.get(444)?.summary).toContain("mounted 15 destinations");
+    expect(byOrder.get(444)?.summary).toContain("three desktop layouts and the 390px phone view");
+    expect(byOrder.get(444)?.summary).toContain("signed out with zero business commands");
+    expect(byOrder.get(444)?.remaining).toContain("historical verified preview receipt");
+    expect(byOrder.get(444)?.remaining).toContain("dynamic runtime build information owns the actual serving revision/frontier");
+    expect(byOrder.get(444)?.remaining).toContain("Old b5ef708/frontier77 is retained for rollback");
+    expect(byOrder.get(444)?.remaining).toContain("not full transaction acceptance of all 15 workspaces");
+    expect(byOrder.get(444)?.remaining).toContain("providers remain unconfigured/default-off");
+    expect(byOrder.get(444)?.remaining).toContain("No main merge is claimed");
+    expect(byOrder.get(444)?.remaining).toContain("Full Astra identity/journey design");
     expect(byOrder.get(444)?.remaining).toContain("Phase 7 and the whole application are not complete");
 
     expect(PROJECT_BUILD_SNAPSHOT.phases).toHaveLength(18);

@@ -157,11 +157,16 @@ export function createApp(options: AppOptions = {}) {
       .get("/p/:property/status", ({ request }) => operatorAssets.html(options.operatorLocalReviewCredentials, request))
       .get("/assets/operator.css", () => operatorAssets.css())
       .get("/assets/operator.js", () => operatorAssets.js())
+      .get("/assets/operator-interfaces.css", () => operatorAssets.interfacesCss())
+      .get("/assets/operator-interfaces.js", () => operatorAssets.interfacesJs())
+      .get("/assets/operator-layouts.js", () => operatorAssets.layoutsJs())
       .get("/assets/operator-invoices.js", () => operatorAssets.invoiceJs())
       .get("/assets/operator-invoice-print.js", () => operatorAssets.invoicePrintJs())
       .get("/assets/vendor/qrcodegen-v1.8.0-es6.js", () => operatorAssets.invoiceQrJs())
       .get("/assets/operator-deposits.css", () => operatorAssets.depositCss())
       .get("/assets/operator-deposits.js", () => operatorAssets.depositJs())
+      .get("/static/fonts/urbanist-v1.330.woff2", () => operatorAssets.urbanistFont())
+      .get("/static/icons/phosphor-nav-2.1.1.svg", () => operatorAssets.phosphorNav())
       .get("/assets/operator-local-prefill.js", () => operatorAssets.localPrefillJs())
       .post("/api/v1/auth/local:login", ({ request, body, server }) =>
         operator.login(request, body, localLoginSourceKey(server?.requestIP(request)))
@@ -216,6 +221,9 @@ export function createApp(options: AppOptions = {}) {
       )
       .post("/api/v1/properties/:property/fiscal-series", ({ request, params, body }) =>
         withOperatorTenant(request, (context) => operator.fiscalSeriesConfigure(context, params.property, body))
+      )
+      .get("/api/v1/properties/:property/fiscal-series", ({ request, params }) =>
+        withOperatorTenant(request, (context) => operator.fiscalSeriesDiscover(context, params.property))
       )
       .get("/api/v1/properties/:property/invoices/:document/credit-notes", ({ request, params }) =>
         withOperatorTenant(request, (context) => operator.fiscalCreditNoteDiscover(context, params.property, params.document))

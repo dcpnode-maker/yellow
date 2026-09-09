@@ -228,8 +228,10 @@
  const operatorName = $("#operator-name");
  const signOutButton = $("#sign-out");
  const workspaceSkinSelect = $("#workspace-skin-select");
- const secondaryWorkspaces = $("#secondary-workspaces");
- const secondaryWorkspacesToggle = $("#secondary-workspaces-toggle");
+ const workspaceGroups = [...document.querySelectorAll(".workspace-group")];
+ const workspaceNavigation = $("#workspace-navigation");
+ const workspaceNavigationCurrent = $("#workspace-navigation-current");
+ const compactWorkspaceNavigation = window.matchMedia("(max-width: 1020px)");
  const workbenchTitle = $("#workbench-title");
  const availabilityReservationShortcut = $("#availability-reservation-shortcut");
  const availabilityView = $("#availability-view");
@@ -841,10 +843,9 @@
  const folioCorrectionExpected = $("#folio-correction-expected");
  const SYSTEM_STATUS_SUFFIX = "/system-status";
  const MAX_MINOR = BigInt("9223372036854775807");
- const WORKSPACE_SKINS = new Set(["calm", "precision", "timeline"]);
- const SECONDARY_VIEWS = new Set(["operations", "housekeeping", "vehicles", "inventory", "restrictions", "rates", "status"]);
+ const WORKSPACE_SKINS = new Set(["ledger", "aura", "relay", "journey", "orbit", "atlas", "focus", "index"]);
   function applyWorkspaceSkin(skin) {
- const next = WORKSPACE_SKINS.has(skin) ? skin : "calm";
+ const next = WORKSPACE_SKINS.has(skin) ? skin : "ledger";
  document.documentElement.dataset.workspaceSkin = next;
  workspaceSkinSelect.value = next;
  }
@@ -1000,7 +1001,7 @@
  trustRequestGeneration += 1; trustAccounts = []; trustApprovals = []; trustApprovalCursor = null; trustMutationKeys.clear(); clearTrustPreview();
  pendingKeys.clear();
  history.replaceState(null, "", "/");
- closeSecondaryWorkspaces();
+ resetWorkspaceGroups();
  restoreLocalLoginDefaults();
  loginForm.elements.email.focus();
  }
@@ -9802,9 +9803,6 @@ function vehicleReturnPathFromState(state, property) {
   invoiceRouteGeneration += 1;
   invoiceWorkbench?.suspend();
  }
- if (SECONDARY_VIEWS.has(activeView)) {
-  closeSecondaryWorkspaces();
- }
  if (previousView === "folios" && activeView !== "folios") {
   clearFolioState();
   if (activeView !== "reservations" || `${location.pathname}${location.search}` !== departureFolioReturn?.originPath) {
@@ -9864,6 +9862,7 @@ function vehicleReturnPathFromState(state, property) {
   tab.classList.toggle("is-active", selected);
   tab.setAttribute("aria-current", selected ? "page" : "false");
  }
+ revealWorkspaceGroup(activeView);
  if (propertySelect.value && updateHistory) {
   history.pushState(null, "", `/p/${propertySelect.value}/${activeView}`);
   if (activeView === "day-close" && dayCloseDate.value) history.replaceState({ yellowSurface: "day-close" }, "", dayCloseCanonicalPath(dayCloseDate.value));
@@ -9923,7 +9922,7 @@ function vehicleReturnPathFromState(state, property) {
  if (activeView === "trust") void loadTrustWorkbench();
  }
  function finishWorkspaceNavigation(view) {
-  if (SECONDARY_VIEWS.has(view)) closeSecondaryWorkspaces();
+  revealWorkspaceGroup(view);
   const heading = document.getElementById(`${view}-title`);
   requestAnimationFrame(() => {
    if (activeView !== view || !heading || heading.closest("section")?.hidden) return;
@@ -12723,79 +12722,52 @@ housekeepingSheetDate.addEventListener("change", () => {
  workspaceSkinSelect.addEventListener("change", () => {
  applyWorkspaceSkin(workspaceSkinSelect.value);
  });
- const workspaceMenuFocusable = () => Array.from(secondaryWorkspaces.querySelectorAll('a[href],button:not([disabled]),input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])'))
-  .filter((element) => element.getClientRects().length > 0);
- const positionSecondaryWorkspaces = () => {
-  if (secondaryWorkspaces.hidden) return;
-  const edge = 8;
-  const anchor = secondaryWorkspacesToggle.getBoundingClientRect();
-  const menuWidth = Math.min(320, Math.max(0, window.innerWidth - edge * 2));
-  const desiredHeight = Math.min(520, secondaryWorkspaces.scrollHeight);
-  const left = Math.min(Math.max(edge, anchor.right - menuWidth), Math.max(edge, window.innerWidth - menuWidth - edge));
-  let top = anchor.bottom + edge;
-  const availableBelow = window.innerHeight - top - edge;
-  if (availableBelow < Math.min(desiredHeight, 240) && anchor.top > desiredHeight + edge * 2) top = anchor.top - desiredHeight - edge;
-  top = Math.min(Math.max(edge, top), Math.max(edge, window.innerHeight - Math.min(desiredHeight, window.innerHeight - edge * 2) - edge));
-  secondaryWorkspaces.style.setProperty("--workspace-menu-left", `${left}px`);
-  secondaryWorkspaces.style.setProperty("--workspace-menu-top", `${top}px`);
-  secondaryWorkspaces.style.setProperty("--workspace-menu-max-height", `${Math.max(120, window.innerHeight - top - edge)}px`);
- };
- const closeSecondaryWorkspaces = (restoreFocus = false) => {
-  secondaryWorkspaces.hidden = true;
-  secondaryWorkspacesToggle.setAttribute("aria-expanded", "false");
-  secondaryWorkspacesToggle.textContent = "More workspaces";
-  if (restoreFocus) secondaryWorkspacesToggle.focus({ preventScroll: true });
- };
- const openSecondaryWorkspaces = () => {
-  if (secondaryWorkspaces.parentElement !== document.body) document.body.append(secondaryWorkspaces);
-  secondaryWorkspaces.hidden = false;
-  secondaryWorkspacesToggle.setAttribute("aria-expanded", "true");
-  secondaryWorkspacesToggle.textContent = "Fewer workspaces";
-  positionSecondaryWorkspaces();
-  requestAnimationFrame(() => {
-   positionSecondaryWorkspaces();
-   workspaceMenuFocusable()[0]?.focus({ preventScroll: true });
+ // Native disclosure groups preserve the original navigation buttons and guards.
+ function syncWorkspaceGroupPresentation() {
+  const compactRail = workspaceSkinSelect.value === "ledger" && !compactWorkspaceNavigation.matches;
+  const selected = workspaceGroups.find(group => group.classList.contains("contains-current"))
+   || workspaceGroups.find(group => group.open) || workspaceGroups[0];
+  for (const group of workspaceGroups) group.removeAttribute("name");
+  if (!compactRail) return;
+  for (const group of workspaceGroups) group.open = group === selected;
+  for (const group of workspaceGroups) group.setAttribute("name", "ledger-workspace-rail");
+ }
+ workspaceSkinSelect.addEventListener("change", syncWorkspaceGroupPresentation);
+ function resetWorkspaceGroups() {
+  workspaceNavigation.open = !compactWorkspaceNavigation.matches;
+  workspaceNavigationCurrent.textContent = "Today";
+  for (const group of workspaceGroups) {
+   group.open = group.dataset.workspaceGroup === "front-desk";
+   group.classList.remove("contains-current");
+  }
+ }
+ function revealWorkspaceGroup(view) {
+  for (const group of workspaceGroups) {
+   const current = [...group.querySelectorAll("[data-view]")].some(button => button.dataset.view === view);
+   group.classList.toggle("contains-current", current);
+   group.open = current;
+  }
+  workspaceNavigationCurrent.textContent = workbenchTitle.textContent;
+  workspaceNavigation.open = !compactWorkspaceNavigation.matches;
+ }
+ compactWorkspaceNavigation.addEventListener("change", () => {
+  workspaceNavigation.open = !compactWorkspaceNavigation.matches;
+  syncWorkspaceGroupPresentation();
+ });
+ for (const group of workspaceGroups) {
+  group.addEventListener("keydown", event => {
+   if (event.key !== "Escape" || !group.open) return;
+   event.preventDefault();
+   group.open = false;
+   group.querySelector("summary")?.focus({ preventScroll: true });
   });
- };
- secondaryWorkspacesToggle.addEventListener("click", () => {
-  if (secondaryWorkspaces.hidden) openSecondaryWorkspaces();
-  else closeSecondaryWorkspaces(true);
- });
- document.addEventListener("keydown", (event) => {
-  if (secondaryWorkspaces.hidden) return;
-  if (event.key === "Escape") {
-   event.preventDefault();
-   closeSecondaryWorkspaces(true);
-   return;
-  }
-  if (event.key !== "Tab") return;
-  const focusable = workspaceMenuFocusable();
-  if (focusable.length === 0) {
-   event.preventDefault();
-   secondaryWorkspaces.focus();
-   return;
-  }
-  const first = focusable[0];
-  const last = focusable[focusable.length - 1];
-  if (event.shiftKey && document.activeElement === first) {
-   event.preventDefault();
-   last?.focus({ preventScroll: true });
-  } else if (!event.shiftKey && document.activeElement === last) {
-   event.preventDefault();
-   first?.focus({ preventScroll: true });
-  }
- });
- document.addEventListener("pointerdown", (event) => {
-  if (secondaryWorkspaces.hidden || secondaryWorkspaces.contains(event.target) || secondaryWorkspacesToggle.contains(event.target)) return;
-  closeSecondaryWorkspaces();
- });
- window.addEventListener("resize", positionSecondaryWorkspaces);
- document.addEventListener("scroll", positionSecondaryWorkspaces, { passive: true, capture: true });
+ }
  signOutButton.addEventListener("click", () => {
  if (activeView !== "folios" || folioWorkspace.hidden || confirmFolioExit()) showLogin();
  });
  applyWorkspaceSkin(workspaceSkinSelect.value);
- closeSecondaryWorkspaces();
+ resetWorkspaceGroups();
+ syncWorkspaceGroupPresentation();
  initializeDates();
  addTier(createTierList, 1, "");
  addTier(createTierList, 2, "");

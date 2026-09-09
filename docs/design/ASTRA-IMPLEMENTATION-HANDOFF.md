@@ -1,5 +1,32 @@
 # Astra UI handoff — current implementation direction
 
+## Current release direction — 9 September 2026
+
+This section supersedes the earlier single-design, three-workspace and
+prototype-only directions below. The founder selected eight light interfaces:
+Ledger, Aura, Relay, Journey, Orbit, Atlas, Focus and Index. Concepts01/02 are
+excluded;05/06 supply workflow inspiration only. Each presentation may use a
+different screen composition; it must preserve the same authorized application,
+data, commands, drafts and route identities.
+
+Order458's initial implementation was rejected for insufficient visual fidelity.
+Order459 now has distinct mounted Today and invoice compositions and five native
+workflow groups across all15 existing destinations, informed by the founder's
+[Hotel PMS reference](http://pms-test-alb-901282387.ap-south-2.elb.amazonaws.com/).
+No global Simple/Advanced/Expert hierarchy or catch-all More workspaces menu is
+the current direction. See [selectable interfaces](SELECTABLE-INTERFACES.md)
+for implemented structures, device behavior and remaining design intent.
+
+Root's actual-source Chromium proof passes1/0 with1,143 assertions using fictional
+HTTP fixtures. This is technical source evidence, not founder visual acceptance,
+complete journey coverage or native iOS/Android completion. Current source is
+unpublished; local3000 is stopped. [Project status](../PROJECT-STATUS.md) owns the
+release/runtime lifecycle. Do not infer new functionality from a presentation or
+animate invented AI processing. Paused Order445 guest-picker changes are excluded
+from this release; existing reservation/API safeguards remain unchanged.
+
+## Earlier directions — retained history, not current release authority
+
 **Founder clarification: 2026-09-07.** This records the latest direction, not a
 claim that the current local app already implements it. Execute through
 [Order444](../../handoff/orders/444-partner-review-and-astra-ui-integration.md).

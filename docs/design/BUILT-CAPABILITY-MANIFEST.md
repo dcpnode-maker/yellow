@@ -1,5 +1,31 @@
 # Built operator capability inventory — Order444
 
+## Current-source addendum — 9 September 2026
+
+The dated inventory below is historical, not the latest release receipt. Accepted
+backend source is at migration frontier90. Orders448/450/452 expose native credit
+projection/list/delivery reads;453 configures governed fiscal series;454 adds
+authorized, read-only series discovery with a nullable result and no numbering
+allocation. These API capabilities do not imply that every flow has a new UI.
+Order455 repairs test reliability, not the financial rules. Their precise
+contracts are in [CONTRACTS.md](../CONTRACTS.md).
+
+Order459 mounts five hotel-workflow navigation groups over15 existing destinations
+and eight dedicated light presentations. Real Today and invoice screens have
+source browser proof with synthetic HTTP data. This does not establish founder
+visual approval, all-feature configuration or every hotel journey. Paused445
+guest-picker work is explicitly excluded; general reservation/profile amendment,
+identity intake/OCR and pre-arrival enrichment remain separate unfinished work.
+
+The embedded status source now records latest built459/current460 without changing
+the18 phase states or review-through91. It is not yet published or served.
+The sole prior review runtime was a1085178/frontier85 and is safety-stopped;
+complete current-source release, retained-data upgrade and live checks remain
+under Order460. Consult [project status](../PROJECT-STATUS.md), never a historical
+paragraph below, for actual running identity and current proof.
+
+## Earlier source inventory — retained historical checkpoint
+
 **Source inventory: 7 September 2026. Not a deployment receipt.** The current
 checkout mounts 15 workspaces. The retained founder runtime is still the older
 frontier77 app until a separately verified update. Read
