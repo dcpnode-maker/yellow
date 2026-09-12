@@ -101,7 +101,7 @@ async function readinessFailure(operation: Promise<void>): Promise<Error> {
 async function ensureCurrentRelease(): Promise<void> {
   if (currentReleaseReady) return;
   const result = await runMigrations({ databaseUrl: deploymentDatabaseUrl, logger: () => undefined });
-  expect(result.appliedFiles).toEqual(["0090_india_native_fiscal_series_configuration.sql"]);
+  expect(result.appliedFiles).toEqual(["0090_india_native_fiscal_series_configuration.sql", "0091_reservation_alert_authority.sql"]);
   deployment = new SQL(deploymentDatabaseUrl, { max: 1, prepare: false });
   runtime = new SQL(runtimeDatabaseUrl, { max: 1, prepare: false });
   currentReleaseReady = true;
@@ -452,7 +452,7 @@ databaseDescribe("Order438 runtime release readiness identity", () => {
     }
   });
 
-  test("accepts only a direct yellow_runtime login against canonical90", async () => {
+  test("accepts only a direct yellow_runtime login against canonical91", async () => {
     await ensureCurrentRelease();
     const [identity] = await deployment!<{ frontier: number; checksum: string; body_sha: string }[]>`
       SELECT (SELECT max(version)::int FROM public.schema_migration) frontier,
@@ -461,7 +461,7 @@ databaseDescribe("Order438 runtime release readiness identity", () => {
           pg_catalog.replace(prosrc,chr(13)||chr(10),chr(10)),'UTF8')),'hex') body_sha
       FROM pg_catalog.pg_proc WHERE oid=pg_catalog.to_regprocedure(${CREDIT_PROJECTOR})
     `;
-    expect(identity).toEqual({ frontier: 90,
+    expect(identity).toEqual({ frontier: 91,
       checksum: "214754e94bdfb0a2163395c9ab4449b0b5e87da7830c45e69d77ac05a2cddb64",
       body_sha: CREDIT_PROJECTOR_BODY_SHA });
     const [deliveryIdentity] = await deployment!<{ frontier: number; checksum: string; body_sha: string; result: string }[]>`
@@ -473,7 +473,7 @@ databaseDescribe("Order438 runtime release readiness identity", () => {
       FROM pg_catalog.pg_proc WHERE oid=pg_catalog.to_regprocedure(${CREDIT_DELIVERY})
     `;
     expect(deliveryIdentity).toEqual({
-      frontier: 90,
+      frontier: 91,
       checksum: "26aac42e59146dfa29f558dc75209166420a5aa7621bc34b1f6ec0f9c834c1cd",
       body_sha: CREDIT_DELIVERY_BODY_SHA,
       result: "jsonb",
@@ -489,7 +489,7 @@ databaseDescribe("Order438 runtime release readiness identity", () => {
         pg_catalog.array_to_string(proargmodes,',') argument_modes
       FROM pg_catalog.pg_proc WHERE oid=pg_catalog.to_regprocedure(${NATIVE_SERIES})
     `;
-    expect(seriesIdentity).toEqual({ frontier: 90,
+    expect(seriesIdentity).toEqual({ frontier: 91,
       checksum: "67802156fe1a35d76023361dc8461699dad204017ff727441523fa9fb2b1faf9",
       body_sha: NATIVE_SERIES_BODY_SHA, result: NATIVE_SERIES_RESULT,
       argument_modes: "i,i,i,i,i,i,t,t,t,t,t,t,t,t,t" });

@@ -150,11 +150,11 @@ databaseDescribe("Order439 released native fiscal authority is contained", () =>
     }));
   }, 120_000);
 
-  test("fresh90 retains legacy denial after the series configuration migration", async () => {
+  test("fresh91 retains legacy denial after the series configuration migration", async () => {
     await withDatabase(async (url, sql, runtimeUrl) => {
       const migration = await runMigrations({ databaseUrl: url, logger: () => undefined });
-      expect(migration.appliedFiles).toHaveLength(90);
-      expect(migration.appliedFiles.at(-1)).toBe("0090_india_native_fiscal_series_configuration.sql");
+      expect(migration.appliedFiles).toHaveLength(91);
+      expect(migration.appliedFiles.at(-1)).toBe("0091_reservation_alert_authority.sql");
       const before = await census(sql);
       expect(before[0]?.tables).toBe(129);
       await assertContained(sql, runtimeUrl);

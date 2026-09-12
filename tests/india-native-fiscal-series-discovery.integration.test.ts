@@ -129,7 +129,7 @@ function discovery(input: SeriesInput): IndiaNativeFiscalSeriesDiscoveryInput {
 }
 function digest(value: unknown): string { return new Bun.CryptoHasher("sha256").update(JSON.stringify(value)).digest("hex"); }
 
-(required ? describe.serial : describe.skip)("Order454 canonical90 runtime fiscal-series discovery", () => {
+(required ? describe.serial : describe.skip)("Order454 canonical91 runtime fiscal-series discovery", () => {
   let deploy: SQL, runtime: Database;
   let first: Fixture, foreign: Fixture, second: Awaited<ReturnType<typeof createSecondSeriesProperty>>;
   let configured: Awaited<ReturnType<typeof configureSeries>>, secondConfigured: Awaited<ReturnType<typeof configureSeries>>;
@@ -177,7 +177,7 @@ function digest(value: unknown): string { return new Bun.CryptoHasher("sha256").
       (SELECT checksum_sha256 FROM public.schema_migration WHERE version=90) checksum,
       (SELECT encode(sha256(convert_to(replace(prosrc,E'\r\n',E'\n'),'UTF8')),'hex') FROM pg_catalog.pg_proc
         WHERE oid=${SERIES_SIGNATURE}::regprocedure) body FROM public.schema_migration`;
-    expect(release).toEqual({ frontier: 90,
+    expect(release).toEqual({ frontier: 91,
       checksum: "67802156fe1a35d76023361dc8461699dad204017ff727441523fa9fb2b1faf9",
       body: "ba1a60e916897ff634b288ab20b7717708987ad63f416fcd9109cf463d9ff365" });
     // Exactly two new tenant cohorts/six fixture tx_codes. No pre-existing rows are changed.

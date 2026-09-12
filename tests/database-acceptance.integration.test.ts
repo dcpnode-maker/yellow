@@ -455,6 +455,11 @@ const EXPECTED_MIGRATIONS = [
     filename: "0090_india_native_fiscal_series_configuration.sql",
     checksum_sha256: "67802156fe1a35d76023361dc8461699dad204017ff727441523fa9fb2b1faf9",
   },
+  {
+    version: 91,
+    filename: "0091_reservation_alert_authority.sql",
+    checksum_sha256: "ec49a08984c2a8db3c2faaca8041d19e614741ef486d7b65f4eefe94dc4f35d3",
+  },
 ];
 
 if (REQUIRE_DATABASE && !DATABASE_URL) {

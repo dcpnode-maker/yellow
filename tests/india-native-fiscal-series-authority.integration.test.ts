@@ -91,7 +91,7 @@ describe("Order453 series configuration source contract", () => {
     runtime = Database.connect(runtimeUrl!, { maxConnections: 12, prepare: false });
     const [row] = await deploy<{ version: number; body: string }[]>`SELECT max(version)::int version,
       (SELECT prosrc FROM pg_catalog.pg_proc WHERE oid=${SERIES_SIGNATURE}::regprocedure) body FROM public.schema_migration`;
-    expect(row?.version).toBe(mode === "native-draft" ? 89 : 90);
+    expect(row?.version).toBe(mode === "native-draft" ? 89 : 91);
     expect(row?.body).toContain("'document.series.configured'");
   });
   afterAll(async () => { await runtime?.close(); await deploy?.close(); });
