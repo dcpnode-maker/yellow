@@ -428,4 +428,5 @@ test("Order 102 independent canary: property/sign-out clearing and both late-res
   const clearDuplicates = script.slice(script.indexOf("  function clearPartyDuplicateReview() {"), script.indexOf("  function clearPartyProfileState() {"));
   expect(clearProfile).toMatch(/partyCreateAttemptKey = ""[\s\S]*partyCreateDraft = null[\s\S]*clearPartyDuplicateReview\(\)[\s\S]*primaryPartyId\.value = ""/);
   expect(clearDuplicates).toContain("partyDuplicateIds = []");
+  expect(script).toContain('drawerLifecycleButton("Edit operational details", reservationMetadataForm)');
 });

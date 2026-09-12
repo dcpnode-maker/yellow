@@ -246,7 +246,7 @@ databaseRun("Order 367 fresh PostgreSQL integration", () => {
         (SELECT count(*)::int FROM pg_views WHERE schemaname='public') views
     `;
     expect(actual).toEqual({
-      migrations: 90, tables: 129, rls: 119, policies: 119, forced: 28, views: 2,
+      migrations: 91, tables: 129, rls: 119, policies: 119, forced: 28, views: 2,
     });
   });
 

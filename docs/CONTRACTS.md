@@ -17,6 +17,37 @@ or an existing command and never gains arbitrary SQL or database authority. See 
 and [voice/RMS proposal](architecture/VOICE-RMS-PLAN.md). Those specifications create
 no API by themselves.
 
+## Reservation alerts (Order463)
+
+Source implementation with independently executed isolated PostgreSQL91 and
+runtime-readiness proof accepted on September12; publication and serving-runtime
+integration remain pending. `POST /api/v1/properties/{property}/reservations/{reservation}/alerts`
+accepts exactly `{code: string|null, message: string, showOn: "checkin"|"checkout"|"always"}`.
+`POST .../alerts/{alert}/deactivate` accepts exactly `{}`. Both require the existing
+`reservations.lifecycle:write` scope, exact property grant and Idempotency-Key.
+The server derives tenant, actor and audit context; client authority fields are
+rejected. Notes are trimmed nonempty plain text up to1000 Unicode code points,
+allowing ordinary CR/LF/tab; optional code is null or trimmed single-line text
+up to64. Other control characters are rejected. No HTML execution or file upload.
+
+Success is `{alert:{id,code,message,showOn,active},changed,replayed}`. Existing
+reservation-detail readback retains its `alertId` field and adds the server-
+derived top-level `actions.canManageAlerts`. Read-only staff can see notes/codes,
+but cannot mutate them. Create uses a database-generated id and active=true;
+deactivate only changes true to false. Already inactive is a no-op. No delete,
+edit, reactivation, reservation state or finance/occupancy mutation is introduced.
+Terminal reservations may retain operational annotations without reopening them.
+
+The exact reservation/property/tenant is locked before its alert. Actor, property,
+reservation and request fields participate in idempotency identity. Exact replay
+returns the saved result; changed same-key requests conflict. Changed alerts,
+reservation.modified fact/outbox and idempotency receipt commit atomically. Their
+diff contains only `{alerts:{action,alertId,active}}`, never note/code/guest values;
+no-op writes no extra event. The UI retains a retry key on uncertain responses and
+refreshes the authoritative detail, ignoring stale-session/navigation responses.
+Migration0091 supplies only the named alert column grants; see SECURITY.md for
+the remaining direct-SQL capability boundary. Waitlist offers remain separate.
+
 ## Operator audited business-day seal
 
 `POST /api/v1/properties/{property}/business-days/{businessDate}/seal` accepts exactly
@@ -229,7 +260,9 @@ alters the existing `(created_at,id)` order, filter, cursor, limit, permission o
 property boundary. `GET
 /api/v1/properties/{property}/reservations/{reservation UUID}` accepts no
 query parameters and returns the approved reservation aggregate plus server-derived
-`canModify`, `canCancel`, and `canReinstate` actions. Missing, foreign-tenant and
+`canModify`, `canCancel`, and `canReinstate` actions. Order464 requires lifecycle-write
+scope and a matching property grant as well as the existing status predicate for
+each action; these disclosures never replace command-side authorization. Missing, foreign-tenant and
 foreign-property UUID details share one generic reservation not-found response. The
 existing exact `GET .../reservations?confirmationNo=...` lifecycle lookup is unchanged.
 

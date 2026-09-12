@@ -533,7 +533,7 @@ databaseDescribe("fresh deployment database acceptance", () => {
             AND class.relforcerowsecurity) AS "forceRlsTables"
     `;
     expect(catalogue).toEqual([{
-      migrations: 90, tables: 129, rlsTables: 119, policies: 119, forceRlsTables: 28,
+      migrations: 91, tables: 129, rlsTables: 119, policies: 119, forceRlsTables: 28,
       permissions: 15, permissionGrants: 0,
     }]);
   });

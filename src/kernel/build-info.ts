@@ -1,7 +1,7 @@
 import type { ReservedSQL, SQL } from "bun";
 
 const GIT_SHA = /^[0-9a-f]{40}$/;
-export const CURRENT_MIGRATION_FRONTIER = 90 as const;
+export const CURRENT_MIGRATION_FRONTIER = 91 as const;
 
 // PostgreSQL16's normalized form of0087's Unicode-aware, nonblank reason CHECK.
 // Keep invisible Unicode separators escaped in source so reviews remain legible.
@@ -60,6 +60,7 @@ export async function assertRuntimeReleaseReadiness(
     fiscalReceiptReadAuthorityExact: boolean;
     fiscalRetryBindingAuthorityExact: boolean;
     fiscalReceiptColumnsProtected: boolean;
+    reservationAlertDmlAuthorityExact: boolean;
     issueFunctionPresent: boolean;
     publicIssueDenied: boolean;
     appIssueDenied: boolean;
@@ -573,6 +574,44 @@ export async function assertRuntimeReleaseReadiness(
         AND (SELECT exact FROM credit_index_shape) AS protected
       FROM pg_catalog.pg_class relation WHERE relation.oid=pg_catalog.to_regclass('public.india_native_fiscal_credit_note')
         AND relation.relkind='r'
+    ), reservation_alert_authority AS (
+      SELECT count(*)=1 AND bool_and(
+        relation.relowner='yellow_owner'::regrole
+        AND relation.relrowsecurity AND NOT relation.relforcerowsecurity
+        AND NOT pg_catalog.has_table_privilege('app_role',relation.oid,
+          'INSERT,UPDATE,DELETE,TRUNCATE,REFERENCES,TRIGGER')
+        AND NOT pg_catalog.has_any_column_privilege('app_role',relation.oid,'REFERENCES')
+        AND NOT pg_catalog.has_table_privilege('yellow_runtime',relation.oid,
+          'SELECT,INSERT,UPDATE,DELETE,TRUNCATE,REFERENCES,TRIGGER')
+        AND NOT pg_catalog.has_any_column_privilege('yellow_runtime',relation.oid,
+          'SELECT,INSERT,UPDATE,REFERENCES')
+        AND NOT EXISTS(SELECT 1 FROM pg_catalog.aclexplode(COALESCE(
+          relation.relacl,pg_catalog.acldefault('r',relation.relowner)
+        )) privilege WHERE privilege.grantee IN (0,'yellow_runtime'::regrole::oid))
+        AND (SELECT count(*)=1 AND bool_and(
+          policy.polname='tenant_isolation' AND policy.polcmd='*' AND policy.polpermissive
+          AND policy.polroles=ARRAY[0]::oid[]
+          AND pg_catalog.pg_get_expr(policy.polqual,policy.polrelid)
+            = '(tenant_id = (current_setting(''app.tenant_id''::text, true))::uuid)'
+          AND pg_catalog.pg_get_expr(policy.polwithcheck,policy.polrelid)
+            = '(tenant_id = (current_setting(''app.tenant_id''::text, true))::uuid)'
+        ) FROM pg_catalog.pg_policy policy WHERE policy.polrelid=relation.oid)
+        AND (SELECT count(attribute.attnum)=8 AND bool_and(
+          pg_catalog.has_column_privilege('app_role',relation.oid,attribute.attnum,'INSERT')
+            = (attribute.attname IN (
+              'tenant_id','subject_type','subject_id','code','message','show_on','active'
+            ))
+          AND pg_catalog.has_column_privilege('app_role',relation.oid,attribute.attnum,'UPDATE')
+            = (attribute.attname='active')
+          AND NOT pg_catalog.has_column_privilege('app_role',relation.oid,attribute.attnum,'REFERENCES')
+          AND NOT EXISTS(SELECT 1 FROM pg_catalog.aclexplode(attribute.attacl)
+            privilege WHERE privilege.grantee IN (0,'yellow_runtime'::regrole::oid))
+        ) FROM pg_catalog.pg_attribute attribute
+          WHERE attribute.attrelid=relation.oid AND attribute.attnum>0 AND NOT attribute.attisdropped)
+      ) AS exact
+      FROM pg_catalog.pg_class relation
+      JOIN pg_catalog.pg_namespace namespace ON namespace.oid=relation.relnamespace
+      WHERE namespace.nspname='public' AND relation.relkind='r' AND relation.relname='alert'
     ), fiscal_history AS (
       SELECT count(*)=1
         AND bool_and(relation.relrowsecurity AND relation.relforcerowsecurity
@@ -616,6 +655,7 @@ export async function assertRuntimeReleaseReadiness(
       receipt_read.exact AS "fiscalReceiptReadAuthorityExact",
       retry_binding.exact AS "fiscalRetryBindingAuthorityExact",
       receipt_columns.protected AS "fiscalReceiptColumnsProtected",
+      reservation_alert.exact AS "reservationAlertDmlAuthorityExact",
       q208_public.exact AS "q208PublicEntryAuthorityExact",
       q208_private.exact AS "q208PrivateEntryAuthorityExact",
       q208_indexes.exact AS "q208IndexesExact",
@@ -652,6 +692,7 @@ export async function assertRuntimeReleaseReadiness(
       CROSS JOIN fiscal_authority fiscal CROSS JOIN fiscal_history history
       CROSS JOIN fiscal_receipt_read receipt_read CROSS JOIN fiscal_retry_binding retry_binding
       CROSS JOIN fiscal_receipt_columns receipt_columns
+      CROSS JOIN reservation_alert_authority reservation_alert
       CROSS JOIN q208_public_authority q208_public
       CROSS JOIN q208_private_authority q208_private CROSS JOIN q208_index_shape q208_indexes
       CROSS JOIN credit_binding CROSS JOIN credit_public_authority credit_public
@@ -664,7 +705,8 @@ export async function assertRuntimeReleaseReadiness(
   if (rows.length !== 1 || !proof || Object.values(proof).some((value) => value !== true)
     || proof.nativeCreditBindingProtected !== true || proof.nativeCreditEntryAuthorityExact !== true
     || proof.nativeCreditPrivateAuthorityExact !== true || proof.nativeCreditFiscalProjectionExact !== true
-    || proof.indiaNativeCreditDeliveryExact !== true || proof.indiaNativeFiscalSeriesConfigurationExact !== true) {
+    || proof.indiaNativeCreditDeliveryExact !== true || proof.indiaNativeFiscalSeriesConfigurationExact !== true
+    || proof.reservationAlertDmlAuthorityExact !== true) {
     throw new Error("runtime release readiness is unavailable");
   }
   let permission: Array<{ exact: boolean }>;

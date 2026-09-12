@@ -65,10 +65,10 @@ async function historicalCounts(directory: string): Promise<string> {
 describe("canonical project status", () => {
   test("records current release work while preserving the historical Order 444 preview", () => {
     const originalSnapshot = JSON.stringify(PROJECT_BUILD_SNAPSHOT);
-    expect(PROJECT_BUILD_SNAPSHOT.recordedAt).toBe("2026-09-09");
+    expect(PROJECT_BUILD_SNAPSHOT.recordedAt).toBe("2026-09-12");
     expect(PROJECT_BUILD_SNAPSHOT.roadmap).toMatchObject({
       phaseCount: 18,
-      latestBuiltOrder: 459,
+      latestBuiltOrder: 464,
       currentOrder: 460,
       activePhase: 7,
     });

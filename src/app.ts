@@ -625,6 +625,16 @@ export function createApp(options: AppOptions = {}) {
           context, params.property, params.reservation, body,
         ))
       )
+      .post("/api/v1/properties/:property/reservations/:reservation/alerts", ({ request, params, body, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.createReservationAlert(
+          context, params.property, params.reservation, body,
+        ))
+      )
+      .post("/api/v1/properties/:property/reservations/:reservation/alerts/:alert/deactivate", ({ request, params, body, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.deactivateReservationAlert(
+          context, params.property, params.reservation, params.alert, body,
+        ))
+      )
       .put("/api/v1/properties/:property/reservations/:reservation/travel/:direction", ({ request, params, body, tenantContext }) =>
         withOperatorTenant(request, (context) => operator.putReservationTravel(
           context, params.property, params.reservation, params.direction, body,

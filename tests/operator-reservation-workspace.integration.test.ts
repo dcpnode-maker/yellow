@@ -112,7 +112,7 @@ test("Order 168: deep-linked drawer gates lifecycle actions and follows Back, fo
   expect(submitLifecycle).toContain("reservationLifecycleRefreshDecision(origin");
   expect(submitLifecycle).toContain("dispatchReservationLifecycleRefresh(");
   expect(submitLifecycle).not.toContain("confirmationNo=");
-  expect(script).toContain('drawerLifecycleButton("Edit details", reservationMetadataForm)');
+  expect(script).toContain('drawerLifecycleButton("Edit operational details", reservationMetadataForm)');
   expect(script).toContain('drawerLifecycleButton("Cancel", reservationCancelForm)');
   expect(script).toContain('drawerLifecycleButton("Reinstate", reservationReinstatePanel)');
   const command = executableFunction<(action: string) => Record<string, string> | null>("reservationLifecycleCommand");

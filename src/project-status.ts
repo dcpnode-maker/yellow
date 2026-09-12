@@ -17,7 +17,7 @@ export interface ProjectRecordedWorkSnapshot {
     | 165 | 166 | 168 | 169 | 170 | 171 | 173 | 174 | 175 | 176 | 177 | 178
     | 179 | 180 | 181 | 182 | 183 | 184 | 185 | 186 | 188 | 189
     | 190 | 191 | 192 | 193 | 195 | 199 | 236 | 310 | 396 | 429 | 434 | 438 | 440 | 444
-    | 453 | 454 | 455 | 458 | 459 | 460;
+    | 453 | 454 | 455 | 458 | 459 | 460 | 461 | 462 | 463 | 464;
   readonly state: ProjectRecordedWorkState;
   readonly summary: string;
   readonly remaining?: string;
@@ -71,11 +71,11 @@ export const DEFAULT_OPERATOR_RUNTIME_STATUS: OperatorRuntimeStatus = Object.fre
 
 export const PROJECT_BUILD_SNAPSHOT: ProjectBuildSnapshot = Object.freeze({
   schemaVersion: 2,
-  recordedAt: "2026-09-09",
-  label: "Current-source release in progress; fiscal discovery and interface source verified",
+  recordedAt: "2026-09-12",
+  label: "Current-source receiving integration in progress; reservation actions source built",
   roadmap: Object.freeze({
     phaseCount: 18,
-    latestBuiltOrder: 459,
+    latestBuiltOrder: 464,
     currentOrder: 460,
     activePhase: 7,
   }),
@@ -399,8 +399,32 @@ export const PROJECT_BUILD_SNAPSHOT: ProjectBuildSnapshot = Object.freeze({
     Object.freeze({
       order: 460,
       state: "proof_in_progress" as const,
-      summary: "Order 460 is preparing the complete accepted backend and corrected interfaces for one local release, excluding preserved unfinished guest-picker changes. The serving database's retained frontier is 85; current source requires 90. The stale Order-444-only embedded status is being replaced with these recorded milestones.",
-      remaining: "Exact source and CI, protected recovery, retained-data upgrade and independently observed worker deltas must pass before promotion. Dynamic runtime build information owns the actual serving revision and schema; these milestones do not claim they are live. Phase 7 and the whole application are not complete.",
+      summary: "Order 460 recovered the retained native database on September 12. The frozen source at migration 90 passes temporary prefilled login, invoice browsing, 129-table worker verification and exact owned shutdown. Windows launcher timestamp precision was repaired without resetting data or weakening fiscal eligibility.",
+      remaining: "The temporary app is stopped; local promotion and selective publication/integration of receiving source at migration 91 remain pending. Dynamic runtime build information owns the actual serving revision and schema. Provider acceptance and genuine fiscal eligibility remain separate; Phase 7 and the whole application are not complete.",
+    }),
+    Object.freeze({
+      order: 461,
+      state: "built_unverified" as const,
+      summary: "Order 461 builds only the synthetic sandbox transport handoff for the IRP acceptance path. The bounded source tests cover synthetic transport behavior; no live provider round-trip, certification or persisted provider receipt is claimed.",
+      remaining: "Provider sandbox acceptance, runtime integration and Phase 7 completion remain pending. This source-built handoff is not deployed or live.",
+    }),
+    Object.freeze({
+      order: 462,
+      state: "proof_in_progress" as const,
+      summary: "Order 462 integrates the PriceLabs intake and market pipeline source with an isolated synthetic staging proof. The staging result proves controlled synthetic import behavior only, not a real client PriceLabs import.",
+      remaining: "Authorized real-client intake, mapping and runtime promotion remain pending. No client data has been loaded and no pipeline is live.",
+    }),
+    Object.freeze({
+      order: 463,
+      state: "proof_in_progress" as const,
+      summary: "Order 463 builds the reservation-alert receiving workflow. Isolated native proof passes 11/0 real database tests and referee 11/11. On September 12, independent read-only proof reproduces the old ACL error and passes the corrected actual runtime-readiness check at migration 91 on the recovered host.",
+      remaining: "Publication and runtime integration remain pending. The workflow is not live and does not complete Phase 4 or Phase 7.",
+    }),
+    Object.freeze({
+      order: 464,
+      state: "built_unverified" as const,
+      summary: "Order 464 builds permission-aware reservation actions for operational details, cancel and reinstate disclosure. Root source proof passes 34 tests with 6 existing database-gated skips and 0 failures.",
+      remaining: "Runtime integration, release proof and local promotion remain pending. These permission-aware actions are source-built only, not live.",
     }),
   ] satisfies readonly ProjectRecordedWorkSnapshot[]),
   phases: Object.freeze([

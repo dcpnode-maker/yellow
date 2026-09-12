@@ -28,6 +28,7 @@ describe("release build identity and readiness", () => {
         fiscalReceiptReadAuthorityExact: true,
         fiscalRetryBindingAuthorityExact: true,
         fiscalReceiptColumnsProtected: true,
+        reservationAlertDmlAuthorityExact: true,
         issueFunctionPresent: true,
         publicIssueDenied: true,
         appIssueDenied: true,
@@ -136,6 +137,7 @@ describe("release build identity and readiness", () => {
     expect(query).toContain("credit_index_shape");
     expect(query).toContain("india_native_consumed_posting_line_guard");
     expect(query).toContain("fiscalReceiptColumnsProtected");
+    expect(query).toContain("reservationAlertDmlAuthorityExact");
     expect(query).toContain("q208PublicEntryAuthorityExact");
     expect(query).toContain("q208PrivateEntryAuthorityExact");
     expect(query).toContain("q208IndexesExact");
@@ -164,6 +166,26 @@ describe("release build identity and readiness", () => {
     expect(query).toContain("'0 0 0 0'");
     expect(query).toContain("index_row.indoption::text=q208_index.key_options");
     expect(query).not.toContain("'business_date DESC'");
+    const alertAuthority = /reservation_alert_authority AS \((?<proof>[\s\S]*?)\n    \), fiscal_history/.exec(query)?.groups?.proof;
+    expect(alertAuthority).toBeDefined();
+    for (const guard of [
+      "relation.relowner='yellow_owner'::regrole", "relation.relrowsecurity AND NOT relation.relforcerowsecurity",
+      "relation.relname='alert'", "count(attribute.attnum)=8",
+      "has_table_privilege('app_role',relation.oid,", "'INSERT,UPDATE,DELETE,TRUNCATE,REFERENCES,TRIGGER'",
+      "has_any_column_privilege('app_role',relation.oid,'REFERENCES')",
+      "has_table_privilege('yellow_runtime',relation.oid,",
+      "has_any_column_privilege('yellow_runtime',relation.oid,",
+      "privilege.grantee IN (0,'yellow_runtime'::regrole::oid)",
+      "policy.polname='tenant_isolation'", "policy.polcmd='*'", "policy.polroles=ARRAY[0]::oid[]",
+      "(tenant_id = (current_setting(''app.tenant_id''::text, true))::uuid)",
+      "has_column_privilege('app_role',relation.oid,attribute.attnum,'INSERT')",
+      "has_column_privilege('app_role',relation.oid,attribute.attnum,'UPDATE')",
+      "has_column_privilege('app_role',relation.oid,attribute.attnum,'REFERENCES')",
+      "pg_catalog.aclexplode(attribute.attacl)",
+      "'tenant_id','subject_type','subject_id','code','message','show_on','active'",
+      "attribute.attname='active'",
+    ]) expect(alertAuthority).toContain(guard);
+    expect(alertAuthority).not.toContain("'{}'::pg_catalog.aclitem[]");
     expect(permissionChecks).toBe(1);
     expect(permissionQuery).toContain("tax-fiscal.documents:read");
     expect(permissionQuery).toContain("tax-fiscal.submissions:read");
@@ -175,6 +197,7 @@ describe("release build identity and readiness", () => {
   test("refuses a ready claim when receipt read authority or column confinement fails", async () => {
     for (const failed of [
       "fiscalReceiptReadAuthorityExact", "fiscalRetryBindingAuthorityExact", "fiscalReceiptColumnsProtected",
+      "reservationAlertDmlAuthorityExact",
       "q208PublicEntryAuthorityExact", "q208PrivateEntryAuthorityExact", "q208IndexesExact",
       "nativeCreditBindingProtected", "nativeCreditEntryAuthorityExact", "nativeCreditPrivateAuthorityExact",
       "nativeCreditFiscalProjectionExact",
@@ -188,6 +211,7 @@ describe("release build identity and readiness", () => {
           nativeEntryAuthorityExact: true, fiscalHistoryProtected: true, fiscalEntryAuthorityExact: true,
           fiscalReceiptReadAuthorityExact: true, fiscalRetryBindingAuthorityExact: true,
           fiscalReceiptColumnsProtected: true,
+          reservationAlertDmlAuthorityExact: true,
           issueFunctionPresent: true, publicIssueDenied: true, appIssueDenied: true, runtimeIssueDenied: true,
           q208PublicEntryAuthorityExact: true, q208PrivateEntryAuthorityExact: true,
           q208IndexesExact: true,
@@ -213,6 +237,7 @@ describe("release build identity and readiness", () => {
       nativeEntryAuthorityExact: true, fiscalHistoryProtected: true, fiscalEntryAuthorityExact: true,
       fiscalReceiptReadAuthorityExact: true, fiscalRetryBindingAuthorityExact: true,
       fiscalReceiptColumnsProtected: true,
+      reservationAlertDmlAuthorityExact: true,
       issueFunctionPresent: true, publicIssueDenied: true, appIssueDenied: true, runtimeIssueDenied: true,
       q208PublicEntryAuthorityExact: true, q208PrivateEntryAuthorityExact: true,
       q208IndexesExact: true,
@@ -266,9 +291,9 @@ describe("release build identity and readiness", () => {
     expect(buildInfoFromEnvironment({ YELLOW_BUILD_SHA: REVISION })).toEqual({
       schemaVersion: 1,
       revision: REVISION,
-      expectedMigrationFrontier: 90,
+      expectedMigrationFrontier: 91,
     });
-    expect(CURRENT_MIGRATION_FRONTIER).toBe(90);
+    expect(CURRENT_MIGRATION_FRONTIER).toBe(91);
     expect(buildInfoFromEnvironment({})).toBe(UNKNOWN_BUILD_INFO);
     expect(buildInfoFromEnvironment({ YELLOW_BUILD_SHA: "" })).toBe(UNKNOWN_BUILD_INFO);
 
@@ -298,7 +323,7 @@ describe("release build identity and readiness", () => {
     expect(await response.json()).toEqual({
       status: "not_ready",
       reason: "build_revision_unavailable",
-      build: { schemaVersion: 1, revision: null, expectedMigrationFrontier: 90 },
+      build: { schemaVersion: 1, revision: null, expectedMigrationFrontier: 91 },
     });
     expect(probes).toBe(0);
   });
@@ -322,7 +347,7 @@ describe("release build identity and readiness", () => {
     expect(await noRuntime.json()).toEqual({
       status: "not_ready",
       reason: "runtime_not_configured",
-      build: { schemaVersion: 1, revision: REVISION, expectedMigrationFrontier: 90 },
+      build: { schemaVersion: 1, revision: REVISION, expectedMigrationFrontier: 91 },
     });
 
     const failed = await unavailable.handle(new Request("http://yellow.test/ready"));
@@ -333,7 +358,7 @@ describe("release build identity and readiness", () => {
       status: "not_ready",
       reason: "runtime_dependency_unavailable",
       target: "yellow_runtime_database",
-      build: { schemaVersion: 1, revision: REVISION, expectedMigrationFrontier: 90 },
+      build: { schemaVersion: 1, revision: REVISION, expectedMigrationFrontier: 91 },
     });
 
     const success = await ready.handle(new Request("http://yellow.test/ready"));
@@ -342,7 +367,7 @@ describe("release build identity and readiness", () => {
     expect(await success.json()).toEqual({
       status: "ready",
       target: "yellow_runtime_database",
-      build: { schemaVersion: 1, revision: REVISION, expectedMigrationFrontier: 90 },
+      build: { schemaVersion: 1, revision: REVISION, expectedMigrationFrontier: 91 },
     });
   });
 });

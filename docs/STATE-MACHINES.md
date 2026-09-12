@@ -56,6 +56,16 @@ assignments cannot use this path; room moves still close/trim and append a segme
 Assignment preserves `due_in`/`booked`, does not infer room condition or readiness and
 never invokes the separate `due_in -> in_house` check-in command.
 
+### Reservation alerts (`alert.active`, Order463)
+
+An alert is an annotation, not a reservation lifecycle. The existing boolean
+permits create→active and active→inactive through same-property authorized
+commands; inactive→inactive is a no-op. No deletion, edit or reactivation is
+admitted. A terminal reservation may retain operational annotations without
+changing its status. Each actual change emits minimized reservation.modified
+evidence in the same transaction. Implementation and isolated database proof are
+accepted; serving-runtime integration remains pending under Order460.
+
 ## 2. Folio (`folio.status`) — open → settled → closed
 
 | From | To | Exact guard/effect |

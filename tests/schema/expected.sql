@@ -31891,6 +31891,55 @@ GRANT SELECT ON TABLE public.alert TO app_role;
 
 
 --
+-- Name: COLUMN alert.tenant_id; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(tenant_id) ON TABLE public.alert TO app_role;
+
+
+--
+-- Name: COLUMN alert.subject_type; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(subject_type) ON TABLE public.alert TO app_role;
+
+
+--
+-- Name: COLUMN alert.subject_id; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(subject_id) ON TABLE public.alert TO app_role;
+
+
+--
+-- Name: COLUMN alert.code; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(code) ON TABLE public.alert TO app_role;
+
+
+--
+-- Name: COLUMN alert.message; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(message) ON TABLE public.alert TO app_role;
+
+
+--
+-- Name: COLUMN alert.show_on; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(show_on) ON TABLE public.alert TO app_role;
+
+
+--
+-- Name: COLUMN alert.active; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(active),UPDATE(active) ON TABLE public.alert TO app_role;
+
+
+--
 -- Name: TABLE api_client; Type: ACL; Schema: public; Owner: -
 --
 

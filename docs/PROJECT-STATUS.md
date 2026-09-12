@@ -2,9 +2,9 @@
 
 <!-- status-schema: yellow-project-status/v1 -->
 <!-- current-phase: 7 -->
-<!-- current-task: Codex Yellow — finish fiscal discovery and receipt proof, then promote complete current source with corrected interfaces to the sole local -->
-<!-- current-order-files: handoff/orders/454-native-fiscal-series-discovery.md;handoff/orders/455-exact-head-ci-test-reliability.md;handoff/orders/460-current-source-single-local-promotion.md;handoff/orders/459-interface-composition-and-grouped-navigation.md -->
-<!-- current-lifecycle: Order454 nativeSQL10/0 and root/independentHTTP5/0 pass.455 independent current81 receipt16/0+1upgrade-onlyskip(4177) and full59-companion/global preservation pass.460 embedded status updated through459/current460; exact combined source, standing/CI and runtime promotion pending. Local3000 stopped; UI source not live -->
+<!-- current-task: Codex Yellow — resumed: integrate existing PriceLabs/market pipelines and private staging, then current-line phase closure and the retained build priorities -->
+<!-- current-order-files: handoff/orders/462-pricelabs-intake-and-market-pipeline-integration.md;handoff/orders/460-current-source-single-local-promotion.md;handoff/orders/463-reservation-alert-workflow.md;handoff/orders/461-bounded-irp-sandbox-acceptance.md -->
+<!-- current-lifecycle: ACTIVE goal resumed2026-09-13; preparing selective source through464/frontier91 for exact native validation. Retained native55503 PID2340 running;3000/3001 stopped. September12 recovery, readiness91 and temporary frozen90 staging/owned shutdown are accepted. New-source publication, real PriceLabs intake and local promotion pending -->
 
 This is the canonical current-state record. It identifies the consolidated source,
 verified behavior, release boundaries and active work. Historical orders, reviews,
@@ -12,6 +12,219 @@ decisions and ledger entries remain evidence; their filenames are not an active
 backlog. `state.sh` and `state.ps1` read the machine-readable comments above.
 
 ## Current task
+
+**Receiving release integration — 13 September.** The long-running Codex goal is
+active again. Exact published baseline547cf3d3 retains green CI34300623098.
+The new candidate combines accepted source through464/frontier91 while excluding
+the paused445 guest-picker fragments and preserving unrelated staged changes.
+Native validation reuses the existing artifact and dependency tree. No new
+database/recovery attempt, app launch or provider activation has occurred today.
+Preparation and green parent CI are not a new-source release or live3000 claim.
+
+**Restart receiving — 12 September.** The saved working tree and September9
+receipts have been received and the restart test chain has now passed. The final
+r9 baselineb614fa05, Stage44545529, accepted Settled6336c4b2 and Stopcf8e01ef
+bind frozen547/frontier90. Prefilled login, assets, invoice list/detail and issued
+readiness pass;129-table worker audit accepts with unchanged head71. Root separately
+checks resulting receipts and absence of owned5620/8272 after exact cleanup.
+Full native timestamps now match; no precision tolerance was added. The genuine
+supplier_issue_status_unavailable result remains a fiscal eligibility blocker.
+This is a completed temporary staging proof, not a3000 promotion or publication
+of the newer receiving91 source. Native PG2340 remains; app3000/3001 are stopped.
+
+**Restart recovery history — preserved failures.** The saved working tree and September9
+receipts are present. Initial checks found an interrupted native cluster and no
+Yellow listeners. The first bounded recovery failed; its graceful cleanup finished
+with no orphan and left PostgreSQL `shut down in recovery`. That failure remains
+recorded. Independently reviewed r2 then succeeded in one invocation: retained
+PG16.15 is the sole loopback55503 listener, PID2340/start17:14:09.3086384UTC,
+receipt563fc164, recovery companion9b5592a1. Root separately confirms the exact
+process, command, executable hash, start and receipt binding. PostgreSQL performed
+its own recovery; no lock/WAL deletion, new cluster, reset, reseed, migration or
+unrelated PG17 action occurred. Startup is not proof of business-data equivalence.
+The first independently checked dated staging chain stopped at
+Baseline90 before SQL or app startup: its TypeScript capture still required the
+September9 PID/start. The consumed75-byte failure2ce60874 is preserved. The fresh
+capture successor88ff1832 changes exactly two PID comparisons and one start value;
+root proves exact byte back-projection and11/0 executable admission tests(19).
+SQL, data authority, auditors and observation bounds remain unchanged. The fresh
+r8 chain then captured the129-table baseline and started temporary3001: prefilled
+sign-in, authentication, assets, invoice list/detail and issued-readiness passed,
+stagea0b600dc. Eligible readiness honestly reported business_day_unavailable;
+no invoice issuance or provider action was enabled. Settled90 and automatic stop
+refused the supervisor's CIM microsecond timestamps against native100ns starts.
+Root independently inspected and executed the exact owned-cleanup successor,
+receiptf4d6d558, then confirmed both app9376/supervisor3828 absent and only native
+database2340 listening. No settled/convergence proof or promotion is claimed.
+Fresh source preparation uses full-precision Process.StartTime consistently at
+both writer and guarded consumer; previous failed attempts remain evidence.
+The late r5
+aftercapture did finish on September9; its
+independent offline classification finds identical129-table retained state,
+sequence/head68, consumer cursors and availability closures. Its18m45s interval
+and baseline-only mode are not timed convergence evidence; the unchanged auditor
+correctly rejects it as a Settled90 proof. Original receipts are preserved.
+
+The actual Order463 readiness diagnosis returned SQLSTATE22023 from the
+catalogue query. Root changed only the empty-ACL fallback passed to aclexplode:
+nullable attribute.attacl now goes directly to the strict PostgreSQL function.
+Existing authority predicates remain intact. Focused readiness8/0(250) passes.
+One independently executed, read-only successor now reproduces22023 for the old
+expression, verifies NULL produces zero ACL rows and the function is strict, then
+passes the actual exported runtime-readiness check on isolated91. Receiptb2a2e006
+binds the exact source and recovered host; final host identity is unchanged.
+This clears the readiness defect, not publication, serving migration or launch.
+
+The embedded status source now records September12/latest built464/current460
+and appends461–464 without rewriting old milestones or changing18 phase states.
+Root personally verified8 source passes/2 existing DB-gated skips(208 assertions),
+one separately filtered shell-free status pass(36), typecheck and198 boundaries.
+It remains unpublished/not live. No new UI redesign or paused445 work was resumed.
+
+Additional September12 root source checks: reservation/readiness suites25pass,
+0fail(378 assertions); market/PriceLabs/IRP suites66pass,15 explicit platform
+skips,0fail(399). These use controlled synthetic inputs, not client/provider data.
+The real PriceLabs archive is still absent from the local receiving directory.
+The current Drive connector also returned404 for the recorded private archive
+reference and no results for a targeted PriceLabs metadata search. This does not
+establish deletion; the archive is not currently accessible to this run.
+No client import, raw download or sharing change is claimed.
+
+**Order464 source built — 9 September.** Reservation detail now discloses
+Edit operational details, Cancel and Reinstate only for lifecycle-write scope
+and a matching property grant, within the unchanged status rules. All write
+commands retain their own permission checks. Root verified34 source/adjacent
+passes,6 existing DB-gated skips,0 failures(351 assertions), typecheck and198
+boundaries. This small staff-flow correction remains unpublished/not live.
+
+**Founder resumed — 9 September / Order462.** Build work continues from the
+checkpoint below. Chat-display diagnosis is set aside at the founder's direction.
+The existing remote pipeline is now integrated into this working source and the
+private Drive archive has been located; real intake has not run. The native
+Windows writer and full canonical importer pass synthetic tests. Dedicated
+PostgreSQL staging database is now provisioned on the retained native server:
+three NOLOGIN roles, two append-only tables (empty at provisioning), loader guard passed, prior
+database/role catalogues unchanged (provision receipt995e3933). Independent
+live synthetic import/idempotence/isolation suite now passes2/0 (182 assertions),
+receiptc9fcb596, with unchanged final PMS/cluster fingerprints. The additional
+rollback-only predefined-role case uses the pinned native PostgreSQL client and
+calls the actual exported loader guard: injected permission was visible, rejected,
+then rolled back. No assertion was waived. Earlier oracle/timeout logs and
+synthetic batches remain retained, not relabelled green.
+No client data has been loaded. Review findings and receiving
+details are recorded in handoff/reviews/462-pricelabs-intake.md and
+docs/research/PRICELABS-RECEIVING-INTEGRATION-20260909.md.
+Phases 1–3, 5 and 6 retain their recorded completion reviews. The current Phase 4
+source audit found more than a final proof gap: the original alert/waitlist
+workflow was never implemented (D-293 records absent Orders087/088). Existing
+alert detail reads and baseline tables are not that workflow. A bounded receiving
+implementation is now in source under Order463: create/deactivate alerts in the
+reservation drawer, same-property permissions, idempotent commands and atomic
+minimized audit events. Independent review exposed missing runtime column grants,
+an inconsistent action URL and an invalid single-URL DB fixture harness. Root
+repairs include forward migration0091, matching slash action URLs, readable
+alert codes and multiline staff notes. Independent native isolated proof is now
+green: one fresh synthetic database, migration91 exact ACL rollback/apply/no-op,
+11 real DB tests passing (174 assertions), canonical referee11/11, unchanged
+schema and global fingerprints (Integrationb633b5c7). No serving data was used.
+Root copied only the seven native-generated alert column ACL blocks into the
+schema snapshot and verified full normalized byte equality00905c1b. Current
+source/readiness/release metadata advance to91; historical partial frontiers and
+the frozen460 source remain90. Root focused38/0 (503 assertions) and typecheck
+pass. Actual new91 read-only runtime-readiness probe then failed at
+assert_release_readiness (protected12:32:51UTC log); no success receipt was written.
+The exact failing catalogue/permission predicate is being diagnosed without
+weakening the gate or changing the database. Publication/runtime integration
+remain pending. Waitlist
+manual-versus-automatic offer intent is being clarified without blocking alerts.
+No serving/recovery migration or seed is repeated; their frontier remains90.
+
+Order462 verification: root six-suite run **61 pass / 15 platform skips / 0 fail**
+(369 assertions); typecheck and 197 import boundaries pass. Independent native
+and importer run **19 pass / 6 POSIX skips / 0 fail** (141 assertions) includes
+the complete synthetic Windows intake. Independent combined live SQL proof passes2/0;
+real client load and subsequent authorized mapping remain pending;
+no price/reservation/inventory/financial operation was performed.
+
+**Restart execution — 9 September.** The retained PostgreSQL16.15 cluster now
+runs natively on127.0.0.1:55503 (PID9880/start08:57:25UTC, receiptcd80d994).
+The final pure migration classifier is green (receipt6e3a3065); the original
+classifier and prior failed evidence are unchanged. No migrations or seeds were
+rerun. Restart-bound runtime helper preparation has passed11/0 (63 assertions).
+Actual Prepare initially stopped because two generated files inherited private
+ACLs instead of explicit file ACLs. Independently verified completion12/0 (67)
+preserved all bytes and saved login, protected the two files and wrote candidate
+receipt18cbe151. Actual stopped baseline90 succeeded (261303e0). The temporary
+3001 app passed readiness, saved login, assets, invoice list/detail and issued-folio
+readiness, then failed the eligible-folio calendar expectation. Its owned child
+and supervisor stopped; neither3000 nor3001 has a listener. Six normal workers
+did run: no claim of unchanged business data or accepted convergence is made.
+Source inspection identifies a stale launcher calendar expectation: migration83
+and the freshly seeded fixture's original test admit readiness without calendar
+evidence, but an aged saved fixture is not guaranteed ready. Actual bounded read-only discovery
+returns blocked/business_day_unavailable, not ready. Missing or sealed current
+property-local day produces this guard; no day was manually opened or unsealed.
+Independent offline failed-attempt classification found only two exact normal
+business-day openings with their paired minimized facts/events (outbox66/67).
+All prior day rows/seals, other retained business rows and availability remain
+unchanged. The aftercapture was late, so this is preservation/classification only,
+not the missed <=60-second settled proof. Independently verified retry-r4 ran once
+and passed login/assets/issued checks, but refused a second dated-fixture blocker.
+Exact child11128/supervisor stopped, and3000/3001 remain absent. Root's unchanged
+read-only diagnostic now observes blocked/supplier_issue_status_unavailable.
+Frozen SQL requires today's supplier statutory-status evidence, while the old
+synthetic seed supplied only its seed-date snapshot. Normal day roll must not
+invent this evidence. The general launch smoke check is being corrected to
+validate and record any exact source-defined fiscal blocker without claiming
+invoice eligibility or bypassing fiscal checks. Original r4 baselineff797bf9 and
+late read-only aftercapture26768f48/raw40ed0701 are retained, not timed convergence.
+Source-only r5 preparation continues with diagnostics recorded before assertions.
+No promotion has run. Prepared source, a running database and a usable app are
+distinct states.
+
+**Phase 7 source handoff received.** Order461's four-file sandbox command handoff
+at d842750c is now integrated in working source without changing the immutable
+Order460 runtime artifact. Actual GitHub lineage is two commits ahead of547cf3d3;
+the earlier review's conflicting base statement is preserved and annotated.
+Root and receiving worker each pass5/0 (30 Windows assertions), with typecheck and
+197 import boundaries green. These are synthetic transport tests, not a live IRP
+round-trip, provider certification, database receipt persistence or Phase7 closure.
+
+**Historical founder-requested pause — 9 September.** The founder requested a laptop restart.
+All internal workers have completed; no app listens on3000/3001. The exact native
+PostgreSQL host was cleanly stopped at07:14:51UTC; pg_controldata confirms shut down,
+and ports3000/3001/55503 have no listeners. Resume only after
+the founder returns. Detailed private checkpoint:
+`.yellow/evidence/order460/restart-checkpoint-20260909.md`.
+The actual read-only catalogue-equivalence proof is now green; final combined
+classification and runtime promotion remain pending. Runtime Control R2's final
+successor is independently cleared, not executed. Newly verified ChatGPT/PR92
+handoffs contain separate PriceLabs staging and market-pipeline source; neither
+has been integrated into this checkout or used to populate operational Yellow.
+Latest founder sequence: incorporate requirements and create private PriceLabs
+staging, audit/complete1–6, close7, then accelerate RMS/AI and remaining priorities.
+No original data, failed proof or uncommitted work is discarded for this pause.
+
+**Latest verified checkpoint — 9 September.** Complete current source
+`547cf3d335afdcec7ae4b7d05517a2153b342d0e` is published on the existing branch and
+draftPR92, without merging. All six exact-headCI34300623098 jobs are green;
+database proof includes receipt upgrade17/0, current16/0 and referee11/11.
+The candidate standing passes2019/0 with1472 explicit existing DB/platform skips.
+Independent read-only captures now verify the retained serving85 database and
+separate clean90 reference, with58 companions and unchanged cluster globals.
+The reference is not a substitute for serving data or a recovery backup.
+Order460 has now packaged that exact source on D: and verified one private
+recovery copy against the retained85 data. All five86–90 migrations applied;
+the second production-runner invocation was the exact no-op. The final verifier
+reported a semantic-catalogue mismatch against the clean90 reference, so runtime
+remains stopped pending read-only diagnosis. Root's separate captured-data check
+finds no changed pre-existing business-table rows (only five schema ledger rows),
+with sequences, database properties, cluster roles and companions unchanged.
+Nine historical evidence leaves were safely relocated, releasing517,138,912
+allocated C: bytes; one nonessential prototype copy remains deferred intact.
+No runtime startup or corrected UI live on3000 is claimed. Detailed acceptance and retained
+failed attempts: `handoff/reviews/460-current-source-single-local-promotion.md`.
+The earlier checkpoint paragraphs below remain historical execution evidence.
 
 **Exact candidate standing — 9 September.** The first current-source candidate ran
 2015 passing tests,1472 existing DB/platform skips and2 failures(40839 assertions).

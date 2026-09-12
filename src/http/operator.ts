@@ -144,6 +144,10 @@ import {
 import {
   ReservationCommitService,
   ReservationConflictError,
+  ReservationAlertConflictError,
+  ReservationAlertNotFoundError,
+  ReservationAlertService,
+  ReservationAlertValidationError,
   ReservationGuestConflictError,
   ReservationGuestNotFoundError,
   ReservationGuestService,
@@ -173,6 +177,7 @@ import {
   ReservationValidationError,
   type ReservationOfferSearchInput,
   type ReservationOfferSearchResult,
+  type ReservationAlertShowOn,
   type RequestedReservationGuest,
   type ReservationBoardPage,
   type ReservationMutableFields,
@@ -1392,6 +1397,21 @@ function parseReservationGuests(body: unknown): {
   });
 }
 
+function parseReservationAlert(body: unknown): {
+  code: string | null;
+  message: string;
+  showOn: ReservationAlertShowOn;
+} | null {
+  if (!isObject(body) || !exactKeys(body, ["code", "message", "showOn"]) ||
+      (body.code !== null && typeof body.code !== "string") || typeof body.message !== "string" ||
+      (body.showOn !== "checkin" && body.showOn !== "checkout" && body.showOn !== "always")) return null;
+  return Object.freeze({ code: body.code, message: body.message, showOn: body.showOn });
+}
+
+function emptyObject(body: unknown): boolean {
+  return isObject(body) && exactKeys(body, []);
+}
+
 const RESERVATION_TRAVEL_MODES = Object.freeze([
   "flight", "train", "bus", "car", "ferry", "other",
 ] as const satisfies readonly ReservationTravelMode[]);
@@ -1838,6 +1858,7 @@ type HoldOperations = Pick<HoldService,
 type ReservationOperations = Pick<ReservationCommitService, "commitHeld" | "commitDirect">;
 type ReservationOfferOperations = Pick<ReservationOfferSearchService, "search">;
 type ReservationGuestOperations = Pick<ReservationGuestService, "findByConfirmation" | "replace">;
+type ReservationAlertOperations = Pick<ReservationAlertService, "create" | "deactivate">;
 type ReservationLifecycleOperations = Pick<ReservationLifecycleService, "findByConfirmation" | "modify" | "cancel" | "reinstate">;
 type ReservationSegmentOperations = Pick<ReservationSegmentService,
   "findByConfirmation" | "changeDeparture" | "moveRoom"
@@ -2356,6 +2377,7 @@ export class OperatorHttpApi {
   readonly #reservations?: ReservationOperations;
   readonly #reservationOffers?: ReservationOfferOperations;
   readonly #reservationGuests?: ReservationGuestOperations;
+  readonly #reservationAlerts?: ReservationAlertOperations;
   readonly #reservationLifecycle?: ReservationLifecycleOperations;
   readonly #reservationSegments?: ReservationSegmentOperations;
   readonly #reservationBoard?: ReservationBoardOperations;
@@ -2441,6 +2463,7 @@ export class OperatorHttpApi {
     ownerTrustExpenses?: Pick<OwnerTrustExpenseWorkbenchService,
       "listAccounts" | "previewExpense" | "requestApproval" | "listApprovals" | "decideApproval" | "postExpense">,
     fiscalSubmissions?: FiscalSubmissionOperatorDependencies,
+    reservationAlerts?: ReservationAlertOperations,
   ) {
     this.#login = login;
     this.#availability = availability;
@@ -2458,6 +2481,7 @@ export class OperatorHttpApi {
     this.#reservations = reservations;
     this.#reservationOffers = reservationOffers;
     this.#reservationGuests = reservationGuests;
+    this.#reservationAlerts = reservationAlerts;
     this.#reservationLifecycle = reservationLifecycle;
     this.#reservationSegments = reservationSegments;
     this.#parties = parties;
@@ -2721,6 +2745,9 @@ export class OperatorHttpApi {
     if (error instanceof ReservationGuestConflictError) {
       return apiError(request, 409, "reservations/conflict", "Conflict", "Reservation guest allocation conflicts with existing state");
     }
+    if (error instanceof ReservationAlertConflictError) {
+      return apiError(request, 409, "reservations/conflict", "Conflict", "Reservation alert conflicts with current recorded truth");
+    }
     if (error instanceof ReservationTravelConflictError) {
       return apiError(request, 409, "reservations/conflict", "Conflict", "Reservation travel conflicts with current recorded truth");
     }
@@ -2747,6 +2774,7 @@ export class OperatorHttpApi {
     }
     if (error instanceof ReservationValidationError || error instanceof ReservationOfferValidationError ||
         error instanceof ReservationGuestValidationError || error instanceof ReservationLifecycleValidationError ||
+        error instanceof ReservationAlertValidationError ||
         error instanceof ReservationTravelValidationError ||
         error instanceof ReservationBoardValidationError || error instanceof ReservationDetailValidationError) {
       return apiError(request, 400, "request/invalid", "Invalid request", "Reservation input is invalid");
@@ -2755,6 +2783,7 @@ export class OperatorHttpApi {
       return apiError(request, 404, "inventory/not_found", "Not found", "Referenced inventory was not found");
     }
     if (error instanceof ReservationNotFoundError || error instanceof ReservationGuestNotFoundError ||
+        error instanceof ReservationAlertNotFoundError ||
         error instanceof ReservationTravelNotFoundError ||
         error instanceof ReservationLifecycleNotFoundError || error instanceof ReservationDetailNotFoundError) {
       return apiError(request, 404, "reservations/not_found", "Not found", "Referenced reservation input was not found");
@@ -4935,6 +4964,90 @@ export class OperatorHttpApi {
     });
   }
 
+  async createReservationAlert(
+    context: TenantRequestContext,
+    propertyNode: string,
+    reservationId: string,
+    body: unknown,
+  ): Promise<Response> {
+    const input = parseReservationAlert(body);
+    const idempotencyKey = context.request.headers.get("idempotency-key");
+    if (!UUID.test(propertyNode) || !UUID.test(reservationId) || !input || !idempotencyKey ||
+        !IDEMPOTENCY_KEY.test(idempotencyKey) || new URL(context.request.url).search.length > 0) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Reservation alert input is invalid");
+    }
+    if (!hasScope(context, RESERVATION_LIFECYCLE_WRITE_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Reservation alert changes are not granted");
+    }
+    const grants = await listGrantedProperties(context, RESERVATION_LIFECYCLE_WRITE_SCOPE);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 404, "reservations/not_found", "Not found", "The referenced reservation was not found");
+    }
+    if (!this.#reservationAlerts) return this.unavailable(context.request);
+    const requestId = correlationId(context.request);
+    const result = await this.#reservationAlerts.create(context.tx, {
+      reservationId,
+      code: input.code,
+      message: input.message,
+      showOn: input.showOn,
+      idempotencyKey,
+      envelope: createAuditEnvelope({
+        actorId: context.identity.actorId,
+        tenantId: context.tenantId,
+        propertyNode,
+        requestId,
+        operation: "reservation.modified",
+      }),
+    });
+    return apiResponse(context.request, canonicalJson({
+      alert: jsonValue(result.alert), changed: result.changed, replayed: result.replayed,
+    }), 200, {
+      "idempotency-replayed": String(result.replayed),
+      "x-correlation-id": requestId,
+    });
+  }
+
+  async deactivateReservationAlert(
+    context: TenantRequestContext,
+    propertyNode: string,
+    reservationId: string,
+    alertId: string,
+    body: unknown,
+  ): Promise<Response> {
+    const idempotencyKey = context.request.headers.get("idempotency-key");
+    if (!UUID.test(propertyNode) || !UUID.test(reservationId) || !UUID.test(alertId) || !emptyObject(body) ||
+        !idempotencyKey || !IDEMPOTENCY_KEY.test(idempotencyKey) || new URL(context.request.url).search.length > 0) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Reservation alert input is invalid");
+    }
+    if (!hasScope(context, RESERVATION_LIFECYCLE_WRITE_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Reservation alert changes are not granted");
+    }
+    const grants = await listGrantedProperties(context, RESERVATION_LIFECYCLE_WRITE_SCOPE);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 404, "reservations/not_found", "Not found", "The referenced reservation was not found");
+    }
+    if (!this.#reservationAlerts) return this.unavailable(context.request);
+    const requestId = correlationId(context.request);
+    const result = await this.#reservationAlerts.deactivate(context.tx, {
+      reservationId,
+      alertId,
+      idempotencyKey,
+      envelope: createAuditEnvelope({
+        actorId: context.identity.actorId,
+        tenantId: context.tenantId,
+        propertyNode,
+        requestId,
+        operation: "reservation.modified",
+      }),
+    });
+    return apiResponse(context.request, canonicalJson({
+      alert: jsonValue(result.alert), changed: result.changed, replayed: result.replayed,
+    }), 200, {
+      "idempotency-replayed": String(result.replayed),
+      "x-correlation-id": requestId,
+    });
+  }
+
   async putReservationTravel(
     context: TenantRequestContext,
     propertyNode: string,
@@ -5744,6 +5857,13 @@ export class OperatorHttpApi {
     if (!grants.some(({ id }) => id === propertyNode)) {
       return apiError(context.request, 404, "reservations/not_found", "Not found", "Referenced reservation input was not found");
     }
+    const hasLifecycleWriteScope = hasScope(context, RESERVATION_LIFECYCLE_WRITE_SCOPE);
+    const lifecycleWriteGrants = hasLifecycleWriteScope
+      ? await listGrantedProperties(context, RESERVATION_LIFECYCLE_WRITE_SCOPE)
+      : [];
+    const canWriteLifecycleHere = hasLifecycleWriteScope &&
+      lifecycleWriteGrants.some(({ id }) => id === propertyNode);
+    const canManageAlerts = this.#reservationAlerts !== undefined && canWriteLifecycleHere;
     const reservation = await this.#reservationDetail.findById(context.tx, {
       tenantId: context.tenantId,
       propertyNode,
@@ -5759,11 +5879,15 @@ export class OperatorHttpApi {
       (reservation.status === "reserved" || reservation.status === "due_in" ||
         reservation.status === "in_house" || reservation.status === "due_out");
     const actions = Object.freeze({
-      canModify: reservation.status === "reserved" || reservation.status === "due_in" ||
-        reservation.status === "in_house" || reservation.status === "due_out",
-      canCancel: reservation.status === "reserved" || reservation.status === "due_in",
-      canReinstate: reservation.status === "cancelled" || reservation.status === "no_show",
+      canModify: canWriteLifecycleHere &&
+        (reservation.status === "reserved" || reservation.status === "due_in" ||
+          reservation.status === "in_house" || reservation.status === "due_out"),
+      canCancel: canWriteLifecycleHere &&
+        (reservation.status === "reserved" || reservation.status === "due_in"),
+      canReinstate: canWriteLifecycleHere &&
+        (reservation.status === "cancelled" || reservation.status === "no_show"),
       canOpenPrimaryFolio,
+      canManageAlerts,
     });
     return apiResponse(context.request, canonicalJson({ reservation: jsonValue(reservation), actions }));
   }

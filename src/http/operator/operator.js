@@ -4147,7 +4147,7 @@ function ensureHousekeepingGenerationReceiptPanel() {
   reservationReinstatePanel.hidden = true;
  }
  for (const name of actionNames) {
-  if (name === "modify") menu.append(drawerLifecycleButton("Edit details", reservationMetadataForm));
+ if (name === "modify") menu.append(drawerLifecycleButton("Edit operational details", reservationMetadataForm));
   if (name === "cancel") menu.append(drawerLifecycleButton("Cancel", reservationCancelForm));
   if (name === "reinstate") menu.append(drawerLifecycleButton("Reinstate", reservationReinstatePanel));
  }
@@ -5569,6 +5569,114 @@ function checkoutHousekeepingCompletionActionIsCurrent(origin, section, action) 
  else clearCheckInWorkbench();
  void loadCheckoutReadiness({ focus: checkoutCompatible });
  }
+  function renderReservationAlerts(result) {
+ const reservation = result.reservation;
+ const section = node("section", "reservation-detail-section reservation-alerts");
+ const heading = node("h4", "", "Alerts");
+ const list = el("ul");
+ const status = node("p", "form-message");
+ status.setAttribute("role", "status");
+ status.setAttribute("aria-live", "polite");
+ status.tabIndex = -1;
+ const origin = { property: propertySelect.value, reservationId: reservation.reservationId,
+  generation: reservationDetailGeneration, session: accessToken };
+ const canManage = result.actions?.canManageAlerts === true;
+ let pending = false;
+ const isCurrent = () => origin.session === accessToken && origin.property === propertySelect.value
+  && origin.generation === reservationDetailGeneration && origin.reservationId === reservationRouteReservationId
+  && reservationDetailData?.reservation?.reservationId === origin.reservationId
+  && reservationDetailData?.actions?.canManageAlerts === true
+  && section.isConnected && !reservationDetailDrawer.hidden;
+ async function saveAlert(action, body, alertId = null) {
+  if (!canManage || pending || !isCurrent()) return;
+  const path = `/api/v1/properties/${enc(origin.property)}/reservations/${enc(origin.reservationId)}/alerts`
+   + (action === "deactivate" ? `/${enc(alertId)}/deactivate` : "");
+  const identity = `reservation-alert:${JSON.stringify({ path, body })}`;
+  const key = pendingKeys.get(identity) || crypto.randomUUID();
+  pendingKeys.set(identity, key);
+  pending = true;
+  section.setAttribute("aria-busy", "true");
+  for (const control of section.querySelectorAll("input,textarea,select,button")) control.disabled = true;
+  status.classList.remove("error");
+  status.textContent = "Saving alert…";
+  try {
+   const saved = await request(path, { method: "POST", headers: { "idempotency-key": key }, body: JSON.stringify(body) });
+   if (!isCurrent()) return;
+   if (!saved?.alert || !canonicalUuid(saved.alert.id) || typeof saved.changed !== "boolean"
+    || typeof saved.replayed !== "boolean" || (action === "deactivate"
+     ? saved.alert.id !== alertId || saved.alert.active !== false
+     : saved.alert.active !== true || saved.alert.message !== body.message || saved.alert.code !== body.code
+      || saved.alert.showOn !== body.showOn)) throw new Error("Alert response could not be verified");
+   pendingKeys.delete(identity);
+   status.textContent = "Alert saved. Refreshing reservation…";
+   await loadReservationDetail(origin.reservationId);
+   if (origin.session !== accessToken || origin.property !== propertySelect.value
+    || origin.reservationId !== reservationRouteReservationId || reservationDetailDrawer.hidden) return;
+   reservationDetailStatus.textContent = reservationDetailContent.hidden
+    ? "Alert saved, but reservation refresh failed. Use Try again to reload details."
+    : "Alert saved. Reservation details refreshed.";
+   const refreshed = reservationDetailContent.querySelector(".reservation-alerts h4");
+   if (refreshed) { refreshed.tabIndex = -1; refreshed.focus({ preventScroll: true }); }
+  } catch (error) {
+   if (!isCurrent()) return;
+   status.classList.add("error");
+   status.textContent = `${error instanceof Error ? error.message : "Alert could not be saved"}. Retry the same action to keep its request key.`;
+   status.focus({ preventScroll: true });
+  } finally {
+   pending = false;
+   if (isCurrent()) {
+    section.setAttribute("aria-busy", "false");
+    for (const control of section.querySelectorAll("input,textarea,select,button")) control.disabled = false;
+   }
+  }
+ }
+ for (const alert of reservation.alerts) {
+  const item = el("li");
+  const trigger = { always: "Always", checkin: "At check-in", checkout: "At checkout" }[alert.showOn] || alert.showOn;
+  item.append(node("span", "reservation-alert-copy", `${alert.active ? "Active" : "Inactive"} · ${trigger}${alert.code ? ` · ${alert.code}` : ""} · ${alert.message}`));
+  if (canManage && alert.active) {
+   const deactivate = node("button", "quiet", "Deactivate");
+   deactivate.type = "button";
+   deactivate.setAttribute("aria-label", `Deactivate alert: ${alert.code || alert.message.slice(0, 80)}`);
+   deactivate.addEventListener("click", () => saveAlert("deactivate", {}, alert.alertId));
+   item.append(deactivate);
+  }
+  list.append(item);
+ }
+ if (!reservation.alerts.length) list.append(node("li", "muted", "No alerts recorded."));
+ section.append(heading, list);
+ if (canManage) {
+  const editor = el("details");
+  editor.append(node("summary", "", "Add an alert"));
+  const form = el("form");
+  const messageLabel = node("label", "", "Staff note");
+  const message = el("textarea");
+  message.name = "message"; message.required = true; message.maxLength = 1000; message.rows = 3;
+  messageLabel.append(message);
+  const codeLabel = node("label", "", "Code (optional)");
+  const code = el("input"); code.name = "code"; code.maxLength = 64; code.autocomplete = "off";
+  codeLabel.append(code);
+  const showLabel = node("label", "", "Show this alert");
+  const show = el("select"); show.name = "showOn";
+  for (const [value, title] of [["always", "Always"], ["checkin", "At check-in"], ["checkout", "At checkout"]]) {
+   const option = node("option", "", title); option.value = value; show.append(option);
+  }
+  show.value = "always"; showLabel.append(show);
+  const submit = node("button", "primary", "Save alert"); submit.type = "submit";
+  form.append(messageLabel, codeLabel, showLabel, submit);
+  form.addEventListener("submit", (event) => {
+   event.preventDefault();
+   const note = message.value.trim();
+   if (!note) { message.setCustomValidity("Enter a staff note."); message.reportValidity(); return; }
+   message.setCustomValidity("");
+   if (!form.reportValidity()) return;
+   return saveAlert("create", { code: code.value.trim() || null, message: note, showOn: show.value });
+  });
+  message.addEventListener("input", () => message.setCustomValidity(""));
+  editor.append(form); section.append(editor, status);
+ }
+ return section;
+ }
   function renderReservationDetail(result) {
  clearReservationDrawerLifecycle();
  const reservation = result.reservation;
@@ -5587,8 +5695,7 @@ function checkoutHousekeepingCompletionActionIsCurrent(origin, section, action) 
   `${reservationDateTime(segment.from)} – ${reservationDateTime(segment.to)} · ${segment.adults} adult${segment.adults === 1 ? "" : "s"} · ${segment.status}`),
   detailCollection("Guests", reservation.guests, (guest) =>
   `${guest.displayName} · ${guest.role}${guest.sharePct ? ` · ${guest.sharePct}% share` : ""}`),
-  detailCollection("Alerts", reservation.alerts, (alert) =>
-  `${alert.active ? "Active" : "Inactive"} · ${alert.showOn} · ${alert.message}`),
+  renderReservationAlerts(result),
   reservationTravelDetailCollection(reservation.travel),
   detailCollection("History", reservation.history, (fact) =>
   `${reservationDateTime(fact.recordedAt)} · ${fact.factType}`),

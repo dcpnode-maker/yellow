@@ -202,7 +202,7 @@ databaseDescribe("Order 166 real unprepared HTTP surface", () => {
     expect(detailResponse.status).toBe(200);
     expect(await detailResponse.json()).toMatchObject({
       reservation: { reservationId: RESERVATION, confirmationNo: "Y-166-HTTP" },
-      actions: { canModify: true, canCancel: true, canReinstate: false },
+      actions: { canModify: false, canCancel: false, canReinstate: false },
     });
     expect((await get(`/p/${PROPERTY}/res/${RESERVATION}`)).status).toBe(200);
     const exact = await get(`/api/v1/properties/${PROPERTY}/reservations?confirmationNo=Y-166-HTTP`);

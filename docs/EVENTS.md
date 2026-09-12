@@ -85,6 +85,16 @@ field values. Override authority is recorded only as use/reason after server-der
 authorization. Consumers must not infer key issue, occupancy mutation, posting/payment,
 folio settlement, statutory submission, business-day movement or checkout.
 
+Order463 reservation alerts reuse `reservation.modified` for create or deactivate.
+The aggregate remains the same tenant/property reservation. The fact/event diff
+is exactly `{alerts:{action:'create'|'deactivate',alertId,active}}`, without note,
+code, Party, identity-document or contact values. The changed alert, fact, outbox
+and idempotency result commit together. Replay and already-inactive no-op emit
+nothing additional. Consumers must not infer a reservation status, occupancy,
+guest identity, billing, approval or statutory change from an annotation.
+The implementation and isolated database proof are accepted; serving-runtime
+integration remains pending under Order460.
+
 Order 212 reuses `reservation.modified` for a changed travel compare-and-set. Its
 minimized diff is `{travel:{direction,before,after}}`, where each present tuple contains
 only mode, carrier, service number, canonical scheduled instant and pickup-requested
