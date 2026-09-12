@@ -3770,4 +3770,55 @@ receipt contract. Old binding-free receipts remain compatible; unknown/malformed
 wrong-state bindings fail. This metadata changes no markup, amount, registration label
 or QR and exposes no provider extension identity in the printed artifact. Printing
 does not authorize a retry or contact a provider. This source repair is independently
-verified but is not yet in the retained44ef/current91 local app.
+verified and published in46004d6f; completed Q255 promoted it to the retained
+frontier91 local app. Current runtime truth remains docs/PROJECT-STATUS.md.
+
+## Existing-credit invoice workbench disclosure — Order466
+
+An issued invoice detail offers Existing credit note / View credit note. Only
+deliberate disclosure calls the existing original-invoice credit discovery GET.
+An exact original-linked immutable receipt then permits the matching credit
+delivery GET. This is a read-only summary, not a credit issuer, editor, refund,
+provider control, full credit-document content view or print endpoint.
+
+The browser binds property, original identity/number/hash, reservation, folio and
+recipient, validates exact receipt shape, positive signed-int64 string money,
+canonical dates/timestamps and bounded Unicode reasons, and renders text safely.
+Discovery404 says No credit note available to view, not that a concealed credit
+does not exist. Denied, unavailable and invalid states remain distinguishable.
+A valid summary survives delivery-only failure; denied refresh clears old data.
+
+Registration metadata reuses the already-served print module's unchanged private
+structural validator through one inert fiscalDeliveryRegistrationStatus facade.
+The frozen result contains code/label only; it is not browser cryptographic
+verification. Only accepted production registration says IRP registered.
+Sandbox, pending, rejected, cancelled, ambiguous and legacy states remain honest.
+Stale, hidden, detached, disposed and property-replaced views cannot apply results
+or initiate follow-up requests. No credit/provider mutation, polling or PII storage.
+
+Root independently executed79pass/9explicit DB skips/0fail with1394 assertions,
+including actual Chromium against synthetic responses; no new real-DB proof is
+claimed for the unchanged APIs. Source is accepted, not published/live at this
+checkpoint. Review466 and PROJECT-STATUS carry the exact identities/release state.
+
+## Public place discovery and compset proposal — RMS-PLACES-001
+
+GET `/api/v1/properties/:property/market-map/places` and POST
+`/api/v1/properties/:property/market-map/selection` are signed, tenant-transaction
+reads requiring exact `rates.configuration:read` plus a current active actor and
+database property/subtree grant. Catalog access happens after that check. GET
+accepts one bounded bbox/name-prefix/exact URL/domain/GERS selector; page size is
+1–200 and source paths cannot be supplied by the browser. POST accepts only one
+subject ID and 1–50 distinct competitor IDs, excluding the subject, then reloads
+canonical public records. Missing records return409; invalid400, missing identity
+401, denied scope/property403 and unavailable503. All responses are no-store.
+
+The `yellow.market-map-selection/v1` export is a research proposal carrying
+`requires-provider-mapping`, `automaticPricingEligible:false` and
+`operationalWrites:false`. It does not persist a property/room/provider mapping,
+produce rates or create availability/sales facts. The optional readonly SQLite
+catalog contains public third-party place data only; PostgreSQL remains the
+business authority. Overture2026-08-19.0/schema1.18.0 is a snapshot, not live
+inventory, price, rooms sold or unconstrained demand. Detailed shapes, setup,
+provenance and acceptance limitations are in
+`docs/research/OVERTURE-MARKET-MAP.md` and `handoff/reviews/RMS-PLACES-001.md`.

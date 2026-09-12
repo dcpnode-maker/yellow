@@ -46,7 +46,7 @@ describe("application security headers", () => {
     expect(response.status).toBe(500);
   });
 
-  it("allows no third-party or executable CSP source", () => {
+  it("allows no third-party or executable CSP source and confines data URLs to images", () => {
     const directives = SECURITY_HEADERS["content-security-policy"]
       .split(";")
       .map((directive) => directive.trim().split(/\s+/));
@@ -56,12 +56,15 @@ describe("application security headers", () => {
       expect(directive).toBeTruthy();
       expect(sources.length).toBeGreaterThan(0);
       for (const source of sources) {
-        expect(allowedSources.has(source)).toBeTrue();
+        expect(allowedSources.has(source) || (directive === "img-src" && source === "data:")).toBeTrue();
       }
     }
 
     expect(SECURITY_HEADERS["content-security-policy"]).not.toMatch(
-      /\*|https?:|\/\/|data:|blob:|'unsafe-inline'|'unsafe-eval'|'wasm-unsafe-eval'/,
+      /\*|https?:|\/\/|blob:|'unsafe-inline'|'unsafe-eval'|'wasm-unsafe-eval'/,
     );
+    for (const name of ["script-src", "worker-src", "connect-src"]) {
+      expect(directives.find(([directive]) => directive === name)).toEqual([name, "'self'"]);
+    }
   });
 });

@@ -47,9 +47,14 @@ tenant records, not a second operational database.
   bounded pan/zoom map, search, selection, matching confidence/provenance,
   export, optional lazy 3D, keyboard/list fallback and context reset.
 - `src/http/operator/vendor/MARKET-MAP-NOTICE.md`, `src/http/market-map-assets.ts`,
+  `src/http/operator/vendor/ne_110m_land.geojson`,
+  `handoff/questions/RMS-PLACES-001-assets.md` (admitted scope clarification),
   `src/http/security-headers.ts`, `package.json`, `bun.lock`: only exact reviewed
   commercially usable map runtime if required, same-origin assets, narrowly
   scoped CSP with no third-party network by default. No unrelated dependencies.
+- `tests/security-headers.test.ts`: recognize `data:` exclusively for the map
+  runtime's CSS images; continue rejecting it for scripts, workers and connections.
+  This narrow scope clarification was admitted before changing the existing test.
 - `tests/operator-market-map.test.ts`, `tests/operator-market-map.browser.test.ts`,
   `scripts/research/verify-market-map-browser.ts`: executable UI/route/state/asset
   proof and screenshots using synthetic fixtures and separately labeled public data.
@@ -57,6 +62,9 @@ tenant records, not a second operational database.
   `docs/research/OVERTURE-MARKET-MAP.md`, `docs/CONTRACTS.md`,
   append-only `DECISIONS.log` and `handoff/LEDGER.md`: source licences, exact proof,
   measured versus proposed limits, setup, and receiving-owner handoff.
+- `.github/workflows/ci.yml` and `handoff/questions/RMS-PLACES-001-ci.md`:
+  one isolated market-map PostgreSQL proof step using the existing provisioned
+  CI database roles; no changes to existing gate assertions or required jobs.
 
 ## Verification and delivery
 
@@ -85,3 +93,11 @@ The committed PROJECT-STATUS predates PR92's latest posted local-runtime evidenc
 This isolated lane does not rewrite the desktop's current lifecycle or claim its
 runtime state. Actual observations and this lane's acceptance are recorded here
 and in its review/handoff; integration belongs to the active receiving owner.
+
+## Receiving refresh before handoff
+
+PR92 advanced to `41415cc5c6953f71d9b3baada6fd9c7853567128` during this lane.
+The coordinator incorporated that published source into the isolated candidate.
+The sole merge conflict was the appended CONTRACTS document: the receiving
+Order465 runtime correction and Order466 contract were retained exactly, followed
+by this lane's new contract. No paused desktop working tree was read or modified.

@@ -41,6 +41,8 @@ import {
 } from "./kernel";
 import type { OperatorRuntimeStatus } from "./project-status";
 import { ServerLifecycle, installServerLifecycleSignals } from "./runtime/server-lifecycle";
+import { PlaceCatalog } from "./contexts/distribution";
+import { MarketMapHttpApi } from "./http/market-map";
 import { PostgresDueArrivalScopeSource } from "./workers/postgres-due-arrival-scopes";
 import { PostgresDueDepartureScopeSource } from "./workers/postgres-due-departure-scopes";
 import { PostgresDueHoldScopeSource } from "./workers/postgres-due-hold-scopes";
@@ -148,6 +150,14 @@ function runtimeApp() {
     });
   }
   const databaseUrl = required("YELLOW_RUNTIME_DATABASE_URL");
+  // Optional immutable public-data cache. A missing/bad catalog must not stop PMS.
+  let placeCatalog: PlaceCatalog | undefined;
+  if (Bun.env.YELLOW_PLACE_CATALOG_PATH) {
+    try {
+      placeCatalog = new PlaceCatalog({ path: Bun.env.YELLOW_PLACE_CATALOG_PATH });
+      runtimeResourceClosers.push(() => placeCatalog?.close());
+    } catch { console.error("Market property catalog could not be opened; discovery is unavailable."); }
+  }
   const database = Database.connect(databaseUrl, { maxConnections: 12, prepare: false });
   runtimeResourceClosers.push(() => database.close());
   const eventPool = ownSqlPool(new SQL(databaseUrl, { max: 4, prepare: false }));
@@ -386,6 +396,7 @@ function runtimeApp() {
     readinessTarget: "yellow_runtime_database",
     database,
     tenantResolver: new BearerTenantResolver(tokens),
+    marketMapApi: new MarketMapHttpApi(placeCatalog),
     operatorApi: new OperatorHttpApi(login, availability, inventory, new PostgresIdempotency(), restrictions, rates, pricing, blocks, policy, holds, projection, runtimeStatus, rateBuilder, reservations, reservationOffers, reservationGuests, reservationLifecycle, reservationSegments, parties, folioStatements, charges, new ReservationBoardService(), new ReservationDetailService(), folios, chargeCorrections, folioTransfers, hostedRuntime?.hostedDeposits, folioSettlements, cashiers, receivables, checkIns, housekeeping, housekeepingSheets, checkoutReadiness, checkouts, vehicleRegister, reservationTravel, pickupTaskDispatch, arrivalRoomCleaning, housekeepingDiscrepancies, vehicleParking, undefined, undefined, businessDayCarry, businessDaySeal, ownerTrustExpenses, {
       submissions: fiscalSubmissions,
       adapters: fiscalSubmissionAdapters,

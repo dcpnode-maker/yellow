@@ -374,6 +374,15 @@ jobs:
           YELLOW_EXTENSION_REGISTRAR_DATABASE_PASSWORD="$YELLOW_EXTENSION_REGISTRAR_DATABASE_PASSWORD" \
             bun scripts/provision-local-database-authority.ts
 
+      - name: Prove market map tenant and property isolation
+        shell: bash
+        run: |
+          set -euo pipefail
+          YELLOW_MARKET_MAP_ADMIN_URL="$ADMIN_URL" \
+          YELLOW_MARKET_MAP_ADMIN_RUNTIME_URL="postgres://yellow_runtime:${YELLOW_RUNTIME_DATABASE_PASSWORD}@${POSTGRES_ADDRESS}/postgres" \
+          YELLOW_REQUIRE_MARKET_MAP_DATABASE=1 \
+            bun test tests/market-map.integration.test.ts
+
       - name: Execute isolated Phase 3 database proofs
         shell: bash
         run: |
