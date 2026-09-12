@@ -3,7 +3,10 @@ import { SQL } from "bun";
 import { mkdtemp, readdir, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
+import { Database } from "../src/kernel";
+import { IssueIndiaNativeFiscalInvoiceCommand } from "../src/commands/issue-india-native-fiscal-invoice";
 import { runMigrations } from "../scripts/migrate";
+import { createNativeIssuanceFixture } from "./fixtures/india-native-fiscal-source-completion-fixture";
 
 const ADMIN_URL = process.env.YELLOW_DEPLOY_DATABASE_URL;
 const RUNTIME_URL = process.env.YELLOW_RUNTIME_DATABASE_URL;
@@ -136,14 +139,54 @@ databaseDescribe("Order439 released native fiscal authority is contained", () =>
     });
   }, 120_000);
 
-  test("fresh81 retains legacy denial under both runtime identities without business side effects", async () => {
-    await withDatabase(async (url, sql, runtimeUrl) => {
-      const migration = await runMigrations({ databaseUrl: url, logger: () => undefined });
-      expect(migration.appliedFiles).toHaveLength(81);
+  test("fresh89 retains legacy denial under both runtime identities without business side effects", async () => {
+    await withHistoricalMigrations(89, async historical => withDatabase(async (url, sql, runtimeUrl) => {
+      const migration = await runMigrations({ databaseUrl: url, migrationsDirectory: historical, logger: () => undefined });
+      expect(migration.appliedFiles).toHaveLength(89);
       const before = await census(sql);
-      expect(before[0]?.tables).toBe(128);
+      expect(before[0]?.tables).toBe(129);
       await assertContained(sql, runtimeUrl);
       expect(await census(sql)).toEqual(before);
+    }));
+  }, 120_000);
+
+  test("fresh91 retains legacy denial after the series configuration migration", async () => {
+    await withDatabase(async (url, sql, runtimeUrl) => {
+      const migration = await runMigrations({ databaseUrl: url, logger: () => undefined });
+      expect(migration.appliedFiles).toHaveLength(91);
+      expect(migration.appliedFiles.at(-1)).toBe("0091_reservation_alert_authority.sql");
+      const before = await census(sql);
+      expect(before[0]?.tables).toBe(129);
+      await assertContained(sql, runtimeUrl);
+      expect(await census(sql)).toEqual(before);
+    });
+  }, 120_000);
+
+  test("populated89 to 90 upgrade preserves the contained legacy graph", async () => {
+    await withHistoricalMigrations(89, async historical => {
+      await withDatabase(async (url, sql, runtimeUrl) => {
+        const predecessor = await runMigrations({ databaseUrl: url, migrationsDirectory: historical, logger: () => undefined });
+        expect(predecessor.appliedFiles).toHaveLength(89);
+        const runtime = Database.connect(runtimeUrl, { maxConnections: 2, prepare: false });
+        try {
+          const candidate = await createNativeIssuanceFixture(sql, runtime, {
+            label: `containment453-${crypto.randomUUID().slice(0, 10)}`,
+          });
+          await new IssueIndiaNativeFiscalInvoiceCommand(runtime).execute(candidate.request);
+          const before = await census(sql);
+          expect(before[0]?.tables).toBe(129);
+          const migrationFile = "0090_india_native_fiscal_series_configuration.sql";
+          await writeFile(join(historical, migrationFile), await readFile(join(MIGRATIONS, migrationFile)));
+          const upgrade = await runMigrations({ databaseUrl: url, migrationsDirectory: historical, logger: () => undefined });
+          expect(upgrade.appliedFiles).toEqual([migrationFile]);
+          expect(await sql<Array<{ count: number; frontier: number }>>`SELECT count(*)::int AS count, max(version)::int AS frontier FROM public.schema_migration`)
+            .toEqual([{ count: 90, frontier: 90 }]);
+          await assertContained(sql, runtimeUrl);
+          expect(await census(sql)).toEqual(before);
+        } finally {
+          await runtime.close();
+        }
+      });
     });
   }, 120_000);
 });

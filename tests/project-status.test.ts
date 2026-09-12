@@ -8,6 +8,16 @@ import { runOwnedProofProcess } from "./helpers/owned-proof-process";
 
 const root = fileURLToPath(new URL("..", import.meta.url));
 
+function processExists(pid: number): boolean {
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ESRCH") return false;
+    throw error;
+  }
+}
+
 function runState(environment?: NodeJS.ProcessEnv) {
   const command = process.platform === "win32"
     ? ["powershell.exe", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", join(root, "state.ps1")]
@@ -53,13 +63,13 @@ async function historicalCounts(directory: string): Promise<string> {
 }
 
 describe("canonical project status", () => {
-  test("records the accepted native closure and current durable-submission work", () => {
+  test("records current release work while preserving the historical Order 444 preview", () => {
     const originalSnapshot = JSON.stringify(PROJECT_BUILD_SNAPSHOT);
-    expect(PROJECT_BUILD_SNAPSHOT.recordedAt).toBe("2026-09-07");
+    expect(PROJECT_BUILD_SNAPSHOT.recordedAt).toBe("2026-09-12");
     expect(PROJECT_BUILD_SNAPSHOT.roadmap).toMatchObject({
       phaseCount: 18,
-      latestBuiltOrder: 439,
-      currentOrder: 440,
+      latestBuiltOrder: 464,
+      currentOrder: 460,
       activePhase: 7,
     });
     expect(PROJECT_BUILD_SNAPSHOT.review.independentlyReviewedThroughOrder).toBeGreaterThanOrEqual(91);
@@ -71,10 +81,32 @@ describe("canonical project status", () => {
     expect(byOrder.get(434)?.summary).toContain("native");
     expect(byOrder.get(440)?.state).toBe("proof_in_progress");
     expect(byOrder.get(440)?.summary).toContain("durable fiscal submission");
-    expect(byOrder.get(440)?.summary).toContain("PR90 at 4ba1d6f");
-    expect(byOrder.get(440)?.summary).toContain("independent actual81 storage");
-    expect(byOrder.get(440)?.remaining).toContain("Development81 is not mergedmain80");
-    expect(byOrder.get(440)?.remaining).toContain("authentic sandbox acceptance remain unfinished");
+    expect(byOrder.get(440)?.summary).toContain("PR91 at 3503b0c");
+    expect(byOrder.get(440)?.summary).toContain("81 migrations / 128 public tables");
+    expect(byOrder.get(440)?.remaining).toContain("historically verified Order444 preview85 and retained rollback77");
+    expect(byOrder.get(440)?.remaining).toContain("authentic external-provider sandbox acceptance and activation remain unfinished");
+    expect(byOrder.get(444)?.state).toBe("proof_in_progress");
+    expect(byOrder.get(444)?.summary).toContain("three-layout Calm Workbench, Precision Desk and Service Timeline shell");
+    expect(byOrder.get(444)?.summary).toContain("Q208 operator invoice queue/detail, readiness, confirmed issuance");
+    expect(byOrder.get(444)?.summary).toContain("populated81-to-85 preservation 2/0");
+    expect(byOrder.get(444)?.summary).toContain("synthetic fiscal review seed through genuine production services 8/0");
+    expect(byOrder.get(444)?.summary).toContain("a10851786f17f2fdea0cf970320ee8c46a45b670/frontier85");
+    expect(byOrder.get(444)?.summary).toContain("all six CI34095296622 jobs and normal CodeQL34095293723");
+    expect(byOrder.get(444)?.summary).toContain("2026-09-07 at 08:09:38Z");
+    expect(byOrder.get(444)?.summary).toContain("08:14:30Z");
+    expect(byOrder.get(444)?.summary).toContain("three prefilled sign-in fields and the actual login button");
+    expect(byOrder.get(444)?.summary).toContain("synthetic invoice YR/1");
+    expect(byOrder.get(444)?.summary).toContain("mounted 15 destinations");
+    expect(byOrder.get(444)?.summary).toContain("three desktop layouts and the 390px phone view");
+    expect(byOrder.get(444)?.summary).toContain("signed out with zero business commands");
+    expect(byOrder.get(444)?.remaining).toContain("historical verified preview receipt");
+    expect(byOrder.get(444)?.remaining).toContain("dynamic runtime build information owns the actual serving revision/frontier");
+    expect(byOrder.get(444)?.remaining).toContain("Old b5ef708/frontier77 is retained for rollback");
+    expect(byOrder.get(444)?.remaining).toContain("not full transaction acceptance of all 15 workspaces");
+    expect(byOrder.get(444)?.remaining).toContain("providers remain unconfigured/default-off");
+    expect(byOrder.get(444)?.remaining).toContain("No main merge is claimed");
+    expect(byOrder.get(444)?.remaining).toContain("Full Astra identity/journey design");
+    expect(byOrder.get(444)?.remaining).toContain("Phase 7 and the whole application are not complete");
 
     expect(PROJECT_BUILD_SNAPSHOT.phases).toHaveLength(18);
     expect(PROJECT_BUILD_SNAPSHOT.phases.map(({ number, state }) => [number, state])).toEqual([
@@ -160,6 +192,12 @@ describe("canonical project status", () => {
     expect(script).toContain('grep -LZ \'^## MERGED\' -- "${order_files[@]}"');
     expect(script).toContain('grep -LEZ \'^## (RESOLVED|RATIFIED)\' -- "${question_candidates[@]}"');
     expect(script).toContain('name=${file##*/}');
+    expect(script).toContain("command -v timeout >/dev/null 2>&1");
+    expect(script).toContain("timeout --signal=KILL 1s bash -s <<'YELLOW_DOCKER_PROBE'");
+    expect(script).toContain("docker compose ps --services --status running");
+    expect(script).toContain("docker compose exec -T postgres psql");
+    expect(script.match(/docker compose /g)).toHaveLength(2);
+    expect(script).not.toContain("docker info");
     expect(script).not.toContain('grep -q \'^## MERGED\' "$file"');
     expect(script).not.toContain('name=$(basename "$file")');
   });
@@ -220,6 +258,309 @@ describe("canonical project status", () => {
       await rm(directory, { recursive: true, force: true });
     }
   });
+
+  test.skipIf(process.platform === "win32")("Unix status bounds the complete optional Docker probe without a survivor", async () => {
+    const directory = await mkdtemp(join(tmpdir(), "yellow-project-status-docker-bound-"));
+    const bash = Bun.which("bash");
+    if (!bash) throw new Error("Unix status proof requires bash");
+    try {
+      for (const kind of ["orders", "reviews", "questions"]) {
+        await mkdir(join(directory, "handoff", kind), { recursive: true });
+      }
+      const bin = join(directory, "bin");
+      await mkdir(bin);
+      const survivor = join(directory, "docker-survivor");
+      await Bun.write(join(directory, "state.sh"), await Bun.file(join(root, "state.sh")).text());
+      await Bun.write(join(directory, "current.md"), "Current fixture order");
+      const statusFile = join(directory, "status.md");
+      await Bun.write(statusFile, [
+        "<!-- status-schema: yellow-project-status/v1 -->", "<!-- current-phase: 7 -->",
+        "<!-- current-task: bounded Docker fixture -->", "<!-- current-lifecycle: fixture -->",
+        "<!-- current-order-files: current.md -->",
+      ].join("\n"));
+      await Bun.write(join(bin, "git"), "#!/usr/bin/env bash\nexit 0\n");
+      await Bun.write(join(bin, "docker"), [
+        "#!/usr/bin/env bash",
+        'if [ "$*" = "compose ps --services --status running" ]; then',
+        "  printf 'postgres\\n'",
+        "  exit 0",
+        "fi",
+        'if [ "${1:-}" != compose ] || [ "${2:-}" != exec ]; then exit 91; fi',
+        '( sleep 2; printf survived > "$YELLOW_DOCKER_SURVIVOR_FILE" ) &',
+        "wait",
+      ].join("\n") + "\n");
+      for (const command of ["docker", "git"]) await chmod(join(bin, command), 0o755);
+      const started = performance.now();
+      const report = await runOwnedProofProcess([bash, join(directory, "state.sh")], {
+        cwd: directory,
+        env: {
+          ...process.env,
+          PATH: `${bin}:${process.env.PATH ?? ""}`,
+          YELLOW_PROJECT_STATUS_FILE: statusFile,
+          YELLOW_DOCKER_SURVIVOR_FILE: survivor,
+        },
+        timeoutMs: 4_500,
+      });
+      const elapsed = performance.now() - started;
+      expect(report.exitCode).toBe(0);
+      expect(report.stderr).toBe("");
+      expect(report.stdout).toContain("Service app: down");
+      expect(report.stdout).toContain("Service postgres: down");
+      expect(report.stdout).toContain("Service valkey: down");
+      expect(report.stdout).toContain("Phase: 7 · fixture");
+      expect(elapsed).toBeLessThan(3_500);
+      await Bun.sleep(1_500);
+      expect(await Bun.file(survivor).exists()).toBe(false);
+    } finally {
+      await rm(directory, { recursive: true, force: true });
+    }
+  });
+
+  test.skipIf(process.platform === "win32")("Unix status reports a successful bounded Docker snapshot", async () => {
+    const directory = await mkdtemp(join(tmpdir(), "yellow-project-status-docker-happy-"));
+    const bash = Bun.which("bash");
+    if (!bash) throw new Error("Unix status proof requires bash");
+    try {
+      for (const kind of ["orders", "reviews", "questions"]) {
+        await mkdir(join(directory, "handoff", kind), { recursive: true });
+      }
+      const bin = join(directory, "bin");
+      await mkdir(bin);
+      const dockerLog = join(directory, "docker.log");
+      await Bun.write(join(directory, "state.sh"), await Bun.file(join(root, "state.sh")).text());
+      await Bun.write(join(directory, "current.md"), "Current fixture order");
+      const statusFile = join(directory, "status.md");
+      await Bun.write(statusFile, [
+        "<!-- status-schema: yellow-project-status/v1 -->", "<!-- current-phase: 7 -->",
+        "<!-- current-task: bounded Docker fixture -->", "<!-- current-lifecycle: fixture -->",
+        "<!-- current-order-files: current.md -->",
+      ].join("\n"));
+      await Bun.write(join(bin, "git"), "#!/usr/bin/env bash\nexit 0\n");
+      await Bun.write(join(bin, "docker"), [
+        "#!/usr/bin/env bash",
+        'printf \'%s\\n\' "$*" >> "$YELLOW_DOCKER_LOG_FILE"',
+        'if [ "$*" = "compose ps --services --status running" ]; then',
+        "  printf 'app\\npostgres\\nvalkey\\n'",
+        "  exit 0",
+        "fi",
+        'if [ "${1:-}" = compose ] && [ "${2:-}" = exec ]; then',
+        "  printf '129\\n'",
+        "  exit 0",
+        "fi",
+        "exit 91",
+      ].join("\n") + "\n");
+      for (const command of ["docker", "git"]) await chmod(join(bin, command), 0o755);
+      const report = await runOwnedProofProcess([bash, join(directory, "state.sh")], {
+        cwd: directory,
+        env: {
+          ...process.env,
+          PATH: `${bin}:${process.env.PATH ?? ""}`,
+          YELLOW_PROJECT_STATUS_FILE: statusFile,
+          YELLOW_DOCKER_LOG_FILE: dockerLog,
+        },
+        timeoutMs: 4_500,
+      });
+      expect(report.exitCode).toBe(0);
+      expect(report.stderr).toBe("");
+      expect(report.stdout).toContain("Service app: up");
+      expect(report.stdout).toContain("Service postgres: up");
+      expect(report.stdout).toContain("Service valkey: up");
+      expect(report.stdout).toContain("yellow_test public tables: 129");
+      const invocations = (await Bun.file(dockerLog).text()).trim().split("\n");
+      expect(invocations).toHaveLength(2);
+      expect(invocations[0]).toBe("compose ps --services --status running");
+      expect(invocations[1]).toStartWith("compose exec -T postgres psql ");
+    } finally {
+      await rm(directory, { recursive: true, force: true });
+    }
+  });
+
+  test.skipIf(process.platform === "win32")("Unix status fails closed without a timeout executable", async () => {
+    const directory = await mkdtemp(join(tmpdir(), "yellow-project-status-no-timeout-"));
+    const bash = Bun.which("bash");
+    if (!bash) throw new Error("Unix status proof requires bash");
+    try {
+      for (const kind of ["orders", "reviews", "questions"]) {
+        await mkdir(join(directory, "handoff", kind), { recursive: true });
+      }
+      const bin = join(directory, "bin");
+      await mkdir(bin);
+      const dockerMarker = join(directory, "docker-invoked");
+      await Bun.write(join(directory, "state.sh"), await Bun.file(join(root, "state.sh")).text());
+      await Bun.write(join(directory, "current.md"), "Current fixture order");
+      const statusFile = join(directory, "status.md");
+      await Bun.write(statusFile, [
+        "<!-- status-schema: yellow-project-status/v1 -->", "<!-- current-phase: 7 -->",
+        "<!-- current-task: no-timeout fixture -->", "<!-- current-lifecycle: fixture -->",
+        "<!-- current-order-files: current.md -->",
+      ].join("\n"));
+      await Bun.write(join(bin, "git"), "#!/usr/bin/env bash\nexit 0\n");
+      await Bun.write(join(bin, "docker"), "#!/usr/bin/env bash\nprintf invoked > \"$YELLOW_DOCKER_MARKER_FILE\"\nexit 0\n");
+      for (const command of ["bash", "basename", "dirname", "grep", "head", "sed", "tr", "wc"]) {
+        const executable = Bun.which(command);
+        if (!executable) throw new Error(`Unix status proof requires ${command}`);
+        await symlink(executable, join(bin, command));
+      }
+      for (const command of ["docker", "git"]) await chmod(join(bin, command), 0o755);
+      const report = await runOwnedProofProcess([bash, join(directory, "state.sh")], {
+        cwd: directory,
+        env: {
+          ...process.env,
+          PATH: bin,
+          YELLOW_PROJECT_STATUS_FILE: statusFile,
+          YELLOW_DOCKER_MARKER_FILE: dockerMarker,
+        },
+        timeoutMs: 4_500,
+      });
+      expect(report.exitCode).toBe(0);
+      expect(report.stderr).toBe("");
+      expect(report.stdout).toContain("Service app: down");
+      expect(report.stdout).toContain("Service postgres: down");
+      expect(report.stdout).toContain("Service valkey: down");
+      expect(await Bun.file(dockerMarker).exists()).toBe(false);
+    } finally {
+      await rm(directory, { recursive: true, force: true });
+    }
+  });
+
+  test.skipIf(process.platform !== "win32")("native status bounds unavailable, successful and slow optional Docker probes", async () => {
+    const directory = await mkdtemp(join(tmpdir(), "yellow-project-status-native-docker-"));
+    const powerShell = join(
+      process.env.SystemRoot ?? "C:\\Windows", "System32", "WindowsPowerShell", "v1.0", "powershell.exe",
+    );
+    const bin = join(directory, "bin");
+    const dockerLog = join(directory, "docker.log");
+    const dockerPid = join(directory, "docker.pid");
+    const survivor = join(directory, "docker-survivor");
+    let ownedPid: number | undefined;
+    try {
+      for (const kind of ["orders", "reviews", "questions"]) {
+        await mkdir(join(directory, "handoff", kind), { recursive: true });
+      }
+      await mkdir(bin);
+      await Bun.write(join(directory, "state.ps1"), await Bun.file(join(root, "state.ps1")).text());
+      await Bun.write(join(directory, "current.md"), "Current fixture order");
+      const statusFile = join(directory, "status.md");
+      await Bun.write(statusFile, [
+        "<!-- status-schema: yellow-project-status/v1 -->", "<!-- current-phase: 7 -->",
+        "<!-- current-task: native Docker fixture -->", "<!-- current-lifecycle: fixture -->",
+        "<!-- current-order-files: current.md -->",
+      ].join("\n"));
+      await Bun.write(join(bin, "git.cmd"), "@echo off\r\nexit /b 0\r\n");
+
+      const environment = (mode: string): NodeJS.ProcessEnv => {
+        const child = { ...process.env };
+        for (const name of Object.keys(child)) if (name.toLowerCase() === "path") delete child[name];
+        return {
+          ...child,
+          PATH: `${bin};${process.env.SystemRoot ?? "C:\\Windows"}\\System32`,
+          YELLOW_PROJECT_STATUS_FILE: statusFile,
+          YELLOW_DOCKER_MODE: mode,
+          YELLOW_DOCKER_LOG_FILE: dockerLog,
+          YELLOW_DOCKER_PID_FILE: dockerPid,
+          YELLOW_DOCKER_SURVIVOR_FILE: survivor,
+          YELLOW_BUN_EXE: process.execPath,
+          YELLOW_DOCKER_SHIM: join(directory, "docker-shim.ts"),
+        };
+      };
+      const invoke = (mode: string) => runOwnedProofProcess(
+        [powerShell, "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", join(directory, "state.ps1")],
+        { cwd: directory, env: environment(mode), timeoutMs: 4_500 },
+      );
+
+      const unavailable = await invoke("unavailable");
+      expect(unavailable.stderr).toBe("");
+      expect(unavailable.exitCode).toBe(0);
+      expect(unavailable.stdout).toContain("Service app: down");
+      expect(unavailable.stdout).toContain("Service postgres: down");
+      expect(unavailable.stdout).toContain("Service valkey: down");
+      expect(unavailable.stdout).toContain("Phase: 7 · fixture");
+      expect(await Bun.file(dockerLog).exists()).toBe(false);
+
+      await Bun.write(join(directory, "docker-shim.ts"), [
+        'import { writeFileSync } from "node:fs";',
+        'const args = process.argv.slice(2);',
+        'const joined = args.join(" ");',
+        'const slow = process.env.YELLOW_DOCKER_MODE === "slow" && joined === "compose ps --services --status running";',
+        'const slowTable = process.env.YELLOW_DOCKER_MODE === "slow-table" && args[0] === "compose" && args[1] === "exec";',
+        'if (slow || slowTable) {',
+        '  writeFileSync(process.env.YELLOW_DOCKER_PID_FILE!, String(process.pid));',
+        '  await Bun.sleep(1_500);',
+        '  writeFileSync(process.env.YELLOW_DOCKER_SURVIVOR_FILE!, "survived");',
+        '  await Bun.sleep(30_000);',
+        '}',
+        'if (joined === "compose ps --services --status running") {',
+        '  process.stdout.write("app\\npostgres\\nvalkey\\n"); process.exit(0);',
+        '}',
+        'if (args[0] === "compose" && args[1] === "exec") { process.stdout.write("129\\n"); process.exit(0); }',
+        'process.exit(91);',
+      ].join("\n") + "\n");
+      await Bun.write(join(bin, "docker.cmd"), [
+        "@echo off", "setlocal", "call :record %*", 'if /I "%YELLOW_DOCKER_MODE%"=="success" goto success',
+        '"%YELLOW_BUN_EXE%" "%YELLOW_DOCKER_SHIM%" %*', "exit /b %ERRORLEVEL%", ":success",
+        'if "%~2"=="ps" (echo app& echo postgres& echo valkey& exit /b 0)',
+        'if "%~2"=="exec" (echo 129& exit /b 0)', "exit /b 91", ":record",
+        '>>"%YELLOW_DOCKER_LOG_FILE%" echo BEGIN', ":record-loop", 'if "%~1"=="" goto record-done',
+        '>>"%YELLOW_DOCKER_LOG_FILE%" echo ARG:%~1', "shift", "goto record-loop", ":record-done",
+        '>>"%YELLOW_DOCKER_LOG_FILE%" echo END', "exit /b 0",
+      ].join("\r\n") + "\r\n");
+
+      const successful = await invoke("success");
+      expect(successful.stderr).toBe("");
+      expect(successful.exitCode).toBe(0);
+      expect((await Bun.file(dockerLog).text()).trim().split(/\r?\n/)).toEqual([
+        "BEGIN", "ARG:compose", "ARG:ps", "ARG:--services", "ARG:--status", "ARG:running", "END",
+        "BEGIN", "ARG:compose", "ARG:exec", "ARG:-T", "ARG:postgres", "ARG:psql", "ARG:-U",
+        "ARG:yellow_deploy", "ARG:-d", "ARG:yellow_test", "ARG:-tAc",
+        "ARG:SELECT count(*) FROM pg_tables WHERE schemaname='public';", "END",
+      ]);
+      expect(successful.stdout).toContain("Service app: up");
+      expect(successful.stdout).toContain("Service postgres: up");
+      expect(successful.stdout).toContain("Service valkey: up");
+      expect(successful.stdout).toContain("yellow_test public tables: 129");
+
+      await Bun.write(dockerLog, "");
+      const started = performance.now();
+      const slow = await invoke("slow");
+      const elapsed = performance.now() - started;
+      expect(slow.exitCode).toBe(0);
+      expect(slow.stderr).toBe("");
+      expect(slow.stdout).toContain("Service app: down");
+      expect(slow.stdout).toContain("Service postgres: down");
+      expect(slow.stdout).toContain("Service valkey: down");
+      expect(slow.stdout).toContain("Phase: 7 · fixture");
+      expect(elapsed).toBeLessThan(3_500);
+      ownedPid = Number((await Bun.file(dockerPid).text()).trim());
+      expect(Number.isSafeInteger(ownedPid) && ownedPid > 0).toBe(true);
+      expect(processExists(ownedPid)).toBe(false);
+      await Bun.sleep(1_000);
+      expect(await Bun.file(survivor).exists()).toBe(false);
+
+      await rm(dockerPid, { force: true });
+      await rm(survivor, { force: true });
+      await Bun.write(dockerLog, "");
+      ownedPid = undefined;
+      const slowTable = await invoke("slow-table");
+      expect(slowTable.exitCode).toBe(0);
+      expect(slowTable.stderr).toBe("");
+      expect(slowTable.stdout).toContain("Service app: down");
+      expect(slowTable.stdout).toContain("Service postgres: down");
+      expect(slowTable.stdout).toContain("Service valkey: down");
+      expect(slowTable.stdout).not.toContain("yellow_test public tables:");
+      ownedPid = Number((await Bun.file(dockerPid).text()).trim());
+      expect(Number.isSafeInteger(ownedPid) && ownedPid > 0).toBe(true);
+      expect(processExists(ownedPid)).toBe(false);
+      await Bun.sleep(1_000);
+      expect(await Bun.file(survivor).exists()).toBe(false);
+    } finally {
+      if (ownedPid === undefined && await Bun.file(dockerPid).exists()) {
+        const recorded = Number((await Bun.file(dockerPid).text()).trim());
+        if (Number.isSafeInteger(recorded) && recorded > 0) ownedPid = recorded;
+      }
+      if (ownedPid !== undefined && processExists(ownedPid)) process.kill(ownedPid, "SIGKILL");
+      await rm(directory, { recursive: true, force: true, maxRetries: 2, retryDelay: 50 });
+    }
+  }, 15_000);
 
   test.skipIf(process.platform !== "win32")("native batch scans preserve marker and response-path semantics", async () => {
     const directory = await mkdtemp(join(tmpdir(), "yellow-project-status-native-batch-"));

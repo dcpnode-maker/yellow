@@ -147,14 +147,26 @@ export function createApp(options: AppOptions = {}) {
       .get("/p/:property/reservations", ({ request }) => operatorAssets.html(options.operatorLocalReviewCredentials, request))
       .get("/p/:property/res/:reservation", ({ request }) => operatorAssets.html(options.operatorLocalReviewCredentials, request))
       .get("/p/:property/folios", ({ request }) => operatorAssets.html(options.operatorLocalReviewCredentials, request))
+      .get("/p/:property/invoices", ({ request }) => operatorAssets.html(options.operatorLocalReviewCredentials, request))
+      .get("/p/:property/invoices/new/:reservation/:folio", ({ request }) => operatorAssets.html(options.operatorLocalReviewCredentials, request))
+      .get("/p/:property/invoices/:document", ({ request }) => operatorAssets.html(options.operatorLocalReviewCredentials, request))
       .get("/p/:property/folio/:folio", ({ request }) => operatorAssets.html(options.operatorLocalReviewCredentials, request))
       .get("/p/:property/cashiers", ({ request }) => operatorAssets.html(options.operatorLocalReviewCredentials, request))
       .get("/p/:property/day-close", ({ request }) => operatorAssets.html(options.operatorLocalReviewCredentials, request))
+      .get("/p/:property/trust", ({ request }) => operatorAssets.html(options.operatorLocalReviewCredentials, request))
       .get("/p/:property/status", ({ request }) => operatorAssets.html(options.operatorLocalReviewCredentials, request))
       .get("/assets/operator.css", () => operatorAssets.css())
       .get("/assets/operator.js", () => operatorAssets.js())
+      .get("/assets/operator-interfaces.css", () => operatorAssets.interfacesCss())
+      .get("/assets/operator-interfaces.js", () => operatorAssets.interfacesJs())
+      .get("/assets/operator-layouts.js", () => operatorAssets.layoutsJs())
+      .get("/assets/operator-invoices.js", () => operatorAssets.invoiceJs())
+      .get("/assets/operator-invoice-print.js", () => operatorAssets.invoicePrintJs())
+      .get("/assets/vendor/qrcodegen-v1.8.0-es6.js", () => operatorAssets.invoiceQrJs())
       .get("/assets/operator-deposits.css", () => operatorAssets.depositCss())
       .get("/assets/operator-deposits.js", () => operatorAssets.depositJs())
+      .get("/static/fonts/urbanist-v1.330.woff2", () => operatorAssets.urbanistFont())
+      .get("/static/icons/phosphor-nav-2.1.1.svg", () => operatorAssets.phosphorNav())
       .get("/assets/operator-local-prefill.js", () => operatorAssets.localPrefillJs())
       .post("/api/v1/auth/local:login", ({ request, body, server }) =>
         operator.login(request, body, localLoginSourceKey(server?.requestIP(request)))
@@ -197,6 +209,48 @@ export function createApp(options: AppOptions = {}) {
         withOperatorTenant(request, (context) => operator.fiscalSubmissionDeliveryReceipt(
           context, params.property, params.submission,
         ))
+      )
+      .get("/api/v1/properties/:property/invoices/:document/receipt", ({ request, params }) =>
+        withOperatorTenant(request, (context) => operator.invoiceDelivery(context, params.property, params.document))
+      )
+      .post("/api/v1/properties/:property/invoices/search", ({ request, params, body }) =>
+        withOperatorTenant(request, (context) => operator.invoiceSearch(context, params.property, body))
+      )
+      .post("/api/v1/properties/:property/invoices/:originalDocument/credit-notes", ({ request, params, body }) =>
+        withOperatorTenant(request, (context) => operator.fiscalCreditNoteIssue(context, params.property, params.originalDocument, body))
+      )
+      .post("/api/v1/properties/:property/fiscal-series", ({ request, params, body }) =>
+        withOperatorTenant(request, (context) => operator.fiscalSeriesConfigure(context, params.property, body))
+      )
+      .get("/api/v1/properties/:property/fiscal-series", ({ request, params }) =>
+        withOperatorTenant(request, (context) => operator.fiscalSeriesDiscover(context, params.property))
+      )
+      .get("/api/v1/properties/:property/invoices/:document/credit-notes", ({ request, params }) =>
+        withOperatorTenant(request, (context) => operator.fiscalCreditNoteDiscover(context, params.property, params.document))
+      )
+      .get("/api/v1/properties/:property/credit-notes", ({ request, params }) =>
+        withOperatorTenant(request, (context) => operator.fiscalCreditNoteList(context, params.property))
+      )
+      .get("/api/v1/properties/:property/credit-notes/:creditDocument", ({ request, params }) =>
+        withOperatorTenant(request, (context) => operator.fiscalCreditNoteRead(context, params.property, params.creditDocument))
+      )
+      .get("/api/v1/properties/:property/credit-notes/:creditDocument/document", ({ request, params }) =>
+        withOperatorTenant(request, (context) => operator.fiscalCreditNoteDocument(context, params.property, params.creditDocument))
+      )
+      .get("/api/v1/properties/:property/credit-notes/:creditDocument/delivery", ({ request, params }) =>
+        withOperatorTenant(request, (context) => operator.fiscalCreditNoteDelivery(context, params.property, params.creditDocument))
+      )
+      .post("/api/v1/properties/:property/reservations/:reservation/folios/:folio/invoice-readiness", ({ request, params, body }) =>
+        withOperatorTenant(request, (context) => operator.invoiceReadiness(context, params.property, params.reservation, params.folio, body))
+      )
+      .post("/api/v1/properties/:property/reservations/:reservation/folios/:folio/invoice-issue", ({ request, params, body }) =>
+        withOperatorTenant(request, (context) => operator.invoiceIssue(context, params.property, params.reservation, params.folio, body))
+      )
+      .get("/api/v1/properties/:property/invoices/:document", ({ request, params }) =>
+        withOperatorTenant(request, (context) => operator.invoiceDocument(context, params.property, params.document))
+      )
+      .get("/api/v1/properties/:property/fiscal-provider-options", ({ request, params }) =>
+        withOperatorTenant(request, (context) => operator.fiscalProviderOptions(context, params.property))
       )
       .post("/api/v1/properties/:property/fiscal-submissions", ({ request, params, body, tenantContext }) =>
         withOperatorTenant(request, (context) => operator.requestFiscalSubmission(context, params.property, body))
@@ -569,6 +623,16 @@ export function createApp(options: AppOptions = {}) {
       .put("/api/v1/properties/:property/reservations/:reservation/guests", ({ request, params, body, tenantContext }) =>
         withOperatorTenant(request, (context) => operator.replaceReservationGuests(
           context, params.property, params.reservation, body,
+        ))
+      )
+      .post("/api/v1/properties/:property/reservations/:reservation/alerts", ({ request, params, body, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.createReservationAlert(
+          context, params.property, params.reservation, body,
+        ))
+      )
+      .post("/api/v1/properties/:property/reservations/:reservation/alerts/:alert/deactivate", ({ request, params, body, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.deactivateReservationAlert(
+          context, params.property, params.reservation, params.alert, body,
         ))
       )
       .put("/api/v1/properties/:property/reservations/:reservation/travel/:direction", ({ request, params, body, tenantContext }) =>

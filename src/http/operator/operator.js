@@ -5,6 +5,9 @@
  let activeView = "today";
  let inventoryData = { unitTypes: [], spaces: [], sellableUnits: [] };
  let propertiesData = [];
+ let invoiceWorkbench = null;
+ let invoiceWorkbenchProperty = "";
+ let invoiceRouteGeneration = 0;
  let restrictionsData = [];
  let rateData = { policies: [], ratePlans: [] };
  let rateBuilderData = { catalogue: [], modelDrafts: [], targetDrafts: [], releases: [] };
@@ -224,10 +227,11 @@
  const sessionState = $("#session-state");
  const operatorName = $("#operator-name");
  const signOutButton = $("#sign-out");
- const themeSelect = $("#theme-select");
- const experienceSelect = $("#experience-select");
- const secondaryWorkspaces = $("#secondary-workspaces");
- const secondaryWorkspacesToggle = $("#secondary-workspaces-toggle");
+ const workspaceSkinSelect = $("#workspace-skin-select");
+ const workspaceGroups = [...document.querySelectorAll(".workspace-group")];
+ const workspaceNavigation = $("#workspace-navigation");
+ const workspaceNavigationCurrent = $("#workspace-navigation-current");
+ const compactWorkspaceNavigation = window.matchMedia("(max-width: 1020px)");
  const workbenchTitle = $("#workbench-title");
  const availabilityReservationShortcut = $("#availability-reservation-shortcut");
  const availabilityView = $("#availability-view");
@@ -307,6 +311,8 @@
  const operationsView = $("#operations-view");
  const reservationsView = $("#reservations-view");
  const foliosView = $("#folios-view");
+ const invoicesView = $("#invoices-view");
+ const invoicesMount = $("#invoices-mount");
  const cashiersView = $("#cashiers-view");
  const statusView = $("#status-view");
  const dayCloseView = $("#day-close-view");
@@ -760,6 +766,7 @@
  const folioWorkspace = $("#folio-workspace");
  const folioWorkspaceTitle = $("#folio-workspace-title");
  const folioWorkspaceBack = $("#folio-workspace-back");
+ const folioInvoiceReview = $("#folio-invoice-review");
  const operationStatus = $("#operation-status");
  const folioWindowTabs = $("#folio-window-tabs");
  const folioWindowNew = $("#folio-window-new");
@@ -836,120 +843,11 @@
  const folioCorrectionExpected = $("#folio-correction-expected");
  const SYSTEM_STATUS_SUFFIX = "/system-status";
  const MAX_MINOR = BigInt("9223372036854775807");
- const THEMES = new Set(["apple", "android", "win95", "glass", "neo", "erp"]);
- const EXPERIENCES = new Set(["simple", "advanced", "expert"]);
- const SECONDARY_VIEWS = new Set(["operations", "housekeeping", "vehicles", "inventory", "restrictions", "rates", "status"]);
-  function motionPreference(query) {
- return typeof window.matchMedia === "function" ? window.matchMedia(query) : { matches: true, addEventListener() {} };
- }
- const reducedMotion = motionPreference("(prefers-reduced-motion: reduce)");
- const coarsePointer = motionPreference("(pointer: coarse)");
- const forcedColours = motionPreference("(forced-colors: active)");
- let motionSequence = 0;
- let activeMotion = null;
-  function cancelWorkspaceMotion(commit = false) {
- motionSequence += 1;
- const motion = activeMotion;
- activeMotion = null;
- if (!motion) return;
- if (commit) motion.commit();
- motion.cancel();
- }
-  function workspaceMotionAllowed(nextTheme) {
- const supportsBackdrop = nextTheme !== "glass" || (typeof CSS !== "undefined" &&
-  typeof CSS.supports === "function" && (CSS.supports("backdrop-filter", "blur(2px)") ||
-  CSS.supports("-webkit-backdrop-filter", "blur(2px)")));
- return !workbenchView.hidden && document.visibilityState === "visible" &&
-  !reducedMotion.matches && !coarsePointer.matches && !forcedColours.matches && supportsBackdrop;
- }
-  function animateWorkspaceFallback(duration, sequence, commit) {
- commit();
- if (typeof workbenchView.animate !== "function") return;
- const animation = workbenchView.animate([
-  { opacity: 0.72, transform: "translate3d(0, 8px, 0) scale(.995)" },
-  { opacity: 1, transform: "none" },
- ], { duration, easing: "cubic-bezier(.2, .8, .2, 1)" });
- activeMotion = {
-  commit,
-  cancel() { animation.cancel(); },
- };
- animation.finished.catch(() => {}).finally(() => {
-  if (sequence === motionSequence) activeMotion = null;
- });
- }
-  function transitionWorkspace(change, { duration = 280, nextTheme = document.documentElement.dataset.theme } = {}) {
- cancelWorkspaceMotion();
- const sequence = motionSequence;
- const boundedDuration = Math.min(400, Math.max(0, duration));
- let committed = false;
- const commit = () => {
-  if (committed) return;
-  committed = true;
-  change();
- };
- if (!workspaceMotionAllowed(nextTheme)) {
-  commit();
-  return;
- }
- if (typeof document.startViewTransition !== "function") {
-  animateWorkspaceFallback(boundedDuration, sequence, commit);
-  return;
- }
- const rootTransitionName = document.documentElement.style.viewTransitionName;
- const workspaceTransitionName = workbenchView.style.viewTransitionName;
- document.documentElement.style.viewTransitionName = "none";
- workbenchView.style.viewTransitionName = "yellow-workspace";
- let cleaned = false;
- const cleanup = () => {
-  if (cleaned) return;
-  cleaned = true;
-  document.documentElement.style.viewTransitionName = rootTransitionName;
-  workbenchView.style.viewTransitionName = workspaceTransitionName;
- };
- try {
-  const transition = document.startViewTransition(() => {
-  if (sequence === motionSequence) commit();
-  });
-  activeMotion = {
-  commit,
-  cancel() {
-   transition.skipTransition?.();
-   cleanup();
-  },
-  };
-  transition.ready.then(() => {
-  if (sequence !== motionSequence || typeof document.getAnimations !== "function") return;
-  for (const animation of document.getAnimations()) {
-   const pseudo = animation.effect?.pseudoElement ?? "";
-   if (pseudo.startsWith("::view-transition")) animation.effect.updateTiming({ duration: boundedDuration });
-  }
-  }).catch(() => {});
-  transition.updateCallbackDone.catch(() => {
-  if (sequence === motionSequence) commit();
-  });
-  transition.finished.catch(() => {}).finally(() => {
-  cleanup();
-  if (sequence === motionSequence) activeMotion = null;
-  });
- } catch {
-  cleanup();
-  animateWorkspaceFallback(boundedDuration, sequence, commit);
- }
- }
-  function applyTheme(theme) {
- const next = THEMES.has(theme) ? theme : "apple";
- document.documentElement.dataset.theme = next;
- themeSelect.value = next;
- }
-  function applyExperience(experience, { preserveActive = true } = {}) {
- const next = EXPERIENCES.has(experience) ? experience : "simple";
- const keepSecondaryOpen = preserveActive && SECONDARY_VIEWS.has(activeView);
- document.documentElement.dataset.experience = next;
- experienceSelect.value = next;
- secondaryWorkspacesToggle.hidden = next !== "simple";
- secondaryWorkspaces.hidden = next === "simple" && !keepSecondaryOpen;
- secondaryWorkspacesToggle.setAttribute("aria-expanded", String(!secondaryWorkspaces.hidden));
- secondaryWorkspacesToggle.textContent = secondaryWorkspaces.hidden ? "More workspaces" : "Fewer workspaces";
+ const WORKSPACE_SKINS = new Set(["ledger", "aura", "relay", "journey", "orbit", "atlas", "focus", "index"]);
+  function applyWorkspaceSkin(skin) {
+ const next = WORKSPACE_SKINS.has(skin) ? skin : "ledger";
+ document.documentElement.dataset.workspaceSkin = next;
+ workspaceSkinSelect.value = next;
  }
   function localInputValue(date) {
  const offset = date.getTimezoneOffset() * 60_000;
@@ -1017,6 +915,7 @@
  if (loginForm.dispatchEvent(event)) loginForm.elements.password.value = "";
  }
   function showLogin() {
+ resetInvoiceWorkbench();
  closeReservationPickupTaskDetail({ history: false, restoreFocus: false });
  accessToken = "";
  operator = null;
@@ -1102,7 +1001,7 @@
  trustRequestGeneration += 1; trustAccounts = []; trustApprovals = []; trustApprovalCursor = null; trustMutationKeys.clear(); clearTrustPreview();
  pendingKeys.clear();
  history.replaceState(null, "", "/");
- applyExperience("simple", { preserveActive: false });
+ resetWorkspaceGroups();
  restoreLocalLoginDefaults();
  loginForm.elements.email.focus();
  }
@@ -1123,7 +1022,7 @@
   propertySelect.disabled = true;
  } else {
   propertySelect.disabled = false;
-  const pathProperty = location.pathname.match(/^\/p\/([0-9a-f-]+)\/(?:today|availability|inventory|operations|housekeeping(?:\/tasks\/[0-9a-f-]+)?|vehicles(?:\/[0-9a-f-]+)?|reservations|folios|cashiers|day-close|trust|restrictions|rates|status|res\/[0-9a-f-]+(?:\/pickup-task\/[0-9a-f-]+)?|folio\/[0-9a-f-]+)$/)?.[1];
+  const pathProperty = location.pathname.match(/^\/p\/([0-9a-f-]+)\/(?:today|availability|inventory|operations|housekeeping(?:\/tasks\/[0-9a-f-]+)?|vehicles(?:\/[0-9a-f-]+)?|reservations|folios|invoices(?:\/(?:new\/[0-9a-f-]+\/[0-9a-f-]+|[0-9a-f-]+))?|cashiers|day-close|trust|restrictions|rates|status|res\/[0-9a-f-]+(?:\/pickup-task\/[0-9a-f-]+)?|folio\/[0-9a-f-]+)$/)?.[1];
   if (pathProperty && body.properties.some(({ id }) => id === pathProperty)) propertySelect.value = pathProperty;
  }
  }
@@ -4248,7 +4147,7 @@ function ensureHousekeepingGenerationReceiptPanel() {
   reservationReinstatePanel.hidden = true;
  }
  for (const name of actionNames) {
-  if (name === "modify") menu.append(drawerLifecycleButton("Edit details", reservationMetadataForm));
+ if (name === "modify") menu.append(drawerLifecycleButton("Edit operational details", reservationMetadataForm));
   if (name === "cancel") menu.append(drawerLifecycleButton("Cancel", reservationCancelForm));
   if (name === "reinstate") menu.append(drawerLifecycleButton("Reinstate", reservationReinstatePanel));
  }
@@ -5670,6 +5569,114 @@ function checkoutHousekeepingCompletionActionIsCurrent(origin, section, action) 
  else clearCheckInWorkbench();
  void loadCheckoutReadiness({ focus: checkoutCompatible });
  }
+  function renderReservationAlerts(result) {
+ const reservation = result.reservation;
+ const section = node("section", "reservation-detail-section reservation-alerts");
+ const heading = node("h4", "", "Alerts");
+ const list = el("ul");
+ const status = node("p", "form-message");
+ status.setAttribute("role", "status");
+ status.setAttribute("aria-live", "polite");
+ status.tabIndex = -1;
+ const origin = { property: propertySelect.value, reservationId: reservation.reservationId,
+  generation: reservationDetailGeneration, session: accessToken };
+ const canManage = result.actions?.canManageAlerts === true;
+ let pending = false;
+ const isCurrent = () => origin.session === accessToken && origin.property === propertySelect.value
+  && origin.generation === reservationDetailGeneration && origin.reservationId === reservationRouteReservationId
+  && reservationDetailData?.reservation?.reservationId === origin.reservationId
+  && reservationDetailData?.actions?.canManageAlerts === true
+  && section.isConnected && !reservationDetailDrawer.hidden;
+ async function saveAlert(action, body, alertId = null) {
+  if (!canManage || pending || !isCurrent()) return;
+  const path = `/api/v1/properties/${enc(origin.property)}/reservations/${enc(origin.reservationId)}/alerts`
+   + (action === "deactivate" ? `/${enc(alertId)}/deactivate` : "");
+  const identity = `reservation-alert:${JSON.stringify({ path, body })}`;
+  const key = pendingKeys.get(identity) || crypto.randomUUID();
+  pendingKeys.set(identity, key);
+  pending = true;
+  section.setAttribute("aria-busy", "true");
+  for (const control of section.querySelectorAll("input,textarea,select,button")) control.disabled = true;
+  status.classList.remove("error");
+  status.textContent = "Saving alert…";
+  try {
+   const saved = await request(path, { method: "POST", headers: { "idempotency-key": key }, body: JSON.stringify(body) });
+   if (!isCurrent()) return;
+   if (!saved?.alert || !canonicalUuid(saved.alert.id) || typeof saved.changed !== "boolean"
+    || typeof saved.replayed !== "boolean" || (action === "deactivate"
+     ? saved.alert.id !== alertId || saved.alert.active !== false
+     : saved.alert.active !== true || saved.alert.message !== body.message || saved.alert.code !== body.code
+      || saved.alert.showOn !== body.showOn)) throw new Error("Alert response could not be verified");
+   pendingKeys.delete(identity);
+   status.textContent = "Alert saved. Refreshing reservation…";
+   await loadReservationDetail(origin.reservationId);
+   if (origin.session !== accessToken || origin.property !== propertySelect.value
+    || origin.reservationId !== reservationRouteReservationId || reservationDetailDrawer.hidden) return;
+   reservationDetailStatus.textContent = reservationDetailContent.hidden
+    ? "Alert saved, but reservation refresh failed. Use Try again to reload details."
+    : "Alert saved. Reservation details refreshed.";
+   const refreshed = reservationDetailContent.querySelector(".reservation-alerts h4");
+   if (refreshed) { refreshed.tabIndex = -1; refreshed.focus({ preventScroll: true }); }
+  } catch (error) {
+   if (!isCurrent()) return;
+   status.classList.add("error");
+   status.textContent = `${error instanceof Error ? error.message : "Alert could not be saved"}. Retry the same action to keep its request key.`;
+   status.focus({ preventScroll: true });
+  } finally {
+   pending = false;
+   if (isCurrent()) {
+    section.setAttribute("aria-busy", "false");
+    for (const control of section.querySelectorAll("input,textarea,select,button")) control.disabled = false;
+   }
+  }
+ }
+ for (const alert of reservation.alerts) {
+  const item = el("li");
+  const trigger = { always: "Always", checkin: "At check-in", checkout: "At checkout" }[alert.showOn] || alert.showOn;
+  item.append(node("span", "reservation-alert-copy", `${alert.active ? "Active" : "Inactive"} · ${trigger}${alert.code ? ` · ${alert.code}` : ""} · ${alert.message}`));
+  if (canManage && alert.active) {
+   const deactivate = node("button", "quiet", "Deactivate");
+   deactivate.type = "button";
+   deactivate.setAttribute("aria-label", `Deactivate alert: ${alert.code || alert.message.slice(0, 80)}`);
+   deactivate.addEventListener("click", () => saveAlert("deactivate", {}, alert.alertId));
+   item.append(deactivate);
+  }
+  list.append(item);
+ }
+ if (!reservation.alerts.length) list.append(node("li", "muted", "No alerts recorded."));
+ section.append(heading, list);
+ if (canManage) {
+  const editor = el("details");
+  editor.append(node("summary", "", "Add an alert"));
+  const form = el("form");
+  const messageLabel = node("label", "", "Staff note");
+  const message = el("textarea");
+  message.name = "message"; message.required = true; message.maxLength = 1000; message.rows = 3;
+  messageLabel.append(message);
+  const codeLabel = node("label", "", "Code (optional)");
+  const code = el("input"); code.name = "code"; code.maxLength = 64; code.autocomplete = "off";
+  codeLabel.append(code);
+  const showLabel = node("label", "", "Show this alert");
+  const show = el("select"); show.name = "showOn";
+  for (const [value, title] of [["always", "Always"], ["checkin", "At check-in"], ["checkout", "At checkout"]]) {
+   const option = node("option", "", title); option.value = value; show.append(option);
+  }
+  show.value = "always"; showLabel.append(show);
+  const submit = node("button", "primary", "Save alert"); submit.type = "submit";
+  form.append(messageLabel, codeLabel, showLabel, submit);
+  form.addEventListener("submit", (event) => {
+   event.preventDefault();
+   const note = message.value.trim();
+   if (!note) { message.setCustomValidity("Enter a staff note."); message.reportValidity(); return; }
+   message.setCustomValidity("");
+   if (!form.reportValidity()) return;
+   return saveAlert("create", { code: code.value.trim() || null, message: note, showOn: show.value });
+  });
+  message.addEventListener("input", () => message.setCustomValidity(""));
+  editor.append(form); section.append(editor, status);
+ }
+ return section;
+ }
   function renderReservationDetail(result) {
  clearReservationDrawerLifecycle();
  const reservation = result.reservation;
@@ -5688,8 +5695,7 @@ function checkoutHousekeepingCompletionActionIsCurrent(origin, section, action) 
   `${reservationDateTime(segment.from)} – ${reservationDateTime(segment.to)} · ${segment.adults} adult${segment.adults === 1 ? "" : "s"} · ${segment.status}`),
   detailCollection("Guests", reservation.guests, (guest) =>
   `${guest.displayName} · ${guest.role}${guest.sharePct ? ` · ${guest.sharePct}% share` : ""}`),
-  detailCollection("Alerts", reservation.alerts, (alert) =>
-  `${alert.active ? "Active" : "Inactive"} · ${alert.showOn} · ${alert.message}`),
+  renderReservationAlerts(result),
   reservationTravelDetailCollection(reservation.travel),
   detailCollection("History", reservation.history, (fact) =>
   `${reservationDateTime(fact.recordedAt)} · ${fact.factType}`),
@@ -7573,6 +7579,7 @@ function checkoutHousekeepingCompletionActionIsCurrent(origin, section, action) 
  }
   function resetFolioPresentation() {
  folioStatementData = null;
+ folioInvoiceReview.hidden = true;
  folioNextCursor = null;
  folioRouteCursor = "";
  folioWorkspace.hidden = true;
@@ -8423,6 +8430,7 @@ function checkoutHousekeepingCompletionActionIsCurrent(origin, section, action) 
  }
   function renderFolioStatement(statement) {
  folioStatementData = statement;
+ folioInvoiceReview.hidden = !canonicalUuid(statement.reservationId) || !canonicalUuid(statement.folio.id);
  folioNextCursor = statement.nextCursor;
  folioStatementTitle.textContent = statement.folio.reference || statement.folio.id;
  folioWorkspaceTitle.textContent = statement.folio.reference || `Folio ${statement.folio.id}`;
@@ -9840,11 +9848,67 @@ function vehicleReturnPathFromState(state, property) {
   try { await request(`/api/v1/properties/${enc(property)}/trust/accounts/${enc(draft.accountId)}/expenses`, { method: "POST", headers: { "idempotency-key": key }, body: JSON.stringify({ amountMinor: draft.amountMinor, reason: draft.reason, ...(preview.approvalId ? { approvalRequestId: preview.approvalId } : {}) }) }); if (!trustIsCurrent(generation, property, preview.identity)) return; trustMutationKeys.delete(identity); trustAmount.value = ""; trustReason.value = ""; clearTrustPreview("Expense posted"); trustMessage.textContent = "Owner trust expense posted as immutable balanced financial evidence."; await loadTrustWorkbench({ focus: true });
   } catch (error) { if (error?.status) trustMutationKeys.delete(identity); if (trustIsCurrent(generation, property, preview.identity)) { trustMessage.textContent = error instanceof Error ? error.message : "Post outcome is unknown; retry preserves its exact identity."; trustMessage.classList.add("error"); trustPost.disabled = false; trustPost.focus({ preventScroll: true }); } }
  }
+ function invoiceNavigationRoute() {
+  const issue = location.pathname.match(/^\/p\/([0-9a-f-]+)\/invoices\/new\/([0-9a-f-]+)\/([0-9a-f-]+)$/);
+  if (issue && issue.slice(1).every(canonicalUuid)) return { property: issue[1], documentId: null, reservationId: issue[2], folioId: issue[3] };
+  const match = location.pathname.match(/^\/p\/([0-9a-f-]+)\/invoices(?:\/([0-9a-f-]+))?$/);
+  return match ? { property: match[1], documentId: match[2] || null } : null;
+ }
+ function resetInvoiceWorkbench() {
+  invoiceRouteGeneration += 1;
+  invoiceWorkbench?.dispose();
+  invoiceWorkbench = null;
+  invoiceWorkbenchProperty = "";
+  invoicesMount.replaceChildren();
+ }
+ async function syncInvoiceRoute() {
+  const route = invoiceNavigationRoute();
+  const property = propertySelect.value;
+  if (!accessToken || activeView !== "invoices" || !property || !route || route.property !== property) return;
+  if (location.search) history.replaceState(history.state, "", location.pathname);
+  if (invoiceWorkbenchProperty && invoiceWorkbenchProperty !== property) resetInvoiceWorkbench();
+  const generation = ++invoiceRouteGeneration;
+  try {
+   if (!invoiceWorkbench) {
+    invoicesMount.replaceChildren(node("p", "inventory-status", "Opening invoices…"));
+    const module = await import("/assets/operator-invoices.js");
+    if (generation !== invoiceRouteGeneration || !accessToken || activeView !== "invoices" || propertySelect.value !== property) return;
+    const selectedProperty = propertiesData.find(item => item.id === property);
+    invoiceWorkbench = module.createInvoiceWorkbench({
+     root: invoicesMount, request, propertyNode: property, timezone: selectedProperty?.timezone,
+     returnToFolio: folioId => {
+      if (!accessToken || activeView !== "invoices" || propertySelect.value !== property || !canonicalUuid(folioId)) return;
+      history.pushState({ yellowSurface: "folio-workspace" }, "", canonicalFolioPath(property, folioId));
+      setView("folios", false);
+      finishWorkspaceNavigation("folios");
+     },
+     navigate: documentId => {
+      if (!accessToken || activeView !== "invoices" || propertySelect.value !== property) return;
+      if (documentId !== null && !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(documentId)) return;
+      const path = "/p/" + property + "/invoices" + (documentId ? "/" + documentId : "");
+      if (location.pathname !== path) history.pushState({ yellowSurface: "invoices" }, "", path);
+      void syncInvoiceRoute();
+     },
+    });
+    invoiceWorkbenchProperty = property;
+   }
+   if (route.reservationId && route.folioId) await invoiceWorkbench.showIssue({ reservationId: route.reservationId, folioId: route.folioId });
+   else await invoiceWorkbench.show(route.documentId);
+  } catch {
+   if (generation !== invoiceRouteGeneration || !accessToken || activeView !== "invoices") return;
+   invoicesMount.replaceChildren(node("p", "form-message error", "Invoices could not be opened. Try again."));
+   const retry = node("button", "secondary", "Try again");
+   retry.type = "button";
+   retry.addEventListener("click", () => { resetInvoiceWorkbench(); void syncInvoiceRoute(); }, { once: true });
+   invoicesMount.append(retry);
+  }
+ }
   function setView(view, updateHistory = true) {
  const previousView = activeView;
- activeView = ["today", "availability", "inventory", "operations", "housekeeping", "vehicles", "reservations", "folios", "cashiers", "day-close", "trust", "restrictions", "rates", "status"].includes(view) ? view : "today";
- if (document.documentElement.dataset.experience === "simple" && SECONDARY_VIEWS.has(activeView)) {
-  closeSecondaryWorkspaces();
+ activeView = ["today", "availability", "inventory", "operations", "housekeeping", "vehicles", "reservations", "folios", "invoices", "cashiers", "day-close", "trust", "restrictions", "rates", "status"].includes(view) ? view : "today";
+ if (previousView === "invoices" && activeView !== "invoices") {
+  invoiceRouteGeneration += 1;
+  invoiceWorkbench?.suspend();
  }
  if (previousView === "folios" && activeView !== "folios") {
   clearFolioState();
@@ -9892,18 +9956,20 @@ function vehicleReturnPathFromState(state, property) {
  operationsView.hidden = activeView !== "operations";
  reservationsView.hidden = activeView !== "reservations";
  foliosView.hidden = activeView !== "folios";
+ invoicesView.hidden = activeView !== "invoices";
  cashiersView.hidden = activeView !== "cashiers";
  dayCloseView.hidden = activeView !== "day-close";
  trustView.hidden = activeView !== "trust";
  statusView.hidden = activeView !== "status";
  workbenchTitle.textContent = activeView === "today" ? "Today" : activeView === "inventory" ? "Inventory setup" :
   activeView === "operations" ? "Room outages" : activeView === "housekeeping" ? "Housekeeping" : activeView === "vehicles" ? "Vehicle Register" : activeView === "reservations" ? "Reservations" : activeView === "folios" ? "Folios" : activeView === "cashiers" ? "Cashiers" : activeView === "day-close" ? "Business-day close" : activeView === "trust" ? "Owner trust expenses" : activeView === "restrictions" ? "Restrictions" :
-  activeView === "rates" ? "Rates" : activeView === "status" ? "Project status" : "Availability";
+  activeView === "rates" ? "Rates" : activeView === "invoices" ? "Invoices" : activeView === "status" ? "Project status" : "Availability";
  for (const tab of navigation) {
   const selected = tab.dataset.view === activeView;
   tab.classList.toggle("is-active", selected);
   tab.setAttribute("aria-current", selected ? "page" : "false");
  }
+ revealWorkspaceGroup(activeView);
  if (propertySelect.value && updateHistory) {
   history.pushState(null, "", `/p/${propertySelect.value}/${activeView}`);
   if (activeView === "day-close" && dayCloseDate.value) history.replaceState({ yellowSurface: "day-close" }, "", dayCloseCanonicalPath(dayCloseDate.value));
@@ -9957,12 +10023,13 @@ function vehicleReturnPathFromState(state, property) {
   if (reservationBoardRows.length === 0) void loadReservationBoard();
  }
  if (activeView === "folios") syncFolioRoute();
+ if (activeView === "invoices") void syncInvoiceRoute();
  if (activeView === "cashiers") void loadCashierSession();
  if (activeView === "day-close") void loadDayCloseWorkbench();
  if (activeView === "trust") void loadTrustWorkbench();
  }
  function finishWorkspaceNavigation(view) {
-  if (document.documentElement.dataset.experience === "simple" && SECONDARY_VIEWS.has(view)) closeSecondaryWorkspaces();
+  revealWorkspaceGroup(view);
   const heading = document.getElementById(`${view}-title`);
   requestAnimationFrame(() => {
    if (activeView !== view || !heading || heading.closest("section")?.hidden) return;
@@ -11774,6 +11841,7 @@ function vehicleReturnPathFromState(state, property) {
   return;
  }
  if (!reservationCreatePanel.hidden) closeReservationCreate({ history: false, force: true });
+ resetInvoiceWorkbench();
  closeReservationPickupTaskDetail({ history: false, restoreFocus: false });
  clearHousekeepingTaskDetailState();
  reservationBookingSearchGeneration += 1;
@@ -11847,6 +11915,7 @@ function vehicleReturnPathFromState(state, property) {
  if (activeView === "day-close") void loadDayCloseWorkbench();
  if (activeView === "trust") void loadTrustWorkbench();
  reservationGuestData = null;
+ if (activeView === "invoices") void syncInvoiceRoute();
  reservationLifecycleData = null;
  reservationSegmentData = null;
  reservationGuestForm.hidden = true;
@@ -12170,6 +12239,25 @@ housekeepingSheetDate.addEventListener("change", () => {
   history.pushState({ yellowSurface: "reservation-create" }, "", `/p/${propertySelect.value}/reservations?new=1&step=${["stay", "guest", "offer", "review"][reservationCreateStep - 1]}`);
   return;
  }
+ const invoiceRoute = invoiceNavigationRoute();
+ if (invoiceRoute) {
+  if (!propertiesData.some(item => item.id === invoiceRoute.property)) {
+   resetInvoiceWorkbench();
+   setView("invoices", false);
+   invoicesMount.replaceChildren(node("p", "form-message error", "Invoice access is not granted for this property."));
+   return;
+  }
+  if (propertySelect.value !== invoiceRoute.property) {
+   const invoicePath = location.pathname;
+   propertySelect.value = invoiceRoute.property;
+   propertySelect.dispatchEvent(new Event("change"));
+   history.replaceState({ yellowSurface: "invoices" }, "", invoicePath);
+  }
+  closeReservationDetail({ history: false, restoreFocus: false });
+  if (activeView !== "invoices") setView("invoices", false);
+  else void syncInvoiceRoute();
+  return;
+ }
  if (route.kind !== "other") setView("reservations", false);
  syncReservationRoute();
  });
@@ -12178,6 +12266,15 @@ housekeepingSheetDate.addEventListener("change", () => {
  void lookupFolioStatement();
  });
  folioLoadOlder.addEventListener("click", () => void loadOlderFolioRows());
+ folioInvoiceReview.addEventListener("click", () => {
+  if (!accessToken || activeView !== "folios" || !folioStatementData || folioStatusPending) return;
+  const property = propertySelect.value, reservation = folioStatementData.reservationId, folio = folioStatementData.folio.id;
+  if (![property, reservation, folio].every(canonicalUuid) || !confirmFolioExit()) return;
+  clearFolioState();
+  history.pushState({ yellowSurface: "invoice-issue" }, "", "/p/" + property + "/invoices/new/" + reservation + "/" + folio);
+  setView("invoices", false);
+  finishWorkspaceNavigation("invoices");
+ });
  folioWorkspaceBack.addEventListener("click", () => {
  if (returnFromFolioWorkspaceToDeparture()) return;
  if (returnFromFolioWorkspaceToReservation()) return;
@@ -12729,96 +12826,55 @@ housekeepingSheetDate.addEventListener("change", () => {
  if (event.target !== builderExpertJson) renderBuilderCommand();
  });
  builderExpertJson.addEventListener("input", renderBuilderCommand);
- themeSelect.addEventListener("change", () => {
- const theme = themeSelect.value;
- transitionWorkspace(() => applyTheme(theme), { duration: theme === "glass" ? 400 : 280, nextTheme: theme });
+ workspaceSkinSelect.addEventListener("change", () => {
+ applyWorkspaceSkin(workspaceSkinSelect.value);
  });
- experienceSelect.addEventListener("change", () => {
- transitionWorkspace(() => applyExperience(experienceSelect.value));
- });
- for (const preference of [reducedMotion, coarsePointer, forcedColours]) {
- if (typeof preference.addEventListener === "function") {
-  preference.addEventListener("change", () => cancelWorkspaceMotion(true));
- } else {
-  preference.addListener?.(() => cancelWorkspaceMotion(true));
+ // Native disclosure groups preserve the original navigation buttons and guards.
+ function syncWorkspaceGroupPresentation() {
+  const compactRail = workspaceSkinSelect.value === "ledger" && !compactWorkspaceNavigation.matches;
+  const selected = workspaceGroups.find(group => group.classList.contains("contains-current"))
+   || workspaceGroups.find(group => group.open) || workspaceGroups[0];
+  for (const group of workspaceGroups) group.removeAttribute("name");
+  if (!compactRail) return;
+  for (const group of workspaceGroups) group.open = group === selected;
+  for (const group of workspaceGroups) group.setAttribute("name", "ledger-workspace-rail");
  }
+ workspaceSkinSelect.addEventListener("change", syncWorkspaceGroupPresentation);
+ function resetWorkspaceGroups() {
+  workspaceNavigation.open = !compactWorkspaceNavigation.matches;
+  workspaceNavigationCurrent.textContent = "Today";
+  for (const group of workspaceGroups) {
+   group.open = group.dataset.workspaceGroup === "front-desk";
+   group.classList.remove("contains-current");
+  }
  }
- document.addEventListener("visibilitychange", () => {
- if (document.visibilityState !== "visible") cancelWorkspaceMotion(true);
+ function revealWorkspaceGroup(view) {
+  for (const group of workspaceGroups) {
+   const current = [...group.querySelectorAll("[data-view]")].some(button => button.dataset.view === view);
+   group.classList.toggle("contains-current", current);
+   group.open = current;
+  }
+  workspaceNavigationCurrent.textContent = workbenchTitle.textContent;
+  workspaceNavigation.open = !compactWorkspaceNavigation.matches;
+ }
+ compactWorkspaceNavigation.addEventListener("change", () => {
+  workspaceNavigation.open = !compactWorkspaceNavigation.matches;
+  syncWorkspaceGroupPresentation();
  });
- const workspaceMenuFocusable = () => Array.from(secondaryWorkspaces.querySelectorAll('a[href],button:not([disabled]),input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])'))
-  .filter((element) => element.getClientRects().length > 0);
- const positionSecondaryWorkspaces = () => {
-  if (secondaryWorkspaces.hidden) return;
-  const edge = 8;
-  const anchor = secondaryWorkspacesToggle.getBoundingClientRect();
-  const menuWidth = Math.min(320, Math.max(0, window.innerWidth - edge * 2));
-  const desiredHeight = Math.min(520, secondaryWorkspaces.scrollHeight);
-  const left = Math.min(Math.max(edge, anchor.right - menuWidth), Math.max(edge, window.innerWidth - menuWidth - edge));
-  let top = anchor.bottom + edge;
-  const availableBelow = window.innerHeight - top - edge;
-  if (availableBelow < Math.min(desiredHeight, 240) && anchor.top > desiredHeight + edge * 2) top = anchor.top - desiredHeight - edge;
-  top = Math.min(Math.max(edge, top), Math.max(edge, window.innerHeight - Math.min(desiredHeight, window.innerHeight - edge * 2) - edge));
-  secondaryWorkspaces.style.setProperty("--workspace-menu-left", `${left}px`);
-  secondaryWorkspaces.style.setProperty("--workspace-menu-top", `${top}px`);
-  secondaryWorkspaces.style.setProperty("--workspace-menu-max-height", `${Math.max(120, window.innerHeight - top - edge)}px`);
- };
- const closeSecondaryWorkspaces = (restoreFocus = false) => {
-  secondaryWorkspaces.hidden = true;
-  secondaryWorkspacesToggle.setAttribute("aria-expanded", "false");
-  secondaryWorkspacesToggle.textContent = "More workspaces";
-  if (restoreFocus) secondaryWorkspacesToggle.focus({ preventScroll: true });
- };
- const openSecondaryWorkspaces = () => {
-  if (secondaryWorkspaces.parentElement !== document.body) document.body.append(secondaryWorkspaces);
-  secondaryWorkspaces.hidden = false;
-  secondaryWorkspacesToggle.setAttribute("aria-expanded", "true");
-  secondaryWorkspacesToggle.textContent = "Fewer workspaces";
-  positionSecondaryWorkspaces();
-  requestAnimationFrame(() => {
-   positionSecondaryWorkspaces();
-   workspaceMenuFocusable()[0]?.focus({ preventScroll: true });
+ for (const group of workspaceGroups) {
+  group.addEventListener("keydown", event => {
+   if (event.key !== "Escape" || !group.open) return;
+   event.preventDefault();
+   group.open = false;
+   group.querySelector("summary")?.focus({ preventScroll: true });
   });
- };
- secondaryWorkspacesToggle.addEventListener("click", () => {
-  if (secondaryWorkspaces.hidden) openSecondaryWorkspaces();
-  else closeSecondaryWorkspaces(true);
- });
- document.addEventListener("keydown", (event) => {
-  if (secondaryWorkspaces.hidden) return;
-  if (event.key === "Escape") {
-   event.preventDefault();
-   closeSecondaryWorkspaces(true);
-   return;
-  }
-  if (event.key !== "Tab") return;
-  const focusable = workspaceMenuFocusable();
-  if (focusable.length === 0) {
-   event.preventDefault();
-   secondaryWorkspaces.focus();
-   return;
-  }
-  const first = focusable[0];
-  const last = focusable[focusable.length - 1];
-  if (event.shiftKey && document.activeElement === first) {
-   event.preventDefault();
-   last?.focus({ preventScroll: true });
-  } else if (!event.shiftKey && document.activeElement === last) {
-   event.preventDefault();
-   first?.focus({ preventScroll: true });
-  }
- });
- document.addEventListener("pointerdown", (event) => {
-  if (secondaryWorkspaces.hidden || secondaryWorkspaces.contains(event.target) || secondaryWorkspacesToggle.contains(event.target)) return;
-  closeSecondaryWorkspaces();
- });
- window.addEventListener("resize", positionSecondaryWorkspaces);
- document.addEventListener("scroll", positionSecondaryWorkspaces, { passive: true, capture: true });
+ }
  signOutButton.addEventListener("click", () => {
  if (activeView !== "folios" || folioWorkspace.hidden || confirmFolioExit()) showLogin();
  });
- applyTheme(themeSelect.value);
- applyExperience(experienceSelect.value);
+ applyWorkspaceSkin(workspaceSkinSelect.value);
+ resetWorkspaceGroups();
+ syncWorkspaceGroupPresentation();
  initializeDates();
  addTier(createTierList, 1, "");
  addTier(createTierList, 2, "");
@@ -12828,6 +12884,7 @@ housekeepingSheetDate.addEventListener("change", () => {
  setBuilderStep(1);
  setBuilderMode("guided", false);
  const initialView = location.pathname.endsWith("/inventory") ? "inventory" :
+ (invoiceNavigationRoute() !== null) ? "invoices" :
  location.pathname.endsWith("/availability") ? "availability" :
  location.pathname.endsWith("/today") ? "today" :
  location.pathname.endsWith("/operations") ? "operations" :

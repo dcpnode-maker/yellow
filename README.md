@@ -7,6 +7,33 @@ The domain core is a TypeScript/Bun/Elysia modular monolith over PostgreSQL 16.
 Use open-source infrastructure, measured latency and replaceable integrations rather
 than speculative rewrites or a separate app fork for every country.
 
+## Active functional build — 8 September 2026
+
+UI/UX, prototypes and visual integration are paused by the founder. Current work
+is the remaining functional backend, with no local-app or provider activation.
+
+- **Published development:** [Order446](handoff/orders/446-india-native-fiscal-full-credit-note-issuance.md)
+  adds native full credit notes with immutable originals, separate C-series
+  numbering, balanced corrective journals and authorized issue/read/replay APIs.
+  It is published in [draft PR92](https://github.com/dcpnode-maker/yellow/pull/92),
+  not merged or deployed. Independent native database, concurrency, real API and
+  clean87 referee11/11 proofs are in [review446](handoff/reviews/446-india-native-fiscal-full-credit-note-issuance.md).
+- **Being built:** [Order447](handoff/orders/447-native-credit-note-fiscal-submission.md)
+  connects genuine credit notes to the existing submission worker and verified
+  signed receipts. Draft88 is confined to a synthetic proof database; it is not
+  yet a canonical migration or a connected external fiscal provider.
+- **Required CI:** [Q218](handoff/questions/218-current87-financial-catalogue-oracles.md)
+  and [Q220](handoff/questions/220-current87-migration-acceptance-oracles.md) repair
+  stale current-schema test expectations. The latest published checkpoint is
+  `236df73d`; all six required CI jobs and normal CodeQL pass. Earlier failed
+  database runs and their skipped downstream gates are not counted as successful.
+- **Local app:** retained `a1085178`/migration85 on port3000 is unchanged. Source
+  publication does not mean the local process contains those later capabilities.
+
+The local canonical status record has later functional updates pending selective
+publication; this dated section and the linked orders distinguish those updates
+from older status prose. No completion percentage or Phase7 closure is implied.
+
 ## GitHub checkout and schema count
 
 This is an existing Bun project. Clone or open the repository, then install the locked
@@ -16,12 +43,14 @@ command scaffolds package metadata, while this repository already has the author
 
 | Source line | Exact commit | Runnable migrations | Public base tables | Acceptance state |
 |---|---|---:|---:|---|
-| Reviewed `main` | [`443e3826b47025106d1829fcbb406ce6302fbbba`](https://github.com/dcpnode-maker/yellow/commit/443e3826b47025106d1829fcbb406ce6302fbbba) | 77 | 127, including `schema_migration` | [PR83](https://github.com/dcpnode-maker/yellow/pull/83) merged independently reviewed source `92346674`; all five jobs in [CI178](https://github.com/dcpnode-maker/yellow/actions/runs/33993977811) passed, including database acceptance23/23 and referee11/11 |
+| Current `main` (remote verified) | [`3503b0c01f336637d2583963c17b792f6ad59efe`](https://github.com/dcpnode-maker/yellow/commit/3503b0c01f336637d2583963c17b792f6ad59efe) | 81 | 128 | Independently merged PR91; later development below is not merged |
+| Published development | [`236df73dce4629dff92a66e1587961133e2dbd89`](https://github.com/dcpnode-maker/yellow/commit/236df73dce4629dff92a66e1587961133e2dbd89) | 87 | 129 | Draft PR92; native87 independently verified; all six exact-source CI jobs and normal CodeQL pass |
+| Historical reviewed baseline | [`443e3826b47025106d1829fcbb406ce6302fbbba`](https://github.com/dcpnode-maker/yellow/commit/443e3826b47025106d1829fcbb406ce6302fbbba) | 77 | 127, including `schema_migration` | [PR83](https://github.com/dcpnode-maker/yellow/pull/83) merged independently reviewed source `92346674`; all five jobs in [CI178](https://github.com/dcpnode-maker/yellow/actions/runs/33993977811) passed, including database acceptance23/23 and referee11/11 |
 | Earlier operational baseline | [`5879e2b719db18077e00556477ba34bdb9b9991c`](https://github.com/dcpnode-maker/yellow/commit/5879e2b719db18077e00556477ba34bdb9b9991c) | 75 | 125, including `schema_migration` | Historical PR82 release; later forward migrations preserve this history |
 
 The historical **80** is the number of application tables declared by immutable
 `migrations/0001_init.sql`. The migration runner creates the ledger as table 81, and
-later forward migrations expand the catalogue. Migration 76 in reviewed main
+later forward migrations expand the catalogue. Historical migration 76
 adds two tables; migration 77 adds no table. See the [schema guide](docs/SCHEMA-GUIDE.md)
 for definitions, arithmetic and read-only catalogue queries. A source count does not
 prove that an existing local or cloud database has applied those migrations.
@@ -70,7 +99,7 @@ The roadmap has **18 phases, numbered 0–17**:
 |---|---|
 | 0–3, 5, 6 | Independently reviewed |
 | 4 | Built; final integration/review outstanding |
-| 7 | Active; Order434 native fiscal source approved and merged; provider/operator completion remains |
+| 7 | Active; native invoice/operator and full-credit backend built in development; credit submission447 and remaining fiscal completion continue; not phase-complete |
 | 8–17 | Planned |
 
 Order430 was rejected for incomplete canonical provenance (D1323).

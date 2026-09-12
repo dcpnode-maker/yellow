@@ -79,15 +79,14 @@ test("Order 316 intentional red: journey copy does not advertise deferred author
   expect(index).not.toMatch(/data-(?:property|reservation|folio|task|vehicle)-id=/i);
 });
 
-test("Order 316 intentional red: one shared navigation path owns journey controls and Simple overlay settlement", () => {
+test("Order459: the shared guarded navigation path reveals the destination workflow group", () => {
   expect(script).toContain('const managementJourneyControls = document.querySelectorAll("[data-journey-view]")');
   expect(script).toContain("for (const control of managementJourneyControls)");
   expect(script).toContain("setView(control.dataset.journeyView)");
 
   const finish = functionSource("finishWorkspaceNavigation");
-  expect(finish).toContain('document.documentElement.dataset.experience === "simple"');
-  expect(finish).toContain("SECONDARY_VIEWS.has(view)");
-  expect(finish).toContain("closeSecondaryWorkspaces()");
+  expect(finish).toContain("revealWorkspaceGroup(view);");
+  expect(finish).not.toContain("dataset.experience");
   expect(finish).toContain('document.getElementById(`${view}-title`)');
   expect(finish).toContain("focus({ preventScroll: true })");
   expect(finish).not.toMatch(/request\(|fetch\(|method:|click\(\)|submit/i);
@@ -100,18 +99,28 @@ test("Order 316 intentional red: one shared navigation path owns journey control
   expect(script).toContain("finishWorkspaceNavigation(control.dataset.journeyView)");
 });
 
-test("Order 316 intentional red: Advanced and Expert remain direct while every explicit route survives", async () => {
-  const applyExperience = functionSource("applyExperience");
-  expect(applyExperience).toContain('const next = EXPERIENCES.has(experience) ? experience : "simple"');
-  expect(applyExperience).toContain('secondaryWorkspacesToggle.hidden = next !== "simple"');
-  expect(applyExperience).toContain('secondaryWorkspaces.hidden = next === "simple" && !keepSecondaryOpen');
-  expect(script).toContain('const EXPERIENCES = new Set(["simple", "advanced", "expert"])');
-  expect(html.match(/class="domain-tab(?: is-active)?"/g)).toHaveLength(13);
+test("Order458: interface switching is session-local while every explicit route survives", async () => {
+  const applyWorkspaceSkin = functionSource("applyWorkspaceSkin");
+  expect(applyWorkspaceSkin).toContain('const next = WORKSPACE_SKINS.has(skin) ? skin : "ledger"');
+  expect(applyWorkspaceSkin).toContain("document.documentElement.dataset.workspaceSkin = next");
+  expect(applyWorkspaceSkin).toContain("workspaceSkinSelect.value = next");
+  expect(applyWorkspaceSkin).not.toMatch(/request\(|fetch\(|setView\(|history\.|replaceChildren|append\(|localStorage|sessionStorage/);
+  expect(script).toContain('const WORKSPACE_SKINS = new Set(["ledger", "aura", "relay", "journey", "orbit", "atlas", "focus", "index"])');
+  expect(script).toContain('workspaceSkinSelect.addEventListener("change"');
+  expect(`${html}\n${script}`).not.toMatch(/data-experience|experience-select|theme-select|applyExperience|applyTheme|\b(?:EXPERIENCES|THEMES)\b/);
+  for (const [value, label] of [
+    ["ledger", "Ledger · Precision desk"], ["aura", "Aura · Spatial glass"],
+    ["relay", "Relay · Operations board"], ["journey", "Journey · Guided workspace"],
+    ["orbit", "Orbit · Command centre"], ["atlas", "Atlas · Portfolio studio"],
+    ["focus", "Focus · Task companion"], ["index", "Index · Planning desk"],
+  ]) expect(html).toContain(`<option value="${value}">${label}</option>`);
+  expect(html.match(/class="domain-tab(?: is-active)?"/g)).toHaveLength(14);
+  expect(html).toContain('id="nav-invoices" type="button" data-view="invoices" aria-controls="invoices-view"');
 
   const property = "00000000-0000-0000-0000-000000000316";
   const app = createApp({ operatorApi: new OperatorHttpApi({} as never) });
   for (const view of [
-    "today", "availability", "reservations", "folios", "cashiers", "housekeeping", "vehicles",
+    "today", "availability", "reservations", "folios", "invoices", "cashiers", "housekeeping", "vehicles",
     "operations", "inventory", "restrictions", "rates", "status",
   ]) {
     const response = await app.handle(new Request(`http://yellow.test/p/${property}/${view}`));
@@ -121,5 +130,6 @@ test("Order 316 intentional red: Advanced and Expert remain direct while every e
   expect(script).toContain('location.pathname.endsWith("/availability") ? "availability"');
   expect(script).toContain('location.pathname.endsWith("/today") ? "today"');
   expect(script).toContain('location.pathname.endsWith("/cashiers") ? "cashiers"');
+  expect(script).toContain('(invoiceNavigationRoute() !== null) ? "invoices"');
   expect(script).toContain('location.pathname.endsWith("/status") ? "status"');
 });

@@ -93,6 +93,18 @@ faster, safer, and cheaper — the rule is "own what differentiates," not "own e
 
 ## Enforcement (Phase 0 CI gates)
 
+- Order444/Q211 and architect decision D1416 admit one unmodified, self-hosted
+  Urbanist variable WOFF2 under SIL OFL1.1, pinned to upstream commit
+  `549716453f76335ccc5a9e537cbe0da03d6fed34`. This is a font-only exception, not
+  permission to link copyleft application libraries or change the package
+  allowlist. Retain its entire copyright/licence, do not sell the font alone,
+  and respect OFL conditions for any future font modifications. System fonts
+  remain the network-free fallback; no remote font service is used.
+- The same order admits fifteen navigation glyphs from Phosphor core2.1.1,
+  commit `2b75f3ad12b420c9504ef05df8d2564a28f8500e`, under MIT. Retain full
+  attribution and exact source/hash/transformation provenance. Both asset
+  families are replaceable static files, not runtime services or frameworks.
+
 - `psycopg2-binary==2.9.12` (LGPL) is a pinned, hashed, CI-only dependency of
   the already-canonical Python invariant referee, approved by D-75. It is not
   installed in or shipped with the application image or runtime.

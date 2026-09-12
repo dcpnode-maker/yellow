@@ -130,6 +130,11 @@ const deliveryBase = Object.freeze({
   transitionSeq: 2,
 });
 
+const retryBinding = Object.freeze({
+  providerExtensionId: "00000000-0000-4000-8000-000000009107",
+  providerExtensionVersion: 2147483647,
+});
+
 const deliveryVerification = Object.freeze({
   profileVersion: "yellow_native_india_1_1_v1",
   issuer: "YELLOW-TEST-IRP",
@@ -170,6 +175,8 @@ describe("Q207 public fiscal delivery receipt DTO boundary", () => {
       { ...deliveryBase, kind: "pending", status: "pending", disposition: "send" },
       { ...deliveryBase, kind: "pending", status: "submitted", disposition: "lookup" },
       { ...deliveryBase, kind: "pending", status: "error", disposition: "retry" },
+      { ...deliveryBase, kind: "pending", status: "error", disposition: "retry",
+        retryBinding: { ...retryBinding } },
       { ...deliveryBase, kind: "legacy_hash_only", status: "accepted", disposition: "none",
         authorityRef: "legacy-reference", responseSha256: "7".repeat(64) },
       { ...deliveryBase, kind: "legacy_hash_only", status: "rejected", disposition: "none",
@@ -197,7 +204,71 @@ describe("Q207 public fiscal delivery receipt DTO boundary", () => {
         (source.verification as { issuer: string }).issuer = "mutated";
         expect(result.verification.issuer).toBe("YELLOW-TEST-IRP");
       }
+      if (result?.kind === "pending" && "retryBinding" in result && result.retryBinding) {
+        expect(Object.isFrozen(result.retryBinding)).toBe(true);
+        (source.retryBinding as { providerExtensionVersion: number }).providerExtensionVersion = 1;
+        expect(result.retryBinding.providerExtensionVersion).toBe(2147483647);
+      }
     }
+  });
+
+  test("exposes immutable original provider identity only for exact known-not-sent retry receipts", () => {
+    const retryable = { ...deliveryBase, kind: "pending", status: "error", disposition: "retry",
+      retryBinding: { ...retryBinding } } as const;
+    const result = snapshotFiscalSubmissionDeliveryReceipt(retryable);
+    expect(result).toEqual(retryable);
+    expect(result?.kind).toBe("pending");
+    if (result?.kind !== "pending" || !("retryBinding" in result) || !result.retryBinding) {
+      throw new Error("retry binding missing");
+    }
+    expect(result.retryBinding).not.toBe(retryable.retryBinding);
+    expect(Object.isFrozen(result.retryBinding)).toBe(true);
+
+    // Historical error/retry projections remain readable, but the absent binding
+    // cannot grant a retry capability to a reloaded client.
+    const historical = snapshotFiscalSubmissionDeliveryReceipt({
+      ...deliveryBase, kind: "pending", status: "error", disposition: "retry",
+    });
+    expect(historical?.kind).toBe("pending");
+    expect(historical && "retryBinding" in historical).toBe(false);
+
+    for (const state of [
+      { status: "pending", disposition: "send" },
+      { status: "submitted", disposition: "lookup" },
+    ] as const) {
+      expect(snapshotFiscalSubmissionDeliveryReceipt({ ...deliveryBase, kind: "pending", ...state,
+        retryBinding: { ...retryBinding } })).toBeNull();
+    }
+    expect(snapshotFiscalSubmissionDeliveryReceipt({ ...deliveryAccepted(),
+      retryBinding: { ...retryBinding } })).toBeNull();
+  });
+
+  test("rejects malformed, oversized and active nested retry binding shapes without invoking code", () => {
+    const retryable = { ...deliveryBase, kind: "pending", status: "error", disposition: "retry" };
+    for (const value of [
+      null,
+      {},
+      { ...retryBinding, providerExtensionId: "bad" },
+      { ...retryBinding, providerExtensionVersion: 0 },
+      { ...retryBinding, providerExtensionVersion: 2147483648 },
+      { ...retryBinding, providerExtensionVersion: 1.5 },
+      { ...retryBinding, extra: "private" },
+      Object.assign(Object.create({}), retryBinding),
+    ]) {
+      expect(snapshotFiscalSubmissionDeliveryReceipt({ ...retryable, retryBinding: value })).toBeNull();
+    }
+    let calls = 0;
+    const accessor = Object.defineProperty({}, "providerExtensionId", {
+      enumerable: true, get() { calls += 1; return retryBinding.providerExtensionId; },
+    });
+    Object.defineProperty(accessor, "providerExtensionVersion", {
+      enumerable: true, value: retryBinding.providerExtensionVersion,
+    });
+    expect(snapshotFiscalSubmissionDeliveryReceipt({ ...retryable, retryBinding: accessor })).toBeNull();
+    const proxy = new Proxy(retryBinding, { ownKeys() { calls += 1; return []; } });
+    expect(() => snapshotFiscalSubmissionDeliveryReceipt({ ...retryable, retryBinding: proxy })).not.toThrow();
+    expect(snapshotFiscalSubmissionDeliveryReceipt({ ...retryable, retryBinding: proxy })).toBeNull();
+    expect(calls).toBe(0);
   });
 
   test("enforces public state combinations and refuses private, ambiguous or weakly bound shapes", () => {

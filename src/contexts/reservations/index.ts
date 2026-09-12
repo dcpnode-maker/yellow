@@ -41,6 +41,20 @@ export {
   ReservationGuestService,
   ReservationGuestValidationError,
 } from "./guests";
+export {
+  ReservationAlertConflictError,
+  ReservationAlertNotFoundError,
+  ReservationAlertService,
+  ReservationAlertValidationError,
+} from "./alerts";
+export type {
+  CreateReservationAlertInput,
+  DeactivateReservationAlertInput,
+  ReservationAlert,
+  ReservationAlertResult,
+  ReservationAlertServiceOptions,
+  ReservationAlertShowOn,
+} from "./alerts";
 export type {
   FindReservationGuestsInput,
   GuestEditableReservationStatus,

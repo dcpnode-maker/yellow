@@ -5,7 +5,7 @@ import { BearerTenantResolver, Hs256TokenSigner, LocalLoginGuard, LocalLoginServ
 import { PartyProfileService } from "./contexts/crm";
 import { BusinessDayDiscrepancyCarryOperatorService, BusinessDayRollService, BusinessDayRollWorker, BusinessDaySealService, CashierService, ChargeCorrectionService, ChargeService, FolioService, FolioSettlementService, FolioStatementService, FolioTransferService, HostedDepositService, LocalPaymentProvider, OwnerTrustExpenseWorkbenchService, PaymentService, ReceivableService } from "./contexts/financials";
 import { AvailabilityProjectionConsumer, AvailabilityProjectionService, AvailabilityService, HoldExpiryWorker, HoldService, InventoryPolicyService, InventoryService, OperationalBlockService, ReservationOccupancyService, RestrictionService } from "./contexts/inventory";
-import { ReservationArrivalRollService, ReservationArrivalRollWorker, ReservationBoardService, ReservationCommitService, ReservationDepartureRollService, ReservationDepartureRollWorker, ReservationDetailService, ReservationGuestService, ReservationLifecycleService, ReservationOfferSearchService, ReservationSegmentService, ReservationTravelService } from "./contexts/reservations";
+import { ReservationAlertService, ReservationArrivalRollService, ReservationArrivalRollWorker, ReservationBoardService, ReservationCommitService, ReservationDepartureRollService, ReservationDepartureRollWorker, ReservationDetailService, ReservationGuestService, ReservationLifecycleService, ReservationOfferSearchService, ReservationSegmentService, ReservationTravelService } from "./contexts/reservations";
 import { ArrivalPickupTaskAutomationConsumer, ArrivalPickupTaskDispatchService, CheckInService, CheckoutReadinessService, CheckoutService, VehicleParkingAssignmentService, VehicleRegisterService } from "./contexts/stay-operations";
 import { ArrivalRoomCleaningTaskService, HousekeepingDiscrepancyService, HousekeepingSheetService, HousekeepingTaskService } from "./contexts/housekeeping";
 import {
@@ -65,6 +65,7 @@ if (!providerConfiguration.ok) {
   throw new Error("India IRP provider deployment configuration is invalid");
 }
 const verifiedIndiaIrpAdapterRegistrations = providerConfiguration.value;
+const verifiedIndiaIrpAdapterPresentations = providerConfiguration.presentations;
 if (fiscalSubmissionDeliveryEnabled && verifiedIndiaIrpAdapterRegistrations.length === 0) {
   throw new Error("enabled fiscal submission worker requires a verified provider adapter");
 }
@@ -197,6 +198,7 @@ function runtimeApp() {
     idempotency: new PostgresIdempotency(),
   });
   const reservationGuests = new ReservationGuestService({ events, idempotency: new PostgresIdempotency() });
+  const reservationAlerts = new ReservationAlertService({ events, idempotency: new PostgresIdempotency() });
   const reservationLifecycle = new ReservationLifecycleService({
     events, idempotency: new PostgresIdempotency(), occupancy: reservationOccupancy,
   });
@@ -268,7 +270,8 @@ function runtimeApp() {
   const taxJurisdictionResolver = new TaxJurisdictionResolutionService(registry);
   const fiscalSubmissions = new FiscalSubmissionService();
   const fiscalAdapterRegistry = new VerifiedIndiaIrpAdapterRegistry(verifiedIndiaIrpAdapterRegistrations);
-  const fiscalSubmissionAdapters = new FiscalSubmissionAdapterAvailabilityService(fiscalAdapterRegistry.identities());
+  const fiscalSubmissionAdapters = new FiscalSubmissionAdapterAvailabilityService(
+    fiscalAdapterRegistry.identities(), verifiedIndiaIrpAdapterPresentations);
   const rateBuilder = {
     models: new RateModelService(registry),
     targets: new RateTargetService(registry),
@@ -386,7 +389,7 @@ function runtimeApp() {
     operatorApi: new OperatorHttpApi(login, availability, inventory, new PostgresIdempotency(), restrictions, rates, pricing, blocks, policy, holds, projection, runtimeStatus, rateBuilder, reservations, reservationOffers, reservationGuests, reservationLifecycle, reservationSegments, parties, folioStatements, charges, new ReservationBoardService(), new ReservationDetailService(), folios, chargeCorrections, folioTransfers, hostedRuntime?.hostedDeposits, folioSettlements, cashiers, receivables, checkIns, housekeeping, housekeepingSheets, checkoutReadiness, checkouts, vehicleRegister, reservationTravel, pickupTaskDispatch, arrivalRoomCleaning, housekeepingDiscrepancies, vehicleParking, undefined, undefined, businessDayCarry, businessDaySeal, ownerTrustExpenses, {
       submissions: fiscalSubmissions,
       adapters: fiscalSubmissionAdapters,
-    }),
+    }, reservationAlerts),
     operatorLocalReviewCredentials: localReviewCredentials(),
     ...(hostedRuntime ? { hostedDepositRoutes: hostedRuntime.routes, hostedDepositSurface: "guest" as const } : {}),
   });

@@ -16,7 +16,8 @@ export interface ProjectRecordedWorkSnapshot {
     | 126 | 127 | 148 | 154 | 155 | 156 | 160 | 161 | 162 | 163 | 164
     | 165 | 166 | 168 | 169 | 170 | 171 | 173 | 174 | 175 | 176 | 177 | 178
     | 179 | 180 | 181 | 182 | 183 | 184 | 185 | 186 | 188 | 189
-    | 190 | 191 | 192 | 193 | 195 | 199 | 236 | 310 | 396 | 429 | 434 | 438 | 440;
+    | 190 | 191 | 192 | 193 | 195 | 199 | 236 | 310 | 396 | 429 | 434 | 438 | 440 | 444
+    | 453 | 454 | 455 | 458 | 459 | 460 | 461 | 462 | 463 | 464;
   readonly state: ProjectRecordedWorkState;
   readonly summary: string;
   readonly remaining?: string;
@@ -70,12 +71,12 @@ export const DEFAULT_OPERATOR_RUNTIME_STATUS: OperatorRuntimeStatus = Object.fre
 
 export const PROJECT_BUILD_SNAPSHOT: ProjectBuildSnapshot = Object.freeze({
   schemaVersion: 2,
-  recordedAt: "2026-09-07",
-  label: "Signed fiscal provider integration; operator invoices next",
+  recordedAt: "2026-09-12",
+  label: "Current-source receiving integration in progress; reservation actions source built",
   roadmap: Object.freeze({
     phaseCount: 18,
-    latestBuiltOrder: 439,
-    currentOrder: 440,
+    latestBuiltOrder: 464,
+    currentOrder: 460,
     activePhase: 7,
   }),
   review: Object.freeze({
@@ -356,8 +357,74 @@ export const PROJECT_BUILD_SNAPSHOT: ProjectBuildSnapshot = Object.freeze({
     Object.freeze({
       order: 440,
       state: "proof_in_progress" as const,
-      summary: "Order 440 durable fiscal submission, immutable replay, supervised delivery and private source-bound signature verification are independently merged through PR90 at 4ba1d6f (80 migrations / 128 public tables), with complete CI, native ARM64 execution and post-merge schema/referee 11/11. Q207 provider and signed-receipt integration passes independent actual81 storage, synthetic cryptographic recovery journey, authorized receipt GET, identical schema and clean seed/referee 11/11 in development. The separate Order 440 hotel-journey study remains a fictional design prototype; Order 441 Astra Ultra RMS remains documented research without algorithm runtime or measured uplift.",
-      remaining: "Development81 is not mergedmain80 or the preserved local77. Current/historical runtime compatibility and exact-source Linux/ARM64 CI remain integration gates. Operator invoice discovery, issuance and printing, provider onboarding and authentic sandbox acceptance remain unfinished. No local refresh, provider activation, new-department release or cloud deployment is claimed; Phase 7 is not complete.",
+      summary: "Order 440 Q207 durable fiscal submission, authenticated provider transport, immutable signed receipts and authorized receipt reads are independently merged through PR91 at 3503b0c (81 migrations / 128 public tables). All six CI jobs and normal CodeQL passed, including actual native ARM64 execution, full upgrade compatibility and post-merge schema/referee 11/11. The separate hotel-journey study remains a fictional design prototype; Astra Ultra RMS remains documented research without algorithm runtime or measured uplift.",
+      remaining: "Merged main81 remains distinct from the historically verified Order444 preview85 and retained rollback77. Provider onboarding, authentic external-provider sandbox acceptance and activation remain unfinished. No new-department release or cloud deployment is claimed; Phase 7 is not complete.",
+    }),
+    Object.freeze({
+      order: 444,
+      state: "proof_in_progress" as const,
+      summary: "Order 444 current source builds the three-layout Calm Workbench, Precision Desk and Service Timeline shell plus Q208 operator invoice queue/detail, readiness, confirmed issuance, explicit submission/current receipt and exact print workflow. Q209 independent actual proofs pass populated81-to-85 preservation 2/0 and the synthetic fiscal review seed through genuine production services 8/0 on isolated candidate85 targets. Historical preview receipt: exact a10851786f17f2fdea0cf970320ee8c46a45b670/frontier85 passed all six CI34095296622 jobs and normal CodeQL34095293723, then native promotion was verified on 2026-09-07 at 08:09:38Z. Real browser proof at 08:14:30Z used three prefilled sign-in fields and the actual login button, read synthetic invoice YR/1, mounted 15 destinations, inspected three desktop layouts and the 390px phone view, and signed out with zero business commands.",
+      remaining: "This is a historical verified preview receipt, not a claim that this snapshot's source is serving: dynamic runtime build information owns the actual serving revision/frontier. Old b5ef708/frontier77 is retained for rollback. Mounted destinations are not full transaction acceptance of all 15 workspaces; providers remain unconfigured/default-off. Full Astra identity/journey design, authentic external-provider sandbox acceptance and provider activation remain required. No main merge is claimed. Order 444, Phase 7 and the whole application are not complete.",
+    }),
+    Object.freeze({
+      order: 453,
+      state: "independently_approved" as const,
+      summary: "Order 453 independently proved native fiscal-series configuration, populated upgrade, clean-install schema equality, referee 11/11 and 50 readiness denials/restorations at 90 migrations. Source 87da26f3 was published to draft PR92 after full standing 1983/0; earlier native credit-note and delivery work is included in that source lineage.",
+      remaining: "Exact-head CI exposed the Windows and receipt-test failures now repaired under Order 455. Publication is not main merge, local activation, provider acceptance or Phase-7 completion.",
+    }),
+    Object.freeze({
+      order: 454,
+      state: "independently_approved" as const,
+      summary: "Order 454 adds authorized read-only discovery of configured or absent current-year fiscal numbering. Actual native SQL 10/0 and independent preservation audit pass; root and independent signed HTTP 5/0 each preserve all public rows, catalogue and sequences. Current-day supplier status and current tenant/actor/property authority remain required.",
+      remaining: "Exact-source standing, publication and CI remain release gates. Discovery allocates no number, issues no document, calls no provider and does not complete Phase 7.",
+    }),
+    Object.freeze({
+      order: 455,
+      state: "proof_in_progress" as const,
+      summary: "Order 455 repairs the Windows test harness and signed-receipt disclosure oracle without weakening production safeguards. Root and independent Windows runs pass 20/0. Independent native receipt proof has 16 passed, one upgrade-only skip, zero failures and 4177 assertions; all 59 pre-existing databases and global role/settings state are preserved.",
+      remaining: "The existing 80-to-81 upgrade lane and repaired exact-source CI remain required. Earlier test and preflight failures are retained; no production crypto, SQL or supervisor rule was weakened.",
+    }),
+    Object.freeze({
+      order: 458,
+      state: "built_unverified" as const,
+      summary: "Order 458 builds eight light interfaces: Ledger, Aura, Relay, Journey, Orbit, Atlas, Focus and Index, with selectable spatial depth and reduced-motion support. The separate OTA field/depth/mapping catalogue is documented research, not a live integration.",
+      remaining: "The founder rejected this initial implementation's layout fidelity. Order 459 supersedes its workspace composition; the earlier browser pass is not visual approval or local activation.",
+    }),
+    Object.freeze({
+      order: 459,
+      state: "built_unverified" as const,
+      summary: "Order 459 replaces the flat menu with five hotel-workflow groups while preserving all 15 destinations, routes, permissions and drafts. Eight distinct mounted Today/invoice compositions pass the actual-source browser proof with 1143 assertions, plus responsive geometry and focused regressions; captures use synthetic data.",
+      remaining: "Founder visual acceptance and version-correct local promotion remain separate. These checks do not establish complete transaction coverage of every workspace or native mobile-app delivery.",
+    }),
+    Object.freeze({
+      order: 460,
+      state: "proof_in_progress" as const,
+      summary: "Order 460 recovered the retained native database on September 12. The frozen source at migration 90 passes temporary prefilled login, invoice browsing, 129-table worker verification and exact owned shutdown. Windows launcher timestamp precision was repaired without resetting data or weakening fiscal eligibility.",
+      remaining: "The temporary app is stopped; local promotion and selective publication/integration of receiving source at migration 91 remain pending. Dynamic runtime build information owns the actual serving revision and schema. Provider acceptance and genuine fiscal eligibility remain separate; Phase 7 and the whole application are not complete.",
+    }),
+    Object.freeze({
+      order: 461,
+      state: "built_unverified" as const,
+      summary: "Order 461 builds only the synthetic sandbox transport handoff for the IRP acceptance path. The bounded source tests cover synthetic transport behavior; no live provider round-trip, certification or persisted provider receipt is claimed.",
+      remaining: "Provider sandbox acceptance, runtime integration and Phase 7 completion remain pending. This source-built handoff is not deployed or live.",
+    }),
+    Object.freeze({
+      order: 462,
+      state: "proof_in_progress" as const,
+      summary: "Order 462 integrates the PriceLabs intake and market pipeline source with an isolated synthetic staging proof. The staging result proves controlled synthetic import behavior only, not a real client PriceLabs import.",
+      remaining: "Authorized real-client intake, mapping and runtime promotion remain pending. No client data has been loaded and no pipeline is live.",
+    }),
+    Object.freeze({
+      order: 463,
+      state: "proof_in_progress" as const,
+      summary: "Order 463 builds the reservation-alert receiving workflow. Isolated native proof passes 11/0 real database tests and referee 11/11. On September 12, independent read-only proof reproduces the old ACL error and passes the corrected actual runtime-readiness check at migration 91 on the recovered host.",
+      remaining: "Publication and runtime integration remain pending. The workflow is not live and does not complete Phase 4 or Phase 7.",
+    }),
+    Object.freeze({
+      order: 464,
+      state: "built_unverified" as const,
+      summary: "Order 464 builds permission-aware reservation actions for operational details, cancel and reinstate disclosure. Root source proof passes 34 tests with 6 existing database-gated skips and 0 failures.",
+      remaining: "Runtime integration, release proof and local promotion remain pending. These permission-aware actions are source-built only, not live.",
     }),
   ] satisfies readonly ProjectRecordedWorkSnapshot[]),
   phases: Object.freeze([

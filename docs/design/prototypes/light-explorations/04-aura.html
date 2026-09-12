@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Yellow · Aura</title>
+  <style>
+    @font-face{font-family:Urbanist;src:url('../../../../src/http/operator/vendor/urbanist-v1.330/Urbanist[ital,wght].woff2') format('woff2');font-style:normal;font-weight:100 900;font-display:swap}
+    :root{--ink:#1c302f;--muted:#667674;--line:rgba(53,79,76,.16);--white:rgba(255,255,255,.76);--mint:#dcebe2;--peach:#f2dacb;--sky:#d8e8ef;--sun:#efb84c;--green:#315f55;--shadow:0 26px 80px rgba(66,81,72,.15),0 3px 15px rgba(66,81,72,.08)}
+    *{box-sizing:border-box}html,body{margin:0;min-height:100%;font-family:Urbanist,Segoe UI,sans-serif;color:var(--ink);background:#f3f0e8}button{font:inherit}body{min-height:100vh;overflow-x:hidden}
+    .skip{position:fixed;top:10px;left:-999px;z-index:100;background:#fff;padding:12px 18px;border-radius:12px}.skip:focus{left:14px}
+    .world{position:relative;min-height:100vh;overflow:hidden;background:linear-gradient(135deg,#f7f3ea 0%,#eef4ef 46%,#f5e9e0 100%)}
+    .world:before{content:"";position:absolute;inset:-12% -4%;background:linear-gradient(105deg,transparent 0 19%,rgba(255,255,255,.6) 19% 21%,transparent 21% 52%,rgba(255,255,255,.42) 52% 54%,transparent 54%),linear-gradient(20deg,transparent 0 40%,rgba(196,222,208,.38) 40% 58%,transparent 58%);transform:skewX(-8deg);pointer-events:none}
+    .sunwash{position:absolute;width:620px;height:620px;border-radius:50%;right:-120px;top:-300px;background:radial-gradient(circle,rgba(255,236,182,.72),rgba(255,240,203,.1) 66%,transparent 70%)}
+    .arch{position:absolute;border:1px solid rgba(84,104,97,.11);border-bottom:0;border-radius:220px 220px 0 0;bottom:0}.arch.one{width:420px;height:640px;left:4%;background:rgba(216,232,239,.28)}.arch.two{width:550px;height:790px;right:7%;background:rgba(242,218,203,.2)}
+    .topline{height:76px;padding:0 36px;display:flex;align-items:center;justify-content:space-between;position:relative;z-index:20;border-bottom:1px solid rgba(62,82,79,.08)}
+    .identity{display:flex;align-items:center;gap:16px}.mark{width:40px;height:40px;border-radius:50%;display:grid;place-items:center;background:#f3c65e;box-shadow:inset 0 0 0 8px rgba(255,255,255,.38);font-weight:850}.name{font-size:21px;font-weight:760;letter-spacing:-.02em}.property{color:var(--muted);font-size:14px;margin-top:2px}
+    .date{display:flex;gap:28px;align-items:center}.date strong{font-size:15px}.date span{font-size:14px;color:var(--muted)}.avatar{width:40px;height:40px;border-radius:50%;display:grid;place-items:center;background:#315f55;color:white;font-weight:700}
+    main{position:relative;z-index:2;max-width:1368px;height:calc(100vh - 76px);min-height:820px;margin:auto;padding:34px 32px 110px}
+    .eyebrow{font-size:13px;letter-spacing:.17em;text-transform:uppercase;font-weight:750;color:#496a61}.intro{display:flex;align-items:end;justify-content:space-between}.intro h1{font-size:38px;line-height:1.05;letter-spacing:-.05em;margin:7px 0 0;font-weight:560;max-width:620px}.intro-note{width:330px;font-size:14px;line-height:1.5;color:#586a67;padding-left:20px;border-left:1px solid var(--line)}
+    .stage{position:relative;height:680px;margin-top:20px}
+    .pane{position:absolute;border:1px solid rgba(255,255,255,.9);box-shadow:var(--shadow);backdrop-filter:blur(28px) saturate(125%);-webkit-backdrop-filter:blur(28px) saturate(125%);overflow:hidden}.pane:before{content:"";position:absolute;inset:0;border-top:1px solid rgba(255,255,255,.96);border-left:1px solid rgba(255,255,255,.68);pointer-events:none;border-radius:inherit}.pane-head{display:flex;justify-content:space-between;align-items:flex-start}.pane-kicker{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:#5b706b;font-weight:760}.pane h2{font-size:26px;letter-spacing:-.035em;margin:7px 0 0;font-weight:640}.quiet{font-size:14px;color:var(--muted);line-height:1.45}.pill{padding:7px 10px;border-radius:99px;background:rgba(239,184,76,.22);color:#725313;font-weight:700;font-size:12px;white-space:nowrap}
+    .rooms{left:0;top:84px;width:360px;height:510px;border-radius:28px;background:linear-gradient(150deg,rgba(239,248,244,.76),rgba(220,235,226,.4));padding:26px 25px;transform:rotate(-1.2deg);z-index:2;box-shadow:var(--shadow),inset 0 1px 0 rgba(255,255,255,.95)}
+    .room-map{margin-top:24px;display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.room{height:76px;border-radius:15px;padding:10px;border:1px solid rgba(53,95,85,.16);background:rgba(255,255,255,.48);display:flex;flex-direction:column;justify-content:space-between;font-size:12px}.room strong{font-size:15px}.room.ready{background:rgba(209,232,217,.76)}.room.focus{background:#fff6db;border-color:#deb762;box-shadow:0 8px 20px rgba(160,124,46,.13)}.room small{font-size:11px;color:#60736e}.map-note{display:flex;gap:10px;margin-top:18px;align-items:center}.map-note svg{flex:none}.map-note strong{display:block;font-size:14px}.map-note span{font-size:12px;color:var(--muted)}
+    .guest{left:315px;top:8px;width:600px;height:610px;border-radius:34px;background:linear-gradient(145deg,rgba(255,255,255,.83),rgba(255,248,239,.57));padding:32px;z-index:5;box-shadow:var(--shadow),inset 0 1px 0 rgba(255,255,255,.98)}.guestline{display:flex;gap:16px;align-items:center;margin-top:25px}.guestpic{width:62px;height:62px;border-radius:22px;background:linear-gradient(145deg,#d7b89f,#f1dfd1);display:grid;place-items:center;color:#795a47;font-size:22px;font-weight:700}.guestname{font-size:21px;font-weight:720}.guestmeta{font-size:14px;color:var(--muted);margin-top:3px}.arrival{margin-top:25px;padding:16px 20px;border:1px solid rgba(76,96,89,.12);border-radius:20px;background:rgba(255,255,255,.48);display:grid;grid-template-columns:1fr auto;gap:18px;align-items:center}.arrival time{display:block;font-size:29px;line-height:1.05;letter-spacing:-.04em;font-weight:650;margin-top:3px}.arrival small{display:block;font-size:13px;color:var(--muted)}.flight{display:flex;align-items:center;gap:7px;font-size:13px;color:#4c625e}.detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:13px}.detail{padding:15px 16px;background:rgba(242,244,238,.65);border-radius:17px}.detail span{font-size:12px;color:var(--muted)}.detail strong{display:block;font-size:15px;margin-top:5px}.guest-foot{position:absolute;left:32px;right:32px;bottom:30px;display:flex;align-items:center;justify-content:space-between}.note{font-size:13px;color:#58716a;display:flex;gap:9px;align-items:center}.note i{display:block;width:7px;height:7px;background:#efb84c;border-radius:50%}
+    .primary,.secondary,.dock button{min-height:44px;border:0;cursor:pointer;transition:transform .2s ease,box-shadow .2s ease,background .2s ease}.primary{border-radius:99px;padding:0 20px;background:#28594f;color:#fff;font-weight:720;box-shadow:0 8px 20px rgba(40,89,79,.23)}.primary:hover{box-shadow:0 12px 28px rgba(40,89,79,.3)}.primary:active{transform:scale(.98)}
+    .folio{right:20px;top:105px;width:385px;height:470px;border-radius:27px;background:linear-gradient(160deg,rgba(255,255,255,.76),rgba(216,232,239,.48));padding:27px;z-index:7;box-shadow:var(--shadow),inset 0 1px 0 rgba(255,255,255,.98)}.folio-total{margin:28px 0 19px}.folio-total span{font-size:13px;color:var(--muted)}.folio-total strong{display:block;font-size:34px;letter-spacing:-.045em;margin-top:3px;font-variant-numeric:tabular-nums}.lineitem{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;padding:12px 0;border-top:1px solid var(--line);font-size:14px}.lineitem small{display:block;color:var(--muted);font-size:12px;line-height:1.35;margin-top:3px}.lineitem b{font-variant-numeric:tabular-nums;padding-top:2px}.balance{margin-top:14px;padding:14px 15px;border-radius:16px;background:rgba(255,255,255,.58);display:flex;justify-content:space-between;align-items:center}.balance span{font-size:13px}.balance strong{font-size:17px}.folio .quiet{margin-top:12px}
+    .peek-label{position:absolute;left:25px;bottom:19px;font-size:14px;font-weight:720;color:#42665d;display:flex;align-items:center;gap:8px}.peek-label:before{content:"↗";width:25px;height:25px;border-radius:50%;border:1px solid rgba(55,89,79,.25);display:grid;place-items:center;background:rgba(255,255,255,.55)}
+    .dock{position:absolute;z-index:20;bottom:25px;left:50%;transform:translateX(-50%);height:69px;display:flex;align-items:center;gap:5px;padding:8px;border:1px solid rgba(255,255,255,.9);border-radius:25px;background:rgba(255,255,255,.72);box-shadow:0 20px 50px rgba(64,76,70,.17);backdrop-filter:blur(24px)}.dock button{height:52px;min-width:88px;border-radius:18px;background:transparent;color:#536864;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:3px;font-size:12px;font-weight:650}.dock button svg{width:19px;height:19px;stroke-width:1.7}.dock button.active{background:#295b51;color:white;box-shadow:0 8px 18px rgba(41,91,81,.23)}
+    .toast{position:absolute;z-index:30;right:34px;bottom:29px;width:316px;padding:15px 17px;border-radius:18px;background:#fff;color:#274b44;box-shadow:var(--shadow);display:none;align-items:center;gap:12px;border:1px solid #d3e4dc;font-size:14px}.toast svg{flex:none}.changed .toast{display:flex}.changed .rooms{transform:rotate(0deg) translateY(-4px)}.changed .room.focus{background:#d7ecdf;border-color:#72a185}.changed .room.focus small:after{content:" · inspected"}.changed #roomState{background:#d9eee3;color:#315f55}.changed #roomState span{display:none}.changed #roomState:after{content:"Suite prepared"}.changed #prepButton{background:#dfe8e4;color:#426057;box-shadow:none;pointer-events:none}.reset{border:1px solid rgba(55,76,71,.18);background:rgba(255,255,255,.55);color:#395b54;border-radius:99px;min-height:44px;padding:0 15px;font-weight:700;cursor:pointer}
+    .eyebrow,.pane-kicker,.pill,.room,.room small,.map-note span,.arrival small,.flight,.detail span,.note,.folio-total span,.lineitem small,.balance span,.dock button{font-size:14px}
+    button:focus-visible,a:focus-visible{outline:3px solid #ad7710;outline-offset:3px}
+    @media(max-width:900px){.topline{padding:0 18px}.date>span{display:none}main{height:auto;min-height:100vh;padding:28px 18px 130px}.intro{display:block}.intro-note{width:auto;margin-top:18px}.stage{height:auto;display:grid;gap:16px;margin-top:24px}.pane{position:relative;inset:auto!important;width:100%!important;height:auto!important;min-height:420px;transform:none!important}.folio{min-height:440px}.dock{position:fixed;bottom:12px;max-width:calc(100vw - 24px)}.dock button{min-width:70px}.toast{position:fixed;bottom:94px;right:14px;left:14px;width:auto}}
+    @media(prefers-reduced-motion:reduce){*,*:before,*:after{scroll-behavior:auto!important;transition:none!important}}
+  </style>
+</head>
+<body>
+  <a class="skip" href="#content">Skip to guest context</a>
+  <div class="world" id="prototype">
+    <div class="sunwash" aria-hidden="true"></div><div class="arch one" aria-hidden="true"></div><div class="arch two" aria-hidden="true"></div>
+    <header class="topline">
+      <div class="identity"><div class="mark" aria-hidden="true">Y</div><div><div class="name">Yellow Aura</div><div class="property">Casa Aurelia · Jaipur</div></div></div>
+      <div class="date"><span>Thursday, 10 September</span><strong>12:28 IST</strong><button class="reset" type="button" data-demo-reset aria-label="Reset Aura prototype">Reset</button><div class="avatar" aria-label="Signed in as Maya Rao">MR</div></div>
+    </header>
+    <main id="content">
+      <div class="intro"><div><div class="eyebrow">Concept 04 · fictional data</div><h1>Everything around one arrival,<br>held in the same light.</h1></div><div class="intro-note">Three live contexts stay visually separate: the suite condition, the arriving guest, and the folio they will see.</div></div>
+      <section class="stage" aria-label="Arrival preparation workspace">
+        <article class="pane rooms" aria-labelledby="rooms-title">
+          <div class="pane-head"><div><div class="pane-kicker">Rooms · north court</div><h2 id="rooms-title">A quiet floor</h2></div><span class="pill" id="roomState"><span>1 due soon</span></span></div>
+          <div class="room-map" aria-label="Room readiness map">
+            <div class="room ready"><strong>201</strong><small>Ready · 11:42</small></div><div class="room"><strong>202</strong><small>In-house</small></div><div class="room ready"><strong>203</strong><small>Ready · 12:08</small></div>
+            <div class="room"><strong>204</strong><small>Turnover</small></div><div class="room focus"><strong>205</strong><small>Final check</small></div><div class="room"><strong>206</strong><small>In-house</small></div>
+            <div class="room ready"><strong>207</strong><small>Ready · 10:55</small></div><div class="room"><strong>208</strong><small>Stayover</small></div><div class="room ready"><strong>209</strong><small>Ready · 11:31</small></div>
+          </div>
+          <div class="map-note"><svg width="34" height="34" viewBox="0 0 34 34" aria-hidden="true"><circle cx="17" cy="17" r="16" fill="#fff8de"/><path d="M10 17h14M17 10v14" stroke="#9b7222" stroke-width="1.5"/></svg><div><strong>Suite 205 · Garden studio</strong><span>Leena completes the final light check</span></div></div><div class="peek-label">Room layer · open via dock</div>
+        </article>
+        <article class="pane guest" aria-labelledby="guest-title">
+          <div class="pane-head"><div><div class="pane-kicker">Arriving next · 52 minutes</div><h2 id="guest-title">Aarav &amp; Mira Sethi</h2></div><span class="pill">Returning</span></div>
+          <div class="guestline"><div class="guestpic" aria-hidden="true">AS</div><div><div class="guestname">A weekend in the north court</div><div class="guestmeta">2 guests · 3 nights · direct reservation YW-1842</div></div></div>
+          <div class="arrival"><div><small>Expected at the property</small><time datetime="13:20">13:20</time></div><div class="flight"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M3 11.5 21 4l-7.5 17-2.2-7.3L3 11.5Z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg>Driver assigned</div></div>
+          <div class="detail-grid"><div class="detail"><span>Arrival promise</span><strong>Rose tea · courtyard</strong></div><div class="detail"><span>Room preference</span><strong>Firm pillows · cool</strong></div><div class="detail"><span>Last visit</span><strong>March 2025 · 204</strong></div><div class="detail"><span>Owner</span><strong>Kavya · Guest team</strong></div></div>
+          <div class="guest-foot"><div class="note"><i></i><span>Passport review remains at reception</span></div><button class="primary" id="prepButton" type="button" data-demo-action aria-label="Simulate preparing suite 205">Prepare suite 205</button></div>
+        </article>
+        <article class="pane folio" aria-labelledby="folio-title">
+          <div class="pane-head"><div><div class="pane-kicker">Folio preview</div><h2 id="folio-title">A clear welcome</h2></div><span class="pill">INR</span></div>
+          <div class="folio-total"><span>Stay estimate</span><strong>₹ 82,600</strong></div>
+          <div class="lineitem"><div>Garden studio<small>3 nights · breakfast included</small></div><b>₹ 69,000</b></div>
+          <div class="lineitem"><div>Airport welcome<small>Private car · flight AI 491</small></div><b>₹ 4,800</b></div>
+          <div class="lineitem"><div>Taxes<small>Shown before arrival</small></div><b>₹ 8,800</b></div>
+          <div class="balance"><span>Guarantee on file</span><strong>₹ 25,000</strong></div>
+          <p class="quiet">Fictional preview only. No charge, posting, or room assignment occurs here.</p>
+        </article>
+      </section>
+    </main>
+    <nav class="dock" aria-label="Aura workspace navigation">
+      <button type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true"><path d="M4 11 12 4l8 7v9H4Z"/></svg>Morning</button>
+      <button type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true"><path d="M5 5h14v14H5zM9 5v14M5 10h14"/></svg>Rooms</button>
+      <button class="active" type="button" aria-current="page"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true"><circle cx="12" cy="8" r="3"/><path d="M5 20c.7-4.2 3-6 7-6s6.3 1.8 7 6"/></svg>Arrivals</button>
+      <button type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true"><path d="M6 4h12v16H6zM9 8h6M9 12h6M9 16h3"/></svg>Folios</button>
+    </nav>
+    <div class="toast" role="status" aria-live="polite"><svg width="30" height="30" viewBox="0 0 30 30" fill="none" aria-hidden="true"><circle cx="15" cy="15" r="14" fill="#dceee5"/><path d="m9 15 4 4 8-9" stroke="#356b5c" stroke-width="2"/></svg><div><strong>Suite 205 is prepared</strong><br><span>Simulated handoff · no operational change</span></div></div>
+  </div>
+  <script>
+    window.demoState='initial';
+    const root=document.getElementById('prototype');
+    document.querySelector('[data-demo-action]').addEventListener('click',()=>{root.classList.add('changed');window.demoState='changed'});
+    document.querySelector('[data-demo-reset]').addEventListener('click',()=>{root.classList.remove('changed');window.demoState='initial';document.querySelector('[data-demo-action]').focus()});
+  </script>
+</body>
+</html>

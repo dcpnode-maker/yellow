@@ -161,6 +161,7 @@ describe("Order440/Q204 fiscal composition", () => {
     expect(source).toContain('Bun.env.YELLOW_FISCAL_SUBMISSION_WORKER === "1"');
     expect(source).toContain("await loadIndiaIrpAdapterRegistrationsFromEnvironment(Bun.env)");
     expect(source).toContain("const verifiedIndiaIrpAdapterRegistrations = providerConfiguration.value");
+    expect(source).toContain("const verifiedIndiaIrpAdapterPresentations = providerConfiguration.presentations");
     expect(source).toContain("if (!providerConfiguration.ok)");
     expect(source).toContain("India IRP provider deployment configuration is invalid");
     expect(source.indexOf("await loadIndiaIrpAdapterRegistrationsFromEnvironment(Bun.env)"))
@@ -168,7 +169,8 @@ describe("Order440/Q204 fiscal composition", () => {
     expect(source.indexOf("India IRP provider deployment configuration is invalid"))
       .toBeLessThan(source.indexOf("runtimeApp().listen"));
     expect(source).toContain("new VerifiedIndiaIrpAdapterRegistry(verifiedIndiaIrpAdapterRegistrations)");
-    expect(source).toContain("new FiscalSubmissionAdapterAvailabilityService(fiscalAdapterRegistry.identities())");
+    expect(source).toContain(`new FiscalSubmissionAdapterAvailabilityService(
+    fiscalAdapterRegistry.identities(), verifiedIndiaIrpAdapterPresentations)`);
     expect(source).toContain("new FiscalSubmissionWorker(fiscalRepository, fiscalAdapterRegistry)");
     expect(source).toContain("enabled fiscal submission worker requires a verified provider adapter");
     expect(source.indexOf("enabled fiscal submission worker requires a verified provider adapter"))

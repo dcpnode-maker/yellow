@@ -112,7 +112,7 @@ test("Order 168: deep-linked drawer gates lifecycle actions and follows Back, fo
   expect(submitLifecycle).toContain("reservationLifecycleRefreshDecision(origin");
   expect(submitLifecycle).toContain("dispatchReservationLifecycleRefresh(");
   expect(submitLifecycle).not.toContain("confirmationNo=");
-  expect(script).toContain('drawerLifecycleButton("Edit details", reservationMetadataForm)');
+  expect(script).toContain('drawerLifecycleButton("Edit operational details", reservationMetadataForm)');
   expect(script).toContain('drawerLifecycleButton("Cancel", reservationCancelForm)');
   expect(script).toContain('drawerLifecycleButton("Reinstate", reservationReinstatePanel)');
   const command = executableFunction<(action: string) => Record<string, string> | null>("reservationLifecycleCommand");
@@ -644,7 +644,7 @@ test("Order 168: responsive and accessibility contract is present without depend
   expect(ids.length).toBe(new Set(ids).size);
 });
 
-test("Order 168: 120-character confirmations stay contained and every visible theme control is 44px", () => {
+test("Order168 / Order444: 120-character confirmations and the workspace layout control stay contained", () => {
   const confirmation = `Y-${"7E78E5402A3D4D41A7AB03B0041BD17A".repeat(4)}`.slice(0, 120);
   expect(confirmation).toHaveLength(120);
   for (const contract of [
@@ -656,9 +656,9 @@ test("Order 168: 120-character confirmations stay contained and every visible th
     ".reservation-board-cards, .reservation-board-card, .reservation-board-card-head { min-width: 0; max-width: 100%; }",
     ".reservation-board-card-head .reservation-row-open { flex: 1 1 auto; }",
     ".reservation-board-card-head .reservation-status-badge { flex: none; }",
-    "#theme-select { min-height: 44px; }",
   ]) expect(css).toContain(contract);
-  expect(css).not.toContain(".theme-control select { min-height: 40px;");
+  expect(css).toMatch(/html(?::root)?\[data-workspace-skin\] #workspace-skin-select \{[^}]*min-height:44px/);
+  expect(css).not.toContain(".workspace-skin-control select { min-height: 40px;");
   for (const viewport of [375, 768, 1024, 1440]) expect(viewport).toBeGreaterThanOrEqual(375);
   expect(script).toContain("button.textContent = row.confirmationNo");
 });

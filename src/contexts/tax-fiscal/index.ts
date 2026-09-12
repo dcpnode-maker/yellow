@@ -446,7 +446,28 @@ export {
   snapshotRetryIndiaFiscalSubmissionInput,
 } from "./fiscal-submission-repository";
 export { FiscalSubmissionReceiptReadService, snapshotFiscalSubmissionDeliveryReceipt } from "./fiscal-submission-receipt";
+export { IndiaNativeFiscalOperatorReadService } from "./india-native-fiscal-operator";
+export type { IndiaNativeFiscalDocumentDelivery, IndiaNativeFiscalDocumentDeliveryResult } from "./india-native-fiscal-operator";
+export type { IndiaNativeFiscalOperatorReadiness, IndiaNativeFiscalOperatorReadinessResult } from "./india-native-fiscal-operator";
+export { IndiaNativeFiscalDocumentReadService } from "./india-native-fiscal-document-read";
+export type {
+  IndiaNativeFiscalDocumentReadResult,
+  IndiaNativeFiscalInvoiceSummary,
+  IndiaNativeFiscalInvoiceList,
+  IndiaNativeFiscalInvoiceDocument,
+} from "./india-native-fiscal-document-read";
 export type { FiscalSubmissionDeliveryReceipt, FiscalSubmissionDeliveryReadResult } from "./fiscal-submission-receipt";
+export {
+  IndiaNativeCreditDeliveryService,
+  IndiaNativeCreditDeliveryAuthorizationError,
+  IndiaNativeCreditDeliveryDatabaseError,
+  IndiaNativeCreditDeliveryValidationError,
+  snapshotIndiaNativeCreditDeliveryInput,
+} from "./india-native-credit-delivery";
+export type {
+  IndiaNativeCreditDelivery,
+  IndiaNativeCreditDeliveryInput,
+} from "./india-native-credit-delivery";
 export type {
   FiscalSubmissionClaim,
   FiscalSubmissionDisposition,
@@ -665,13 +686,17 @@ export {
   IndiaNativeFiscalInvoiceService,
   IndiaNativeFiscalInvoiceNotFoundError,
   IndiaNativeFiscalInvoiceValidationError,
+  IndiaNativeFiscalInvoiceStaleEvidenceError,
+  snapshotIndiaNativeFiscalInvoiceCalendarEvidence,
   IndiaNativeFiscalSeriesAuthorizationError,
+  IndiaNativeFiscalSeriesDatabaseError,
   IndiaNativeFiscalSeriesConfigurationService,
   IndiaNativeFiscalSeriesConflictError,
   IndiaNativeFiscalSeriesNotFoundError,
   IndiaNativeFiscalSeriesValidationError,
   createIndiaNativeFiscalSeries,
   configureIndiaNativeFiscalSeries,
+  snapshotIndiaNativeFiscalSeriesConfigurationInput,
   deriveIndiaFinancialYearStart,
   validateIndiaNativeFiscalPrefix,
 } from "./india-native-fiscal-invoice";
@@ -680,6 +705,8 @@ export type {
   IndiaNativeFiscalInvoiceCalendarEvidence,
   IndiaNativeFiscalInvoiceIssueInput,
   IndiaNativeFiscalInvoiceIssueNativeInput,
+  IndiaNativeFiscalInvoiceIssueNativeConfirmedInput,
+  IndiaNativeFiscalInvoiceOperatorIssueInput,
   IndiaNativeFiscalInvoiceReceipt,
   IndiaNativeFiscalInvoiceServiceOptions,
   IndiaNativeFiscalPreparedSourceInput,
@@ -698,3 +725,40 @@ export type {
   IndiaNativeFiscalSourceInput,
   IndiaNativeFiscalSourceResult,
 } from "./india-native-fiscal-source";
+export {
+  IndiaNativeFiscalCreditNoteAuthorizationError,
+  IndiaNativeFiscalCreditNoteConflictError,
+  IndiaNativeFiscalCreditNoteDatabaseError,
+  IndiaNativeFiscalCreditNoteNotFoundError,
+  IndiaNativeFiscalCreditNoteService,
+  IndiaNativeFiscalCreditNoteValidationError,
+  snapshotIndiaNativeFiscalCreditNoteIssueInput,
+  snapshotIndiaNativeFiscalCreditNoteReadInput,
+  snapshotIndiaNativeFiscalCreditNoteDiscoveryInput,
+} from "./india-native-fiscal-credit-note";
+export type {
+  IndiaNativeFiscalCreditNoteIssueInput,
+  IndiaNativeFiscalCreditNoteDiscoveryInput,
+  IndiaNativeFiscalCreditNoteIssueResult,
+  IndiaNativeFiscalCreditNoteReadInput,
+  IndiaNativeFiscalCreditNoteReadResult,
+  IndiaNativeFiscalCreditNoteDocumentReadResult,
+  IndiaNativeFiscalCreditNoteReceipt,
+} from "./india-native-fiscal-credit-note";
+export {
+  IndiaNativeFiscalCreditNoteListService,
+  snapshotIndiaNativeFiscalCreditNoteListInput,
+} from "./india-native-fiscal-credit-note-list";
+export type {
+  IndiaNativeFiscalCreditNoteListInput,
+  IndiaNativeFiscalCreditNoteListResult,
+  IndiaNativeFiscalCreditNoteSummary,
+} from "./india-native-fiscal-credit-note-list";
+export {
+  IndiaNativeFiscalSeriesDiscoveryService,
+  snapshotIndiaNativeFiscalSeriesDiscoveryInput,
+} from "./india-native-fiscal-series-discovery";
+export type {
+  IndiaNativeFiscalSeriesDiscoveryInput,
+  IndiaNativeFiscalSeriesDiscoveryResult,
+} from "./india-native-fiscal-series-discovery";

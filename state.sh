@@ -90,18 +90,38 @@ printf 'Historical records: orders=%s total (%s lack legacy MERGED marker) revie
   "$orders_total" "${#historical_unclosed[@]}" "$reviews_total" "${#questions_open[@]}" "$questions_total"
 
 running=''
-if command -v docker >/dev/null 2>&1 && docker info >/dev/null 2>&1; then
-  running=$(docker compose ps --services --status running 2>/dev/null || true)
+tables=''
+if command -v docker >/dev/null 2>&1 &&
+   command -v timeout >/dev/null 2>&1; then
+  if probe=$(
+    {
+      timeout --signal=KILL 1s bash -s <<'YELLOW_DOCKER_PROBE'
+set -uo pipefail
+if ! running=$(docker compose ps --services --status running 2>/dev/null); then
+  exit 1
+fi
+tables=''
+if printf '%s\n' "$running" | grep -qx postgres; then
+  if ! tables=$(docker compose exec -T postgres psql -U yellow_deploy -d yellow_test -tAc \
+    "SELECT count(*) FROM pg_tables WHERE schemaname='public';" 2>/dev/null | tr -d '[:space:]'); then
+    tables=''
+  fi
+fi
+printf '%s\n%s\n' "$tables" "$running"
+YELLOW_DOCKER_PROBE
+    } 2>/dev/null
+  ); then
+    if [[ "$probe" == *$'\n'* ]]; then
+      tables=${probe%%$'\n'*}
+      running=${probe#*$'\n'}
+    fi
+  fi
 fi
 for service in app postgres valkey; do
   if printf '%s\n' "$running" | grep -qx "$service"; then status=up; else status=down; fi
   printf 'Service %s: %s\n' "$service" "$status"
 done
-if printf '%s\n' "$running" | grep -qx postgres; then
-  tables=$(docker compose exec -T postgres psql -U yellow_deploy -d yellow_test -tAc \
-    "SELECT count(*) FROM pg_tables WHERE schemaname='public';" 2>/dev/null | tr -d '[:space:]' || true)
-  [ -n "$tables" ] && printf 'yellow_test public tables: %s (validate against the PROJECT-STATUS migration frontier)\n' "$tables"
-fi
+[ -n "$tables" ] && printf 'yellow_test public tables: %s (validate against the PROJECT-STATUS migration frontier)\n' "$tables"
 
 printf 'Phase: %s · %s\n' "$current_phase" "$current_lifecycle"
 echo 'Reading: PROJECT.md -> AGENTS.md -> BUILD-PLAN.md -> handoff/ROSTER.md -> docs/WORKFLOW.md'

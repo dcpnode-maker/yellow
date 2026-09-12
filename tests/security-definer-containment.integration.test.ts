@@ -173,7 +173,8 @@ dbDescribe("Order 108 SECURITY DEFINER shadow-path containment", () => {
            'initialize_unit_condition', 'transition_arrival_pickup_task',
            'create_arrival_room_cleaning_task', 'assign_due_in_room',
            'report_room_discrepancy', 'prepare_business_day_discrepancy_carry',
-           'carry_business_day_discrepancy', 'seal_business_day_audited'
+           'carry_business_day_discrepancy', 'seal_business_day_audited',
+           'read_india_native_credit_delivery_by_document'
          ]::name[])
        ORDER BY signature
     `;
@@ -219,6 +220,8 @@ dbDescribe("Order 108 SECURITY DEFINER shadow-path containment", () => {
         config: ["search_path=pg_catalog, public"], appExecute: true, publicDenied: true },
       { signature: "prune_outbox(interval)", securityDefiner: true,
         config: ["search_path=pg_catalog, public, pg_temp"], appExecute: false, publicDenied: true },
+      { signature: "read_india_native_credit_delivery_by_document(uuid,uuid,uuid,uuid)", securityDefiner: true,
+        config: ["search_path=pg_catalog, public, pg_temp", "TimeZone=UTC", "DateStyle=ISO,YMD"], appExecute: true, publicDenied: true },
       { signature: "record_occupancy(uuid,uuid,tstzrange,uuid,text,boolean)", securityDefiner: true,
         config: ["search_path=pg_catalog, public, pg_temp"], appExecute: true, publicDenied: true },
       { signature: "record_occupancy(uuid,uuid,tstzrange,uuid,text,boolean,uuid)", securityDefiner: true,
@@ -293,6 +296,11 @@ dbDescribe("Order 108 SECURITY DEFINER shadow-path containment", () => {
       ["prepare_business_day_discrepancy_carry(uuid,uuid,uuid,date,date,text,uuid,uuid)",
         ["public.app_user", "public.user_role", "public.role_permission", "public.org_node",
           "public.discrepancy", "public.space", "public.outbox", "public.business_day"]],
+      ["read_india_native_credit_delivery_by_document(uuid,uuid,uuid,uuid)",
+        ["public.assert_india_native_credit_authority", "public.india_native_fiscal_credit_note",
+          "public.document", "public.india_gst_native_fiscal_document_origin", "public.journal",
+          "public.document_series", "public.posting_line", "public.fiscal_submission",
+          "public.read_india_fiscal_submission_delivery_receipt"]],
       ["record_positive_tax_correction_root(uuid,uuid,uuid,uuid)",
         ["public.tax_attribution_journal_binding", "public.tax_attribution_reservation_binding",
           "public.tax_attribution_snapshot", "public.journal", "public.app_user",

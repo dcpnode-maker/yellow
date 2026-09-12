@@ -1,6 +1,27 @@
 import { readFileSync } from "node:fs";
 import { types as utilTypes } from "node:util";
 import { fileURLToPath } from "node:url";
+import { issueIndiaNativeFiscalInvoiceForOperatorInTransaction } from "../commands/issue-india-native-fiscal-invoice";
+import { listIndiaNativeFiscalCreditNotesInTransaction } from "../commands/list-india-native-fiscal-credit-notes";
+import { readIndiaNativeCreditDeliveryInTransaction } from "../commands/read-india-native-credit-delivery";
+import { readIndiaNativeFiscalSeriesInTransaction } from "../commands/read-india-native-fiscal-series";
+import { configureIndiaNativeFiscalSeriesInTransaction } from "../commands/configure-india-native-fiscal-series";
+import {
+  discoverIndiaNativeFiscalCreditNoteInTransaction,
+  issueIndiaNativeFiscalCreditNoteInTransaction,
+  readIndiaNativeFiscalCreditNoteDocumentInTransaction,
+  readIndiaNativeFiscalCreditNoteInTransaction,
+} from "../commands/issue-india-native-fiscal-credit-note";
+import {
+  IndiaNativeFiscalCreditNoteAuthorizationError,
+  IndiaNativeFiscalCreditNoteConflictError,
+  IndiaNativeFiscalCreditNoteNotFoundError,
+  IndiaNativeFiscalCreditNoteValidationError,
+  snapshotIndiaNativeFiscalCreditNoteDiscoveryInput,
+  snapshotIndiaNativeFiscalCreditNoteIssueInput,
+  snapshotIndiaNativeFiscalCreditNoteListInput,
+  type IndiaNativeFiscalCreditNoteListResult,
+} from "../contexts/tax-fiscal";
 
 import { LocalLoginLimitedError, LocalLoginService, type LocalLoginInput } from "../contexts/identity";
 import {
@@ -123,6 +144,10 @@ import {
 import {
   ReservationCommitService,
   ReservationConflictError,
+  ReservationAlertConflictError,
+  ReservationAlertNotFoundError,
+  ReservationAlertService,
+  ReservationAlertValidationError,
   ReservationGuestConflictError,
   ReservationGuestNotFoundError,
   ReservationGuestService,
@@ -152,6 +177,7 @@ import {
   ReservationValidationError,
   type ReservationOfferSearchInput,
   type ReservationOfferSearchResult,
+  type ReservationAlertShowOn,
   type RequestedReservationGuest,
   type ReservationBoardPage,
   type ReservationMutableFields,
@@ -215,6 +241,23 @@ import {
   FiscalSubmissionAdapterAvailabilityService,
   FiscalSubmissionService,
   FiscalSubmissionReceiptReadService,
+  IndiaNativeFiscalDocumentReadService,
+  IndiaNativeFiscalOperatorReadService,
+  IndiaNativeFiscalInvoiceValidationError,
+  IndiaNativeFiscalInvoiceAuthorizationError,
+  IndiaNativeFiscalInvoiceNotFoundError,
+  IndiaNativeFiscalInvoiceConflictError,
+  IndiaNativeFiscalInvoiceStaleEvidenceError,
+  IndiaNativeFiscalSeriesAuthorizationError,
+  IndiaNativeFiscalSeriesDatabaseError,
+  IndiaNativeFiscalSeriesConflictError,
+  IndiaNativeFiscalSeriesValidationError,
+  snapshotIndiaNativeFiscalSeriesDiscoveryInput,
+  IndiaNativeCreditDeliveryAuthorizationError,
+  IndiaNativeCreditDeliveryDatabaseError,
+  IndiaNativeCreditDeliveryValidationError,
+  snapshotIndiaNativeFiscalInvoiceCalendarEvidence,
+  type IndiaNativeFiscalInvoiceCalendarEvidence,
   snapshotFiscalSubmissionDeliveryReceipt,
   snapshotFiscalSubmissionReceipt,
   type FiscalSubmissionReceipt,
@@ -305,6 +348,10 @@ const HOUSEKEEPING_DISCREPANCY_REPORT_SCOPE = "housekeeping.discrepancies:report
 const FISCAL_SUBMISSION_REQUEST_SCOPE = "tax-fiscal.submissions:request";
 const FISCAL_SUBMISSION_RETRY_SCOPE = "tax-fiscal.submissions:retry";
 const FISCAL_SUBMISSION_READ_SCOPE = "tax-fiscal.submissions:read";
+const FISCAL_DOCUMENT_READ_SCOPE = "tax-fiscal.documents:read";
+const FISCAL_SERIES_CONFIGURE_SCOPE = "tax-fiscal.series:configure";
+const FISCAL_ISSUE_SCOPES = ["tax-fiscal.documents:issue", "tax-fiscal.india-valuation:finalize"] as const;
+const FISCAL_CREDIT_SCOPES = ["tax-fiscal.documents:issue", "financials.adjustments:write"] as const;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 const ISO_INSTANT = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2})(?:\.(\d{1,3}))?)?(Z|([+-])(\d{2}):(\d{2}))$/;
 const LOCAL_DATE = /^(\d{4})-(\d{2})-(\d{2})$/;
@@ -326,6 +373,35 @@ interface FiscalSubmissionRequestBody {
 
 interface FiscalSubmissionRetryBody {
   readonly providerExtensionId: string;
+}
+
+interface FiscalSeriesConfigurationBody {
+  readonly supplierRegistrationId: string;
+  readonly documentKind: "invoice" | "credit_note" | "debit_note";
+  readonly prefix: string;
+}
+
+function fiscalSeriesConfigurationBody(value: unknown): Readonly<FiscalSeriesConfigurationBody> | null {
+  if (typeof value !== "object" || value === null || Array.isArray(value) || utilTypes.isProxy(value)) return null;
+  try {
+    const prototype = Object.getPrototypeOf(value);
+    if (prototype !== Object.prototype && prototype !== null) return null;
+    const descriptors = Object.getOwnPropertyDescriptors(value);
+    const keys = Reflect.ownKeys(value);
+    const expected = ["supplierRegistrationId", "documentKind", "prefix"] as const;
+    if (keys.length !== expected.length || keys.some((key) => typeof key !== "string" || !expected.includes(key as typeof expected[number]))) return null;
+    for (const key of expected) {
+      const descriptor = descriptors[key];
+      if (!descriptor || !("value" in descriptor) || descriptor.get !== undefined || descriptor.set !== undefined || descriptor.enumerable !== true) return null;
+    }
+    const supplierRegistrationId = descriptors.supplierRegistrationId!.value;
+    const documentKind = descriptors.documentKind!.value;
+    const prefix = descriptors.prefix!.value;
+    if (typeof supplierRegistrationId !== "string" || !UUID.test(supplierRegistrationId) ||
+        (documentKind !== "invoice" && documentKind !== "credit_note" && documentKind !== "debit_note") ||
+        typeof prefix !== "string" || prefix.trim() !== prefix || prefix.length < 1 || prefix.length > 12 || !/^[A-Za-z0-9/-]+$/.test(prefix) || prefix.length + 1 > 16) return null;
+    return Object.freeze({ supplierRegistrationId, documentKind, prefix });
+  } catch { return null; }
 }
 
 function fiscalSubmissionBody(
@@ -369,6 +445,87 @@ function fiscalSubmissionBody(
 function hasJsonContentType(request: Request): boolean {
   const value = request.headers.get("content-type");
   return value !== null && /^application\/json(?:\s*;\s*charset=utf-8)?$/i.test(value);
+}
+
+/** Snapshot only the public reason field; never invoke a caller's getters/proxy. */
+function fiscalCreditNoteBody(value: unknown): Readonly<{ reason: unknown }> | null {
+  if (typeof value !== "object" || value === null || utilTypes.isProxy(value)) return null;
+  try {
+    if (Array.isArray(value) || ![Object.prototype, null].includes(Object.getPrototypeOf(value))) return null;
+    const keys = Reflect.ownKeys(value);
+    if (keys.length !== 1 || keys[0] !== "reason") return null;
+    const descriptor = Object.getOwnPropertyDescriptor(value, "reason");
+    if (!descriptor || !("value" in descriptor) || !descriptor.enumerable) return null;
+    return Object.freeze({ reason: descriptor.value });
+  } catch { return null; }
+}
+
+/** Durable receipt bytes are authoritative; request/replay metadata belongs in headers. */
+function fiscalCreditNoteResponse(request: Request, receiptJson: string, replayed?: boolean, requestId?: string): Response {
+  return new Response(receiptJson, {
+    status: replayed === false ? 201 : 200,
+    headers: {
+      "content-type": "application/json; charset=utf-8",
+      "cache-control": "no-store",
+      "x-correlation-id": requestId ?? correlationId(request),
+      ...(replayed === undefined ? {} : { "idempotency-replayed": String(replayed) }),
+    },
+  });
+}
+
+function invoiceStaffBody(value: unknown, issue: boolean): Readonly<{
+  recipientRegistrationId: string | null; calendarEvidence: IndiaNativeFiscalInvoiceCalendarEvidence | null;
+  expectedSelectorHash?: string; expectedConfirmationHash?: string;
+}> | null {
+  if (typeof value !== "object" || value === null || utilTypes.isProxy(value)) return null;
+  try {
+    if (Array.isArray(value) || ![Object.prototype, null].includes(Object.getPrototypeOf(value))) return null;
+    const keys = issue ? ["recipientRegistrationId", "calendarEvidence", "expectedSelectorHash", "expectedConfirmationHash"] : ["recipientRegistrationId", "calendarEvidence"];
+    const own = Reflect.ownKeys(value);
+    if (own.length !== keys.length || own.some(key => typeof key !== "string" || !keys.includes(key))) return null;
+    const input: Record<string, unknown> = Object.create(null);
+    for (const key of keys) {
+      const descriptor = Object.getOwnPropertyDescriptor(value, key);
+      if (!descriptor || !("value" in descriptor) || !descriptor.enumerable) return null;
+      input[key] = descriptor.value;
+    }
+    const recipient = input.recipientRegistrationId;
+    if ((recipient !== null || issue) && (typeof recipient !== "string" || !UUID.test(recipient))) return null;
+    const calendarEvidence = snapshotIndiaNativeFiscalInvoiceCalendarEvidence(input.calendarEvidence);
+    if (!issue) return Object.freeze({ recipientRegistrationId: recipient as string | null, calendarEvidence });
+    if (typeof input.expectedSelectorHash !== "string" || !/^[0-9a-f]{64}$/.test(input.expectedSelectorHash)
+      || typeof input.expectedConfirmationHash !== "string" || !/^[0-9a-f]{64}$/.test(input.expectedConfirmationHash)) return null;
+    return Object.freeze({ recipientRegistrationId: recipient as string, calendarEvidence,
+      expectedSelectorHash: input.expectedSelectorHash, expectedConfirmationHash: input.expectedConfirmationHash });
+  } catch { return null; }
+}
+
+function invoiceSqlState(error: unknown): string | null {
+  if (typeof error !== "object" || error === null || utilTypes.isProxy(error)) return null;
+  for (const key of ["errno", "sqlState", "code"]) {
+    const descriptor = Object.getOwnPropertyDescriptor(error, key);
+    if (descriptor && "value" in descriptor && typeof descriptor.value === "string"
+      && /^[A-Z0-9]{5}$/.test(descriptor.value)) return descriptor.value;
+  }
+  return null;
+}
+
+function invoiceSearchBody(value: unknown): Readonly<Record<string, unknown>> | null {
+  if (typeof value !== "object" || value === null || utilTypes.isProxy(value)) return null;
+  try {
+    if (Array.isArray(value) || (Object.getPrototypeOf(value) !== Object.prototype && Object.getPrototypeOf(value) !== null)) return null;
+    const keys = Reflect.ownKeys(value);
+    const allowed = ["issuedFrom", "issuedBefore", "reservationId", "folioId", "query", "after", "limit"];
+    if (!keys.includes("issuedFrom") || !keys.includes("issuedBefore") || keys.some(key => typeof key !== "string" || !allowed.includes(key))) return null;
+    const descriptors = Object.getOwnPropertyDescriptors(value);
+    const snapshot: Record<string, unknown> = Object.create(null);
+    for (const key of keys as string[]) {
+      const descriptor = descriptors[key];
+      if (!descriptor || !("value" in descriptor) || !descriptor.enumerable) return null;
+      snapshot[key] = descriptor.value;
+    }
+    return Object.freeze(snapshot);
+  } catch { return null; }
 }
 
 const POSITIVE_INT64 = /^[1-9][0-9]*$/;
@@ -1240,6 +1397,21 @@ function parseReservationGuests(body: unknown): {
   });
 }
 
+function parseReservationAlert(body: unknown): {
+  code: string | null;
+  message: string;
+  showOn: ReservationAlertShowOn;
+} | null {
+  if (!isObject(body) || !exactKeys(body, ["code", "message", "showOn"]) ||
+      (body.code !== null && typeof body.code !== "string") || typeof body.message !== "string" ||
+      (body.showOn !== "checkin" && body.showOn !== "checkout" && body.showOn !== "always")) return null;
+  return Object.freeze({ code: body.code, message: body.message, showOn: body.showOn });
+}
+
+function emptyObject(body: unknown): boolean {
+  return isObject(body) && exactKeys(body, []);
+}
+
 const RESERVATION_TRAVEL_MODES = Object.freeze([
   "flight", "train", "bus", "car", "ferry", "other",
 ] as const satisfies readonly ReservationTravelMode[]);
@@ -1686,6 +1858,7 @@ type HoldOperations = Pick<HoldService,
 type ReservationOperations = Pick<ReservationCommitService, "commitHeld" | "commitDirect">;
 type ReservationOfferOperations = Pick<ReservationOfferSearchService, "search">;
 type ReservationGuestOperations = Pick<ReservationGuestService, "findByConfirmation" | "replace">;
+type ReservationAlertOperations = Pick<ReservationAlertService, "create" | "deactivate">;
 type ReservationLifecycleOperations = Pick<ReservationLifecycleService, "findByConfirmation" | "modify" | "cancel" | "reinstate">;
 type ReservationSegmentOperations = Pick<ReservationSegmentService,
   "findByConfirmation" | "changeDeparture" | "moveRoom"
@@ -2148,6 +2321,17 @@ interface FiscalSubmissionOperatorDependencies {
   readonly receipts?: Pick<FiscalSubmissionReceiptReadService, "read">;
 }
 
+class InvoiceReadPermissionFailure extends Error {
+  constructor() { super("Invoice access is not granted"); }
+}
+
+class InvoiceStaffFailure extends Error {
+  constructor(readonly kind: "invalid" | "conflict" | "stale" | "not_found") { super("Invoice command could not complete"); }
+}
+class InvoiceJurisdictionFailure extends Error {
+  constructor() { super("This invoice workflow is not supported for this property"); }
+}
+
 class FiscalSubmissionOperatorFailure extends Error {
   constructor() {
     super("fiscal submission operation is unavailable");
@@ -2193,6 +2377,7 @@ export class OperatorHttpApi {
   readonly #reservations?: ReservationOperations;
   readonly #reservationOffers?: ReservationOfferOperations;
   readonly #reservationGuests?: ReservationGuestOperations;
+  readonly #reservationAlerts?: ReservationAlertOperations;
   readonly #reservationLifecycle?: ReservationLifecycleOperations;
   readonly #reservationSegments?: ReservationSegmentOperations;
   readonly #reservationBoard?: ReservationBoardOperations;
@@ -2226,6 +2411,8 @@ export class OperatorHttpApi {
     "listAccounts" | "previewExpense" | "requestApproval" | "listApprovals" | "decideApproval" | "postExpense">;
   readonly #fiscalSubmissions?: FiscalSubmissionOperatorDependencies;
   readonly #fiscalReceiptReader: Pick<FiscalSubmissionReceiptReadService, "read">;
+  readonly #invoiceReader = new IndiaNativeFiscalDocumentReadService();
+  readonly #invoiceOperatorReader = new IndiaNativeFiscalOperatorReadService();
 
   constructor(
     login: LocalLoginService,
@@ -2276,6 +2463,7 @@ export class OperatorHttpApi {
     ownerTrustExpenses?: Pick<OwnerTrustExpenseWorkbenchService,
       "listAccounts" | "previewExpense" | "requestApproval" | "listApprovals" | "decideApproval" | "postExpense">,
     fiscalSubmissions?: FiscalSubmissionOperatorDependencies,
+    reservationAlerts?: ReservationAlertOperations,
   ) {
     this.#login = login;
     this.#availability = availability;
@@ -2293,6 +2481,7 @@ export class OperatorHttpApi {
     this.#reservations = reservations;
     this.#reservationOffers = reservationOffers;
     this.#reservationGuests = reservationGuests;
+    this.#reservationAlerts = reservationAlerts;
     this.#reservationLifecycle = reservationLifecycle;
     this.#reservationSegments = reservationSegments;
     this.#parties = parties;
@@ -2336,6 +2525,26 @@ export class OperatorHttpApi {
   }
 
   failure(request: Request, error: unknown): Response {
+    if (error instanceof IndiaNativeFiscalCreditNoteAuthorizationError) {
+      return apiError(request, 403, "auth/scope_missing", "Forbidden", "Credit-note access is not granted");
+    }
+    if (error instanceof IndiaNativeFiscalCreditNoteValidationError) {
+      return apiError(request, 400, "request/invalid", "Invalid request", "Credit-note input is invalid");
+    }
+    if (error instanceof IndiaNativeFiscalCreditNoteNotFoundError) {
+      return apiError(request, 404, "fiscal/credit_note_not_found", "Not found", "Credit note or its original invoice is not available");
+    }
+    if (error instanceof IndiaNativeFiscalCreditNoteConflictError) {
+      return apiError(request, 409, "fiscal/credit_note_conflict", "Credit note not issued", "The credit note cannot be issued from the current financial state");
+    }
+    if (error instanceof InvoiceReadPermissionFailure) return apiError(request, 403, "auth/scope_missing", "Forbidden", "Invoice access is not granted");
+    if (error instanceof InvoiceJurisdictionFailure) return apiError(request, 422, "fiscal/unsupported_jurisdiction", "Unsupported fiscal mode", "This invoice workflow is not supported for this property");
+    if (error instanceof InvoiceStaffFailure) {
+      const status = error.kind === "invalid" ? 400 : error.kind === "not_found" ? 404 : 409;
+      return apiError(request, status, "fiscal/invoice_" + error.kind, "Invoice not issued",
+        error.kind === "stale" ? "Invoice details changed. Review the current details before confirming again."
+          : "The invoice request cannot be completed from the current information.");
+    }
     if (error instanceof FiscalSubmissionOperatorFailure) return this.unavailable(request);
     if (error instanceof OwnerTrustExpenseWorkbenchValidationError) {
       return apiError(request, 400, "request/invalid", "Invalid request", "Owner-trust expense input is invalid");
@@ -2536,6 +2745,9 @@ export class OperatorHttpApi {
     if (error instanceof ReservationGuestConflictError) {
       return apiError(request, 409, "reservations/conflict", "Conflict", "Reservation guest allocation conflicts with existing state");
     }
+    if (error instanceof ReservationAlertConflictError) {
+      return apiError(request, 409, "reservations/conflict", "Conflict", "Reservation alert conflicts with current recorded truth");
+    }
     if (error instanceof ReservationTravelConflictError) {
       return apiError(request, 409, "reservations/conflict", "Conflict", "Reservation travel conflicts with current recorded truth");
     }
@@ -2562,6 +2774,7 @@ export class OperatorHttpApi {
     }
     if (error instanceof ReservationValidationError || error instanceof ReservationOfferValidationError ||
         error instanceof ReservationGuestValidationError || error instanceof ReservationLifecycleValidationError ||
+        error instanceof ReservationAlertValidationError ||
         error instanceof ReservationTravelValidationError ||
         error instanceof ReservationBoardValidationError || error instanceof ReservationDetailValidationError) {
       return apiError(request, 400, "request/invalid", "Invalid request", "Reservation input is invalid");
@@ -2570,6 +2783,7 @@ export class OperatorHttpApi {
       return apiError(request, 404, "inventory/not_found", "Not found", "Referenced inventory was not found");
     }
     if (error instanceof ReservationNotFoundError || error instanceof ReservationGuestNotFoundError ||
+        error instanceof ReservationAlertNotFoundError ||
         error instanceof ReservationTravelNotFoundError ||
         error instanceof ReservationLifecycleNotFoundError || error instanceof ReservationDetailNotFoundError) {
       return apiError(request, 404, "reservations/not_found", "Not found", "Referenced reservation input was not found");
@@ -2584,6 +2798,373 @@ export class OperatorHttpApi {
       return apiError(request, 404, "rates/not_found", "Not found", "Referenced rate configuration was not found");
     }
     return this.unavailable(request);
+  }
+
+  async invoiceReadiness(context: TenantRequestContext, propertyNode: string, reservationId: string, folioId: string, body: unknown): Promise<Response> {
+    return this.#invoiceStaff(context, propertyNode, reservationId, folioId, body, false);
+  }
+
+  async fiscalSeriesConfigure(context: TenantRequestContext, propertyNode: string, body: unknown): Promise<Response> {
+    if (!hasScope(context, FISCAL_SERIES_CONFIGURE_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Fiscal-series configuration access is not granted");
+    }
+    const publicInput = fiscalSeriesConfigurationBody(body);
+    if (!publicInput || !UUID.test(propertyNode) || !hasJsonContentType(context.request) || new URL(context.request.url).search !== "") {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Fiscal-series configuration input is invalid");
+    }
+    const grants = await listGrantedProperties(context, FISCAL_SERIES_CONFIGURE_SCOPE);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 403, "auth/property_forbidden", "Forbidden", "Property access is not granted");
+    }
+    const requestId = correlationId(context.request);
+    try {
+      const series = await configureIndiaNativeFiscalSeriesInTransaction(context.tx, {
+        tenantId: context.tenantId,
+        propertyNode,
+        supplierRegistrationId: publicInput.supplierRegistrationId,
+        documentKind: publicInput.documentKind,
+        prefix: publicInput.prefix,
+        envelope: createAuditEnvelope({ actorId: context.identity.actorId, tenantId: context.tenantId,
+          propertyNode, requestId, operation: "document.series.configured" }),
+      });
+      return apiResponse(context.request, { series }, series.replayed ? 200 : 201, { "x-correlation-id": requestId });
+    } catch (error) {
+      const state = invoiceSqlState(error);
+      if (error instanceof IndiaNativeFiscalSeriesAuthorizationError || state === "42501") throw new InvoiceReadPermissionFailure();
+      if (error instanceof IndiaNativeFiscalSeriesValidationError || state === "22023") {
+        return apiError(context.request, 400, "request/invalid", "Invalid request", "Fiscal-series configuration input is invalid");
+      }
+      if (error instanceof IndiaNativeFiscalSeriesConflictError || state === "23505" || state === "40001" || state === "40P01") {
+        return apiError(context.request, 409, "fiscal/series_conflict", "Conflict", "Fiscal-series configuration conflicts with existing state");
+      }
+      if (error instanceof IndiaNativeFiscalSeriesDatabaseError || state === "55000") throw new Error("Fiscal-series configuration is unavailable");
+      throw error;
+    }
+  }
+
+  async fiscalSeriesDiscover(context: TenantRequestContext, propertyNode: string): Promise<Response> {
+    if (!hasScope(context, FISCAL_SERIES_CONFIGURE_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Fiscal-series discovery access is not granted");
+    }
+    const query = new URL(context.request.url).searchParams;
+    const keys = [...query.keys()];
+    if (!UUID.test(propertyNode) || keys.length !== 2 ||
+        keys.filter(key => key === "supplierRegistrationId").length !== 1 ||
+        keys.filter(key => key === "documentKind").length !== 1) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Fiscal-series discovery query is invalid");
+    }
+    const input = snapshotIndiaNativeFiscalSeriesDiscoveryInput({
+      tenantId: context.tenantId,
+      propertyNode,
+      supplierRegistrationId: query.get("supplierRegistrationId"),
+      documentKind: query.get("documentKind"),
+      actorId: context.identity.actorId,
+    });
+    if (!input) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Fiscal-series discovery query is invalid");
+    }
+    const grants = await listGrantedProperties(context, FISCAL_SERIES_CONFIGURE_SCOPE);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 403, "auth/property_forbidden", "Forbidden", "Property access is not granted");
+    }
+    try {
+      const series = await readIndiaNativeFiscalSeriesInTransaction(context.tx, input);
+      return apiResponse(context.request, { series });
+    } catch (error) {
+      if (error instanceof IndiaNativeFiscalSeriesAuthorizationError) {
+        return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Fiscal-series discovery access is not granted");
+      }
+      if (error instanceof IndiaNativeFiscalSeriesValidationError) {
+        return apiError(context.request, 400, "request/invalid", "Invalid request", "Fiscal-series discovery query is invalid");
+      }
+      if (error instanceof IndiaNativeFiscalSeriesDatabaseError) {
+        return apiError(context.request, 503, "service/unavailable", "Service unavailable", "Fiscal-series discovery is temporarily unavailable");
+      }
+      throw error;
+    }
+  }
+
+  async fiscalCreditNoteIssue(context: TenantRequestContext, propertyNode: string, originalDocumentId: string, body: unknown): Promise<Response> {
+    if (!hasScope(context, FISCAL_CREDIT_SCOPES[0]) || !hasScope(context, FISCAL_CREDIT_SCOPES[1])) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Document issue and financial adjustment access are required");
+    }
+    const publicInput = fiscalCreditNoteBody(body);
+    if (!publicInput || !UUID.test(propertyNode) || !UUID.test(originalDocumentId)
+      || !hasJsonContentType(context.request) || new URL(context.request.url).search !== "") {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Credit-note input is invalid");
+    }
+    // Snapshot route/session/public input before a grant query can yield. SQL rechecks
+    // current authority, including post-seal authority, at the financial boundary.
+    const input = snapshotIndiaNativeFiscalCreditNoteIssueInput({
+      tenantId: context.tenantId, propertyNode, actorId: context.identity.actorId,
+      originalDocumentId, reason: publicInput.reason,
+      idempotencyKey: context.request.headers.get("idempotency-key"),
+      envelope: createAuditEnvelope({ actorId: context.identity.actorId, tenantId: context.tenantId,
+        propertyNode, requestId: correlationId(context.request), operation: "document.issued" }),
+    });
+    if (!input) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Credit-note input is invalid");
+    }
+    for (const scope of FISCAL_CREDIT_SCOPES) {
+      const grants = await listGrantedProperties(context, scope);
+      if (!grants.some(({ id }) => id === propertyNode)) {
+        return apiError(context.request, 403, "auth/property_forbidden", "Forbidden", "Property access is not granted");
+      }
+    }
+    // Do not catch database failures inside the tenant transaction: middleware must
+    // roll back every posting/document/outbox effect before failure() maps the error.
+    const result = await issueIndiaNativeFiscalCreditNoteInTransaction(context.tx, input);
+    return fiscalCreditNoteResponse(context.request, result.receiptJson, result.replayed, input.envelope.requestId);
+  }
+
+  async fiscalCreditNoteRead(context: TenantRequestContext, propertyNode: string, creditDocumentId: string): Promise<Response> {
+    if (!hasScope(context, FISCAL_DOCUMENT_READ_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Credit-note access is not granted");
+    }
+    if (!UUID.test(propertyNode) || !UUID.test(creditDocumentId) || new URL(context.request.url).search !== "") {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Credit-note identity is invalid");
+    }
+    const grants = await listGrantedProperties(context, FISCAL_DOCUMENT_READ_SCOPE);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 403, "auth/property_forbidden", "Forbidden", "Property access is not granted");
+    }
+    const result = await readIndiaNativeFiscalCreditNoteInTransaction(context.tx, {
+      tenantId: context.tenantId, propertyNode, actorId: context.identity.actorId, creditDocumentId,
+    });
+    if (result === null) {
+      return apiError(context.request, 404, "fiscal/credit_note_not_found", "Not found", "Credit note or its original invoice is not available");
+    }
+    return fiscalCreditNoteResponse(context.request, result.receiptJson);
+  }
+
+  async fiscalCreditNoteDocument(context: TenantRequestContext, propertyNode: string, creditDocumentId: string): Promise<Response> {
+    if (!hasScope(context, FISCAL_DOCUMENT_READ_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Credit-note access is not granted");
+    }
+    if (!UUID.test(propertyNode) || !UUID.test(creditDocumentId) || new URL(context.request.url).search !== "") {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Credit-note identity is invalid");
+    }
+    const grants = await listGrantedProperties(context, FISCAL_DOCUMENT_READ_SCOPE);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 403, "auth/property_forbidden", "Forbidden", "Property access is not granted");
+    }
+    const result = await readIndiaNativeFiscalCreditNoteDocumentInTransaction(context.tx, {
+      tenantId: context.tenantId, propertyNode, actorId: context.identity.actorId, creditDocumentId,
+    });
+    if (result === null) {
+      return apiError(context.request, 404, "fiscal/credit_note_not_found", "Not found", "Credit note or its original invoice is not available");
+    }
+    return apiResponse(context.request, result);
+  }
+
+  async fiscalCreditNoteDelivery(context: TenantRequestContext, propertyNode: string, creditDocumentId: string): Promise<Response> {
+    if (!hasScope(context, FISCAL_DOCUMENT_READ_SCOPE) || !hasScope(context, FISCAL_SUBMISSION_READ_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Credit delivery access is not granted");
+    }
+    if (!UUID.test(propertyNode) || !UUID.test(creditDocumentId) || new URL(context.request.url).search !== "") {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Credit delivery identity is invalid");
+    }
+    const documentGrants = await listGrantedProperties(context, FISCAL_DOCUMENT_READ_SCOPE);
+    if (!documentGrants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 403, "auth/property_forbidden", "Forbidden", "Property access is not granted");
+    }
+    const submissionGrants = await listGrantedProperties(context, FISCAL_SUBMISSION_READ_SCOPE);
+    if (!submissionGrants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 403, "auth/property_forbidden", "Forbidden", "Property access is not granted");
+    }
+    try {
+      const delivery = await readIndiaNativeCreditDeliveryInTransaction(context.tx, {
+        tenantId: context.tenantId, propertyNode, actorId: context.identity.actorId, creditDocumentId,
+      });
+      if (delivery === null) {
+        return apiError(context.request, 404, "fiscal/credit_delivery_not_found", "Not found", "Credit delivery is not available");
+      }
+      return apiResponse(context.request, { delivery });
+    } catch (error) {
+      if (error instanceof IndiaNativeCreditDeliveryValidationError) {
+        return apiError(context.request, 400, "request/invalid", "Invalid request", "Credit delivery input is invalid");
+      }
+      if (error instanceof IndiaNativeCreditDeliveryAuthorizationError) throw new InvoiceReadPermissionFailure();
+      if (error instanceof IndiaNativeCreditDeliveryDatabaseError) throw new FiscalSubmissionOperatorFailure();
+      throw error;
+    }
+  }
+
+  async fiscalCreditNoteList(context: TenantRequestContext, propertyNode: string): Promise<Response> {
+    if (!hasScope(context, FISCAL_DOCUMENT_READ_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Credit-note access is not granted");
+    }
+    const url = new URL(context.request.url);
+    const query = url.searchParams;
+    const allowed = ["issuedFrom", "issuedBefore", "docNo", "after", "limit"];
+    if (!UUID.test(propertyNode) || [...query.keys()].some((key) => !allowed.includes(key)) ||
+        allowed.some((key) => query.getAll(key).length > 1) ||
+        query.get("issuedFrom") === null || query.get("issuedBefore") === null) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Credit-note list query is invalid");
+    }
+    const rawLimit = query.get("limit");
+    const input = snapshotIndiaNativeFiscalCreditNoteListInput({
+      tenantId: context.tenantId, propertyNode, actorId: context.identity.actorId,
+      issuedFrom: query.get("issuedFrom"), issuedBefore: query.get("issuedBefore"),
+      ...(query.has("docNo") ? { docNo: query.get("docNo") } : {}),
+      ...(query.has("after") ? { after: query.get("after") } : {}),
+      ...(rawLimit !== null ? { limit: /^(?:[1-9]|[1-9][0-9]|100)$/.test(rawLimit) ? Number(rawLimit) : NaN } : {}),
+    });
+    if (!input) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Credit-note list query is invalid");
+    }
+    const grants = await listGrantedProperties(context, FISCAL_DOCUMENT_READ_SCOPE);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 403, "auth/property_forbidden", "Forbidden", "Property access is not granted");
+    }
+    const result: Readonly<IndiaNativeFiscalCreditNoteListResult> =
+      await listIndiaNativeFiscalCreditNotesInTransaction(context.tx, input);
+    return apiResponse(context.request, result);
+  }
+
+  async fiscalCreditNoteDiscover(context: TenantRequestContext, propertyNode: string, originalDocumentId: string): Promise<Response> {
+    if (!hasScope(context, FISCAL_DOCUMENT_READ_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Credit-note access is not granted");
+    }
+    const input = snapshotIndiaNativeFiscalCreditNoteDiscoveryInput({
+      tenantId: context.tenantId, propertyNode, actorId: context.identity.actorId, originalDocumentId,
+    });
+    if (!input || new URL(context.request.url).search !== "") {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Credit-note identity is invalid");
+    }
+    const grants = await listGrantedProperties(context, FISCAL_DOCUMENT_READ_SCOPE);
+    if (!grants.some(({ id }) => id === input.propertyNode)) {
+      return apiError(context.request, 403, "auth/property_forbidden", "Forbidden", "Property access is not granted");
+    }
+    const result = await discoverIndiaNativeFiscalCreditNoteInTransaction(context.tx, input);
+    if (result === null) {
+      return apiError(context.request, 404, "fiscal/credit_note_not_found", "Not found", "Credit note or its original invoice is not available");
+    }
+    return fiscalCreditNoteResponse(context.request, result.receiptJson);
+  }
+
+  async invoiceIssue(context: TenantRequestContext, propertyNode: string, reservationId: string, folioId: string, body: unknown): Promise<Response> {
+    return this.#invoiceStaff(context, propertyNode, reservationId, folioId, body, true);
+  }
+
+  async #invoiceStaff(context: TenantRequestContext, propertyNode: string, reservationId: string, folioId: string, body: unknown, issue: boolean): Promise<Response> {
+    if (!hasScope(context, FISCAL_ISSUE_SCOPES[0]) || !hasScope(context, FISCAL_ISSUE_SCOPES[1])) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Invoice preparation and issue access are required");
+    }
+    const input = invoiceStaffBody(body, issue), key = context.request.headers.get("idempotency-key");
+    if (!input || ![propertyNode, reservationId, folioId].every(value => UUID.test(value))
+      || !hasJsonContentType(context.request) || new URL(context.request.url).search !== ""
+      || (issue && (!key || !IDEMPOTENCY_KEY.test(key)))) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Invoice preparation input is invalid");
+    }
+    for (const scope of FISCAL_ISSUE_SCOPES) {
+      const grants = await listGrantedProperties(context, scope);
+      if (!grants.some(({ id }) => id === propertyNode)) {
+        return apiError(context.request, 403, "auth/property_forbidden", "Forbidden", "Property access is not granted");
+      }
+    }
+    const actorId = context.identity.actorId;
+    if (!issue) {
+      const result = await this.#invoiceOperatorReader.discover(context.tx, {
+        tenantId: context.tenantId, propertyNode, actorId, reservationId, folioId,
+        recipientRegistrationId: input.recipientRegistrationId, calendarEvidence: input.calendarEvidence,
+      });
+      if (!result.ok) {
+        if (result.error.code === "invalid_input") throw new InvoiceStaffFailure("invalid");
+        if (result.error.code === "permission_denied") throw new InvoiceReadPermissionFailure();
+        if (result.error.code === "unsupported_jurisdiction") throw new InvoiceJurisdictionFailure();
+        throw new Error("Invoice preparation is unavailable");
+      }
+      return apiResponse(context.request, { readiness: result.value });
+    }
+    const requestId = correlationId(context.request);
+    try {
+      const invoice = await issueIndiaNativeFiscalInvoiceForOperatorInTransaction(context.tx, {
+        tenantId: context.tenantId, propertyNode, actorId, reservationId, folioId,
+        recipientRegistrationId: input.recipientRegistrationId as string, calendarEvidence: input.calendarEvidence,
+        expectedSelectorHash: input.expectedSelectorHash as string, expectedConfirmationHash: input.expectedConfirmationHash as string,
+        idempotencyKey: key as string,
+        envelope: createAuditEnvelope({ actorId, tenantId: context.tenantId, propertyNode, requestId, operation: "document.issued" }),
+      });
+      return apiResponse(context.request, { invoice }, invoice.replayed ? 200 : 201,
+        { "idempotency-replayed": String(invoice.replayed), "x-correlation-id": requestId });
+    } catch (error) {
+      const state = invoiceSqlState(error);
+      if (error instanceof IndiaNativeFiscalInvoiceStaleEvidenceError || state === "P2081") throw new InvoiceStaffFailure("stale");
+      if (error instanceof IndiaNativeFiscalInvoiceAuthorizationError || state === "42501") throw new InvoiceReadPermissionFailure();
+      if (state === "P2082") throw new InvoiceJurisdictionFailure();
+      if (error instanceof IndiaNativeFiscalInvoiceValidationError || state === "22023") throw new InvoiceStaffFailure("invalid");
+      if (error instanceof IndiaNativeFiscalInvoiceNotFoundError) throw new InvoiceStaffFailure("not_found");
+      if (error instanceof IndiaNativeFiscalInvoiceConflictError || state === "23505" || state === "55000") throw new InvoiceStaffFailure("conflict");
+      throw error;
+    }
+  }
+
+  async invoiceSearch(context: TenantRequestContext, propertyNode: string, body: unknown): Promise<Response> {
+    if (!hasScope(context, FISCAL_DOCUMENT_READ_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Invoice access is not granted");
+    }
+    const input = invoiceSearchBody(body);
+    if (!input || !UUID.test(propertyNode) || !hasJsonContentType(context.request) || new URL(context.request.url).search !== "") {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Invoice search input is invalid");
+    }
+    const grants = await listGrantedProperties(context, FISCAL_DOCUMENT_READ_SCOPE);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 403, "auth/property_forbidden", "Forbidden", "Property access is not granted");
+    }
+    const result = await this.#invoiceReader.list(context.tx, { ...input,
+      tenantId: context.tenantId, propertyNode, actorId: context.identity.actorId });
+    if (!result.ok) {
+      if (result.error.code === "invalid_input") return apiError(context.request, 400, "request/invalid", "Invalid request", "Invoice search input is invalid");
+      if (result.error.code === "permission_denied") throw new InvoiceReadPermissionFailure();
+      if (result.error.code === "unsupported_jurisdiction") throw new InvoiceJurisdictionFailure();
+      throw new Error("Invoice read is unavailable");
+    }
+    return apiResponse(context.request, { invoices: result.value });
+  }
+
+  async invoiceDocument(context: TenantRequestContext, propertyNode: string, documentId: string): Promise<Response> {
+    if (!hasScope(context, FISCAL_DOCUMENT_READ_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Invoice access is not granted");
+    }
+    if (!UUID.test(propertyNode) || !UUID.test(documentId) || new URL(context.request.url).search !== "") {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Invoice identity is invalid");
+    }
+    const grants = await listGrantedProperties(context, FISCAL_DOCUMENT_READ_SCOPE);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 403, "auth/property_forbidden", "Forbidden", "Property access is not granted");
+    }
+    const result = await this.#invoiceReader.read(context.tx, {
+      tenantId: context.tenantId, propertyNode, actorId: context.identity.actorId, documentId });
+    if (!result.ok) {
+      if (result.error.code === "permission_denied") throw new InvoiceReadPermissionFailure();
+      if (result.error.code === "unsupported_jurisdiction") throw new InvoiceJurisdictionFailure();
+      throw new Error("Invoice read is unavailable");
+    }
+    if (result.value === null) return apiError(context.request, 404, "fiscal/invoice_not_found", "Not found", "Invoice is not available");
+    return apiResponse(context.request, { invoice: result.value });
+  }
+
+  async invoiceDelivery(context: TenantRequestContext, propertyNode: string, documentId: string): Promise<Response> {
+    if (!hasScope(context, FISCAL_SUBMISSION_READ_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Fiscal receipt access is not granted");
+    }
+    if (!UUID.test(propertyNode) || !UUID.test(documentId) || new URL(context.request.url).search !== "") {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Invoice identity is invalid");
+    }
+    const grants = await listGrantedProperties(context, FISCAL_SUBMISSION_READ_SCOPE);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 403, "auth/property_forbidden", "Forbidden", "Property access is not granted");
+    }
+    const result = await this.#invoiceOperatorReader.readDelivery(context.tx, {
+      tenantId: context.tenantId, propertyNode, documentId, actorId: context.identity.actorId });
+    if (!result.ok) {
+      if (result.error.code === "permission_denied") throw new InvoiceReadPermissionFailure();
+      if (result.error.code === "unsupported_jurisdiction") throw new InvoiceJurisdictionFailure();
+      throw new FiscalSubmissionOperatorFailure();
+    }
+    if (result.value === null) return apiError(context.request, 404, "fiscal/receipt_not_found", "Not found", "Fiscal receipt is not available");
+    return apiResponse(context.request, { delivery: result.value });
   }
 
   async fiscalSubmissionDeliveryReceipt(
@@ -2613,6 +3194,29 @@ export class OperatorHttpApi {
       || receipt.submissionId !== submissionId) throw new FiscalSubmissionOperatorFailure();
     return apiResponse(context.request, { fiscalSubmissionReceipt: receipt as unknown as JsonValue }, 200,
       { "cache-control": "no-store" });
+  }
+
+  async fiscalProviderOptions(context: TenantRequestContext, propertyNode: string): Promise<Response> {
+    if (!hasScope(context, FISCAL_SUBMISSION_REQUEST_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Fiscal submission request access is not granted");
+    }
+    if (!UUID.test(propertyNode) || new URL(context.request.url).search !== "") {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Fiscal provider request is invalid");
+    }
+    const grants = await listGrantedProperties(context, FISCAL_SUBMISSION_REQUEST_SCOPE);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 403, "auth/property_forbidden", "Forbidden", "Property access is not granted");
+    }
+    const adapters = this.#fiscalSubmissions?.adapters ?? new FiscalSubmissionAdapterAvailabilityService([]);
+    const result = await this.#invoiceOperatorReader.providers(context.tx, {
+      tenantId: context.tenantId, propertyNode, actorId: context.identity.actorId,
+    }, adapters);
+    if (!result.ok) {
+      if (result.error.code === "permission_denied") throw new InvoiceReadPermissionFailure();
+      if (result.error.code === "unsupported_jurisdiction") throw new InvoiceJurisdictionFailure();
+      throw new FiscalSubmissionOperatorFailure();
+    }
+    return apiResponse(context.request, { providers: result.value as unknown as JsonValue }, 200, { "cache-control": "no-store" });
   }
 
   async requestFiscalSubmission(
@@ -4360,6 +4964,90 @@ export class OperatorHttpApi {
     });
   }
 
+  async createReservationAlert(
+    context: TenantRequestContext,
+    propertyNode: string,
+    reservationId: string,
+    body: unknown,
+  ): Promise<Response> {
+    const input = parseReservationAlert(body);
+    const idempotencyKey = context.request.headers.get("idempotency-key");
+    if (!UUID.test(propertyNode) || !UUID.test(reservationId) || !input || !idempotencyKey ||
+        !IDEMPOTENCY_KEY.test(idempotencyKey) || new URL(context.request.url).search.length > 0) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Reservation alert input is invalid");
+    }
+    if (!hasScope(context, RESERVATION_LIFECYCLE_WRITE_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Reservation alert changes are not granted");
+    }
+    const grants = await listGrantedProperties(context, RESERVATION_LIFECYCLE_WRITE_SCOPE);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 404, "reservations/not_found", "Not found", "The referenced reservation was not found");
+    }
+    if (!this.#reservationAlerts) return this.unavailable(context.request);
+    const requestId = correlationId(context.request);
+    const result = await this.#reservationAlerts.create(context.tx, {
+      reservationId,
+      code: input.code,
+      message: input.message,
+      showOn: input.showOn,
+      idempotencyKey,
+      envelope: createAuditEnvelope({
+        actorId: context.identity.actorId,
+        tenantId: context.tenantId,
+        propertyNode,
+        requestId,
+        operation: "reservation.modified",
+      }),
+    });
+    return apiResponse(context.request, canonicalJson({
+      alert: jsonValue(result.alert), changed: result.changed, replayed: result.replayed,
+    }), 200, {
+      "idempotency-replayed": String(result.replayed),
+      "x-correlation-id": requestId,
+    });
+  }
+
+  async deactivateReservationAlert(
+    context: TenantRequestContext,
+    propertyNode: string,
+    reservationId: string,
+    alertId: string,
+    body: unknown,
+  ): Promise<Response> {
+    const idempotencyKey = context.request.headers.get("idempotency-key");
+    if (!UUID.test(propertyNode) || !UUID.test(reservationId) || !UUID.test(alertId) || !emptyObject(body) ||
+        !idempotencyKey || !IDEMPOTENCY_KEY.test(idempotencyKey) || new URL(context.request.url).search.length > 0) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Reservation alert input is invalid");
+    }
+    if (!hasScope(context, RESERVATION_LIFECYCLE_WRITE_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Reservation alert changes are not granted");
+    }
+    const grants = await listGrantedProperties(context, RESERVATION_LIFECYCLE_WRITE_SCOPE);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 404, "reservations/not_found", "Not found", "The referenced reservation was not found");
+    }
+    if (!this.#reservationAlerts) return this.unavailable(context.request);
+    const requestId = correlationId(context.request);
+    const result = await this.#reservationAlerts.deactivate(context.tx, {
+      reservationId,
+      alertId,
+      idempotencyKey,
+      envelope: createAuditEnvelope({
+        actorId: context.identity.actorId,
+        tenantId: context.tenantId,
+        propertyNode,
+        requestId,
+        operation: "reservation.modified",
+      }),
+    });
+    return apiResponse(context.request, canonicalJson({
+      alert: jsonValue(result.alert), changed: result.changed, replayed: result.replayed,
+    }), 200, {
+      "idempotency-replayed": String(result.replayed),
+      "x-correlation-id": requestId,
+    });
+  }
+
   async putReservationTravel(
     context: TenantRequestContext,
     propertyNode: string,
@@ -5169,6 +5857,13 @@ export class OperatorHttpApi {
     if (!grants.some(({ id }) => id === propertyNode)) {
       return apiError(context.request, 404, "reservations/not_found", "Not found", "Referenced reservation input was not found");
     }
+    const hasLifecycleWriteScope = hasScope(context, RESERVATION_LIFECYCLE_WRITE_SCOPE);
+    const lifecycleWriteGrants = hasLifecycleWriteScope
+      ? await listGrantedProperties(context, RESERVATION_LIFECYCLE_WRITE_SCOPE)
+      : [];
+    const canWriteLifecycleHere = hasLifecycleWriteScope &&
+      lifecycleWriteGrants.some(({ id }) => id === propertyNode);
+    const canManageAlerts = this.#reservationAlerts !== undefined && canWriteLifecycleHere;
     const reservation = await this.#reservationDetail.findById(context.tx, {
       tenantId: context.tenantId,
       propertyNode,
@@ -5184,11 +5879,15 @@ export class OperatorHttpApi {
       (reservation.status === "reserved" || reservation.status === "due_in" ||
         reservation.status === "in_house" || reservation.status === "due_out");
     const actions = Object.freeze({
-      canModify: reservation.status === "reserved" || reservation.status === "due_in" ||
-        reservation.status === "in_house" || reservation.status === "due_out",
-      canCancel: reservation.status === "reserved" || reservation.status === "due_in",
-      canReinstate: reservation.status === "cancelled" || reservation.status === "no_show",
+      canModify: canWriteLifecycleHere &&
+        (reservation.status === "reserved" || reservation.status === "due_in" ||
+          reservation.status === "in_house" || reservation.status === "due_out"),
+      canCancel: canWriteLifecycleHere &&
+        (reservation.status === "reserved" || reservation.status === "due_in"),
+      canReinstate: canWriteLifecycleHere &&
+        (reservation.status === "cancelled" || reservation.status === "no_show"),
       canOpenPrimaryFolio,
+      canManageAlerts,
     });
     return apiResponse(context.request, canonicalJson({ reservation: jsonValue(reservation), actions }));
   }
@@ -6411,8 +7110,16 @@ const ASSET_URLS = {
   html: new URL("./operator/index.html", import.meta.url),
   css: new URL("./operator/operator.css", import.meta.url),
   js: new URL("./operator/operator.js", import.meta.url),
+  interfacesCss: new URL("./operator/operator-interfaces.css", import.meta.url),
+  interfacesJs: new URL("./operator/operator-interfaces.js", import.meta.url),
+  layoutsJs: new URL("./operator/operator-layouts.js", import.meta.url),
+  invoiceJs: new URL("./operator/invoices.js", import.meta.url),
+  invoicePrintJs: new URL("./operator/invoice-print.js", import.meta.url),
+  invoiceQrJs: new URL("./operator/vendor/qrcodegen-v1.8.0-es6.js", import.meta.url),
   depositCss: new URL("./operator/operator-deposits.css", import.meta.url),
   depositJs: new URL("./operator/operator-deposits.js", import.meta.url),
+  urbanistFont: new URL("./operator/vendor/urbanist-v1.330/Urbanist[ital,wght].woff2", import.meta.url),
+  phosphorNav: new URL("./operator/vendor/phosphor-core-2.1.1/phosphor-nav-regular.svg", import.meta.url),
 } as const;
 
 export interface OperatorLocalReviewCredentials {
@@ -6473,8 +7180,16 @@ export const operatorAssets = Object.freeze({
   },
   css(): Response { return assetResponse(ASSET_URLS.css, "text/css; charset=utf-8"); },
   js(): Response { return assetResponse(ASSET_URLS.js, "text/javascript; charset=utf-8"); },
+  interfacesCss(): Response { return assetResponse(ASSET_URLS.interfacesCss, "text/css; charset=utf-8"); },
+  interfacesJs(): Response { return assetResponse(ASSET_URLS.interfacesJs, "text/javascript; charset=utf-8"); },
+  layoutsJs(): Response { return assetResponse(ASSET_URLS.layoutsJs, "text/javascript; charset=utf-8"); },
+  invoiceJs(): Response { return assetResponse(ASSET_URLS.invoiceJs, "text/javascript; charset=utf-8"); },
+  invoicePrintJs(): Response { return assetResponse(ASSET_URLS.invoicePrintJs, "text/javascript; charset=utf-8"); },
+  invoiceQrJs(): Response { return assetResponse(ASSET_URLS.invoiceQrJs, "text/javascript; charset=utf-8"); },
   depositCss(): Response { return assetResponse(ASSET_URLS.depositCss, "text/css; charset=utf-8"); },
   depositJs(): Response { return assetResponse(ASSET_URLS.depositJs, "text/javascript; charset=utf-8"); },
+  urbanistFont(): Response { return assetResponse(ASSET_URLS.urbanistFont, "font/woff2"); },
+  phosphorNav(): Response { return assetResponse(ASSET_URLS.phosphorNav, "image/svg+xml"); },
   localPrefillJs(): Response {
     return new Response("(()=>{const f=document.querySelector('#login-form[autocomplete=off]'),v=new Map;if(!f)return;for(const e of f.elements)if(e instanceof HTMLInputElement&&e.dataset.localDefault){v.set(e,e.dataset.localDefault);delete e.dataset.localDefault}const r=(o=false)=>{for(const[e,s]of v)if(o||!e.value)e.value=s},h=e=>{r(true);e.preventDefault()},w=()=>r();r(true);addEventListener('pageshow',w);addEventListener('focus',w);document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')r()});f.addEventListener('yellow:restore-local-login-defaults',h);setTimeout(w,0);requestAnimationFrame(()=>requestAnimationFrame(w))})()", {
       headers: { "cache-control": "no-store", "content-type": "text/javascript; charset=utf-8" },

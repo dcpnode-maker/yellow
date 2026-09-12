@@ -400,6 +400,115 @@ databaseDescribe("Order 127 runtime database authority (kernel boundary; HTTP P4
       public_execute: false, app_execute: true, runtime_execute: false,
     }]);
 
+    const creditDeliveryRead = await admin!<Array<{
+      signature: string; owner: string; security_definer: boolean; config: string[];
+      public_execute: boolean; app_execute: boolean; runtime_execute: boolean;
+    }>>`
+      SELECT p.oid::regprocedure::text AS signature,pg_catalog.pg_get_userbyid(p.proowner) AS owner,
+             p.prosecdef AS security_definer,p.proconfig AS config,
+             pg_catalog.has_function_privilege('public',p.oid,'EXECUTE') AS public_execute,
+             pg_catalog.has_function_privilege('app_role',p.oid,'EXECUTE') AS app_execute,
+             pg_catalog.has_function_privilege('yellow_runtime',p.oid,'EXECUTE') AS runtime_execute
+        FROM pg_catalog.pg_proc p
+        JOIN pg_catalog.pg_namespace n ON n.oid=p.pronamespace
+       WHERE n.nspname='public'
+         AND p.oid=pg_catalog.to_regprocedure(
+           'public.read_india_native_credit_delivery_by_document(uuid,uuid,uuid,uuid)')
+    `;
+    expect(creditDeliveryRead).toEqual([{
+      signature: "read_india_native_credit_delivery_by_document(uuid,uuid,uuid,uuid)",
+      owner: "yellow_owner", security_definer: true,
+      config: ["search_path=pg_catalog, public, pg_temp", "TimeZone=UTC", "DateStyle=ISO,YMD"],
+      public_execute: false, app_execute: true, runtime_execute: false,
+    }]);
+
+    const retryBinding = await admin!<Array<{
+      signature: string; owner: string; language: string; security_definer: boolean;
+      volatility: string; strict: boolean; parallel: string; leakproof: boolean;
+      returns_set: boolean; result: string; config: string[];
+      public_execute: boolean; app_execute: boolean; runtime_execute: boolean;
+      used_by_receipt_read: boolean;
+    }>>`
+      SELECT procedure.oid::regprocedure::text AS signature,
+             pg_catalog.pg_get_userbyid(procedure.proowner) AS owner,
+             language.lanname AS language,procedure.prosecdef AS security_definer,
+             procedure.provolatile::text AS volatility,procedure.proisstrict AS strict,
+             procedure.proparallel::text AS parallel,procedure.proleakproof AS leakproof,
+             procedure.proretset AS returns_set,
+             pg_catalog.pg_get_function_result(procedure.oid) AS result,
+             procedure.proconfig AS config,
+             pg_catalog.has_function_privilege('public',procedure.oid,'EXECUTE') AS public_execute,
+             pg_catalog.has_function_privilege('app_role',procedure.oid,'EXECUTE') AS app_execute,
+             pg_catalog.has_function_privilege('yellow_runtime',procedure.oid,'EXECUTE') AS runtime_execute,
+             pg_catalog.strpos(pg_catalog.pg_get_functiondef(
+               pg_catalog.to_regprocedure('public.read_india_fiscal_submission_delivery_receipt(uuid,uuid,uuid,uuid)')),
+               'public.india_fiscal_submission_retry_binding_v1(')>0 AS used_by_receipt_read
+        FROM pg_catalog.pg_proc procedure
+        JOIN pg_catalog.pg_namespace namespace ON namespace.oid=procedure.pronamespace
+        JOIN pg_catalog.pg_language language ON language.oid=procedure.prolang
+       WHERE namespace.nspname='public'
+         AND procedure.oid=pg_catalog.to_regprocedure(
+           'public.india_fiscal_submission_retry_binding_v1(text,text,text,uuid,integer)')
+    `;
+    expect(retryBinding).toEqual([{
+      signature: "india_fiscal_submission_retry_binding_v1(text,text,text,uuid,integer)",
+      owner: "yellow_owner", language: "sql", security_definer: false,
+      volatility: "i", strict: false, parallel: "u", leakproof: false,
+      returns_set: false, result: "jsonb", config: ["search_path=pg_catalog, public"],
+      public_execute: false, app_execute: false, runtime_execute: false,
+      used_by_receipt_read: true,
+    }]);
+
+    const q208Capabilities = await admin!<Array<{
+      signature: string; owner: string; security_definer: boolean; volatility: string;
+      result: string; config: string[]; public_execute: boolean;
+      app_execute: boolean; runtime_execute: boolean;
+    }>>`
+      SELECT p.oid::regprocedure::text AS signature,
+             pg_catalog.pg_get_userbyid(p.proowner) AS owner,
+             p.prosecdef AS security_definer,p.provolatile::text AS volatility,
+             pg_catalog.pg_get_function_result(p.oid) AS result,p.proconfig AS config,
+             pg_catalog.has_function_privilege('public',p.oid,'EXECUTE') AS public_execute,
+             pg_catalog.has_function_privilege('app_role',p.oid,'EXECUTE') AS app_execute,
+             pg_catalog.has_function_privilege('yellow_runtime',p.oid,'EXECUTE') AS runtime_execute
+        FROM pg_catalog.pg_proc p
+        JOIN pg_catalog.pg_namespace n ON n.oid=p.pronamespace
+       WHERE n.nspname='public' AND p.proname IN (
+         'list_india_native_fiscal_documents','read_india_native_fiscal_document',
+         'discover_india_native_fiscal_issue','read_india_fiscal_submission_delivery_receipt_by_document',
+         'list_india_fiscal_submission_provider_options','prepare_india_native_fiscal_invoice_v3',
+         'prepare_india_native_fiscal_invoice_v4','read_india_native_document_context_candidate',
+         'compose_india_native_operator_confirmation_v1'
+       ) ORDER BY signature
+    `;
+    expect(q208Capabilities).toHaveLength(9);
+    const privateFunctions = new Set([
+      "compose_india_native_operator_confirmation_v1(uuid,uuid,uuid,uuid,uuid,text,jsonb,jsonb,text,text,jsonb,jsonb)",
+      "read_india_native_document_context_candidate(uuid,uuid,uuid,uuid,uuid,uuid)",
+    ]);
+    const pgTempFunctions = new Set([
+      "list_india_fiscal_submission_provider_options(uuid,uuid,uuid)",
+      "read_india_fiscal_submission_delivery_receipt_by_document(uuid,uuid,uuid,uuid)",
+    ]);
+    const volatileFunctions = new Set([
+      "prepare_india_native_fiscal_invoice_v3(uuid,uuid,uuid,uuid,uuid,uuid,uuid,uuid,uuid,uuid,uuid,uuid,uuid,uuid,uuid,text,text,date,date[],text[],text,uuid,text,text)",
+      "prepare_india_native_fiscal_invoice_v4(uuid,uuid,uuid,uuid,uuid,uuid,text,text,date,date[],text[],text,uuid,text,text)",
+    ]);
+    for (const capability of q208Capabilities) {
+      const isPrivate = privateFunctions.has(capability.signature);
+      expect(capability.owner).toBe("yellow_owner");
+      expect(capability.security_definer).toBe(!isPrivate);
+      expect(capability.public_execute).toBe(false);
+      expect(capability.runtime_execute).toBe(false);
+      expect(capability.app_execute).toBe(!isPrivate);
+      expect(capability.config).toEqual(pgTempFunctions.has(capability.signature)
+        ? ["search_path=pg_catalog, public, pg_temp", "TimeZone=UTC"]
+        : ["search_path=pg_catalog, public", "TimeZone=UTC", "DateStyle=ISO,YMD"]);
+      expect(capability.volatility).toBe(capability.signature.startsWith("compose_") ? "i"
+        : volatileFunctions.has(capability.signature) ? "v" : "s");
+      expect(capability.result.length).toBeGreaterThan(0);
+    }
+
     const fiscalColumnAuthority = await admin!<Array<{
       relation: string; app_table_privileges: number; app_column_privileges: string;
       runtime_table_privileges: number; runtime_column_privileges: string;
@@ -485,7 +594,7 @@ databaseDescribe("Order 127 runtime database authority (kernel boundary; HTTP P4
         FROM pg_catalog.pg_class c JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace
        WHERE n.nspname = 'public'
     `;
-    expect(rls).toEqual([{ tables: 128, enabled: 118, forced: 27, policies: 118 }]);
+    expect(rls).toEqual([{ tables: 129, enabled: 119, forced: 28, policies: 119 }]);
   });
 
   test("P2: a post-COMMIT contaminated role is rejected, discarded, and cannot poison pool reuse", async () => {
@@ -536,6 +645,11 @@ databaseDescribe("Order 127 runtime database authority (kernel boundary; HTTP P4
         current_user: "yellow_runtime", session_user: "yellow_runtime", tenant_clear: true,
         search_path: '"$user", public', prepared_count: 0,
       }]);
+      let creditReadDenied: string | null = null;
+      try {
+        await observer`SELECT public.read_india_native_credit_delivery_by_document(NULL::uuid,NULL::uuid,NULL::uuid,NULL::uuid)`;
+      } catch (error) { creditReadDenied = sqlstate(error); }
+      expect(creditReadDenied).toBe("42501");
     } finally { observer.release(); await observerPool.close(); }
 
     await closeWithin(database);

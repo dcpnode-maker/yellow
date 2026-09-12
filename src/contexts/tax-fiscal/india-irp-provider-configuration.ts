@@ -11,6 +11,7 @@ import {
   type FiscalExactJsonValue,
 } from "./fiscal-exact-json";
 import type { VerifiedIndiaIrpAdapterRegistration } from "./fiscal-submission-worker";
+import type { FiscalSubmissionAdapterPresentation } from "./fiscal-submission-adapter-availability";
 
 export const INDIA_IRP_PROVIDER_DEPLOYMENT_LIMITS = Object.freeze({
   maxManifestBytes: 4 * 1024 * 1024,
@@ -33,7 +34,8 @@ export interface IndiaIrpAdapterRegistrationLoadError {
 }
 
 export type IndiaIrpAdapterRegistrationLoadResult = Readonly<
-  | { readonly ok: true; readonly value: readonly Readonly<VerifiedIndiaIrpAdapterRegistration>[] }
+  | { readonly ok: true; readonly value: readonly Readonly<VerifiedIndiaIrpAdapterRegistration>[];
+      readonly presentations: readonly Readonly<FiscalSubmissionAdapterPresentation>[] }
   | { readonly ok: false; readonly error: Readonly<IndiaIrpAdapterRegistrationLoadError> }
 >;
 
@@ -207,11 +209,13 @@ function secretValues(value: FiscalExactJsonValue): Readonly<Record<string, stri
   ])));
 }
 
-function configuredProviderKey(configurationJson: string): string {
+function configuredProviderIdentity(configurationJson: string): Readonly<{ providerKey: string; environment: "sandbox" | "production" }> {
   const decoded = decodeFiscalExactJson(configurationJson);
   if (!decoded.ok) return fail(decoded.error.code === "resource_exhausted" ? "resource_exhausted" : "invalid_manifest");
   const root = exactObject(decoded.value, "invalid_manifest");
-  return stringValue(root.members.providerKey, "invalid_manifest");
+  const environment = stringValue(root.members.environment, "invalid_manifest");
+  if (environment !== "sandbox" && environment !== "production") return fail("invalid_manifest");
+  return Object.freeze({ providerKey: stringValue(root.members.providerKey, "invalid_manifest"), environment });
 }
 
 /**
@@ -236,7 +240,7 @@ export async function loadIndiaIrpAdapterRegistrationsFromEnvironment(
     return failure("invalid_input");
   }
   if (manifestPath === undefined) {
-    return Object.freeze({ ok: true, value: Object.freeze([]) });
+    return Object.freeze({ ok: true, value: Object.freeze([]), presentations: Object.freeze([]) });
   }
   if (!validLocalAbsolutePath(manifestPath)) return failure("invalid_input");
 
@@ -257,6 +261,7 @@ export async function loadIndiaIrpAdapterRegistrationsFromEnvironment(
     }
 
     const registrations: Readonly<VerifiedIndiaIrpAdapterRegistration>[] = [];
+    const presentations: Readonly<FiscalSubmissionAdapterPresentation>[] = [];
     const providerExtensionIds = new Set<string>();
     for (const providerValue of providers.items) {
       const provider = exactObject(providerValue, "invalid_manifest");
@@ -291,14 +296,17 @@ export async function loadIndiaIrpAdapterRegistrationsFromEnvironment(
         if (adapter.error.code === "invalid_input") return fail("invalid_input");
         return fail("invalid_manifest");
       }
-      const providerKey = configuredProviderKey(protocolConfigurationJson);
+      const configured = configuredProviderIdentity(protocolConfigurationJson);
+      const providerKey = configured.providerKey;
+      presentations.push(Object.freeze({ providerKey, providerExtensionId, providerExtensionVersion,
+        environment: configured.environment }));
       registrations.push(Object.freeze({
         kind: "registered_verified_india_irp_1_1_adapter" as const,
         providerKey, providerExtensionId, providerExtensionVersion,
         submit: adapter.value.submit, lookup: adapter.value.lookup,
       }));
     }
-    return Object.freeze({ ok: true, value: Object.freeze(registrations) });
+    return Object.freeze({ ok: true, value: Object.freeze(registrations), presentations: Object.freeze(presentations) });
   } catch (error) {
     return failure(error instanceof ConfigurationLoadFailure ? error.code : "filesystem_unavailable");
   }

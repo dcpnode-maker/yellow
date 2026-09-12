@@ -437,7 +437,9 @@ function bindSignedInvoice(
     else requireSameValue(originalMember, signedMember);
   }
   for (const name of Object.keys(ROOT_NULL_ADDITIONS)) {
-    if (Object.hasOwn(signed.members, name)) ROOT_NULL_ADDITIONS[name]!(signed.members[name]!);
+    if (!Object.hasOwn(original.members, name) && Object.hasOwn(signed.members, name)) {
+      ROOT_NULL_ADDITIONS[name]!(signed.members[name]!);
+    }
   }
   const signedAckNo = exactNumber(signed.members.AckNo);
   const normalizedAck = decimal(signedAckNo);

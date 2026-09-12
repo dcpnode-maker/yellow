@@ -1315,3 +1315,39 @@ view, selected date and request generation suppress late dialog, seal and refres
 results. The control and dialog preserve semantic order, visible keyboard focus,
 44-pixel targets (48 pixels on Android), 375-pixel/200%-zoom containment, forced-colour
 boundaries, reduced motion and the six approved appearance materials.
+
+## Finance invoice workbench — Order440/Q208
+
+Follow [the current staff workbench](design/STAFF-WORKBENCH-SPEC.md), not global
+Simple/Advanced/Expert modes. Invoice queue/detail is contextual: desktop keeps the
+queue beside the selected document; phone focuses detail with Back restoring queue
+focus. A folio's explicit Review invoice entry preserves reservation/window context.
+Deep links contain only opaque property/reservation/folio/document UUIDs.
+
+The issue view first asks for the legal buyer registration, even if there is only one
+candidate. Server confirmation shows buyer/supplier legal names, GSTINs, addresses,
+evidence dates, place of supply, series, exact totals and room-night tax components.
+No legal number is promised before issue. Staff acknowledge that confirmation and
+activate Issue legal invoice; simply opening, searching, printing or changing a
+selection must never issue anything. Missing governed calendar/configuration produces
+an actionable blocker rather than inferred values or an ad hoc tax override.
+
+Ambiguous issue results retain the same request identity; stale confirmation requires
+a new server review. Route/property/logout generations suppress late responses, and
+single-flight controls prevent double clicks. Deliberate fiscal registration is
+separate from local issuance. Its configured-provider selection shows sandbox versus
+production before submission; absence and missing authority are explicit. Unknown
+delivery never enables blind resubmission. Current retry-only UI binding is unfinished.
+
+Printing rereads the authorized immutable document and separately authorized receipt.
+Use fixed A4 legal layout independent of app appearance, readable black-on-white QR
+modules and the exact retained signed payload. Small screens show a full-size-print
+instruction, never an unreadably shrunken QR. Sandbox, not-registered, rejected and
+cancelled states are prominent. Local QR decoding evidence is not provider
+certification or a physical-printer/camera acceptance claim.
+
+Confirmation uses existing semantic tokens, desktop two-column parties and phone
+single-column content,48px action targets, visible keyboard focus, long-value wrapping,
+reduced motion and forced-colour boundaries. Main-shell/browser synthetic HTTP tests,
+actual database tests, rendered geometry, QR decoding and a live database-backed staff
+journey are separate proofs; one does not imply the others.

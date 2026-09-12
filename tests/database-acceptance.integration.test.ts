@@ -410,6 +410,56 @@ const EXPECTED_MIGRATIONS = [
     filename: "0081_fiscal_signed_delivery_receipts.sql",
     checksum_sha256: "d2e4e34a4587f4ee12ed5c43f8fac9d4186345877bdbb75ac74217460f0e06ac",
   },
+  {
+    version: 82,
+    filename: "0082_india_native_fiscal_operator_workflow.sql",
+    checksum_sha256: "702f66b3e05547f397e2393ae5a608a6f0c3069ec534b2c947bfc309983bf185",
+  },
+  {
+    version: 83,
+    filename: "0083_india_native_fiscal_operator_calendar_bounds.sql",
+    checksum_sha256: "5a8ac565f3aaebfee4245121a434dba5867f558091a58aad87f23bed5dee0705",
+  },
+  {
+    version: 84,
+    filename: "0084_india_native_fiscal_operator_query_execution.sql",
+    checksum_sha256: "e9d8b75f832e687f567806e82faaece7672cdbcf4ee8813c9c7b56cfc78ecd69",
+  },
+  {
+    version: 85,
+    filename: "0085_india_native_fiscal_operator_command.sql",
+    checksum_sha256: "c94c97efbb237fb99c5a35caf01faefa4d7fee98a07d8b30b89bec3ce0a7670c",
+  },
+  {
+    version: 86,
+    filename: "0086_fiscal_submission_retry_binding.sql",
+    checksum_sha256: "40c55de6a34fb0f0ba354e5e37d210500038018fa649cf9437e29813fa0b915e",
+  },
+  {
+    version: 87,
+    filename: "0087_india_native_fiscal_credit_note.sql",
+    checksum_sha256: "c8b4ada5702807a0705a13e888e95730e0dbcc8ac7796e0ad2358208a5f873ba",
+  },
+  {
+    version: 88,
+    filename: "0088_native_credit_fiscal_submission.sql",
+    checksum_sha256: "214754e94bdfb0a2163395c9ab4449b0b5e87da7830c45e69d77ac05a2cddb64",
+  },
+  {
+    version: 89,
+    filename: "0089_native_credit_delivery_discovery.sql",
+    checksum_sha256: "26aac42e59146dfa29f558dc75209166420a5aa7621bc34b1f6ec0f9c834c1cd",
+  },
+  {
+    version: 90,
+    filename: "0090_india_native_fiscal_series_configuration.sql",
+    checksum_sha256: "67802156fe1a35d76023361dc8461699dad204017ff727441523fa9fb2b1faf9",
+  },
+  {
+    version: 91,
+    filename: "0091_reservation_alert_authority.sql",
+    checksum_sha256: "ec49a08984c2a8db3c2faaca8041d19e614741ef486d7b65f4eefe94dc4f35d3",
+  },
 ];
 
 if (REQUIRE_DATABASE && !DATABASE_URL) {
@@ -488,8 +538,8 @@ databaseDescribe("fresh deployment database acceptance", () => {
             AND class.relforcerowsecurity) AS "forceRlsTables"
     `;
     expect(catalogue).toEqual([{
-      migrations: 81, tables: 128, rlsTables: 118, policies: 118, forceRlsTables: 27,
-      permissions: 14, permissionGrants: 0,
+      migrations: 91, tables: 129, rlsTables: 119, policies: 119, forceRlsTables: 28,
+      permissions: 15, permissionGrants: 0,
     }]);
   });
 
@@ -666,6 +716,82 @@ databaseDescribe("fresh deployment database acceptance", () => {
       assigned: 0,
     }]);
 
+    const documentPermission = await sql!<Array<{
+      code: string; description: string; assigned: number;
+    }>>`
+      SELECT permission.code,permission.description,
+             (SELECT count(*)::int FROM public.role_permission grant_row
+               WHERE grant_row.permission_code=permission.code) AS assigned
+        FROM public.permission permission
+       WHERE permission.code='tax-fiscal.documents:read'
+    `;
+    expect(documentPermission).toEqual([{
+      code: "tax-fiscal.documents:read",
+      description: "Read property-authorized immutable fiscal documents",
+      assigned: 0,
+    }]);
+
+    const operatorCapabilities = await sql!<Array<{
+      name: string; owner: string; securityDefiner: boolean; volatility: string;
+      result: string; config: string[]; appExecute: boolean;
+      runtimeExecute: boolean; publicExecute: boolean;
+    }>>`
+      WITH expected(name) AS (VALUES
+        ('list_india_native_fiscal_documents(uuid,uuid,uuid,date,date,uuid,uuid,text,date,timestamp with time zone,uuid,integer)'),
+        ('read_india_native_fiscal_document(uuid,uuid,uuid,uuid)'),
+        ('read_india_native_credit_delivery_by_document(uuid,uuid,uuid,uuid)'),
+        ('discover_india_native_fiscal_issue(uuid,uuid,uuid,uuid,uuid,uuid,text,text,date,date[],text[])'),
+        ('read_india_fiscal_submission_delivery_receipt_by_document(uuid,uuid,uuid,uuid)'),
+        ('list_india_fiscal_submission_provider_options(uuid,uuid,uuid)'),
+        ('prepare_india_native_fiscal_invoice_v3(uuid,uuid,uuid,uuid,uuid,uuid,uuid,uuid,uuid,uuid,uuid,uuid,uuid,uuid,uuid,text,text,date,date[],text[],text,uuid,text,text)'),
+        ('prepare_india_native_fiscal_invoice_v4(uuid,uuid,uuid,uuid,uuid,uuid,text,text,date,date[],text[],text,uuid,text,text)')
+      )
+      SELECT expected.name,pg_catalog.pg_get_userbyid(procedure.proowner) AS owner,
+             procedure.prosecdef AS "securityDefiner",procedure.provolatile AS volatility,
+             pg_catalog.pg_get_function_result(procedure.oid) AS result,
+             procedure.proconfig AS config,
+             pg_catalog.has_function_privilege('app_role',procedure.oid,'EXECUTE') AS "appExecute",
+             pg_catalog.has_function_privilege('yellow_runtime',procedure.oid,'EXECUTE') AS "runtimeExecute",
+             pg_catalog.has_function_privilege('public',procedure.oid,'EXECUTE') AS "publicExecute"
+        FROM expected
+        JOIN pg_catalog.pg_proc procedure
+          ON procedure.oid=pg_catalog.to_regprocedure('public.'||expected.name)
+       ORDER BY expected.name
+    `;
+    const stableConfig = ["search_path=pg_catalog, public", "TimeZone=UTC", "DateStyle=ISO,YMD"];
+    const receiptConfig = ["search_path=pg_catalog, public, pg_temp", "TimeZone=UTC"];
+    expect(operatorCapabilities).toEqual([
+      { name: "discover_india_native_fiscal_issue(uuid,uuid,uuid,uuid,uuid,uuid,text,text,date,date[],text[])",
+        owner: "yellow_owner", securityDefiner: true, volatility: "s", result: "jsonb",
+        config: stableConfig, appExecute: true, runtimeExecute: false, publicExecute: false },
+      { name: "list_india_fiscal_submission_provider_options(uuid,uuid,uuid)",
+        owner: "yellow_owner", securityDefiner: true, volatility: "s",
+        result: "TABLE(extension_id uuid, extension_version integer, provider_key text, label text)",
+        config: receiptConfig, appExecute: true, runtimeExecute: false, publicExecute: false },
+      { name: "list_india_native_fiscal_documents(uuid,uuid,uuid,date,date,uuid,uuid,text,date,timestamp with time zone,uuid,integer)",
+        owner: "yellow_owner", securityDefiner: true, volatility: "s",
+        result: "TABLE(document_id uuid, business_date date, issued_at timestamp with time zone, summary jsonb, matching_count bigint)",
+        config: stableConfig, appExecute: true, runtimeExecute: false, publicExecute: false },
+      { name: "prepare_india_native_fiscal_invoice_v3(uuid,uuid,uuid,uuid,uuid,uuid,uuid,uuid,uuid,uuid,uuid,uuid,uuid,uuid,uuid,text,text,date,date[],text[],text,uuid,text,text)",
+        owner: "yellow_owner", securityDefiner: true, volatility: "v",
+        result: "TABLE(native_timing_id uuid, request_event_id uuid, posting_binding_id uuid, prepared_source_json text, completed_receipt jsonb)",
+        config: stableConfig, appExecute: true, runtimeExecute: false, publicExecute: false },
+      { name: "prepare_india_native_fiscal_invoice_v4(uuid,uuid,uuid,uuid,uuid,uuid,text,text,date,date[],text[],text,uuid,text,text)",
+        owner: "yellow_owner", securityDefiner: true, volatility: "v",
+        result: "TABLE(native_timing_id uuid, request_event_id uuid, posting_binding_id uuid, prepared_source_json text, completed_receipt jsonb, internal_selectors jsonb)",
+        config: stableConfig, appExecute: true, runtimeExecute: false, publicExecute: false },
+      { name: "read_india_fiscal_submission_delivery_receipt_by_document(uuid,uuid,uuid,uuid)",
+        owner: "yellow_owner", securityDefiner: true, volatility: "s", result: "jsonb",
+        config: receiptConfig, appExecute: true, runtimeExecute: false, publicExecute: false },
+      { name: "read_india_native_credit_delivery_by_document(uuid,uuid,uuid,uuid)",
+        owner: "yellow_owner", securityDefiner: true, volatility: "v", result: "jsonb",
+        config: ["search_path=pg_catalog, public, pg_temp", "TimeZone=UTC", "DateStyle=ISO,YMD"],
+        appExecute: true, runtimeExecute: false, publicExecute: false },
+      { name: "read_india_native_fiscal_document(uuid,uuid,uuid,uuid)",
+        owner: "yellow_owner", securityDefiner: true, volatility: "s", result: "jsonb",
+        config: stableConfig, appExecute: true, runtimeExecute: false, publicExecute: false },
+    ]);
+
     const capabilities = await sql!<Array<{
       name: string; owner: string; securityDefiner: boolean; config: string[];
       appExecute: boolean; runtimeExecute: boolean; publicExecute: boolean;
@@ -728,6 +854,43 @@ databaseDescribe("fresh deployment database acceptance", () => {
          ])
     `;
     expect(helpers).toEqual([{ count: 10, ownerOnly: true }]);
+
+    const retryBindingHelper = await sql!<Array<{
+      signature: string; owner: string; language: string; securityDefiner: boolean;
+      volatility: string; strict: boolean; parallel: string; leakproof: boolean;
+      returnsSet: boolean; result: string; config: string[];
+      appExecute: boolean; runtimeExecute: boolean; publicExecute: boolean;
+      usedByReceiptRead: boolean;
+    }>>`
+      SELECT procedure.oid::regprocedure::text AS signature,
+             pg_catalog.pg_get_userbyid(procedure.proowner) AS owner,
+             language.lanname AS language,procedure.prosecdef AS "securityDefiner",
+             procedure.provolatile::text AS volatility,procedure.proisstrict AS strict,
+             procedure.proparallel::text AS parallel,procedure.proleakproof AS leakproof,
+             procedure.proretset AS "returnsSet",
+             pg_catalog.pg_get_function_result(procedure.oid) AS result,
+             procedure.proconfig AS config,
+             pg_catalog.has_function_privilege('app_role',procedure.oid,'EXECUTE') AS "appExecute",
+             pg_catalog.has_function_privilege('yellow_runtime',procedure.oid,'EXECUTE') AS "runtimeExecute",
+             pg_catalog.has_function_privilege('public',procedure.oid,'EXECUTE') AS "publicExecute",
+             pg_catalog.strpos(pg_catalog.pg_get_functiondef(
+               pg_catalog.to_regprocedure('public.read_india_fiscal_submission_delivery_receipt(uuid,uuid,uuid,uuid)')),
+               'public.india_fiscal_submission_retry_binding_v1(')>0 AS "usedByReceiptRead"
+        FROM pg_catalog.pg_proc procedure
+        JOIN pg_catalog.pg_namespace namespace ON namespace.oid=procedure.pronamespace
+        JOIN pg_catalog.pg_language language ON language.oid=procedure.prolang
+       WHERE namespace.nspname='public'
+         AND procedure.oid=pg_catalog.to_regprocedure(
+           'public.india_fiscal_submission_retry_binding_v1(text,text,text,uuid,integer)')
+    `;
+    expect(retryBindingHelper).toEqual([{
+      signature: "india_fiscal_submission_retry_binding_v1(text,text,text,uuid,integer)",
+      owner: "yellow_owner", language: "sql", securityDefiner: false,
+      volatility: "i", strict: false, parallel: "u", leakproof: false,
+      returnsSet: false, result: "jsonb", config: ["search_path=pg_catalog, public"],
+      appExecute: false, runtimeExecute: false, publicExecute: false,
+      usedByReceiptRead: true,
+    }]);
   });
 
   test("has the exact configured positive-tax semantic-route schema and read-only runtime ACL", async () => {
@@ -2850,7 +3013,7 @@ databaseDescribe("fresh deployment database acceptance", () => {
         (SELECT count(*)::int FROM pg_catalog.pg_tables WHERE schemaname = 'public') AS tables,
         (SELECT count(*)::int FROM pg_catalog.pg_policies WHERE schemaname = 'public') AS policies
     `;
-    expect(shape).toEqual([{ tables: 128, policies: 118 }]);
+    expect(shape).toEqual([{ tables: 129, policies: 119 }]);
 
     const relations = await sql!<Array<{
       relation: string;
@@ -2962,7 +3125,7 @@ databaseDescribe("fresh deployment database acceptance", () => {
         has_column_privilege('app_role','public.journal','approval_request_id','UPDATE') AS "appApprovalUpdate"
     `;
     expect(shape).toEqual([{
-      tables: 128, policies: 118, directBill: 1,
+      tables: 129, policies: 119, directBill: 1,
       approvalNullable: true, compositeFk: true, oneUseIndex: true,
       appApprovalInsert: false, appApprovalUpdate: false,
     }]);

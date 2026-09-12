@@ -2,7 +2,7 @@ import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { SQL } from "bun";
 import { mkdtemp, readdir, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join, resolve } from "node:path";
+import { join, relative, resolve, sep } from "node:path";
 
 import { runMigrations } from "../scripts/migrate";
 import { assertRuntimeReleaseReadiness } from "../src/kernel";
@@ -24,6 +24,69 @@ let runtime: SQL | undefined;
 let deploymentDatabaseUrl = "";
 let runtimeDatabaseUrl = "";
 let currentReleaseReady = false;
+let originalProjectorDefinition = "";
+const CREDIT_PROJECTOR = "public.india_fiscal_submission_project_wire(uuid,uuid,uuid)";
+const CREDIT_PROJECTOR_BODY_SHA = "b34eaf0095dad0df5cd55453b7e4bd1a42f5ae698a02c5ebca3dcac7645c9f96";
+const CREDIT_DELIVERY = "public.read_india_native_credit_delivery_by_document(uuid,uuid,uuid,uuid)";
+const CREDIT_DELIVERY_BODY_SHA = "702a035ea496c571ea4338c90fed6b3dbc717b62c3a14ba2e2db3764aaaaacad";
+const NATIVE_SERIES = "public.create_india_native_fiscal_series(uuid,uuid,uuid,text,text,uuid)";
+const NATIVE_SERIES_BODY_SHA = "ba1a60e916897ff634b288ab20b7717708987ad63f416fcd9109cf463d9ff365";
+const NATIVE_SERIES_RESULT = "TABLE(series_id uuid, tenant_id uuid, property_node uuid, supplier_registration_id uuid, document_kind text, prefix text, financial_year_start date, next_no bigint, created boolean)";
+const BODY_DRIFT_COMMENT = "-- unrelated body drift must also fail closed";
+
+async function nativeSeriesCatalogue(): Promise<string> {
+  const [row] = await deployment!<{ snapshot: string }[]>`
+    SELECT jsonb_build_object('procedure',to_jsonb(procedure),
+      'definition',pg_catalog.pg_get_functiondef(procedure.oid))::text snapshot
+    FROM pg_catalog.pg_proc procedure WHERE procedure.oid=pg_catalog.to_regprocedure(${NATIVE_SERIES})
+  `;
+  if (!row) throw new Error("Native series restoration snapshot is missing");
+  return row.snapshot;
+}
+
+async function creditDeliveryCatalogue(): Promise<string> {
+  const [row] = await deployment!<{ snapshot: string }[]>`
+    SELECT jsonb_build_object('definition',pg_catalog.pg_get_functiondef(procedure.oid),
+      'owner',procedure.proowner,'acl',procedure.proacl,'config',procedure.proconfig,
+      'language',procedure.prolang,'kind',procedure.prokind,'result',procedure.prorettype,
+      'arguments',procedure.proargtypes,'allArguments',procedure.proallargtypes,
+      'defaults',procedure.proargdefaults,'variadic',procedure.provariadic,
+      'security',procedure.prosecdef,'volatility',procedure.provolatile,
+      'strict',procedure.proisstrict,'setReturning',procedure.proretset,
+      'parallel',procedure.proparallel,'leakproof',procedure.proleakproof)::text snapshot
+    FROM pg_catalog.pg_proc procedure WHERE procedure.oid=pg_catalog.to_regprocedure(${CREDIT_DELIVERY})
+  `;
+  if (!row) throw new Error("Credit delivery restoration snapshot is missing");
+  return row.snapshot;
+}
+
+function appendLiteralBodyDrift(definition: string, body: string): string {
+  return definition.replace(body, literalBody => `${literalBody}\n${BODY_DRIFT_COMMENT}\n`);
+}
+
+test("projector body drift preserves JavaScript replacement-token bytes", () => {
+  const body = "BEGIN\n  IF value~'^[0-9]+$' THEN value:='$$'; END IF;\nEND";
+  const definition = `CREATE FUNCTION probe() RETURNS void AS $function$\n${body}\n$function$;`;
+  expect(appendLiteralBodyDrift(definition, body)).toBe(
+    `CREATE FUNCTION probe() RETURNS void AS $function$\n${body}\n${BODY_DRIFT_COMMENT}\n\n$function$;`,
+  );
+});
+
+async function projectorCatalogue(): Promise<string> {
+  const [row] = await deployment!<{ snapshot: string }[]>`
+    SELECT jsonb_build_object('definition',pg_catalog.pg_get_functiondef(procedure.oid),
+      'owner',procedure.proowner,'acl',procedure.proacl,'config',procedure.proconfig,
+      'language',procedure.prolang,'kind',procedure.prokind,'result',procedure.prorettype,
+      'arguments',procedure.proargtypes,'allArguments',procedure.proallargtypes,
+      'defaults',procedure.proargdefaults,'variadic',procedure.provariadic,
+      'security',procedure.prosecdef,'volatility',procedure.provolatile,
+      'strict',procedure.proisstrict,'setReturning',procedure.proretset,
+      'parallel',procedure.proparallel,'leakproof',procedure.proleakproof)::text snapshot
+    FROM pg_catalog.pg_proc procedure WHERE procedure.oid=pg_catalog.to_regprocedure(${CREDIT_PROJECTOR})
+  `;
+  if (!row) throw new Error("Projector restoration snapshot is missing");
+  return row.snapshot;
+}
 
 async function readinessFailure(operation: Promise<void>): Promise<Error> {
   try {
@@ -38,9 +101,7 @@ async function readinessFailure(operation: Promise<void>): Promise<Error> {
 async function ensureCurrentRelease(): Promise<void> {
   if (currentReleaseReady) return;
   const result = await runMigrations({ databaseUrl: deploymentDatabaseUrl, logger: () => undefined });
-  expect(result.appliedFiles).toEqual([
-    "0081_fiscal_signed_delivery_receipts.sql",
-  ]);
+  expect(result.appliedFiles).toEqual(["0090_india_native_fiscal_series_configuration.sql", "0091_reservation_alert_authority.sql"]);
   deployment = new SQL(deploymentDatabaseUrl, { max: 1, prepare: false });
   runtime = new SQL(runtimeDatabaseUrl, { max: 1, prepare: false });
   currentReleaseReady = true;
@@ -188,9 +249,541 @@ databaseDescribe("Order438 runtime release readiness identity", () => {
     } finally { await predecessorRuntime.close({ timeout: 5 }); }
   });
 
-  test("accepts only a direct yellow_runtime login against the complete current catalogue", async () => {
+  test("rejects the exact release-85 predecessor without durable retry binding", async () => {
+    const prefixDirectory = await mkdtemp(join(tmpdir(), "yellow-order440-readiness-85-"));
+    try {
+      const names = (await readdir(MIGRATIONS)).filter(name =>
+        name.endsWith(".sql") && Number(name.slice(0, 4)) <= 85);
+      await Promise.all(names.map(async name => writeFile(resolve(prefixDirectory, name),
+        await readFile(resolve(MIGRATIONS, name)))));
+      const result = await runMigrations({ databaseUrl: deploymentDatabaseUrl,
+        migrationsDirectory: prefixDirectory, logger: () => undefined });
+      expect(result.appliedFiles).toEqual([
+        "0081_fiscal_signed_delivery_receipts.sql",
+        "0082_india_native_fiscal_operator_workflow.sql",
+        "0083_india_native_fiscal_operator_calendar_bounds.sql",
+        "0084_india_native_fiscal_operator_query_execution.sql",
+        "0085_india_native_fiscal_operator_command.sql",
+      ]);
+    } finally {
+      if (!resolve(prefixDirectory).startsWith(resolve(tmpdir()) + "/")
+          && !resolve(prefixDirectory).startsWith(resolve(tmpdir()) + "\\")) {
+        throw new Error("readiness proof cleanup escaped temporary directory");
+      }
+      await rm(prefixDirectory, { recursive: true, force: true });
+    }
+    const predecessorDeployment = new SQL(deploymentDatabaseUrl, { max: 1, prepare: false });
+    const predecessorRuntime = new SQL(runtimeDatabaseUrl, { max: 1, prepare: false });
+    try {
+      const [identity] = await predecessorDeployment<{
+        applied: number; frontier: number; retry_binding: string | null;
+      }[]>`
+        SELECT count(*)::integer AS applied,max(version)::integer AS frontier,
+               to_regprocedure('public.india_fiscal_submission_retry_binding_v1(text,text,text,uuid,integer)')::text
+                 AS retry_binding
+          FROM public.schema_migration
+      `;
+      expect(identity).toEqual({ applied: 85, frontier: 85, retry_binding: null });
+      const error = await readinessFailure(assertRuntimeReleaseReadiness(predecessorRuntime));
+      expect(error.message).toBe("runtime release readiness is unavailable");
+    } finally {
+      await predecessorRuntime.close({ timeout: 5 });
+      await predecessorDeployment.close({ timeout: 5 });
+    }
+  });
+
+  test("rejects the populated release-86 predecessor without the credit-note authority", async () => {
+    const prefixDirectory = await mkdtemp(join(tmpdir(), "yellow-order446-readiness-86-"));
+    try {
+      const names = (await readdir(MIGRATIONS)).filter(name =>
+        name.endsWith(".sql") && Number(name.slice(0, 4)) <= 86);
+      await Promise.all(names.map(async name => writeFile(resolve(prefixDirectory, name),
+        await readFile(resolve(MIGRATIONS, name)))));
+      const result = await runMigrations({ databaseUrl: deploymentDatabaseUrl,
+        migrationsDirectory: prefixDirectory, logger: () => undefined });
+      expect(result.appliedFiles).toEqual(["0086_fiscal_submission_retry_binding.sql"]);
+    } finally {
+      if (!resolve(prefixDirectory).startsWith(resolve(tmpdir()) + "/")
+          && !resolve(prefixDirectory).startsWith(resolve(tmpdir()) + "\\")) {
+        throw new Error("readiness proof cleanup escaped temporary directory");
+      }
+      await rm(prefixDirectory, { recursive: true, force: true });
+    }
+    const predecessorDeployment = new SQL(deploymentDatabaseUrl, { max: 1, prepare: false });
+    const predecessorRuntime = new SQL(runtimeDatabaseUrl, { max: 1, prepare: false });
+    try {
+      const [identity] = await predecessorDeployment<{
+        applied: number; frontier: number; credit_binding: string | null;
+        credit_commit: string | null;
+      }[]>`
+        SELECT count(*)::integer AS applied,max(version)::integer AS frontier,
+               to_regclass('public.india_native_fiscal_credit_note')::text AS credit_binding,
+               to_regprocedure('public.commit_india_native_fiscal_credit_note(uuid,uuid,uuid,uuid,text,text,uuid)')::text
+                 AS credit_commit
+          FROM public.schema_migration
+      `;
+      expect(identity).toEqual({ applied: 86, frontier: 86, credit_binding: null, credit_commit: null });
+      const error = await readinessFailure(assertRuntimeReleaseReadiness(predecessorRuntime));
+      expect(error.message).toBe("runtime release readiness is unavailable");
+    } finally {
+      await predecessorRuntime.close({ timeout: 5 });
+      await predecessorDeployment.close({ timeout: 5 });
+    }
+  });
+
+  test("rejects original canonical87 without the exact credit fiscal projector", async () => {
+    const prefixDirectory = await mkdtemp(join(tmpdir(), "yellow-order447-readiness-87-"));
+    try {
+      const names = (await readdir(MIGRATIONS)).filter(name =>
+        name.endsWith(".sql") && Number(name.slice(0, 4)) <= 87);
+      expect(names).toHaveLength(87);
+      await Promise.all(names.map(async name => writeFile(resolve(prefixDirectory, name),
+        await readFile(resolve(MIGRATIONS, name)))));
+      const result = await runMigrations({ databaseUrl: deploymentDatabaseUrl,
+        migrationsDirectory: prefixDirectory, logger: () => undefined });
+      expect(result.appliedFiles).toEqual(["0087_india_native_fiscal_credit_note.sql"]);
+    } finally {
+      if (!resolve(prefixDirectory).startsWith(resolve(tmpdir()) + "/")
+          && !resolve(prefixDirectory).startsWith(resolve(tmpdir()) + "\\")) {
+        throw new Error("readiness proof cleanup escaped temporary directory");
+      }
+      await rm(prefixDirectory, { recursive: true, force: true });
+    }
+    const predecessorDeployment = new SQL(deploymentDatabaseUrl, { max: 1, prepare: false });
+    const predecessorRuntime = new SQL(runtimeDatabaseUrl, { max: 1, prepare: false });
+    try {
+      const [identity] = await predecessorDeployment<{
+        frontier: number; checksum: string; body_sha: string; definition: string;
+      }[]>`
+        SELECT (SELECT max(version)::int FROM public.schema_migration) frontier,
+          (SELECT checksum_sha256 FROM public.schema_migration WHERE version=87) checksum,
+          pg_catalog.encode(pg_catalog.sha256(pg_catalog.convert_to(
+            pg_catalog.replace(prosrc,chr(13)||chr(10),chr(10)),'UTF8')),'hex') body_sha,
+          pg_catalog.pg_get_functiondef(oid) definition
+        FROM pg_catalog.pg_proc WHERE oid=pg_catalog.to_regprocedure(${CREDIT_PROJECTOR})
+      `;
+      expect(identity?.frontier).toBe(87);
+      expect(identity?.checksum).toBe("c8b4ada5702807a0705a13e888e95730e0dbcc8ac7796e0ad2358208a5f873ba");
+      expect(identity?.body_sha).toBe("ca6b253d5fd162f4ff79aa810d479c14cf5e11692ffbfcec2732d4f34c8a3cd0");
+      originalProjectorDefinition = identity!.definition;
+      await expect(assertRuntimeReleaseReadiness(predecessorRuntime)).rejects.toThrow(
+        "runtime release readiness is unavailable",
+      );
+    } finally {
+      await predecessorRuntime.close({ timeout: 5 });
+      await predecessorDeployment.close({ timeout: 5 });
+    }
+  });
+
+  test("rejects canonical88 before the exact Order452 capability exists", async () => {
+    const prefixDirectory = await mkdtemp(join(tmpdir(), "yellow-order452-readiness-88-"));
+    try {
+      const names = (await readdir(MIGRATIONS)).filter(name =>
+        name.endsWith(".sql") && Number(name.slice(0, 4)) <= 88);
+      expect(names).toHaveLength(88);
+      await Promise.all(names.map(async name => writeFile(resolve(prefixDirectory, name),
+        await readFile(resolve(MIGRATIONS, name)))));
+      const result = await runMigrations({ databaseUrl: deploymentDatabaseUrl,
+        migrationsDirectory: prefixDirectory, logger: () => undefined });
+      expect(result.appliedFiles).toEqual(["0088_native_credit_fiscal_submission.sql"]);
+    } finally {
+      const tempRoot = resolve(tmpdir());
+      const resolved = resolve(prefixDirectory);
+      const relativePath = relative(tempRoot, resolved);
+      if (!relativePath || relativePath === ".." || relativePath.startsWith(`..${sep}`)
+          || resolve(tempRoot, relativePath) !== resolved) {
+        throw new Error("readiness proof cleanup escaped temporary directory");
+      }
+      await rm(prefixDirectory, { recursive: true, force: true });
+    }
+    const predecessorDeployment = new SQL(deploymentDatabaseUrl, { max: 1, prepare: false });
+    const predecessorRuntime = new SQL(runtimeDatabaseUrl, { max: 1, prepare: false });
+    try {
+      const [identity] = await predecessorDeployment<{ frontier: number; delivery: string | null }[]>`
+        SELECT (SELECT max(version)::int FROM public.schema_migration) frontier,
+          pg_catalog.to_regprocedure(${CREDIT_DELIVERY})::text delivery
+      `;
+      expect(identity).toEqual({ frontier: 88, delivery: null });
+      await expect(assertRuntimeReleaseReadiness(predecessorRuntime)).rejects.toThrow(
+        "runtime release readiness is unavailable",
+      );
+    } finally {
+      await predecessorRuntime.close({ timeout: 5 });
+      await predecessorDeployment.close({ timeout: 5 });
+    }
+  });
+
+  test("rejects canonical89 before atomic series configuration is installed", async () => {
+    const prefixDirectory = await mkdtemp(join(tmpdir(), "yellow-order453-readiness-89-"));
+    try {
+      const names = (await readdir(MIGRATIONS)).filter(name =>
+        name.endsWith(".sql") && Number(name.slice(0, 4)) <= 89);
+      expect(names).toHaveLength(89);
+      await Promise.all(names.map(async name => writeFile(resolve(prefixDirectory, name),
+        await readFile(resolve(MIGRATIONS, name)))));
+      const result = await runMigrations({ databaseUrl: deploymentDatabaseUrl,
+        migrationsDirectory: prefixDirectory, logger: () => undefined });
+      expect(result.appliedFiles).toEqual(["0089_native_credit_delivery_discovery.sql"]);
+    } finally {
+      const tempRoot = resolve(tmpdir());
+      const resolved = resolve(prefixDirectory);
+      const relativePath = relative(tempRoot, resolved);
+      if (!relativePath || relativePath === ".." || relativePath.startsWith(`..${sep}`)
+          || resolve(tempRoot, relativePath) !== resolved) throw new Error("readiness proof cleanup escaped temporary directory");
+      await rm(prefixDirectory, { recursive: true, force: true });
+    }
+    const predecessorDeployment = new SQL(deploymentDatabaseUrl, { max: 1, prepare: false });
+    const predecessorRuntime = new SQL(runtimeDatabaseUrl, { max: 1, prepare: false });
+    try {
+      const [identity] = await predecessorDeployment<{ frontier: number; checksum: string; body_sha: string }[]>`
+        SELECT (SELECT max(version)::int FROM public.schema_migration) frontier,
+          (SELECT checksum_sha256 FROM public.schema_migration WHERE version=89) checksum,
+          pg_catalog.encode(pg_catalog.sha256(pg_catalog.convert_to(
+            pg_catalog.replace(prosrc,chr(13)||chr(10),chr(10)),'UTF8')),'hex') body_sha
+        FROM pg_catalog.pg_proc WHERE oid=pg_catalog.to_regprocedure(${NATIVE_SERIES})
+      `;
+      expect(identity).toEqual({ frontier: 89,
+        checksum: "26aac42e59146dfa29f558dc75209166420a5aa7621bc34b1f6ec0f9c834c1cd",
+        body_sha: "4b8be69c22a75305476c849d57e736b46af74b1edfd020b99fa6bacb7375d302" });
+      await expect(assertRuntimeReleaseReadiness(predecessorRuntime)).rejects.toThrow("runtime release readiness is unavailable");
+    } finally {
+      await predecessorRuntime.close({ timeout: 5 });
+      await predecessorDeployment.close({ timeout: 5 });
+    }
+  });
+
+  test("accepts only a direct yellow_runtime login against canonical91", async () => {
     await ensureCurrentRelease();
+    const [identity] = await deployment!<{ frontier: number; checksum: string; body_sha: string }[]>`
+      SELECT (SELECT max(version)::int FROM public.schema_migration) frontier,
+        (SELECT checksum_sha256 FROM public.schema_migration WHERE version=88) checksum,
+        pg_catalog.encode(pg_catalog.sha256(pg_catalog.convert_to(
+          pg_catalog.replace(prosrc,chr(13)||chr(10),chr(10)),'UTF8')),'hex') body_sha
+      FROM pg_catalog.pg_proc WHERE oid=pg_catalog.to_regprocedure(${CREDIT_PROJECTOR})
+    `;
+    expect(identity).toEqual({ frontier: 91,
+      checksum: "214754e94bdfb0a2163395c9ab4449b0b5e87da7830c45e69d77ac05a2cddb64",
+      body_sha: CREDIT_PROJECTOR_BODY_SHA });
+    const [deliveryIdentity] = await deployment!<{ frontier: number; checksum: string; body_sha: string; result: string }[]>`
+      SELECT (SELECT max(version)::int FROM public.schema_migration) frontier,
+        (SELECT checksum_sha256 FROM public.schema_migration WHERE version=89) checksum,
+        pg_catalog.encode(pg_catalog.sha256(pg_catalog.convert_to(
+          pg_catalog.replace(prosrc,chr(13)||chr(10),chr(10)),'UTF8')),'hex') body_sha,
+        pg_catalog.pg_get_function_result(oid) result
+      FROM pg_catalog.pg_proc WHERE oid=pg_catalog.to_regprocedure(${CREDIT_DELIVERY})
+    `;
+    expect(deliveryIdentity).toEqual({
+      frontier: 91,
+      checksum: "26aac42e59146dfa29f558dc75209166420a5aa7621bc34b1f6ec0f9c834c1cd",
+      body_sha: CREDIT_DELIVERY_BODY_SHA,
+      result: "jsonb",
+    });
+    const [seriesIdentity] = await deployment!<{
+      frontier: number; checksum: string; body_sha: string; result: string; argument_modes: string;
+    }[]>`
+      SELECT (SELECT max(version)::int FROM public.schema_migration) frontier,
+        (SELECT checksum_sha256 FROM public.schema_migration WHERE version=90) checksum,
+        pg_catalog.encode(pg_catalog.sha256(pg_catalog.convert_to(
+          pg_catalog.replace(prosrc,chr(13)||chr(10),chr(10)),'UTF8')),'hex') body_sha,
+        pg_catalog.pg_get_function_result(oid) result,
+        pg_catalog.array_to_string(proargmodes,',') argument_modes
+      FROM pg_catalog.pg_proc WHERE oid=pg_catalog.to_regprocedure(${NATIVE_SERIES})
+    `;
+    expect(seriesIdentity).toEqual({ frontier: 91,
+      checksum: "67802156fe1a35d76023361dc8461699dad204017ff727441523fa9fb2b1faf9",
+      body_sha: NATIVE_SERIES_BODY_SHA, result: NATIVE_SERIES_RESULT,
+      argument_modes: "i,i,i,i,i,i,t,t,t,t,t,t,t,t,t" });
     await expect(assertRuntimeReleaseReadiness(runtime!)).resolves.toBeUndefined();
+  });
+
+  test("rejects committed Order453 series body, metadata and ACL drift with exact restoration", async () => {
+    await ensureCurrentRelease();
+    const before = await nativeSeriesCatalogue();
+    const [row] = await deployment!<{ definition: string; body: string }[]>`
+      SELECT pg_catalog.pg_get_functiondef(oid) definition,prosrc body
+      FROM pg_catalog.pg_proc WHERE oid=pg_catalog.to_regprocedure(${NATIVE_SERIES})
+    `;
+    if (!row) throw new Error("Order453 series definition missing");
+    const historical = await readFile(resolve(MIGRATIONS, "0074_india_native_fiscal_invoice_authority.sql"), "utf8");
+    const legacyBody = /CREATE FUNCTION public\.create_india_native_fiscal_series\([\s\S]*?AS (\$[a-zA-Z0-9_]*\$)([\s\S]*?)\1;/.exec(historical)?.[2];
+    if (!legacyBody) throw new Error("Order453 legacy series body missing");
+    const mutations = [
+      `ALTER FUNCTION ${NATIVE_SERIES} STABLE`,
+      `ALTER FUNCTION ${NATIVE_SERIES} STRICT`,
+      `ALTER FUNCTION ${NATIVE_SERIES} PARALLEL SAFE`,
+      `ALTER FUNCTION ${NATIVE_SERIES} SECURITY INVOKER`,
+      `ALTER FUNCTION ${NATIVE_SERIES} SET search_path TO public`,
+      `ALTER FUNCTION ${NATIVE_SERIES} SET TimeZone TO 'UTC'`,
+      `ALTER FUNCTION ${NATIVE_SERIES} OWNER TO yellow_deploy`,
+      `REVOKE EXECUTE ON FUNCTION ${NATIVE_SERIES} FROM app_role`,
+      `REVOKE EXECUTE ON FUNCTION ${NATIVE_SERIES} FROM yellow_owner`,
+      `GRANT EXECUTE ON FUNCTION ${NATIVE_SERIES} TO app_role WITH GRANT OPTION`,
+      ...["PUBLIC", "yellow_runtime", "yellow_deploy"].map(role => `GRANT EXECUTE ON FUNCTION ${NATIVE_SERIES} TO ${role}`),
+      appendLiteralBodyDrift(row.definition, row.body),
+      row.definition.replace(row.body, () => legacyBody),
+    ];
+    for (const mutation of mutations) {
+      let committed = false;
+      try {
+        await deployment!.unsafe(mutation);
+        committed = true;
+        expect(await nativeSeriesCatalogue()).not.toBe(before);
+        await expect(assertRuntimeReleaseReadiness(runtime!)).rejects.toThrow("runtime release readiness is unavailable");
+      } finally {
+        if (committed) await deployment!.begin(async transaction => {
+          await transaction.unsafe(row.definition);
+          await transaction.unsafe(`ALTER FUNCTION ${NATIVE_SERIES} OWNER TO yellow_owner`);
+          await transaction.unsafe("SET LOCAL ROLE yellow_owner");
+          await transaction.unsafe(`REVOKE ALL ON FUNCTION ${NATIVE_SERIES} FROM PUBLIC,app_role,yellow_runtime,yellow_deploy`);
+          await transaction.unsafe(`GRANT EXECUTE ON FUNCTION ${NATIVE_SERIES} TO yellow_owner,app_role`);
+        });
+        expect(await nativeSeriesCatalogue()).toBe(before);
+      }
+      await expect(assertRuntimeReleaseReadiness(runtime!)).resolves.toBeUndefined();
+    }
+  });
+
+  test("rejects missing or substituted Order453 series arguments and TABLE result while preserving the original object", async () => {
+    await ensureCurrentRelease();
+    const before = await nativeSeriesCatalogue();
+    const [original] = await deployment!<{ oid: string; definition: string; body: string }[]>`
+      SELECT oid::text,pg_catalog.pg_get_functiondef(oid) definition,prosrc body
+      FROM pg_catalog.pg_proc WHERE oid=pg_catalog.to_regprocedure(${NATIVE_SERIES})
+    `;
+    if (!original) throw new Error("Order453 series identity missing");
+    const savedName = `order453_readiness_saved_${crypto.randomUUID().replaceAll("-", "")}`;
+    const savedSignature = `public.${savedName}(uuid,uuid,uuid,text,text,uuid)`;
+    for (const substitute of [null, "default", "output_name", "output_type", "output_modes"] as const) {
+      let committed = false;
+      let replacementOid: string | null = null;
+      try {
+        await deployment!.begin(async transaction => {
+          const [collision] = await transaction<{ saved_oid: string | null; current_oid: string | null }[]>`
+            SELECT pg_catalog.to_regprocedure(${savedSignature})::oid::text saved_oid,
+              pg_catalog.to_regprocedure(${NATIVE_SERIES})::oid::text current_oid
+          `;
+          expect(collision).toEqual({ saved_oid: null, current_oid: original.oid });
+          await transaction.unsafe(`ALTER FUNCTION ${NATIVE_SERIES} RENAME TO ${savedName}`);
+          if (substitute !== null) {
+            // Preserve the exact canonical body so default/output-metadata checks,
+            // rather than a placeholder body's hash, must deny each substitution.
+            let definition = original.definition;
+            if (substitute === "default") definition = definition.replace("p_actor_id uuid)", "p_actor_id uuid DEFAULT NULL)");
+            if (substitute === "output_name") definition = definition.replace("created boolean)", "created_other boolean)");
+            if (substitute === "output_type") definition = definition.replace("next_no bigint", "next_no text");
+            if (substitute === "output_modes") definition = definition.replace(NATIVE_SERIES_RESULT, "SETOF record");
+            expect(definition).not.toBe(original.definition);
+            await transaction.unsafe(definition);
+            await transaction.unsafe(`ALTER FUNCTION ${NATIVE_SERIES} OWNER TO yellow_owner`);
+            await transaction.unsafe("SET LOCAL ROLE yellow_owner");
+            await transaction.unsafe(`REVOKE ALL ON FUNCTION ${NATIVE_SERIES} FROM PUBLIC,app_role,yellow_runtime,yellow_deploy`);
+            await transaction.unsafe(`GRANT EXECUTE ON FUNCTION ${NATIVE_SERIES} TO yellow_owner,app_role`);
+            const [replacement] = await transaction<{ oid: string; body: string }[]>`
+              SELECT oid::text,prosrc body FROM pg_catalog.pg_proc WHERE oid=pg_catalog.to_regprocedure(${NATIVE_SERIES})
+            `;
+            expect(replacement?.body).toBe(original.body);
+            if (!replacement || replacement.oid === original.oid) throw new Error("Order453 substitute identity invalid");
+            replacementOid = replacement.oid;
+          }
+        });
+        committed = true;
+        await expect(assertRuntimeReleaseReadiness(runtime!)).rejects.toThrow("runtime release readiness is unavailable");
+      } finally {
+        if (committed) await deployment!.begin(async transaction => {
+          const [mapping] = await transaction<{ saved_oid: string | null; replacement_oid: string | null }[]>`
+            SELECT pg_catalog.to_regprocedure(${savedSignature})::oid::text saved_oid,
+              pg_catalog.to_regprocedure(${NATIVE_SERIES})::oid::text replacement_oid
+          `;
+          expect(mapping).toEqual({ saved_oid: original.oid, replacement_oid: replacementOid });
+          if (replacementOid !== null) await transaction.unsafe(`DROP FUNCTION ${NATIVE_SERIES}`);
+          await transaction.unsafe(`ALTER FUNCTION ${savedSignature} RENAME TO create_india_native_fiscal_series`);
+        });
+        expect(await nativeSeriesCatalogue()).toBe(before);
+      }
+      await expect(assertRuntimeReleaseReadiness(runtime!)).resolves.toBeUndefined();
+    }
+  });
+
+  test("rejects Order452 delivery function drift and restores exact readiness one mutation at a time", async () => {
+    await ensureCurrentRelease();
+    const before = await creditDeliveryCatalogue();
+    const [row] = await deployment!<{ definition: string; body: string }[]>`
+      SELECT pg_catalog.pg_get_functiondef(oid) definition,prosrc body
+      FROM pg_catalog.pg_proc WHERE oid=pg_catalog.to_regprocedure(${CREDIT_DELIVERY})
+    `;
+    expect(row).toBeDefined();
+    const definition = row!.definition;
+    const mutations = [
+      "ALTER FUNCTION " + CREDIT_DELIVERY + " STABLE",
+      "ALTER FUNCTION " + CREDIT_DELIVERY + " STRICT",
+      "ALTER FUNCTION " + CREDIT_DELIVERY + " PARALLEL SAFE",
+      "ALTER FUNCTION " + CREDIT_DELIVERY + " SECURITY INVOKER",
+      "ALTER FUNCTION " + CREDIT_DELIVERY + " SET search_path TO public",
+      "ALTER FUNCTION " + CREDIT_DELIVERY + " SET TimeZone TO 'Asia/Kolkata'",
+      "ALTER FUNCTION " + CREDIT_DELIVERY + " SET DateStyle TO 'SQL,DMY'",
+      "ALTER FUNCTION " + CREDIT_DELIVERY + " OWNER TO yellow_deploy",
+      "REVOKE EXECUTE ON FUNCTION " + CREDIT_DELIVERY + " FROM app_role",
+      "GRANT EXECUTE ON FUNCTION " + CREDIT_DELIVERY + " TO app_role WITH GRANT OPTION",
+      ...["PUBLIC", "yellow_runtime"].map(role =>
+        "GRANT EXECUTE ON FUNCTION " + CREDIT_DELIVERY + " TO " + role),
+      appendLiteralBodyDrift(definition, row!.body),
+    ];
+    for (const mutate of mutations) {
+      try {
+        await deployment!.unsafe(mutate);
+        await expect(assertRuntimeReleaseReadiness(runtime!)).rejects.toThrow(
+          "runtime release readiness is unavailable",
+        );
+      } finally {
+        await deployment!.begin(async transaction => {
+          await transaction.unsafe(definition);
+          await transaction.unsafe("ALTER FUNCTION " + CREDIT_DELIVERY + " OWNER TO yellow_owner");
+          await transaction.unsafe("SET LOCAL ROLE yellow_owner");
+          await transaction.unsafe("REVOKE ALL ON FUNCTION " + CREDIT_DELIVERY + " FROM PUBLIC,app_role,yellow_runtime,yellow_deploy");
+          await transaction.unsafe("GRANT EXECUTE ON FUNCTION " + CREDIT_DELIVERY + " TO app_role");
+        });
+      }
+      expect(await creditDeliveryCatalogue()).toBe(before);
+      await expect(assertRuntimeReleaseReadiness(runtime!)).resolves.toBeUndefined();
+    }
+  });
+
+  test("rejects missing or substituted Order452 delivery identity and restores it", async () => {
+    await ensureCurrentRelease();
+    const before = await creditDeliveryCatalogue();
+    const savedSignature = "public.order452_readiness_saved_delivery(uuid,uuid,uuid,uuid)";
+    const [originalIdentity] = await deployment!<{ original_oid: string | null }[]>`
+      SELECT pg_catalog.to_regprocedure(${CREDIT_DELIVERY})::oid::text original_oid
+    `;
+    expect(originalIdentity?.original_oid).toBeTruthy();
+    for (const substitute of [null, "text", "SETOF jsonb", "default"]) {
+      const [collision] = await deployment!<{ saved_oid: string | null }[]>`
+        SELECT pg_catalog.to_regprocedure(${savedSignature})::oid::text saved_oid
+      `;
+      expect(collision?.saved_oid).toBeNull();
+      let committed = false;
+      try {
+        await deployment!.begin(async transaction => {
+          await transaction.unsafe("ALTER FUNCTION " + CREDIT_DELIVERY + " RENAME TO order452_readiness_saved_delivery");
+          if (substitute !== null) {
+            const resultType = substitute === "text" ? "text" : "jsonb";
+            const returnType = substitute === "SETOF jsonb" ? "SETOF jsonb" : resultType;
+            const replacement = substitute === "default"
+              ? "public.read_india_native_credit_delivery_by_document(p_tenant uuid,p_property uuid,p_actor uuid,p_document uuid DEFAULT NULL)"
+              : CREDIT_DELIVERY;
+            await transaction.unsafe("CREATE FUNCTION " + replacement + " RETURNS " + returnType +
+              " LANGUAGE sql VOLATILE CALLED ON NULL INPUT SECURITY INVOKER PARALLEL UNSAFE" +
+              " SET search_path TO pg_catalog,public,pg_temp SET TimeZone TO 'UTC' SET DateStyle TO 'ISO,YMD'" +
+              " AS 'SELECT NULL::" + resultType + "'");
+            await transaction.unsafe("ALTER FUNCTION " + CREDIT_DELIVERY + " OWNER TO yellow_owner");
+            await transaction.unsafe("REVOKE ALL ON FUNCTION " + CREDIT_DELIVERY + " FROM PUBLIC,app_role,yellow_runtime");
+            await transaction.unsafe("GRANT EXECUTE ON FUNCTION " + CREDIT_DELIVERY + " TO app_role");
+          }
+        });
+        committed = true;
+        await expect(assertRuntimeReleaseReadiness(runtime!)).rejects.toThrow(
+          "runtime release readiness is unavailable",
+        );
+      } finally {
+        if (committed) {
+          const [mapping] = await deployment!<{
+            saved_oid: string | null; replacement_oid: string | null;
+          }[]>`
+            SELECT pg_catalog.to_regprocedure(${savedSignature})::oid::text saved_oid,
+              pg_catalog.to_regprocedure(${CREDIT_DELIVERY})::oid::text replacement_oid
+          `;
+          expect(mapping?.saved_oid).toBe(originalIdentity?.original_oid);
+          if (substitute === null) expect(mapping?.replacement_oid).toBeNull();
+          else expect(mapping?.replacement_oid).not.toBe(originalIdentity?.original_oid);
+          await deployment!.begin(async transaction => {
+            await transaction.unsafe("DROP FUNCTION IF EXISTS " + CREDIT_DELIVERY);
+            await transaction.unsafe("ALTER FUNCTION " + savedSignature + " RENAME TO read_india_native_credit_delivery_by_document");
+          });
+        }
+      }
+      expect(await creditDeliveryCatalogue()).toBe(before);
+      await expect(assertRuntimeReleaseReadiness(runtime!)).resolves.toBeUndefined();
+    }
+  });
+
+  test("rejects Order447 projector metadata, private ACL and body drift with exact restoration", async () => {
+    await ensureCurrentRelease();
+    const before = await projectorCatalogue();
+    const [row] = await deployment!<{ definition: string; body: string }[]>`
+      SELECT pg_catalog.pg_get_functiondef(oid) definition,prosrc body
+      FROM pg_catalog.pg_proc WHERE oid=pg_catalog.to_regprocedure(${CREDIT_PROJECTOR})
+    `;
+    expect(row).toBeDefined();
+    expect(originalProjectorDefinition).toContain("CREATE OR REPLACE FUNCTION");
+    const definition = row!.definition;
+    const mutations = [
+      `ALTER FUNCTION ${CREDIT_PROJECTOR} STABLE`,
+      `ALTER FUNCTION ${CREDIT_PROJECTOR} STRICT`,
+      `ALTER FUNCTION ${CREDIT_PROJECTOR} PARALLEL SAFE`,
+      `ALTER FUNCTION ${CREDIT_PROJECTOR} SECURITY DEFINER`,
+      `ALTER FUNCTION ${CREDIT_PROJECTOR} SET search_path TO pg_catalog,public`,
+      `ALTER FUNCTION ${CREDIT_PROJECTOR} SET TimeZone TO 'Asia/Kolkata'`,
+      `ALTER FUNCTION ${CREDIT_PROJECTOR} SET DateStyle TO 'SQL,DMY'`,
+      `ALTER FUNCTION ${CREDIT_PROJECTOR} OWNER TO yellow_deploy`,
+      ...["PUBLIC", "app_role", "yellow_runtime", "yellow_deploy"].map(role =>
+        `GRANT EXECUTE ON FUNCTION ${CREDIT_PROJECTOR} TO ${role}`),
+      originalProjectorDefinition,
+      appendLiteralBodyDrift(definition, row!.body),
+    ];
+    for (const mutate of mutations) {
+      try {
+        await deployment!.unsafe(mutate);
+        await expect(assertRuntimeReleaseReadiness(runtime!)).rejects.toThrow(
+          "runtime release readiness is unavailable",
+        );
+      } finally {
+        await deployment!.begin(async transaction => {
+          await transaction.unsafe(definition);
+          await transaction.unsafe(`ALTER FUNCTION ${CREDIT_PROJECTOR} OWNER TO yellow_owner`);
+          await transaction.unsafe("SET LOCAL ROLE yellow_owner");
+          await transaction.unsafe(`REVOKE ALL ON FUNCTION ${CREDIT_PROJECTOR} FROM PUBLIC,app_role,yellow_runtime,yellow_deploy`);
+          await transaction.unsafe(`GRANT EXECUTE ON FUNCTION ${CREDIT_PROJECTOR} TO yellow_owner`);
+        });
+      }
+      expect(await projectorCatalogue()).toBe(before);
+      await expect(assertRuntimeReleaseReadiness(runtime!)).resolves.toBeUndefined();
+    }
+  });
+
+  test("rejects missing or substituted projector identity while retaining its original object", async () => {
+    await ensureCurrentRelease();
+    const before = await projectorCatalogue();
+    const savedSignature = "public.order447_readiness_saved_projector(uuid,uuid,uuid)";
+    // Rename keeps the real object's OID/ACL/body intact; substitutes have no dependants.
+    for (const substitute of [null, "text", "SETOF jsonb", "jsonb"]) {
+      let renamed = false;
+      try {
+        await deployment!.begin(async transaction => {
+          await transaction.unsafe(`ALTER FUNCTION ${CREDIT_PROJECTOR} RENAME TO order447_readiness_saved_projector`);
+          if (substitute !== null) {
+            await transaction.unsafe(`CREATE FUNCTION ${CREDIT_PROJECTOR} RETURNS ${substitute}
+              LANGUAGE sql VOLATILE CALLED ON NULL INPUT SECURITY INVOKER PARALLEL UNSAFE
+              SET search_path TO pg_catalog,public,pg_temp SET TimeZone TO 'UTC' SET DateStyle TO 'ISO,YMD'
+              AS 'SELECT NULL::${substitute === "text" ? "text" : "jsonb"}'`);
+            await transaction.unsafe(`ALTER FUNCTION ${CREDIT_PROJECTOR} OWNER TO yellow_owner`);
+            await transaction.unsafe(`REVOKE ALL ON FUNCTION ${CREDIT_PROJECTOR} FROM PUBLIC,app_role,yellow_runtime`);
+          }
+        });
+        renamed = true;
+        await expect(assertRuntimeReleaseReadiness(runtime!)).rejects.toThrow(
+          "runtime release readiness is unavailable",
+        );
+      } finally {
+        if (renamed) {
+          await deployment!.begin(async transaction => {
+            await transaction.unsafe(`DROP FUNCTION IF EXISTS ${CREDIT_PROJECTOR}`);
+            await transaction.unsafe(`ALTER FUNCTION ${savedSignature} RENAME TO india_fiscal_submission_project_wire`);
+          });
+        }
+      }
+      expect(await projectorCatalogue()).toBe(before);
+      await expect(assertRuntimeReleaseReadiness(runtime!)).resolves.toBeUndefined();
+    }
   });
 
   test("rejects the deployment login", async () => {
@@ -359,6 +952,121 @@ databaseDescribe("Order438 runtime release readiness identity", () => {
     await expect(assertRuntimeReleaseReadiness(runtime!)).resolves.toBeUndefined();
   });
 
+  test("rejects retry-binding metadata and ACL drift and proves restoration", async () => {
+    await ensureCurrentRelease();
+    const signature = "public.india_fiscal_submission_retry_binding_v1(text,text,text,uuid,integer)";
+    for (const role of ["PUBLIC", "app_role", "yellow_runtime"]) {
+      try {
+        await deployment!.unsafe(`GRANT EXECUTE ON FUNCTION ${signature} TO ${role}`);
+        await expect(assertRuntimeReleaseReadiness(runtime!)).rejects.toThrow(
+          "runtime release readiness is unavailable",
+        );
+      } finally {
+        await deployment!.unsafe(`REVOKE EXECUTE ON FUNCTION ${signature} FROM ${role}`);
+      }
+      await expect(assertRuntimeReleaseReadiness(runtime!)).resolves.toBeUndefined();
+    }
+    const metadataDrifts = [
+      [`ALTER FUNCTION ${signature} STABLE`, `ALTER FUNCTION ${signature} IMMUTABLE`],
+      [`ALTER FUNCTION ${signature} STRICT`, `ALTER FUNCTION ${signature} CALLED ON NULL INPUT`],
+      [`ALTER FUNCTION ${signature} PARALLEL SAFE`, `ALTER FUNCTION ${signature} PARALLEL UNSAFE`],
+      [`ALTER FUNCTION ${signature} SECURITY DEFINER`, `ALTER FUNCTION ${signature} SECURITY INVOKER`],
+      [`ALTER FUNCTION ${signature} SET search_path TO public`,
+        `ALTER FUNCTION ${signature} SET search_path TO pg_catalog, public`],
+    ] as const;
+    for (const [mutate, restore] of metadataDrifts) {
+      try {
+        await deployment!.unsafe(mutate);
+        await expect(assertRuntimeReleaseReadiness(runtime!)).rejects.toThrow(
+          "runtime release readiness is unavailable",
+        );
+      } finally { await deployment!.unsafe(restore); }
+      await expect(assertRuntimeReleaseReadiness(runtime!)).resolves.toBeUndefined();
+    }
+  });
+
+  test("rejects Order446 credit-note catalogue drift and restores exact readiness", async () => {
+    await ensureCurrentRelease();
+    const commit = "public.commit_india_native_fiscal_credit_note(uuid,uuid,uuid,uuid,text,text,uuid)";
+    const templates = "public.india_native_credit_line_templates(uuid,uuid)";
+    const cases: ReadonlyArray<Readonly<{
+      mutate: readonly string[];
+      restore: readonly string[];
+    }>> = [
+      {
+        mutate: ["ALTER TABLE public.india_native_fiscal_credit_note NO FORCE ROW LEVEL SECURITY"],
+        restore: ["ALTER TABLE public.india_native_fiscal_credit_note FORCE ROW LEVEL SECURITY"],
+      },
+      {
+        mutate: ["ALTER POLICY tenant_isolation ON public.india_native_fiscal_credit_note USING (true) WITH CHECK (true)"],
+        restore: [`ALTER POLICY tenant_isolation ON public.india_native_fiscal_credit_note
+          USING (tenant_id=NULLIF(pg_catalog.current_setting('app.tenant_id',true),'')::uuid)
+          WITH CHECK (tenant_id=NULLIF(pg_catalog.current_setting('app.tenant_id',true),'')::uuid)`],
+      },
+      {
+        mutate: ["GRANT INSERT ON public.india_native_fiscal_credit_note TO app_role"],
+        restore: ["REVOKE INSERT ON public.india_native_fiscal_credit_note FROM app_role"],
+      },
+      {
+        mutate: [
+          "ALTER TABLE public.india_native_fiscal_credit_note DROP CONSTRAINT india_native_fiscal_credit_note_check",
+          `ALTER TABLE public.india_native_fiscal_credit_note
+            ADD CONSTRAINT india_native_fiscal_credit_note_check CHECK (true)`,
+        ],
+        restore: [
+          "ALTER TABLE public.india_native_fiscal_credit_note DROP CONSTRAINT india_native_fiscal_credit_note_check",
+          `ALTER TABLE public.india_native_fiscal_credit_note
+            ADD CONSTRAINT india_native_fiscal_credit_note_check CHECK (document_id<>original_document_id)`,
+        ],
+      },
+      {
+        mutate: ["DROP INDEX public.india_native_credit_property"],
+        restore: [`CREATE INDEX india_native_credit_property
+          ON public.india_native_fiscal_credit_note
+          (tenant_id,property_node,business_date,document_id)`],
+      },
+      {
+        mutate: [`ALTER FUNCTION ${commit} SET search_path TO public`],
+        restore: [`ALTER FUNCTION ${commit} SET search_path TO pg_catalog,public,pg_temp`],
+      },
+      {
+        mutate: [`GRANT EXECUTE ON FUNCTION ${commit} TO yellow_runtime`],
+        restore: [`REVOKE EXECUTE ON FUNCTION ${commit} FROM yellow_runtime`],
+      },
+      {
+        mutate: [`ALTER FUNCTION ${templates} STABLE`],
+        restore: [`ALTER FUNCTION ${templates} VOLATILE`],
+      },
+      {
+        mutate: [
+          "DROP TRIGGER india_native_credit_complete ON public.india_native_fiscal_credit_note",
+          `CREATE CONSTRAINT TRIGGER india_native_credit_complete
+            AFTER INSERT ON public.india_native_fiscal_credit_note
+            DEFERRABLE INITIALLY IMMEDIATE FOR EACH ROW
+            EXECUTE FUNCTION public.assert_india_native_credit_complete()`,
+        ],
+        restore: [
+          "DROP TRIGGER IF EXISTS india_native_credit_complete ON public.india_native_fiscal_credit_note",
+          `CREATE CONSTRAINT TRIGGER india_native_credit_complete
+            AFTER INSERT ON public.india_native_fiscal_credit_note
+            DEFERRABLE INITIALLY DEFERRED FOR EACH ROW
+            EXECUTE FUNCTION public.assert_india_native_credit_complete()`,
+        ],
+      },
+    ];
+    for (const probe of cases) {
+      try {
+        for (const statement of probe.mutate) await deployment!.unsafe(statement);
+        await expect(assertRuntimeReleaseReadiness(runtime!)).rejects.toThrow(
+          "runtime release readiness is unavailable",
+        );
+      } finally {
+        for (const statement of probe.restore) await deployment!.unsafe(statement);
+      }
+      await expect(assertRuntimeReleaseReadiness(runtime!)).resolves.toBeUndefined();
+    }
+  });
+
   test("rejects effective extra head and history column grants and proves restoration", async () => {
     await ensureCurrentRelease();
     const forbidden = [
@@ -376,5 +1084,68 @@ databaseDescribe("Order438 runtime release readiness identity", () => {
       } finally { await deployment!.unsafe(`REVOKE SELECT(${column}) ON public.${table} FROM ${role}`); }
       await expect(assertRuntimeReleaseReadiness(runtime!)).resolves.toBeUndefined();
     }
+  });
+
+  test("rejects Q208 public and private capability authority drift and proves restoration", async () => {
+    await ensureCurrentRelease();
+    const publicSignature = "public.prepare_india_native_fiscal_invoice_v4(uuid,uuid,uuid,uuid,uuid,uuid,text,text,date,date[],text[],text,uuid,text,text)";
+    const privateSignature = "public.read_india_native_document_context_candidate(uuid,uuid,uuid,uuid,uuid,uuid)";
+    try {
+      await deployment!.unsafe(`GRANT EXECUTE ON FUNCTION ${publicSignature} TO yellow_runtime`);
+      await expect(assertRuntimeReleaseReadiness(runtime!)).rejects.toThrow("runtime release readiness is unavailable");
+    } finally {
+      await deployment!.unsafe(`REVOKE EXECUTE ON FUNCTION ${publicSignature} FROM yellow_runtime`);
+    }
+    try {
+      await deployment!.unsafe(`GRANT EXECUTE ON FUNCTION ${privateSignature} TO app_role`);
+      await expect(assertRuntimeReleaseReadiness(runtime!)).rejects.toThrow("runtime release readiness is unavailable");
+    } finally {
+      await deployment!.unsafe(`REVOKE EXECUTE ON FUNCTION ${privateSignature} FROM app_role`);
+    }
+    try {
+      await deployment!.unsafe(`ALTER FUNCTION ${publicSignature} SET TimeZone='Asia/Kolkata'`);
+      await expect(assertRuntimeReleaseReadiness(runtime!)).rejects.toThrow("runtime release readiness is unavailable");
+    } finally {
+      await deployment!.unsafe(`ALTER FUNCTION ${publicSignature} SET TimeZone='UTC'`);
+    }
+    await expect(assertRuntimeReleaseReadiness(runtime!)).resolves.toBeUndefined();
+  });
+
+  test("rejects a missing Q208 index or permission entry and proves restoration", async () => {
+    await ensureCurrentRelease();
+    try {
+      await deployment!.unsafe("DROP INDEX public.india_native_operator_submission_document");
+      await expect(assertRuntimeReleaseReadiness(runtime!)).rejects.toThrow("runtime release readiness is unavailable");
+    } finally {
+      await deployment!.unsafe(`CREATE INDEX india_native_operator_submission_document
+        ON public.fiscal_submission(tenant_id,property_node,document_id,id)`);
+    }
+    for (const wrongOrdering of [
+      "business_date ASC,issued_at DESC,id DESC",
+      "business_date DESC NULLS LAST,issued_at DESC,id DESC",
+    ]) {
+      try {
+        await deployment!.unsafe("DROP INDEX public.india_native_operator_document_queue");
+        await deployment!.unsafe(`CREATE INDEX india_native_operator_document_queue
+          ON public.document(tenant_id,property_node,${wrongOrdering})
+          WHERE kind='invoice' AND status='issued'`);
+        await expect(assertRuntimeReleaseReadiness(runtime!)).rejects.toThrow("runtime release readiness is unavailable");
+      } finally {
+        await deployment!.unsafe("DROP INDEX IF EXISTS public.india_native_operator_document_queue");
+        await deployment!.unsafe(`CREATE INDEX india_native_operator_document_queue
+          ON public.document(tenant_id,property_node,business_date DESC,issued_at DESC,id DESC)
+          WHERE kind='invoice' AND status='issued'`);
+      }
+      await expect(assertRuntimeReleaseReadiness(runtime!)).resolves.toBeUndefined();
+    }
+    try {
+      await deployment!`DELETE FROM public.permission WHERE code='tax-fiscal.documents:read'`;
+      await expect(assertRuntimeReleaseReadiness(runtime!)).rejects.toThrow("runtime release readiness is unavailable");
+    } finally {
+      await deployment!`INSERT INTO public.permission(code,description) VALUES
+        ('tax-fiscal.documents:read','Read property-authorized immutable fiscal documents')
+        ON CONFLICT(code) DO UPDATE SET description=EXCLUDED.description`;
+    }
+    await expect(assertRuntimeReleaseReadiness(runtime!)).resolves.toBeUndefined();
   });
 });

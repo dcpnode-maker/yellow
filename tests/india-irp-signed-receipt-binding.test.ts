@@ -12,6 +12,8 @@ import { projectIssuedIndiaIrpWireCandidate } from
   "../src/contexts/tax-fiscal/india-irp-issued-wire-candidate";
 
 const DOCUMENT_ID = "00000000-0000-4000-8000-000000000206";
+const ORIGINAL_DOCUMENT_ID = "00000000-0000-4000-8000-000000000205";
+const CORRECTION_JOURNAL_ID = "00000000-0000-4000-8000-000000000207";
 const ISSUER = "YELLOW-FICTIONAL-IRP";
 const KEY_ID = "yellow-fictional-rsa";
 const NOW = 1_800_000_000_000;
@@ -157,6 +159,20 @@ function issuedSource(family: Family = "igst", specs: readonly ItemSpec[] = [{}]
   };
 }
 
+function issuedCreditSource(family: Family = "igst", specs: readonly ItemSpec[] = [{}]): Mutable {
+  const source = issuedSource(family, specs);
+  source.DocDtls = { Typ: "CRN", No: "C/206-1", Dt: "07/09/2044" };
+  source.RefDtls = { PrecDocDtls: [{ InvNo: "INV/206-1", InvDt: "06/09/2044" }] };
+  source.YellowCredit = {
+    originalDocumentId: ORIGINAL_DOCUMENT_ID,
+    originalSha256: "c".repeat(64),
+    reason: "Full credit for an incorrectly issued invoice",
+    correctionJournalId: CORRECTION_JOURNAL_ID,
+    sourceEvidenceHash: "d".repeat(64),
+  };
+  return source;
+}
+
 function hash(value: string): string {
   return new Bun.CryptoHasher("sha256").update(value).digest("hex");
 }
@@ -265,7 +281,7 @@ function expectFrozenJson(value: FiscalExactJsonValue): void {
   }
 }
 
-describe("Order440/Q206 original invoice and signed pair binding", () => {
+describe("Order440/Q206/447 issued document and signed pair binding", () => {
   test("binds genuine IGST and split signed pairs as source-bound, not provider acceptance", async () => {
     const target = await verifier();
     for (const family of ["igst", "split"] as const) {
@@ -299,6 +315,73 @@ describe("Order440/Q206 original invoice and signed pair binding", () => {
     }
     expect(Object.keys(target).sort()).toEqual(["issuer", "kind", "profileVersion", "verify"]);
     expect(Object.isFrozen(target)).toBe(true);
+  }, 30_000);
+
+  test("binds genuine native CRN signed pairs while keeping Yellow metadata off both signed surfaces", async () => {
+    const target = await verifier();
+    for (const family of ["igst", "split"] as const) {
+      const source = issuedCreditSource(family);
+      const input = await receiptInput(source);
+      const result = await target.verify(input, NOW);
+      expect(result.ok).toBe(true);
+      if (!result.ok) throw new Error(result.error.code);
+      expect(result.value.wireJson).toContain(
+        '"RefDtls":{"PrecDocDtls":[{"InvNo":"INV/206-1","InvDt":"06/09/2044"}]}');
+      expect(result.value.wireJson).not.toContain("YellowCredit");
+      expect(result.value.wireJson).not.toContain(ORIGINAL_DOCUMENT_ID);
+      expect(JSON.stringify(result.value.signedInvoice.payload)).not.toContain("YellowCredit");
+      expect(JSON.stringify(result.value.signedQRCode.payload)).not.toContain("YellowCredit");
+    }
+  }, 30_000);
+
+  test("rejects signed CRN reference omission, substitution, duplication and private-metadata injection", async () => {
+    const target = await verifier();
+    const source = issuedCreditSource();
+    const wire = project(source).wireJson;
+    const substitutions: readonly [string, string][] = [
+      ['"InvNo":"INV/206-1"', '"InvNo":"INV/206-2"'],
+      ['"InvDt":"06/09/2044"', '"InvDt":"05/09/2044"'],
+    ];
+    for (const [before, after] of substitutions) {
+      expect(await code(target, await receiptInput(source, {
+        invoiceInner: invoiceInner(replaceOnce(wire, before, after)),
+      }))).toBe("receipt_binding_mismatch");
+    }
+
+    const withoutReference = wire.replace(
+      ',"RefDtls":{"PrecDocDtls":[{"InvNo":"INV/206-1","InvDt":"06/09/2044"}]}', "");
+    expect(await code(target, await receiptInput(source, {
+      invoiceInner: invoiceInner(withoutReference),
+    }))).toBe("unsupported_signed_shape");
+
+    const duplicateReference = wire.replace(
+      '[{"InvNo":"INV/206-1","InvDt":"06/09/2044"}]',
+      '[{"InvNo":"INV/206-1","InvDt":"06/09/2044"},{"InvNo":"INV/206-1","InvDt":"06/09/2044"}]');
+    expect(await code(target, await receiptInput(source, {
+      invoiceInner: invoiceInner(duplicateReference),
+    }))).toBe("unsupported_signed_shape");
+
+    const duplicateDecodedName = wire.replace(
+      '"InvNo":"INV/206-1"', '"InvNo":"INV/206-1","\\u0049nvNo":"INV/206-1"');
+    expect(await code(target, await receiptInput(source, {
+      invoiceInner: invoiceInner(duplicateDecodedName),
+    }))).toBe("unsupported_signed_shape");
+
+    const injected = `${wire.slice(0, -1)},"YellowCredit":null}`;
+    expect(await code(target, await receiptInput(source, {
+      invoiceInner: invoiceInner(injected),
+    }))).toBe("unsupported_signed_shape");
+
+    const qr = qrInner(source);
+    for (const [before, after] of [
+      ['"DocNo":"C/206-1"', '"DocNo":"INV/206-1"'],
+      ['"DocTyp":"CRN"', '"DocTyp":"INV"'],
+      ['"DocDt":"07/09/2044"', '"DocDt":"06/09/2044"'],
+    ] as const) {
+      expect(await code(target, await receiptInput(source, {
+        qrInner: replaceOnce(qr, before, after),
+      }))).toBe("receipt_binding_mismatch");
+    }
   }, 30_000);
 
   test("binds the maximum 366 original lines and uses line count rather than distinct HSN count", async () => {
