@@ -289,6 +289,70 @@ function deliveryEnvelope(value, documentId) {
   return Object.freeze({ ...delivery });
 }
 
+export function creditNoteDisclosureEnvelope(value, original) {
+  const row = exactRecord(value, [
+    "documentId", "documentKind", "originalDocumentId", "originalDocNo", "originalSha256",
+    "correctionJournalId", "seriesId", "docNo", "propertyNode", "reservationId", "folioId",
+    "supplierRegistrationId", "recipientRegistrationId", "financialYearStart", "currency", "status",
+    "businessDate", "issuedAt", "prevHash", "sha256", "sourceEvidenceHash", "totalMinor", "reason",
+  ]);
+  const strictUuid = (candidate) => typeof candidate === "string"
+    && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(candidate);
+  const reason = (v) => {
+    if (typeof v !== "string" || v.length > 1000 || v.trim().length === 0 || /[\u0000-\u001f\u007f]/u.test(v)) {
+      return false;
+    }
+    for (let i = 0; i < v.length; i += 1) {
+      const code = v.charCodeAt(i);
+      if (code >= 0xd800 && code <= 0xdbff) {
+        i += 1;
+        if (i >= v.length || v.charCodeAt(i) < 0xdc00 || v.charCodeAt(i) > 0xdfff) return false;
+      } else if (code >= 0xdc00 && code <= 0xdfff) {
+        return false;
+      }
+    }
+    return Array.from(v).length <= 500;
+  };
+  const minor = (v) => typeof v === "string" && /^[1-9][0-9]{0,18}$/.test(v)
+    && BigInt(v) <= 9223372036854775807n;
+  const timestamp = (v) => typeof v === "string"
+    && /^(?!0000)\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/.test(v)
+    && Number.isFinite(new Date(v).getTime()) && new Date(v).toISOString() === v;
+  const identityMatches = row && original
+    && row.propertyNode === original.propertyNode
+    && row.originalDocumentId === original.documentId
+    && row.originalDocNo === original.documentNumber
+    && row.originalSha256 === original.documentSha256
+    && row.reservationId === original.reservationId
+    && row.folioId === original.folioId
+    && row.recipientRegistrationId === original.recipientRegistrationId;
+  const distinctIds = row && row.documentId !== row.originalDocumentId
+    && row.supplierRegistrationId !== row.recipientRegistrationId;
+  const validIds = row && [
+    row.documentId, row.correctionJournalId, row.seriesId, row.propertyNode, row.reservationId,
+    row.folioId, row.supplierRegistrationId, row.recipientRegistrationId,
+  ].every(strictUuid);
+  const validHashes = row && [row.sha256, row.sourceEvidenceHash, row.originalSha256]
+    .every((hash) => matches(hash, HASH)) && (row.prevHash === null || matches(row.prevHash, HASH));
+  const validFinancialYear = row && typeof row.financialYearStart === "string"
+    && /^\d{4}-04-01$/.test(row.financialYearStart) && validDate(row.financialYearStart);
+  if (!row || !identityMatches || row.documentKind !== "credit_note" || row.status !== "issued"
+    || row.currency !== "INR" || !validIds || !distinctIds || !validHashes || !validFinancialYear
+    || !validDate(row.businessDate) || !timestamp(row.issuedAt) || !matches(row.docNo, DOCUMENT_NUMBER)
+    || !minor(row.totalMinor) || !reason(row.reason)) return null;
+  return Object.freeze({
+    documentId: row.documentId,
+    docNo: row.docNo,
+    originalDocNo: row.originalDocNo,
+    businessDate: row.businessDate,
+    issuedAt: row.issuedAt,
+    totalMinor: row.totalMinor,
+    reason: row.reason,
+    sha256: row.sha256,
+    currency: "INR",
+  });
+}
+
 function providerOptionsEnvelope(value) {
   const wrapper = exactRecord(value, ["providers"]);
   const values = wrapper && ownArray(wrapper.providers, MAX_PROVIDERS);
@@ -982,12 +1046,18 @@ export function createInvoiceWorkbench({ root, request, propertyNode, timezone, 
     print.type = "button";
     const issueSlot = element("div", "invoice-workbench__issue-slot");
     issueSlot.setAttribute("data-invoice-issue-slot", "");
+    const credit = element("section", "invoice-workbench__credit-note");
+    const creditHeading = element("h4", "invoice-workbench__credit-note-heading", "Existing credit note");
+    const creditIntent = element("button", "invoice-workbench__credit-note-intent", "View credit note"); creditIntent.type = "button";
+    const creditMessage = element("p", "invoice-workbench__credit-note-message", "Credit note not loaded."); creditMessage.setAttribute("aria-live", "polite");
+    credit.append(creditHeading, creditIntent, creditMessage);
+    creditIntent.addEventListener("click", () => { void loadCreditNote(documentValue, credit, creditIntent, creditMessage, scope, generation); });
     const previewSurface = element("section", "invoice-workbench__print-preview");
     previewSurface.hidden = true; previewSurface.setAttribute("aria-live", "polite");
     preview.addEventListener("click", () => { void preparePrint(documentValue.documentId, false, previewSurface, preview, print); });
     print.addEventListener("click", () => { void preparePrint(documentValue.documentId, true, previewSurface, preview, print); });
     actions.append(preview, print);
-    detail.append(back, identity, registration, actions, issueSlot, audit, previewSurface);
+    detail.append(back, identity, registration, actions, credit, issueSlot, audit, previewSurface);
     if (delivery.kind === "not_requested") {
       const retained = registrationRequests.get(documentValue.documentId);
       if (retained) renderRetainedRegistration(documentValue, issueSlot, retained, scope, generation);
@@ -1000,6 +1070,82 @@ export function createInvoiceWorkbench({ root, request, propertyNode, timezone, 
     } else {
       const capability = retryCapability(delivery, documentValue);
       if (capability) renderDeliveryRetry(documentValue, issueSlot, capability, scope, generation);
+    }
+  }
+
+  async function loadCreditNote(original, slot, button, message, scope, generation) {
+    if (button.disabled || !current(scope, generation, "detail")) return;
+    button.disabled = true;
+    slot.querySelectorAll(
+      ".invoice-workbench__credit-note-summary, .invoice-workbench__credit-note-delivery",
+    ).forEach((node) => node.remove());
+    message.textContent = "Loading existing credit note…";
+    const controller = controlled("detail");
+    try {
+      const raw = await request(
+        `/api/v1/properties/${encodeURIComponent(propertyNode)}/invoices/${encodeURIComponent(original.documentId)}/credit-notes`,
+        { signal: controller.signal },
+      );
+      if (!current(scope, generation, "detail") || !slot.isConnected || controller.signal.aborted) return;
+      const note = creditNoteDisclosureEnvelope(raw, original);
+      if (!note) throw new Error("invalid credit-note receipt");
+      const facts = element("dl", "invoice-workbench__credit-note-summary");
+      facts.append(
+        detailRow("Credit note", note.docNo),
+        detailRow("Original invoice", note.originalDocNo),
+        detailRow("Credit date", note.businessDate),
+        detailRow("Credited total", minorText(note.totalMinor)),
+        detailRow("Reason", note.reason),
+        detailRow("Credit SHA-256", note.sha256),
+      );
+      slot.append(facts);
+      message.textContent = "Loading credit-note registration state…";
+      try {
+        if (!current(scope, generation, "detail") || !slot.isConnected || controller.signal.aborted) return;
+        const rawDelivery = await request(
+          `/api/v1/properties/${encodeURIComponent(propertyNode)}/credit-notes/${encodeURIComponent(note.documentId)}/delivery`,
+          { signal: controller.signal },
+        );
+        if (!current(scope, generation, "detail") || !slot.isConnected || controller.signal.aborted) return;
+        const wrapper = exactRecord(rawDelivery, ["delivery"]);
+        const delivery = wrapper && deliveryEnvelope(rawDelivery, note.documentId);
+        if (!delivery || !wrapper) throw new Error("invalid credit delivery");
+        const facade = await import("/assets/operator-invoice-print.js");
+        if (!current(scope, generation, "detail") || !slot.isConnected || controller.signal.aborted) return;
+        const registration = typeof facade.fiscalDeliveryRegistrationStatus === "function"
+          ? facade.fiscalDeliveryRegistrationStatus({ documentId: note.documentId, propertyNode, documentSha256: note.sha256 }, wrapper.delivery) : null;
+        if (registration === null || typeof registration !== "object" || !Object.isFrozen(registration)) {
+          throw new Error("invalid credit delivery");
+        }
+        const status = element(
+          "p",
+          "invoice-workbench__credit-note-delivery",
+          registration.label,
+        );
+        slot.append(status);
+        message.textContent = status.textContent;
+      } catch (error) {
+        if (!current(scope, generation, "detail") || !slot.isConnected || controller.signal.aborted) return;
+        const code = errorField(error, "status");
+        const text = code === 403 ? "Credit-note registration is unavailable for this role."
+          : code === 404 ? "Credit-note registration is unavailable."
+            : error instanceof Error && error.message === "invalid credit delivery" ? "Credit-note registration data is invalid and cannot be displayed."
+              : "Credit-note registration is unavailable while the service is offline.";
+        const status = element("p", "invoice-workbench__credit-note-delivery", text);
+        slot.append(status);
+        message.textContent = status.textContent;
+      }
+    } catch (error) {
+      if (!current(scope, generation, "detail") || controller.signal.aborted) return;
+      const status = errorField(error, "status");
+      message.textContent = status === 404 ? "No credit note available to view."
+        : status === 403 ? "You do not have permission to view this credit note."
+          : error instanceof Error && error.message === "invalid credit-note receipt"
+            ? "Credit-note data is invalid and cannot be displayed."
+            : "Credit note is unavailable while the service is offline.";
+    } finally {
+      release(controller);
+      if (current(scope, generation, "detail")) button.disabled = false;
     }
   }
 

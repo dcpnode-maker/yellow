@@ -401,6 +401,18 @@ function registrationStatus(delivery) {
     detail: "A server-verified signed production receipt is retained for this exact issued document." });
 }
 
+export function fiscalDeliveryRegistrationStatus(identity, deliveryValue) {
+  const document = ownRecord(identity, 3);
+  if (!document || !exact(document, ["documentId", "propertyNode", "documentSha256"])
+    || typeof document.documentId !== "string" || !UUID.test(document.documentId)
+    || typeof document.propertyNode !== "string" || !UUID.test(document.propertyNode)
+    || typeof document.documentSha256 !== "string" || !SHA256.test(document.documentSha256)) return null;
+  const delivery = snapshotDelivery(deliveryValue, document);
+  if (!delivery) return null;
+  const status = registrationStatus(delivery);
+  return frozen({ code: status.code, label: status.label });
+}
+
 /**
  * Builds a QR matrix from the exact compact signed token. The preflight bound is
  * checked before calling the encoder. This generates a matrix; it does not verify
