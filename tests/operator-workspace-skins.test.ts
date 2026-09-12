@@ -121,7 +121,7 @@ test("Order458 keeps every mounted workspace and invoice deep-route anchor", asy
   expect(navigation).toEqual([
     "today", "availability", "reservations", "folios", "invoices", "cashiers",
     "day-close", "trust", "operations", "housekeeping", "vehicles", "inventory",
-    "restrictions", "rates", "status",
+    "restrictions", "rates", "market-map", "status",
   ]);
   for (const anchor of [
     'id="invoices-view"',

@@ -39,7 +39,18 @@ test("Order195: the six flagship systems have structural identity without unsafe
   for (const theme of ["apple", "android", "win95", "glass", "neo", "erp"]) {
     expect(styles).toContain(`:root[data-theme="${theme}"]`);
   }
-  expect(page.match(/class="domain-icon"/g)?.length).toBe(12);
+  const marketMapTab = page.match(/<button[^>]*id="nav-market-map"[^>]*>[\s\S]*?<\/button>/)?.[0] ?? "";
+  const pageWithoutMarketMap = page.replace(marketMapTab, "");
+  expect(pageWithoutMarketMap.match(/class="domain-icon"/g)?.length).toBe(12);
+  expect(page.match(/class="domain-icon"/g)?.length).toBe(13);
+  expect(marketMapTab).toContain('data-view="market-map"');
+  expect(marketMapTab).toContain('<span>Market map</span>');
+  expect(marketMapTab).toContain('<use href="#ph-chart-bar"/>');
+  const originalGlyphBindings = [...pageWithoutMarketMap.matchAll(/<use href="(#ph-[a-z-]+)"/g)].map(match => match[1]);
+  const allGlyphBindings = [...page.matchAll(/<use href="(#ph-[a-z-]+)"/g)].map(match => match[1]);
+  expect(originalGlyphBindings).toHaveLength(15);
+  expect(new Set(originalGlyphBindings).size).toBe(15);
+  expect(allGlyphBindings).toHaveLength(16);
   const invoiceTab = page.match(/<button[^>]*id="nav-invoices"[^>]*>[\s\S]*?<\/button>/)?.[0] ?? "";
   expect(invoiceTab).toContain('data-view="invoices"');
   expect(invoiceTab).toContain('class="domain-icon"');

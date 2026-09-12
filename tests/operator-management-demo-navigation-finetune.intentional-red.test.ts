@@ -114,14 +114,15 @@ test("Order458: interface switching is session-local while every explicit route 
     ["orbit", "Orbit · Command centre"], ["atlas", "Atlas · Portfolio studio"],
     ["focus", "Focus · Task companion"], ["index", "Index · Planning desk"],
   ]) expect(html).toContain(`<option value="${value}">${label}</option>`);
-  expect(html.match(/class="domain-tab(?: is-active)?"/g)).toHaveLength(14);
+  expect(html.match(/class="domain-tab(?: is-active)?"/g)).toHaveLength(15);
+  expect(html).toContain('id="nav-market-map" type="button" data-view="market-map" aria-controls="market-map-view"');
   expect(html).toContain('id="nav-invoices" type="button" data-view="invoices" aria-controls="invoices-view"');
 
   const property = "00000000-0000-0000-0000-000000000316";
   const app = createApp({ operatorApi: new OperatorHttpApi({} as never) });
   for (const view of [
     "today", "availability", "reservations", "folios", "invoices", "cashiers", "housekeeping", "vehicles",
-    "operations", "inventory", "restrictions", "rates", "status",
+    "operations", "inventory", "restrictions", "rates", "market-map", "status",
   ]) {
     const response = await app.handle(new Request(`http://yellow.test/p/${property}/${view}`));
     expect(response.status).toBe(200);

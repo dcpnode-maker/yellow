@@ -55,6 +55,17 @@ tenant records, not a second operational database.
 - `tests/security-headers.test.ts`: recognize `data:` exclusively for the map
   runtime's CSS images; continue rejecting it for scripts, workers and connections.
   This narrow scope clarification was admitted before changing the existing test.
+- `handoff/questions/RMS-PLACES-001-navigation-proof.md`,
+  `tests/operator-layout-composition.test.ts`,
+  `tests/operator-flagship-motion.test.ts` and
+  `tests/operator-workspace-layout.browser.test.ts`: preserve the existing15
+  destinations and their full visual/keyboard assertions while verifying the new
+  sixteenth Market map entry and supplying its assets in the old browser fixture.
+- `tests/operator-management-demo-navigation-finetune.intentional-red.test.ts`,
+  `tests/operator-workspace-skins.test.ts`,
+  `tests/operator-reservation-workspace.integration.test.ts` and
+  `tests/operator-adaptive-experience.test.ts`: align exact route/dependency lists
+  with the admitted Market map/MapLibre addition; preserve all existing assertions.
 - `tests/operator-market-map.test.ts`, `tests/operator-market-map.browser.test.ts`,
   `scripts/research/verify-market-map-browser.ts`: executable UI/route/state/asset
   proof and screenshots using synthetic fixtures and separately labeled public data.

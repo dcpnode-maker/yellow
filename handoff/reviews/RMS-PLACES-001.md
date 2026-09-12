@@ -110,3 +110,23 @@ SSRF bypass for the fixed host.
 Exact-commit CI and receiving browser acceptance remain outstanding at source
 publication. Publication stays draft and the receiving handoff must carry the
 actual result instead of treating this source receipt as a completed release.
+
+## First exact CI and scoped regression correction
+
+CI34726099936 on75727ee9 failed quality in12 cases: fixed navigation counts/route
+lists, the old single-dependency assertion, and broad same-origin text checks
+matching a literal example URL in the new placeholder. Local-review and
+windows-state succeeded; dependent database/container/ARM jobs were skipped.
+This failed run is retained and is not database evidence.
+
+The admitted navigation-proof clarification updates only exact known lists for
+the new16th destination and the pinned map dependency. All original15 symbols
+and vendor bytes remain identical. The browser fixture serves the new JS/CSS and
+asserts the original15 distinct bindings plus the new labelled map binding,
+keeping every focus/contrast/geometry/motion assertion. The placeholder now uses
+a plain example domain; the existing same-origin tests remain unchanged.
+Root reran all10 affected non-browser files:62passed/0failed/1375assertions.
+The original browser fixture still requires genuine execution in CI; it was not
+run through an alternate browser-control path in this workspace.
+The nonimplementing reviewer separately executed the same62/0/1375 checks and
+types, inspected the exact source/test diff, and found no weakened prior assertion.
