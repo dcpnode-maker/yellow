@@ -3760,3 +3760,14 @@ The old HTTP503 remains recorded: its synthetic status was for the prior local
 day. Fresh current-day fixture cohorts passed with production/test unchanged;
 no stale supplier evidence was accepted or backfilled. Exact-source standing,
 publication/CI and local activation remain separate from this functional proof.
+
+## Invoice print compatibility with retry receipts — Order465
+
+The read-only print formatter accepts the existing optional immutable provider
+retry binding only in a `pending` receipt with `status:error` and `disposition:retry`.
+It validates the exact UUID/version1..2147483647 shape already admitted by the server
+receipt contract. Old binding-free receipts remain compatible; unknown/malformed or
+wrong-state bindings fail. This metadata changes no markup, amount, registration label
+or QR and exposes no provider extension identity in the printed artifact. Printing
+does not authorize a retry or contact a provider. This source repair is independently
+verified but is not yet in the retained44ef/current91 local app.

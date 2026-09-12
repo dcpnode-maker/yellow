@@ -3,6 +3,7 @@ import { describe, expect, test } from "bun:test";
 // Browser assets are deliberately plain ESM and are not part of the TypeScript compilation unit.
 // @ts-expect-error No declaration file is shipped for the isolated browser module.
 import { INVOICE_PRINT_QR_LIMITS, INVOICE_PRINT_STYLES, buildInvoicePrintArtifact, createSignedQrArtifact } from "../src/http/operator/invoice-print.js";
+import { snapshotFiscalSubmissionDeliveryReceipt } from "../src/contexts/tax-fiscal";
 
 const uuid = (n: number) => `00000000-0000-4000-8000-${String(n).padStart(12, "0")}`;
 const sha = (value: string) => new Bun.CryptoHasher("sha256").update(value).digest("hex");
@@ -59,7 +60,79 @@ function accepted(environment: "sandbox" | "production" = "sandbox") {
   });
 }
 
+function retryPending(providerExtensionVersion = 1) {
+  const document = invoice();
+  return Object.freeze({
+    kind: "pending", submissionId: uuid(20), tenantId: uuid(1), propertyNode: uuid(2),
+    documentId: document.documentId, documentSha256: document.documentSha256, wireSha256: "c".repeat(64),
+    providerKey: "clearirp", attemptId: uuid(21), attemptNumber: 2, status: "error", disposition: "retry",
+    transitionSeq: 4, retryBinding: Object.freeze({
+      providerExtensionId: uuid(30), providerExtensionVersion,
+    }),
+  });
+}
+
 describe("Order440 Q208 immutable invoice print artifact", () => {
+  test("prints the exact retry receipt accepted by the shared server validator", () => {
+    const document = invoice();
+    const receipt = retryPending();
+    expect(snapshotFiscalSubmissionDeliveryReceipt(receipt)).not.toBeNull();
+    const { retryBinding: _binding, ...withoutBinding } = receipt;
+    const previous = buildInvoicePrintArtifact(document, {
+      kind: "receipt", documentId: document.documentId, receipt: withoutBinding,
+    });
+    expect(previous.ok).toBe(true);
+    for (const version of [1, 2_147_483_647]) {
+      const linked = retryPending(version);
+      expect(snapshotFiscalSubmissionDeliveryReceipt(linked)).not.toBeNull();
+      const printed = buildInvoicePrintArtifact(document, {
+        kind: "receipt", documentId: document.documentId, receipt: linked,
+      });
+      expect(printed).toEqual(previous);
+      expect(JSON.stringify(printed)).not.toContain(uuid(30));
+      expect(JSON.stringify(printed)).not.toContain("providerExtensionVersion");
+    }
+  });
+
+  test("rejects malformed, foreign-state and accessor retry bindings without invoking getters", () => {
+    const document = invoice();
+    const receipt = retryPending();
+    const invalidBindings = [
+      { providerExtensionId: uuid(30), providerExtensionVersion: 0 },
+      { providerExtensionId: uuid(30), providerExtensionVersion: 2_147_483_648 },
+      { providerExtensionId: uuid(30), providerExtensionVersion: 1.5 },
+      { providerExtensionId: uuid(30), providerExtensionVersion: "1" },
+      { providerExtensionId: "AAAAAAAA-AAAA-4AAA-8AAA-AAAAAAAAAAAA", providerExtensionVersion: 1 },
+      { providerExtensionId: uuid(30), providerExtensionVersion: 1, extra: true },
+      Object.assign(Object.create({ inherited: true }), {
+        providerExtensionId: uuid(30), providerExtensionVersion: 1,
+      }),
+    ];
+    for (const retryBinding of invalidBindings) {
+      expect(buildInvoicePrintArtifact(document, {
+        kind: "receipt", documentId: document.documentId, receipt: { ...receipt, retryBinding },
+      })).toMatchObject({ ok: false, error: { code: "invalid_delivery" } });
+    }
+    for (const state of [
+      { status: "pending", disposition: "send" },
+      { status: "submitted", disposition: "lookup" },
+    ]) {
+      expect(buildInvoicePrintArtifact(document, {
+        kind: "receipt", documentId: document.documentId, receipt: { ...receipt, ...state },
+      })).toMatchObject({ ok: false, error: { code: "invalid_delivery" } });
+    }
+
+    let reads = 0;
+    const accessorBinding = { providerExtensionId: uuid(30) };
+    Object.defineProperty(accessorBinding, "providerExtensionVersion", {
+      enumerable: true, get: () => { reads += 1; return 1; },
+    });
+    expect(buildInvoicePrintArtifact(document, {
+      kind: "receipt", documentId: document.documentId, receipt: { ...receipt, retryBinding: accessorBinding },
+    })).toMatchObject({ ok: false, error: { code: "invalid_delivery" } });
+    expect(reads).toBe(0);
+  });
+
   test("renders one legal record from issued content with exact decimal text and escaped labels", () => {
     const result = buildInvoicePrintArtifact(invoice(), { kind: "not_requested", documentId: uuid(10) });
     expect(result.ok).toBe(true);

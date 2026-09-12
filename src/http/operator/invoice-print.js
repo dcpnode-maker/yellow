@@ -277,6 +277,14 @@ function validCompact(value) {
   return typeof value === "string" && value.length > 0 && value.length <= 1_404_249 && COMPACT.test(value);
 }
 
+function validRetryBinding(value) {
+  const row = ownRecord(value, 2);
+  return row !== null && exact(row, ["providerExtensionId", "providerExtensionVersion"])
+    && typeof row.providerExtensionId === "string" && UUID.test(row.providerExtensionId)
+    && Number.isSafeInteger(row.providerExtensionVersion)
+    && row.providerExtensionVersion >= 1 && row.providerExtensionVersion <= 2_147_483_647;
+}
+
 function snapshotReceipt(value, document) {
   const row = ownRecord(value, 32);
   const base = ["kind", "submissionId", "tenantId", "propertyNode", "documentId", "documentSha256", "wireSha256",
@@ -289,9 +297,13 @@ function snapshotReceipt(value, document) {
     || !Number.isSafeInteger(row.attemptNumber) || row.attemptNumber < 1 || row.attemptNumber > 4
     || !Number.isSafeInteger(row.transitionSeq) || row.transitionSeq < 1) return null;
   if (row.kind === "pending") {
-    if (!exact(row, base) || !((row.status === "pending" && row.disposition === "send")
+    const hasRetryBinding = Object.hasOwn(row, "retryBinding");
+    if (!exact(row, base, hasRetryBinding ? ["retryBinding"] : [])
+      || !((row.status === "pending" && row.disposition === "send")
       || (row.status === "submitted" && row.disposition === "lookup")
-      || (row.status === "error" && row.disposition === "retry"))) return null;
+      || (row.status === "error" && row.disposition === "retry"))
+      || (hasRetryBinding && (row.status !== "error" || row.disposition !== "retry"
+        || !validRetryBinding(row.retryBinding)))) return null;
     return frozen({ kind: row.kind, row });
   }
   if (row.kind === "legacy_hash_only") {

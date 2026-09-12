@@ -1080,3 +1080,296 @@ a receipt-bound classification of the retained r8→r9 worker delta; it explicit
 records `observedConvergence=false` and is not a <=60-second Settled90 proof. The
 accepted r9 Settled90 receipt above, rather than this optional accounting comparison,
 is the bounded native convergence evidence.
+
+### September 13 Q251 current-source recovery, migration, and source review
+
+Independent reviewer `/root/q251_runtime_review` inspected the Q251 native
+successors for published source
+`44ef5e08f985c59d61351ecf32e503233f4038c5`, tree
+`eeda68cc1c0aaa81b255d4587e94251724e86339`. Capture and verifier SHA256 are
+`15b86b60d51ad88e68e6d29ca9f92440111aa37f01f2a7ec7a49e489bf5a9cfb`
+and `c183ab26b01dcda7c01e863b7f3d1998bb6ae6aa94fd61b2e1f86e082498716b`.
+Initial review found that the new verifier test imported the predecessor capture.
+Root corrected only that import; reviewer pure wrapper/verifier proof then passed
+15/0 with106 expectations. Final recovery/migration wrapper
+`cb211e321fef2fe326c7f2a7e3cd181c697aae16a2da81c1301a13c7f930d15c`
+and test `22303ef17ecc9885ab7a7f7d4e06d1cb8c04ffb87d5182ec5e51b914074edb39`
+differed from the independently accepted source-only bytes only by replacing the
+fail-closed zero artifact-receipt placeholder with actual receipt SHA256
+`569b3656b4ccab40c6a7bda317b15d22299d51d337d93795cad5d82a0d4a8495`.
+Reviewer personally executed credential-free `Action Review`; it reported database
+access, mutation and credential reads false and source-preservation SHA256
+`02da640fac2f5325a2ae4aa7644f457c671b129b00c4c2359d8d805ef78cd01f`.
+
+After exact CI run34715736504 completed all six jobs green, root recorded Recovery
+admission `.yellow/evidence/order460/root-q251-recovery-admission-20260913.json`,
+SHA256 `6bafc44f1e6d497fa09962d2f62162d2ca291c9302a059de8ee14421e429a936`.
+The reviewer executed the following invocation exactly once:
+
+```text
+executable=C:\Users\astha\.cache\codex-runtimes\codex-primary-runtime\dependencies\native\powershell\pwsh.exe
+processArgs=-NoLogo -NoProfile -NonInteractive -File .\.yellow\evidence\order460\receiving-serving-q251-recovery-migrate-20260913.ps1
+Action=Recovery
+RootHandoff=true
+ExpectedRunnerSha256=cb211e321fef2fe326c7f2a7e3cd181c697aae16a2da81c1301a13c7f930d15c
+ExpectedCaptureSourceSha256=15b86b60d51ad88e68e6d29ca9f92440111aa37f01f2a7ec7a49e489bf5a9cfb
+ExpectedVerifierSha256=c183ab26b01dcda7c01e863b7f3d1998bb6ae6aa94fd61b2e1f86e082498716b
+ExpectedSourceArtifactReceiptSha256=569b3656b4ccab40c6a7bda317b15d22299d51d337d93795cad5d82a0d4a8495
+```
+
+It exited0 without retry. Recovery outputs are serving90 baseline
+`3a54d745717783036b5dd76a896a78ee96cbe976709b9cd9e62fcc7fc2b9027b`,
+named-recovery capture
+`2d201dcbd32dcb3ffe510079ff757e640ced2314d32bd94bdb813c418e01b131`
+and verification
+`d019ab4ef13e56d5184b2d8e6e9eec4af741552007cc439203f613c100c677d9`.
+The verifier accepted both current90 contents at identical SHA256
+`8f6d1bf1462ab223fd5b26c349061191610f3d56d3f3919ff1ebd3339d417757`;
+`yellow_order460_recovery_44ef5e08f985_20260913` is retained and runtime launch
+remained unauthorized. Built-in source/artifact/host/finally guards passed.
+Post-result read-only inspection found sole PostgreSQL listener PID2340 on55503,
+ports3000/3001 absent, and no migration output created.
+
+Root independently checked those receipts and recorded Migrate admission
+`.yellow/evidence/order460/root-q251-migrate-admission-20260913.json`, SHA256
+`0c77d6c5f5327cb5180b2840e917641f1886444ff705392e40f587956a2fac8d`.
+The same reviewer executed the same executable/script exactly once with:
+
+```text
+Action=Migrate
+RootHandoff=true
+ExpectedRunnerSha256=cb211e321fef2fe326c7f2a7e3cd181c697aae16a2da81c1301a13c7f930d15c
+ExpectedCaptureSourceSha256=15b86b60d51ad88e68e6d29ca9f92440111aa37f01f2a7ec7a49e489bf5a9cfb
+ExpectedVerifierSha256=c183ab26b01dcda7c01e863b7f3d1998bb6ae6aa94fd61b2e1f86e082498716b
+ExpectedSourceArtifactReceiptSha256=569b3656b4ccab40c6a7bda317b15d22299d51d337d93795cad5d82a0d4a8495
+ExpectedBaseline90Sha256=3a54d745717783036b5dd76a896a78ee96cbe976709b9cd9e62fcc7fc2b9027b
+ExpectedRecovery90Sha256=2d201dcbd32dcb3ffe510079ff757e640ced2314d32bd94bdb813c418e01b131
+ExpectedRecoveryVerificationSha256=d019ab4ef13e56d5184b2d8e6e9eec4af741552007cc439203f613c100c677d9
+```
+
+It exited0 without retry: only canonical
+`0091_reservation_alert_authority.sql` applied, the immediate second run was an
+exact no-op, frontier91 was accepted, recovery remained retained, and no runtime
+launch occurred. The five current proof hashes required by later Prepare/staging are:
+
+- pre-migrate serving90
+  `e66c336331fc7df1a1891bbb5d187d75533fea4b16be25e025288d7c1793b95a`;
+- pre-migrate recovery90
+  `f3f125db9a005a12f241ac88b9f7e8d79d461e2499a9b27ac2a1983546d1cf9a`;
+- migration receipt
+  `c75010e97601b2376d5e8da1fad9114c7e60e47d4dc204e8550bdf56d86d47fa`;
+- after91 serving capture
+  `0425c6d2872e1131f170558c3044f6fa037d8e666d01fd84ed8aa00fea162599`;
+- final verification
+  `e51adef9a799f47916298736fe96b2a8d8a83843d3a6979e35e59515308ae430`.
+
+Final verification accepted after91 content
+`4419430db4bb10f57da859beef7277de7cf7f2c131237d14cb51a4c18a079481`
+and ledger append
+`f55d845208ee68c8677ca494a305e1f77be9e8f4d591a021c8aecdfb31aa4940`.
+Changed catalogue keys are exactly `column:alert:2` through `column:alert:8`;
+business rows, sequences, previous ledger rows, roles, companions and unrelated
+catalogue closures remained fixed. Built-in continuity, session, source, artifact,
+host, output and final preservation guards passed.
+
+Reviewer separately cleared source-only attempt-supervisor projector
+`90bd016f74e00501d2e9e5195d8881e33c2cc55f5986358e2bf41c06bf5d37ca`
+and test `3723b40e9ddf615e3e51440bef3968f62c3b8c993f3d09ee589f590449bada9f`.
+Its in-memory output was exactly25258 bytes, SHA256
+`198e7efb3459373396b4e296354cd73afb3c91268eba5f9c63b61a6c05e88434`;
+the pure test reported no writes, host/database access or runtime start.
+
+Initial Q251 stage-chain source
+`3428a5f316fc173b7a3f31b440aa929629e18021759c4c16e51f8bfb547949de`
+and test `2ae7241c1e500ff8a64bc55879f6033bb8d77d7d43dc7cb4e75eafd2f5dcff80`
+passed their declared3 accepted/18 rejected cases, but reviewer hostile probes found
+PowerShell truthiness accepted textual `"false"` for `ready` and `providersEmpty`;
+numeric strings were likewise coercible. No live stage had run. Root added exact
+type guards over all12 stage Booleans/3 integers, all3 stopped Booleans/port and
+all5 classification Booleans/port. Final chain
+`6550fb05bdcd71c93f14aa2ddd3a16fe61871c7c6aa31c4b1947ccfdc6d0085e`
+and test `d6b2e092666bedf99b375a41de0eb185149e462ee2f965091d455422112f8999`
+then personally passed reviewer source proof:10 mandatory admissions,3 accepted and
+131 rejected hostile cases, zero child invocation/write/host/database/credential or
+runtime access. Extra probes confirmed the original strings and textual stage/
+classification integers now reject. This is conditional source clearance pending
+exact final controller and semantic-wrapper review; it is not stage execution.
+
+Root later reported Prepare completed green. Prepare was not executed or independently
+verified by `/root/q251_runtime_review` in this section. No result here claims live
+port3000, promotion, provider activation, worker convergence or phase completion.
+
+### September 13 Q251 corrected controller review and consumed red stage admission
+
+The prior `6550fb05bdcd71c93f14aa2ddd3a16fe61871c7c6aa31c4b1947ccfdc6d0085e`
+stage-chain source was never executed live. Subsequent end-to-end source comparison
+found that the controller deliberately records `stage.ready` as the full `/ready`
+response object, while that synthetic chain test had modeled it as a Boolean. Root
+replaced the chain before live admission with
+`0e2c83cf1026c8b6ce7aacd1ad25016981d0471d37d4f4edde40ade2520e799c`
+and test
+`b588a0025ba023f10fc110bf7647a5e70a54b209264a3475a4214064bbce913e`.
+The corrected test uses the actual nested readiness shape and strictly validates
+status `ready`, target `yellow_runtime_database`, schemaVersion1, current source
+`44ef5e08f985c59d61351ecf32e503233f4038c5`, frontier91, exact keys and integer
+types. The reviewer personally obtained3 accepted/134 rejected with zero child,
+write, host, database, credential or runtime action.
+
+Review of the initial controller exposed three independent defects before admission:
+missing path bindings masked by full-source parse-only tests, absent exact-case Action
+rejection, and no nested readiness validation when re-reading a stage receipt. Root
+and the author corrected all three. The reviewer then cleared frozen controller
+`b27613832fee24c2821fd4cfb59fc79178f66b24ab97dc149a61f91fa67fa727`
+and test
+`2a4ad9032335c7451fa064ecf76b027617c43ded3524fba0c3e777071933f24e`:
+11 passed/0 failed/67 expectations, including full authority-free Review
+initialization, early exact-case rejection, exact typed readiness validation in both
+live HTTP proof and `Read-Stage`, and no unexplained script-scope variable. That test
+performed no runtime or database action.
+
+Root then admitted exactly one stage-chain attempt in
+`.yellow/evidence/order460/root-q251-stage-chain-admission-20260913.json`, SHA256
+`31238d1647d2d2cd23d4cecbe49197800a6f597ec5d1f5f06f4f5eaf8988acbd`.
+The independent reviewer executed the following exact native PowerShell invocation
+once, with no retry:
+
+```text
+executable=C:\Users\astha\.cache\codex-runtimes\codex-primary-runtime\dependencies\native\powershell\pwsh.exe
+processArgs=-NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File .\.yellow\evidence\order460\current-runtime-q251-stage-chain-20260913.ps1
+ExpectedRunnerSha256=0e2c83cf1026c8b6ce7aacd1ad25016981d0471d37d4f4edde40ade2520e799c
+ExpectedControllerSha256=b27613832fee24c2821fd4cfb59fc79178f66b24ab97dc149a61f91fa67fa727
+ExpectedSemanticWrapperSha256=0e23d7f50f449ff97a364a904d8b0abe6e09fca9951bf6759d712485d4a65e70
+ExpectedPreMigrateServing90Sha256=e66c336331fc7df1a1891bbb5d187d75533fea4b16be25e025288d7c1793b95a
+ExpectedPreMigrateRecovery90Sha256=f3f125db9a005a12f241ac88b9f7e8d79d461e2499a9b27ac2a1983546d1cf9a
+ExpectedMigrationReceiptSha256=c75010e97601b2376d5e8da1fad9114c7e60e47d4dc204e8550bdf56d86d47fa
+ExpectedAfter91Sha256=0425c6d2872e1131f170558c3044f6fa037d8e666d01fd84ed8aa00fea162599
+ExpectedFinalVerificationSha256=e51adef9a799f47916298736fe96b2a8d8a83843d3a6979e35e59515308ae430
+ExpectedEnvironmentSha256=547adc9a54808b2d1d1ea21e006cb8cfd4e977974c7f1efb3cca9113e0bcb536
+ExpectedCandidateReceiptSha256=882399ddac4871aaeb6ddc1c88233913eb69cc8c7fb2cc3f792660efe7a93642
+RootHandoff=true
+```
+
+The attempt stopped red without retry after admitted Baseline91 completed read-only
+at frontier91. The preserved baseline is
+`D:\Yellow\temp\order460-worker-semantic-capture-q251-20260913\baseline91.json`,
+SHA256 `c06b41670c1c979657b3427aea983a9b3be688d0911ce0b7805204e1bc78898d`,
+797196 bytes; it reports `readOnly=true`, `mutation=false`, `accepted=false` and
+`classificationPending=true`. Stage3001 failed before projector execution, attempt
+root creation or runtime launch because `Assert-SemanticWorkerReceipt` was not
+defined. `Get-Q251SemanticDefinition` already returns a
+`function script:Assert-Receipt` definition, but the controller's second rename
+looked only for `^function\s+Assert-Receipt`; it therefore retained the old function
+name while callers used the new one. The same defect affects the paired
+`Read-SemanticRawReceipt` rename. Authority-free Review missed it because Review
+completed bootstrap without invoking either imported semantic validator. A successor
+must assert the already-script-scoped header replacement count and execute the
+baseline validator/imported-command contract in its regression test.
+
+Post-failure read-only inspection found no attempt root, stage, classification,
+settled or stopped receipt and no listeners on3000/3001. PostgreSQL alone remained
+on PID2340, port55503, start `2026-09-12T17:14:09.3086384Z`. All red evidence and the
+consumed baseline remain preserved. This is not a live-stage, worker-convergence,
+promotion or phase-completion result.
+
+### September 13 Q251 R2 imported closure and bounded stage proof
+
+The R2 controller made the failed semantic rename explicit: it transforms the
+already-script-scoped function header exactly once, verifies both renamed commands
+resolve, and uses a fresh semantic capture root while preserving the red baseline.
+The reviewer personally verified controller
+`26aa9837f56a216843e3ccfc4ae676a44311a0c9a6c6f2af51a5e0822e330112`
+with test `6ca96f44f842216958766edbf50b6160bd92f883d3c661e42ee00ebb35572138`
+(12 passed/0 failed/71 expectations), semantic wrapper
+`2312d0cf2848b04110c68303fcc8fefe1d56a2b2e5e199bdda29c9506a314cdb`
+with test `8e4fe5ecf5b32ddc02768942d20abd3bc455c5bad40409dc481e4c216ad5da09`
+(3 passed/0 failed/7 expectations), and R2 chain
+`bac46b3fd49a1f72d50288b62ab3a575cd01b8c975587c143397413fcd8f55bc`
+with test `81b20da0f09b1b9462fb18eb111af67cbe273d63bcf1af24c801ad7a506250cf`
+(3 accepted/134 rejected, zero effects). In addition, the reviewer invoked the
+controller's actual outer `Assert-WorkerBaselineReceipt` offline over preserved
+baseline `c06b41670c1c979657b3427aea983a9b3be688d0911ce0b7805204e1bc78898d`
+with the exact hard-coded source/query digests, source-artifact pin, host identity and
+query pins. It accepted baseline91/read-only/frontier91 without database access,
+writes or payload output.
+
+Root admitted one R2 chain in
+`.yellow/evidence/order460/root-q251-stage-chain-r2-admission-20260913.json`, SHA256
+`263ce82b1cbf5f4673a75739d82b5a3a27d8a2ce9acb0d3d7eb8f225b4bce3e9`.
+The reviewer executed the following exact native PowerShell invocation once:
+
+```text
+executable=C:\Users\astha\.cache\codex-runtimes\codex-primary-runtime\dependencies\native\powershell\pwsh.exe
+processArgs=-NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File .\.yellow\evidence\order460\current-runtime-q251-stage-chain-r2-20260913.ps1
+ExpectedRunnerSha256=bac46b3fd49a1f72d50288b62ab3a575cd01b8c975587c143397413fcd8f55bc
+ExpectedControllerSha256=26aa9837f56a216843e3ccfc4ae676a44311a0c9a6c6f2af51a5e0822e330112
+ExpectedSemanticWrapperSha256=2312d0cf2848b04110c68303fcc8fefe1d56a2b2e5e199bdda29c9506a314cdb
+ExpectedPreMigrateServing90Sha256=e66c336331fc7df1a1891bbb5d187d75533fea4b16be25e025288d7c1793b95a
+ExpectedPreMigrateRecovery90Sha256=f3f125db9a005a12f241ac88b9f7e8d79d461e2499a9b27ac2a1983546d1cf9a
+ExpectedMigrationReceiptSha256=c75010e97601b2376d5e8da1fad9114c7e60e47d4dc204e8550bdf56d86d47fa
+ExpectedAfter91Sha256=0425c6d2872e1131f170558c3044f6fa037d8e666d01fd84ed8aa00fea162599
+ExpectedFinalVerificationSha256=e51adef9a799f47916298736fe96b2a8d8a83843d3a6979e35e59515308ae430
+ExpectedEnvironmentSha256=547adc9a54808b2d1d1ea21e006cb8cfd4e977974c7f1efb3cca9113e0bcb536
+ExpectedCandidateReceiptSha256=882399ddac4871aaeb6ddc1c88233913eb69cc8c7fb2cc3f792660efe7a93642
+RootHandoff=true
+```
+
+The one-shot chain exited0 without retry. Exact receipts are fresh Baseline91
+`c68aea5344c41f9c17ca3eb49a1317fe692e161444a82fe9e495e2fb56a3c0f6`,
+stage `23d7461cb76e313330fa42568404b3e1f0ffbc89e418b8f085bc5c17e7ad2da5`,
+eligible classification
+`e47cb11369e97084cf899e3516f6349a316c8cc49ec4400b216dee2ff43d6388`,
+Settled91 `11ed47c4fd4c1ff524f5c736b4bfacbdedbe76287ff54dbd4eeb99648af6a2ff`
+and stopped `e3ea01c4cb90aedc23dde6ddaaf6cf7109f350feb425fa5f7603553940fde7a6`.
+The projected supervisor remained exactly
+`198e7efb3459373396b4e296354cd73afb3c91268eba5f9c63b61a6c05e88434`.
+
+The temporary stage proved current source44ef, schemaVersion1/frontier91, login,
+list, detail, assets and issued-readiness paths, with providers empty. Launch health
+was accepted while honestly classifying the eligible fixture as
+`blocked_supplier_issue_status_unavailable`; `invoiceEligible=false` and no fiscal
+issuance occurred. Settled91 and its worker audit accepted, after which owned
+StopStage accepted the worker proof and stopped both exact processes with
+`automaticRestart=false`. Post-result inspection found ports3000/3001 absent and
+only PostgreSQL PID2340/start `2026-09-12T17:14:09.3086384Z` on55503. The result is
+`Promoted=false`; it proves bounded temporary staging and worker convergence, not
+port3000 promotion, provider activation or phase completion.
+
+### September 13 Q252 root-executed current-source promotion
+
+This promotion was executed by root, not by `/root/q251_runtime_review`. The source
+author was `/root/q251_worker_source`; independent reviewer `/root/q251_artifact`
+reported 5 passed/0 failed/61 expectations and personally executed the frozen
+helper's authority-free Review. Frozen promotion helper
+`current-runtime-q251-promotion-20260913.ps1` is SHA256
+`dc7ee842947a11a8e228e00dcd9cf0d114a62d035209f3f68f58c65994ee158f`;
+its focused test is
+`f7bc0583f289698645e407df4be0aab17d31454d98fb6849de10b9afcbc87867`.
+The independent source review verified the full closure and exact identities before
+root admitted the single external action.
+
+Root recorded admission
+`.yellow/evidence/order460/root-q252-promotion-admission-20260913.json`, SHA256
+`75b2ca8676e6298e439097792782e2fb91bbf39c57bf34bf20c6aef0198a02f1`,
+and executed exactly one `Promote` with `RootHandoff` using runner
+`dc7ee842947a11a8e228e00dcd9cf0d114a62d035209f3f68f58c65994ee158f`.
+The admission pins source artifact `569b3656...`, the five accepted current91
+migration inputs (`e66c3363...`, `f3f125db...`, `c75010e9...`, `0425c6d2...`,
+`e51adef9...`), environment `547adc9a...`, candidate `882399dd...`, stage
+`23d7461c...`, stopped stage `e3ea01c4...`, Baseline91 `c68aea53...` and
+Settled91 `11ed47c4...`. The helper exited0 and wrote promotion receipt SHA256
+`e1644dfcff430fca688cc9308025a23309044448627040f795722c0fd42fb905`;
+the separate port3000 eligibility-classification receipt is
+`232c6e0c7bc080b89f0674a278fc97798f7d00dbaf49fc82ef9acf7bebde0691`.
+
+Root personally rehashed and read the receipt and checked the resulting host. It
+records source `44ef5e08f985c59d61351ecf32e503233f4038c5`, exact `/ready`
+schemaVersion1/frontier91, successful login/list/detail/assets/issued-readiness,
+providers empty, sole app listener true and automatic restart false. The honest
+eligible classification remains `blocked_supplier_issue_status_unavailable` with
+`invoiceEligible=false`; no provider activation or fiscal issuance is claimed.
+Root observed the sole application listener at `127.0.0.1:3000`, PID16604/start
+`2026-09-12T21:17:35.2925636Z`, supervised by PID11376/start
+`2026-09-12T21:17:31.9231970Z`; port3001 was absent and PostgreSQL PID2340/55503
+remained unchanged. This establishes root-executed current-source local promotion,
+not independent execution by this reviewer, external publication, provider
+activation, legal readiness or a phase-completion decision.

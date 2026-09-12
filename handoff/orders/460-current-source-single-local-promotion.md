@@ -676,3 +676,162 @@ projector/runner/evidence preserve the consumed first generation. Reuse the same
 artifact and dependencies. The inspected r5 selective publisher may be adapted
 source-only to receiving scope and cumulative artifact-base proof; actual commit/
 push still requires exact green standing and root admission, with no own merge.
+
+### September13 receiving publication and frontier91 runtime preparation
+
+The exact r2 candidate passed independent native standing:2106pass,
+1495explicit existing environment/platform skips,0fail,41493assertions; types,
+198boundaries and licenses green. Standing6623379d6afc826a49ad62a06449dc799e55150abbe17204a522f1152e29a0f3
+retains the first red and proves restored artifact/dependencies and preserved
+source/index/refs/objects/listeners. The independent publisher inspection and
+personally executed4/0(42) approved exact09b93b9c helper.
+
+Root's one exact publication admission0c735ab5a795953fd04528aecc2fb0ddc0ef8d391ee399d6a454d2b92cc50f96
+succeeded as commit6f5908f7dd1539671417abebee29edfc4b101bed,
+tree73f5cdd5b1736e68f8ceedd3a6687544cab40800. Completed receipt
+b3be2b8f8b09ad610b49489728df94663c41374d65b4795ff5b00ab3dff1e490
+records88selected/86changed paths, preserved working/index residuals and one
+ordinary non-force push to existing draft PR92. No main merge or runtime change.
+Exact-source CI34713936966 is pending; older CI is not this commit's proof.
+
+Admit only native SOURCE preparation in private Order460 evidence for the next
+frontier90→91 integration: prepare-receiving-runtime-source-20260913.ts and its
+test; receiving-serving-capture-20260913.ts; receiving-serving-verify-20260913.ts
+and its test; receiving-serving-recovery-migrate-20260913.ps1 and its test.
+Preserve original helpers and consumed output roots. Reuse the reviewed archive,
+read-only whole-database capture and fixed host/credential mechanisms; retain
+bounded time/output, current identity, protected receipts, exact source/dependency
+and unrelated state preservation. Fresh runtime source uses one dependency
+junction, not a duplicate dependency tree. Capture/verify must permit only the
+canonical0091 column grants and single migration-ledger append, not business
+row, existing migration, role, sequence, companion or unrelated catalogue changes.
+
+Actual artifact materialization needs an exact reviewed root admission. Actual
+database actions additionally require successful exact-source CI, current stopped
+app/retained PG identity and separately reviewed one-shot recovery then migration
+admissions. The recovery must be current frontier90, verified before0091 applies
+once; replay must be a no-op. No database, credentials, schema or runtime access
+is admitted by source preparation. No reset/reseed, old migration replay, provider
+activation or launch/promotion. Reuse accepted isolated91 evidence; do not rebuild
+that proof database. Subsequent local3000 promotion remains a separate verified step.
+
+### Q251 — exact receiving CI failure and scoped correction
+
+CI34713936966 completed with five green jobs and one database failure. Canonical
+migration reached91 correctly; the Order453 series authority beforeAll still
+expected90 in ci-canonical mode. Q251 admits one companion expectation correction
+in tests/india-native-fiscal-series-authority.integration.test.ts, retaining the
+native-draft89 branch and all authority/transaction assertions. No workflow target
+rename or behavior change. Root may prepare a small selective successor publisher
+and its tests in this order's private evidence, preserving source/index/refs and
+all unrelated staged work. Actual publication needs independent focused proof and
+the existing native standing plus transparent disclosure that new canonical DB
+execution is pending. Old failed CI is retained and never relabelled green.
+Local database Recovery/Migrate remains held for a green exact-source release.
+
+Q251 source tracing identifies three further full-current companion oracles in
+build-readiness, native-fiscal-release-containment and fiscal-series-discovery.
+The question now explicitly lists all four test files. Correct only their actual
+full-current91 count/frontier and readiness0090+0091 applied-file expectations;
+historical prefix89/90 proofs, exact IDs and checksums remain unchanged. A native
+path-scoped Git commit is also an admitted publication implementation: inspect
+staged overlaps, include only these tests and Q251, preserve unrelated staged
+entries and every working byte, verify resulting diff and parent, then ordinary
+non-force push. No custom publication framework is required for this test-only
+correction. Existing dirty460 evidence is not part of that commit.
+
+Independent full-current oracle tracing additionally admits
+tests/database-acceptance.integration.test.ts, appending only canonical0091's
+known filename/checksum to its exhaustive ledger. The explicit89+0090 branch in
+native-fiscal-release-containment remains90; only its fresh-default count/final
+filename advances91. Q251 now contains the exact five-test inventory. No
+historical prefix proof is weakened or removed.
+
+Q251 is published as44ef5e08f985c59d61351ecf32e503233f4038c5, parent6f5908,
+treeeeda68cc1c0aaa81b255d4587e94251724e86339. Exactly five companion tests
+and Q251 changed; every working byte and outside-scope staged entry/flag/ref was
+verified preserved around the path-scoped commit and ordinary push. Root's
+independent focused execution14pass95DB-gatedskips0fail159assertions, typecheck
+and198boundaries passed. Exact CI34715736504 is running; prior CI remains red.
+
+The full receiving90-to91 private wrapper26c0395a and verifier fb0618eb passed
+independent source proof; root combined15/0(106). They are frozen source evidence,
+not authority to run against a new HEAD. Admit source-only mechanical successors
+prepare-receiving-runtime-frontier-fix-20260913.ts and its test for Q251's exact
+commit/tree/artifact identities. Preserve the completed6f5908 artifact and reuse
+the same dependency junction. Obtain archive identity with read-only Git output;
+do not materialize until exact new source helper has independent proof and root
+admission. Later capture/verifier/wrapper successor bindings need the same exact
+review, and actual DB execution remains held until new CI is green.
+
+Q251 runtime source successors are explicitly limited to the private files
+receiving-serving-q251-capture-20260913.ts,
+receiving-serving-q251-verify-20260913.ts and its test, and
+receiving-serving-q251-recovery-migrate-20260913.ps1 and its test. Mechanically
+rebind source commit/tree/archive/receipt/helper hashes and the unique recovery
+database name only; retain all reviewed behavior and predecessor evidence.
+New recovery name: yellow_order460_recovery_44ef5e08f985_20260913.
+Actual one-shot recovery and migration still require separate root admissions
+after independent executable proof and exact current CI success.
+
+Source-only subsequent runtime preparation is admitted in private Order460
+evidence: current-runtime-q251-adapter.ts and its test, plus scoped current-runtime
+q251 preparation/controller/worker-capture/attempt/stage-chain successors and their
+focused tests. Reuse the accepted bounded supervisor, row/semantic auditors and
+host identity mechanism; preserve consumed547/r9 and6f5908 evidence. Rebind only
+current44ef5 source/artifact/recovery/frontier91 and fresh output identities unless
+a separately recorded defect requires correction. Preparation must preserve the
+retained credential values, tenant, serving database, six approved worker flags,
+empty providers and local-only prefill. No actual preparation using credentials,
+runtime launch, worker execution, stop or promotion is admitted by this source-only
+scope. New local execution remains a separate hash-pinned root handoff after
+verified91 recovery/migration/readiness and independent proof.
+
+### Q252 — explicit current single-local promotion source
+
+Question252 records the previously nonexplicit promotion source boundary. Admit
+only private current-runtime-q251-promotion-20260913.ps1 and its .ps1.test.ts under
+.yellow/evidence/order460, reusing final reviewed Q251 controller guards and the
+accepted predecessor promotion mechanics. Do not alter the stage controller or
+consumed receipts after freezing. Review/Promote separated; synthetic actual guard
+proof, exact Boolean/integer types, current91 readiness and native100ns process
+identity are mandatory. The old parent's CIM timestamp writer cannot be reused
+with nativeprecision consumers. Preserve all current source, credentials, six
+worker/provider flags and staged3001 evidence. Prove fresh per-port outputs if
+reusing the nativeprecision stage supervisor for3000.
+
+No actual promotion, credentials, SQL, process launch/stop, source publication or
+provider action is admitted by this source scope. Actual3000 requires accepted
+current Stage/Settled91/Stop, independently executed helper proof, exact current
+source/CI/artifact/candidate/environment and five migration-proof pins, exact
+stopped-host/output checks and separate one-shot root admission. Failure cleanup
+is limited to the launch-owned process generation; success leaves only the proved
+loopback3000 app. No reset, reseed, old receipt replay, own merge or phase closure.
+
+### Q251 consumed StageChain import defect — bounded r2 source correction
+
+The one admitted chain31238d16 completed a read-only baseline91 (c06b4167)
+then failed before projection or runtime launch: Get-Q251SemanticDefinition
+already returned a script-scoped function header, so the second rename failed
+to install Assert-SemanticWorkerReceipt. Preserve b276 controller, 0e2c chain,
+their tests, the red invocation and baseline as historical evidence. The baseline
+is not a settled proof and cannot be reused beyond the unchanged 60-second window.
+
+Admit private current-runtime-q251-controller-r2-20260913.ps1 and its test,
+retained-worker-semantic-capture-q251-r2-20260913.ps1 and its .ps1.test.ts,
+current-runtime-q251-stage-chain-r2-20260913.ps1 and its .test.ps1. The worker
+wrapper changes only its fresh output root to the matching q251-r2 directory;
+capture TypeScript, SQL, auditor and timing predicates stay unchanged. The
+controller fixes exact script-scoped import renaming and adds executable function
+resolution checks; bind the fresh wrapper/root. Chain binds these new files/root,
+with unchanged one-shot sequence and strict receipt semantics. No attempt root
+exists, so the same unconsumed native supervisor projection remains admissible.
+Q252's unexecuted promotion source may follow the reviewed r2 controller/wrapper
+and fresh baseline/settled paths, correcting the same import/dependency defect.
+
+Source proof must execute the actual imported baseline validator against the
+retained read-only c06b receipt offline, plus resolve the whole custom-function
+dependency closure. The stored baseline is diagnostic input, not new staging
+authority. Independently reexecute proof before a new separate root admission.
+No database reset, timing relaxation, receipt overwrite, destructive cleanup,
+replay of consumed helpers, provider action or automatic retry is authorized.
