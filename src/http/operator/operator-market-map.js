@@ -239,7 +239,8 @@
         const sources = land ? { land: { type: "geojson", data: land } } : {};
         const layers = [{ id: "background", type: "background", paint: { "background-color": "#e9eef0" } }];
         if (land) layers.push({ id: "land", type: "fill", source: "land", paint: { "fill-color": "#d5dfcf", "fill-opacity": 0.9 } });
-        map = new maplibre.Map({ container: ui.canvas, style: { version: 8, sources, layers }, center: [0, 20], zoom: 1.4, attributionControl: false, maxBounds: [[-180, -85], [180, 85]] });
+        // A 360-degree maxBounds can produce a singular camera matrix; use the global defaults.
+        map = new maplibre.Map({ container: ui.canvas, style: { version: 8, sources, layers }, center: [0, 20], zoom: 1.4, attributionControl: false });
         map.addControl(new maplibre.NavigationControl({ showCompass: true }), "top-right");
         map.on("load", () => { ui.visible.disabled = false; ui.radiusSearch.disabled = false; if (typeof map.setProjection === "function") { ui.globe.hidden = false; } renderMarkers(); renderRadius(); if (lastSearchMode !== "bbox") fitToPlaces([...placeById.values()]); });
         map.on("moveend", () => { lastBounds = boundedBounds(map.getBounds()); renderRadius(); });

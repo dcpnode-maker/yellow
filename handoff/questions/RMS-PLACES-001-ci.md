@@ -57,3 +57,9 @@ with the already-published source and evidence. Preserve all older historical
 assertions, phase states, independent review coverage and runtime caveats. The
 correction must not change production status, skip tests or loosen assertions.
 The failed run provides no renderer, database or container acceptance.
+
+The required renderer now runs before the full regression suite, after the
+existing runner/type/isolation checks. This sequencing change is admitted before
+editing CI: retain every gate and artifact rule, fail earlier on the observed
+map initialization defect, and avoid repeating the long suite before each
+renderer correction. It neither skips nor relaxes the full suite on a green run.

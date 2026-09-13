@@ -211,3 +211,14 @@ the product's friendly fallback unchanged. MapLibre6.9's actual pinned source
 requires WebGL2, so the proof now requires WebGL2 explicitly and releases its
 probe context. No test assertion or CSP is relaxed, and no renderer fix is yet
 claimed. Both root and independent status reviewer pass the merged234 assertions.
+
+CI34740793655 onc43e4836 reproduces the failure with WebGL2=true and every map
+asset200. The captured initialization TypeError reads null index0; it occurs
+before a worker request. The upstream primary issue6148 reports this same error
+for a360-degree maxBounds, exactly the option supplied by this map constructor:
+https://github.com/maplibre/maplibre-gl-js/issues/6148. Remove the redundant global
+maxBounds and use the engine's default global camera. The existing boundedBounds
+client checks and server5-degree/radius budgets remain unchanged. Required actual
+browser proof establishes whether this candidate resolves the observed failure;
+the issue report alone is not a Yellow test. Move that proof before the full
+suite under the admitted CI clarification, retaining all required gates.

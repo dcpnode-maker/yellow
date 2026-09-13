@@ -223,9 +223,6 @@ jobs:
           tests/operator-owner-trust-workbench-browser.integration.test.ts
           tests/operator-business-day-discrepancy-carry-browser.integration.test.ts
 
-      - name: Test
-        run: /usr/bin/time -v bun test
-
       - name: Prove market map renderer and interactions
         id: market-map-browser
         env:
@@ -242,6 +239,9 @@ jobs:
           if-no-files-found: error
           retention-days: 7
           include-hidden-files: false
+
+      - name: Test
+        run: /usr/bin/time -v bun test
 
   container-smoke:
     needs: quality
