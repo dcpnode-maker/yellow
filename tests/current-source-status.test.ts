@@ -1,7 +1,7 @@
 import { expect, test } from "bun:test";
 import { PROJECT_BUILD_SNAPSHOT } from "../src/project-status";
 
-test("Order467 distinguishes recorded source and promotion receipts from current runtime", () => {
+test("Order467 distinguishes accepted source and timestamped delivery from current runtime", () => {
   expect(PROJECT_BUILD_SNAPSHOT.recordedAt).toBe("2026-09-13");
   expect(PROJECT_BUILD_SNAPSHOT.roadmap).toEqual({ phaseCount: 18, latestBuiltOrder: 466, currentOrder: 460, activePhase: 7 });
   expect(PROJECT_BUILD_SNAPSHOT.label).toBe("Current-source receiving integration in progress; invoice source accepted");
@@ -38,12 +38,18 @@ test("Order467 distinguishes recorded source and promotion receipts from current
   expect(byOrder.get(463)?.remaining).toContain("does not complete Phase 4 or Phase 7 or substitute for workflow-specific acceptance");
   expect(byOrder.get(464)?.summary).toContain("34 tests with 6 existing database-gated skips and 0 failures");
   expect(byOrder.get(464)?.remaining).toContain("published successor 41415cc5 and the local release verified on September 13");
+  expect(byOrder.get(464)?.remaining).toContain("Dynamic runtime build information");
   expect(byOrder.get(464)?.remaining).toContain("Source delivery does not itself establish workflow-specific acceptance or phase completion");
   expect(byOrder.get(465)?.summary).toContain("46004d6f9b61a02f14259fd3f911e85a72ae0c60 passed six-job CI run 34721116555");
   expect(byOrder.get(465)?.remaining).toContain("provider activation, Q253 policy resolution and Phase 7 completion remain separate");
   expect(byOrder.get(466)?.summary).toContain("41415cc5c6953f71d9b3baada6fd9c7853567128; CI run 34725373251 passed six jobs");
   expect(byOrder.get(466)?.remaining).toContain("Current runtime identity remains dynamic");
   expect(byOrder.get(466)?.remaining).toContain("No new database proof, provider activation or Phase 7 completion follows from this local delivery");
+  expect(byOrder.get(466)?.remaining).toContain("both exact served invoice assets");
+  for (const order of [463, 464, 465, 466] as const) {
+    expect(byOrder.get(order)?.remaining).not.toMatch(/not live|integration remain pending|runtime is stopped/);
+    expect(byOrder.get(order)?.remaining).toMatch(/runtime.*(dynamic|identifies)/i);
+  }
   expect(PROJECT_BUILD_SNAPSHOT.phases.map(({ number, state }) => [number, state])).toEqual([
     [0,"reviewed"],[1,"reviewed"],[2,"reviewed"],[3,"reviewed"],[4,"built_unverified"],
     [5,"reviewed"],[6,"reviewed"],[7,"active"],[8,"planned"],[9,"planned"],[10,"planned"],

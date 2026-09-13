@@ -2,7 +2,7 @@ import { expect, test } from "bun:test";
 
 import { PROJECT_BUILD_SNAPSHOT } from "../src/project-status";
 
-test("Order467 status preserves the verified Order444 preview without claiming current activation or Phase7 completion", () => {
+test("Order467 status preserves historical Order444 preview without claiming Phase7 completion", () => {
   expect(PROJECT_BUILD_SNAPSHOT.schemaVersion).toBe(2);
   expect(PROJECT_BUILD_SNAPSHOT.recordedAt).toBe("2026-09-13");
   expect(PROJECT_BUILD_SNAPSHOT.roadmap.latestBuiltOrder).toBe(466);

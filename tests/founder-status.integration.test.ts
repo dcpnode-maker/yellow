@@ -579,11 +579,13 @@ describe("Order 064 recorded build snapshot", () => {
     expect(PROJECT_BUILD_SNAPSHOT.recordedWork.filter(({ order }) => order === 440 || order === 444).map(({ order, state }) => [order, state])).toEqual([
       [440, "proof_in_progress"], [444, "proof_in_progress"],
     ]);
+    expect(PROJECT_BUILD_SNAPSHOT.recordedWork.at(-1)?.order).toBe(466);
     expect(PROJECT_BUILD_SNAPSHOT.recordedWork.at(-1)?.state).toBe("independently_approved");
     expect(PROJECT_BUILD_SNAPSHOT.recordedWork.find(({ order }) => order === 461)?.summary).toContain("synthetic sandbox transport");
     expect(PROJECT_BUILD_SNAPSHOT.recordedWork.find(({ order }) => order === 462)?.remaining).toContain("No client data has been loaded");
     expect(PROJECT_BUILD_SNAPSHOT.recordedWork.find(({ order }) => order === 463)?.summary).toContain("referee 11/11");
     expect(PROJECT_BUILD_SNAPSHOT.recordedWork.find(({ order }) => order === 464)?.remaining).toContain("Source delivery does not itself establish workflow-specific acceptance or phase completion");
+    expect(PROJECT_BUILD_SNAPSHOT.recordedWork.find(({ order }) => order === 464)?.remaining).toContain("published successor 41415cc5");
     expect(PROJECT_BUILD_SNAPSHOT.recordedWork.find(({ order }) => order === 465)?.remaining).toContain("Current runtime identity remains dynamic");
     expect(PROJECT_BUILD_SNAPSHOT.recordedWork.find(({ order }) => order === 466)?.remaining).toContain("No new database proof, provider activation or Phase 7 completion follows from this local delivery");
     expect(PROJECT_BUILD_SNAPSHOT.recordedWork.find(({ order }) => order === 199)?.summary).toMatch(/196–199/);

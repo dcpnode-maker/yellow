@@ -186,3 +186,16 @@ review coverage91 and provider/runtime caveats remain asserted. New assertions
 pin Orders465/466 to their recorded source/CI receipts and preserve the difference
 between historical promotion and current runtime. The unchanged database cases
 remain CI work; no deployment or release is inferred from status test success.
+
+The independent nonimplementer separately executes the same8/2skips/0fail/222
+assertions and finds no weakened history or release boundary. Source7230e7ce is
+published. No CI run starts while the PR reports dirty. The initially returned
+base da9 is an ancestor (GitHub compare ahead5/behind0 and local merge-tree both
+clean); refreshing the existing draft subsequently reveals newly published
+receiving d819e080, which independently repairs the same three status tests.
+This newer merge genuinely conflicts only in those three files. Incorporate all
+receiving source/documents unchanged, retain its test names and new runtime/last
+order assertions, plus this lane's stronger receipt and completion assertions.
+Root's combined three-file proof passes8/2existing DB skips/0fail/234 assertions.
+The PR92 coordination comment5651386935 identifies the shared status repair and
+retains this lane's map ownership. Actual renderer acceptance still awaits CI.

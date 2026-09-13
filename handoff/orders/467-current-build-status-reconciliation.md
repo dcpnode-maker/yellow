@@ -62,3 +62,14 @@ Q259 supplies the separate exact sixteen-path native publication scope, includin
 inspected current governance and completed465/466/460 runtime/CI evidence. No
 outside mixed work is admitted. Publication does not itself update the running
 artifact or establish fresh CI; those results remain separately recorded.
+
+Q259 published da9f97d4 on draftPR92 with all16 scoped blobs and outside state
+verified. Exact CI34738436620 found three stale current-snapshot regression
+oracles plus two unchanged5000ms subprocess timeouts. Q260 admits only the named
+regression alignment and unchanged isolated diagnosis before successor release.
+Current immutable41415/frontier91 remains live;467 is not delivery-accepted.
+
+Q260 local repair accepted after root8pass/2DBskips/0fail226 and separate
+nonauthor same proof/types198boundaries. Root unchanged isolated AST/referee
+cases2pass/4DBskips/0fail5; no timeout changes. Exactly nine successor paths are
+listed in Q260. Publication/new-head CI remain distinct from this source proof.

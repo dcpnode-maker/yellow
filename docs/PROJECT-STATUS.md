@@ -4,7 +4,7 @@
 <!-- current-phase: 7 -->
 <!-- current-task: Codex Yellow — resumed: integrate existing PriceLabs/market pipelines and private staging, then current-line phase closure and the retained build priorities -->
 <!-- current-order-files: handoff/orders/467-current-build-status-reconciliation.md;handoff/orders/462-pricelabs-intake-and-market-pipeline-integration.md;handoff/orders/461-bounded-irp-sandbox-acceptance.md -->
-<!-- current-lifecycle: ACTIVE resumed2026-09-13; acceptedOrder466 source41415cc5 published to draftPR92 and verified live on sole3000 by Q258r2 promotionc64e87d7 at04:19:14UTC; frontier91, saved-login and invoice/assets smoke pass, retainedPG13580/55503. Exact CI34725373251 all six green/referee11pass0fail. First failed cutover preserved. Order467 current status reconciliation source accepted after60assertions/types, publication/delivery pending. Q253 policy, real PriceLabs intake, authentic provider acceptance and remaining phase closure pending -->
+<!-- current-lifecycle: ACTIVE resumed2026-09-13; acceptedOrder466 source41415cc5 published to draftPR92 and verified live on sole3000 by Q258r2 promotionc64e87d7 at04:19:14UTC; frontier91, saved-login and invoice/assets smoke pass, retainedPG13580/55503. Exact CI34725373251 all six green/referee11pass0fail. Order467 published da9f97d4 through exact Q259; CI34738436620 quality failed three stale status tests and two unchanged subprocess timeouts. Q260 status-test repair passes locally; successor publication/CI and467 delivery remain pending. Q253 policy, real PriceLabs intake, authentic provider acceptance and remaining phase closure pending -->
 
 This is the canonical current-state record. Historical orders, reviews, decisions
 and ledger entries remain evidence; their filenames are not an active backlog.
@@ -29,7 +29,14 @@ separately verified native identities, candidate/ACLs, ready/source, invoice rea
 and exact invoice/print assets; temporary stage17732 is stopped. No reset, reseed,
 migration, new database or provider activation. Proofc64e87d7 and detailed chronology
 are in Q258/Review460; previous failures were not overwritten. Order467 corrects
-the static snapshot through466 but is still unpublished source, not yet served.
+the static snapshot through466 and is published as da9f97d4 on draftPR92, but is
+not yet served. Its exact-head quality check found three other stale status tests
+and two unchanged subprocess timeouts. Q260 corrects only the three current
+assertions, preserving history, phase states and runtime/source separation.
+Root and a separate agent each ran8pass/2explicitDBskips/0fail(226 assertions);
+the unchanged timeout cases pass separately2pass/4DBskips/0fail(5 assertions).
+No timeout limit or skip predicate was changed. Fresh successor CI remains
+required; the two already-green local-review/windows jobs are not whole-CI proof.
 
 **Latest accepted functional build — Order466.** The existing invoice workbench
 now has a deliberate read-only Existing credit note disclosure, connecting the
@@ -48,8 +55,8 @@ and unrelated refs. An initial flag digest discrepancy remains unexplained;
 independent current containment and a fully recorded receiving flag baseline
 passed across commit. No resets or broad staging were used. The formerly verified465
 runtime below stopped during Windows Update; Q258 recovered it and delivered the
-accepted466 successor. Next: publish the tested467 status reconciliation and
-continue retained462/current-line closure work. No main merge or phase completion is claimed.
+accepted466 successor. Next: publish the tested Q260 repair, verify fresh CI and
+continue current-line functional work. No main merge or phase completion is claimed.
 
 **Post-restart functional continuation — Order465.** The current-source print
 formatter now accepts the server's exact validated retry receipt without altering
