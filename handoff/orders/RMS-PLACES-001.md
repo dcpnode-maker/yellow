@@ -80,6 +80,13 @@ tenant records, not a second operational database.
   gate assertions/required jobs remain. The synthetic browser fixture may export
   an ephemeral loopback factory; no production instrumentation or dependency.
   The September13 continuation is admitted in the CI clarification before edits.
+- `tests/current-source-status.test.ts`,
+  `tests/current-management-demo-status.intentional-red.test.ts`,
+  `tests/founder-status.integration.test.ts`: reconcile stale expectations with
+  the incorporated Order467 recorded source status after CI34739524076 exposed
+  three failures. Preserve historical records, review coverage, active phase and
+  the distinction between timestamped promotion receipts and current runtime.
+  Do not alter production status or claim a new release to satisfy these tests.
 
 ## Verification and delivery
 

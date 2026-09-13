@@ -169,3 +169,20 @@ nonimplementing map-fix reviewer personally executed10pass/1renderer skip/0fail/
 assertions, preflight, types and diff check. Its raster-timing finding was fixed
 with bounded stable capture while preserving projection identity assertions.
 The polling deadline includes capture time; no local Chromium proof is claimed.
+
+## Required CI blocked by incorporated status expectations
+
+CI34739524076 on31ab3ff2 failed three full-suite tests before the actual renderer
+step. Quality failed; local-review and Windows-state passed; database, ARM64 and
+container jobs were skipped. There is no renderer artifact or acceptance from
+that run. The three tests still pinned the September12 Order464 snapshot despite
+the incorporated published Order467 source recording September13/Order466 and
+the timestamped Q258 local delivery. The CI clarification admits their correction
+before edits; production status remains byte-identical to receiving source.
+
+Root executes all three corrected files:8passed,2existing database-gated skips,
+0failed,222 assertions. Historical records through Order444, all18 phase states,
+review coverage91 and provider/runtime caveats remain asserted. New assertions
+pin Orders465/466 to their recorded source/CI receipts and preserve the difference
+between historical promotion and current runtime. The unchanged database cases
+remain CI work; no deployment or release is inferred from status test success.

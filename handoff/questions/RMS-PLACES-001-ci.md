@@ -44,3 +44,16 @@ configured GitHub connection. Only this proof's runner-temp directory is uploade
 with hidden files excluded and seven-day retention. Source:
 https://github.com/actions/upload-artifact/tree/043fb46d1a93c77aae656e7c1c64a875d1fc6a0a.
 No application package, provider credential or permission broadening is involved.
+
+## Receiving status regression — 13 September
+
+Resolved by coordinating Codex before editing the three affected test files.
+CI34739524076 on31ab3ff2 failed in the full test suite before the renderer step:
+current-source-status, current-management-demo-status and founder-status still
+expected the September12 Order464 snapshot, while incorporated receiving
+Order467 records September13, accepted source through Order466, and Q258's
+timestamped local promotion. Admit those exact test files to align expectations
+with the already-published source and evidence. Preserve all older historical
+assertions, phase states, independent review coverage and runtime caveats. The
+correction must not change production status, skip tests or loosen assertions.
+The failed run provides no renderer, database or container acceptance.
