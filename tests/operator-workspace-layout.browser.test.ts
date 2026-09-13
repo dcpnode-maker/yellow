@@ -427,6 +427,8 @@ test("Order459 eight compositions retain loaded records, drafts and grouped acce
       "/assets/operator-interfaces.js": { file: "operator-interfaces.js", type: "text/javascript" },
       "/assets/operator-interfaces.css": { file: "operator-interfaces.css", type: "text/css" },
       "/assets/operator-layouts.js": { file: "operator-layouts.js", type: "text/javascript" },
+      "/assets/operator-market-map.js": { file: "operator-market-map.js", type: "text/javascript" },
+      "/assets/operator-market-map.css": { file: "operator-market-map.css", type: "text/css" },
       "/assets/operator-invoices.js": { file: "invoices.js", type: "text/javascript" },
       "/static/fonts/urbanist-v1.330.woff2": { file: "vendor/urbanist-v1.330/Urbanist[ital,wght].woff2", type: "font/woff2" },
       "/static/icons/phosphor-nav-2.1.1.svg": { file: "vendor/phosphor-core-2.1.1/phosphor-nav-regular.svg", type: "image/svg+xml" },
@@ -509,8 +511,13 @@ test("Order459 eight compositions retain loaded records, drafts and grouped acce
         expect(proof.resources).toContain("/static/fonts/urbanist-v1.330.woff2");
         expect(proof.resources).toContain("/assets/operator-layouts.js");
         expect(proof.resources).not.toContain("/static/icons/phosphor-nav-2.1.1.svg");
-        expect(proof.iconProof).toHaveLength(15);
-        expect(new Set(proof.iconProof.map((icon: { href: string }) => icon.href)).size).toBe(15);
+        expect(proof.iconProof).toHaveLength(16);
+        const originalIcons = proof.iconProof.filter((icon: { id: string }) => icon.id !== "nav-market-map");
+        expect(originalIcons).toHaveLength(15);
+        expect(new Set(originalIcons.map((icon: { href: string }) => icon.href)).size).toBe(15);
+        const marketIcons = proof.iconProof.filter((icon: { id: string }) => icon.id === "nav-market-map");
+        expect(marketIcons).toHaveLength(1);
+        expect(marketIcons[0]).toMatchObject({ id: "nav-market-map", label: "Market map", href: "#ph-chart-bar" });
         for (const icon of proof.iconProof) {
           expect(icon.href).toMatch(/^#ph-[a-z-]+$/);
           expect(icon.label.length).toBeGreaterThan(0);
@@ -540,8 +547,8 @@ test("Order459 eight compositions retain loaded records, drafts and grouped acce
           explicitReduced:{choiceTransition:"0s",miniatureTransition:"0s",miniatureTransform:"none"}});
         expect(proof.audit).toEqual({closedInitially:true,tag:"DETAILS",label:"Document history & verification",
           documentHash:true,sourceHash:true,reservation:true,folio:true,identityOutsideAudit:true,date:"2044-09-06"});
-        expect(proof.groups).toEqual({keys:workspaceGroups,counts:[3,5,3,3,1],
-          summaries:["Front desk3","Finance5","Property3","Rates & inventory3","System1"],
+        expect(proof.groups).toEqual({keys:workspaceGroups,counts:[3,5,3,4,1],
+          summaries:["Front desk3","Finance5","Property3","Rates & inventory4","System1"],
           financeOpen:true,current:["finance"],active:["invoices"],outerTag:"DETAILS",outerOpen:width>1020,
           currentLabel:"Invoices",legacyRemoved:true});
         if(width>1020){
@@ -736,7 +743,7 @@ test("Order459 eight compositions retain loaded records, drafts and grouped acce
       expect(forcedProof.font).toMatchObject({ expected: true, loaded: true, loadError: null, readable: true });
       expect(forcedProof.font.family).toMatch(/^Urbanist/);
       expect(forcedProof.resourceOrigins).toEqual([`http://127.0.0.1:${server.port}`]);
-      expect(forcedProof.iconProof).toHaveLength(15);
+      expect(forcedProof.iconProof).toHaveLength(16);
       expect(forcedProof.iconProof.every((icon: { visible: boolean; focus: boolean; target: number; shape: [number, number]; fill: string; color: string; contrast: number }) =>
         icon.visible && icon.focus && icon.target >= 44 && icon.shape[0] > 0 && icon.shape[1] > 0 && icon.fill === icon.color && icon.contrast >= 3)).toBe(true);
       expect(forcedProof.afterCalls).toBe(forcedProof.before.calls);
@@ -746,7 +753,7 @@ test("Order459 eight compositions retain loaded records, drafts and grouped acce
       expect(forcedProof.samples.every((sample: { overflow: boolean; sameMount: boolean; sameDetail: boolean }) =>
         !sample.overflow && sample.sameMount && sample.sameDetail)).toBe(true);
       expect(forcedProof.todaySamples.every((sample: { overflow: boolean; rows: number }) => !sample.overflow && sample.rows === 3)).toBe(true);
-      expect(forcedProof.groups).toMatchObject({ keys: workspaceGroups, counts: [3,5,3,3,1], legacyRemoved: true });
+      expect(forcedProof.groups).toMatchObject({ keys: workspaceGroups, counts: [3,5,3,4,1], legacyRemoved: true });
       if (captures) {
         await send("Runtime.evaluate", {
           expression: "new Promise(resolve=>{const picker=document.querySelector('#workspace-skin-select');picker.value='relay';picker.dispatchEvent(new Event('change',{bubbles:true}));scrollTo(0,0);requestAnimationFrame(()=>requestAnimationFrame(resolve))})",
@@ -813,12 +820,12 @@ test("Order459 eight compositions retain loaded records, drafts and grouped acce
       expect(fallbackFonts.fonts.length).toBeGreaterThan(0);
       expect(fallbackFonts.fonts.every(font => !font.isCustomFont && font.glyphCount > 0)).toBe(true);
       expect(fallbackFonts.fonts.every(font => font.familyName !== "Urbanist")).toBe(true);
-      expect(fallbackProof.iconProof).toHaveLength(15);
+      expect(fallbackProof.iconProof).toHaveLength(16);
       expect(fallbackProof.iconProof.every((icon: { visible: boolean; target: number; shape: [number, number]; contrast: number }) =>
         icon.visible && icon.target >= 44 && icon.shape[0] > 0 && icon.shape[1] > 0 && icon.contrast >= 3)).toBe(true);
       expect(fallbackProof.afterCalls).toBe(fallbackProof.before.calls);
       expect(fallbackProof.audit).toMatchObject({ documentHash: true, sourceHash: true, identityOutsideAudit: true });
-      expect(fallbackProof.groups).toMatchObject({ keys: workspaceGroups, counts: [3,5,3,3,1], legacyRemoved: true });
+      expect(fallbackProof.groups).toMatchObject({ keys: workspaceGroups, counts: [3,5,3,4,1], legacyRemoved: true });
     });
     expect(apiRequests.every(request => request.method === "GET" || request.path.endsWith("/invoices/search"))).toBe(true);
     const todayRequests = apiRequests.filter(request => request.path.includes("/reservation-board?"));

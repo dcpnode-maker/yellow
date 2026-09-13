@@ -308,6 +308,7 @@
  const inventoryView = $("#inventory-view");
  const restrictionsView = $("#restrictions-view");
  const ratesView = $("#rates-view");
+ const marketMapView = $("#market-map-view");
  const operationsView = $("#operations-view");
  const reservationsView = $("#reservations-view");
  const foliosView = $("#folios-view");
@@ -906,6 +907,13 @@
  }
  return body;
  }
+ // Lazy workbench modules use this event to reuse the authenticated request closure.
+ // The bearer token remains private to this script.
+ window.addEventListener("yellow:operator-request", (event) => {
+  const detail = event instanceof CustomEvent ? event.detail : null;
+  if (!detail || typeof detail.path !== "string" || typeof detail.resolve !== "function" || typeof detail.reject !== "function") return;
+  void request(detail.path, detail.options || {}).then(detail.resolve, detail.reject);
+ });
   function setLoginMessage(message, isError = false) {
  loginMessage.textContent = message;
  loginMessage.classList.toggle("error", isError);
@@ -919,6 +927,7 @@
  closeReservationPickupTaskDetail({ history: false, restoreFocus: false });
  accessToken = "";
  operator = null;
+ window.dispatchEvent(new Event("yellow:operator-signed-out"));
  loginView.hidden = false;
  workbenchView.hidden = true;
  sessionState.textContent = "Local review · signed out";
@@ -1022,7 +1031,7 @@
   propertySelect.disabled = true;
  } else {
   propertySelect.disabled = false;
-  const pathProperty = location.pathname.match(/^\/p\/([0-9a-f-]+)\/(?:today|availability|inventory|operations|housekeeping(?:\/tasks\/[0-9a-f-]+)?|vehicles(?:\/[0-9a-f-]+)?|reservations|folios|invoices(?:\/(?:new\/[0-9a-f-]+\/[0-9a-f-]+|[0-9a-f-]+))?|cashiers|day-close|trust|restrictions|rates|status|res\/[0-9a-f-]+(?:\/pickup-task\/[0-9a-f-]+)?|folio\/[0-9a-f-]+)$/)?.[1];
+  const pathProperty = location.pathname.match(/^\/p\/([0-9a-f-]+)\/(?:today|availability|inventory|market-map|operations|housekeeping(?:\/tasks\/[0-9a-f-]+)?|vehicles(?:\/[0-9a-f-]+)?|reservations|folios|invoices(?:\/(?:new\/[0-9a-f-]+\/[0-9a-f-]+|[0-9a-f-]+))?|cashiers|day-close|trust|restrictions|rates|status|res\/[0-9a-f-]+(?:\/pickup-task\/[0-9a-f-]+)?|folio\/[0-9a-f-]+)$/)?.[1];
   if (pathProperty && body.properties.some(({ id }) => id === pathProperty)) propertySelect.value = pathProperty;
  }
  }
@@ -9905,7 +9914,7 @@ function vehicleReturnPathFromState(state, property) {
  }
   function setView(view, updateHistory = true) {
  const previousView = activeView;
- activeView = ["today", "availability", "inventory", "operations", "housekeeping", "vehicles", "reservations", "folios", "invoices", "cashiers", "day-close", "trust", "restrictions", "rates", "status"].includes(view) ? view : "today";
+ activeView = ["today", "availability", "inventory", "market-map", "operations", "housekeeping", "vehicles", "reservations", "folios", "invoices", "cashiers", "day-close", "trust", "restrictions", "rates", "status"].includes(view) ? view : "today";
  if (previousView === "invoices" && activeView !== "invoices") {
   invoiceRouteGeneration += 1;
   invoiceWorkbench?.suspend();
@@ -9953,6 +9962,7 @@ function vehicleReturnPathFromState(state, property) {
  inventoryView.hidden = activeView !== "inventory";
  restrictionsView.hidden = activeView !== "restrictions";
  ratesView.hidden = activeView !== "rates";
+ marketMapView.hidden = activeView !== "market-map";
  operationsView.hidden = activeView !== "operations";
  reservationsView.hidden = activeView !== "reservations";
  foliosView.hidden = activeView !== "folios";
@@ -9963,7 +9973,7 @@ function vehicleReturnPathFromState(state, property) {
  statusView.hidden = activeView !== "status";
  workbenchTitle.textContent = activeView === "today" ? "Today" : activeView === "inventory" ? "Inventory setup" :
   activeView === "operations" ? "Room outages" : activeView === "housekeeping" ? "Housekeeping" : activeView === "vehicles" ? "Vehicle Register" : activeView === "reservations" ? "Reservations" : activeView === "folios" ? "Folios" : activeView === "cashiers" ? "Cashiers" : activeView === "day-close" ? "Business-day close" : activeView === "trust" ? "Owner trust expenses" : activeView === "restrictions" ? "Restrictions" :
-  activeView === "rates" ? "Rates" : activeView === "invoices" ? "Invoices" : activeView === "status" ? "Project status" : "Availability";
+  activeView === "rates" ? "Rates" : activeView === "market-map" ? "Market map" : activeView === "invoices" ? "Invoices" : activeView === "status" ? "Project status" : "Availability";
  for (const tab of navigation) {
   const selected = tab.dataset.view === activeView;
   tab.classList.toggle("is-active", selected);
@@ -12884,6 +12894,7 @@ housekeepingSheetDate.addEventListener("change", () => {
  setBuilderStep(1);
  setBuilderMode("guided", false);
  const initialView = location.pathname.endsWith("/inventory") ? "inventory" :
+ location.pathname.endsWith("/market-map") ? "market-map" :
  (invoiceNavigationRoute() !== null) ? "invoices" :
  location.pathname.endsWith("/availability") ? "availability" :
  location.pathname.endsWith("/today") ? "today" :

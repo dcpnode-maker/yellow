@@ -3801,6 +3801,27 @@ including actual Chromium against synthetic responses; no new real-DB proof is
 claimed for the unchanged APIs. Source is accepted, not published/live at this
 checkpoint. Review466 and PROJECT-STATUS carry the exact identities/release state.
 
+## Public place discovery and compset proposal — RMS-PLACES-001
+
+GET `/api/v1/properties/:property/market-map/places` and POST
+`/api/v1/properties/:property/market-map/selection` are signed, tenant-transaction
+reads requiring exact `rates.configuration:read` plus a current active actor and
+database property/subtree grant. Catalog access happens after that check. GET
+accepts one bounded bbox/name-prefix/exact URL/domain/GERS selector; page size is
+1–200 and source paths cannot be supplied by the browser. POST accepts only one
+subject ID and 1–50 distinct competitor IDs, excluding the subject, then reloads
+canonical public records. Missing records return409; invalid400, missing identity
+401, denied scope/property403 and unavailable503. All responses are no-store.
+
+The `yellow.market-map-selection/v1` export is a research proposal carrying
+`requires-provider-mapping`, `automaticPricingEligible:false` and
+`operationalWrites:false`. It does not persist a property/room/provider mapping,
+produce rates or create availability/sales facts. The optional readonly SQLite
+catalog contains public third-party place data only; PostgreSQL remains the
+business authority. Overture2026-08-19.0/schema1.18.0 is a snapshot, not live
+inventory, price, rooms sold or unconstrained demand. Detailed shapes, setup,
+provenance and acceptance limitations are in
+`docs/research/OVERTURE-MARKET-MAP.md` and `handoff/reviews/RMS-PLACES-001.md`.
 ## Existing full-credit preview and print — Order468
 
 This extends, rather than replaces, Order466's summary-only disclosure. The

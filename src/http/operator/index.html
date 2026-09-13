@@ -7,9 +7,11 @@
 <title>Yellow · Hotel Operations</title>
 <link rel="stylesheet" href="/assets/operator.css">
 <link rel="stylesheet" href="/assets/operator-interfaces.css">
+<link rel="stylesheet" href="/assets/operator-market-map.css">
 <script src="/assets/operator.js" defer></script>
 <script src="/assets/operator-interfaces.js" defer></script>
 <script src="/assets/operator-layouts.js" defer></script>
+<script src="/assets/operator-market-map.js" defer></script>
 </head>
 <body>
 <svg hidden aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
@@ -138,11 +140,12 @@
 </div>
 </details>
 <details class="workspace-group" data-workspace-group="revenue">
-<summary><span>Rates & inventory</span><span class="workspace-group-count">3</span></summary>
+<summary><span>Rates & inventory</span><span class="workspace-group-count">4</span></summary>
 <div class="workspace-group-items">
 <button class="domain-tab" id="nav-inventory" type="button" data-view="inventory" aria-controls="inventory-view"><svg class="domain-icon" aria-hidden="true" viewBox="0 0 256 256"><use href="#ph-package"/></svg><span>Inventory setup</span></button>
 <button class="domain-tab" id="nav-restrictions" type="button" data-view="restrictions" aria-controls="restrictions-view"><svg class="domain-icon" aria-hidden="true" viewBox="0 0 256 256"><use href="#ph-prohibit"/></svg><span>Restrictions</span></button>
 <button class="domain-tab" id="nav-rates" type="button" data-view="rates" aria-controls="rates-view"><svg class="domain-icon" aria-hidden="true" viewBox="0 0 256 256"><use href="#ph-tag"/></svg><span>Rates</span></button>
+<button class="domain-tab" id="nav-market-map" type="button" data-view="market-map" aria-controls="market-map-view"><svg class="domain-icon" aria-hidden="true" viewBox="0 0 256 256"><use href="#ph-chart-bar"/></svg><span>Market map</span></button>
 </div>
 </details>
 <details class="workspace-group" data-workspace-group="system">
@@ -1748,6 +1751,40 @@ Enter a valid range or pasted list to preview the exact rooms.
 </form>
 </div>
 <p class="inventory-status" id="rates-status" role="status" aria-live="polite">Open Rates to load live configuration.</p>
+</section>
+<section id="market-map-view" hidden aria-labelledby="market-map-title">
+  <div class="section-heading">
+    <div><p class="step">Research selection</p><h2 id="market-map-title">Market map</h2><p class="muted">Select your property and comparable candidates for mapping review.</p></div>
+    <button class="quiet" id="market-map-export" type="button" disabled>Download selection</button>
+  </div>
+  <div class="market-map-toolbar card">
+    <form id="market-map-search-form" class="market-map-search" novalidate>
+      <label for="market-map-query">Name, website, domain, or GERS id<input id="market-map-query" name="query" type="search" autocomplete="off" maxlength="512" placeholder="e.g. marina hotel or example.com"></label>
+      <button class="primary" type="submit">Search catalog</button>
+      <button class="quiet" id="market-map-visible-search" type="button" disabled>Search visible area</button>
+    </form>
+    <label class="market-map-radius">Radius around map centre<select id="market-map-radius"><option value="1">1 km</option><option value="5" selected>5 km</option><option value="10">10 km</option><option value="25">25 km</option></select></label>
+    <button class="quiet" id="market-map-radius-search" type="button" disabled>Search selected radius</button>
+    <button class="quiet" id="market-map-toggle-globe" type="button" hidden aria-pressed="false">Globe view</button>
+  </div>
+  <p id="market-map-status" class="inventory-status" role="status" aria-live="polite">Open Market map to search the configured public-place catalog.</p>
+  <div class="market-map-layout">
+    <section class="market-map-stage card" aria-label="Market place map">
+      <div id="market-map-canvas" class="market-map-canvas" tabindex="0" aria-label="Interactive market map. Use the result list if maps are unavailable."><p>Map loads only when you open this workspace. The accessible list remains available.</p></div>
+      <p class="field-note">Choose “Search visible area” to query the current map extent.</p>
+    </section>
+    <section class="market-map-results card" aria-labelledby="market-map-results-title">
+      <div class="market-map-results-heading"><div><h3 id="market-map-results-title">Catalog results</h3><p id="market-map-release" class="muted">No catalog release loaded.</p></div><span id="market-map-count" class="badge">0</span></div>
+      <div id="market-map-place-list" class="market-map-place-list" aria-live="polite"></div>
+    </section>
+    <aside class="market-map-selection card" aria-labelledby="market-map-selection-title">
+      <h3 id="market-map-selection-title">Research selection</h3>
+      <p class="field-note">Choose one subject property and up to 50 comparable candidates.</p>
+      <div id="market-map-subject" class="market-map-subject">No subject selected.</div>
+      <div id="market-map-compset" class="market-map-compset"></div>
+      <p id="market-map-selection-status" class="field-note" aria-live="polite">Selection is ready for mapping review.</p>
+    </aside>
+  </div>
 </section>
 <div class="win-status-bar" aria-hidden="true"><span>Ready</span><span>PostgreSQL truth</span></div>
 <div class="win-taskbar" aria-hidden="true"><strong>Start</strong><span>Yellow Hotel Operations</span><time>Local</time></div>

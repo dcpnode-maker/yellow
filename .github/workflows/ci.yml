@@ -223,6 +223,23 @@ jobs:
           tests/operator-owner-trust-workbench-browser.integration.test.ts
           tests/operator-business-day-discrepancy-carry-browser.integration.test.ts
 
+      - name: Prove market map renderer and interactions
+        id: market-map-browser
+        env:
+          YELLOW_REQUIRE_MARKET_MAP_BROWSER: "1"
+          YELLOW_MARKET_MAP_PROOF_DIR: ${{ runner.temp }}/yellow-market-map-proof
+        run: bun test tests/operator-market-map.browser.test.ts
+
+      - name: Retain market map browser proof
+        if: ${{ always() && (steps.market-map-browser.outcome == 'success' || steps.market-map-browser.outcome == 'failure') }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1; MIT
+        with:
+          name: market-map-${{ github.sha }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/yellow-market-map-proof
+          if-no-files-found: error
+          retention-days: 7
+          include-hidden-files: false
+
       - name: Test
         run: /usr/bin/time -v bun test
 
@@ -373,6 +390,15 @@ jobs:
           YELLOW_RUNTIME_DATABASE_PASSWORD="$YELLOW_RUNTIME_DATABASE_PASSWORD" \
           YELLOW_EXTENSION_REGISTRAR_DATABASE_PASSWORD="$YELLOW_EXTENSION_REGISTRAR_DATABASE_PASSWORD" \
             bun scripts/provision-local-database-authority.ts
+
+      - name: Prove market map tenant and property isolation
+        shell: bash
+        run: |
+          set -euo pipefail
+          YELLOW_MARKET_MAP_ADMIN_URL="$ADMIN_URL" \
+          YELLOW_MARKET_MAP_ADMIN_RUNTIME_URL="postgres://yellow_runtime:${YELLOW_RUNTIME_DATABASE_PASSWORD}@${POSTGRES_ADDRESS}/postgres" \
+          YELLOW_REQUIRE_MARKET_MAP_DATABASE=1 \
+            bun test tests/market-map.integration.test.ts
 
       - name: Execute isolated Phase 3 database proofs
         shell: bash

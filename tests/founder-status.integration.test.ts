@@ -584,7 +584,10 @@ describe("Order 064 recorded build snapshot", () => {
     expect(PROJECT_BUILD_SNAPSHOT.recordedWork.find(({ order }) => order === 461)?.summary).toContain("synthetic sandbox transport");
     expect(PROJECT_BUILD_SNAPSHOT.recordedWork.find(({ order }) => order === 462)?.remaining).toContain("No client data has been loaded");
     expect(PROJECT_BUILD_SNAPSHOT.recordedWork.find(({ order }) => order === 463)?.summary).toContain("referee 11/11");
+    expect(PROJECT_BUILD_SNAPSHOT.recordedWork.find(({ order }) => order === 464)?.remaining).toContain("Source delivery does not itself establish workflow-specific acceptance or phase completion");
     expect(PROJECT_BUILD_SNAPSHOT.recordedWork.find(({ order }) => order === 464)?.remaining).toContain("published successor 41415cc5");
+    expect(PROJECT_BUILD_SNAPSHOT.recordedWork.find(({ order }) => order === 465)?.remaining).toContain("Current runtime identity remains dynamic");
+    expect(PROJECT_BUILD_SNAPSHOT.recordedWork.find(({ order }) => order === 466)?.remaining).toContain("No new database proof, provider activation or Phase 7 completion follows from this local delivery");
     expect(PROJECT_BUILD_SNAPSHOT.recordedWork.find(({ order }) => order === 199)?.summary).toMatch(/196–199/);
     expect(PROJECT_BUILD_SNAPSHOT.recordedWork.find(({ order }) => order === 199)?.state).toBe("independently_approved");
     const order236: { readonly state: string; readonly summary: string; readonly remaining?: string } | undefined =

@@ -663,10 +663,10 @@ test("Order168 / Order444: 120-character confirmations and the workspace layout 
   expect(script).toContain("button.textContent = row.confirmationNo");
 });
 
-test("Order 168 / Order195: operator assets remain dependency-free after the retired visual ceiling", async () => {
+test("RMS-PLACES-001: operator dependencies remain exactly allowlisted with one pinned map engine", async () => {
   for (const asset of [html, css, script]) expect(asset.length).toBeGreaterThan(0);
   const pkg = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8")) as { dependencies: Record<string, string> };
-  expect(pkg.dependencies).toEqual({ elysia: "^1.4.29" });
+  expect(pkg.dependencies).toEqual({ elysia: "^1.4.29", "maplibre-gl": "6.9.0" });
 });
 
 test("Order 168: direct reservation deep link serves the same protected HTML shell", async () => {
