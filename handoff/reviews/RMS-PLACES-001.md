@@ -199,3 +199,15 @@ order assertions, plus this lane's stronger receipt and completion assertions.
 Root's combined three-file proof passes8/2existing DB skips/0fail/234 assertions.
 The PR92 coordination comment5651386935 identifies the shared status repair and
 retains this lane's map ownership. Actual renderer acceptance still awaits CI.
+
+The merged source f5051660 runs CI34740449038. Its full regression suite passes,
+but required actual Chromium proof fails at desktop-lazy-load because the map
+falls back before the engine loads. Root inspects the actual failure screenshot;
+this is genuine browser failure, not acceptance. Windows/local-review pass and
+dependent database/ARM64/container jobs skip. The bounded screenshot artifact is
+retained. Add bounded failure JSON (runtime errors, request/status receipts and
+safe synthetic DOM diagnostics) and a local console initialization reason; keep
+the product's friendly fallback unchanged. MapLibre6.9's actual pinned source
+requires WebGL2, so the proof now requires WebGL2 explicitly and releases its
+probe context. No test assertion or CSP is relaxed, and no renderer fix is yet
+claimed. Both root and independent status reviewer pass the merged234 assertions.

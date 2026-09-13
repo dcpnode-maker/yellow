@@ -326,7 +326,8 @@ marketMapBrowserTest("required Chromium market map proof renders lazy flat and g
       await waitFor(send, "document.readyState === 'complete' && document.querySelector('#market-map-view')?.hidden === true", "hidden map workspace");
       const lazy = await send<{ result?: { value?: { engine: boolean; land: boolean } } }>("Runtime.evaluate", { expression: "(()=>{const names=performance.getEntriesByType('resource').map(entry=>entry.name);return{engine:names.some(name=>name.includes('maplibre-gl.mjs')),land:names.some(name=>name.includes('ne_110m_land.geojson'))}})()", returnByValue: true });
       expect(lazy.result?.value).toEqual({ engine: false, land: false });
-      const webgl = await send<{ result?: { value?: boolean } }>("Runtime.evaluate", { expression: "(()=>{const canvas=document.createElement('canvas');return Boolean(canvas.getContext('webgl2') || canvas.getContext('webgl'))})()", returnByValue: true });
+      const webgl = await send<{ result?: { value?: boolean } }>("Runtime.evaluate", { expression: "(()=>{const canvas=document.createElement('canvas');const context=canvas.getContext('webgl2');const supported=Boolean(context);context?.getExtension('WEBGL_lose_context')?.loseContext();return supported})()", returnByValue: true });
+      proof.webgl2 = webgl.result?.value;
       expect(webgl.result?.value).toBe(true);
       await send("Runtime.evaluate", { expression: "document.querySelector('#open-map').click()" });
       await waitFor(send, "Boolean(document.querySelector('#market-map-canvas .maplibregl-canvas')) && document.querySelector('#market-map-toggle-globe')?.hidden === false", "loaded MapLibre engine");
@@ -411,6 +412,15 @@ marketMapBrowserTest("required Chromium market map proof renders lazy flat and g
       reportProof();
       } catch (error) {
         proof.status = "failed"; proof.failure = { stage, message: error instanceof Error ? error.message : String(error) };
+        try {
+          const dom = await send<{ result?: { value?: { status: string | null; canvas: string | null; children: string[]; resources: string[] } } }>("Runtime.evaluate", {
+            expression: "(()=>{const canvas=document.querySelector('#market-map-canvas');return{status:document.querySelector('#market-map-status')?.textContent||null,canvas:canvas?.textContent||null,children:Array.from(canvas?.children||[]).map(node=>node.tagName),resources:performance.getEntriesByType('resource').map(entry=>{const url=new URL(entry.name);return url.pathname+url.search}).slice(-60)}})()",
+            returnByValue: true,
+          });
+          proof.diagnostics = { runtimeErrors: runtimeErrors.slice(-20), fixtureRequests: fixture.requests.slice(-100), failedFixtureRequests: failedFixture.requests.slice(-100), dom: dom.result?.value ?? null };
+        } catch (diagnosticError) {
+          proof.diagnostics = { runtimeErrors: runtimeErrors.slice(-20), fixtureRequests: fixture.requests.slice(-100), failedFixtureRequests: failedFixture.requests.slice(-100), collectionError: diagnosticError instanceof Error ? diagnosticError.message : String(diagnosticError) };
+        }
         if (captures) {
           try {
             const diagnostic = await send<{ data?: string }>("Page.captureScreenshot", { format: "png", fromSurface: true, captureBeyondViewport: false });

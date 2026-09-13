@@ -244,6 +244,7 @@
         map.on("load", () => { ui.visible.disabled = false; ui.radiusSearch.disabled = false; if (typeof map.setProjection === "function") { ui.globe.hidden = false; } renderMarkers(); renderRadius(); if (lastSearchMode !== "bbox") fitToPlaces([...placeById.values()]); });
         map.on("moveend", () => { lastBounds = boundedBounds(map.getBounds()); renderRadius(); });
       } catch (error) {
+        console.error("Market map initialization failed:", error instanceof Error ? error.name + ": " + error.message : "Unknown map error");
         ui.canvas.replaceChildren(element("p", "", "Map rendering is unavailable in this browser. Use the accessible result list to search and select places."));
         status("Map runtime unavailable; the catalog list and research selection remain available.");
       } finally { mapLoading = null; }
