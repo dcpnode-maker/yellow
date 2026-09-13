@@ -230,3 +230,12 @@ Incorporate that exact published source without changing its implementation.
 Only CONTRACTS' appended sections conflict; both complete sections are preserved.
 Status tests merge automatically with this lane's extra receipt assertions intact.
 Current source and required renderer acceptance must use this new combined tree.
+
+CI34741226348 onc4c16120 stops earlier: Chromium does not expose its debugging
+port within the harness's6-second startup allowance. This attempt never reaches
+the map and supplies no evidence about the maxBounds correction. Replace that
+startup-only allowance with a20-second monotonic deadline, retain at most16KiB
+of browser stderr while draining the pipe, and always emit a failed lifecycle
+receipt when startup fails. All rendering/interaction assertions and the55-second
+overall test bound remain unchanged. No unsupported browser flag, CSP relaxation
+or silent retry is introduced. The next exact run must still prove the map.

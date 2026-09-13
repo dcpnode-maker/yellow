@@ -148,18 +148,32 @@ async function withChromium<Result>(profile: string, run: (send: CdpSend, runtim
   if (!browser) throw new Error("Chrome or Chromium is required when YELLOW_REQUIRE_MARKET_MAP_BROWSER=1");
   const chrome = Bun.spawn([browser, "--headless=new", "--no-sandbox", "--disable-dev-shm-usage", "--no-first-run", "--no-default-browser-check",
     "--use-angle=swiftshader", "--remote-debugging-address=127.0.0.1", "--remote-debugging-port=0", `--user-data-dir=${profile}`, "about:blank"],
-  { stdout: "ignore", stderr: "ignore" });
+  { stdout: "ignore", stderr: "pipe" });
+  const stderrReader = chrome.stderr.getReader();
+  const stderrChunks: Uint8Array[] = [];
+  let stderrBytes = 0;
+  const drainStderr = (async () => {
+    try {
+      while (true) {
+        const { done, value } = await stderrReader.read();
+        if (done) break;
+        const bounded = value.subarray(0, Math.max(0, 16_384 - stderrBytes));
+        if (bounded.byteLength) { stderrChunks.push(bounded.slice()); stderrBytes += bounded.byteLength; }
+      }
+    } catch { /* Cleanup can cancel the disposable browser's pipe. */ }
+  })();
   let socket: WebSocket | null = null;
   try {
     const portFile = resolve(profile, "DevToolsActivePort");
     let port = "";
-    for (let attempt = 0; attempt < 240; attempt += 1) {
+    const startupDeadline = performance.now() + 20_000;
+    while (performance.now() < startupDeadline) {
       try { if (existsSync(portFile)) port = (await Bun.file(portFile).text()).split(/\r?\n/, 1)[0] ?? ""; }
       catch (error) { if (!browserUnavailable(error)) throw error; }
       if (port || chrome.exitCode !== null) break;
       await Bun.sleep(25);
     }
-    if (!port) throw new Error(`Chromium did not expose a DevTools port (exit ${chrome.exitCode ?? "unknown"})`);
+    if (!port) throw new Error(`Chromium did not expose a DevTools port within 20 seconds (exit ${chrome.exitCode ?? "unknown"}); ${Buffer.concat(stderrChunks).toString("utf8").slice(0, 4_000)}`);
     const created = await fetch(`http://127.0.0.1:${port}/json/new?${encodeURIComponent("about:blank")}`, { method: "PUT" });
     if (!created.ok) throw new Error(`Chromium target creation failed (${created.status})`);
     const target = await created.json() as { webSocketDebuggerUrl?: string };
@@ -195,6 +209,8 @@ async function withChromium<Result>(profile: string, run: (send: CdpSend, runtim
     socket?.close();
     if (chrome.exitCode === null) chrome.kill();
     await chrome.exited;
+    await stderrReader.cancel().catch(() => {});
+    await drainStderr;
   }
 }
 
@@ -433,6 +449,14 @@ marketMapBrowserTest("required Chromium market map proof renders lazy flat and g
         throw error;
       }
     });
+  } catch (error) {
+    if (proof.status !== "failed") {
+      proof.status = "failed";
+      proof.failure = { stage: "browser-lifecycle", message: error instanceof Error ? error.message : String(error) };
+      await writeProof();
+      reportProof();
+    }
+    throw error;
   } finally {
     fixture.server.stop(true); failedFixture.server.stop(true);
     await rm(temporary, { recursive: true, force: true });
