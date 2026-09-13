@@ -239,3 +239,14 @@ of browser stderr while draining the pipe, and always emit a failed lifecycle
 receipt when startup fails. All rendering/interaction assertions and the55-second
 overall test bound remain unchanged. No unsupported browser flag, CSP relaxation
 or silent retry is introduced. The next exact run must still prove the map.
+
+CI34741439147 ond641b9f1 loads WebGL2 and the real map with allassets200 and no
+runtime errors. Global flat/globe/restored pixel identity, desktop geometry,
+immediate-submit deduplication, keyboard selection/export and context reset all
+pass before the phone raster fails with one colour. Root inspects actual flat,
+globe and phone failure previews: capture rectangles extend below the viewport,
+and the globe still shows the placeholder text. Remove the initial placeholder
+before construction and give an initialized MapLibre host block layout/zero
+padding; restore placeholder styling on initialization failure. Correct the
+test's complete-canvas capture and retain the raster/geometry assertions. This
+run is partial renderer evidence, not accepted phone/fallback or full CI proof.

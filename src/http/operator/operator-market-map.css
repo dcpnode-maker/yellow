@@ -6,6 +6,7 @@
 .market-map-layout { display:grid; grid-template-columns:minmax(22rem,1.45fr) minmax(18rem,.85fr); gap:16px; align-items:start; }
 .market-map-stage { min-height:28rem; padding:0; overflow:hidden; grid-row:span 2; }
 .market-map-canvas { min-height:25rem; height:clamp(25rem,56vh,42rem); background:linear-gradient(145deg,color-mix(in srgb,var(--paper) 84%,var(--accent)),var(--card)); color:var(--muted); display:grid; place-items:center; padding:20px; }
+.market-map-canvas.maplibregl-map { display:block; padding:0; }
 .market-map-canvas .maplibregl-canvas { outline:none; }
 .market-map-results,.market-map-selection { padding:16px; }
 .market-map-results-heading { display:flex; align-items:start; justify-content:space-between; gap:8px; }

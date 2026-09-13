@@ -251,15 +251,22 @@ function pngPixels(png: Uint8Array): { width: number; height: number; colours: n
   return { width, height, colours: colours.size };
 }
 
-async function captureMap(send: CdpSend, name: string, directory: string | undefined): Promise<Screenshot> {
-  const rect = await send<{ result?: { value?: { x: number; y: number; width: number; height: number } } }>("Runtime.evaluate", {
-    expression: "(()=>{const r=document.querySelector('#market-map-canvas .maplibregl-canvas')?.getBoundingClientRect();return r&&{x:r.x,y:r.y,width:r.width,height:r.height}})()", returnByValue: true,
+async function mapClip(send: CdpSend): Promise<{ x: number; y: number; width: number; height: number }> {
+  const result = await send<{ result?: { value?: { x: number; y: number; width: number; height: number } } }>("Runtime.evaluate", {
+    expression: "new Promise(resolve=>{const canvas=document.querySelector('#market-map-canvas .maplibregl-canvas');if(!canvas)return resolve(null);canvas.scrollIntoView({block:'center',inline:'nearest'});requestAnimationFrame(()=>requestAnimationFrame(()=>{const r=canvas.getBoundingClientRect();resolve({x:r.left+scrollX,y:r.top+scrollY,width:r.width,height:r.height})}))})",
+    awaitPromise: true, returnByValue: true,
   });
-  const clip = rect.result?.value;
-  if (!clip || clip.width < 100 || clip.height < 100) throw new Error(`No rendered MapLibre canvas for ${name}`);
-  const result = await send<{ data?: string }>("Page.captureScreenshot", { format: "png", fromSurface: true, clip: { ...clip, scale: 1 } });
+  const clip = result.result?.value;
+  if (!clip || clip.width < 100 || clip.height < 100) throw new Error("No complete rendered MapLibre canvas");
+  return clip;
+}
+
+async function captureMap(send: CdpSend, name: string, directory: string | undefined): Promise<Screenshot> {
+  const clip = await mapClip(send);
+  const result = await send<{ data?: string }>("Page.captureScreenshot", { format: "png", fromSurface: true, captureBeyondViewport: true, clip: { ...clip, scale: 1 } });
   if (!result.data) throw new Error(`No map screenshot for ${name}`);
   const png = Buffer.from(result.data, "base64"); const evidence = { png, sha256: createHash("sha256").update(png).digest("hex"), pixels: pngPixels(png) };
+  if (Math.abs(evidence.pixels.width - Math.round(clip.width)) > 1 || Math.abs(evidence.pixels.height - Math.round(clip.height)) > 1) throw new Error(`Map screenshot did not contain the complete canvas for ${name}`);
   if (directory) await Bun.write(resolve(directory, name), png);
   return evidence;
 }
@@ -281,12 +288,9 @@ async function stableMap(send: CdpSend, name: string, directory: string | undefi
 
 async function emitMapPreview(send: CdpSend, name: string): Promise<void> {
   if (!/^[a-z0-9-]+\.png$/.test(name)) throw new Error(`Unsafe market-map preview name: ${name}`);
-  const rect = await send<{ result?: { value?: { x: number; y: number; width: number; height: number } } }>("Runtime.evaluate", {
-    expression: "(()=>{const r=document.querySelector('#market-map-canvas .maplibregl-canvas')?.getBoundingClientRect();return r&&{x:r.x,y:r.y,width:r.width,height:r.height}})()", returnByValue: true,
-  });
-  const clip = rect.result?.value; if (!clip) throw new Error(`No map canvas for preview ${name}`);
+  const clip = await mapClip(send);
   for (const scale of [0.5, 0.25]) {
-    const result = await send<{ data?: string }>("Page.captureScreenshot", { format: "png", fromSurface: true, clip: { ...clip, scale } });
+    const result = await send<{ data?: string }>("Page.captureScreenshot", { format: "png", fromSurface: true, captureBeyondViewport: true, clip: { ...clip, scale } });
     if (!result.data) continue;
     const png = Buffer.from(result.data, "base64");
     if (png.byteLength <= 150 * 1024) { console.log(`YELLOW_MAP_PREVIEW name=${name} data=${png.toString("base64")}`); return; }
@@ -347,6 +351,8 @@ marketMapBrowserTest("required Chromium market map proof renders lazy flat and g
       expect(webgl.result?.value).toBe(true);
       await send("Runtime.evaluate", { expression: "document.querySelector('#open-map').click()" });
       await waitFor(send, "Boolean(document.querySelector('#market-map-canvas .maplibregl-canvas')) && document.querySelector('#market-map-toggle-globe')?.hidden === false", "loaded MapLibre engine");
+      const placeholder = await send<{ result?: { value?: boolean } }>("Runtime.evaluate", { expression: "document.querySelector('#market-map-canvas > p') !== null", returnByValue: true });
+      expect(placeholder.result?.value).toBe(false);
       stage = "world-projection-pixels";
       const worldFlat = await stableMap(send, "market-map-world-flat.png", captures);
       await preview(send, "market-map-world-flat.png");
@@ -368,8 +374,9 @@ marketMapBrowserTest("required Chromium market map proof renders lazy flat and g
       await waitFor(send, "document.querySelectorAll('#market-map-place-list .market-map-place').length === 3", "catalog list");
       await Bun.sleep(500);
       expect(fixture.requests.filter(request => request.path.includes("/market-map/places")).length).toBe(beforeImmediateSubmit + 1);
-      const desktop = await send<{ result?: { value?: { canvas: { width: number; height: number; right: number }; list: { x: number; width: number; y: number }; stage: { width: number; right: number } } } }>("Runtime.evaluate", { expression: "(()=>{const rect=node=>{const r=node.getBoundingClientRect();return{x:r.x,y:r.y,width:r.width,height:r.height,right:r.right,bottom:r.bottom}};return{canvas:rect(document.querySelector('#market-map-canvas')),list:rect(document.querySelector('#market-map-place-list')),stage:rect(document.querySelector('.market-map-stage'))}})()", returnByValue: true });
+      const desktop = await send<{ result?: { value?: { canvas: { x: number; y: number; width: number; height: number; right: number; bottom: number }; list: { x: number; width: number; y: number }; stage: { x: number; y: number; width: number; right: number; bottom: number } } } }>("Runtime.evaluate", { expression: "(()=>{const rect=node=>{const r=node.getBoundingClientRect();return{x:r.x,y:r.y,width:r.width,height:r.height,right:r.right,bottom:r.bottom}};return{canvas:rect(document.querySelector('#market-map-canvas')),list:rect(document.querySelector('#market-map-place-list')),stage:rect(document.querySelector('.market-map-stage'))}})()", returnByValue: true });
       expect(desktop.result?.value?.canvas.width).toBeGreaterThan(500); expect(desktop.result?.value?.stage.right).toBeLessThan(desktop.result?.value?.list.x ?? Number.POSITIVE_INFINITY);
+      expect(desktop.result?.value?.canvas.x).toBeGreaterThanOrEqual(desktop.result?.value?.stage.x ?? Number.POSITIVE_INFINITY); expect(desktop.result?.value?.canvas.y).toBeGreaterThanOrEqual(desktop.result?.value?.stage.y ?? Number.POSITIVE_INFINITY); expect(desktop.result?.value?.canvas.right).toBeLessThanOrEqual(desktop.result?.value?.stage.right ?? 0); expect(desktop.result?.value?.canvas.bottom).toBeLessThanOrEqual(desktop.result?.value?.stage.bottom ?? 0);
       await press(send, "#market-map-place-list button[aria-pressed='false']");
       await press(send, "#market-map-place-list button:not([disabled]) + button:not([disabled])");
       await waitFor(send, "document.querySelector('#market-map-export')?.disabled === false", "keyboard research selection");
