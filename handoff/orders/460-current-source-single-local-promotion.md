@@ -937,3 +937,18 @@ Q277 admits the one exact current-schema fiscal-series test-oracle file and root
 coordination records after real feff CI failure91expected/92actual. Preserve the
 historical native89 mode and every existing safety/SQL/assertion/deadline. Broader
 read-only audit precedes successor publication; no silent edit outside the question.
+
+Q278 admits the three named browser-test/supervision files and two source-status
+files, plus root records, after actual dd38 CI timeout. Preserve all journey
+assertions and the120-second outer bound; no retry, skip or product change.
+Independent exclusive proof and exact-source CI remain distinct. No live action.
+
+Q279 admits exactly three ignored registry-isolation/proof source files for an
+eventual tiny owned schema in the existing synthetic DB. No production helper
+change and no actual connection/DDL/DML follows until separately admitted.
+
+Q278 final native proof is root-accepted14/2explicitDBskips/0fail1374, including
+all1148 actual browser assertions. Its explicit16-path publication extension now
+admits one exact-preserved native whole-file commit/nonforce push and fresh CI.
+Q279 remains independent source-only proof preparation, not a release prerequisite
+for publishing the browser repair. No local migration/restart or phase closure.

@@ -464,15 +464,15 @@ export const PROJECT_BUILD_SNAPSHOT: ProjectBuildSnapshot = Object.freeze({
     }),
     Object.freeze({
       order: 471,
-      state: "built_unverified" as const,
-      summary: "Order 471 retains frozen, unaccepted credit-note provider-registration UI source and its bounded pure checkpoint. Independent browser acceptance remains incomplete; no provider request was made.",
-      remaining: "The retained fiscal source remains unverified while Order472 has priority. No provider activation, runtime promotion, fiscal eligibility or Phase 7 completion follows from this frozen work.",
+      state: "independently_approved" as const,
+      summary: "Order 471 independently approved the credit-note provider-request UI after repairing three retained-request lifecycle defects. Independent Astra executed 38 tests with 598 assertions, including the frozen desktop/mobile journey with 130 checks at each viewport. This is source acceptance using synthetic responses, not an actual provider registration.",
+      remaining: "Published source dd38a974 includes this accepted workflow. CI34762156051 passed Windows and local-review but failed the Order459 browser outer deadline; downstream database gates were skipped. The last verified local remains41415/frontier91; dynamic runtime build information is authoritative. Current-source release gates, provider activation and Phase 7 completion remain separate.",
     }),
     Object.freeze({
       order: 472,
       state: "independently_approved" as const,
       summary: "Order 472 independently approved bounded Phase14 market discovery source: property identity suggestions, explicit saved compsets, evidence map, selectable attributes and non-executing planner detail. Review472 records Q267's 153 tests/1641 assertions and Q268's 139 passes/1777 assertions, including native, PostgreSQL and browser proof under their explicit boundaries.",
-      remaining: "This is independent source acceptance only: publication, local integration and market-quality review remain required. It is not live, collection or pricing authority; broader RMS work, retained fiscal Order471 and the dependency-gated 11→13→17 sequence remain.",
+      remaining: "Published source dd38a974 includes this independently accepted work; exact-source release gates, local integration and market-quality review remain required. It is not live, collection or pricing authority; broader RMS work, retained fiscal completion and the dependency-gated 11→13→17 sequence remain.",
     }),
   ] satisfies readonly ProjectRecordedWorkSnapshot[]),
   phases: Object.freeze([

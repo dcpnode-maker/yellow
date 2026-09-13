@@ -38,6 +38,11 @@ One bounded GitHub acknowledgment and one reply to the existing research task ar
 coordination authorized by the founder. No new task, duplicate archive, broad
 staging, commit, push, merge or runtime mutation is admitted by this tranche.
 
+The founder's continued cross-task handshake request also admits a compact
+follow-up to the same research task and an addendum in the existing receiving
+record for the newer DLD dataset, calendar hypothesis and Drive request. These
+are unadmitted research inputs, not licence approval, file import or upload.
+
 Record the next exact implementation files and ownership in this order before
 editing code. This is one integration order, not a separate order per small
 control. Database schema/API/state changes must be explicitly scoped and receive

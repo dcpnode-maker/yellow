@@ -1941,3 +1941,58 @@ passes root5/10explicitDBskips/0fail114 with current status, types202boundaries.
 To avoid duplicate release runs, Q277 separately scopes one15-path successor with
 accepted471 plus this repair and root records. Native exact-preservation admission
 must precede commit/nonforce push. Q276private helpers are not released product code.
+
+## Q277 publication and Q278/Q279 continuation
+
+Root completed exactly the15-path commit dd38a9749ca877e7a50258303160bc66fa7fc3ab
+(parentfeff6dc8, treedeeac180c6864c90e325dfaaae611dffe34b20e9), verified each blob,
+2317 working-file identities, outside semantic index/flags, six previously staged
+files and unrelated refs, then performed one ordinary exact-refspec nonforce push.
+PR92 remains open/draft/unmerged; updated body readback matches. Private admission
+and completion proof: .yellow/evidence/order460/order471-successor-20260913/.
+
+Root retrieved actualCI34762156051 quality103736761165 failure: Order459 test
+starts14:16:47.2152190Z, child killed14:18:47.2262240Z, outer deadline failure
+at14:18:47.2286283Z/120008.08ms. No inner stage or failed product assertion appears.
+Aggregate2226pass/1546skip/1fail/42555assertions,602files/185.56s.
+Windows/local-review pass; database/ARM64/container skip.
+Independent /root/astra_ultra_handoff personally executes unchanged:
+
+    bun test tests/operator-workspace-layout.browser.test.ts
+
+1pass/0fail/1148assertions,12.21s; unchanged test SHA256
+b779e007e5b08bc6dd062e17eca3d613f7294965d14ebb9aaf1d7ba913b366c6.
+This is native Windows proof, not reproduction of the remote hang's cause.
+Inspection identifies unbounded target-fetch/body and child-reap awaits, plus
+iteration-based polling. Q278 admits bounded supervision and stage diagnostics
+without changing application assertions or the120-second outer limit.
+
+Root's Q278 source-status RED0/1/4 proves the old471 unaccepted state; updated
+source now reports accepted/published471 and published472 with runtime/CI caveats.
+Focused status1pass/0fail/72 and full strict types pass. No phase state changed.
+Q279 separately prepares a tiny test-only schema proof using the existing Q265
+database; native registration/preservation/recovery/live actions remain pending.
+The first admission patch was rejected for a duplicate target before mutation;
+the corrected unique-target patch succeeded. No application/runtime/provider or
+Git mutation follows from either new source question.
+
+## Q278 native acceptance
+
+Nonimplementing root inspected the three frozen browser files, including bounded
+16KiB response streaming, absolute stage/work deadlines, pending-command settlement,
+exact child reap, cleanup reserve and combined primary/cleanup errors. Every
+previous application assertion remains, including viewport/forced-colour/font,
+draft and navigation checks. Final hashes:
+
+- browser c45b8a394007a2a4c1a8ec0d8de811972d931b2af5ea76a72393f5b58b99876f
+- helper 56b81d3e4f7ec4ae59e26630ac6c741bf4de2141674f3fc181d24f2608bb49d4
+- seams d463c3efefb21fb134de931538b3a5726f9aab5213c27389dbb20d5520b27c8b
+
+Root's Q278 four-file command (recorded verbatim in Q278) passes14 tests with
+2explicitDBskips/0fail/1374 assertions in13.99s, including full actual browser
+1148 assertions/13.45s and6 lifecycle seams/15 assertions. Types/202 boundaries
+pass. This does not erase CI34762156051 or establish its remote inner cause.
+Q278 now separately admits an exact16-path successor and fresh CI after byte,
+index and ref preservation. Q279 remains source-only and is independently
+inspected in parallel; unbounded settlement/cleanup diagnostics need adjudication
+before any actual PostgreSQL action. No serving app or hotel data changed.

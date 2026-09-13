@@ -4,7 +4,7 @@
 <!-- current-phase: 14 -->
 <!-- current-task: Codex Yellow — Order472 priority Overture/God's Eye discovery integration; preserve fiscal work, then resume phase closure and dependency-gated 11→13→17 -->
 <!-- current-order-files: handoff/orders/472-overture-gods-eye-market-discovery-integration.md;handoff/orders/470-cashier-full-credit-note-issue.md;handoff/orders/460-current-source-single-local-promotion.md;handoff/orders/462-pricelabs-intake-and-market-pipeline-integration.md;handoff/orders/461-bounded-irp-sandbox-acceptance.md -->
-<!-- current-lifecycle: ACTIVE2026-09-13 Order460 coherent successor preparation. Publishedfeff6dc8 CI34760154085 fivejobs green/database453fails stale91expectation againstcurrent92; preceding434/446/447/452 pass, laterreferee skipped. Q277 one-line repair root5/10DBskips/0fail114; Astra65-path scan confirms historicalprefixes preserved. Accepted471 source28736990/frozenbrowserAB47 joins next15-path publication, not yet live. Q276 helpers root8/0/64/strict plus actualread-onlyPGmetadata accepted; fullpreservation/registration/live migration pending. Sole3000 remains41415/frontier91. All18phases/paused445/dependency11to13to17 retained; no provider/phaseclosure claim -->
+<!-- current-lifecycle: ACTIVE2026-09-13 Order460 release repair. Publisheddd38a974 includes accepted471 and Q277current92 oracle. CI34762156051 Windows/local-review pass; quality fails459outer120s, downstream skipped. Q278 root14pass2DBskips0fail1374 includes full1148 browserassertions/types202; exact16path successorpublication admitted, freshCI pending. Q279 independent isolated-registry source review continues withoutactualDBaction. Q276 fullpreservation/recovery/live migration pending. Sole3000 lastverified41415/frontier91; all18phases/paused445/dependency11to13to17 retained; no provider/phaseclosure claim -->
 
 This is the canonical current-state record. Historical orders, reviews, decisions
 and ledger entries remain evidence; their filenames are not an active backlog.
@@ -161,11 +161,22 @@ The failing aggregate is9pass/1fail/424; later stages/referee were skipped. Q277
 changes only that full-current expectation, preserving native89 and all guards.
 Root5pass/10explicitDBskips/0fail/114 and types202 pass. Astra's65-path read-only audit
 found no additional stale current frontier/count; historical fixtures remain pinned.
-Accepted471 and this repair will share one coherent15-path successor/fresh CI.
+Accepted471 and this repair are now published together as the coherent15-path
+successor dd38a9749ca877e7a50258303160bc66fa7fc3ab, tree
+deeac180c6864c90e325dfaaae611dffe34b20e9. Root verified2317 working-file identities,
+outside index/flags, six prior staged files and unrelated refs before/after one
+ordinary nonforce push. DraftPR92 remains unmerged; its description is updated.
+CI34762156051 passes Windows/local-review but quality has2226pass/1546skip/1fail,
+42555 assertions: Order459 reaches its120-second outer browser deadline.
+Database/ARM64/container are skipped. Independent Astra's exclusive unchanged
+native run passes1/0/1148 in12.21s; the remote inner cause remains unknown.
+Q278 repairs demonstrably unbounded test-supervision waits with no lost assertions,
+retry or deadline increase. Q279 prepares real isolated registry proof in the
+existing synthetic database, with no public data changes or additional database.
 No live app, hotel data or phase changed.
 
-**Fiscal checkpoint — Order471 source/journey repair accepted, uncommitted.** It remains
-excluded from the in-flight feff6dc8 market release. Independent real-browser proof
+**Fiscal checkpoint — Order471 source/journey repair accepted and published.** It is
+included in dd38a974, but not yet served by the local app. Independent real-browser proof
 now runs both desktop/mobile and exposed three retained-request lifecycle defects:
 settled results obscured as in-flight, same-view retry blocked, and reopened
 disclosure not settling. Root personally reproduced the RED. The repair now passes
@@ -174,7 +185,7 @@ executes12-file38pass/0fail/598 plus types202boundaries. Root's overlapping four
 run was6pass/1fail due unchanged468 default5s timeout; its exclusive unchanged rerun
 passes1/0/28. Failure and concurrency confound remain in Review471 without claiming
 the cause. Browser execution is now serialized; coding remains parallel. This source
-is not published/live. Exact hashes and failures remain in its order/review.
+is published but not live. Exact hashes and failures remain in its order/review.
 No work is deleted. Phase7 is
 incomplete. This exception does not close any phase or replace11→13→17 priorities.
 

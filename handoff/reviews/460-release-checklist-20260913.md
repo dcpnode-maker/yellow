@@ -54,6 +54,14 @@ CI-proved, migrated and served are distinct states.
   succeeded. Q277 one-line repair is root-proved5/10DBskips/0fail114; Astra65-path
   audit preserves historical fixtures. Accepted471 joins its coherent15-path
   successor. Full fresh CI/current referee remain unchecked; no unchanged rerun.
+  That15-path successor is now dd38a974 (PR92, unmerged); root verifies2317 working
+  identities and outside Git state. ExactCI34762156051 Windows/local-review pass,
+  quality fails459 outer120s (2226pass/1546skip/1fail/42555), downstream skipped.
+  Astra unchanged native459 passes1/0/1148 in12.21s. Q278 addresses unbounded
+  test-supervision gaps; neither local success nor hardening proves the CI cause.
+  Q278 final native root14pass/2explicitDBskips/0fail/1374 includes the preserved
+  full1148-assertion actual journey; types202 pass. Exact16-path publication is
+  separately admitted; fresh remote gates remain pending, not inferred green.
 
 ## Before sole-local cutover
 
@@ -65,6 +73,9 @@ CI-proved, migrated and served are distinct states.
   explicit types. Actual read-only Q265metadata corrects ownerACL/JSONB key ordering;
   repaired checker accepts it. This is not a full actual preservation/registration
   transaction or concurrency proof. Rebind source/recovery pins to eventual successor.
+  Q279 prepares a transparent test-only two-relation isolation seam and later real
+  PostgreSQL proof in a tiny exclusive schema; no public registration or additional
+  database is authorized by source preparation.
   Read-only nonimplementer audit finds0092 adds only the exact market-authority
   function/owner/ACL and ledger row92; historical table data, sequences, financial
   facts, occupancy, roles and existing schema must remain unchanged. Market

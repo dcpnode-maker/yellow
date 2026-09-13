@@ -585,9 +585,9 @@ describe("Order 064 recorded build snapshot", () => {
     expect(PROJECT_BUILD_SNAPSHOT.recordedWork.find(({ order }) => order === 462)?.remaining).toContain("No client data has been loaded");
     expect(PROJECT_BUILD_SNAPSHOT.recordedWork.find(({ order }) => order === 463)?.summary).toContain("referee 11/11");
     expect(PROJECT_BUILD_SNAPSHOT.recordedWork.find(({ order }) => order === 464)?.remaining).toContain("published successor 41415cc5");
-    expect(PROJECT_BUILD_SNAPSHOT.recordedWork.find(({ order }) => order === 471)?.state).toBe("built_unverified");
+    expect(PROJECT_BUILD_SNAPSHOT.recordedWork.find(({ order }) => order === 471)?.state).toBe("independently_approved");
     expect(PROJECT_BUILD_SNAPSHOT.recordedWork.find(({ order }) => order === 472)?.summary).toMatch(/identity.*compset.*map.*attributes.*planner/i);
-    expect(PROJECT_BUILD_SNAPSHOT.recordedWork.find(({ order }) => order === 472)?.remaining).toMatch(/publication.*local.*market-quality/i);
+    expect(PROJECT_BUILD_SNAPSHOT.recordedWork.find(({ order }) => order === 472)?.remaining).toMatch(/Published source dd38a974.*local integration.*market-quality/i);
     expect(PROJECT_BUILD_SNAPSHOT.recordedWork.find(({ order }) => order === 199)?.summary).toMatch(/196–199/);
     expect(PROJECT_BUILD_SNAPSHOT.recordedWork.find(({ order }) => order === 199)?.state).toBe("independently_approved");
     const order236: { readonly state: string; readonly summary: string; readonly remaining?: string } | undefined =

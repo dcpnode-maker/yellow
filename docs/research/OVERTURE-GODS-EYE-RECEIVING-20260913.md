@@ -4,6 +4,36 @@ Received: 13 September 2026. Owner: Codex primary implementation.
 Order: [472](../../handoff/orders/472-overture-gods-eye-market-discovery-integration.md).
 This is the single receiving record; other project documents link here.
 
+## Latest receiving addendum —13 September2026
+
+The discovery/map/table/confirmed-set/planner source described by the historical
+checkpoints below is accepted and published in dd38a974, not yet delivered locally.
+Use PROJECT-STATUS for current release gates; earlier statements of missing
+composition/UI are dated checkpoints, not the current implementation inventory.
+
+Root directly read the newest Yellow technology research task
+6aa66f9c-4154-83e8-a5bf-c2a1fb8bda13 and acknowledged this additional candidate:
+Dubai Real Estate Transactions by waelr1985, reported Kaggle version1 uploaded
+4March2026, Transactions.csv,89.2MB compressed/1.025GB expanded and1,665,112 rows.
+The research task reports1,274,696 sales,328,970 mortgages,61,446 gifts and a
+latest transaction date of17February2026 after a full scan. These are
+research-reported findings, not receiver-verified file bytes or a Yellow import.
+It is transaction history, not the separate Ejari rental-contract ledger or
+hotel occupancy/demand truth. The claimed MIT label does not resolve upstream
+DLD reuse rights; archive hash, exact version/source and upstream terms remain
+required before ingestion.
+
+The founder suggests the anomalous1416 year could be Hijri. Retain that as a
+hypothesis, preserve raw date/calendar fields and seek source provenance before
+conversion; never infer a calendar solely from the year. No transform was run.
+
+The founder also asks to keep research in the existing5TB Google Drive. Root
+requested durable archive/deliverable locations and integrity receipts directly
+from the research task, without a duplicate laptop download or new upload.
+This is not proof a backup exists. Stable source/evidence and permitted datasets
+must remain distinct from live database/runtime disks, caches, Git internals and
+secrets. These research inputs do not interrupt the current bounded release.
+
 ## Priority and authority
 
 The founder explicitly prioritized Overture/God's Eye integration before other

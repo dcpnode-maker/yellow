@@ -14,7 +14,7 @@ test("Order472 distinguishes the current source priority from dynamic runtime", 
     [463, "proof_in_progress"], [464, "built_unverified"],
     [465, "independently_approved"], [466, "independently_approved"],
     [467, "built_unverified"], [468, "independently_approved"], [469, "independently_approved"], [470, "independently_approved"],
-    [471, "built_unverified"], [472, "independently_approved"],
+    [471, "independently_approved"], [472, "independently_approved"],
   ]);
   expect(newer.every(row => Object.isFrozen(row) && row.summary.length > 0 && (row.remaining?.length ?? 0) > 0)).toBe(true);
   const byOrder = new Map(newer.map(row => [row.order, row]));
@@ -55,12 +55,17 @@ test("Order472 distinguishes the current source priority from dynamic runtime", 
   expect(byOrder.get(470)?.summary).toContain("1211 assertions");
   expect(byOrder.get(470)?.summary).toContain("6 explicit real-database skips");
   expect(byOrder.get(470)?.remaining).toMatch(/dynamic runtime/i);
-  expect(byOrder.get(471)?.summary).toMatch(/frozen.*unaccepted/i);
+  expect(byOrder.get(471)?.summary).toContain("38 tests with 598 assertions");
+  expect(byOrder.get(471)?.summary).toContain("130 checks at each viewport");
+  expect(byOrder.get(471)?.remaining).toContain("dd38a974");
+  expect(byOrder.get(471)?.remaining).toContain("34762156051");
+  expect(byOrder.get(471)?.remaining).toContain("dynamic runtime");
   expect(byOrder.get(471)?.remaining).toMatch(/provider.*activation|Phase 7/i);
   expect(byOrder.get(472)?.summary).toMatch(/identity.*compset.*map.*attributes.*planner/i);
   expect(byOrder.get(472)?.summary).toContain("Q267");
   expect(byOrder.get(472)?.summary).toContain("Q268");
-  expect(byOrder.get(472)?.remaining).toMatch(/publication.*local.*market-quality/i);
+  expect(byOrder.get(472)?.remaining).toContain("Published source dd38a974");
+  expect(byOrder.get(472)?.remaining).toMatch(/local integration.*market-quality/i);
   expect(byOrder.get(472)?.remaining).toMatch(/not.*live|not.*collection|not.*pricing/i);
   for (const order of [463, 464, 465, 466, 467, 468, 469, 470] as const) {
     expect(byOrder.get(order)?.remaining).not.toMatch(/not live|integration remain pending|runtime is stopped/);
