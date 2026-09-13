@@ -30,7 +30,8 @@ describe("RMS-PLACES-001 operator market map", () => {
 
   test("keeps searches bounded and exports an explicit research selection", async () => {
     const market = await source("src/http/operator/operator-market-map.js");
-    expect(market).toContain('east - west > 5 || north - south > 5');
+    expect(market).toContain('longitudeSpan <= 0 || longitudeSpan > 5');
+    expect(market).toContain('boundedNorth <= boundedSouth || boundedNorth - boundedSouth > 5');
     expect(market).toContain('search.set("limit", "200")');
     expect(market).toContain('competitorIds.size < 50');
     expect(market).toContain('subjectId: selectedSubjectId, competitorIds: selectedCompetitorIds');

@@ -136,7 +136,7 @@ function invalid(code: string, message: string): never {
 }
 
 function normalizedText(value: string): string {
-  return value.normalize("NFKC").toLocaleLowerCase("und").trim().replace(/\s+/gu, " ");
+  return value.normalize("NFKC").toLowerCase().trim().replace(/\s+/gu, " ");
 }
 
 function assertFiniteCoordinate(value: number, minimum: number, maximum: number, field: string): void {
@@ -239,6 +239,24 @@ function assertBoundedRecordString(value: string | null, field: string): void {
   }
 }
 
+const PUBLIC_SOURCE_STRING_FIELDS = new Set(["property", "dataset", "license", "record_id", "update_time", "provider", "resource", "version"]);
+
+function assertPublicSource(source: Record<string, unknown>): void {
+  const invalidSource = (): never => { throw new PlaceCatalogError("catalog_corrupt", "invalid_catalog_provenance", "catalog source does not match the public Overture provenance contract"); };
+  if (typeof source.property !== "string" || typeof source.dataset !== "string") invalidSource();
+  for (const [key, value] of Object.entries(source)) {
+    if (PUBLIC_SOURCE_STRING_FIELDS.has(key)) {
+      if (value !== null && (typeof value !== "string" || value.length > 4096)) invalidSource();
+    } else if (key === "confidence") {
+      if (value !== null && (typeof value !== "number" || !Number.isFinite(value) || value < 0 || value > 1)) invalidSource();
+    } else if (key === "between") {
+      if (value !== null && (!Array.isArray(value) || value.length !== 2
+        || !value.every(item => typeof item === "number" && Number.isFinite(item))
+        || !(value[0] >= 0 && value[0] < value[1] && value[1] <= 1))) invalidSource();
+    } else invalidSource();
+  }
+}
+
 function decodeRow(row: PlaceRow): PlaceRecord {
   if (typeof row.id !== "string" || typeof row.name !== "string" || !PLACE_ID.test(row.id) || !row.name || row.name.length > 1_000
     || !Number.isFinite(row.longitude) || !Number.isFinite(row.latitude) || row.longitude < -180 || row.longitude > 180 || row.latitude < -90 || row.latitude > 90) {
@@ -259,6 +277,9 @@ function decodeRow(row: PlaceRow): PlaceRecord {
   if (!Array.isArray(websites) || !websites.every((website) => typeof website === "string") || !Array.isArray(sources) || !sources.every((source) => source !== null && typeof source === "object" && !Array.isArray(source))) {
     throw new PlaceCatalogError("catalog_corrupt", "invalid_catalog_record", "catalog websites or sources are invalid");
   }
+  // Protect reads from pre-repair catalogs too; the importer is not the only
+  // boundary between this immutable shared cache and an authorized tenant.
+  for (const source of sources) assertPublicSource(source as Record<string, unknown>);
   for (const website of websites) {
     try {
       if (normalizeUrl(website).url !== website) throw new Error("non-canonical catalog URL");
@@ -396,8 +417,7 @@ export class PlaceCatalog {
       }
       case "domain": {
         const domain = normalizeDomain(input.domain);
-        from = "websites w JOIN places p ON p.rowid=w.place_rowid";
-        where = "w.normalized_domain=?";
+        where = "p.rowid IN (SELECT w.place_rowid FROM websites w WHERE w.normalized_domain=?)";
         parameters = [domain];
         normalized = { domain };
         break;
@@ -518,6 +538,11 @@ export class PlaceCatalog {
     ) AS damaged`).get();
     if (logicalDamage?.damaged !== 0) {
       throw new PlaceCatalogError("catalog_corrupt", "catalog_index_mismatch", "place catalog spatial or URL index is inconsistent");
+    }
+    for (const row of this.#database.query<{ name: string; name_search: string }, []>("SELECT name,name_search FROM places").iterate()) {
+      if (typeof row.name !== "string" || row.name_search !== normalizedText(row.name)) {
+        throw new PlaceCatalogError("catalog_corrupt", "catalog_name_index_mismatch", "place catalog keyword normalization is incompatible; rebuild it with the current importer");
+      }
     }
     const indexedWebsites = this.#database.query<{ normalized_url: string; normalized_domain: string }, []>(
       "SELECT normalized_url,normalized_domain FROM websites ORDER BY place_rowid,normalized_url",

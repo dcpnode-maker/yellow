@@ -1,4 +1,5 @@
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+const STRICT_UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
 const DATE = /^(?!0000)\d{4}-\d{2}-\d{2}$/;
 const TIMESTAMP = /^(?!0000)\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{6}Z$/;
 const MONEY_MINOR = /^(?:0|[1-9][0-9]{0,18})$/;
@@ -8,9 +9,11 @@ const MAX_RETAINED_INVOICES = 300;
 const MAX_CURSOR_CHARS = 2048;
 const MAX_RECIPIENTS = 500;
 const MAX_PROVIDERS = 16;
+const MAX_RETAINED_CREDIT_INTENTS = 300;
 const HASH = /^[0-9a-f]{64}$/;
 const GSTIN = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][1-9A-Z]Z[0-9A-Z]$/;
 const PROVIDER_KEY = /^[a-z0-9](?:[a-z0-9._:-]{0,126}[a-z0-9])?$/;
+const IDEMPOTENCY_KEY = /^[!-~]{8,200}$/;
 
 function element(tag, className, text) {
   const node = document.createElement(tag);
@@ -85,6 +88,39 @@ function dateInTimezone(timezone) {
 function validText(value, maximum) {
   return typeof value === "string" && value.length > 0 && value.length <= maximum * 2
     && Array.from(value).length <= maximum && !/[\u0000-\u001f\u007f-\u009f]/u.test(value);
+}
+
+/** Mirrors the accepted full-credit command reason without normalizing its bytes. */
+export function creditNoteIssueReason(value) {
+  if (typeof value !== "string" || value.length > 1000 || value.trim().length === 0
+    || /[\u0000-\u001f\u007f]/u.test(value)) return null;
+  for (let index = 0; index < value.length; index += 1) {
+    const unit = value.charCodeAt(index);
+    if (unit >= 0xd800 && unit <= 0xdbff) {
+      const next = value.charCodeAt(index + 1);
+      if (!(next >= 0xdc00 && next <= 0xdfff)) return null;
+      index += 1;
+    } else if (unit >= 0xdc00 && unit <= 0xdfff) return null;
+  }
+  return Array.from(value).length >= 1 && Array.from(value).length <= 500 ? value : null;
+}
+
+/** Copies only immutable, already-validated invoice identity for one credit intent. */
+export function creditNoteIssueSnapshot(original, rawReason, idempotencyKey) {
+  const row = ownRecord(original, 16);
+  const reason = creditNoteIssueReason(rawReason);
+  if (!row || !reason || typeof idempotencyKey !== "string" || !IDEMPOTENCY_KEY.test(idempotencyKey)
+    || !matches(row.documentId, STRICT_UUID) || !matches(row.propertyNode, STRICT_UUID)
+    || !matches(row.reservationId, STRICT_UUID) || !matches(row.folioId, STRICT_UUID)
+    || !matches(row.recipientRegistrationId, STRICT_UUID) || !matches(row.documentSha256, HASH)
+    || !matches(row.documentNumber, DOCUMENT_NUMBER) || !validDate(row.businessDate)) return null;
+  return Object.freeze({
+    original: Object.freeze({ documentId: row.documentId, propertyNode: row.propertyNode,
+      reservationId: row.reservationId, folioId: row.folioId,
+      recipientRegistrationId: row.recipientRegistrationId, documentSha256: row.documentSha256,
+      documentNumber: row.documentNumber, businessDate: row.businessDate }),
+    reason, idempotencyKey,
+  });
 }
 
 function matches(value, pattern) {
@@ -298,21 +334,6 @@ export function creditNoteDisclosureEnvelope(value, original) {
   ]);
   const strictUuid = (candidate) => typeof candidate === "string"
     && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(candidate);
-  const reason = (v) => {
-    if (typeof v !== "string" || v.length > 1000 || v.trim().length === 0 || /[\u0000-\u001f\u007f]/u.test(v)) {
-      return false;
-    }
-    for (let i = 0; i < v.length; i += 1) {
-      const code = v.charCodeAt(i);
-      if (code >= 0xd800 && code <= 0xdbff) {
-        i += 1;
-        if (i >= v.length || v.charCodeAt(i) < 0xdc00 || v.charCodeAt(i) > 0xdfff) return false;
-      } else if (code >= 0xdc00 && code <= 0xdfff) {
-        return false;
-      }
-    }
-    return Array.from(v).length <= 500;
-  };
   const minor = (v) => typeof v === "string" && /^[1-9][0-9]{0,18}$/.test(v)
     && BigInt(v) <= 9223372036854775807n;
   const timestamp = (v) => typeof v === "string"
@@ -339,7 +360,7 @@ export function creditNoteDisclosureEnvelope(value, original) {
   if (!row || !identityMatches || row.documentKind !== "credit_note" || row.status !== "issued"
     || row.currency !== "INR" || !validIds || !distinctIds || !validHashes || !validFinancialYear
     || !validDate(row.businessDate) || !timestamp(row.issuedAt) || !matches(row.docNo, DOCUMENT_NUMBER)
-    || !minor(row.totalMinor) || !reason(row.reason)) return null;
+    || !minor(row.totalMinor) || creditNoteIssueReason(row.reason) === null) return null;
   return Object.freeze({
     documentId: row.documentId,
     docNo: row.docNo,
@@ -351,6 +372,48 @@ export function creditNoteDisclosureEnvelope(value, original) {
     sha256: row.sha256,
     currency: "INR",
   });
+}
+
+export function creditNoteRegisterFilters(value) {
+  const row = ownRecord(value, 3);
+  if (!row || Object.keys(row).some((key) => !["issuedFrom", "issuedBefore", "docNo"].includes(key))
+    || !Object.hasOwn(row, "issuedFrom") || !Object.hasOwn(row, "issuedBefore")
+    || !validDate(row.issuedFrom) || !validDate(row.issuedBefore)
+    || row.issuedFrom >= row.issuedBefore
+    || (Date.parse(`${row.issuedBefore}T00:00:00Z`) - Date.parse(`${row.issuedFrom}T00:00:00Z`)) / 86_400_000 > 366
+    || (Object.hasOwn(row, "docNo") && !matches(row.docNo, DOCUMENT_NUMBER))) return null;
+  return Object.freeze({ issuedFrom: row.issuedFrom, issuedBefore: row.issuedBefore,
+    ...(Object.hasOwn(row, "docNo") ? { docNo: row.docNo } : {}) });
+}
+
+export function creditNoteRegisterEnvelope(value, propertyNode, filters) {
+  const boundFilters = creditNoteRegisterFilters(filters);
+  const wrapper = exactRecord(value, ["items", "nextCursor"]);
+  const items = wrapper && ownArray(wrapper.items, 25);
+  if (!boundFilters || !matches(propertyNode, STRICT_UUID) || !items || (wrapper.nextCursor !== null && (typeof wrapper.nextCursor !== "string"
+    || wrapper.nextCursor.length < 1 || wrapper.nextCursor.length > 1024 || !/^[A-Za-z0-9_-]+$/.test(wrapper.nextCursor)))) return null;
+  const rows = items.map((item) => {
+    const row = exactRecord(item, ["documentId", "originalDocumentId", "docNo", "originalDocNo", "businessDate", "propertyNode", "currency", "totalMinor", "sha256"]);
+    if (!row || ![row.documentId, row.originalDocumentId, row.propertyNode].every((id) => matches(id, STRICT_UUID))
+      || row.documentId === row.originalDocumentId || row.propertyNode !== propertyNode
+      || !matches(row.docNo, DOCUMENT_NUMBER) || !matches(row.originalDocNo, DOCUMENT_NUMBER)
+      || !validDate(row.businessDate) || row.businessDate < boundFilters.issuedFrom
+      || row.businessDate >= boundFilters.issuedBefore
+      || (boundFilters.docNo !== undefined && row.docNo !== boundFilters.docNo) || row.currency !== "INR"
+      || typeof row.totalMinor !== "string" || !/^[1-9][0-9]{0,18}$/.test(row.totalMinor)
+      || BigInt(row.totalMinor) > 9223372036854775807n || !matches(row.sha256, HASH)) return null;
+    return Object.freeze({ documentId: row.documentId, originalDocumentId: row.originalDocumentId, docNo: row.docNo,
+      originalDocNo: row.originalDocNo, businessDate: row.businessDate, propertyNode: row.propertyNode,
+      currency: "INR", totalMinor: row.totalMinor, sha256: row.sha256 });
+  });
+  if (rows.some((row) => row === null)) return null;
+  const seen = new Set();
+  for (let index = 0; index < rows.length; index += 1) {
+    const row = rows[index];
+    if (seen.has(row.documentId) || (index > 0 && `${rows[index - 1].businessDate}\u0000${rows[index - 1].documentId}` <= `${row.businessDate}\u0000${row.documentId}`)) return null;
+    seen.add(row.documentId);
+  }
+  return Object.freeze({ items: Object.freeze(rows), nextCursor: wrapper.nextCursor });
 }
 
 export function creditNoteDocumentEnvelope(value, discovery, original) {
@@ -581,6 +644,7 @@ export function createInvoiceWorkbench({ root, request, propertyNode, timezone, 
   let previewStyleSheet = null;
   const registrationRequests = new Map();
   const deliveryRetries = new Map();
+  const creditIssueRequests = new Map();
   const controllers = new Set();
   const searchControllers = new Set();
   const detailControllers = new Set();
@@ -621,12 +685,33 @@ export function createInvoiceWorkbench({ root, request, propertyNode, timezone, 
   const more = element("button", "invoice-workbench__load-more", "Load more invoices");
   more.type = "button"; more.hidden = true;
   queue.append(queueSummary, queueList, empty, more);
+  const creditView = element("section", "invoice-workbench__credit-register");
+  creditView.hidden = true; creditView.setAttribute("aria-label", "Credit notes");
+  const creditBack = element("button", "invoice-workbench__credit-register-back", "Back to invoices");
+  creditBack.type = "button";
+  const creditForm = element("form", "invoice-workbench__search invoice-workbench__credit-register-search");
+  const creditNumber = element("input", "invoice-workbench__query invoice-workbench__credit-register-number"); creditNumber.type = "search"; creditNumber.maxLength = 16; creditNumber.autocomplete = "off"; creditNumber.placeholder = "Credit note number";
+  const creditFrom = element("input", "invoice-workbench__date invoice-workbench__credit-register-date"); creditFrom.type = "date"; creditFrom.required = true;
+  const creditBefore = element("input", "invoice-workbench__date invoice-workbench__credit-register-date"); creditBefore.type = "date"; creditBefore.required = true;
+  creditFrom.value = addDays(today, -30); creditBefore.value = addDays(today, 1);
+  const creditSearch = element("button", "invoice-workbench__submit invoice-workbench__credit-register-submit", "Search credit notes"); creditSearch.type = "submit";
+  const creditNumberLabel = element("label", "invoice-workbench__field", "Credit number"); creditNumber.id = "credit-register-number"; creditNumberLabel.htmlFor = creditNumber.id; creditNumberLabel.append(creditNumber);
+  const creditFromLabel = element("label", "invoice-workbench__field", "Issued from"); creditFrom.id = "credit-register-from"; creditFromLabel.htmlFor = creditFrom.id; creditFromLabel.append(creditFrom);
+  const creditBeforeLabel = element("label", "invoice-workbench__field", "Issued before (exclusive)"); creditBefore.id = "credit-register-before"; creditBeforeLabel.htmlFor = creditBefore.id; creditBeforeLabel.append(creditBefore);
+  creditForm.append(creditNumberLabel, creditFromLabel, creditBeforeLabel, creditSearch);
+  const creditStatus = element("p", "invoice-workbench__credit-register-status", "Credit notes have not been loaded."); creditStatus.setAttribute("role", "status");
+  const creditList = element("div", "invoice-workbench__credit-register-list");
+  const creditMore = element("button", "invoice-workbench__credit-register-more", "Load more credit notes"); creditMore.type = "button"; creditMore.hidden = true;
+  creditView.append(creditBack, creditForm, creditStatus, creditList, creditMore);
   const detail = element("section", "invoice-workbench__detail");
   detail.setAttribute("aria-label", "Invoice detail");
   layout.append(queue, detail);
-  root.replaceChildren(toolbar, live, layout);
+  root.replaceChildren(toolbar, live, layout, creditView);
   root.dataset.invoiceView = "queue";
   root.dataset.invoiceState = "idle";
+  const creditIntent = element("button", "invoice-workbench__credit-register-intent", "Credit notes");
+  creditIntent.type = "button"; toolbar.append(creditIntent);
+  let creditRows = []; let creditCursor = null; let creditMode = false; const creditCursors = new Set();
 
   function setState(state, message) {
     if (disposed) return;
@@ -638,6 +723,24 @@ export function createInvoiceWorkbench({ root, request, propertyNode, timezone, 
   function current(scope, generation, kind) {
     const expected = kind === "search" ? searchGeneration : kind === "detail" ? detailGeneration : issueGeneration;
     return !disposed && active && scope === scopeGeneration && generation === expected;
+  }
+
+  function resetCreditRegister() {
+    creditRows = []; creditCursor = null; creditCursors.clear(); renderCreditRegister();
+  }
+
+  function creditCurrent(scope, generation) {
+    return current(scope, generation, "search") && creditMode && root.isConnected && !root.hidden
+      && creditView.isConnected && !creditView.hidden;
+  }
+
+  function leaveCreditRegister() {
+    const wasCreditMode = creditMode;
+    creditMode = false;
+    if (wasCreditMode) { abortKind("search"); searchGeneration += 1; }
+    creditView.hidden = true; layout.hidden = false; form.hidden = false; detail.hidden = false; queue.hidden = false;
+    root.dataset.invoiceView = "queue";
+    resetCreditRegister();
   }
 
   function abortAll() {
@@ -694,6 +797,66 @@ export function createInvoiceWorkbench({ root, request, propertyNode, timezone, 
     queueSummary.textContent = `${matchingCount} matching invoice${matchingCount === "1" ? "" : "s"} · ${rows.length} shown`;
     empty.hidden = rows.length !== 0;
     more.hidden = nextCursor === null || rows.length >= MAX_RETAINED_INVOICES;
+  }
+
+  function renderCreditRegister() {
+    creditList.replaceChildren();
+    for (const row of creditRows) {
+      const article = element("article", "invoice-workbench__credit-register-row");
+      article.append(element("strong", "invoice-workbench__credit-register-number", row.docNo),
+        element("span", "invoice-workbench__credit-register-original", `Original ${row.originalDocNo}`),
+        element("time", "invoice-workbench__credit-register-date", row.businessDate),
+        element("span", "invoice-workbench__credit-register-total", minorText(row.totalMinor)));
+      const review = element("button", "invoice-workbench__credit-register-review", "Review original invoice"); review.type = "button";
+      review.addEventListener("click", () => {
+        if (!creditMode || !active || disposed || !root.isConnected || root.hidden || !creditView.isConnected
+          || creditView.hidden || !article.isConnected || !review.isConnected || !creditRows.includes(row)) return;
+        leaveCreditRegister();
+        try { void Promise.resolve(navigate(row.originalDocumentId)).catch(() => undefined); } catch { /* navigation owner reports its own failure */ }
+      });
+      article.append(review); creditList.append(article);
+    }
+    creditMore.hidden = creditCursor === null || creditRows.length >= MAX_RETAINED_INVOICES;
+  }
+
+  async function loadCreditRegister(append) {
+    if (!creditMode || disposed || !active || !root.isConnected || root.hidden || !creditView.isConnected
+      || creditView.hidden || !creditForm.isConnected || creditForm.hidden) return;
+    abortKind("search"); const generation = ++searchGeneration; const scope = scopeGeneration;
+    const fromValue = creditFrom.value, beforeValue = creditBefore.value, docNoValue = creditNumber.value.trim(), after = append ? creditCursor : null;
+    const filters = creditNoteRegisterFilters({ issuedFrom: fromValue, issuedBefore: beforeValue,
+      ...(docNoValue ? { docNo: docNoValue } : {}) });
+    if (!append) resetCreditRegister();
+    if (!filters) {
+      creditStatus.textContent = "Choose valid credit number and date filters."; return;
+    }
+    if (append && after === null) { creditStatus.textContent = "Credit-note pagination cannot continue."; return; }
+    if (after !== null && creditCursors.has(after)) { creditStatus.textContent = "Credit-note pagination cannot repeat a cursor."; return; }
+    if (after !== null) creditCursors.add(after);
+    const controller = controlled("search"); creditSearch.disabled = true; creditMore.disabled = true; creditStatus.textContent = "Loading credit notes…";
+    try {
+      const query = { issuedFrom: filters.issuedFrom, issuedBefore: filters.issuedBefore, limit: "25",
+        ...(filters.docNo !== undefined ? { docNo: filters.docNo } : {}), ...(after !== null ? { after } : {}) };
+      const raw = await request(`/api/v1/properties/${encodeURIComponent(propertyNode)}/credit-notes?${new URLSearchParams(query).toString()}`, { signal: controller.signal });
+      if (!creditCurrent(scope, generation) || controller.signal.aborted) return;
+      const page = creditNoteRegisterEnvelope(raw, propertyNode, filters);
+      if (!page) throw new Error("invalid credit register response");
+      if ((page.items.length === 0 && page.nextCursor !== null)
+        || (page.nextCursor !== null && (page.nextCursor === after || creditCursors.has(page.nextCursor)))
+        || creditRows.length + page.items.length > MAX_RETAINED_INVOICES
+        || (append && page.items.length > 0 && creditRows.length > 0
+          && `${creditRows.at(-1).businessDate}\u0000${creditRows.at(-1).documentId}` <= `${page.items[0].businessDate}\u0000${page.items[0].documentId}`)
+        || (append && page.items.some((item) => creditRows.some((old) => old.documentId === item.documentId)))) throw new Error("invalid credit register response");
+      creditRows = append ? [...creditRows, ...page.items] : [...page.items]; creditCursor = page.nextCursor; renderCreditRegister();
+      creditStatus.textContent = creditRows.length ? `${creditRows.length} credit notes shown.` : "No issued credit notes match these filters.";
+    } catch (error) {
+      if (!creditCurrent(scope, generation) || controller.signal.aborted) return;
+      resetCreditRegister();
+      const code = errorField(error, "status"); creditStatus.textContent = code === 403 ? "You do not have permission to read credit notes."
+        : code === 400 ? "The credit-note filters or cursor are invalid." : code === 404 ? "Credit-note register is unavailable."
+          : error instanceof Error && error.message === "invalid credit register response" ? "Credit-note register data is invalid."
+            : "Credit-note register is offline.";
+    } finally { release(controller); if (creditCurrent(scope, generation)) { creditSearch.disabled = false; creditMore.disabled = false; } }
   }
 
   function searchBody(after) {
@@ -772,6 +935,38 @@ export function createInvoiceWorkbench({ root, request, propertyNode, timezone, 
       throw new Error("secure command identity is unavailable");
     }
     return `fiscal-registration-${globalThis.crypto.randomUUID()}`;
+  }
+
+  function newCreditIssueKey() {
+    if (!globalThis.crypto || typeof globalThis.crypto.randomUUID !== "function") {
+      throw new Error("secure command identity is unavailable");
+    }
+    return `credit-note-${globalThis.crypto.randomUUID()}`;
+  }
+
+  function retainedCreditIssue(original) {
+    const retained = creditIssueRequests.get(original.documentId);
+    if (!retained) return null;
+    const snapshot = retained.snapshot;
+    return snapshot.original.documentId === original.documentId
+      && snapshot.original.propertyNode === original.propertyNode
+      && snapshot.original.reservationId === original.reservationId
+      && snapshot.original.folioId === original.folioId
+      && snapshot.original.recipientRegistrationId === original.recipientRegistrationId
+      && snapshot.original.documentSha256 === original.documentSha256
+      && snapshot.original.documentNumber === original.documentNumber
+      && snapshot.original.businessDate === original.businessDate ? retained : null;
+  }
+
+  function retainCreditIssue(original, rawReason) {
+    if (creditIssueRequests.has(original.documentId) || creditIssueRequests.size >= MAX_RETAINED_CREDIT_INTENTS) return null;
+    let idempotencyKey;
+    try { idempotencyKey = newCreditIssueKey(); } catch { return null; }
+    const snapshot = creditNoteIssueSnapshot(original, rawReason, idempotencyKey);
+    if (!snapshot) return null;
+    const retained = { snapshot, state: "ready", inFlight: false, creditNumber: null };
+    creditIssueRequests.set(original.documentId, retained);
+    return retained;
   }
 
   function newRetryKey() {
@@ -1028,6 +1223,157 @@ export function createInvoiceWorkbench({ root, request, propertyNode, timezone, 
     }
   }
 
+  function creditIssueCurrent(original, surface, scope, generation) {
+    return current(scope, generation, "detail") && selectedDocumentId === original.documentId
+      && root.dataset.invoiceView === "detail" && root.isConnected && !root.hidden
+      && detail.isConnected && !detail.hidden && surface.isConnected && !surface.hidden;
+  }
+
+  function creditIssueControlsCurrent(original, surface, controls, scope, generation) {
+    return creditIssueCurrent(original, surface, scope, generation)
+      && [controls.reason, controls.confirmation, controls.submit, controls.cancel, controls.message]
+        .every((control) => control.isConnected && !control.hidden && surface.contains(control));
+  }
+
+  function originalCreditTotal(original) {
+    const cached = rows.find((row) => row.documentId === original.documentId
+      && row.documentNumber === original.documentNumber && row.businessDate === original.businessDate
+      && row.reservationId === original.reservationId && row.folioId === original.folioId
+      && row.recipientRegistrationId === original.recipientRegistrationId);
+    if (cached) return cached.totalMinor;
+    try {
+      const source = ownRecord(JSON.parse(original.contentJson), 8);
+      const identity = source && ownRecord(source.DocDtls, 3);
+      const totals = source && ownRecord(source.ValDtls, 4);
+      const value = totals?.TotInvVal;
+      if (!identity || identity.Typ !== "INV" || identity.No !== original.documentNumber
+        || identity.Dt !== `${original.businessDate.slice(8, 10)}/${original.businessDate.slice(5, 7)}/${original.businessDate.slice(0, 4)}`
+        || typeof value !== "string" || !/^(?:0|[1-9][0-9]{0,16})\.[0-9]{2}$/.test(value)) return null;
+      const minor = value.replace(".", "");
+      return BigInt(minor) <= 9223372036854775807n ? minor : null;
+    } catch { return null; }
+  }
+
+  function creditIssueMessage(status) {
+    if (status === 400) return "The credit-note request was invalid. Its submitted request identity remains locked; retry only the same request.";
+    if (status === 403 || status === 401) return "You do not have permission to issue this credit note. Its submitted request identity remains locked.";
+    if (status === 404) return "The original invoice is unavailable or concealed. This does not prove that no credit was issued; the submitted request identity remains locked.";
+    if (status === 409) return "The credit note cannot be issued from the current financial state. Do not start another request; the submitted request identity remains locked.";
+    return "The credit-note outcome is unknown. Retry only with the same request identity, or deliberately view an existing credit note.";
+  }
+
+  async function submitCreditIssue(original, retained, surface, controls, scope, generation) {
+    if (retained.inFlight || retained.state === "succeeded" || controls.submit.disabled
+      || !creditIssueControlsCurrent(original, surface, controls, scope, generation)) return;
+    retained.inFlight = true; retained.state = "unknown";
+    controls.reason.readOnly = true; controls.confirmation.disabled = true; controls.submit.disabled = true;
+    controls.cancel.disabled = true;
+    controls.message.textContent = "Issuing the full credit note through the governed financial command…";
+    setState("loading", "Issuing the full credit note…");
+    const controller = controlled("detail");
+    try {
+      const response = await request(
+        `/api/v1/properties/${encodeURIComponent(propertyNode)}/invoices/${encodeURIComponent(retained.snapshot.original.documentId)}/credit-notes`,
+        { method: "POST", headers: { "Content-Type": "application/json", "Idempotency-Key": retained.snapshot.idempotencyKey },
+          body: JSON.stringify({ reason: retained.snapshot.reason }), signal: controller.signal },
+      );
+      if (!creditIssueCurrent(original, surface, scope, generation) || controller.signal.aborted) return;
+      const note = creditNoteDisclosureEnvelope(response, retained.snapshot.original);
+      if (!note || note.reason !== retained.snapshot.reason) throw new Error("invalid credit-note issue receipt");
+      retained.state = "succeeded";
+      retained.creditNumber = note.docNo;
+      controls.message.textContent = `Credit note ${note.docNo} is available. Use View credit note to review, preview, or print the immutable record.`;
+      controls.submit.hidden = true; controls.cancel.textContent = "Close"; controls.cancel.disabled = false;
+      setState("ready", `Credit note ${note.docNo} is available.`);
+    } catch (error) {
+      if (!creditIssueCurrent(original, surface, scope, generation)) return;
+      retained.state = "unknown";
+      controls.message.textContent = error instanceof Error && error.message === "invalid credit-note issue receipt"
+        ? "The credit-note response could not be verified. Its outcome is unknown; retry only the same request."
+        : creditIssueMessage(errorField(error, "status"));
+      controls.submit.textContent = "Retry same credit request"; controls.submit.disabled = false;
+      controls.cancel.disabled = false;
+      setState("unknown", controls.message.textContent);
+    } finally {
+      retained.inFlight = false; release(controller);
+      if (creditIssueCurrent(original, surface, scope, generation) && retained.state === "unknown") {
+        controls.submit.disabled = false; controls.cancel.disabled = false;
+      }
+    }
+  }
+
+  function renderCreditIssue(original, slot, scope, generation) {
+    slot.replaceChildren();
+    let retained = retainedCreditIssue(original);
+    const changedRetained = creditIssueRequests.has(original.documentId) && retained === null;
+    const surface = element("section", "invoice-workbench__credit-issue");
+    const heading = element("h4", "invoice-workbench__credit-issue-heading", "Issue full credit note");
+    const guidance = element("p", "invoice-workbench__credit-issue-guidance",
+      "This creates one full credit only. The original invoice remains unchanged; this is not a cash refund, payment, or provider registration.");
+    const facts = element("dl", "invoice-workbench__credit-issue-original");
+    facts.append(detailRow("Original invoice", original.documentNumber), detailRow("Original date", original.businessDate));
+    const total = originalCreditTotal(original);
+    facts.append(detailRow("Original total", total === null ? "Unavailable from the issued document" : minorText(total)));
+    const message = element("p", "invoice-workbench__credit-issue-message", "Enter the immutable reason and confirm before issuing.");
+    message.setAttribute("role", "status"); message.setAttribute("aria-live", "polite");
+    const cancel = element("button", "invoice-workbench__credit-issue-cancel", "Cancel"); cancel.type = "button";
+    surface.append(heading, guidance, facts);
+    if (changedRetained) {
+      message.textContent = "An unresolved credit request is retained for earlier invoice details. Deliberately view the existing credit note; no new request can be started here.";
+      surface.append(message, cancel); cancel.addEventListener("click", () => { if (creditIssueCurrent(original, surface, scope, generation)) slot.replaceChildren(); });
+      slot.append(surface); return;
+    }
+    if (retained?.inFlight) {
+      message.textContent = "A credit-note request is still in progress. Do not start another request; return here after its outcome is known.";
+      surface.append(message, cancel);
+      cancel.addEventListener("click", () => { if (creditIssueCurrent(original, surface, scope, generation)) slot.replaceChildren(); });
+      slot.append(surface); return;
+    }
+    const reasonLabel = element("label", "invoice-workbench__credit-issue-field", "Reason for full credit");
+    const reason = element("textarea", "invoice-workbench__credit-issue-reason");
+    reason.required = true; reason.maxLength = 1000; reason.rows = 3; reasonLabel.append(reason);
+    const confirmationLabel = element("label", "invoice-workbench__credit-issue-confirm-field");
+    const confirmation = element("input", "invoice-workbench__credit-issue-confirm"); confirmation.type = "checkbox";
+    confirmationLabel.append(confirmation, document.createTextNode(" I confirm this is a full credit of the immutable invoice above."));
+    const submit = element("button", "invoice-workbench__credit-issue-submit", "Issue full credit note"); submit.type = "button"; submit.disabled = true;
+    const controls = { reason, confirmation, submit, cancel, message };
+    if (retained) {
+      reason.value = retained.snapshot.reason; reason.readOnly = true; confirmation.checked = true; confirmation.disabled = true;
+      submit.textContent = retained.state === "succeeded" ? "Credit note issued" : "Retry same credit request";
+      submit.disabled = retained.state === "succeeded" || retained.inFlight;
+      message.textContent = retained.state === "succeeded"
+        ? `Credit note ${retained.creditNumber ?? ""} is available. Use View credit note to review the immutable record.`.trim()
+        : "A submitted credit request is retained. Its reason and request identity are locked; retry only the same request.";
+    } else {
+      const update = () => {
+        if (!creditIssueCurrent(original, surface, scope, generation)) return;
+        submit.disabled = !confirmation.checked || creditNoteIssueReason(reason.value) === null;
+      };
+      reason.addEventListener("input", update); confirmation.addEventListener("change", update);
+    }
+    submit.addEventListener("click", () => {
+      if (retained?.state === "succeeded" || retained?.inFlight || submit.disabled
+        || !creditIssueControlsCurrent(original, surface, controls, scope, generation)) return;
+      let intent = retained;
+      if (!intent) {
+        if (!confirmation.checked || creditNoteIssueReason(reason.value) === null) return;
+        intent = retainCreditIssue(original, reason.value);
+        if (!intent) {
+          message.textContent = creditIssueRequests.has(original.documentId)
+            ? "A credit request is already retained for this invoice. Its request identity cannot be replaced."
+            : "A secure request identity is unavailable. No credit-note request was sent.";
+          return;
+        }
+        retained = intent;
+      }
+      void submitCreditIssue(original, intent, surface, controls, scope, generation);
+    });
+    cancel.addEventListener("click", () => {
+      if (creditIssueCurrent(original, surface, scope, generation) && !retained?.inFlight) slot.replaceChildren();
+    });
+    surface.append(reasonLabel, confirmationLabel, message, submit, cancel); slot.append(surface);
+  }
+
   function renderDetail(documentValue, delivery, scope, generation) {
     detail.replaceChildren();
     const back = element("button", "invoice-workbench__back", "Back to invoices");
@@ -1062,9 +1408,16 @@ export function createInvoiceWorkbench({ root, request, propertyNode, timezone, 
     const credit = element("section", "invoice-workbench__credit-note");
     const creditHeading = element("h4", "invoice-workbench__credit-note-heading", "Existing credit note");
     const creditIntent = element("button", "invoice-workbench__credit-note-intent", "View credit note"); creditIntent.type = "button";
+    const creditIssueIntent = element("button", "invoice-workbench__credit-issue-intent", "Issue full credit note"); creditIssueIntent.type = "button";
     const creditMessage = element("p", "invoice-workbench__credit-note-message", "Credit note not loaded."); creditMessage.setAttribute("aria-live", "polite");
-    credit.append(creditHeading, creditIntent, creditMessage);
+    const creditIssueSlot = element("div", "invoice-workbench__credit-issue-slot");
+    credit.append(creditHeading, creditIntent, creditIssueIntent, creditMessage, creditIssueSlot);
     creditIntent.addEventListener("click", () => { void loadCreditNote(documentValue, credit, creditIntent, creditMessage, scope, generation); });
+    creditIssueIntent.addEventListener("click", () => {
+      if (current(scope, generation, "detail") && credit.isConnected && creditIssueIntent.isConnected) {
+        renderCreditIssue(documentValue, creditIssueSlot, scope, generation);
+      }
+    });
     const previewSurface = element("section", "invoice-workbench__print-preview");
     previewSurface.hidden = true; previewSurface.setAttribute("aria-live", "polite");
     preview.addEventListener("click", () => { void preparePrint(documentValue.documentId, false, previewSurface, preview, print); });
@@ -1393,7 +1746,10 @@ export function createInvoiceWorkbench({ root, request, propertyNode, timezone, 
     const target = event.target;
     const editing = target && ["INPUT", "SELECT", "TEXTAREA"].includes(target.tagName);
     if (event.key === "/" && !editing) {
-      event.preventDefault(); query.focus();
+      event.preventDefault();
+      if (creditMode && root.isConnected && !root.hidden && creditView.isConnected && !creditView.hidden
+        && creditNumber.isConnected && !creditNumber.hidden) creditNumber.focus();
+      else query.focus();
     } else if (event.key === "Escape" && ["detail", "issue"].includes(root.dataset.invoiceView)
       && matchMedia("(max-width: 900px)").matches) {
       event.preventDefault();
@@ -1611,16 +1967,39 @@ export function createInvoiceWorkbench({ root, request, propertyNode, timezone, 
 
   form.addEventListener("submit", (event) => { event.preventDefault(); void loadSearch(false); });
   more.addEventListener("click", () => { if (nextCursor) void loadSearch(true); });
+  creditIntent.addEventListener("click", () => {
+    if (disposed || !active || !root.isConnected || root.hidden || !creditIntent.isConnected) return;
+    creditMode = true; scopeGeneration += 1; searchGeneration += 1; abortAll();
+    root.hidden = false; form.hidden = true; layout.hidden = true; creditView.hidden = false; root.dataset.invoiceView = "credits"; resetCreditRegister(); void loadCreditRegister(false);
+  });
+  creditBack.addEventListener("click", () => {
+    if (!creditMode || !active || disposed || !root.isConnected || root.hidden || !creditView.isConnected
+      || creditView.hidden || !creditBack.isConnected) return;
+    leaveCreditRegister();
+    try { void Promise.resolve(navigate(null)).catch(() => undefined); } catch { /* navigation owner reports its own failure */ }
+  });
+  creditForm.addEventListener("submit", (event) => { event.preventDefault(); void loadCreditRegister(false); });
+  creditMore.addEventListener("click", () => {
+    if (creditMode && active && !disposed && root.isConnected && !root.hidden && creditMore.isConnected && !creditMore.hidden
+      && creditCursor !== null) void loadCreditRegister(true);
+  });
+  for (const field of [creditNumber, creditFrom, creditBefore]) field.addEventListener("input", () => {
+    if (!creditMode || !active || disposed || !root.isConnected || root.hidden || !creditView.isConnected || creditView.hidden) return;
+    abortKind("search"); searchGeneration += 1; resetCreditRegister(); creditStatus.textContent = "Draft filters changed; search again.";
+    creditSearch.disabled = false; creditMore.disabled = false;
+  });
   root.addEventListener("keydown", keyboard);
 
   return Object.freeze({
     async show(documentId) {
       if (disposed) return;
       if (documentId !== null && (typeof documentId !== "string" || !UUID.test(documentId))) throw new TypeError("Invalid invoice document ID");
+      leaveCreditRegister(); detail.hidden = false; queue.hidden = false;
       abortKind("issue"); issueGeneration += 1; currentIssueRoute = null;
       active = true; root.hidden = false;
       form.hidden = false; queue.hidden = false;
       if (documentId === null) {
+        layout.hidden = false; form.hidden = false; detail.hidden = false;
         abortKind("detail");
         detailGeneration += 1;
         selectedDocumentId = returnFocusDocumentId;
@@ -1646,6 +2025,7 @@ export function createInvoiceWorkbench({ root, request, propertyNode, timezone, 
       if (disposed) return;
       const route = issueRoute(value);
       if (!route) throw new TypeError("Invalid invoice issue route");
+      leaveCreditRegister(); detail.hidden = false; queue.hidden = false;
       abortKind("search"); searchGeneration += 1;
       abortKind("detail"); detailGeneration += 1;
       abortKind("issue"); issueGeneration += 1;
@@ -1657,14 +2037,14 @@ export function createInvoiceWorkbench({ root, request, propertyNode, timezone, 
     suspend() {
       if (disposed) return;
       active = false; scopeGeneration += 1; searchGeneration += 1; detailGeneration += 1; issueGeneration += 1;
-      currentIssueRoute = null;
+      currentIssueRoute = null; creditMode = false; creditView.hidden = true; layout.hidden = false; form.hidden = false; detail.hidden = false; resetCreditRegister();
       abortAll(); root.hidden = true; root.dataset.invoiceState = "suspended"; root.setAttribute("aria-busy", "false");
     },
     dispose() {
       if (disposed) return;
       active = false; disposed = true; scopeGeneration += 1; searchGeneration += 1; detailGeneration += 1; issueGeneration += 1;
-      currentIssueRoute = null;
-      abortAll(); rows = []; nextCursor = null; printModulePromise = null; registrationRequests.clear(); deliveryRetries.clear();
+      currentIssueRoute = null; creditMode = false;
+      abortAll(); rows = []; nextCursor = null; resetCreditRegister(); printModulePromise = null; registrationRequests.clear(); deliveryRetries.clear(); creditIssueRequests.clear();
       if (previewStyleSheet instanceof CSSStyleSheet && "adoptedStyleSheets" in document) {
         document.adoptedStyleSheets = document.adoptedStyleSheets.filter((sheet) => sheet !== previewStyleSheet);
       } else if (previewStyleSheet && typeof previewStyleSheet.remove === "function") previewStyleSheet.remove();

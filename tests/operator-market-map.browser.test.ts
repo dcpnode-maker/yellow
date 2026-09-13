@@ -40,7 +40,7 @@ function place(id: string, name: string, latitude = 25, longitude = 55) {
 }
 function deferred<T>() { let resolve!: (value: T) => void; let reject!: (reason?: unknown) => void; return { promise: new Promise<T>((ok, fail) => { resolve = ok; reject = fail; }), resolve, reject }; }
 
-function fixture() {
+function fixture(options: { map?: { getBounds(): { getWest(): number; getEast(): number; getSouth(): number; getNorth(): number }; getCenter(): { lng: number; lat: number } } } = {}) {
   const nodes = new Map<string, Element>();
   for (const id of ["market-map-view", "market-map-canvas", "market-map-search-form", "market-map-query", "market-map-visible-search", "market-map-radius", "market-map-radius-search", "market-map-toggle-globe", "market-map-status", "market-map-release", "market-map-count", "market-map-place-list", "market-map-subject", "market-map-compset", "market-map-selection-status", "market-map-export", "property-select"]) nodes.set(`#${id}`, new Element("div"));
   const view = nodes.get("#market-map-view")!; view.hidden = false;
@@ -67,9 +67,10 @@ function fixture() {
   };
   class CustomEvent { constructor(readonly type: string, readonly init: { detail: unknown }) {} get detail() { return this.init.detail; } }
   class MutationObserver { constructor(_callback: () => void) {} observe() {} }
-  runInNewContext(moduleSource, {
+  const source = options.map ? moduleSource.replace("let map = null;", "let map = injectedMap;") : moduleSource;
+  runInNewContext(source, {
     document, window, CustomEvent, MutationObserver, queueMicrotask() {}, URLSearchParams,
-    URL: { createObjectURL() { downloads++; return "blob:test"; }, revokeObjectURL() {} }, Blob, Map, Set, Number, Math, Object, Array, String, RegExp, Error,
+    URL: { createObjectURL() { downloads++; return "blob:test"; }, revokeObjectURL() {} }, Blob, Map, Set, Number, Math, Object, Array, String, RegExp, Error, injectedMap: options.map,
   });
   const fire = (node: Element, type: string) => node.listeners.get(type)!({ preventDefault() {} });
   const respond = async (index: number, value: unknown) => { requests[index]!.response.resolve(value); await Promise.resolve(); await Promise.resolve(); };
@@ -125,6 +126,52 @@ test("GERS-prefixed and UUID inputs use the id search contract", async () => {
   expect(f.requests[0]!.path).toContain(`mode=id&id=${gersId}`);
   await search(f, gersId, { places: [], release: "r", schemaVersion: "v1" });
   expect(f.requests[1]!.path).toContain(`mode=id&id=${gersId}`);
+});
+
+test("visible and radius searches preserve narrow antimeridian bounds", async () => {
+  const antimeridianBounds = [
+    { west: 179, east: 181, expectedWest: "179", expectedEast: "-179" },
+    { west: 179, east: -179, expectedWest: "179", expectedEast: "-179" },
+    { west: -181, east: -179, expectedWest: "179", expectedEast: "-179" },
+    { west: 179, east: 180, expectedWest: "179", expectedEast: "180" },
+    { west: 180, east: 181, expectedWest: "180", expectedEast: "-179" },
+  ];
+  for (const bounds of antimeridianBounds) {
+    const f = fixture({ map: {
+      getBounds: () => ({ getWest: () => bounds.west, getEast: () => bounds.east, getSouth: () => 10, getNorth: () => 12 }),
+      getCenter: () => ({ lng: 180, lat: 11 }),
+    } });
+    f.fire(f.nodes.get("#market-map-visible-search")!, "click");
+    const query = new URL(f.requests[0]!.path, "http://yellow.test").searchParams;
+    expect(query.get("west")).toBe(bounds.expectedWest);
+    expect(query.get("east")).toBe(bounds.expectedEast);
+  }
+  const f = fixture({ map: {
+    getBounds: () => ({ getWest: () => 179, getEast: () => 181, getSouth: () => 10, getNorth: () => 12 }),
+    getCenter: () => ({ lng: 180, lat: 11 }),
+  } });
+  f.fire(f.nodes.get("#market-map-visible-search")!, "click");
+  await f.respond(0, { places: [], release: "r", schemaVersion: "v1" });
+  f.fire(f.nodes.get("#market-map-radius-search")!, "click");
+  const query = new URL(f.requests[1]!.path, "http://yellow.test").searchParams;
+  expect(Number(query.get("west"))).toBeGreaterThan(179);
+  expect(Number(query.get("east"))).toBeLessThan(-179);
+});
+
+test("visible search rejects non-finite, zero-span, and oversized bounds", () => {
+  const cases = [
+    { getWest: () => Number.NaN, getEast: () => 1, getSouth: () => 10, getNorth: () => 11 },
+    { getWest: () => 10, getEast: () => 10, getSouth: () => 10, getNorth: () => 11 },
+    { getWest: () => 180, getEast: () => -180, getSouth: () => 10, getNorth: () => 11 },
+    { getWest: () => -180, getEast: () => 180, getSouth: () => 10, getNorth: () => 11 },
+    { getWest: () => 10, getEast: () => 16, getSouth: () => 10, getNorth: () => 11 },
+  ];
+  for (const bounds of cases) {
+    const f = fixture({ map: { getBounds: () => bounds, getCenter: () => ({ lng: 10, lat: 10 }) } });
+    f.fire(f.nodes.get("#market-map-visible-search")!, "click");
+    expect(f.requests).toHaveLength(0);
+    expect(f.nodes.get("#market-map-status")!.textContent).toBe("Zoom closer: visible-area searches are limited to a 5° span.");
+  }
 });
 
 test("market map browser surface has a usable list fallback and phone layout", async () => {

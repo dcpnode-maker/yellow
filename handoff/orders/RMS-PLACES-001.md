@@ -123,3 +123,17 @@ The coordinator incorporated that published source into the isolated candidate.
 The sole merge conflict was the appended CONTRACTS document: the receiving
 Order465 runtime correction and Order466 contract were retained exactly, followed
 by this lane's new contract. No paused desktop working tree was read or modified.
+
+## Outstanding review repair — 13 September 2026
+
+Ankit requests only unfinished work, without repeating completed reviews or the
+receiving owner's Order472 implementation. Repair the five subsequently posted
+PR93 findings inside the existing importer/catalog/map and test scope: public
+provenance allowlisting at import and read, required local release/schema evidence,
+unique domain result pagination, consistent Unicode keyword normalization, and
+wrapped viewport/radius bounds. Add focused regression proof of each reported
+failure before repair. Preserve the previous source/CI receipt as historical proof.
+The shared public catalog remains free of client data, runtime writes and provider
+configuration. Require bounded nonimplementing review of the new provenance repair,
+then publish one successor and hand its exact source/proof to the Order472 owner.
+Do not rerun broad historical reviews, modify Order472 files, merge, or activate.

@@ -37,8 +37,9 @@ function place(id: string, name: string, longitude: number, latitude: number, ch
 beforeAll(() => {
   const attack = "</script><img src=x onerror=alert(1)>";
   const records = [
-    place("dubai-a", "Desert Hotel", 55.2708, 25.2048, { websites: ["https://shared.example/stay", "javascript:alert(1)"] }),
+    place("dubai-a", "Desert Hotel", 55.2708, 25.2048, { websites: ["https://shared.example/stay", "https://shared.example/book", "javascript:alert(1)"] }),
     place("dubai-b", "Desert House", 55.2800, 25.2100, { websites: ["https://shared.example/other"], operating_status: "open" }),
+    place("solo-domain", "Solo Domain Hotel", 54.9000, 25.2150, { websites: ["https://solo.example/stay", "https://solo.example/book"] }),
     place("xss-safe", attack, 55.29, 25.22),
     place("date-east", "Date East", 179.5, 10),
     place("date-west", "Date West", -179.5, 10),
@@ -95,7 +96,7 @@ describe("Order RMS-PLACES-001 immutable public place catalog", () => {
     expect(result.places.find(({ id }) => id === "xss-safe")?.name).toBe("</script><img src=x onerror=alert(1)>");
     expect(result.places[0]?.status).toBe("unknown");
     expect(result.places[0]?.sources).toEqual([{ dataset: "synthetic", property: "fixture", record_id: "dubai-a" }]);
-    expect(result.places[0]?.websites).toEqual(["https://shared.example/stay"]);
+    expect(result.places[0]?.websites).toEqual(["https://shared.example/book", "https://shared.example/stay"]);
   });
 
   test("supports a narrow antimeridian bbox without scanning the globe", () => {
@@ -125,6 +126,15 @@ describe("Order RMS-PLACES-001 immutable public place catalog", () => {
     const domain = catalog.search({ mode: "domain", domain: "SHARED.EXAMPLE." });
     expect(domain.places.map(({ id }) => id)).toEqual(["dubai-a", "dubai-b"]);
     expect(domain.ambiguous).toBe(true);
+    const firstPage = catalog.search({ mode: "domain", domain: "shared.example", limit: 1 });
+    expect(firstPage.places.map(({ id }) => id)).toEqual(["dubai-a"]);
+    expect(firstPage.nextCursor).toBeString();
+    const secondPage = catalog.search({ mode: "domain", domain: "shared.example", limit: 1, cursor: firstPage.nextCursor });
+    expect(secondPage.places.map(({ id }) => id)).toEqual(["dubai-b"]);
+    expect(secondPage.truncated).toBe(false);
+    const singlePlaceDomain = catalog.search({ mode: "domain", domain: "solo.example" });
+    expect(singlePlaceDomain.places.map(({ id }) => id)).toEqual(["solo-domain"]);
+    expect(singlePlaceDomain.ambiguous).toBe(false);
     expect(inputError(() => catalog.search({ mode: "url", url: "javascript:alert(1)" })).code).toBe("invalid_url");
     expect(inputError(() => catalog.search({ mode: "domain", domain: "shared.example/path" })).code).toBe("invalid_domain");
   });
@@ -182,7 +192,7 @@ describe("Order RMS-PLACES-001 immutable public place catalog", () => {
     const unsafePath = writableCatalogCopy("tampered-url.sqlite");
     const unsafe = new Database(unsafePath);
     unsafe.exec(`UPDATE places SET websites_json='["javascript:alert(1)"]' WHERE id='dubai-a';
-      UPDATE websites SET normalized_url='javascript:alert(1)',normalized_domain='invalid' WHERE place_rowid=(SELECT rowid FROM places WHERE id='dubai-a')`);
+      UPDATE websites SET normalized_url='javascript:alert(1)',normalized_domain='invalid' WHERE place_rowid=(SELECT rowid FROM places WHERE id='dubai-a') AND normalized_url='https://shared.example/book'`);
     unsafe.close();
     expectCorrupt(() => new PlaceCatalog({ path: unsafePath }), "catalog_index_mismatch");
 
@@ -194,5 +204,51 @@ describe("Order RMS-PLACES-001 immutable public place catalog", () => {
       const opened = new PlaceCatalog({ path: valuesPath });
       try { opened.search({ mode: "id", id: "dubai-a" }); } finally { opened.close(); }
     });
+  });
+
+  test("rejects private or untyped provenance in existing catalogs before returning a record", () => {
+    const publicSource = { property: "", dataset: "synthetic", record_id: "public-fixture" };
+    const sources = [
+      { ...publicSource, clientId: "synthetic-private-marker" },
+      { ...publicSource, guestId: "synthetic-private-marker" },
+      { ...publicSource, arbitrary: { guestId: "synthetic-private-marker" } },
+      { ...publicSource, record_id: { guestId: "synthetic-private-marker" } },
+      { ...publicSource, confidence: true },
+      { ...publicSource, between: [0, { guestId: "synthetic-private-marker" }] },
+    ];
+    sources.forEach((source, index) => {
+      const path = writableCatalogCopy(`private-provenance-${index}.sqlite`);
+      const writer = new Database(path);
+      writer.query("UPDATE places SET sources_json=? WHERE id='dubai-a'").run(JSON.stringify([source]));
+      writer.close();
+      const opened = new PlaceCatalog({ path });
+      try {
+        expectCorrupt(() => opened.search({ mode: "id", id: "dubai-a" }), "invalid_catalog_provenance");
+        expectCorrupt(() => opened.byIds(["dubai-a"]), "invalid_catalog_provenance");
+      } finally { opened.close(); }
+    });
+  });
+
+  test("uses the same Unicode keyword keys as the importer and rejects incompatible old keys", () => {
+    const unicodeSource = join(temporary, "unicode.ndjson");
+    const unicodePath = join(temporary, "unicode.sqlite");
+    const cases = [
+      ["unicode-street", "Straße Hotel", "Straße"],
+      ["unicode-greek", "ΟΣ Hotel", "ΟΣ"],
+      ["unicode-turkish", "İSTANBUL Hotel", "İSTANBUL"],
+      ["unicode-width", "\ufeffＡＢＣ\u00a0Hotel\ufeff", "\ufeffＡＢＣ"],
+    ] as const;
+    writeFileSync(unicodeSource, cases.map(([id, name]) => JSON.stringify(place(id, name, 55.2, 25.2))).join("\n") + "\n");
+    const built = Bun.spawnSync(["python3", join(repository, "scripts/research/build-place-catalog.py"), unicodeSource, "--output", unicodePath], { stdout: "pipe", stderr: "pipe" });
+    expect(built.exitCode).toBe(0);
+    const opened = new PlaceCatalog({ path: unicodePath });
+    try {
+      for (const [id, , q] of cases) expect(opened.search({ mode: "keyword", q }).places.map(place => place.id)).toEqual([id]);
+    } finally { opened.close(); }
+    chmodSync(unicodePath, 0o644);
+    const old = new Database(unicodePath);
+    old.exec("UPDATE places SET name_search='strasse hotel' WHERE id='unicode-street'");
+    old.close();
+    expectCorrupt(() => new PlaceCatalog({ path: unicodePath }), "catalog_name_index_mismatch");
   });
 });

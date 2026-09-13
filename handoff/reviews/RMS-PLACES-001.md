@@ -250,3 +250,58 @@ before construction and give an initialized MapLibre host block layout/zero
 padding; restore placeholder styling on initialization failure. Correct the
 test's complete-canvas capture and retain the raster/geometry assertions. This
 run is partial renderer evidence, not accepted phone/fallback or full CI proof.
+
+## New PR review findings — 13 September 2026
+
+The prior 5c39c81 source subsequently passed all six jobs in CI34741706278;
+the post-publication execution receipt is PR93 comment5651711840. This historical
+pass is preserved. The automated review then posted five new findings, and Ankit
+asked this lane to handle only unfinished work without duplicating Order472.
+PR93 was returned to draft and PR92 comment5652111209 reserved these five repairs.
+
+Confirmed regressions: camelCase private provenance and nested scalar values were
+accepted; local NDJSON/Parquet could lack release evidence; multiple URLs duplicated
+domain results; Python casefold and runtime lowercase disagreed; visible bounds
+clipped the antimeridian. Added focused tests failed before the fixes. The four
+new Python tests initially produced20 failed subcases/one missing-evidence error;
+the two new runtime tests initially failed0pass/2fail. Terra reproduced the domain
+duplicate and clipped/invalid viewport requests before repair.
+
+Repairs stay in the admitted importer/catalog/map surfaces. Public SourceItem keys
+and types are checked both on import and before returning old SQLite records.
+Local inputs require matching release and schema evidence, including aliases and
+conflict rejection. Name keys use the runtime-compatible normalization and old
+incompatible keys fail visibly. Domain results are unique before pagination.
+Map/radius bounds support unwrapped and canonical dateline crossings while keeping
+finite, positive, at-most-five-degree spans.
+
+Root personally executed Python importer11/11; focused TypeScript map/catalog/API/
+CSP38passed,1explicit Chromium-environment skip,0failed,318 assertions; strict types
+and199 import boundaries pass. An adjacent static string assertion initially failed
+after the bounds helper changed; it now checks both actual latitude/longitude
+limits, with the behavioral VM tests retained. No assertion was removed to hide an
+accepted behavior change. Real Chromium and PostgreSQL remain required CI gates.
+
+Fresh nonimplementing `/root/map_remaining_provenance_review` (requested Astra,
+high reasoning) APPROVES only the new provenance/release/normalization/domain
+repair. It personally ran Python11/11 and Bun catalog11/11 with94 assertions, plus
+positive all-ten-source-field preservation, seven invalid range probes and two
+case-variant metadata conflict probes. It made no edits and did not claim PG proof.
+Reviewed SHA-256 files:
+
+```
+eefb88696cc8fb0cf039cb15a746338ac02d5d5fc71d14b6863147f15e539fb4 scripts/research/build-place-catalog.py
+59667a2d2d873b7ca8c19afb13b74ab027253dc24f00a755535e3b729e136c24 src/contexts/distribution/place-catalog.ts
+cf1f060045a8c64f04501688889ef83ca4b70886061cb6e7bd066110fe02b9f4 tests/place-catalog-import.test.py
+f075a5f61e27ce0ff75d3acde6a78c733aefdea768a606852ed9d72f64260272 tests/place-catalog.test.ts
+d5e0f5e06f4c0dd095a1a517b3a6b0faaac36839793cd6b74a17dc5017495d95 scripts/research/place-catalog-example.json
+```
+
+Root separately reviewed Terra's small domain/bounds changes and ran their combined
+suite. The prepared public Dubai catalog passes the new validators read-only for
+3,257 records/6,514 source items; no data copy or upload is needed. There is no
+private-client processing, schema/authority change, receiving-tree write or runtime
+activation. Successor publication and exact CI are pending at this committed
+checkpoint; final results belong in a post-publication PR receipt.
+
+Receiving-source reconciliation: published Order470 at63338ed312f925bddd951665189196e3615a51b9 merged automatically into this isolated candidate, with no conflicts or changes to the reviewed importer/catalog hashes. Root checked the combined four-file status surface:17passed,4explicitDB/Windows skips,0failed,401 assertions. Order472 remains uncommitted on the receiving workstation and is not present or modified here. This is source integration in the PR93 lane, not a receiving-branch merge or runtime activation.

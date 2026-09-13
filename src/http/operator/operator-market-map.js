@@ -148,17 +148,27 @@
   }
   function renderAll() { renderPlaces(); renderSelection(); renderMarkers(); }
   function focusPlace(place) { if (map && Number.isFinite(place.longitude) && Number.isFinite(place.latitude)) map.flyTo({ center: [place.longitude, place.latitude], zoom: Math.max(map.getZoom(), 13), essential: true }); }
+  function normalizeLongitude(value) {
+    const normalized = ((value + 180) % 360 + 360) % 360 - 180;
+    return normalized === -180 && value > 0 ? 180 : normalized;
+  }
+  function boundedCoordinates(west, south, east, north) {
+    if (![west, south, east, north].every(Number.isFinite)) return null;
+    let longitudeSpan = east - west;
+    if (longitudeSpan < 0 && west >= -180 && west <= 180 && east >= -180 && east <= 180) longitudeSpan += 360;
+    const boundedSouth = Math.max(-85, south), boundedNorth = Math.min(85, north);
+    if (longitudeSpan <= 0 || longitudeSpan > 5 || boundedNorth <= boundedSouth || boundedNorth - boundedSouth > 5) return null;
+    return { west: normalizeLongitude(west), south: boundedSouth, east: normalizeLongitude(east), north: boundedNorth };
+  }
   function boundedBounds(bounds) {
-    const west = Math.max(-180, bounds.getWest()), east = Math.min(180, bounds.getEast());
-    const south = Math.max(-85, bounds.getSouth()), north = Math.min(85, bounds.getNorth());
-    if (east - west > 5 || north - south > 5) return null;
-    return { west, south, east, north };
+    if (!bounds || typeof bounds.getWest !== "function" || typeof bounds.getSouth !== "function" || typeof bounds.getEast !== "function" || typeof bounds.getNorth !== "function") return null;
+    return boundedCoordinates(bounds.getWest(), bounds.getSouth(), bounds.getEast(), bounds.getNorth());
   }
   function centreBounds() {
     if (!map) return null;
     const center = map.getCenter(); const km = Number(ui.radius.value) || 5;
     const latitudeDegrees = km / 110.574; const longitudeDegrees = km / Math.max(1, 111.320 * Math.cos(center.lat * Math.PI / 180));
-    return { west: center.lng - longitudeDegrees, east: center.lng + longitudeDegrees, south: center.lat - latitudeDegrees, north: center.lat + latitudeDegrees };
+    return boundedCoordinates(center.lng - longitudeDegrees, center.lat - latitudeDegrees, center.lng + longitudeDegrees, center.lat + latitudeDegrees);
   }
   function radiusFeature() {
     if (!map) return null;

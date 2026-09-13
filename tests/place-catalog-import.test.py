@@ -36,7 +36,7 @@ def record(identifier: str, name: str = "Harbour Hotel", longitude: float = 55.2
         "websites": ["HTTPS://Example.COM:443/stay#campaign", "javascript:alert(1)"],
         "addresses": [{"freeform": "1 Road", "locality": "Dubai", "region": "Dubai", "postcode": None, "country": "AE"}],
         "operating_status": None,
-        "sources": [{"property": "source-a", "dataset": "meta", "notice": "retain verbatim"}],
+        "sources": [{"property": "source-a", "dataset": "meta", "license": "CC0-1.0"}],
         "overture_release": "2026-08-19.0",
         "overture_schema_version": "1.18.0",
     }
@@ -94,7 +94,7 @@ class PlaceCatalogImportTest(unittest.TestCase):
         self.assertEqual(row[0], attack)
         self.assertEqual(row[1], "unknown")
         self.assertEqual(json.loads(row[2]), ["https://example.com/stay"])
-        self.assertEqual(json.loads(row[3]), [{"dataset": "meta", "notice": "retain verbatim", "property": "source-a"}])
+        self.assertEqual(json.loads(row[3]), [{"dataset": "meta", "license": "CC0-1.0", "property": "source-a"}])
         metadata = dict(connection.execute("SELECT key,value FROM metadata"))
         self.assertEqual(metadata["catalog_format"], "yellow.place-catalog/v1")
         self.assertEqual(json.loads(metadata["import_receipt"]), receipt)
@@ -102,8 +102,8 @@ class PlaceCatalogImportTest(unittest.TestCase):
         connection.close()
 
     def test_duplicate_policy_is_order_independent_and_unions_provenance(self):
-        lower = record("same-id", name="Lower", confidence=0.2, websites=["https://one.example"], sources=[{"property": "first"}])
-        winner = record("same-id", name="Winner", confidence=0.9, websites=["https://two.example"], sources=[{"property": "second"}])
+        lower = record("same-id", name="Lower", confidence=0.2, websites=["https://one.example"], sources=[{"property": "first", "dataset": "synthetic"}])
+        winner = record("same-id", name="Winner", confidence=0.9, websites=["https://two.example"], sources=[{"property": "second", "dataset": "synthetic"}])
         winners = []
         for index, values in enumerate(([lower, winner], [winner, lower])):
             output = self.root / f"catalog-{index}.sqlite"
@@ -116,7 +116,7 @@ class PlaceCatalogImportTest(unittest.TestCase):
         self.assertEqual(winners[0], winners[1])
         self.assertEqual(winners[0][0], "Winner")
         self.assertEqual(json.loads(winners[0][1]), ["https://one.example/", "https://two.example/"])
-        self.assertEqual(json.loads(winners[0][2]), [{"property": "first"}, {"property": "second"}])
+        self.assertEqual(json.loads(winners[0][2]), [{"property": "first", "dataset": "synthetic"}, {"property": "second", "dataset": "synthetic"}])
 
     def test_malformed_release_coordinate_and_ndjson_fail_atomically(self):
         cases = [
@@ -281,6 +281,78 @@ class PlaceCatalogImportTest(unittest.TestCase):
             BUILDER_MODULE.validate_official_azure_url(
                 "https://example.com/release/2026-08-19.0/theme=places/type=place/part.parquet"
             )
+
+
+    def test_public_provenance_allows_only_typed_public_source_fields(self):
+        public = {"property": "", "dataset": "synthetic", "record_id": "public-fixture"}
+        hostile = [
+            {**public, key: "synthetic-private-marker"}
+            for key in ("clientId", "guestId", "reservationId", "PMSPropertyID", "arbitraryField", "guest_id")
+        ] + [
+            {**public, "dataset": {"guestId": "synthetic-private-marker"}},
+            {**public, "record_id": ["synthetic-private-marker"]},
+            {**public, "confidence": True},
+            {**public, "confidence": 2},
+            {**public, "between": [0, {"guestId": "synthetic-private-marker"}]},
+        ]
+        for index, source_fields in enumerate(hostile):
+            with self.subTest(index=index):
+                source = self.write_ndjson(f"private-{index}.ndjson", [record("synthetic", sources=[source_fields])])
+                output = self.root / f"private-{index}.sqlite"
+                with self.assertRaises(BUILDER_MODULE.CatalogBuildError):
+                    BUILDER_MODULE.build_catalog([str(source)], output, None, 16)
+                self.assertFalse(output.exists())
+                self.assertEqual(list(self.root.glob(f".{output.name}.*.tmp")), [])
+
+    def test_local_ndjson_requires_release_and_schema_declarations(self):
+        for field in ("overture_release", "overture_schema_version"):
+            for value in (None, "missing"):
+                with self.subTest(field=field, value=value):
+                    item = record("synthetic", sources=[{"property": "", "dataset": "synthetic"}])
+                    if value == "missing":
+                        item.pop(field)
+                    else:
+                        item[field] = value
+                    source = self.write_ndjson(f"{field}-{value}.ndjson", [item])
+                    output = self.root / f"{field}-{value}.sqlite"
+                    with self.assertRaisesRegex(BUILDER_MODULE.CatalogBuildError, "declare"):
+                        BUILDER_MODULE.build_catalog([str(source)], output, None, 16)
+                    self.assertFalse(output.exists())
+
+    def test_local_parquet_requires_matching_release_metadata(self):
+        item = record("synthetic", sources=[{"property": "", "dataset": "synthetic"}])
+        item.pop("overture_release")
+        item.pop("overture_schema_version")
+        table = pa.Table.from_pylist([item])
+        declarations = (
+            {},
+            {b"overture_release": b"2026-08-19.0"},
+            {b"overture_schema_version": b"1.18.0"},
+            {b"overture_release": b"2026-08-19.0", b"overture_schema_version": b"1.18.0", b"overture:release": b"2025-01-01.0"},
+        )
+        for index, metadata in enumerate(declarations):
+            with self.subTest(index=index):
+                source = self.root / f"undeclared-{index}.parquet"
+                pq.write_table(table.replace_schema_metadata(metadata), source)
+                output = self.root / f"undeclared-{index}.sqlite"
+                with self.assertRaises(BUILDER_MODULE.CatalogBuildError):
+                    BUILDER_MODULE.build_catalog([str(source)], output, None, 16)
+                self.assertFalse(output.exists())
+        source = self.root / "declared.parquet"
+        pq.write_table(table.replace_schema_metadata({b"overture:release": b"2026-08-19.0", b"overture:schema_version": b"1.18.0"}), source)
+        receipt = BUILDER_MODULE.build_catalog([str(source)], self.root / "declared.sqlite", None, 16)
+        self.assertEqual(receipt["sources"][0]["upstream"]["release"], "2026-08-19.0")
+
+    def test_keyword_keys_use_default_lowercase_and_shared_whitespace(self):
+        fixtures = {
+            "Straße Hotel": "straße hotel",
+            "ΟΣ Hotel": "ος hotel",
+            "İSTANBUL": "i\u0307stanbul",
+            "\ufeffＡＢＣ\u00a0Hotel\ufeff": "abc hotel",
+        }
+        for text, expected in fixtures.items():
+            with self.subTest(text=text):
+                self.assertEqual(BUILDER_MODULE.normalized_text(text), expected)
 
 
 if __name__ == "__main__":

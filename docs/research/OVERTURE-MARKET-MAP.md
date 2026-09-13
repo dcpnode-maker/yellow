@@ -37,6 +37,34 @@ use the standard library. Obtain the public Overture archive or a permitted
 extract on the server and verify its provenance before import. No credentials,
 guest data, client export or contract belongs in this shared public catalog.
 
+Local NDJSON records must explicitly declare `overture_release` and
+`overture_schema_version`. Local Parquet must declare matching file metadata
+(`overture_release`/`overture:release` and
+`overture_schema_version`/`overture:schema_version`); missing or conflicting
+declarations are rejected. These declarations are source evidence, not independent
+publisher authentication. Pinned official Azure inputs retain their URL, ETag,
+range-budget and any available metadata checks.
+
+Contributor objects use the exact public field allowlist from
+[Overture SourceItem v1.18.0](https://github.com/OvertureMaps/schema/blob/v1.18.0/packages/overture-schema-common/src/overture/schema/common/sources.py):
+`property`, `dataset`, `license`, `record_id`, `update_time`, `confidence`,
+`provider`, `resource`, `version`, and the optional numeric `between` scope.
+Unknown fields or nested objects in scalar fields fail import and runtime reads;
+camelCase private IDs are not admitted. Licence/provider/version values are kept.
+Use only public source records: this schema validation does not establish that a
+caller-supplied string is public or accurate.
+
+Keyword keys and queries both use Unicode NFKC, default lowercase and identical
+whitespace rules. The reader rejects an incompatible old name index with a rebuild
+message. German sharp-s and Greek final sigma are no longer indexed with a different
+algorithm from queries. Domain searches page over unique places. Visible-area and
+radius searches normalize the antimeridian while retaining the five-degree limit.
+
+The prepared Dubai index was checked read-only against the repaired name and
+provenance validators: all 3,257 records and 6,514 source items passed. Its existing
+file and checksum remain usable; this repair does not require another global
+archive download or a replacement upload.
+
 ```sh
 bun install --frozen-lockfile
 python3 scripts/research/build-place-catalog.py /srv/yellow/public/places/*.parquet \

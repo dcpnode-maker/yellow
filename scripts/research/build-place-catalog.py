@@ -74,9 +74,14 @@ LODGING_CATEGORIES = frozenset(
         "mountain_hut",
     }
 )
-PRIVATE_PROVENANCE_KEYS = frozenset(
-    {"tenant_id", "tenantid", "client_id", "guest_id", "reservation_id", "pms_property_id"}
+# Exact public SourceItem fields from the pinned Overture schema v1.18.0,
+# including its geometric-range scope. Unknown fields are rejected, not copied.
+PUBLIC_SOURCE_STRING_FIELDS = frozenset(
+    {"property", "dataset", "license", "record_id", "update_time", "provider", "resource", "version"}
 )
+PUBLIC_SOURCE_FIELDS = PUBLIC_SOURCE_STRING_FIELDS | {"confidence", "between"}
+# Match ECMAScript whitespace explicitly; Python str.split() has a different set.
+KEYWORD_WHITESPACE = re.compile(r"[\t\n\v\f\r \u00a0\u1680\u2000-\u200a\u2028\u2029\u202f\u205f\u3000\ufeff]+")
 
 
 class CatalogBuildError(RuntimeError):
@@ -151,20 +156,30 @@ def public_json(value: Any, field: str) -> Any:
 
 
 def assert_public_provenance(value: Mapping[str, Any], path: str = "sources") -> None:
+    if not isinstance(value.get("property"), str) or not isinstance(value.get("dataset"), str):
+        raise CatalogBuildError(f"{path} must declare public property and dataset strings")
     for key, child in value.items():
-        normalized_key = key.casefold().replace("-", "_")
-        if normalized_key in PRIVATE_PROVENANCE_KEYS:
-            raise CatalogBuildError(f"{path} contains forbidden private field {key}")
-        if isinstance(child, Mapping):
-            assert_public_provenance(child, f"{path}.{key}")
-        elif isinstance(child, Sequence) and not isinstance(child, (str, bytes, bytearray)):
-            for index, item in enumerate(child):
-                if isinstance(item, Mapping):
-                    assert_public_provenance(item, f"{path}.{key}[{index}]")
+        if not isinstance(key, str) or key not in PUBLIC_SOURCE_FIELDS:
+            raise CatalogBuildError(f"{path} contains an unsupported public source field")
+        if child is None:
+            continue
+        if key in PUBLIC_SOURCE_STRING_FIELDS:
+            if not isinstance(child, str) or len(child) > 4096:
+                raise CatalogBuildError(f"{path}.{key} must be a bounded public string")
+        elif key == "confidence":
+            if isinstance(child, bool) or not isinstance(child, (int, float)) or not math.isfinite(child) or not 0 <= child <= 1:
+                raise CatalogBuildError(f"{path}.confidence must be between zero and one")
+        elif key == "between":
+            if not isinstance(child, (list, tuple)) or len(child) != 2 or any(
+                isinstance(item, bool) or not isinstance(item, (int, float)) or not math.isfinite(item)
+                for item in child
+            ) or not 0 <= child[0] < child[1] <= 1:
+                raise CatalogBuildError(f"{path}.between must be a public numeric range")
 
 
 def normalized_text(value: str) -> str:
-    return " ".join(unicodedata.normalize("NFKC", value).casefold().split())
+    # Runtime queries use the same default Unicode lowercase, not casefold.
+    return KEYWORD_WHITESPACE.sub(" ", unicodedata.normalize("NFKC", value).lower()).strip(" ")
 
 
 def normalize_category(value: Any) -> str | None:
@@ -380,9 +395,9 @@ def normalized_record(record: Mapping[str, Any], counters: dict[str, int]) -> di
         raise CatalogBuildError("sources must be an array")
     if any(not isinstance(source, Mapping) for source in sources):
         raise CatalogBuildError("each contributor source must be an object")
-    for source in sources:
-        assert_public_provenance(source)
     safe_sources = [public_json(source, "sources") for source in sources]
+    for source in safe_sources:
+        assert_public_provenance(source)
     country = address.get("country") if address else record.get("country")
     if country is not None and not isinstance(country, str):
         raise CatalogBuildError("country must be a string or null")
@@ -462,9 +477,12 @@ def source_descriptor(locator: str) -> dict[str, Any]:
         try:
             import pyarrow.parquet as parquet
             metadata = parquet.read_metadata(path).metadata or {}
+            verify_parquet_metadata(metadata, path.name, require_declaration=True)
             allowed = {
                 b"overture_release": "release",
+                b"overture:release": "release",
                 b"overture_schema_version": "schemaVersion",
+                b"overture:schema_version": "schemaVersion",
                 b"yellow_source_asset": "sourceAsset",
                 b"yellow_source_asset_etag": "sourceAssetEtag",
                 b"yellow_source_asset_bytes": "sourceAssetBytes",
@@ -473,7 +491,7 @@ def source_descriptor(locator: str) -> dict[str, Any]:
                 b"yellow_sample_rows": "sampleRows",
                 b"yellow_stac_item": "stacItem",
             }
-            upstream = {output: metadata[key].decode("utf-8") for key, output in allowed.items() if key in metadata}
+            upstream = {allowed[key.lower()]: value.decode("utf-8") for key, value in metadata.items() if key.lower() in allowed}
             if upstream:
                 descriptor["upstream"] = upstream
         except ImportError as error:
@@ -666,14 +684,19 @@ def bbox_row_groups(source: Any, bounds: Bounds) -> list[int]:
     return groups
 
 
-def verify_parquet_metadata(metadata: Mapping[bytes, bytes] | None, locator: str) -> None:
-    decoded = {(key.decode("utf-8", "replace").casefold()): value.decode("utf-8", "replace") for key, value in (metadata or {}).items()}
-    for key in ("overture_release", "overture:release"):
-        if key in decoded and decoded[key] != OVERTURE_RELEASE:
-            raise CatalogBuildError(f"{locator} declares Overture release {decoded[key]}, expected {OVERTURE_RELEASE}")
-    for key in ("overture_schema_version", "overture:schema_version"):
-        if key in decoded and decoded[key] != OVERTURE_SCHEMA_VERSION:
-            raise CatalogBuildError(f"{locator} declares schema {decoded[key]}, expected {OVERTURE_SCHEMA_VERSION}")
+def verify_parquet_metadata(metadata: Mapping[bytes, bytes] | None, locator: str, *, require_declaration: bool = False) -> None:
+    # Retain duplicate/case-variant declarations until each is checked; folding
+    # them into a dict first could silently discard a conflicting release.
+    decoded = [(key.decode("utf-8", "strict").lower(), value.decode("utf-8", "strict")) for key, value in (metadata or {}).items()]
+    for keys, expected, label in (
+        (("overture_release", "overture:release"), OVERTURE_RELEASE, "Overture release"),
+        (("overture_schema_version", "overture:schema_version"), OVERTURE_SCHEMA_VERSION, "schema"),
+    ):
+        declarations = [value for key, value in decoded if key in keys]
+        if require_declaration and not declarations:
+            raise CatalogBuildError(f"{locator} must declare its {label} in Parquet metadata")
+        if any(value != expected for value in declarations):
+            raise CatalogBuildError(f"{locator} declares a conflicting {label}; expected {expected}")
 
 
 def parquet_rows(
@@ -703,14 +726,14 @@ def parquet_rows(
         opened = locator
     try:
         source = parquet.ParquetFile(opened)
-        verify_parquet_metadata(source.metadata.metadata, locator)
+        verify_parquet_metadata(source.metadata.metadata, locator, require_declaration=remote_context is None)
         required = {"id", "geometry", "names"}
         missing = required.difference(source.schema_arrow.names)
         if missing:
             raise CatalogBuildError(f"{locator} is missing required columns: {', '.join(sorted(missing))}")
         if not {"categories", "basic_category", "taxonomy"}.intersection(source.schema_arrow.names):
             raise CatalogBuildError(f"{locator} is missing categories, basic_category, and taxonomy")
-        wanted = [column for column in ("id", "geometry", "names", "categories", "basic_category", "taxonomy", "confidence", "websites", "brand", "brands", "addresses", "sources", "operating_status") if column in source.schema_arrow.names]
+        wanted = [column for column in ("id", "geometry", "names", "categories", "basic_category", "taxonomy", "confidence", "websites", "brand", "brands", "addresses", "sources", "operating_status", "overture_release", "overture_schema_version") if column in source.schema_arrow.names]
         row_groups = bbox_row_groups(source, bounds) if remote_context is not None else None
         for batch in source.iter_batches(batch_size=batch_size, row_groups=row_groups, columns=wanted, use_threads=False):
             yield from batch.to_pylist()
@@ -859,10 +882,13 @@ def build_catalog(
         connection.executescript(SCHEMA_SQL)
         connection.execute("BEGIN IMMEDIATE")
         for locator in inputs:
+            requires_row_declaration = not locator.lower().endswith((".parquet", ".parq"))
             for source_record in input_rows(locator, batch_size, bounds, remote_contexts.get(locator)):
                 counters["records_read"] += 1
                 declared_release = source_record.get("overture_release")
                 declared_schema = source_record.get("overture_schema_version")
+                if requires_row_declaration and (declared_release is None or declared_schema is None):
+                    raise CatalogBuildError("local NDJSON records must declare overture_release and overture_schema_version")
                 if declared_release is not None and declared_release != OVERTURE_RELEASE:
                     raise CatalogBuildError(f"record declares Overture release {declared_release}, expected {OVERTURE_RELEASE}")
                 if declared_schema is not None and declared_schema != OVERTURE_SCHEMA_VERSION:
