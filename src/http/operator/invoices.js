@@ -1,4 +1,5 @@
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+const STRICT_UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
 const DATE = /^(?!0000)\d{4}-\d{2}-\d{2}$/;
 const TIMESTAMP = /^(?!0000)\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{6}Z$/;
 const MONEY_MINOR = /^(?:0|[1-9][0-9]{0,18})$/;
@@ -353,6 +354,48 @@ export function creditNoteDisclosureEnvelope(value, original) {
   });
 }
 
+export function creditNoteRegisterFilters(value) {
+  const row = ownRecord(value, 3);
+  if (!row || Object.keys(row).some((key) => !["issuedFrom", "issuedBefore", "docNo"].includes(key))
+    || !Object.hasOwn(row, "issuedFrom") || !Object.hasOwn(row, "issuedBefore")
+    || !validDate(row.issuedFrom) || !validDate(row.issuedBefore)
+    || row.issuedFrom >= row.issuedBefore
+    || (Date.parse(`${row.issuedBefore}T00:00:00Z`) - Date.parse(`${row.issuedFrom}T00:00:00Z`)) / 86_400_000 > 366
+    || (Object.hasOwn(row, "docNo") && !matches(row.docNo, DOCUMENT_NUMBER))) return null;
+  return Object.freeze({ issuedFrom: row.issuedFrom, issuedBefore: row.issuedBefore,
+    ...(Object.hasOwn(row, "docNo") ? { docNo: row.docNo } : {}) });
+}
+
+export function creditNoteRegisterEnvelope(value, propertyNode, filters) {
+  const boundFilters = creditNoteRegisterFilters(filters);
+  const wrapper = exactRecord(value, ["items", "nextCursor"]);
+  const items = wrapper && ownArray(wrapper.items, 25);
+  if (!boundFilters || !matches(propertyNode, STRICT_UUID) || !items || (wrapper.nextCursor !== null && (typeof wrapper.nextCursor !== "string"
+    || wrapper.nextCursor.length < 1 || wrapper.nextCursor.length > 1024 || !/^[A-Za-z0-9_-]+$/.test(wrapper.nextCursor)))) return null;
+  const rows = items.map((item) => {
+    const row = exactRecord(item, ["documentId", "originalDocumentId", "docNo", "originalDocNo", "businessDate", "propertyNode", "currency", "totalMinor", "sha256"]);
+    if (!row || ![row.documentId, row.originalDocumentId, row.propertyNode].every((id) => matches(id, STRICT_UUID))
+      || row.documentId === row.originalDocumentId || row.propertyNode !== propertyNode
+      || !matches(row.docNo, DOCUMENT_NUMBER) || !matches(row.originalDocNo, DOCUMENT_NUMBER)
+      || !validDate(row.businessDate) || row.businessDate < boundFilters.issuedFrom
+      || row.businessDate >= boundFilters.issuedBefore
+      || (boundFilters.docNo !== undefined && row.docNo !== boundFilters.docNo) || row.currency !== "INR"
+      || typeof row.totalMinor !== "string" || !/^[1-9][0-9]{0,18}$/.test(row.totalMinor)
+      || BigInt(row.totalMinor) > 9223372036854775807n || !matches(row.sha256, HASH)) return null;
+    return Object.freeze({ documentId: row.documentId, originalDocumentId: row.originalDocumentId, docNo: row.docNo,
+      originalDocNo: row.originalDocNo, businessDate: row.businessDate, propertyNode: row.propertyNode,
+      currency: "INR", totalMinor: row.totalMinor, sha256: row.sha256 });
+  });
+  if (rows.some((row) => row === null)) return null;
+  const seen = new Set();
+  for (let index = 0; index < rows.length; index += 1) {
+    const row = rows[index];
+    if (seen.has(row.documentId) || (index > 0 && `${rows[index - 1].businessDate}\u0000${rows[index - 1].documentId}` <= `${row.businessDate}\u0000${row.documentId}`)) return null;
+    seen.add(row.documentId);
+  }
+  return Object.freeze({ items: Object.freeze(rows), nextCursor: wrapper.nextCursor });
+}
+
 export function creditNoteDocumentEnvelope(value, discovery, original) {
   const row = exactRecord(value, ["kind", "receipt", "contentJson"]);
   if (!row || row.kind !== "india_native_credit_note_v1" || typeof row.contentJson !== "string"
@@ -621,12 +664,33 @@ export function createInvoiceWorkbench({ root, request, propertyNode, timezone, 
   const more = element("button", "invoice-workbench__load-more", "Load more invoices");
   more.type = "button"; more.hidden = true;
   queue.append(queueSummary, queueList, empty, more);
+  const creditView = element("section", "invoice-workbench__credit-register");
+  creditView.hidden = true; creditView.setAttribute("aria-label", "Credit notes");
+  const creditBack = element("button", "invoice-workbench__credit-register-back", "Back to invoices");
+  creditBack.type = "button";
+  const creditForm = element("form", "invoice-workbench__search invoice-workbench__credit-register-search");
+  const creditNumber = element("input", "invoice-workbench__query invoice-workbench__credit-register-number"); creditNumber.type = "search"; creditNumber.maxLength = 16; creditNumber.autocomplete = "off"; creditNumber.placeholder = "Credit note number";
+  const creditFrom = element("input", "invoice-workbench__date invoice-workbench__credit-register-date"); creditFrom.type = "date"; creditFrom.required = true;
+  const creditBefore = element("input", "invoice-workbench__date invoice-workbench__credit-register-date"); creditBefore.type = "date"; creditBefore.required = true;
+  creditFrom.value = addDays(today, -30); creditBefore.value = addDays(today, 1);
+  const creditSearch = element("button", "invoice-workbench__submit invoice-workbench__credit-register-submit", "Search credit notes"); creditSearch.type = "submit";
+  const creditNumberLabel = element("label", "invoice-workbench__field", "Credit number"); creditNumber.id = "credit-register-number"; creditNumberLabel.htmlFor = creditNumber.id; creditNumberLabel.append(creditNumber);
+  const creditFromLabel = element("label", "invoice-workbench__field", "Issued from"); creditFrom.id = "credit-register-from"; creditFromLabel.htmlFor = creditFrom.id; creditFromLabel.append(creditFrom);
+  const creditBeforeLabel = element("label", "invoice-workbench__field", "Issued before (exclusive)"); creditBefore.id = "credit-register-before"; creditBeforeLabel.htmlFor = creditBefore.id; creditBeforeLabel.append(creditBefore);
+  creditForm.append(creditNumberLabel, creditFromLabel, creditBeforeLabel, creditSearch);
+  const creditStatus = element("p", "invoice-workbench__credit-register-status", "Credit notes have not been loaded."); creditStatus.setAttribute("role", "status");
+  const creditList = element("div", "invoice-workbench__credit-register-list");
+  const creditMore = element("button", "invoice-workbench__credit-register-more", "Load more credit notes"); creditMore.type = "button"; creditMore.hidden = true;
+  creditView.append(creditBack, creditForm, creditStatus, creditList, creditMore);
   const detail = element("section", "invoice-workbench__detail");
   detail.setAttribute("aria-label", "Invoice detail");
   layout.append(queue, detail);
-  root.replaceChildren(toolbar, live, layout);
+  root.replaceChildren(toolbar, live, layout, creditView);
   root.dataset.invoiceView = "queue";
   root.dataset.invoiceState = "idle";
+  const creditIntent = element("button", "invoice-workbench__credit-register-intent", "Credit notes");
+  creditIntent.type = "button"; toolbar.append(creditIntent);
+  let creditRows = []; let creditCursor = null; let creditMode = false; const creditCursors = new Set();
 
   function setState(state, message) {
     if (disposed) return;
@@ -638,6 +702,24 @@ export function createInvoiceWorkbench({ root, request, propertyNode, timezone, 
   function current(scope, generation, kind) {
     const expected = kind === "search" ? searchGeneration : kind === "detail" ? detailGeneration : issueGeneration;
     return !disposed && active && scope === scopeGeneration && generation === expected;
+  }
+
+  function resetCreditRegister() {
+    creditRows = []; creditCursor = null; creditCursors.clear(); renderCreditRegister();
+  }
+
+  function creditCurrent(scope, generation) {
+    return current(scope, generation, "search") && creditMode && root.isConnected && !root.hidden
+      && creditView.isConnected && !creditView.hidden;
+  }
+
+  function leaveCreditRegister() {
+    const wasCreditMode = creditMode;
+    creditMode = false;
+    if (wasCreditMode) { abortKind("search"); searchGeneration += 1; }
+    creditView.hidden = true; layout.hidden = false; form.hidden = false; detail.hidden = false; queue.hidden = false;
+    root.dataset.invoiceView = "queue";
+    resetCreditRegister();
   }
 
   function abortAll() {
@@ -694,6 +776,66 @@ export function createInvoiceWorkbench({ root, request, propertyNode, timezone, 
     queueSummary.textContent = `${matchingCount} matching invoice${matchingCount === "1" ? "" : "s"} · ${rows.length} shown`;
     empty.hidden = rows.length !== 0;
     more.hidden = nextCursor === null || rows.length >= MAX_RETAINED_INVOICES;
+  }
+
+  function renderCreditRegister() {
+    creditList.replaceChildren();
+    for (const row of creditRows) {
+      const article = element("article", "invoice-workbench__credit-register-row");
+      article.append(element("strong", "invoice-workbench__credit-register-number", row.docNo),
+        element("span", "invoice-workbench__credit-register-original", `Original ${row.originalDocNo}`),
+        element("time", "invoice-workbench__credit-register-date", row.businessDate),
+        element("span", "invoice-workbench__credit-register-total", minorText(row.totalMinor)));
+      const review = element("button", "invoice-workbench__credit-register-review", "Review original invoice"); review.type = "button";
+      review.addEventListener("click", () => {
+        if (!creditMode || !active || disposed || !root.isConnected || root.hidden || !creditView.isConnected
+          || creditView.hidden || !article.isConnected || !review.isConnected || !creditRows.includes(row)) return;
+        leaveCreditRegister();
+        try { void Promise.resolve(navigate(row.originalDocumentId)).catch(() => undefined); } catch { /* navigation owner reports its own failure */ }
+      });
+      article.append(review); creditList.append(article);
+    }
+    creditMore.hidden = creditCursor === null || creditRows.length >= MAX_RETAINED_INVOICES;
+  }
+
+  async function loadCreditRegister(append) {
+    if (!creditMode || disposed || !active || !root.isConnected || root.hidden || !creditView.isConnected
+      || creditView.hidden || !creditForm.isConnected || creditForm.hidden) return;
+    abortKind("search"); const generation = ++searchGeneration; const scope = scopeGeneration;
+    const fromValue = creditFrom.value, beforeValue = creditBefore.value, docNoValue = creditNumber.value.trim(), after = append ? creditCursor : null;
+    const filters = creditNoteRegisterFilters({ issuedFrom: fromValue, issuedBefore: beforeValue,
+      ...(docNoValue ? { docNo: docNoValue } : {}) });
+    if (!append) resetCreditRegister();
+    if (!filters) {
+      creditStatus.textContent = "Choose valid credit number and date filters."; return;
+    }
+    if (append && after === null) { creditStatus.textContent = "Credit-note pagination cannot continue."; return; }
+    if (after !== null && creditCursors.has(after)) { creditStatus.textContent = "Credit-note pagination cannot repeat a cursor."; return; }
+    if (after !== null) creditCursors.add(after);
+    const controller = controlled("search"); creditSearch.disabled = true; creditMore.disabled = true; creditStatus.textContent = "Loading credit notes…";
+    try {
+      const query = { issuedFrom: filters.issuedFrom, issuedBefore: filters.issuedBefore, limit: "25",
+        ...(filters.docNo !== undefined ? { docNo: filters.docNo } : {}), ...(after !== null ? { after } : {}) };
+      const raw = await request(`/api/v1/properties/${encodeURIComponent(propertyNode)}/credit-notes?${new URLSearchParams(query).toString()}`, { signal: controller.signal });
+      if (!creditCurrent(scope, generation) || controller.signal.aborted) return;
+      const page = creditNoteRegisterEnvelope(raw, propertyNode, filters);
+      if (!page) throw new Error("invalid credit register response");
+      if ((page.items.length === 0 && page.nextCursor !== null)
+        || (page.nextCursor !== null && (page.nextCursor === after || creditCursors.has(page.nextCursor)))
+        || creditRows.length + page.items.length > MAX_RETAINED_INVOICES
+        || (append && page.items.length > 0 && creditRows.length > 0
+          && `${creditRows.at(-1).businessDate}\u0000${creditRows.at(-1).documentId}` <= `${page.items[0].businessDate}\u0000${page.items[0].documentId}`)
+        || (append && page.items.some((item) => creditRows.some((old) => old.documentId === item.documentId)))) throw new Error("invalid credit register response");
+      creditRows = append ? [...creditRows, ...page.items] : [...page.items]; creditCursor = page.nextCursor; renderCreditRegister();
+      creditStatus.textContent = creditRows.length ? `${creditRows.length} credit notes shown.` : "No issued credit notes match these filters.";
+    } catch (error) {
+      if (!creditCurrent(scope, generation) || controller.signal.aborted) return;
+      resetCreditRegister();
+      const code = errorField(error, "status"); creditStatus.textContent = code === 403 ? "You do not have permission to read credit notes."
+        : code === 400 ? "The credit-note filters or cursor are invalid." : code === 404 ? "Credit-note register is unavailable."
+          : error instanceof Error && error.message === "invalid credit register response" ? "Credit-note register data is invalid."
+            : "Credit-note register is offline.";
+    } finally { release(controller); if (creditCurrent(scope, generation)) { creditSearch.disabled = false; creditMore.disabled = false; } }
   }
 
   function searchBody(after) {
@@ -1393,7 +1535,10 @@ export function createInvoiceWorkbench({ root, request, propertyNode, timezone, 
     const target = event.target;
     const editing = target && ["INPUT", "SELECT", "TEXTAREA"].includes(target.tagName);
     if (event.key === "/" && !editing) {
-      event.preventDefault(); query.focus();
+      event.preventDefault();
+      if (creditMode && root.isConnected && !root.hidden && creditView.isConnected && !creditView.hidden
+        && creditNumber.isConnected && !creditNumber.hidden) creditNumber.focus();
+      else query.focus();
     } else if (event.key === "Escape" && ["detail", "issue"].includes(root.dataset.invoiceView)
       && matchMedia("(max-width: 900px)").matches) {
       event.preventDefault();
@@ -1611,16 +1756,39 @@ export function createInvoiceWorkbench({ root, request, propertyNode, timezone, 
 
   form.addEventListener("submit", (event) => { event.preventDefault(); void loadSearch(false); });
   more.addEventListener("click", () => { if (nextCursor) void loadSearch(true); });
+  creditIntent.addEventListener("click", () => {
+    if (disposed || !active || !root.isConnected || root.hidden || !creditIntent.isConnected) return;
+    creditMode = true; scopeGeneration += 1; searchGeneration += 1; abortAll();
+    root.hidden = false; form.hidden = true; layout.hidden = true; creditView.hidden = false; root.dataset.invoiceView = "credits"; resetCreditRegister(); void loadCreditRegister(false);
+  });
+  creditBack.addEventListener("click", () => {
+    if (!creditMode || !active || disposed || !root.isConnected || root.hidden || !creditView.isConnected
+      || creditView.hidden || !creditBack.isConnected) return;
+    leaveCreditRegister();
+    try { void Promise.resolve(navigate(null)).catch(() => undefined); } catch { /* navigation owner reports its own failure */ }
+  });
+  creditForm.addEventListener("submit", (event) => { event.preventDefault(); void loadCreditRegister(false); });
+  creditMore.addEventListener("click", () => {
+    if (creditMode && active && !disposed && root.isConnected && !root.hidden && creditMore.isConnected && !creditMore.hidden
+      && creditCursor !== null) void loadCreditRegister(true);
+  });
+  for (const field of [creditNumber, creditFrom, creditBefore]) field.addEventListener("input", () => {
+    if (!creditMode || !active || disposed || !root.isConnected || root.hidden || !creditView.isConnected || creditView.hidden) return;
+    abortKind("search"); searchGeneration += 1; resetCreditRegister(); creditStatus.textContent = "Draft filters changed; search again.";
+    creditSearch.disabled = false; creditMore.disabled = false;
+  });
   root.addEventListener("keydown", keyboard);
 
   return Object.freeze({
     async show(documentId) {
       if (disposed) return;
       if (documentId !== null && (typeof documentId !== "string" || !UUID.test(documentId))) throw new TypeError("Invalid invoice document ID");
+      leaveCreditRegister(); detail.hidden = false; queue.hidden = false;
       abortKind("issue"); issueGeneration += 1; currentIssueRoute = null;
       active = true; root.hidden = false;
       form.hidden = false; queue.hidden = false;
       if (documentId === null) {
+        layout.hidden = false; form.hidden = false; detail.hidden = false;
         abortKind("detail");
         detailGeneration += 1;
         selectedDocumentId = returnFocusDocumentId;
@@ -1646,6 +1814,7 @@ export function createInvoiceWorkbench({ root, request, propertyNode, timezone, 
       if (disposed) return;
       const route = issueRoute(value);
       if (!route) throw new TypeError("Invalid invoice issue route");
+      leaveCreditRegister(); detail.hidden = false; queue.hidden = false;
       abortKind("search"); searchGeneration += 1;
       abortKind("detail"); detailGeneration += 1;
       abortKind("issue"); issueGeneration += 1;
@@ -1657,14 +1826,14 @@ export function createInvoiceWorkbench({ root, request, propertyNode, timezone, 
     suspend() {
       if (disposed) return;
       active = false; scopeGeneration += 1; searchGeneration += 1; detailGeneration += 1; issueGeneration += 1;
-      currentIssueRoute = null;
+      currentIssueRoute = null; creditMode = false; creditView.hidden = true; layout.hidden = false; form.hidden = false; detail.hidden = false; resetCreditRegister();
       abortAll(); root.hidden = true; root.dataset.invoiceState = "suspended"; root.setAttribute("aria-busy", "false");
     },
     dispose() {
       if (disposed) return;
       active = false; disposed = true; scopeGeneration += 1; searchGeneration += 1; detailGeneration += 1; issueGeneration += 1;
-      currentIssueRoute = null;
-      abortAll(); rows = []; nextCursor = null; printModulePromise = null; registrationRequests.clear(); deliveryRetries.clear();
+      currentIssueRoute = null; creditMode = false;
+      abortAll(); rows = []; nextCursor = null; resetCreditRegister(); printModulePromise = null; registrationRequests.clear(); deliveryRetries.clear();
       if (previewStyleSheet instanceof CSSStyleSheet && "adoptedStyleSheets" in document) {
         document.adoptedStyleSheets = document.adoptedStyleSheets.filter((sheet) => sheet !== previewStyleSheet);
       } else if (previewStyleSheet && typeof previewStyleSheet.remove === "function") previewStyleSheet.remove();

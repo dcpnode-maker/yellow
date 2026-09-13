@@ -3,8 +3,8 @@
 <!-- status-schema: yellow-project-status/v1 -->
 <!-- current-phase: 7 -->
 <!-- current-task: Codex Yellow — resumed: integrate existing PriceLabs/market pipelines and private staging, then current-line phase closure and the retained build priorities -->
-<!-- current-order-files: handoff/orders/468-credit-note-preview-and-print.md;handoff/orders/460-current-source-single-local-promotion.md;handoff/orders/462-pricelabs-intake-and-market-pipeline-integration.md;handoff/orders/461-bounded-irp-sandbox-acceptance.md -->
-<!-- current-lifecycle: ACTIVE resumed2026-09-13; independently acceptedOrder468 credit preview/print source, Q261 current status/exact20-path release preparing. Q260 status repair published d819e080 to draftPR92; CI34739597186 five jobs green and database still running, not whole-CI proof. Sole3000 verified41415/frontier91 via Q258r2 with saved login and retainedPG13580/55503;468 not yet delivered. Q253 policy, real PriceLabs intake, authentic provider acceptance and remaining phase closure pending -->
+<!-- current-order-files: handoff/orders/469-issued-credit-note-register.md;handoff/orders/460-current-source-single-local-promotion.md;handoff/orders/462-pricelabs-intake-and-market-pipeline-integration.md;handoff/orders/461-bounded-irp-sandbox-acceptance.md -->
+<!-- current-lifecycle: ACTIVE resumed2026-09-13; Order469 credit register source independently accepted, Q262 current status/exact15-path release preparing. Order468 published33a39508 to draftPR92; CI34740899088 quality fails existing459 browser120s deadline, cause unresolved; windows/local-review pass and downstream skips. Prior d819CI34739597186 all6/referee11/0 pass. Sole3000 verified41415/frontier91 via Q258r2 with saved login;468/469 not delivered. Q253 policy, real client intake, authentic provider acceptance and remaining phase closure pending -->
 
 This is the canonical current-state record. Historical orders, reviews, decisions
 and ledger entries remain evidence; their filenames are not an active backlog.
@@ -12,28 +12,44 @@ and ledger entries remain evidence; their filenames are not an active backlog.
 
 ## Current task
 
-**Current functional continuation — Order468.** Immutable full credit notes now
-have deliberate preview and print controls in the source workbench, using the
-already accepted document/delivery APIs. Root independently inspected the renderer,
-workbench and separate browser proof, and personally executed the final five-file
-28pass/0fail508-assertion suite. The earlier broader12-file run was110pass,
-3explicitDBskips,0fail10259; skipped real-DB tests are not executed proof.
-Desktop/390px preview, fresh reads, exact stored amounts/original references,
-permission/error feedback and stale-print guards pass. Earlier product and
-headless-test failures remain recorded in Review468. No provider/economic/schema
-change or design-approval claim. Q261 aligns the current snapshot to built468;
-root8pass/2DBskips/0fail234 plus focused1/0(64), strict types and198boundaries pass.
-Selective publication and fresh-head CI are pending;468 is not yet on local3000.
+**Current functional continuation — Order469.** Cashiers now have a deliberate
+issued-credit-note register in accepted source: exact credit-number/date search,
+bounded pagination, original-invoice navigation and existing preview/print. Root
+did not implement production; it inspected the full repair and personally ran
+33pass/0fail611assertions across seven files including actual desktop/390px
+Chromium. Strict types,198boundaries and final source hashes pass. The separate
+browser author ran final1/0(54) twice. Review469 retains earlier startup, pagination,
+hidden-detail, keyboard and detached-control defects and their genuine REDs.
+Q262 current snapshot/exact15-path publication is preparing, not yet released.
+No financial record/provider/schema/authority change or new visual-theme claim.
 
-**Latest source publication — Q260.** Exact nine-path
-d819e080bbfe1655ab1fff3572584c97d3a143fc was non-force pushed to existing draftPR92.
-All2232 tracked/selected working-file bytes, outside staged objects/persistent
-flags/stable index extensions and unrelated refs were preserved. Exact CI34739597186
-currently has quality/local-review/Windows/ARM64/container smoke success; database
-is still running. This is not a six-job pass or new referee proof.
-No timeout test or limit was changed. Prior failed da9f CI34738436620 is retained.
-The single local app remains immutable41415/frontier91 with saved login; publishing
-source does not hotpatch it, advance the contiguous review91 or complete Phase7.
+**Latest source publication — Order468/Q261.** Exact20-path
+33a3950843660cf4868ef6720f426432f8430b50 was committed and non-force pushed to
+existing draftPR92. All2234 tracked/selected working-file bytes, outside staged
+objects/persistent flags/stable index extensions and unrelated refs were preserved.
+It contains accepted immutable credit preview/print: root final28/0(508), broader
+110pass/3explicitrealDBskips/0fail10259; skips are not executed database proof.
+
+Exact33a CI34740899088 failed quality: existing Order459 workspace-layout Chromium
+test reached its120000ms outer deadline with a dangling process killed, without an
+emitted product assertion/browser exception. Local-review and Windows passed;
+database/ARM64/container skipped. The unchanged test loads changed invoice assets,
+so cause is unresolved, not declared environmental. A current-working isolated
+run passes1/0(1113),12.29s but does not prove exact33a. No timeout was raised,
+test skipped or assertion removed. Fresh successor CI remains required.
+
+**Previous source gate — Q260.** d819e080 CI34739597186 passed all six jobs.
+Root personally retrieved database job103677225440: canonical RESULT11passed,
+0failed of11 at2026-09-13T05:39:44.9269537Z. Earlier failed da9f CI remains
+historical evidence. This parent result is not acceptance of33a or later469.
+
+The single local remains immutable41415/frontier91 with saved login. Neither468
+nor469 is locally delivered by source publication. Dynamic ready/build identity
+is authoritative; no review-frontier91, phase, provider or whole-app completion.
+A private recovery-handoff ZIP was found in the Drive research folder, but the
+connector returned only a nonlocal file reference; its contents are not inspected
+or imported. Founder was asked to download it to Downloads. Build continues while
+real client intake, Q253 policy and authentic provider acceptance remain open.
 
 **Retained post-update receiving checkpoint — 13 September.** Windows Update restarted the
 host; final boot2026-09-12T23:32:17.5174980Z is after the Q255 verification below.

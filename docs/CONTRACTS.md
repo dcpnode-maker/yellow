@@ -3839,3 +3839,33 @@ the broader110pass/3explicitDBskips/10259 run. New Chromium scheduling is explic
 controlled for functional print/lifecycle assertions, not compositor performance.
 See Review468 for retained failures/hashes; current release/runtime identity is
 only PROJECT-STATUS.md. No phase completion or live delivery is inferred here.
+
+## Issued-credit-note register — Order469
+
+Within the existing invoice workbench, Credit notes deliberately loads the accepted
+GET /api/v1/properties/:property/credit-notes list. Initial invoice mount does not.
+The separate exact credit number accepts1–16 ASCII letters/digits/slash/hyphen;
+required canonical issuedFrom/issuedBefore form an inclusive/exclusive1–366day
+interval. The property-timezone default is today-minus30 through tomorrow
+(31calendar days). Native labels identify the exclusive upper date.
+
+Each request uses a detached submitted filter snapshot, limit25 and only the
+server's opaque bounded nextCursor. No tenant/actor/body, count query, polling,
+per-row full-document lookup or browser storage. Validate the exact two-field
+page and nine-field summaries, canonical UUIDs, property/date/number bindings,
+INR positive int64 minor-unit strings and lowercase64-hex hashes. Preserve DESC
+date/UUID order; reject duplicates, cross-page nonadvancement and repeated cursors;
+retain at most300 rows. The server remains the sole access and fiscal authority.
+
+Empty, permission, invalid filter/cursor, unavailable, offline and malformed states
+are not conflated; failed reads remove actionable stale rows. The list shows only
+stored credit/original numbers, business date and exact money. Review original
+invoice navigates originalDocumentId via the existing history/controller owner,
+visibly restores original detail and leaves466/468 discovery/print responsible
+for full-document reads. No issuance/refund/registration is inferred from a row.
+
+Draft edits, mode/route/property changes, suspend/dispose and detached controls
+abort/invalidate old reads/actions. Slash focuses the visible credit search.
+This is a read-only consumer of the existing450 API, no endpoint/schema/policy
+addition. Root's final33/0(611) and separate browser1/0(54) twice bind accepted
+source; Review469/current PROJECT-STATUS distinguish publication, CI and delivery.
