@@ -39,3 +39,41 @@ Final sourcee4f4c1a60fb6b627f83078d5caaa2000e094ab240c08100781bddfd88d867370;
 testd814de0e6d92120140b6b0c19c78122f647087a1157248fb433f107da880f654.
 The source records verified41415 local delivery as timestamped evidence, leaves
 current identity dynamic, and does not claim467 itself is published or served.
+
+## Q259 publication and Q260 exact-head regression repair
+
+Q259 subsequently published da9f97d46af3cb78f1ea98e49bed03581686a5ef,
+parent41415, treea4e2a0d0f97176efee973113863cfc43baa03fb5, on the existing
+branch/draftPR92. Root checked all16 exact scoped Git blobs, all2227 working-file
+bytes, outside index entries/persistent flags/stable extensions and unrelated refs.
+The root-read governance backfill is explicit in Q259; no unique decision/ledger
+lines were deleted. Current status prose replaces26 obsolete header lines, not
+a verbatim archive of them. Full metadata receipts are retained locally under
+.yellow/evidence/order467/q259-publication-{preflight,completed}-20260913.json.
+
+Exact CI34738436620 is **failed**, not green. Quality reported2106pass/1502skip/
+5fail/1error/41609assertions: three other status tests still expected464/September12,
+and unchanged native-review-resume AST/referee-parent tests timed out at5000ms;
+the first timeout also produced a null-exit error. Local-review and windows-state
+passed; downstream database/ARM64/container jobs were skipped. The Linux isolated
+stage passed27/2skips/0fail(306). These results do not establish full new-head CI.
+Separate Copilot scan34738436585 failed before analysis on entitlement403/
+not_assigned, not a product finding or review approval. No purchase was made.
+
+Q260 was admitted before edits to exactly three regression tests. Root reproduced
+0pass/2explicitDBskips/3fail(6 assertions), then aligned current date/order and
+timestamped delivery only. Historical<=444, all18phase states, review-through91
+and immutable-source/runtime distinctions remain. Search found no stale current
+464/September12 snapshot expectation. Root initial readonly-tuple type error was
+corrected without weakening assertions.
+
+Root personally ran the focused three tests plus relevant project-status case:
+4pass/2DBskips/0fail(229 assertions); full three-file source tests subsequently
+8pass/2DBskips/0fail(226). Separate nonauthor order467_status personally executed
+the same full three files8/2skips/0fail(226), strict types and198 boundaries.
+Root unchanged isolated AST/referee cases2pass/4DBskips/0fail(5) confirm they pass
+alone locally; this does not diagnose away their CI timing failure. No timeout
+bump, test deletion, broad skip, DB/WSL/state execution or runtime change.
+
+Q260 local repair is source-accepted; exact selective successor publication,
+fresh CI and static-snapshot runtime delivery remain separate uncompleted steps.
