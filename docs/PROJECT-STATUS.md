@@ -4,7 +4,7 @@
 <!-- current-phase: 14 -->
 <!-- current-task: Codex Yellow — Order472 priority Overture/God's Eye discovery integration; preserve fiscal work, then resume phase closure and dependency-gated 11→13→17 -->
 <!-- current-order-files: handoff/orders/472-overture-gods-eye-market-discovery-integration.md;handoff/orders/470-cashier-full-credit-note-issue.md;handoff/orders/460-current-source-single-local-promotion.md;handoff/orders/462-pricelabs-intake-and-market-pipeline-integration.md;handoff/orders/461-bounded-irp-sandbox-acceptance.md -->
-<!-- current-lifecycle: ACTIVE2026-09-13 Order460 integrating accepted Order472. Q274 exact115-path da744f1 published nonforce to draftPR92 with complete working/outside-index preservation. ExactCI34759204343 quality failed obsolete navigation/catalogue oracles; Windows and local-review passed, database/container/ARM64 skipped. Q275 ten bounded test-only repairs under root combined proof; no unchanged rerun or weakened deadline. Source/published92 and sole3000 served41415/frontier91 distinct. Fresh successor CI/referee and live91to92 recovery remain pending. Frozen471/paused445 and all18phases/11to13to17 preserved; no provider/phaseclosure claim -->
+<!-- current-lifecycle: ACTIVE2026-09-13 Order460 coherent successor preparation. Publishedfeff6dc8 CI34760154085 fivejobs green/database453fails stale91expectation againstcurrent92; preceding434/446/447/452 pass, laterreferee skipped. Q277 one-line repair root5/10DBskips/0fail114; Astra65-path scan confirms historicalprefixes preserved. Accepted471 source28736990/frozenbrowserAB47 joins next15-path publication, not yet live. Q276 helpers root8/0/64/strict plus actualread-onlyPGmetadata accepted; fullpreservation/registration/live migration pending. Sole3000 remains41415/frontier91. All18phases/paused445/dependency11to13to17 retained; no provider/phaseclosure claim -->
 
 This is the canonical current-state record. Historical orders, reviews, decisions
 and ledger entries remain evidence; their filenames are not an active backlog.
@@ -143,21 +143,50 @@ preparation was audited in parallel: consumed91-runtime helpers must not be repl
 for92. The additional Dubai/KSA/London/India-first and richer-map/client-API messages
 are recorded in the research receipt without duplicating the current release.
 
-**Current published release — Q274/Q275.** Exact115-path commit
+**Current published release — Q274/Q275.** Historical115-path commit
 `da744f1f73cd194de5e9a267825f8956a12ab030` is on draftPR92, unmerged. Root verified
 all2306 working-file bytes, outside index entries/flags, all six previously staged
 files and unrelated refs. Exact CI34759204343 passed Windows-native and local-review,
 but quality failed obsolete navigation/catalogue expectations; downstream database,
 container and ARM64 jobs were skipped. CodeQL passed. Q275 is a bounded ten-test
 compatibility repair with exact added Market identities; all existing financial,
-accessibility, session and deadline guards remain. The fresh successor must pass
-full CI before local migration/delivery. No live app, hotel data or phase changed.
+accessibility, session and deadline guards remain. The exact17-path successor
+`feff6dc86982a5386968674b6c7077721a701785` is now published nonforce on the same
+draftPR92. Root verified all2307 working bytes, outside index/flags, six staged
+residuals and unrelated refs. Root personally accepted the ten-test repair29pass/
+15explicitDBskips/0fail/2275, including actual browser1148; types202boundaries and
+licences23 pass. CI34760154085 finished with five green jobs but database failed:
+native434/446/447/452 stages passed;453 expected91 against the full-current92 target.
+The failing aggregate is9pass/1fail/424; later stages/referee were skipped. Q277
+changes only that full-current expectation, preserving native89 and all guards.
+Root5pass/10explicitDBskips/0fail/114 and types202 pass. Astra's65-path read-only audit
+found no additional stale current frontier/count; historical fixtures remain pinned.
+Accepted471 and this repair will share one coherent15-path successor/fresh CI.
+No live app, hotel data or phase changed.
 
-**Fiscal checkpoint preserved — Order471 frozen uncommitted.** The provider-request
-UI/source proof is retained; expanded independent browser proof is incomplete,
-so it is not accepted/published. Exact hashes and genuine initial RED are in its
-order. Resume it after the bounded new priority; no work is deleted. Phase7 is
+**Fiscal checkpoint — Order471 source/journey repair accepted, uncommitted.** It remains
+excluded from the in-flight feff6dc8 market release. Independent real-browser proof
+now runs both desktop/mobile and exposed three retained-request lifecycle defects:
+settled results obscured as in-flight, same-view retry blocked, and reopened
+disclosure not settling. Root personally reproduced the RED. The repair now passes
+the exact frozen browser at1280/390:26 scenarios/130 checks each. Independent Astra
+executes12-file38pass/0fail/598 plus types202boundaries. Root's overlapping four-file
+run was6pass/1fail due unchanged468 default5s timeout; its exclusive unchanged rerun
+passes1/0/28. Failure and concurrency confound remain in Review471 without claiming
+the cause. Browser execution is now serialized; coding remains parallel. This source
+is not published/live. Exact hashes and failures remain in its order/review.
+No work is deleted. Phase7 is
 incomplete. This exception does not close any phase or replace11→13→17 priorities.
+
+**Native release preparation — Q276.** Root accepts the inert helper sources after
+8pass/0fail/64 and explicit ignored-file strict types. Actual read-only metadata from
+the retained synthetic92 database exposed owner EXECUTE and JSONB field ordering
+missing from the first fixtures; the corrected checker now accepts that real
+metadata and pins the measured function definition. Source/typing and actual REDs
+are preserved. This is not full native preservation, rollback/concurrency or live
+registration proof. No database mutation, recovery clone, current hotel record or
+app process change occurred. The source/recovery identity must be rebound to the
+eventual verified successor before a separately admitted live action.
 
 **Published source checkpoint — Order470/Q263.** Exact15-path63338ed312f925bddd951665189196e3615a51b9
 was committed and non-force pushed to draftPR92. Native preservation proof covers

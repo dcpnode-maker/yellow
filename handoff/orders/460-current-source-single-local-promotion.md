@@ -927,3 +927,13 @@ previous destination/safety assertion while adding the accepted market contract.
 No product/DB/runtime/deadline change; fresh successor CI remains mandatory.
 Publication uses native scoped whole-file Git after complete preservation checks;
 Q274's consumed mixed-file publisher is not replayed.
+
+Q276 admits five named inert native92 capture/verifier/metadata proof files only,
+under disjoint worker ownership, while exact feff6dc8 release CI runs. No actual
+DB/process/authority/Git operation follows from this preparation. Root personally
+inspects and proves; existing consumed helpers, source and live91 remain unchanged.
+
+Q277 admits the one exact current-schema fiscal-series test-oracle file and root
+coordination records after real feff CI failure91expected/92actual. Preserve the
+historical native89 mode and every existing safety/SQL/assertion/deadline. Broader
+read-only audit precedes successor publication; no silent edit outside the question.

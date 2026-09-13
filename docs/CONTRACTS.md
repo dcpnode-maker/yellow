@@ -4004,3 +4004,33 @@ Active generation, original identity and connected/contained/visible controls gu
 submission. Terminal success blocks another submission. Stale, detached, hidden,
 suspended or disposed controls must not send or render across a changed subject.
 No reason, key, document content or receipt is put in URLs, browser storage or logs.
+
+## Credit-note provider request — Order471
+
+Source/journey accepted; publication and delivery are recorded in Review471 and
+PROJECT-STATUS.md. This consumes existing fiscal-submission and credit-delivery
+APIs and changes no financial policy. A validated issued credit with authorized
+`not_requested` delivery offers deliberate provider registration. Intent loads
+actual configured options; no provider is preselected. The cashier selects one,
+confirms its displayed environment, and presses the final request button.
+
+```text
+POST /api/v1/properties/:property/fiscal-submissions
+Idempotency-Key: <secure retained identity>
+{"documentId":"<credit document>","providerExtensionId":"<selected offered provider>"}
+```
+
+The original invoice, amounts, actor, tenant and provider version are not submitted.
+One immutable credit/original/property/hash/provider/key intent is retained in
+bounded controller memory. Network failures, denials and malformed receipts leave
+the outcome unknown. An explicit same-request retry preserves the exact body/key;
+view replacement, navigation or a later denial never authorizes a fresh identity.
+No automatic retry, provider substitution, print, refund or provider activation.
+
+A bound accepted response means request accepted, not registered or IRN issued.
+The subsequent authorized credit-delivery read alone supplies validated registration
+status. Failed/denied reads remain unavailable, without unlocking another send.
+Current generation/property/credit and actual visible/connected/enabled controls
+are rechecked before effects and after asynchronous boundaries. Reopening during
+a request settles only the current matching view. Disposal clears private memory;
+no persistence across reload is claimed and nothing private enters URLs/storage.

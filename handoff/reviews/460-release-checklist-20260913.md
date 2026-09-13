@@ -1,6 +1,6 @@
 # Order460 — current-source release checklist, 13 September 2026
 
-Owner: root. Published development HEADda744f1; accepted Order472 source
+Owner: root. Published development HEADfeff6dc8; accepted Order472 source
 frontier92; last verified sole local41415/frontier91. Source-built, published,
 CI-proved, migrated and served are distinct states.
 
@@ -47,7 +47,13 @@ CI-proved, migrated and served are distinct states.
   database/referee11/0 and Windows-native execution. Skips are not passes.
   da744f1 CI34759204343 failed quality on obsolete navigation/catalogue oracles;
   Windows/local-review passed, downstream database/container/ARM64 skipped.
-  Q275 ten test-only repairs require independent proof and fresh successor CI.
+  Q275 ten test-only repairs are root-accepted29/15explicitDBskips/0fail2275;
+  exact17-path feff6dc8 successor is published with2307workingbytes/outsideindex,
+  six staged residuals and unrelated refs preserved. CI34760154085 has five green
+  jobs but database failed at453 stale91expectation/current92 after434/446/447/452
+  succeeded. Q277 one-line repair is root-proved5/10DBskips/0fail114; Astra65-path
+  audit preserves historical fixtures. Accepted471 joins its coherent15-path
+  successor. Full fresh CI/current referee remain unchecked; no unchanged rerun.
 
 ## Before sole-local cutover
 
@@ -55,6 +61,10 @@ CI-proved, migrated and served are distinct states.
 - [ ] Freeze reviewed current-source artifact/config and exact action footprint.
 - [ ] Accept independently executed91-to92 forward/preservation proof and a
   verified current-data recovery route before live schema mutation.
+  Q276 inert capture/verifier/registration source is root-accepted8/0/64 and strict
+  explicit types. Actual read-only Q265metadata corrects ownerACL/JSONB key ordering;
+  repaired checker accepts it. This is not a full actual preservation/registration
+  transaction or concurrency proof. Rebind source/recovery pins to eventual successor.
   Read-only nonimplementer audit finds0092 adds only the exact market-authority
   function/owner/ACL and ledger row92; historical table data, sequences, financial
   facts, occupancy, roles and existing schema must remain unchanged. Market

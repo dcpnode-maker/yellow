@@ -1870,3 +1870,74 @@ This is source-only successor acceptance. Before native whole-file publication,
 root freezes exact working bytes/index/refs and scoped paths. Preserve all six
 outside staged files plus paused445/frozen471. Do not replay Q274 publisher.
 Exact successor CI, canonical referee and91-to92 live proof remain mandatory.
+
+### Q275 publication and Order471 parallel acceptance
+
+The exact17-path successor is feff6dc86982a5386968674b6c7077721a701785,
+parentda744f1f73cd194de5e9a267825f8956a12ab030,
+tree1fa297397bc2f68d1d2ad4ad6490dd62bd6b4f24. Root used native scoped
+`git commit --only` on the admitted17 paths, then independently verified all blobs,
+2307 working-file bytes, outside index/flags, six staged paths and unrelated refs
+before one nonforce exact-refspec push. Remote/draftPR92 readback matches. No consumed
+Q274 helper was replayed and no additional dependency/worktree was created.
+Private evidence: .yellow/evidence/order460/q275-publication-20260913/.
+
+The initial read-only inventory attempted unrestricted untracked enumeration and
+refused a non-file NUL path after historical long-path warnings. It performed no
+mutation. The corrected inventory covers tracked/prior-admitted/selected files;
+do not erase that diagnostic failure or repeat the unrestricted enumeration.
+
+CI34760154085 has five green jobs. Database native434 completed successfully at
+13:54:37Z after13m15s and advanced to446. Independent read-only timing audit counts
+20 native test invocations with distinct historical/fresh/upgrade targets, genuine
+100-source concurrency,500-root/366-night boundary and real lease-expiry waits.
+No demonstrated stall or removable duplicate is established. Leave this run intact;
+outer35minute job deadline is measured from13:35:38Z. Full CI/referee remains pending.
+
+Order471 now has independent source/journey acceptance (Review471), still excluded
+from this published market candidate. Root personally verifies its frozen actual
+desktop/mobile journey; independent Astra38/0/598 across12 files, types202 pass.
+Root's overlapped468 timeout and exclusive unchanged1/0/28 rerun are retained.
+Run one browser suite at a time while disjoint source work proceeds in parallel.
+
+Q276 capture/verifier is NOT accepted for execution: reviewers found PostgreSQL
+shape/catalogue ordering/signature, receipt binding and explicit ignored-file type
+errors hidden by sparse synthetic fixtures. Author repairs only its admitted files.
+Registry helper root4/0/30 and explicit strict types pass, but mocks are not an
+actual PostgreSQL transaction/concurrency proof. No DB/clone/live process changed.
+
+### Q276 source and real metadata; Q277 coherent successor
+
+Root fully read all five Q276 files and personally executed final combined tests:
+8pass/0fail/64 in133ms; explicit ignored-file strict TypeScript passes. Independent
+nonimplementer q258_source_adapter inspected/reexecuted capture/verifier before
+the final metadata-shape correction. Root separately personally checks that final
+correction, using actual metadata from the existing guarded Q265 synthetic92 target.
+The URL stays in child environment; native16.15/server directory/role/target verified,
+read-only transaction/10s statement bound, no hotel records or metadata writes.
+
+Actual first proacl is owner+app_role, not app_role alone; actual JSONB privilege
+key order differs from JavaScript insertion order. Both real REDs are retained.
+The final checker accepts exact live-catalogue metadata (`accepted:true`) and pins
+definitionbf649258f3c7d10a1c0a9eec839d786eeb2cc33f3c54085dcb7838b3387d0979,
+body29dc4e1c6a905a4258f58dc07f83c592384ef640d762556f41744757dbd3e1e5.
+Capture97b10266d7e752ad969cc33417291ed7834f0e947ae7085711cb8e43ecba8242;
+verifier8ce36591f6a682ff8c2cfd56ad99418b2aa45d601a4460b929e6af912b0a7a58;
+test1bf4f2ae89441dc2ca4de6e8f7f6e589a4776368214003127161c55ccbc153e1.
+Registration6fe1df20032cdcac4f07c23439f2047ad926e9e0c321eb9bc42e1d782dad0e20;
+test25309eb9fbc69a95d6011685a336371fffb272325893009d8b5dbf32528d0043.
+Full current-data preservation/registration/concurrency/recovery and live execution
+remain separate, not implied by this source and read-only metadata acceptance.
+The failed orchestration attempt used unavailable btoa before any shell/DB call;
+the native here-string execution then succeeded without creating a file.
+
+Exactfeff CI34760154085 ultimately failed database453:91expected/92received at
+india-native-fiscal-series-authority.integration.test.ts94,9pass/1fail/424.
+434/446/447/452 stages succeeded; later/referee skipped. Root retrieved actual logs.
+Astra audited65 explicit workflow test paths and invoked setup: only this active
+full-current expectation needs repair. Historical native91 and89→90 stay unchanged.
+Q277 sole-line repair98ba357a18c9572c0ad7f40087fa0dedd51f8e0fbbc553d25dbf5c18daf6ee84
+passes root5/10explicitDBskips/0fail114 with current status, types202boundaries.
+To avoid duplicate release runs, Q277 separately scopes one15-path successor with
+accepted471 plus this repair and root records. Native exact-preservation admission
+must precede commit/nonforce push. Q276private helpers are not released product code.

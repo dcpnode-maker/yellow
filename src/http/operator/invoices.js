@@ -107,20 +107,42 @@ export function creditNoteIssueReason(value) {
 
 /** Copies only immutable, already-validated invoice identity for one credit intent. */
 export function creditNoteIssueSnapshot(original, rawReason, idempotencyKey) {
-  const row = ownRecord(original, 16);
+  const source = creditOriginalSnapshot(original);
   const reason = creditNoteIssueReason(rawReason);
-  if (!row || !reason || typeof idempotencyKey !== "string" || !IDEMPOTENCY_KEY.test(idempotencyKey)
-    || !matches(row.documentId, STRICT_UUID) || !matches(row.propertyNode, STRICT_UUID)
+  if (!source || !reason || typeof idempotencyKey !== "string" || !IDEMPOTENCY_KEY.test(idempotencyKey)) return null;
+  return Object.freeze({
+    original: source,
+    reason, idempotencyKey,
+  });
+}
+
+function creditOriginalSnapshot(original) {
+  const row = ownRecord(original, 16);
+  if (!row || !matches(row.documentId, STRICT_UUID) || !matches(row.propertyNode, STRICT_UUID)
     || !matches(row.reservationId, STRICT_UUID) || !matches(row.folioId, STRICT_UUID)
     || !matches(row.recipientRegistrationId, STRICT_UUID) || !matches(row.documentSha256, HASH)
     || !matches(row.documentNumber, DOCUMENT_NUMBER) || !validDate(row.businessDate)) return null;
-  return Object.freeze({
-    original: Object.freeze({ documentId: row.documentId, propertyNode: row.propertyNode,
-      reservationId: row.reservationId, folioId: row.folioId,
-      recipientRegistrationId: row.recipientRegistrationId, documentSha256: row.documentSha256,
-      documentNumber: row.documentNumber, businessDate: row.businessDate }),
-    reason, idempotencyKey,
-  });
+  return Object.freeze({ documentId: row.documentId, propertyNode: row.propertyNode,
+    reservationId: row.reservationId, folioId: row.folioId,
+    recipientRegistrationId: row.recipientRegistrationId, documentSha256: row.documentSha256,
+    documentNumber: row.documentNumber, businessDate: row.businessDate });
+}
+
+/** Copies one issued credit and one actual offered provider for an idempotent request. */
+export function creditNoteProviderRequestSnapshot(value, original, selectedProvider, idempotencyKey) {
+  const source = creditOriginalSnapshot(original);
+  const credit = source && creditNoteDisclosureEnvelope(value, source);
+  const provider = providerOption(selectedProvider);
+  if (!source || !credit || !provider || typeof idempotencyKey !== "string" || !IDEMPOTENCY_KEY.test(idempotencyKey)) return null;
+  return Object.freeze({ original: source, credit: Object.freeze({ documentId: credit.documentId,
+    docNo: credit.docNo, sha256: credit.sha256 }), provider, idempotencyKey });
+}
+
+/** A retained accepted request is settled even while its prior controls unwind. */
+export function creditNoteProviderRequestPresentation(status, inFlight) {
+  if (status === "succeeded") return "succeeded";
+  if (status === "unknown") return inFlight === true ? "in_flight" : "unknown";
+  return null;
 }
 
 function matches(value, pattern) {
@@ -434,19 +456,24 @@ function providerOptionsEnvelope(value) {
   const values = wrapper && ownArray(wrapper.providers, MAX_PROVIDERS);
   if (!values) return null;
   const seen = new Set();
-  const providers = values.map((value) => {
-    const row = exactRecord(value, ["providerExtensionId", "providerExtensionVersion", "providerKey", "label", "environment"]);
-    if (!row || !matches(row.providerExtensionId, UUID) || !Number.isSafeInteger(row.providerExtensionVersion)
-      || row.providerExtensionVersion < 1 || row.providerExtensionVersion > 2147483647
-      || !matches(row.providerKey, PROVIDER_KEY) || !validText(row.label, 160)
-      || (row.environment !== "sandbox" && row.environment !== "production")
-      || seen.has(row.providerExtensionId)) return null;
-    seen.add(row.providerExtensionId);
-    return Object.freeze({ providerExtensionId: row.providerExtensionId,
-      providerExtensionVersion: row.providerExtensionVersion, providerKey: row.providerKey,
-      label: row.label, environment: row.environment });
-  });
-  return providers.some((provider) => provider === null) ? null : Object.freeze(providers);
+  const providers = values.map(providerOption);
+  if (providers.some((provider) => provider === null)) return null;
+  for (const provider of providers) {
+    if (seen.has(provider.providerExtensionId)) return null;
+    seen.add(provider.providerExtensionId);
+  }
+  return Object.freeze(providers);
+}
+
+function providerOption(value) {
+  const row = exactRecord(value, ["providerExtensionId", "providerExtensionVersion", "providerKey", "label", "environment"]);
+  if (!row || !matches(row.providerExtensionId, UUID) || !Number.isSafeInteger(row.providerExtensionVersion)
+    || row.providerExtensionVersion < 1 || row.providerExtensionVersion > 2147483647
+    || !matches(row.providerKey, PROVIDER_KEY) || !validText(row.label, 160)
+    || (row.environment !== "sandbox" && row.environment !== "production")) return null;
+  return Object.freeze({ providerExtensionId: row.providerExtensionId,
+    providerExtensionVersion: row.providerExtensionVersion, providerKey: row.providerKey,
+    label: row.label, environment: row.environment });
 }
 
 function fiscalSubmissionEnvelope(value, documentId, provider) {
@@ -645,6 +672,7 @@ export function createInvoiceWorkbench({ root, request, propertyNode, timezone, 
   const registrationRequests = new Map();
   const deliveryRetries = new Map();
   const creditIssueRequests = new Map();
+  const creditProviderRequests = new Map();
   const controllers = new Set();
   const searchControllers = new Set();
   const detailControllers = new Set();
@@ -1223,6 +1251,290 @@ export function createInvoiceWorkbench({ root, request, propertyNode, timezone, 
     }
   }
 
+  function creditProviderVisibleWithin(node, owner) {
+    for (let currentNode = node; currentNode; currentNode = currentNode.parentElement) {
+      if (!currentNode.isConnected || currentNode.hidden) return false;
+      if (currentNode === owner) return true;
+    }
+    return false;
+  }
+
+  function creditProviderCurrent(original, credit, slot, scope, generation) {
+    return current(scope, generation, "detail") && selectedDocumentId === original.documentId
+      && root.dataset.invoiceView === "detail" && root.isConnected && !root.hidden
+      && detail.isConnected && !detail.hidden && creditProviderVisibleWithin(slot, detail)
+      && credit.documentId !== original.documentId && credit.sha256 !== original.documentSha256;
+  }
+
+  function creditProviderControlsCurrent(original, credit, slot, controls, scope, generation) {
+    return creditProviderCurrent(original, credit, slot, scope, generation)
+      && controls.every((control) => control && !control.disabled && creditProviderVisibleWithin(control, slot));
+  }
+
+  function creditProviderMessage(slot, text, alert = false) {
+    let message = slot.querySelector(".invoice-workbench__credit-note-provider-message");
+    if (!message) {
+      message = element("p", "invoice-workbench__credit-note-provider-message");
+      message.setAttribute("aria-live", "polite"); slot.append(message);
+    }
+    if (alert) message.setAttribute("role", "alert"); else message.removeAttribute("role");
+    message.textContent = text;
+    return message;
+  }
+
+  function retainedCreditProviderRequest(original, credit) {
+    const retained = creditProviderRequests.get(credit.documentId);
+    if (!retained) return null;
+    const snapshot = retained.snapshot;
+    return snapshot.original.documentId === original.documentId
+      && snapshot.original.propertyNode === original.propertyNode
+      && snapshot.original.reservationId === original.reservationId
+      && snapshot.original.folioId === original.folioId
+      && snapshot.original.recipientRegistrationId === original.recipientRegistrationId
+      && snapshot.original.documentSha256 === original.documentSha256
+      && snapshot.original.documentNumber === original.documentNumber
+      && snapshot.original.businessDate === original.businessDate
+      && snapshot.credit.documentId === credit.documentId
+      && snapshot.credit.docNo === credit.docNo
+      && snapshot.credit.sha256 === credit.sha256 ? retained : null;
+  }
+
+  function retainCreditProviderRequest(snapshot) {
+    if (creditProviderRequests.has(snapshot.credit.documentId)
+      || creditProviderRequests.size >= MAX_RETAINED_CREDIT_INTENTS) return null;
+    const retained = { snapshot, status: "ready", inFlight: false };
+    creditProviderRequests.set(snapshot.credit.documentId, retained);
+    return retained;
+  }
+
+  function currentCreditProviderRetainedView(retained) {
+    const view = retained.view;
+    return view && creditProviderCurrent(view.original, view.credit, view.slot, view.scope, view.generation)
+      ? view : null;
+  }
+
+  async function readCreditProviderDelivery(original, credit, slot, scope, generation) {
+    const controller = controlled("detail");
+    try {
+      const raw = await request(
+        `/api/v1/properties/${encodeURIComponent(propertyNode)}/credit-notes/${encodeURIComponent(credit.documentId)}/delivery`,
+        { signal: controller.signal },
+      );
+      if (!creditProviderCurrent(original, credit, slot, scope, generation) || controller.signal.aborted) return null;
+      const wrapper = exactRecord(raw, ["delivery"]);
+      const delivery = wrapper && deliveryEnvelope(raw, credit.documentId);
+      if (!wrapper || !delivery) throw new Error("invalid credit delivery");
+      const facade = await import("/assets/operator-invoice-print.js");
+      if (!creditProviderCurrent(original, credit, slot, scope, generation) || controller.signal.aborted) return null;
+      const registration = typeof facade.fiscalDeliveryRegistrationStatus === "function"
+        ? facade.fiscalDeliveryRegistrationStatus({ documentId: credit.documentId, propertyNode, documentSha256: credit.sha256 }, wrapper.delivery) : null;
+      if (registration === null || typeof registration !== "object" || !Object.isFrozen(registration)) {
+        throw new Error("invalid credit delivery");
+      }
+      return Object.freeze({ delivery, registration });
+    } catch (error) {
+      if (!creditProviderCurrent(original, credit, slot, scope, generation) || controller.signal.aborted) return null;
+      return Object.freeze({ delivery: null, registration: null, state: errorState(error),
+        invalid: error instanceof Error && error.message === "invalid credit delivery" });
+    } finally {
+      release(controller);
+    }
+  }
+
+  function renderCreditProviderRetained(original, credit, slot, retained, scope, generation, deliveryResult = null) {
+    retained.view = Object.freeze({ original, credit, slot, scope, generation });
+    slot.replaceChildren(element("p", "invoice-workbench__credit-note-provider-binding",
+      `${retained.snapshot.provider.label} · ${retained.snapshot.provider.providerKey} · ${retained.snapshot.provider.environment}`));
+    const presentation = creditNoteProviderRequestPresentation(retained.status, retained.inFlight);
+    if (presentation === "in_flight") {
+      creditProviderMessage(slot, "The credit-note registration request is still in progress. Do not start another request.", true);
+      return;
+    }
+    if (presentation === "succeeded") {
+      creditProviderMessage(slot, deliveryResult?.registration
+        ? "Registration request accepted. The authorized credit-note delivery status is shown below."
+        : "Registration request accepted; provider registration is not yet confirmed.");
+      if (deliveryResult?.registration) slot.append(element("p", "invoice-workbench__credit-note-delivery", deliveryResult.registration.label));
+      else if (deliveryResult) slot.append(element("p", "invoice-workbench__credit-note-delivery",
+        deliveryResult.invalid ? "Credit-note registration data is invalid and cannot be displayed."
+          : deliveryResult.state === "permission" ? "Credit-note registration is unavailable for this role."
+            : "Credit-note registration is unavailable while the service is offline."));
+      return;
+    }
+    creditProviderMessage(slot, "The registration outcome is unknown. Retry only with the same request identity and provider.", true);
+    const retry = element("button", "invoice-workbench__credit-note-provider-submit", "Retry same credit-note registration");
+    retry.type = "button";
+    retry.addEventListener("click", () => {
+      void submitCreditProviderRegistration(original, credit, slot, retained, scope, generation, { submit: retry });
+    });
+    slot.append(retry);
+  }
+
+  async function submitCreditProviderRegistration(original, credit, slot, retained, scope, generation, controls) {
+    const effectControls = [controls.submit, ...(controls.select ? [controls.select] : []),
+      ...(controls.confirmation ? [controls.confirmation] : [])];
+    if (retained.inFlight || retained.status === "succeeded"
+      || !creditProviderControlsCurrent(original, credit, slot, effectControls, scope, generation)) return;
+    retained.inFlight = true; retained.status = "unknown";
+    for (const control of effectControls) control.disabled = true;
+    creditProviderMessage(slot, "Requesting registration with the explicitly selected provider…");
+    setState("loading", "Requesting credit-note provider registration…");
+    const controller = controlled("detail");
+    try {
+      const response = await request(`/api/v1/properties/${encodeURIComponent(propertyNode)}/fiscal-submissions`, {
+        method: "POST", headers: { "Content-Type": "application/json", "Idempotency-Key": retained.snapshot.idempotencyKey },
+        body: JSON.stringify({ documentId: retained.snapshot.credit.documentId,
+          providerExtensionId: retained.snapshot.provider.providerExtensionId }), signal: controller.signal,
+      });
+      const currentView = currentCreditProviderRetainedView(retained);
+      if (!currentView || controller.signal.aborted) return;
+      if (!fiscalSubmissionEnvelope(response, retained.snapshot.credit.documentId, retained.snapshot.provider)) {
+        throw new Error("invalid fiscal submission response");
+      }
+      retained.status = "succeeded";
+      retained.inFlight = false;
+      const deliveryResult = await readCreditProviderDelivery(
+        currentView.original, currentView.credit, currentView.slot, currentView.scope, currentView.generation,
+      );
+      const settledView = currentCreditProviderRetainedView(retained);
+      if (!settledView || controller.signal.aborted) return;
+      renderCreditProviderRetained(
+        settledView.original, settledView.credit, settledView.slot, retained,
+        settledView.scope, settledView.generation, deliveryResult,
+      );
+      setState("ready", "Credit-note provider registration request accepted.");
+    } catch (error) {
+      if (controller.signal.aborted) return;
+      retained.status = "unknown";
+      retained.inFlight = false;
+      const settledView = currentCreditProviderRetainedView(retained);
+      if (!settledView) return;
+      renderCreditProviderRetained(
+        settledView.original, settledView.credit, settledView.slot, retained,
+        settledView.scope, settledView.generation,
+      );
+      setState("unknown", "The credit-note registration outcome is unknown; retain the same request identity.");
+    } finally {
+      retained.inFlight = false;
+      release(controller);
+      if (creditProviderCurrent(original, credit, slot, scope, generation) && retained.status === "unknown"
+        && controls.submit.isConnected && !controls.submit.hidden && slot.contains(controls.submit)) controls.submit.disabled = false;
+    }
+  }
+
+  function renderCreditProviderChoices(original, creditReceipt, credit, slot, providers, scope, generation) {
+    slot.replaceChildren();
+    const surface = element("div", "invoice-workbench__credit-note-provider-request");
+    surface.append(element("h4", "invoice-workbench__credit-note-provider-heading", "Register credit note with provider"),
+      element("p", "invoice-workbench__credit-note-provider-guidance", "Select a configured provider and confirm its environment before requesting registration."));
+    const label = element("label", "invoice-workbench__credit-note-provider-field", "Configured provider");
+    const select = element("select", "invoice-workbench__credit-note-provider-select");
+    const prompt = element("option", "invoice-workbench__credit-note-provider-option", "Choose a provider");
+    prompt.value = ""; select.append(prompt);
+    for (const provider of providers) {
+      const option = element("option", "invoice-workbench__credit-note-provider-option",
+        `${provider.label} · ${provider.providerKey} · ${provider.environment}`);
+      option.value = provider.providerExtensionId; select.append(option);
+    }
+    label.append(select);
+    const confirmationLabel = element("label", "invoice-workbench__credit-note-provider-confirm-field");
+    const confirmation = element("input", "invoice-workbench__credit-note-provider-confirmation");
+    confirmation.type = "checkbox"; confirmation.disabled = true;
+    const confirmationText = document.createTextNode(" Select a provider to confirm its environment.");
+    confirmationLabel.append(confirmation, confirmationText);
+    const submit = element("button", "invoice-workbench__credit-note-provider-submit", "Request credit-note registration");
+    submit.type = "button"; submit.disabled = true;
+    let selected = null;
+    select.addEventListener("change", () => {
+      if (!creditProviderControlsCurrent(original, credit, slot, [select], scope, generation)) return;
+      selected = providers.find((provider) => provider.providerExtensionId === select.value) ?? null;
+      confirmation.checked = false; confirmation.disabled = selected === null; submit.disabled = true;
+      confirmationText.textContent = selected
+        ? ` I confirm this request will use the ${selected.environment} environment.`
+        : " Select a provider to confirm its environment.";
+    });
+    confirmation.addEventListener("change", () => {
+      if (!creditProviderControlsCurrent(original, credit, slot, [select, confirmation], scope, generation)) return;
+      submit.disabled = !selected || !confirmation.checked;
+    });
+    submit.addEventListener("click", () => {
+      if (!selected || !confirmation.checked || !creditProviderControlsCurrent(original, credit, slot,
+        [select, confirmation, submit], scope, generation)) return;
+      let idempotencyKey;
+      try { idempotencyKey = newRegistrationKey(); } catch {
+        creditProviderMessage(slot, "A secure request identity is unavailable. No provider request was sent.", true);
+        setState("offline", "A secure credit-note provider request identity is unavailable."); return;
+      }
+      const snapshot = creditNoteProviderRequestSnapshot(creditReceipt, original, selected, idempotencyKey);
+      if (!snapshot) {
+        creditProviderMessage(slot, "The immutable credit or provider identity is no longer valid. No provider request was sent.", true);
+        setState("offline", "Credit-note registration cannot start from invalid immutable identity."); return;
+      }
+      const retained = retainCreditProviderRequest(snapshot);
+      if (!retained) {
+        creditProviderMessage(slot, creditProviderRequests.has(credit.documentId)
+          ? "A credit-note registration request is already retained. Its request identity cannot be replaced."
+          : "Too many unresolved credit-note registration requests are retained. Resolve them before starting another.", true);
+        setState("offline", "Credit-note provider registration cannot start while prior outcomes remain unresolved."); return;
+      }
+      retained.view = Object.freeze({ original, credit, slot, scope, generation });
+      void submitCreditProviderRegistration(original, credit, slot, retained, scope, generation, { select, confirmation, submit });
+    });
+    surface.append(label, confirmationLabel, submit); slot.append(surface);
+  }
+
+  async function loadCreditProviderOptions(original, creditReceipt, credit, slot, intent, scope, generation) {
+    if (intent.disabled || !creditProviderControlsCurrent(original, credit, slot, [intent], scope, generation)) return;
+    intent.disabled = true;
+    creditProviderMessage(slot, "Loading configured provider registrations…");
+    setState("loading", "Loading configured fiscal providers…");
+    const controller = controlled("detail");
+    try {
+      const response = await request(`/api/v1/properties/${encodeURIComponent(propertyNode)}/fiscal-provider-options`, {
+        signal: controller.signal,
+      });
+      if (!creditProviderCurrent(original, credit, slot, scope, generation) || controller.signal.aborted) return;
+      const providers = providerOptionsEnvelope(response);
+      if (!providers) throw new Error("invalid fiscal provider options response");
+      if (providers.length === 0) {
+        creditProviderMessage(slot, "No configured fiscal providers are available for this property.");
+        setState("empty", "No configured fiscal providers are available for this property."); return;
+      }
+      renderCreditProviderChoices(original, creditReceipt, credit, slot, providers, scope, generation);
+      setState("ready", "Choose and confirm a configured provider environment.");
+    } catch (error) {
+      if (!creditProviderCurrent(original, credit, slot, scope, generation) || controller.signal.aborted) return;
+      const state = errorState(error);
+      const message = state === "permission" ? "You do not have permission to request credit-note provider registration."
+        : state === "unsupported" ? "Credit-note provider registration is not supported for this property."
+          : "Configured credit-note providers are unavailable while the service is offline.";
+      creditProviderMessage(slot, message, true); setState(state, message);
+    } finally {
+      release(controller);
+      if (creditProviderCurrent(original, credit, slot, scope, generation) && intent.isConnected
+        && !intent.hidden && slot.contains(intent)) intent.disabled = false;
+    }
+  }
+
+  function renderCreditProviderRequest(original, creditReceipt, credit, delivery, slot, scope, generation) {
+    if (delivery.kind !== "not_requested") return;
+    const retained = retainedCreditProviderRequest(original, credit);
+    if (retained) {
+      renderCreditProviderRetained(original, credit, slot, retained, scope, generation);
+      return;
+    }
+    if (creditProviderRequests.has(credit.documentId)) {
+      creditProviderMessage(slot, "A retained credit-note registration request does not match this immutable credit identity. No new request can be started.", true);
+      return;
+    }
+    const intent = element("button", "invoice-workbench__credit-note-provider-intent", "Register credit note with provider");
+    intent.type = "button";
+    intent.addEventListener("click", () => {
+      void loadCreditProviderOptions(original, creditReceipt, credit, slot, intent, scope, generation);
+    });
+    slot.append(intent);
+  }
+
   function creditIssueCurrent(original, surface, scope, generation) {
     return current(scope, generation, "detail") && selectedDocumentId === original.documentId
       && root.dataset.invoiceView === "detail" && root.isConnected && !root.hidden
@@ -1442,7 +1754,7 @@ export function createInvoiceWorkbench({ root, request, propertyNode, timezone, 
   async function loadCreditNote(original, slot, button, message, scope, generation) {
     if (button.disabled || !current(scope, generation, "detail")) return;
     button.disabled = true;
-    slot.querySelectorAll(".invoice-workbench__credit-note-summary, .invoice-workbench__credit-note-delivery, .invoice-workbench__credit-note-actions, .invoice-workbench__credit-note-print-status, .invoice-workbench__credit-note-print-preview").forEach((node) => node.remove());
+    slot.querySelectorAll(".invoice-workbench__credit-note-summary, .invoice-workbench__credit-note-delivery, .invoice-workbench__credit-note-actions, .invoice-workbench__credit-note-print-status, .invoice-workbench__credit-note-print-preview, .invoice-workbench__credit-note-provider-slot").forEach((node) => node.remove());
     message.textContent = "Loading existing credit note…";
     const controller = controlled("detail");
     try {
@@ -1453,6 +1765,8 @@ export function createInvoiceWorkbench({ root, request, propertyNode, timezone, 
       if (!current(scope, generation, "detail") || !slot.isConnected || controller.signal.aborted) return;
       const note = creditNoteDisclosureEnvelope(raw, original);
       if (!note) throw new Error("invalid credit-note receipt");
+      const creditReceipt = ownRecord(raw, 32);
+      if (!creditReceipt) throw new Error("invalid credit-note receipt");
       const facts = element("dl", "invoice-workbench__credit-note-summary");
       facts.append(
         detailRow("Credit note", note.docNo),
@@ -1482,6 +1796,11 @@ export function createInvoiceWorkbench({ root, request, propertyNode, timezone, 
         if (registration === null || typeof registration !== "object" || !Object.isFrozen(registration)) throw new Error("invalid credit delivery");
         registrationMessage = registration.label;
         slot.append(element("p", "invoice-workbench__credit-note-delivery", registration.label));
+        if (delivery.kind === "not_requested") {
+          const providerSlot = element("div", "invoice-workbench__credit-note-provider-slot");
+          slot.append(providerSlot);
+          renderCreditProviderRequest(original, creditReceipt, note, delivery, providerSlot, scope, generation);
+        }
       } catch (error) {
         if (!current(scope, generation, "detail") || !slot.isConnected || controller.signal.aborted) return;
         const code = errorField(error, "status");
@@ -2044,7 +2363,7 @@ export function createInvoiceWorkbench({ root, request, propertyNode, timezone, 
       if (disposed) return;
       active = false; disposed = true; scopeGeneration += 1; searchGeneration += 1; detailGeneration += 1; issueGeneration += 1;
       currentIssueRoute = null; creditMode = false;
-      abortAll(); rows = []; nextCursor = null; resetCreditRegister(); printModulePromise = null; registrationRequests.clear(); deliveryRetries.clear(); creditIssueRequests.clear();
+      abortAll(); rows = []; nextCursor = null; resetCreditRegister(); printModulePromise = null; registrationRequests.clear(); deliveryRetries.clear(); creditIssueRequests.clear(); creditProviderRequests.clear();
       if (previewStyleSheet instanceof CSSStyleSheet && "adoptedStyleSheets" in document) {
         document.adoptedStyleSheets = document.adoptedStyleSheets.filter((sheet) => sheet !== previewStyleSheet);
       } else if (previewStyleSheet && typeof previewStyleSheet.remove === "function") previewStyleSheet.remove();
