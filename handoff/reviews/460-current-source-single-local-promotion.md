@@ -1,9 +1,10 @@
 # Order460 — current-source publication and retained local promotion
 
-## Current disposition — 9 September 2026
+## Historical disposition — 9 September 2026
 
 Exact-source publication and CI are complete. Retained-data promotion and local
-runtime acceptance are **not complete**. This record does not approve a live
+runtime acceptance were **not complete at this checkpoint**. The later Q258r2
+verified promotion is recorded below. This historical record did not approve a live
 upgrade, startup, merge, provider activation or Phase7 completion.
 
 ## Published source
@@ -1373,3 +1374,160 @@ Root observed the sole application listener at `127.0.0.1:3000`, PID16604/start
 remained unchanged. This establishes root-executed current-source local promotion,
 not independent execution by this reviewer, external publication, provider
 activation, legal readiness or a phase-completion decision.
+
+## Q255 no-migration successor — first independent source findings
+
+Reviewer: `/root`, not an implementer of either Q255 helper lane. This is a
+source-preparation review, not a release or permission to touch the live app.
+
+Root inspected the first artifact/adapter draft and personally executed synthetic
+probes with native Bun against adapter SHA256
+`133ec81ea027961a44c41bb0be3e18d8aceef40ee9bbbc2532d1e8fee92645bb`.
+The before/after hashes matched. A valid current44ef 18-key synthetic environment
+was rejected because the adapter still required olda108 identity. A candidate input
+containing all declared hash fields plus an extra64-hex `source` and a foreign
+dependency path was accepted, overriding the fixed source identity. No real private
+values, SQL or runtime calls were involved. These are executable RED findings.
+
+Static integration findings also require correction: the projected supervisor
+omits the accepted native100ns timestamp repair; the receipt is not compatible
+with its strict consumer; and a pure artifact-description function alone omits
+the required later guarded materialization/preparation path. The source-only
+admission forbids executing those writes now, not implementing them. Both builders
+received the findings; no source acceptance or narrowed completion is claimed.
+
+Separately, root read-only HTTP proof of the current44ef print asset returns32,642
+bytes/SHA256 `63bfdfcbcac67d7c1710b1e2ccf01166271d470753216e4562b7b392b57d153b`,
+exactly matching its immutable source file. App16604, supervisor11376 and PG2340
+retain their previously verified native starts. The same91 database and shared
+dependencies remain; no Q255 materialization, credential preparation, staging,
+cutover, rollback, provider action or database change has executed.
+## Q255 independently verified source artifact — 13 September
+
+Root personally inspected materializer3cf3117f and executed its four focused tests
+(4 passed, 0 failed, 10 assertions); adapter projection checks separately passed
+4/0/17 after correcting stale saved-environment assumptions, extra-key overrides
+and explicit private-file ACL requirements. Cutover failure review independently
+reproduced normal-stage-stop failure incorrectly entering rollback; the builder
+corrected that branch and the pre-assignment cleanup failure propagation. This
+record is not final cutover acceptance.
+
+Separate root artifact-only admissionc2126700 was then consumed once. Materializer
+exited0 and produced source-artifact receipt377d0111 for exact46004. Root separately
+enumerated all2213 extracted paths, checked every Git blob and size, archive1d6c6bde
+and actual retained dependency inventory11da9763. All match. Root compared the
+full2215 tracked-file byte digest, physical and semantic Git index, refs and HEAD
+before/after; every digest is identical. No current source, index or ref was changed.
+Only the two admitted D: runtime children were created; dependencies are a junction.
+No credentials, private runtime configuration, PostgreSQL or app action occurred.
+Exact metadata is `.yellow/evidence/order465/q255-source-creation-proof-20260913.json`.
+
+## Q255 final independent proof and actual promotion — 13 September
+
+Authors: /root/q255_artifact_adapter and /root/q255_cutover; nonimplementing
+reviewer and actual executor: /root. Final six-file identities and all separate
+action admissions are recorded in Q255 and its metadata evidence. Root personally
+executed the actual three helper suites with native Bun:20 passed,0 failed,
+88 assertions. The explicit strict TypeScript check passed with --ignoreConfig.
+Real-file read-only Get-PreparedCandidate, OldIdentity, Get-CurrentOldLaunch and
+Assert-PromoteAdmission passed before the separately admitted one-shot Promote.
+
+Preserved RED evidence includes stale environment identity, extra-key source
+override, missing native timestamp projection, incomplete materialization,
+inherited private-file ACL mismatch, missing imported oldRevision, incorrect
+source/CI metadata ACL readers, and unbounded asset-body read. Root reproduced
+the unsafe rollback after a failed normal stage stop; the final helper refuses
+rollback after any unproven owned cleanup, including startup cleanup failure.
+Final executable tests verify the corrected branches without weakening guards.
+
+Actual actions, each separately admitted and consumed once:
+- source admissionc2126700 → artifact377d0111 (2213 exact committed files);
+- private preparation385e180c → candidate00bac1dd, env4bef70ef, supervisorf4045744;
+  root verified the sole env delta is YELLOW_BUILD_SHA and all private-file ACLs;
+- generation Prepare42b0853c → receipt887904cf, fresh stage/live/rollback outputs;
+- Promote admissionf7a0bbe4 under helper55e05bfc → receipt023e0f4e, exit0.
+
+Promotion receipt full SHA256:
+023e0f4e9fbc5f418464c5b35ffe23d1efe1c0abf71d650a44fec4f4db4de458.
+Source46004/frontier91 now serves127.0.0.1:3000; exact app14944 native start
+2026-09-12T22:41:07.9835587Z and supervisor6812 start22:41:05.0575664Z.
+Root separately rehashed/read the receipt, fetched /ready and the actual33288-byte
+print asset (0e5da1cd, equal to the committed blob), checked native starts and
+listeners. Old16604/11376, stage16292 and its supervisor are absent;3001 is absent.
+The stage status file is stale after exact shutdown, not evidence of a live process.
+Retained native PG2340/start17:14:09.3086384Z remains the sole55503 listener.
+
+Stage and live both passed saved-login prefill/authentication, invoice list/detail,
+issued readiness, and exact new print asset. Both honestly classify eligible
+readiness as blocked/supplier_issue_status_unavailable, invoiceEligible=false;
+providers remain empty. Six approved workers are preserved; fiscal worker remains
+off, logs bounded5MiB×3 perstream, no automatic restart. No migration, reseed, new
+database, dependency copy, main merge or provider activation occurred in Q255.
+Ordinary worker activity is not a claim of zero business-row changes. Rollback was
+proved synthetically but was not executed on this successful live path.
+Earlier failed and consumed artifacts remain untouched. Canonical compact root
+post-check: .yellow/evidence/order465/q255-promotion-proof-20260913.json.
+Q253, authentic provider inputs, real PriceLabs archive and phase closure remain open.
+
+## Q258 post-update recovery and Order466 preparation —13September
+
+Historical Q255 live proof above predates Windows Update; it is not current-live
+authority. Nonimplementing root read the recovery closure, personally ran42/0
+synthetic guards and actual retained-host preflight, then admitted/executed one
+native recovery under helper77cfb0c5. Receipt2a072242 binds PG13580/native start
+03:30:30.6444374UTC and sole55503. Root independently verifies native identity
+and receipt. Native pg_ctl took127940ms. No SQL, migration, reseed, cleanup, new
+database or business-row equivalence proof.
+
+Source/adapter: nonimplementing root8/0(39), strict TypeScript and2/0 actual
+native ACL predicates with synthetic ACLs. Prior environment/candidate hashes,
+imported closure pins, same-user ACL principal and primitive field checks were
+corrected before acceptance. One immutable-source action yields receipta06466bc;
+root separately checks all2220 exact Git blobs/30307939bytes, archive and existing
+dependency junction. One private action yields candidate47ed699a, environmente0011e5f
+and supervisor57e6ad0c; four current-user-only ACLs verified. No credentials exposed;
+sole environment delta is buildSHA46004to41415. Admission/evidence paths in Q258.
+
+Cutover is not yet accepted. Root rejected first incompletef262 draft. Root and
+nonimplementing q258_source_adapter inspected15e821; reviewer personally ran
+Review and7/0(47), then reproduced readonly-PID collision, function-scope loss
+and invalid conditional expression. Missing artifact/private ACL/supervisor pins,
+rollback context and startup unproven-cleanup propagation are also recorded.
+Root actual read-only candidate/archive, prior absence and recovered-PG binding
+passed under subsequenta69d. No app execution from those checks. Regression tests
+for these actual function paths are required, not merely wrapper-test success.
+Application3000/3001 remains stopped at this checkpoint.
+
+### Q258 first attempted cutover and corrected r2
+
+Later d93f839e/root and nonimplementer11/0(57) was admitted once. Prepare697c702b
+completed, but Promote failed after staging child15208 started and was stopped.
+No promotion or retained rollback proof exists; retainedPG13580 remains running.
+Root found app-absent validation was wrongly reused after launch. The prior tests
+missed this branch. Do not describe the attempt as no application execution.
+All consumed artifacts are preserved. Retained rollback preflight passes read-only;
+its earlier no-status cause is not established. Corrected r2 source81921d4e/test
+17b117df personally passes root13/0(61), full native PG/prelaunch binding, source,
+archive, private ACLs, original fixture identity and credential comparison without
+printing secrets. Distinct r2 output remains absent at proof time. No r2 launch
+authority follows from this paragraph; fresh independent audit/admission required.
+
+Final r2 independent reviewer q258_source_adapter personally verifies frozen
+81921d4e/test17b117df,13/0(61), inert Review, and actual transformed true-host code
+(OS/file leaves synthetic) with successful41415/46004 and rejected wrong commit,
+frontier90, enabled providers and extra app listener. Root independently executes
+all13 tests plus actual full source/private/PG/CI/retained identity checks.
+Separate Prepare yields66c86c5b; root independently checks projected supervisor
+hashes/ACLs and unused roots before separately admitting one Promote. Source
+acceptance does not stand in for the still-required actual result/post-check.
+
+Actual r2 Promote completed withc64e87d7, source41415/frontier91 on sole3000.
+Root personally reexecutes full true-mode nativePG13580/app17936/parent17096,
+exact candidate/supervisor ACL and listener checks; /ready revision/frontier and
+both exact served assets pass. Stage17732 absent; no r2 failure/rollback receipt.
+Actual admitted smoke verifies saved credentials, invoice reads and honest blocked
+supplier_issue_status_unavailable. Earlier r1 failure and corrected root postcheck
+filename/metadata-reader mistakes remain recorded in compact proof, not erased.
+No credential output; unchanged six workers/fiscal providers off, bounded logs,
+no automatic restart/reset/reseed/migration/newDB/mainmerge/phase-complete claim.
+See .yellow/evidence/order466/q258-r2-promotion-proof-20260913.json.

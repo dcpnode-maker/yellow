@@ -17,7 +17,7 @@ export interface ProjectRecordedWorkSnapshot {
     | 165 | 166 | 168 | 169 | 170 | 171 | 173 | 174 | 175 | 176 | 177 | 178
     | 179 | 180 | 181 | 182 | 183 | 184 | 185 | 186 | 188 | 189
     | 190 | 191 | 192 | 193 | 195 | 199 | 236 | 310 | 396 | 429 | 434 | 438 | 440 | 444
-    | 453 | 454 | 455 | 458 | 459 | 460 | 461 | 462 | 463 | 464;
+    | 453 | 454 | 455 | 458 | 459 | 460 | 461 | 462 | 463 | 464 | 465 | 466;
   readonly state: ProjectRecordedWorkState;
   readonly summary: string;
   readonly remaining?: string;
@@ -71,11 +71,11 @@ export const DEFAULT_OPERATOR_RUNTIME_STATUS: OperatorRuntimeStatus = Object.fre
 
 export const PROJECT_BUILD_SNAPSHOT: ProjectBuildSnapshot = Object.freeze({
   schemaVersion: 2,
-  recordedAt: "2026-09-12",
-  label: "Current-source receiving integration in progress; reservation actions source built",
+  recordedAt: "2026-09-13",
+  label: "Current-source receiving integration in progress; invoice source accepted",
   roadmap: Object.freeze({
     phaseCount: 18,
-    latestBuiltOrder: 464,
+    latestBuiltOrder: 466,
     currentOrder: 460,
     activePhase: 7,
   }),
@@ -399,8 +399,8 @@ export const PROJECT_BUILD_SNAPSHOT: ProjectBuildSnapshot = Object.freeze({
     Object.freeze({
       order: 460,
       state: "proof_in_progress" as const,
-      summary: "Order 460 recovered the retained native database on September 12. The frozen source at migration 90 passes temporary prefilled login, invoice browsing, 129-table worker verification and exact owned shutdown. Windows launcher timestamp precision was repaired without resetting data or weakening fiscal eligibility.",
-      remaining: "The temporary app is stopped; local promotion and selective publication/integration of receiving source at migration 91 remain pending. Dynamic runtime build information owns the actual serving revision and schema. Provider acceptance and genuine fiscal eligibility remain separate; Phase 7 and the whole application are not complete.",
+      summary: "Order 460 retains the Q255 local promotion as historical and records Q258's exact successful local promotion of source41415cc5/frontier91 at 2026-09-13T04:19:14.2088495Z after native PostgreSQL recovery. The earlier failed Q258 staging attempt remains historical evidence; the saved-login invoice and readiness smoke passed during the successful promotion.",
+      remaining: "This is a timestamped local promotion receipt, not a permanent runtime guarantee: dynamic runtime build information remains authoritative for the source and schema currently serving. No database reset, reseed, migration, provider activation or rollback action occurred. Provider acceptance, genuine fiscal eligibility, Phase 7 and the whole application remain incomplete.",
     }),
     Object.freeze({
       order: 461,
@@ -418,13 +418,25 @@ export const PROJECT_BUILD_SNAPSHOT: ProjectBuildSnapshot = Object.freeze({
       order: 463,
       state: "proof_in_progress" as const,
       summary: "Order 463 builds the reservation-alert receiving workflow. Isolated native proof passes 11/0 real database tests and referee 11/11. On September 12, independent read-only proof reproduces the old ACL error and passes the corrected actual runtime-readiness check at migration 91 on the recovered host.",
-      remaining: "Publication and runtime integration remain pending. The workflow is not live and does not complete Phase 4 or Phase 7.",
+      remaining: "The workflow source is included in published successor 41415cc5 and the local release verified on September 13. Dynamic runtime build information identifies the currently serving release. This inclusion does not complete Phase 4 or Phase 7 or substitute for workflow-specific acceptance.",
     }),
     Object.freeze({
       order: 464,
       state: "built_unverified" as const,
       summary: "Order 464 builds permission-aware reservation actions for operational details, cancel and reinstate disclosure. Root source proof passes 34 tests with 6 existing database-gated skips and 0 failures.",
-      remaining: "Runtime integration, release proof and local promotion remain pending. These permission-aware actions are source-built only, not live.",
+      remaining: "The action source is included in published successor 41415cc5 and the local release verified on September 13. Dynamic runtime build information identifies the currently serving release. Source delivery does not itself establish workflow-specific acceptance or phase completion.",
+    }),
+    Object.freeze({
+      order: 465,
+      state: "independently_approved" as const,
+      summary: "Order 465 independently approved the invoice print retry-receipt compatibility repair as source-only. Published head 46004d6f9b61a02f14259fd3f911e85a72ae0c60 passed six-job CI run 34721116555: quality, Windows state, local review, free-host ARM64, database and container smoke.",
+      remaining: "The repair is included in successor source 41415cc5, locally verified on September 13 with exact served print assets and saved-login invoice smoke. Current runtime identity remains dynamic; provider activation, Q253 policy resolution and Phase 7 completion remain separate.",
+    }),
+    Object.freeze({
+      order: 466,
+      state: "independently_approved" as const,
+      summary: "Order 466 independently approved the read-only invoice credit-note workflow. Q257 published exact successor source 41415cc5c6953f71d9b3baada6fd9c7853567128; CI run 34725373251 passed six jobs: quality, Windows state, local review, database, free-host ARM64 and container smoke.",
+      remaining: "Q258 locally promoted source 41415cc5 on September 13, verifying saved-login invoice reads and both exact served invoice assets. Current runtime identity remains dynamic. No new database proof, provider activation or Phase 7 completion follows from this local delivery.",
     }),
   ] satisfies readonly ProjectRecordedWorkSnapshot[]),
   phases: Object.freeze([

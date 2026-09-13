@@ -65,10 +65,10 @@ async function historicalCounts(directory: string): Promise<string> {
 describe("canonical project status", () => {
   test("records current release work while preserving the historical Order 444 preview", () => {
     const originalSnapshot = JSON.stringify(PROJECT_BUILD_SNAPSHOT);
-    expect(PROJECT_BUILD_SNAPSHOT.recordedAt).toBe("2026-09-12");
+    expect(PROJECT_BUILD_SNAPSHOT.recordedAt).toBe("2026-09-13");
     expect(PROJECT_BUILD_SNAPSHOT.roadmap).toMatchObject({
       phaseCount: 18,
-      latestBuiltOrder: 464,
+      latestBuiltOrder: 466,
       currentOrder: 460,
       activePhase: 7,
     });
@@ -85,6 +85,29 @@ describe("canonical project status", () => {
     expect(byOrder.get(440)?.summary).toContain("81 migrations / 128 public tables");
     expect(byOrder.get(440)?.remaining).toContain("historically verified Order444 preview85 and retained rollback77");
     expect(byOrder.get(440)?.remaining).toContain("authentic external-provider sandbox acceptance and activation remain unfinished");
+    expect(byOrder.get(460)?.state).toBe("proof_in_progress");
+    expect(byOrder.get(460)?.summary).toContain("Q258's exact successful local promotion");
+    expect(byOrder.get(460)?.summary).toContain("native PostgreSQL recovery");
+    expect(byOrder.get(460)?.summary).toContain("successful local promotion");
+    expect(byOrder.get(460)?.summary).toContain("2026-09-13T04:19:14.2088495Z");
+    expect(byOrder.get(460)?.summary).toContain("saved-login invoice and readiness smoke passed");
+    expect(byOrder.get(460)?.remaining).toContain("not a permanent runtime guarantee");
+    expect(byOrder.get(460)?.remaining).toContain("dynamic runtime build information remains authoritative");
+    expect(byOrder.get(463)?.remaining).toContain("published successor 41415cc5");
+    expect(byOrder.get(463)?.remaining).toContain("local release verified on September 13");
+    expect(byOrder.get(464)?.remaining).toContain("published successor 41415cc5");
+    expect(byOrder.get(464)?.remaining).toContain("local release verified on September 13");
+    expect(byOrder.get(465)?.state).toBe("independently_approved");
+    expect(byOrder.get(465)?.summary).toContain("CI run 34721116555");
+    expect(byOrder.get(465)?.summary).toContain("free-host ARM64");
+    expect(byOrder.get(466)?.state).toBe("independently_approved");
+    expect(byOrder.get(466)?.summary).toContain("41415cc5c6953f71d9b3baada6fd9c7853567128");
+    expect(byOrder.get(466)?.summary).toContain("CI run 34725373251");
+    expect(byOrder.get(466)?.summary).toContain("container smoke");
+    expect(byOrder.get(466)?.remaining).toContain("Q258 locally promoted source 41415cc5");
+    for (const order of [463, 464, 465, 466] as const) {
+      expect(byOrder.get(order)?.remaining).not.toMatch(/not live|cutover remains unfinished|Local promotion remains unfinished/);
+    }
     expect(byOrder.get(444)?.state).toBe("proof_in_progress");
     expect(byOrder.get(444)?.summary).toContain("three-layout Calm Workbench, Precision Desk and Service Timeline shell");
     expect(byOrder.get(444)?.summary).toContain("Q208 operator invoice queue/detail, readiness, confirmed issuance");
