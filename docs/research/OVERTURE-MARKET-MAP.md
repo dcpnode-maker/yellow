@@ -166,7 +166,25 @@ horizons, refresh bands and provider budgets are unchanged by place discovery.
 ## Acceptance and receiving owner
 
 See `handoff/reviews/RMS-PLACES-001.md` for exact tests and remaining gates.
-For browser acceptance on a supported local workstation:
+The existing CI quality job now requires the actual Chromium renderer proof.
+It uses disposable synthetic fixtures and software WebGL; this checks correctness,
+not GPU or production performance. For the same automated check on a supported
+workstation with Chrome/Chromium installed:
+
+```sh
+YELLOW_REQUIRE_MARKET_MAP_BROWSER=1 \
+YELLOW_MARKET_MAP_PROOF_DIR=/tmp/yellow-market-map-proof \
+  bun test tests/operator-market-map.browser.test.ts
+```
+
+Without the required flag, the renderer case is explicitly skipped while the
+existing VM cases still execute. Missing browser/WebGL with the flag set fails.
+CI retains bounded synthetic screenshots and a JSON receipt for seven days.
+The global flat/globe comparison precedes hotel markers so changed selection
+styling cannot falsely prove projection. Typing then submitting must make only
+one catalog request, and the missing-engine case must still allow list selection.
+
+For interactive browser acceptance on a supported workstation:
 
 ```sh
 bun scripts/research/verify-market-map-browser.ts --serve

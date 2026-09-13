@@ -271,7 +271,7 @@
     if (value.length < 2) return;
     queryTimer = window.setTimeout(() => { const [mode, key, normalized] = queryMode(value); void search({ mode, [key]: normalized }, "Searching public place catalog…"); }, 420);
   }
-  ui.form.addEventListener("submit", (event) => { event.preventDefault(); const value = ui.query.value.trim(); if (value.length < 2) { status("Enter at least two characters to search the public catalog.", true); return; } const [mode, key, normalized] = queryMode(value); void search({ mode, [key]: normalized }, "Searching public place catalog…"); });
+  ui.form.addEventListener("submit", (event) => { event.preventDefault(); window.clearTimeout(queryTimer); const value = ui.query.value.trim(); if (value.length < 2) { status("Enter at least two characters to search the public catalog.", true); return; } const [mode, key, normalized] = queryMode(value); void search({ mode, [key]: normalized }, "Searching public place catalog…"); });
   ui.query.addEventListener("input", scheduleSearch);
   ui.visible.addEventListener("click", () => { const bounds = boundedBounds(map?.getBounds()); if (!bounds) { status("Zoom closer: visible-area searches are limited to a 5° span.", true); return; } lastBounds = bounds; void search({ mode: "bbox", ...Object.fromEntries(Object.entries(bounds).map(([key, value]) => [key, String(value)])) }, "Searching the visible area…"); });
   ui.radius.addEventListener("change", renderRadius);

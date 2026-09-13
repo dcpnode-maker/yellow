@@ -1,7 +1,9 @@
 # Order465 — Preserve invoice printing for retryable fiscal receipts
 
-**Status:** source implemented and independently accepted, 2026-09-13; Q254 admits
-selective publication to existing draftPR92. Local promotion remains separate.
+**Status:** independently accepted, published46004, exact-head CI green and
+separately promoted to the single local under Q255, 2026-09-13. After the reboot,
+Q258r2 restored delivery within successor41415/frontier91 at04:19:14UTC.
+Runtime identities below Q255 are historical. Not main-merged.
 **Owner:** Codex coordinator. **Phase:** 7. **Risk:** read-only fiscal presentation;
 independent nonimplementer execution required before acceptance.
 

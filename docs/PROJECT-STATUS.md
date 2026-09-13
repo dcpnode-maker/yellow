@@ -3,23 +3,125 @@
 <!-- status-schema: yellow-project-status/v1 -->
 <!-- current-phase: 7 -->
 <!-- current-task: Codex Yellow — resumed: integrate existing PriceLabs/market pipelines and private staging, then current-line phase closure and the retained build priorities -->
-<!-- current-order-files: handoff/orders/462-pricelabs-intake-and-market-pipeline-integration.md;handoff/orders/460-current-source-single-local-promotion.md;handoff/orders/463-reservation-alert-workflow.md;handoff/orders/461-bounded-irp-sandbox-acceptance.md -->
-<!-- current-lifecycle: ACTIVE goal resumed2026-09-13; preparing selective source through464/frontier91 for exact native validation. Retained native55503 PID2340 running;3000/3001 stopped. September12 recovery, readiness91 and temporary frozen90 staging/owned shutdown are accepted. New-source publication, real PriceLabs intake and local promotion pending -->
+<!-- current-order-files: handoff/orders/467-current-build-status-reconciliation.md;handoff/orders/462-pricelabs-intake-and-market-pipeline-integration.md;handoff/orders/461-bounded-irp-sandbox-acceptance.md -->
+<!-- current-lifecycle: ACTIVE resumed2026-09-13; acceptedOrder466 source41415cc5 published to draftPR92 and verified live on sole3000 by Q258r2 promotionc64e87d7 at04:19:14UTC; frontier91, saved-login and invoice/assets smoke pass, retainedPG13580/55503. Exact CI34725373251 all six green/referee11pass0fail. First failed cutover preserved. Order467 current status reconciliation source accepted after60assertions/types, publication/delivery pending. Q253 policy, real PriceLabs intake, authentic provider acceptance and remaining phase closure pending -->
 
-This is the canonical current-state record. It identifies the consolidated source,
-verified behavior, release boundaries and active work. Historical orders, reviews,
-decisions and ledger entries remain evidence; their filenames are not an active
-backlog. `state.sh` and `state.ps1` read the machine-readable comments above.
+This is the canonical current-state record. Historical orders, reviews, decisions
+and ledger entries remain evidence; their filenames are not an active backlog.
+`state.sh` and `state.ps1` read the machine-readable comments above.
 
 ## Current task
 
-**Receiving release integration — 13 September.** The long-running Codex goal is
-active again. Exact published baseline547cf3d3 retains green CI34300623098.
-The new candidate combines accepted source through464/frontier91 while excluding
-the paused445 guest-picker fragments and preserving unrelated staged changes.
-Native validation reuses the existing artifact and dependency tree. No new
-database/recovery attempt, app launch or provider activation has occurred today.
-Preparation and green parent CI are not a new-source release or live3000 claim.
+**Fresh post-update receiving — 13 September.** Windows Update restarted the
+host; final boot2026-09-12T23:32:17.5174980Z is after the Q255 verification below.
+The retained native database has recovered under Q258 as PG13580, native
+start03:30:30.6444374UTC, sole loopback55503. Root independently verified the exact
+recovery receipt/process/listener after PostgreSQL's own WAL recovery. No SQL,
+reseed, migration, deletion or business-data equivalence claim. All2220 committed
+Order466 source files and the archive were materialized and independently checked;
+existing dependencies are shared by one junction. Saved-login private preparation
+is complete, with only the build identity changed and all four private ACLs checked.
+The first app cutover failed and is retained as evidence. Root corrected the
+post-launch guard through a separate builder and executable independent review;
+r2 successfully promoted41415/frontier91 at2026-09-13T04:19:14.2088495Z. Sole
+loopback3000 now runs app17936/supervisor17096 with saved login unchanged. Root
+separately verified native identities, candidate/ACLs, ready/source, invoice reads
+and exact invoice/print assets; temporary stage17732 is stopped. No reset, reseed,
+migration, new database or provider activation. Proofc64e87d7 and detailed chronology
+are in Q258/Review460; previous failures were not overwritten. Order467 corrects
+the static snapshot through466 but is still unpublished source, not yet served.
+
+**Latest accepted functional build — Order466.** The existing invoice workbench
+now has a deliberate read-only Existing credit note disclosure, connecting the
+already-built original-invoice credit discovery and delivery APIs. Three bounded
+workers implemented the workbench, small shared validator facade and executable
+proof on disjoint paths. Nonimplementing root personally ran79pass/9explicit
+real-DB skips/0fail,1394 assertions across ten files, including actual Chromium.
+Strict types,198 import boundaries and scoped diff hygiene pass. The skipped
+database tests are not counted as executed proof. Existing print/receipt/invoice
+journeys remain green. No new financial policy, credit issuance, provider action,
+API, schema or UI redesign. Source is accepted and **published as41415cc5 to
+draftPR92 and verified live via Q258r2**. Exact CI34725373251 has now passed all six jobs,
+including the canonical database referee11passed/0failed. Q257's exact ten-path commit preserves all
+working source bytes except its admitted clarification, outside staged content
+and unrelated refs. An initial flag digest discrepancy remains unexplained;
+independent current containment and a fully recorded receiving flag baseline
+passed across commit. No resets or broad staging were used. The formerly verified465
+runtime below stopped during Windows Update; Q258 recovered it and delivered the
+accepted466 successor. Next: publish the tested467 status reconciliation and
+continue retained462/current-line closure work. No main merge or phase completion is claimed.
+
+**Post-restart functional continuation — Order465.** The current-source print
+formatter now accepts the server's exact validated retry receipt without altering
+the printed invoice or inventing provider registration. Nonimplementing root
+personally ran53 passing tests with3 explicit database skips and844 assertions
+across the relevant print/receipt/signed-pair/HTTP suites; types and198 boundaries
+pass. The accepted ten-path change is now published as
+`46004d6f9b61a02f14259fd3f911e85a72ae0c60` to existing draftPR92; all source bytes,
+unrelated staged entries and persistent semantic index flags were preserved.
+Exact CI34721116555 completed successfully on this head: all six jobs passed,
+including native fiscal compatibility, deployment/fixture checks, and the canonical
+database referee (11 passed, 0 failed). Root read the exact-head jobs and referee
+output; prior green CI is not substituted for this successor's proof.
+**Historical Q255 live verification; stopped by the later update reboot.** Root personally
+executed the independently reviewed Q255 one-shot promotion after all six CI jobs
+passed. Receipt023e0f4e binds source46004/frontier91, saved-login authentication,
+invoice list/detail, issued readiness, and exact served print bytes0e5da1cd.
+App14944/start22:41:07.9835587UTC and supervisor6812/start22:41:05.0575664UTC
+are the sole app generation; old16604/11376 and temporary16292 are absent,3001
+is stopped. Retained PG2340/55503/start17:14:09.3086384UTC is unchanged.
+The same database, login values, dependencies and six approved workers are used.
+No migration, reseed, provider activation or main merge occurred during Q255.
+Fiscal worker/providers remain off; supplier_issue_status_unavailable remains an
+honest eligibility blocker. Ordinary worker activity is not asserted to be zero.
+Root independently ran20/0 focused helper tests(88 assertions), strict types and
+actual read-only admission checks before promotion, then verified receipt hashes,
+native identities, listeners, /ready and print bytes afterward. Detailed evidence:
+.yellow/evidence/order465/q255-promotion-proof-20260913.json.
+The historical44ef receiving/promotion records below are superseded only as the
+current runtime identity; their original receipts remain untouched.
+
+The separate GitHub-managed AI scan34721117468 failed before analysis with a
+Copilot entitlement HTTP403, as on the preceding heads. It produced no code
+finding and is not required; no purchase or workflow disable is requested. This
+does not waive Yellow's own six-job CI or independent high-risk proof.
+
+The next substantive native debit-note implementation needs the narrow
+[Q253 economic-source decision](../handoff/questions/253-native-debit-note-economic-source-policy.md).
+Q187's approved origin, numbering and immutable-correction rules are not reopened.
+Authentic IRP acceptance still needs legitimate provider onboarding and authorized
+sandbox inputs; real PriceLabs import still needs the private source archive.
+No phase or whole-app completion is inferred from the print repair.
+
+**Historical receiving release integration — 13 September, before Q255.** Work resumed from the saved
+checkpoint. Current source44ef5e08f985c59d61351ecf32e503233f4038c5 is published to
+draftPR92; its exact CI34715736504 passes all six jobs. Main is not merged. It
+includes accepted source through464/frontier91, excluding paused445 guest-picker
+fragments and preserving unrelated staged work. Native standing passed2106 tests;
+the existing1495 environment-gated skips are not represented as executed tests.
+The current immutable artifact shares the existing dependency tree.
+
+An independent agent completed current retained recovery90 verification, applied
+only0091 to serving91, proved a no-op replay and full business-data preservation.
+The prepared runtime preserves the retained login values and six approved workers;
+fiscal worker and providers remain off. These completed steps are not rerun.
+The first current-source StageChain captured a read-only91 baseline then stopped
+before any app launch because an imported helper was registered under the wrong
+name. Its red evidence is preserved. The scoped r2 repair passed actual imported
+baseline validation and a fresh complete timed Stage/Settled/ownedStop chain;
+no SQL, auditor or timing predicate was weakened. The legitimate worker change
+from outbox head71 to72 is independently accepted, not described as no mutation.
+
+**Historical Q252 single-local restoration (superseded by Q255 above):**
+One independently reviewed Q252 promotion was personally executed by root;
+receipt e1644dfc binds current44ef5/frontier91, tested prefilled saved login,
+authentication, assets, invoice list/detail and issued readiness. Root separately
+checked the receipt, actual /ready, native process starts and sole app listener.
+App16604/start21:17:35.2925636UTC and supervisor11376/start21:17:31.9231970UTC
+run on September12UTC (September13 local); retained PG2340 remains55503,3001 is
+stopped. Logs are bounded, with no automatic restart. The genuine
+supplier_issue_status_unavailable blocker remains; no invoice eligibility,
+whole-phase closure, real client import or provider activation is inferred.
 
 **Restart receiving — 12 September.** The saved working tree and September9
 receipts have been received and the restart test chain has now passed. The final
@@ -536,6 +638,259 @@ Founder priority11→13→17 remains dependency-gated. The executable roadmap re
 
 ## Historical checkpoints (superseded)
 
+**Latest founder directive — functional build only, 2026-09-07.** The founder
+explicitly resumed the remaining build while excluding UI/UX. All visual design,
+prototype, animation and guest-picker work is paused with existing files preserved.
+The ten motion studies were rejected as insufficiently distinct; they are not an
+approved design direction. Earlier design directives below are historical.
+The active work is backend fiscal completion and integration of verified functional
+changes. The existing local app must not be replaced or migrated by these checks.
+
+**Current build —447, credit-note fiscal submission.** Extend the existing fiscal
+request/worker/signed-receipt flow to genuine native full credit notes, preserving
+the original invoice and accounting records. Typed source projection and signed
+pair binding pass30 focused tests/323 assertions independently rerun by root.
+Independent actual PostgreSQL proof now passes SQL8/0(81), whole-draft/production
+migrator rollback1/0(15), and the real encrypted/signed synthetic-provider journey
+3/0(64). Lost-response recovery, exact reference binding, authorized receipt GET,
+immutable request replay and unchanged financial records are verified. The first
+journey's incorrect replay oracle and its narrow test-only repair remain recorded.
+Operator-v3-origin compatibility now passes independently2/0(28), preserving
+native source_version2, original provenance and financial rows. Canonical0088 and
+current88 release/startup wiring are built in working source. Q224 now independently
+passes populated87→88 apply/no-op with every prior row and ledger timestamp intact,
+plus clean77→88 schema equality and the unchanged referee11/11. Both normalized
+schemas have SHA256616afe24b78507e93a4eedebea3da7a4d939e3f185c9e1f82088872ccf0dd4b6.
+The separate-login startup proof passes13 deliberate catalogue/ACL/body denials
+and13 exact restorations with the final full state byte-identical to its baseline.
+Its first12-pass/body-probe42601 helper error, callback-only repair and separate
+green rerun are preserved in review447; no production function repair was needed.
+Q225 now independently passes5/0(156): wrong-provider-version zero effects,
+accepted signed receipt/replay after strictly cohort-bounded queue pruning,
+authenticated rejection without resend, and genuine child exit plus natural lease
+expiry followed by exact-wire lookup only. All pre-existing rows and every protected
+companion/catalogue/ledger/host state remain unchanged. The first4/1 bigint test
+assertion failure and narrow two-line raw-type correction remain recorded.
+Initial backend-only treea57ba6c5 contains32 functional paths, every2065 extracted
+Git blob verified. Its first full standing run is1910pass/1404explicit skips/1
+native status-report process deadline failure, not a green result. Unchanged
+focused report proof subsequently passes1/0(25). Q226 prepares the corrected
+one-test revision of the same isolated artifact and its full standing rerun;
+exact447 CI/publication remain open. The running local app is not this new tree.
+No external provider acceptance is claimed. This is a functional backend flow only.
+
+**Published functional order —446, native full credit notes.** The SQL/accounting,
+typed command and signed-session HTTP implementation is independently verified.
+Corrections preserve original records and create their own C-series documents.
+The nonimplementing reviewer personally passes30 financial cases/163 assertions,
+100 concurrent issuances with gapless C1–100 numbering/302 assertions, actual
+signed-session API issue/read/replay/authority checks1/0/16 assertions and nine
+committed startup-catalogue drifts with exact restoration. The real API initially
+caught a Bun SQLResultArray metadata decoder defect; that request rolled back
+without partial artifacts. The narrow repair and actual green rerun are recorded.
+
+The exact frozen SQL is now canonical0087 (SHA256c8b4ada5702807a0705a13e888e95730e0dbcc8ac7796e0ad2358208a5f873ba).
+Root personally executes the unchanged production migrator on the admitted
+populated86 target: only0087 applies, prior rows/ledger/authority are preserved,
+and a repeat applies zero files. A separate pristine77 clone advances through
+canonical78–87 and passes the unchanged11-invariant referee,11passed/0failed.
+Candidate, whole-draft, canonical-upgrade and clean87 schemas are byte-equal after
+normalization (SHA256d7e2b8516a9bf372d3e735ad688e702be0e08c5764667dacf4041627733b1ede).
+The populated upgrade's existing seed-key collisions were preserved, not deleted.
+All three proof databases share the existing native server; no cluster, Docker
+instance, Git worktree or app was started. Outside database/role/template metadata
+and live3000 process identity remained unchanged.
+
+Backend-only candidate tree705e95fb85e93c465a6cf48ad76ed87a60ec7339 contains33
+functional paths and excludes paused UI changes, including mixed-file visual
+hunks. The first isolated standing run passes1897 cases with1375 explicit
+environment skips and two failures requiring Git history absent from its archive.
+The completed read-only Git-context rerun passes1899/0 with1375 explicit skips,
+33962 assertions across3274 tests in532 files. Types,187 boundary checks and the
+actual23-installed-package licence scan pass. Exact tree705e95 is published in
+commit7f416a0e to existing draftPR92; all unrelated staged UI is preserved.
+
+Earlier CI failures remain recorded: first34152535210 finds an old128-table financial oracle.
+Q218's exact test-only e3262afa repair clears that step; CI34153361691 then finds
+seven stale full-current migration oracles, with additional masked assertions in
+the same historical-to-current test. Q220 admits only contextual test corrections;
+historical prefix checks stay exact. Q220's published236df73d then passes all six
+required CI jobs in34154722275, including actual current87 migration55/0, seed10/0,
+the Order446 fresh/populated suites and canonical referee11/11. Normal CodeQL
+34154719875 passes. This is exact published current87 evidence, not proof of the
+later unpublished447 source. Functional contracts and this boundary are published
+separately in850c78c0. That exact published head also passes CI34156771225 and
+normal CodeQL34156769446. Its optional AI scan34156772696 failed separately;
+neither published87 check verifies the later unpublished447 source. Skipped gates
+in older failed runs are never counted as passes.
+No merge, live availability, external provider acceptance or Phase7 closure.
+
+The native junction-identity repair is published asd0f2f863 to existing draftPR92.
+Independent Windows execution passes19tests/34assertions with unchanged source
+hashes and an explicit30-second runner budget. Earlier17pass/2fail from two
+default5-second test deadlines remains recorded; no semantic defect reproduced
+in the bounded rerun, and no production code or assertion was weakened.
+Exact-head CI34142116072 has all six successful jobs, including database completion
+at16:33:44Z; normal CodeQL34142113265 passes all three analyses. Independent log
+inspection confirms migration53/0, seed10/0, fresh86/referee11/11 and Windows19/0.
+The later Order446 source is published separately, not covered by that older CI run.
+Its typed/stubbedAPI tests pass20/20(234assertions) and typecheck passes;
+actual financial/API and canonical/referee proof use three explicitly admitted
+synthetic databases on the existing native server only.
+The optional Copilot
+review cannot start because of entitlement403, not a normal CodeQL finding.
+Main remains3503b0c/81 and the local app remainsa108/85. No phase percentage,
+merge, deployment or provider activation is inferred.
+
+**Paused historical work — Order445 guest profile selection.** Staff should not
+need internal Party UUIDs to add accompanying guests or sharers. The existing
+canonical search/create API is now composed into each allocation row in working
+source, with explicit selection, masked contact hints, duplicate review and
+per-row disposal/current-context guards. Only the existing explicit allocation
+Save changes reservation membership. Profile creation itself persists immediately;
+it is not an unsaved reservation draft or profile amendment.
+
+Root's five-file adjacent/source run passes42/42 with654 assertions after extending
+the existing removal-focus and editor-reset proofs to execute picker disposal.
+The module's focused browser proof exists; full-editor real-browser interaction,
+small-screen rendering and additional parent-form/stale-selection corrections are
+in progress. No release/completion claim is made for this working-source slice.
+It does not introduce a new design, endpoint, permission, table or domain rule.
+
+**Superseded historical request — ten rendered3D GIF directions before approval.**
+Q215 replaces the single Luminous study with ten original architecture, room,
+optical, revenue and journey motion prototypes. UI/UX Pro Max and design-system
+guidance are applied. Three bounded workers built separate scene/capture modules;
+root integrates actual rendered-frame verification. Source is isolated under
+`docs/design/prototypes/motion-atelier/`; no production UI, hotel database or
+port3000 change is admitted. These remain synthetic design studies, not built
+business functionality or an approved UI direction. Fiscal work below is preserved.
+
+Final hardware capture produced10GIFs, each900×612/20fps/140frames/7seconds,
+with140distinct frames per concept, zero browser errors, no clipped visible DOM
+text, local font loaded and zero external asset requests. Root inspected actual
+frames across all ten scenes, corrected framing/lighting and mobile text planes,
+and retained first/middle/final frames plus `capture-proof.json` under
+`.yellow/evidence/motion-atelier/`. Final batch270.187seconds; tenGIFs61.55MiB.
+Owned temporary profile/encoder artifacts are cleaned (zero temp entries).
+Root typecheck passes; read-only `/ready` reconfirms unchangeda1085178/frontier85.
+Initial missing CDPmobile, favicon404, flat/cropped frames and cross-driveEXDEV
+export failures were corrected before successful capture; software rendering was
+replaced with verified AMDD3D11 hardware. These proofs establish the prototype
+delivery, not game-quality acceptance, native FPS, real OCR or business completion.
+
+**Current source checkpoint — Q212 published as4c46bee3.** The28 nonvisual
+paths were selectively committed and pushed to the existing draftPR92. The
+committed tree is exactly the independently inspected artifact5c3df19c; all
+unrelated staged UI entries were preserved. Normal CodeQL's three analyses and
+CI quality, Windows, local-review, container and nativeARM64 jobs pass. The
+database job inCI34121615979 failed an unchanged Q208 test at12:40:04Z:
+Pago Pago and UTC both had date2026-09-07, contrary to its replay-date assertion.
+Migration suite53/53 and seed10/10 passed, but the subsequent Q212 fresh,
+populated-upgrade, readiness and database/referee acceptance gates were not reached.
+Q216 records the actual failure, admits a test-only25-hour-zone repair and adds
+deterministic all-day controls. Root first reproduced1pass/4fail, then5/0 with
+8644 assertions; focused adjacent tests36/0, typecheck and185-file boundaries pass.
+Independent complete real-PostgreSQL execution now passes10/10 with81 assertions;
+the reviewer also personally passes temporal5/5 with8644 assertions. Prior rows,
+schema/ACL, ledger, other targets, template and global authority remain exact.
+The four-file test-only checkpoint is published as567a66a149dd0c146bc6b723959051e3ab22f6fd
+in existing draftPR92. It preserves2044 unrelated index entries, fingerprint
+30dfc34b8167a10b8b3d4319f1c5bb752edd619e3af3da36b6fc96d7836e391c.
+Exact-source CI34130220239 has now passed all six jobs; normal CodeQL34130216915
+passed all three analyses. The non-implementing reviewer personally inspected the
+completed logs: fresh85 Q20810/0, fresh86 and populated85-to86 recovery6/0 and
+readiness8/0 each, migration53/0, deployment/schema acceptance24/0, canonical
+referee11/11 and exact86 runtime/login/tenant/worker acceptance all passed.
+The detailed record is in handoff/reviews/440-fiscal-provider-and-receipts.md.
+Non-author integration and post-merge proof remain separate; this is not Phase7
+completion or local migration promotion. The optional automated AI-review job
+failed at Copilot session authorization (HTTP403) before producing any finding;
+it is not a successful AI review or a demonstrated source defect.
+No merge, migration promotion, provider activation or live UI change occurred.
+The current review app remains exacta1085178/frontier85 at port3000.
+
+**Earlier founder feedback — light refinement and fuller arrival journey.** The
+dark Continuum study below was rejected as eye-straining. A light, composed ERP
+prototype is now captured with focused architectural room depth, visible sample
+checks, editable guest drafts and simulated ID-to-review. The current live app is
+unchanged. Read-only audit found that Edit details only covers operational
+metadata; profile/contact enrichment, identity intake and general booking amendment
+are genuinely missing. These are recorded as required build slices in the
+[capability inventory](design/BUILT-CAPABILITY-MANIFEST.md), not claimed complete
+because a prototype shows them. Pre-arrival collection/guarantee and configured
+jurisdiction requirements are part of the new journey. No real ID or message is
+processed, and visual approval remains required before live UI integration.
+Final Luminous capture has28 observations, zero runtime exceptions, contained
+headings/room controls and page width, retained drafts/selection, staff-confirmed
+synthetic ID copying and interruptible checks. Desktop/tablet/phone stills plus
+an actual17.717-second GIF are in the prototype's luminous evidence directory.
+The owned capture browser/server closed; current `/ready` still shows a108/85.
+
+**Latest visual directive — approval prototype first.** The founder rejects the
+current three-layout design and asks for one futuristic spatial/AI-forward
+experience, with purpose-built desktop/tablet/phone compositions and future native
+iOS/Android apps. Question214 now takes precedence over the visual selection
+below: show actual prototype screenshots/GIFs, then wait for founder approval
+before app integration. Current3000 is unchanged; no prototype is live hotel data.
+
+**Prototype delivery checkpoint — 2026-09-07.** One Yellow Continuum study now
+has actual desktop1440×900, tablet1024×768 and phone390×844 captures, plus a recorded
+guest→room→review→handoff GIF. Root inspected the renders and corrected mobile
+overlap, tiny/cropped controls and inconsistent sample room labels. The final
+owned-browser capture records18 checks/action observations, zero runtime errors,
+no horizontal page overflow or external resources, real font loading, retained
+room choice on back and an unready-room guard. This is prototype evidence only;
+no financial, provider, native-mobile or full-product acceptance is claimed.
+Q212 core/integration source is frozen: no new database proof or runtime promotion
+was attempted while preparing these visuals. **Await founder approval before new
+UI integration.** Source and evidence locations are in
+[the prototype README](design/prototypes/continuum/README.md).
+
+**Non-UI continuation after prototype delivery — 2026-09-07.** Q212 retry recovery
+now has independently executed fresh86 and populated85→86 proof, each6/6 with42
+assertions, plus full real-browser6/6 with133 assertions. The reviewer found and
+the build corrected stale unknown feedback after a lost committed response,
+including when the next attempt has already become known-not-sent. Same-attempt,
+malformed and unrelated reads retain the original uncertain request key. The
+database test preserves genuine signed receipts, exact successful replay bytes,
+financial records and tenant/actor authority. Its initial incorrect replay-body
+oracle remains recorded; D1389 body/header semantics were preserved, not changed.
+
+First native86 execution safely rolled back because two DateStyle guards did not
+match the actual85 catalogue. Both independently confirmed literal corrections
+preceded successful application; applied1–85 remain byte-exact. Four explicitly
+admitted synthetic databases share the existing native cluster, with no new app,
+Docker instance or role changes. The failed proof target is retained as evidence.
+Fresh/upgraded/referee normalized schemas are byte-equal and the expected schema
+was mechanically derived from them (SHA25694db2893f815fc50d056ee636850bac6101a4dc70ff57c46f39b10622adf9fa4).
+Canonical seed/referee11/11 and no-op/checksum-drift refusal pass. Outside
+databases/roles/memberships and pristine template hashes are unchanged.
+Independent bounded readiness hostility now passes8/8 with68 assertions, including
+separate runtime-login refusal of altered helper grants, metadata, language,
+result/SETOF and removed helper use. Exact catalogue/ledger/all-public-row
+restoration and outside/template preservation pass. The full standing run records
+1872pass/1335explicit skips/3failed legacy resource oracles; the three oracles have
+test-only repairs with focused25pass/8explicit DB skips/0fail. No visual product
+code changed in those repairs, and the failed full run remains evidence.
+
+The reviewer identified that the migration rollback test could pass on an early
+55000 precondition instead of its intended tail failure. The strengthened populated
+proof now independently passes6/0: canonical86 SQL and ledger INSERT are reached,
+uniquePZ086 proves the intended failure point, exact85 authority/ledger and both
+financial/signed cohorts are restored, owned probes are removed, then normal86
+upgrade/recovery pass. The fifth explicitly admitted synthetic target now has86
+and2tenants; priorfour targets, template, roles and live app remain unchanged.
+New exact-source full release/CI acceptance remain open;86 is
+**not** promoted. The prototype approval hold and serving85 app remain unchanged.
+The isolated28path tree5c3df19c produced1868pass/1335explicit skips/2fail: both
+failures need historical Git objects deliberately excluded from the archive.
+Exact byte-identical test/input verification followed by genuine-repository
+execution passes4/0 with4DB skips,11assertions. This establishes those history
+checks, not a full green isolated run. Types,185 boundaries and a non-vacuous
+23installed-package license audit pass. No source or runtime promotion is implied.
+Full findings are in the [Order440 review](../handoff/reviews/440-fiscal-provider-and-receipts.md).
+
 **Founder priority — 2026-09-07.** Deliver completed functionality into the single
 review app without waiting for all of Phase7, and follow Astra's redesigned flows.
 [Order444](../handoff/orders/444-partner-review-and-astra-ui-integration.md) and the
@@ -546,9 +901,34 @@ creative-freedom request was delivered to **Review Yellow Findings**, and Astra'
 definitive reply5564886892 was personally read and incorporated into that handoff. The forthcoming
 consolidated voice-agent document is separate and not yet received.
 
-Read-only inspection confirms the current native3000 app is healthy but still
-b5ef708/frontier77. Its fixed-version launcher, synthetic permissions and fixtures
-also need a verified update; merely copying new frontend files is insufficient.
+**Live review app — verified2026-09-07 at08:14Z.** The single
+`http://127.0.0.1:3000` now serves exact PR92 source
+`a10851786f17f2fdea0cf970320ee8c46a45b670`, migration frontier85. All three
+sign-in fields are prefilled: root used the actual Enter workbench button and
+read the genuine synthetic invoiceYR/1. All15 existing workspace destinations
+mounted through real browser navigation; this is not full transaction acceptance
+of every destination. Three desktop layouts and390px task view were captured and
+personally inspected. Provider configuration remains empty/default-off. Old
+b5ef708/frontier77 source/database are retained for rollback, not still serving.
+Current child7568/supervisor9508 are the only founder-app listener on3000; temporary
+3001 is stopped. The current in-app recorded-work checkpoint predates this
+promotion; its dynamic runtime build information shows the serving SHA/frontier.
+The next source snapshot now removes its stale candidate-not-runtime wording;
+it has not yet been published or served. Its dynamic runtime field remains the
+authority for the actual loaded build, rather than assuming the snapshot runs itself.
+
+Q211's pinned self-hosted Urbanist and fifteen distinct Phosphor navigation glyphs
+are implemented and independently pass actual responsive/forced-colour browser
+proof, including a deliberately blocked font with verified system-font fallback.
+The legacy namespace false-positive and initially missing fallback proof are
+repaired; full isolated candidate gates and later publication remain. No final
+design claim: duplicate headings and excessive mobile header space remain the
+next task-first presentation work. In parallel, admitted Q212 implements original
+provider-binding retry recovery after reload; it is not part of serving85.
+
+The original inspection found b5ef708/frontier77. Its fixed-version launcher,
+synthetic permissions and fixtures needed a verified update; merely copying new
+frontend files was insufficient. The historical preparation evidence follows.
 PR86's original five CI jobs and CodeQL are successful, but it remains
 draft/conflicting and still contains legacy expertise selection. Its source was
 preserved without a wholesale merge. The first integrated shell now exposes only
@@ -618,8 +998,12 @@ The earlier16/0 suite had missed joined PowerShell filter/JSON arguments; real
 preflight and parameter-binding proofs found and drove their correction, including
 the reserved home-variable collision. All failed evidence remains in
 [the native review](../handoff/reviews/444-native-review-and-ci.md).
-Windows-native and serial baseline/fiscal CI gates are wired and independently
-source-checked, not yet run at a new commit. The first follow-on full suite1856/1
+Windows-native and serial baseline/fiscal CI gates were wired and independently
+source-checked. They subsequently passed in exact a1085178 CI34095296622, all six
+jobs successful; normal CodeQL34095293723 all three analyses also passed.
+The database log confirms populated2/0(143), baseline27/0(117), fiscal8/0(79),
+deployment24/0(73), exact schema and final canonical referee11/11.
+The first follow-on full suite1856/1
 retained an Order239 deadline failure; its unchanged focused suite passes12/0.
 A subsequent full run passes1861/0 with1316 explicit environment skips and24861
 assertions in188.26s. That run precedes the final native repair and Q210 snapshot
@@ -628,8 +1012,12 @@ environment skips,24884 assertions across525 files in201.13s. Types,
 185 boundaries,23 licences and dependency audit0 vulnerabilities pass. Two
 focused status-report timeouts remain recorded; that unchanged case passes in
 the final whole run at3.30s. No timeout or assertion was relaxed.
-Licensed identity/type integration, full journey acceptance, new-head CI and
-reversible single-local promotion remain active. The founder app is still77.
+Licensed identity/type integration and full journey acceptance remain active.
+The exact a1085178 single-local promotion is now proven. Two real launcher
+preflights exposed duplicate scalar junction indexing bugs before touching old3000;
+both were repaired and independently19/0(34) plus actual protected-identity checks
+accepted. These later orchestration corrections are not attributed to old CI.
+Q211's licensed font/icons are subsequent development, not in the serving archive.
 
 **Current checkpoint — 2026-09-07.** PR91 is independently merged at
 `3503b0c01f336637d2583963c17b792f6ad59efe`; remote GitHub merge state is verified.
@@ -1173,14 +1561,14 @@ vendor/person dependency. Independent high-risk proof remains required.
 
 | Surface | Verified baseline | Release boundary |
 |---|---|---|
-| Source and integration | PR91 independently merged at3503b0c after all-six CI34067083341, CodeQL and new-only postmerge referee11/11 | Main is the sole release branch. Q20885 operator invoice/print and the first Astra three-layout shell are verified local development; new exact-source CI and integration remain required |
+| Source and integration | Main remains PR91/3503b0c at81; draftPR92 now contains Q2124c46bee3 at86 | Main is the sole release branch. The exact28-path nonvisual candidate has independent native proof; full current CI and independent integration remain required |
 | Native fiscal acceptance | Independent migration41/41, native116/116, compatibility89/89, catalogue23/23, exact schema and referee11/11; all five [PR83 CI jobs](https://github.com/dcpnode-maker/yellow/actions/runs/33993977811) passed | [Review434](../handoff/reviews/434-native-fiscal-source-completion.md) approves bounded native issuance, not provider activation or a retained hotel database |
-| GitHub work queue | PR91 is merged; Astra PR86 remains draft/conflicting with its original CI successful | [The manifest](../handoff/CONSOLIDATION-MANIFEST.json) preserves earlier dispositions; [GitHub](https://github.com/dcpnode-maker/yellow/pulls) is authoritative for the live queue |
-| Database schema | Main81/128; candidate85 is applied only to named synthetic proof targets | Applied migrations remain immutable. Founder preview77/127 is not migrated by these isolated proofs |
+| GitHub work queue | PR91 is merged; PR92 is the current unmerged fiscal/operator branch; Astra PR86 remains historical draft work | [The manifest](../handoff/CONSOLIDATION-MANIFEST.json) preserves earlier dispositions; [GitHub](https://github.com/dcpnode-maker/yellow/pulls) is authoritative for the live queue |
+| Database schema | Main81/128; serving review85/128; Q21286/128 applied only to five named synthetic proof targets | Applied migrations remain immutable. The retained old77 preview is rollback material, not the serving app; Q212 has not migrated serving85 |
 | Private issued-wire proof | Independent10/10 unit and4/4 real-issued tests, including exact unchanged financial rows and cross-tenant isolation | Source/wire hashes differ deliberately; no certified provider, durable submission writer or fiscal acceptance is claimed |
 | Hotel journey design | [Workbench specification](design/STAFF-WORKBENCH-SPEC.md), [casebook](design/HOTEL-CASEBOOK.md) and [research](research/HOTEL-OPERATIONS-REVIEW.md) are preserved from PR84 | Fictional interaction study; final visual fidelity needs an accessible reference and matched screenshot evidence |
-| Local app | Exactb5ef708 native Windows preview personally verified on the laptop: readiness77, source archive hash, synthetic login and referee11/11 | [Recovery details](RECOVERY.md) distinguish native startup from Compose; no new screenshot, production stability or unmerged fiscal activation is claimed |
-| Main verification and cloud | Main81 exact-source CI34067083341 and independent postmerge referee11/11 pass | No cloud host, ingress or serving URL is connected. Image/source publication is not deployment; retained founder preview remains77 |
+| Local app | Exacta1085178 native Windows review at3000, readiness85, prefilled button login, genuine synthetic invoiceYR/1 and15 mounted destinations personally verified | [Recovery details](RECOVERY.md) distinguish native startup from Compose. New Luminous visuals remain prototype-only; old77 is retained rollback material |
+| Main verification and cloud | Main81 exact-source CI34067083341 and independent postmerge referee11/11 pass | No cloud host, ingress or serving URL is connected. Current PR92 source86 is not merged or serving; the founder app remains85 |
 
 A branch, document, test, container build, merge and deployment are separate evidence
 states. The runtime must identify its exact source and applied migration frontier.
@@ -1193,7 +1581,7 @@ states. The runtime must identify its exact source and applied migration frontie
 | Phase4 | Built; integration review outstanding | Preserve implementation and close remaining integration evidence |
 | Phase7 operational flows | Consolidated and independently approved baseline | PMS, stay, folio, payment, approval and fiscal-support flows remain preserved; this does not complete the whole phase |
 | Order434 native fiscal issuance | Independently approved and merged through PR83 | Real source-to-invoice, accounting, replay, concurrency, tenant isolation, bounds and migration proofs pass; no provider registration or operator invoice screen is implied |
-| Order440 fiscal submission | Q207 authenticated provider, signed storage and authorized receipt read independently merged through PR91, main81; full CI and new-only postmerge referee11/11 pass | Q208 operator invoice/print workflow is unmerged development; runtime activation and authentic sandbox acceptance remain outstanding |
+| Order440 fiscal submission | Q207 is merged at81; operator invoice/print is available in the explicit a108/85 review app; Q212 reload-safe retry is published development at86 with independent native proof | Exact-source CI/integration and genuine provider sandbox acceptance remain outstanding; the serving app has no activated provider |
 | Order440 hotel journeys | Reviewed study merged through PR84 | Cross-department research and a fictional prototype; final reference-matched visual QA and laptop execution remain separate |
 | Order441 RMS research | Astra Ultra portfolio documented | Known methods, falsifiable proposals and experiment design; no live algorithm or measured uplift |
 | Phases8–17 | Planned | Requirements, research and department studies are preserved; documentation is not shipped behavior |

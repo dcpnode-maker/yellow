@@ -1,6 +1,8 @@
 # Order466 — Independent read-only credit-note workflow acceptance
 
-**Date:** 2026-09-13 (local). **Result:** accepted source; NOT published or live.
+**Date:** 2026-09-13 (local). **Result:** accepted source; subsequently published
+under Q257 as41415cc5. Exact CI34725373251 passed at that head; later verified
+live by separate Q258r2 at2026-09-13T04:19:14UTC. Not main-merged.
 **Nonimplementing reviewer:** /root. Root implemented neither production nor tests.
 Production workbench/pure test: /root/q255_artifact_adapter (Terra).
 Shared facade/parity test: /root/q251_artifact.
@@ -96,10 +98,47 @@ No production or proof predicate was weakened to accept these failures.
 | tests/operator-invoice-credit-note-parity.test.ts | 5e37c348a4f7f6d012ba3aeff3e8027f1f0b739c3fd2acf3b1c074b9a3d4e3e4 |
 | tests/operator-invoice-credit-note.browser.test.ts | 027e230db285dd000a456f0633ebf9699c4c316e2cb73b6bf3c3367ae0757207 |
 
-## Release boundary
+## Exact published-head CI acceptance
 
-Serving source remains46004d6f/frontier91 from completed Q255 on localhost3000,
-with the existing saved login and retained PostgreSQL55503. New466 source is not
-in that immutable artifact. Publication/exact-head CI and any subsequent local
-promotion require separately scoped successor work; no consumed Q254/Q255 action
-or receipt may be replayed. No phase or whole-app completion is claimed.
+Root independently retrieved the exact run with native GitHub CLI:
+`& 'C:\Program Files\GitHub CLI\gh.exe' run view 34725373251 --repo dcpnode-maker/yellow --json databaseId,headSha,status,conclusion,createdAt,updatedAt,jobs,url`.
+Run34725373251 is `completed`/`success` at head
+41415cc5c6953f71d9b3baada6fd9c7853567128. All six jobs passed:
+quality103638457873, windows-state103638457947, local-review103638457950,
+database103638722985, free-host-arm64103638722987, and
+container-smoke103638722996. Root retrieved the exact database log with
+`& 'C:\Program Files\GitHub CLI\gh.exe' run view --job 103638722985 --repo dcpnode-maker/yellow --log`; the
+canonical result is `RESULT: 11 passed, 0 failed of 11` at
+2026-09-12T23:54:19.5097303Z; the database job completed at
+2026-09-12T23:54:29Z. This is CI proof for the published head and does not
+relabel the prior local combined proof's nine explicit database skips.
+
+## Historical release boundary — before Q258 recovery
+
+The historical Q255 serving source was46004d6f/frontier91 on localhost3000,
+with the existing saved login and retained PostgreSQL55503. After the fresh
+Windows reboot at2026-09-13 05:02 local, all prior app/PG processes and
+listeners on3000/3001/55503 were absent; no local runtime was live at this checkpoint.
+New466 source is not in that historical artifact. Publication and exact-head CI
+are complete, but any subsequent local promotion requires separately scoped
+successor work; no consumed Q254/Q255 action or receipt may be replayed. No phase
+or whole-app completion is claimed.
+
+Q257 subsequently published the exact ten-path successor41415cc5 after scoped
+working-byte/staged-content/ref preservation and exact committed blob checks.
+The earlier flag discrepancy remains documented; the accepted receiving flag
+baseline is independently contained and unchanged through commit. No runtime or
+database action followed from publication. Exact published-head CI is now
+accepted as recorded above; this does not claim local activation, database rerun
+or main merge.
+
+## Later Q258r2 delivery
+
+Root separately verified actual immutable41415/frontier91 on the sole3000 listener
+at2026-09-13T04:19:14.2088495Z, with retained PostgreSQL55503 and saved login.
+Both served fiscal assets matched the frozen hashes above; authenticated invoice
+reads passed while supplier issuance remained honestly unavailable. Q258r2
+promotion receipt SHA256:
+c64e87d70bd5f4bdeaed5ac57fa140dd813a8dc13905fbbe7ddfce680843ee8c.
+See Order460/Review460/Q258 for personally executed runtime proof and retained
+first-attempt failure. This does not change phase acceptance or provider authority.

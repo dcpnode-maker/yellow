@@ -130,3 +130,42 @@ The original browser fixture still requires genuine execution in CI; it was not
 run through an alternate browser-control path in this workspace.
 The nonimplementing reviewer separately executed the same62/0/1375 checks and
 types, inspected the exact source/test diff, and found no weakened prior assertion.
+
+## September13 continuation: close the renderer proof gap
+
+Both attempts of CI34726472461 completed with all six jobs green at088c4021.
+Root downloaded the independent repeat's database job103644288589 log: signed
+map isolation5/5, zero failures,19 assertions; canonical referee11/11. The earlier
+"repeat running" handoff is superseded by that observed completed result. These
+are historical head088c proofs, not the new successor's acceptance.
+
+The receiving branch advanced to da9f97d46af3cb78f1ea98e49bed03581686a5ef (Order467).
+Although a GitHub status read reported non-mergeable, `git merge-tree` found a
+clean merge. Its published status/release evidence was incorporated without
+editing the receiving changes. This branch does not claim that runtime's state.
+
+Ankit requested "Fix it please". The resolved CI clarification admits a required
+actual renderer test in the existing quality job. The existing synthetic fixture
+now exports an ephemeral server factory and serves the correct local font and
+favicon paths. Production fixes explicit form submission's duplicate request by
+clearing the pending input debounce. The browser case asserts that behavior,
+actual global projection before marker changes, desktop/phone geometry,
+keyboard/list selection, export/context reset and missing-engine operation.
+VM and real Chromium results remain separate; absent local browser is a skip
+unless explicitly required, in which case it is a failure.
+
+The required CI command writes bounded synthetic-only screenshot/JSON artifacts.
+GitHub's official upload-artifact7.0.1 is pinned by exact commit with seven-day
+retention, no hidden files and no new application dependency or token scope.
+Root read its action, upload implementation and MIT licence. The source is
+documented in the CI clarification. Exact successor CI and screenshot inspection
+must be recorded in PR93 before claiming renderer acceptance. No local raw
+browser workaround, retained runtime change, operational write, merge to the
+receiving branch or deployment is part of this continuation.
+
+Successor local proof: root34pass/3explicit skips/0fail/333 assertions across
+map, asset, CSP and receiving-status suites; types and199 boundaries pass. The
+nonimplementing map-fix reviewer personally executed10pass/1renderer skip/0fail/69
+assertions, preflight, types and diff check. Its raster-timing finding was fixed
+with bounded stable capture while preserving projection identity assertions.
+The polling deadline includes capture time; no local Chromium proof is claimed.

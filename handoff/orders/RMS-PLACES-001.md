@@ -75,7 +75,11 @@ tenant records, not a second operational database.
   measured versus proposed limits, setup, and receiving-owner handoff.
 - `.github/workflows/ci.yml` and `handoff/questions/RMS-PLACES-001-ci.md`:
   one isolated market-map PostgreSQL proof step using the existing provisioned
-  CI database roles; no changes to existing gate assertions or required jobs.
+  CI database roles and a required Chromium renderer proof in the existing quality
+  job, with bounded screenshot/receipt artifacts. Existing VM cases and all other
+  gate assertions/required jobs remain. The synthetic browser fixture may export
+  an ephemeral loopback factory; no production instrumentation or dependency.
+  The September13 continuation is admitted in the CI clarification before edits.
 
 ## Verification and delivery
 

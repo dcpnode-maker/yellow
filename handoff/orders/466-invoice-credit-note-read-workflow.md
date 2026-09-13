@@ -1,7 +1,8 @@
 # Order466 — Read existing full credit notes from the invoice workbench
 
-**Status:** SOURCE ACCEPTED after independent root proof, 2026-09-13.
-Not yet published or live; successor publication/promotion are separately scoped.
+**Status:** SOURCE ACCEPTED and selectively PUBLISHED as41415cc5 under Q257,
+2026-09-13. Exact CI34725373251 is green at the published head. Subsequently
+verified live under Q258r2 at04:19:14UTC on3000/frontier91; not main-merged.
 **Phase:**7. **Owner:** Codex coordinator. **Risk:** read-only fiscal presentation;
 independent nonimplementer proof before acceptance. Continue on the existing
 phase-7/operator-invoice-workflow worktree; no new checkout or staged-work reset.
@@ -12,7 +13,8 @@ Expose already-built Orders446/448/452 reads to staff from their original issued
 invoice. This is functional workflow completion under the founder's existing
 request to expose built features, not a UI redesign. Q187/D1302 immutable full-credit
 policy is unchanged; Q253 debit economics, partial credits, refunds, issuance and
-provider actions remain outside scope. Source46004/frontier91 stays live throughout.
+provider actions remain outside scope. The initial implementation did not alter
+the then-serving46004/frontier91 runtime; later delivery is separate Q258 work.
 
 The displayed invoice can lazily reveal its at-most-one existing full credit using
 GET /api/v1/properties/:property/invoices/:original/credit-notes, then GET
@@ -111,3 +113,33 @@ before publication, not a silent widening of the implementation. Existing mixed
 governance/index/paused445 bytes are preserved; independent product hashes remain
 frozen. Source publication, exact-head CI, main merge and any later local promotion
 remain separate states. Q257 admits the first two only, never own merge/runtime.
+
+Q257 publication completed:41415cc5c6953f71d9b3baada6fd9c7853567128, exact
+parent46004 and ten reviewed paths/blobs verified, non-force push to draftPR92.
+Original working bytes back-project exactly except the admitted Q257 clarification;
+outside staged entries and unrelated refs remain unchanged. Initial flag-digest
+discrepancy is not explained; current independently inspected receiving flags are
+fully recorded and preserved across commit. Exact CI34725373251 completed green
+at the published head, not replaced with parent CI. Root independently retrieved
+the run with native GitHub CLI:
+`& 'C:\Program Files\GitHub CLI\gh.exe' run view 34725373251 --repo dcpnode-maker/yellow --json databaseId,headSha,status,conclusion,createdAt,updatedAt,jobs,url`.
+All six jobs passed: quality103638457873, windows-state103638457947,
+local-review103638457950, database103638722985, free-host-arm64103638722987,
+and container-smoke103638722996. Root retrieved the exact database log with
+`& 'C:\Program Files\GitHub CLI\gh.exe' run view --job 103638722985 --repo dcpnode-maker/yellow --log`; its
+canonical terminal result is `RESULT: 11 passed, 0 failed of 11` at
+2026-09-12T23:54:19.5097303Z (job completed2026-09-12T23:54:29Z).
+This CI evidence does not change the prior local proof's explicit nine database
+skips. At this historical post-reboot checkpoint (2026-09-13 05:02 local), all prior
+app/PG processes and listeners on3000/3001/55503 were absent and466 was not live.
+
+## Later verified local delivery — Q258r2
+
+At2026-09-13T04:19:14.2088495Z, the separately admitted Q258r2 promotion
+served immutable41415/frontier91 on the single127.0.0.1:3000, retaining the saved
+login and existing PostgreSQL55503. Root checked the actual source/asset hashes,
+native process identities, readiness, authenticated read journey and no3001
+listener. Promotion receipt SHA256:
+c64e87d70bd5f4bdeaed5ac57fa140dd813a8dc13905fbbe7ddfce680843ee8c.
+Full failure/recovery history and boundaries are in Order460/Review460/Q258.
+No provider activation, main merge or phase closure follows from this delivery.

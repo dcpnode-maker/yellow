@@ -21,9 +21,9 @@ for (const forbidden of ["tile.openstreetmap", "api.mapbox", "googleapis.com", "
 for (const required of ["yellow:operator-request", "market-map-place-list", "Search visible area", "maplibre-gl-6.9.0"]) {
   if (!joined.includes(required)) throw new Error(`market-map client is missing required integration marker: ${required}`);
 }
-console.log("Market map browser preflight passed: same-origin assets and accessible fallback are present.");
+if (import.meta.main) console.log("Market map browser preflight passed: same-origin assets and accessible fallback are present.");
 
-if (process.argv.includes("--serve")) {
+export function startMarketMapBrowserFixture(options: { port?: number; failMap?: boolean } = {}) {
   const propertyA = "00000000-0000-0000-0000-000000009903";
   const propertyB = "00000000-0000-0000-0000-000000009904";
   const tenantId = "00000000-0000-0000-0000-000000009901";
@@ -59,17 +59,18 @@ if (process.argv.includes("--serve")) {
     });
     if (new URLSearchParams(location.search).has('deep')) document.querySelector('#market-map-view').hidden = false;
   `;
-  const server = Bun.serve({ hostname: "127.0.0.1", port: process.argv.includes("--fail-map") ? 4318 : 4317,
+  const server = Bun.serve({ hostname: "127.0.0.1", port: options.port ?? 0,
     async fetch(request) {
       const url = new URL(request.url); let result: Response;
       if (url.pathname === "/") result = response(`<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Yellow Market Map — synthetic browser proof</title><link rel="stylesheet" href="/assets/operator.css"><link rel="stylesheet" href="/assets/operator-market-map.css"><script src="/proof.js" defer></script><script src="/assets/operator-market-map.js" defer></script></head><body><main><h1>Yellow market map — synthetic browser proof</h1><p>Three fabricated hotel records. This harness does not validate PostgreSQL, sign-in or production routing.</p><label for="property-select">Proof property</label><select id="property-select"><option value="${propertyA}">Property A</option><option value="${propertyB}">Property B</option><option value="">Signed out</option></select><button id="open-map">Open market map</button><button id="proof-sign-out">Simulate sign out</button><p>Successful catalog requests: <output id="proof-requests">0</output></p>${section}</main></body></html>`, "text/html; charset=utf-8");
       else if (url.pathname === "/proof.js") result = response(script, "text/javascript; charset=utf-8");
       else if (url.pathname === "/proof/receipt") result = Response.json(receipt);
+      else if (url.pathname === "/favicon.ico") result = new Response(null, { status: 204 });
       else if (url.pathname === "/assets/operator.css") result = operatorAssets.css();
-      else if (url.pathname === "/assets/urbanist-latin.woff2") result = operatorAssets.urbanistFont();
+      else if (url.pathname === "/static/fonts/urbanist-v1.330.woff2") result = operatorAssets.urbanistFont();
       else if (url.pathname.startsWith("/assets/")) {
         const name = url.pathname.slice(8);
-        result = process.argv.includes("--fail-map") && name.endsWith("maplibre-gl.mjs") ? new Response("Synthetic missing map engine", { status: 503 }) : marketMapAssets.asset(name) ?? new Response("Not found", { status: 404 });
+        result = options.failMap && name.endsWith("maplibre-gl.mjs") ? new Response("Synthetic missing map engine", { status: 503 }) : marketMapAssets.asset(name) ?? new Response("Not found", { status: 404 });
       } else {
         const match = /^\/api\/v1\/properties\/([^/]+)\/market-map\/(places|selection)$/.exec(url.pathname);
         if (!match || ![propertyA, propertyB].includes(match[1]!)) result = new Response("Not found", { status: 404 });
@@ -85,5 +86,11 @@ if (process.argv.includes("--serve")) {
       return result;
     },
   });
+  return { server, requests: receipt, propertyA, propertyB };
+}
+
+if (import.meta.main && process.argv.includes("--serve")) {
+  const failMap = process.argv.includes("--fail-map");
+  const { server } = startMarketMapBrowserFixture({ port: failMap ? 4318 : 4317, failMap });
   console.log(`Synthetic browser proof listening at ${server.url}`);
 }
