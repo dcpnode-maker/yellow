@@ -3,8 +3,8 @@
 <!-- status-schema: yellow-project-status/v1 -->
 <!-- current-phase: 7 -->
 <!-- current-task: Codex Yellow — resumed: integrate existing PriceLabs/market pipelines and private staging, then current-line phase closure and the retained build priorities -->
-<!-- current-order-files: handoff/orders/467-current-build-status-reconciliation.md;handoff/orders/462-pricelabs-intake-and-market-pipeline-integration.md;handoff/orders/461-bounded-irp-sandbox-acceptance.md -->
-<!-- current-lifecycle: ACTIVE resumed2026-09-13; acceptedOrder466 source41415cc5 published to draftPR92 and verified live on sole3000 by Q258r2 promotionc64e87d7 at04:19:14UTC; frontier91, saved-login and invoice/assets smoke pass, retainedPG13580/55503. Exact CI34725373251 all six green/referee11pass0fail. Order467 published da9f97d4 through exact Q259; CI34738436620 quality failed three stale status tests and two unchanged subprocess timeouts. Q260 status-test repair passes locally; successor publication/CI and467 delivery remain pending. Q253 policy, real PriceLabs intake, authentic provider acceptance and remaining phase closure pending -->
+<!-- current-order-files: handoff/orders/468-credit-note-preview-and-print.md;handoff/orders/460-current-source-single-local-promotion.md;handoff/orders/462-pricelabs-intake-and-market-pipeline-integration.md;handoff/orders/461-bounded-irp-sandbox-acceptance.md -->
+<!-- current-lifecycle: ACTIVE resumed2026-09-13; independently acceptedOrder468 credit preview/print source, Q261 current status/exact20-path release preparing. Q260 status repair published d819e080 to draftPR92; CI34739597186 five jobs green and database still running, not whole-CI proof. Sole3000 verified41415/frontier91 via Q258r2 with saved login and retainedPG13580/55503;468 not yet delivered. Q253 policy, real PriceLabs intake, authentic provider acceptance and remaining phase closure pending -->
 
 This is the canonical current-state record. Historical orders, reviews, decisions
 and ledger entries remain evidence; their filenames are not an active backlog.
@@ -12,7 +12,30 @@ and ledger entries remain evidence; their filenames are not an active backlog.
 
 ## Current task
 
-**Fresh post-update receiving — 13 September.** Windows Update restarted the
+**Current functional continuation — Order468.** Immutable full credit notes now
+have deliberate preview and print controls in the source workbench, using the
+already accepted document/delivery APIs. Root independently inspected the renderer,
+workbench and separate browser proof, and personally executed the final five-file
+28pass/0fail508-assertion suite. The earlier broader12-file run was110pass,
+3explicitDBskips,0fail10259; skipped real-DB tests are not executed proof.
+Desktop/390px preview, fresh reads, exact stored amounts/original references,
+permission/error feedback and stale-print guards pass. Earlier product and
+headless-test failures remain recorded in Review468. No provider/economic/schema
+change or design-approval claim. Q261 aligns the current snapshot to built468;
+root8pass/2DBskips/0fail234 plus focused1/0(64), strict types and198boundaries pass.
+Selective publication and fresh-head CI are pending;468 is not yet on local3000.
+
+**Latest source publication — Q260.** Exact nine-path
+d819e080bbfe1655ab1fff3572584c97d3a143fc was non-force pushed to existing draftPR92.
+All2232 tracked/selected working-file bytes, outside staged objects/persistent
+flags/stable index extensions and unrelated refs were preserved. Exact CI34739597186
+currently has quality/local-review/Windows/ARM64/container smoke success; database
+is still running. This is not a six-job pass or new referee proof.
+No timeout test or limit was changed. Prior failed da9f CI34738436620 is retained.
+The single local app remains immutable41415/frontier91 with saved login; publishing
+source does not hotpatch it, advance the contiguous review91 or complete Phase7.
+
+**Retained post-update receiving checkpoint — 13 September.** Windows Update restarted the
 host; final boot2026-09-12T23:32:17.5174980Z is after the Q255 verification below.
 The retained native database has recovered under Q258 as PG13580, native
 start03:30:30.6444374UTC, sole loopback55503. Root independently verified the exact
@@ -38,7 +61,7 @@ the unchanged timeout cases pass separately2pass/4DBskips/0fail(5 assertions).
 No timeout limit or skip predicate was changed. Fresh successor CI remains
 required; the two already-green local-review/windows jobs are not whole-CI proof.
 
-**Latest accepted functional build — Order466.** The existing invoice workbench
+**Previous accepted functional build, currently delivered — Order466.** The existing invoice workbench
 now has a deliberate read-only Existing credit note disclosure, connecting the
 already-built original-invoice credit discovery and delivery APIs. Three bounded
 workers implemented the workbench, small shared validator facade and executable
@@ -55,8 +78,9 @@ and unrelated refs. An initial flag digest discrepancy remains unexplained;
 independent current containment and a fully recorded receiving flag baseline
 passed across commit. No resets or broad staging were used. The formerly verified465
 runtime below stopped during Windows Update; Q258 recovered it and delivered the
-accepted466 successor. Next: publish the tested Q260 repair, verify fresh CI and
-continue current-line functional work. No main merge or phase completion is claimed.
+accepted466 successor. The later Q260/468 source checkpoints are recorded above;
+this previous delivery does not establish their CI or local availability.
+No main merge or phase completion is claimed.
 
 **Post-restart functional continuation — Order465.** The current-source print
 formatter now accepts the server's exact validated retry receipt without altering

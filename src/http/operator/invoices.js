@@ -353,6 +353,19 @@ export function creditNoteDisclosureEnvelope(value, original) {
   });
 }
 
+export function creditNoteDocumentEnvelope(value, discovery, original) {
+  const row = exactRecord(value, ["kind", "receipt", "contentJson"]);
+  if (!row || row.kind !== "india_native_credit_note_v1" || typeof row.contentJson !== "string"
+    || row.contentJson.length < 1 || row.contentJson.length > 1024 * 1024) return null;
+  const receipt = ownRecord(row.receipt, 32);
+  const bound = receipt && creditNoteDisclosureEnvelope(receipt, original);
+  if (!bound || bound.documentId !== discovery.documentId || bound.docNo !== discovery.docNo
+    || bound.sha256 !== discovery.sha256 || bound.totalMinor !== discovery.totalMinor
+    || bound.businessDate !== discovery.businessDate || bound.issuedAt !== discovery.issuedAt
+    || bound.reason !== discovery.reason || bound.currency !== discovery.currency) return null;
+  return Object.freeze({ kind: row.kind, receipt: Object.freeze({ ...receipt }), contentJson: row.contentJson });
+}
+
 function providerOptionsEnvelope(value) {
   const wrapper = exactRecord(value, ["providers"]);
   const values = wrapper && ownArray(wrapper.providers, MAX_PROVIDERS);
@@ -1076,9 +1089,7 @@ export function createInvoiceWorkbench({ root, request, propertyNode, timezone, 
   async function loadCreditNote(original, slot, button, message, scope, generation) {
     if (button.disabled || !current(scope, generation, "detail")) return;
     button.disabled = true;
-    slot.querySelectorAll(
-      ".invoice-workbench__credit-note-summary, .invoice-workbench__credit-note-delivery",
-    ).forEach((node) => node.remove());
+    slot.querySelectorAll(".invoice-workbench__credit-note-summary, .invoice-workbench__credit-note-delivery, .invoice-workbench__credit-note-actions, .invoice-workbench__credit-note-print-status, .invoice-workbench__credit-note-print-preview").forEach((node) => node.remove());
     message.textContent = "Loading existing credit note…";
     const controller = controlled("detail");
     try {
@@ -1100,6 +1111,7 @@ export function createInvoiceWorkbench({ root, request, propertyNode, timezone, 
       );
       slot.append(facts);
       message.textContent = "Loading credit-note registration state…";
+      let registrationMessage = "Credit note available.";
       try {
         if (!current(scope, generation, "detail") || !slot.isConnected || controller.signal.aborted) return;
         const rawDelivery = await request(
@@ -1114,16 +1126,9 @@ export function createInvoiceWorkbench({ root, request, propertyNode, timezone, 
         if (!current(scope, generation, "detail") || !slot.isConnected || controller.signal.aborted) return;
         const registration = typeof facade.fiscalDeliveryRegistrationStatus === "function"
           ? facade.fiscalDeliveryRegistrationStatus({ documentId: note.documentId, propertyNode, documentSha256: note.sha256 }, wrapper.delivery) : null;
-        if (registration === null || typeof registration !== "object" || !Object.isFrozen(registration)) {
-          throw new Error("invalid credit delivery");
-        }
-        const status = element(
-          "p",
-          "invoice-workbench__credit-note-delivery",
-          registration.label,
-        );
-        slot.append(status);
-        message.textContent = status.textContent;
+        if (registration === null || typeof registration !== "object" || !Object.isFrozen(registration)) throw new Error("invalid credit delivery");
+        registrationMessage = registration.label;
+        slot.append(element("p", "invoice-workbench__credit-note-delivery", registration.label));
       } catch (error) {
         if (!current(scope, generation, "detail") || !slot.isConnected || controller.signal.aborted) return;
         const code = errorField(error, "status");
@@ -1131,10 +1136,22 @@ export function createInvoiceWorkbench({ root, request, propertyNode, timezone, 
           : code === 404 ? "Credit-note registration is unavailable."
             : error instanceof Error && error.message === "invalid credit delivery" ? "Credit-note registration data is invalid and cannot be displayed."
               : "Credit-note registration is unavailable while the service is offline.";
-        const status = element("p", "invoice-workbench__credit-note-delivery", text);
-        slot.append(status);
-        message.textContent = status.textContent;
+        registrationMessage = text;
+        slot.append(element("p", "invoice-workbench__credit-note-delivery", text));
       }
+      message.textContent = registrationMessage;
+      const actions = element("div", "invoice-workbench__credit-note-actions");
+      const preview = element("button", "invoice-workbench__credit-note-preview", "Preview credit note");
+      preview.type = "button"; preview.setAttribute("aria-label", "Preview credit note for print");
+      const print = element("button", "invoice-workbench__credit-note-print", "Print credit note");
+      print.type = "button"; print.setAttribute("aria-label", "Print credit note");
+      const previewSurface = element("section", "invoice-workbench__credit-note-print-preview");
+      previewSurface.hidden = true; previewSurface.setAttribute("aria-live", "polite");
+      const actionMessage = element("p", "invoice-workbench__credit-note-print-status", "");
+      actionMessage.setAttribute("aria-live", "polite");
+      preview.addEventListener("click", () => { void prepareCreditPrint(original, note, false, previewSurface, preview, print, slot, actions, actionMessage, scope, generation); });
+      print.addEventListener("click", () => { void prepareCreditPrint(original, note, true, previewSurface, preview, print, slot, actions, actionMessage, scope, generation); });
+      actions.append(preview, print); slot.append(actions, actionMessage, previewSurface);
     } catch (error) {
       if (!current(scope, generation, "detail") || controller.signal.aborted) return;
       const status = errorField(error, "status");
@@ -1406,6 +1423,40 @@ export function createInvoiceWorkbench({ root, request, propertyNode, timezone, 
     return result.value;
   }
 
+  async function freshCreditPrintArtifact(original, discovery, scope, generation, isActive) {
+    const controller = controlled("detail");
+    try {
+      const rawDocument = await request(
+        `/api/v1/properties/${encodeURIComponent(propertyNode)}/credit-notes/${encodeURIComponent(discovery.documentId)}/document`,
+        { signal: controller.signal },
+      );
+      if (!isActive() || controller.signal.aborted) return null;
+      const documentValue = creditNoteDocumentEnvelope(rawDocument, discovery, original);
+      if (!documentValue) throw new Error("invalid credit-note document");
+      const rawDelivery = await request(
+        `/api/v1/properties/${encodeURIComponent(propertyNode)}/credit-notes/${encodeURIComponent(discovery.documentId)}/delivery`,
+        { signal: controller.signal },
+      );
+      if (!isActive() || controller.signal.aborted) return null;
+      const delivery = deliveryEnvelope(rawDelivery, discovery.documentId);
+      if (!delivery) throw new Error("invalid credit delivery");
+      if (!printModulePromise) printModulePromise = import("/assets/operator-invoice-print.js");
+      const module = await printModulePromise;
+      if (!isActive() || controller.signal.aborted
+        || typeof module.buildCreditNotePrintArtifact !== "function") return null;
+      const result = module.buildCreditNotePrintArtifact(documentValue, delivery, original);
+      if (!result || result.ok !== true) {
+        const failure = new Error("credit-note print artifact could not be built");
+        const code = result && errorField(result.error, "code");
+        if (typeof code === "string") Object.defineProperty(failure, "code", { value: code });
+        throw failure;
+      }
+      return result.value;
+    } finally {
+      release(controller);
+    }
+  }
+
   function installPrintStyles(target, stylesheet) {
     try {
       const Sheet = target.defaultView?.CSSStyleSheet;
@@ -1422,6 +1473,7 @@ export function createInvoiceWorkbench({ root, request, propertyNode, timezone, 
   }
 
   function renderPrintPreview(surface, artifact) {
+    const credit = artifact.documentType === "credit_note" || artifact.title === "Credit note";
     surface.replaceChildren();
     if (matchMedia("(max-width: 680px)").matches) {
       surface.classList.add("invoice-workbench__print-preview--summary");
@@ -1429,7 +1481,7 @@ export function createInvoiceWorkbench({ root, request, propertyNode, timezone, 
       summary.append(element("h4", "invoice-workbench__print-summary-title", "Print preview"),
         element("strong", "invoice-workbench__print-summary-status", artifact.status.label),
         element("p", "invoice-workbench__print-summary-copy",
-          "The complete refreshed A4 invoice will open from Print invoice; it is not compressed into this phone view."));
+          `The complete refreshed A4 ${credit ? "credit note" : "invoice"} will open from Print ${credit ? "credit note" : "invoice"}; it is not compressed into this phone view.`));
       surface.append(summary);
       surface.hidden = false;
       return;
@@ -1443,12 +1495,15 @@ export function createInvoiceWorkbench({ root, request, propertyNode, timezone, 
     surface.hidden = false;
   }
 
-  async function printInFrame(artifact) {
+  async function printInFrame(artifact, isActive) {
+    if (!isActive()) return;
     const frame = element("iframe", "invoice-workbench__print-frame");
-    frame.title = "Invoice print document"; frame.setAttribute("aria-hidden", "true");
+    const credit = artifact.documentType === "credit_note" || artifact.title === "Credit note";
+    frame.title = `${credit ? "Credit note" : "Invoice"} print document`; frame.setAttribute("aria-hidden", "true");
     frame.style.position = "fixed"; frame.style.width = "1px"; frame.style.height = "1px";
     frame.style.right = "0"; frame.style.bottom = "0"; frame.style.border = "0";
     detail.append(frame);
+    if (!isActive()) { frame.remove(); return; }
     const target = frame.contentDocument;
     if (!target || !frame.contentWindow) { frame.remove(); throw new Error("print document could not be opened"); }
     target.documentElement.lang = "en";
@@ -1458,6 +1513,7 @@ export function createInvoiceWorkbench({ root, request, propertyNode, timezone, 
     if (!printable) { frame.remove(); throw new Error("invoice print artifact is invalid"); }
     target.body.append(target.importNode(printable, true));
     await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    if (!isActive() || !frame.isConnected) { frame.remove(); return; }
     frame.contentWindow.focus(); frame.contentWindow.print();
     setTimeout(() => frame.remove(), 1_000);
   }
@@ -1470,12 +1526,45 @@ export function createInvoiceWorkbench({ root, request, propertyNode, timezone, 
       const artifact = await freshPrintArtifact(documentId, scope, generation);
       if (!artifact || !current(scope, generation, "detail")) return;
       renderPrintPreview(surface, artifact);
-      if (shouldPrint) await printInFrame(artifact);
+      if (shouldPrint) await printInFrame(artifact, () => current(scope, generation, "detail"));
       if (current(scope, generation, "detail")) setState("ready", shouldPrint ? "Print dialog opened with refreshed invoice data." : "Print preview refreshed.");
     } catch {
       if (current(scope, generation, "detail")) setState("offline", "The invoice could not be refreshed for printing.");
     } finally {
       if (current(scope, generation, "detail")) { previewButton.disabled = false; printButton.disabled = false; }
+    }
+  }
+
+  async function prepareCreditPrint(original, discovery, shouldPrint, surface, previewButton, printButton, slot, actions, message, scope, generation) {
+    const isActive = () => current(scope, generation, "detail") && slot.isConnected && actions.isConnected;
+    if (previewButton.disabled || !isActive()) return;
+    message.textContent = "";
+    previewButton.disabled = true; printButton.disabled = true;
+    setState("loading", shouldPrint ? "Refreshing credit note before print…" : "Refreshing credit note preview…");
+    try {
+      const artifact = await freshCreditPrintArtifact(original, discovery, scope, generation, isActive);
+      if (!artifact || !isActive()) return;
+      renderPrintPreview(surface, artifact);
+      if (shouldPrint) await printInFrame(artifact, isActive);
+      if (isActive()) setState("ready", shouldPrint
+        ? "Print dialog opened with refreshed credit note data." : "Credit note print preview refreshed.");
+    } catch (error) {
+      if (isActive()) {
+        const code = errorField(error, "status");
+        const artifactCode = errorField(error, "code");
+        const text = code === 403 ? "You do not have permission to refresh this credit note for printing."
+          : code === 404 ? "This credit note is no longer available for printing."
+            : error instanceof Error && error.message === "invalid credit-note document" ? "The refreshed credit-note document is invalid and cannot be printed."
+              : error instanceof Error && error.message === "invalid credit delivery" ? "The refreshed credit-note registration data is invalid and cannot be printed."
+                : artifactCode === "invalid_document" ? "The refreshed credit-note document is invalid and cannot be printed."
+                  : artifactCode === "invalid_delivery" ? "The refreshed credit-note registration data is invalid and cannot be printed."
+                    : artifactCode === "qr_capacity_exceeded" ? "The credit note’s signed QR data is too large to print safely."
+                      : "The credit note could not be refreshed for printing while the service is offline.";
+        message.textContent = text;
+        setState(code === 403 ? "permission" : code === 404 ? "empty" : "offline", text);
+      }
+    } finally {
+      if (isActive()) { previewButton.disabled = false; printButton.disabled = false; }
     }
   }
 
