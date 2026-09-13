@@ -2,13 +2,15 @@ import { expect, test } from "bun:test";
 
 import { PROJECT_BUILD_SNAPSHOT } from "../src/project-status";
 
-test("Order469 status preserves historical Order444 preview without claiming Phase7 completion", () => {
+test("Order470 status preserves historical Order444 preview without claiming Phase7 completion", () => {
   expect(PROJECT_BUILD_SNAPSHOT.schemaVersion).toBe(2);
   expect(PROJECT_BUILD_SNAPSHOT.recordedAt).toBe("2026-09-13");
-  expect(PROJECT_BUILD_SNAPSHOT.roadmap.latestBuiltOrder).toBe(469);
+  expect(PROJECT_BUILD_SNAPSHOT.roadmap.latestBuiltOrder).toBe(470);
   expect(PROJECT_BUILD_SNAPSHOT.roadmap.currentOrder).toBe(460);
   expect(PROJECT_BUILD_SNAPSHOT.review.independentlyReviewedThroughOrder).toBe(91);
   expect(PROJECT_BUILD_SNAPSHOT.roadmap.activePhase).toBe(7);
+  expect(PROJECT_BUILD_SNAPSHOT.recordedWork.at(-1)?.order).toBe(470);
+  expect(PROJECT_BUILD_SNAPSHOT.recordedWork.at(-1)?.state).toBe("independently_approved");
   const mergedDelivery = PROJECT_BUILD_SNAPSHOT.recordedWork.find(({ order }) => order === 440);
   expect(mergedDelivery?.state).toBe("proof_in_progress");
   expect(mergedDelivery?.summary).toMatch(/durable fiscal submission.*authenticated provider.*immutable signed receipts.*merged through PR91 at 3503b0c/i);

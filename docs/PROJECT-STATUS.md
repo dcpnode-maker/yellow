@@ -3,8 +3,8 @@
 <!-- status-schema: yellow-project-status/v1 -->
 <!-- current-phase: 7 -->
 <!-- current-task: Codex Yellow — resumed: integrate existing PriceLabs/market pipelines and private staging, then current-line phase closure and the retained build priorities -->
-<!-- current-order-files: handoff/orders/469-issued-credit-note-register.md;handoff/orders/460-current-source-single-local-promotion.md;handoff/orders/462-pricelabs-intake-and-market-pipeline-integration.md;handoff/orders/461-bounded-irp-sandbox-acceptance.md -->
-<!-- current-lifecycle: ACTIVE resumed2026-09-13; Order469 credit register source independently accepted, Q262 current status/exact15-path release preparing. Order468 published33a39508 to draftPR92; CI34740899088 quality fails existing459 browser120s deadline, cause unresolved; windows/local-review pass and downstream skips. Prior d819CI34739597186 all6/referee11/0 pass. Sole3000 verified41415/frontier91 via Q258r2 with saved login;468/469 not delivered. Q253 policy, real client intake, authentic provider acceptance and remaining phase closure pending -->
+<!-- current-order-files: handoff/orders/470-cashier-full-credit-note-issue.md;handoff/orders/460-current-source-single-local-promotion.md;handoff/orders/462-pricelabs-intake-and-market-pipeline-integration.md;handoff/orders/461-bounded-irp-sandbox-acceptance.md -->
+<!-- current-lifecycle: ACTIVE resumed2026-09-13; Order470 cashier full-credit source independently accepted, root64pass/6DBskips/0fail1211 including desktop/390px; Q263 exact15pathpublication preparing. Published4696d4f8ea9 CI34741807806 all six jobs passed, canonical11/0 personally retrieved. Earlier33a459120s CI timeout retained; not a proven cause/fix. Sole3000 verified41415/frontier91 with saved login;468/469/470 not delivered. Q253 policy, real client intake, authentic provider acceptance and remaining phase closure pending -->
 
 This is the canonical current-state record. Historical orders, reviews, decisions
 and ledger entries remain evidence; their filenames are not an active backlog.
@@ -12,7 +12,23 @@ and ledger entries remain evidence; their filenames are not an active backlog.
 
 ## Current task
 
-**Current functional continuation — Order469.** Cashiers now have a deliberate
+**Current functional continuation — Order470.** The next missing cashier journey
+is deliberately issuing a full credit against an existing invoice through the
+already accepted446 POST. Reason/explicit confirmation, immutable original,
+same-key unknown retries and current-control lifecycle guards are in scope.
+The action is independently accepted at source539b3b02. Root did not implement
+production; it inspected and returned control-lifecycle findings, then took over
+the incomplete browser fixture. Invoice-search POST accounting was corrected, not
+product assertions removed. Final13files64pass/6explicitDBskips/0fail1211 include
+actual desktop/390px, exact confirmation/reason/key, uncertain retries through
+navigation and denials, malformed receipts, detached/hidden/terminal controls,
+in-flight reopening and late cross-property responses. Review470 retains failures.
+Q263 root-coauthored status8pass/2DBskips/0fail248 plus1/0(70), strict types and
+198boundaries pass. Exact15-path publication is preparing, not yet performed.
+No partial/debit,
+refund/provider action, new backend authority or live financial command is involved.
+
+**Latest accepted source — Order469.** Cashiers now have a deliberate
 issued-credit-note register in accepted source: exact credit-number/date search,
 bounded pagination, original-invoice navigation and existing preview/print. Root
 did not implement production; it inspected the full repair and personally ran
@@ -20,10 +36,16 @@ did not implement production; it inspected the full repair and personally ran
 Chromium. Strict types,198boundaries and final source hashes pass. The separate
 browser author ran final1/0(54) twice. Review469 retains earlier startup, pagination,
 hidden-detail, keyboard and detached-control defects and their genuine REDs.
-Q262 current snapshot/exact15-path publication is preparing, not yet released.
+Q262 exact15-path6d4f8ea9d388f0b7e1ef95dd17db48da00a752a3 is committed and non-force
+pushed to draftPR92. Native guard verifies all2239 tracked/selected working-file
+bytes, outside index/persistent flags/stable extensions, unrelated refs and all15
+commit blobs/parent. ExactCI34741807806 now passed all six jobs. Root personally
+retrieved database103682893824 canonical RESULT11passed/0failed of11 at
+2026-09-13T06:33:36.1880132Z. This is469 proof, not future470 acceptance. Root routine
+status8pass/2explicitDBskips/0fail236 plus focused1/0(68), strict types pass.
 No financial record/provider/schema/authority change or new visual-theme claim.
 
-**Latest source publication — Order468/Q261.** Exact20-path
+**Previous source publication — Order468/Q261.** Exact20-path
 33a3950843660cf4868ef6720f426432f8430b50 was committed and non-force pushed to
 existing draftPR92. All2234 tracked/selected working-file bytes, outside staged
 objects/persistent flags/stable index extensions and unrelated refs were preserved.

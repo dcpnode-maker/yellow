@@ -68,7 +68,7 @@ describe("canonical project status", () => {
     expect(PROJECT_BUILD_SNAPSHOT.recordedAt).toBe("2026-09-13");
     expect(PROJECT_BUILD_SNAPSHOT.roadmap).toMatchObject({
       phaseCount: 18,
-      latestBuiltOrder: 469,
+      latestBuiltOrder: 470,
       currentOrder: 460,
       activePhase: 7,
     });
@@ -111,6 +111,8 @@ describe("canonical project status", () => {
     expect(byOrder.get(468)?.remaining).toContain("41415/frontier91");
     expect(byOrder.get(469)?.state).toBe("independently_approved");
     expect(byOrder.get(469)?.summary).toContain("611 assertions");
+    expect(byOrder.get(470)?.state).toBe("independently_approved");
+    expect(byOrder.get(470)?.summary).toContain("1211 assertions");
     expect(byOrder.get(467)?.summary).toContain("34739597186");
     expect(byOrder.get(468)?.summary).toContain("508 assertions");
     for (const order of [463, 464, 465, 466] as const) {

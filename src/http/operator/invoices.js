@@ -9,9 +9,11 @@ const MAX_RETAINED_INVOICES = 300;
 const MAX_CURSOR_CHARS = 2048;
 const MAX_RECIPIENTS = 500;
 const MAX_PROVIDERS = 16;
+const MAX_RETAINED_CREDIT_INTENTS = 300;
 const HASH = /^[0-9a-f]{64}$/;
 const GSTIN = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][1-9A-Z]Z[0-9A-Z]$/;
 const PROVIDER_KEY = /^[a-z0-9](?:[a-z0-9._:-]{0,126}[a-z0-9])?$/;
+const IDEMPOTENCY_KEY = /^[!-~]{8,200}$/;
 
 function element(tag, className, text) {
   const node = document.createElement(tag);
@@ -86,6 +88,39 @@ function dateInTimezone(timezone) {
 function validText(value, maximum) {
   return typeof value === "string" && value.length > 0 && value.length <= maximum * 2
     && Array.from(value).length <= maximum && !/[\u0000-\u001f\u007f-\u009f]/u.test(value);
+}
+
+/** Mirrors the accepted full-credit command reason without normalizing its bytes. */
+export function creditNoteIssueReason(value) {
+  if (typeof value !== "string" || value.length > 1000 || value.trim().length === 0
+    || /[\u0000-\u001f\u007f]/u.test(value)) return null;
+  for (let index = 0; index < value.length; index += 1) {
+    const unit = value.charCodeAt(index);
+    if (unit >= 0xd800 && unit <= 0xdbff) {
+      const next = value.charCodeAt(index + 1);
+      if (!(next >= 0xdc00 && next <= 0xdfff)) return null;
+      index += 1;
+    } else if (unit >= 0xdc00 && unit <= 0xdfff) return null;
+  }
+  return Array.from(value).length >= 1 && Array.from(value).length <= 500 ? value : null;
+}
+
+/** Copies only immutable, already-validated invoice identity for one credit intent. */
+export function creditNoteIssueSnapshot(original, rawReason, idempotencyKey) {
+  const row = ownRecord(original, 16);
+  const reason = creditNoteIssueReason(rawReason);
+  if (!row || !reason || typeof idempotencyKey !== "string" || !IDEMPOTENCY_KEY.test(idempotencyKey)
+    || !matches(row.documentId, STRICT_UUID) || !matches(row.propertyNode, STRICT_UUID)
+    || !matches(row.reservationId, STRICT_UUID) || !matches(row.folioId, STRICT_UUID)
+    || !matches(row.recipientRegistrationId, STRICT_UUID) || !matches(row.documentSha256, HASH)
+    || !matches(row.documentNumber, DOCUMENT_NUMBER) || !validDate(row.businessDate)) return null;
+  return Object.freeze({
+    original: Object.freeze({ documentId: row.documentId, propertyNode: row.propertyNode,
+      reservationId: row.reservationId, folioId: row.folioId,
+      recipientRegistrationId: row.recipientRegistrationId, documentSha256: row.documentSha256,
+      documentNumber: row.documentNumber, businessDate: row.businessDate }),
+    reason, idempotencyKey,
+  });
 }
 
 function matches(value, pattern) {
@@ -299,21 +334,6 @@ export function creditNoteDisclosureEnvelope(value, original) {
   ]);
   const strictUuid = (candidate) => typeof candidate === "string"
     && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(candidate);
-  const reason = (v) => {
-    if (typeof v !== "string" || v.length > 1000 || v.trim().length === 0 || /[\u0000-\u001f\u007f]/u.test(v)) {
-      return false;
-    }
-    for (let i = 0; i < v.length; i += 1) {
-      const code = v.charCodeAt(i);
-      if (code >= 0xd800 && code <= 0xdbff) {
-        i += 1;
-        if (i >= v.length || v.charCodeAt(i) < 0xdc00 || v.charCodeAt(i) > 0xdfff) return false;
-      } else if (code >= 0xdc00 && code <= 0xdfff) {
-        return false;
-      }
-    }
-    return Array.from(v).length <= 500;
-  };
   const minor = (v) => typeof v === "string" && /^[1-9][0-9]{0,18}$/.test(v)
     && BigInt(v) <= 9223372036854775807n;
   const timestamp = (v) => typeof v === "string"
@@ -340,7 +360,7 @@ export function creditNoteDisclosureEnvelope(value, original) {
   if (!row || !identityMatches || row.documentKind !== "credit_note" || row.status !== "issued"
     || row.currency !== "INR" || !validIds || !distinctIds || !validHashes || !validFinancialYear
     || !validDate(row.businessDate) || !timestamp(row.issuedAt) || !matches(row.docNo, DOCUMENT_NUMBER)
-    || !minor(row.totalMinor) || !reason(row.reason)) return null;
+    || !minor(row.totalMinor) || creditNoteIssueReason(row.reason) === null) return null;
   return Object.freeze({
     documentId: row.documentId,
     docNo: row.docNo,
@@ -624,6 +644,7 @@ export function createInvoiceWorkbench({ root, request, propertyNode, timezone, 
   let previewStyleSheet = null;
   const registrationRequests = new Map();
   const deliveryRetries = new Map();
+  const creditIssueRequests = new Map();
   const controllers = new Set();
   const searchControllers = new Set();
   const detailControllers = new Set();
@@ -916,6 +937,38 @@ export function createInvoiceWorkbench({ root, request, propertyNode, timezone, 
     return `fiscal-registration-${globalThis.crypto.randomUUID()}`;
   }
 
+  function newCreditIssueKey() {
+    if (!globalThis.crypto || typeof globalThis.crypto.randomUUID !== "function") {
+      throw new Error("secure command identity is unavailable");
+    }
+    return `credit-note-${globalThis.crypto.randomUUID()}`;
+  }
+
+  function retainedCreditIssue(original) {
+    const retained = creditIssueRequests.get(original.documentId);
+    if (!retained) return null;
+    const snapshot = retained.snapshot;
+    return snapshot.original.documentId === original.documentId
+      && snapshot.original.propertyNode === original.propertyNode
+      && snapshot.original.reservationId === original.reservationId
+      && snapshot.original.folioId === original.folioId
+      && snapshot.original.recipientRegistrationId === original.recipientRegistrationId
+      && snapshot.original.documentSha256 === original.documentSha256
+      && snapshot.original.documentNumber === original.documentNumber
+      && snapshot.original.businessDate === original.businessDate ? retained : null;
+  }
+
+  function retainCreditIssue(original, rawReason) {
+    if (creditIssueRequests.has(original.documentId) || creditIssueRequests.size >= MAX_RETAINED_CREDIT_INTENTS) return null;
+    let idempotencyKey;
+    try { idempotencyKey = newCreditIssueKey(); } catch { return null; }
+    const snapshot = creditNoteIssueSnapshot(original, rawReason, idempotencyKey);
+    if (!snapshot) return null;
+    const retained = { snapshot, state: "ready", inFlight: false, creditNumber: null };
+    creditIssueRequests.set(original.documentId, retained);
+    return retained;
+  }
+
   function newRetryKey() {
     if (!globalThis.crypto || typeof globalThis.crypto.randomUUID !== "function") {
       throw new Error("secure command identity is unavailable");
@@ -1170,6 +1223,157 @@ export function createInvoiceWorkbench({ root, request, propertyNode, timezone, 
     }
   }
 
+  function creditIssueCurrent(original, surface, scope, generation) {
+    return current(scope, generation, "detail") && selectedDocumentId === original.documentId
+      && root.dataset.invoiceView === "detail" && root.isConnected && !root.hidden
+      && detail.isConnected && !detail.hidden && surface.isConnected && !surface.hidden;
+  }
+
+  function creditIssueControlsCurrent(original, surface, controls, scope, generation) {
+    return creditIssueCurrent(original, surface, scope, generation)
+      && [controls.reason, controls.confirmation, controls.submit, controls.cancel, controls.message]
+        .every((control) => control.isConnected && !control.hidden && surface.contains(control));
+  }
+
+  function originalCreditTotal(original) {
+    const cached = rows.find((row) => row.documentId === original.documentId
+      && row.documentNumber === original.documentNumber && row.businessDate === original.businessDate
+      && row.reservationId === original.reservationId && row.folioId === original.folioId
+      && row.recipientRegistrationId === original.recipientRegistrationId);
+    if (cached) return cached.totalMinor;
+    try {
+      const source = ownRecord(JSON.parse(original.contentJson), 8);
+      const identity = source && ownRecord(source.DocDtls, 3);
+      const totals = source && ownRecord(source.ValDtls, 4);
+      const value = totals?.TotInvVal;
+      if (!identity || identity.Typ !== "INV" || identity.No !== original.documentNumber
+        || identity.Dt !== `${original.businessDate.slice(8, 10)}/${original.businessDate.slice(5, 7)}/${original.businessDate.slice(0, 4)}`
+        || typeof value !== "string" || !/^(?:0|[1-9][0-9]{0,16})\.[0-9]{2}$/.test(value)) return null;
+      const minor = value.replace(".", "");
+      return BigInt(minor) <= 9223372036854775807n ? minor : null;
+    } catch { return null; }
+  }
+
+  function creditIssueMessage(status) {
+    if (status === 400) return "The credit-note request was invalid. Its submitted request identity remains locked; retry only the same request.";
+    if (status === 403 || status === 401) return "You do not have permission to issue this credit note. Its submitted request identity remains locked.";
+    if (status === 404) return "The original invoice is unavailable or concealed. This does not prove that no credit was issued; the submitted request identity remains locked.";
+    if (status === 409) return "The credit note cannot be issued from the current financial state. Do not start another request; the submitted request identity remains locked.";
+    return "The credit-note outcome is unknown. Retry only with the same request identity, or deliberately view an existing credit note.";
+  }
+
+  async function submitCreditIssue(original, retained, surface, controls, scope, generation) {
+    if (retained.inFlight || retained.state === "succeeded" || controls.submit.disabled
+      || !creditIssueControlsCurrent(original, surface, controls, scope, generation)) return;
+    retained.inFlight = true; retained.state = "unknown";
+    controls.reason.readOnly = true; controls.confirmation.disabled = true; controls.submit.disabled = true;
+    controls.cancel.disabled = true;
+    controls.message.textContent = "Issuing the full credit note through the governed financial command…";
+    setState("loading", "Issuing the full credit note…");
+    const controller = controlled("detail");
+    try {
+      const response = await request(
+        `/api/v1/properties/${encodeURIComponent(propertyNode)}/invoices/${encodeURIComponent(retained.snapshot.original.documentId)}/credit-notes`,
+        { method: "POST", headers: { "Content-Type": "application/json", "Idempotency-Key": retained.snapshot.idempotencyKey },
+          body: JSON.stringify({ reason: retained.snapshot.reason }), signal: controller.signal },
+      );
+      if (!creditIssueCurrent(original, surface, scope, generation) || controller.signal.aborted) return;
+      const note = creditNoteDisclosureEnvelope(response, retained.snapshot.original);
+      if (!note || note.reason !== retained.snapshot.reason) throw new Error("invalid credit-note issue receipt");
+      retained.state = "succeeded";
+      retained.creditNumber = note.docNo;
+      controls.message.textContent = `Credit note ${note.docNo} is available. Use View credit note to review, preview, or print the immutable record.`;
+      controls.submit.hidden = true; controls.cancel.textContent = "Close"; controls.cancel.disabled = false;
+      setState("ready", `Credit note ${note.docNo} is available.`);
+    } catch (error) {
+      if (!creditIssueCurrent(original, surface, scope, generation)) return;
+      retained.state = "unknown";
+      controls.message.textContent = error instanceof Error && error.message === "invalid credit-note issue receipt"
+        ? "The credit-note response could not be verified. Its outcome is unknown; retry only the same request."
+        : creditIssueMessage(errorField(error, "status"));
+      controls.submit.textContent = "Retry same credit request"; controls.submit.disabled = false;
+      controls.cancel.disabled = false;
+      setState("unknown", controls.message.textContent);
+    } finally {
+      retained.inFlight = false; release(controller);
+      if (creditIssueCurrent(original, surface, scope, generation) && retained.state === "unknown") {
+        controls.submit.disabled = false; controls.cancel.disabled = false;
+      }
+    }
+  }
+
+  function renderCreditIssue(original, slot, scope, generation) {
+    slot.replaceChildren();
+    let retained = retainedCreditIssue(original);
+    const changedRetained = creditIssueRequests.has(original.documentId) && retained === null;
+    const surface = element("section", "invoice-workbench__credit-issue");
+    const heading = element("h4", "invoice-workbench__credit-issue-heading", "Issue full credit note");
+    const guidance = element("p", "invoice-workbench__credit-issue-guidance",
+      "This creates one full credit only. The original invoice remains unchanged; this is not a cash refund, payment, or provider registration.");
+    const facts = element("dl", "invoice-workbench__credit-issue-original");
+    facts.append(detailRow("Original invoice", original.documentNumber), detailRow("Original date", original.businessDate));
+    const total = originalCreditTotal(original);
+    facts.append(detailRow("Original total", total === null ? "Unavailable from the issued document" : minorText(total)));
+    const message = element("p", "invoice-workbench__credit-issue-message", "Enter the immutable reason and confirm before issuing.");
+    message.setAttribute("role", "status"); message.setAttribute("aria-live", "polite");
+    const cancel = element("button", "invoice-workbench__credit-issue-cancel", "Cancel"); cancel.type = "button";
+    surface.append(heading, guidance, facts);
+    if (changedRetained) {
+      message.textContent = "An unresolved credit request is retained for earlier invoice details. Deliberately view the existing credit note; no new request can be started here.";
+      surface.append(message, cancel); cancel.addEventListener("click", () => { if (creditIssueCurrent(original, surface, scope, generation)) slot.replaceChildren(); });
+      slot.append(surface); return;
+    }
+    if (retained?.inFlight) {
+      message.textContent = "A credit-note request is still in progress. Do not start another request; return here after its outcome is known.";
+      surface.append(message, cancel);
+      cancel.addEventListener("click", () => { if (creditIssueCurrent(original, surface, scope, generation)) slot.replaceChildren(); });
+      slot.append(surface); return;
+    }
+    const reasonLabel = element("label", "invoice-workbench__credit-issue-field", "Reason for full credit");
+    const reason = element("textarea", "invoice-workbench__credit-issue-reason");
+    reason.required = true; reason.maxLength = 1000; reason.rows = 3; reasonLabel.append(reason);
+    const confirmationLabel = element("label", "invoice-workbench__credit-issue-confirm-field");
+    const confirmation = element("input", "invoice-workbench__credit-issue-confirm"); confirmation.type = "checkbox";
+    confirmationLabel.append(confirmation, document.createTextNode(" I confirm this is a full credit of the immutable invoice above."));
+    const submit = element("button", "invoice-workbench__credit-issue-submit", "Issue full credit note"); submit.type = "button"; submit.disabled = true;
+    const controls = { reason, confirmation, submit, cancel, message };
+    if (retained) {
+      reason.value = retained.snapshot.reason; reason.readOnly = true; confirmation.checked = true; confirmation.disabled = true;
+      submit.textContent = retained.state === "succeeded" ? "Credit note issued" : "Retry same credit request";
+      submit.disabled = retained.state === "succeeded" || retained.inFlight;
+      message.textContent = retained.state === "succeeded"
+        ? `Credit note ${retained.creditNumber ?? ""} is available. Use View credit note to review the immutable record.`.trim()
+        : "A submitted credit request is retained. Its reason and request identity are locked; retry only the same request.";
+    } else {
+      const update = () => {
+        if (!creditIssueCurrent(original, surface, scope, generation)) return;
+        submit.disabled = !confirmation.checked || creditNoteIssueReason(reason.value) === null;
+      };
+      reason.addEventListener("input", update); confirmation.addEventListener("change", update);
+    }
+    submit.addEventListener("click", () => {
+      if (retained?.state === "succeeded" || retained?.inFlight || submit.disabled
+        || !creditIssueControlsCurrent(original, surface, controls, scope, generation)) return;
+      let intent = retained;
+      if (!intent) {
+        if (!confirmation.checked || creditNoteIssueReason(reason.value) === null) return;
+        intent = retainCreditIssue(original, reason.value);
+        if (!intent) {
+          message.textContent = creditIssueRequests.has(original.documentId)
+            ? "A credit request is already retained for this invoice. Its request identity cannot be replaced."
+            : "A secure request identity is unavailable. No credit-note request was sent.";
+          return;
+        }
+        retained = intent;
+      }
+      void submitCreditIssue(original, intent, surface, controls, scope, generation);
+    });
+    cancel.addEventListener("click", () => {
+      if (creditIssueCurrent(original, surface, scope, generation) && !retained?.inFlight) slot.replaceChildren();
+    });
+    surface.append(reasonLabel, confirmationLabel, message, submit, cancel); slot.append(surface);
+  }
+
   function renderDetail(documentValue, delivery, scope, generation) {
     detail.replaceChildren();
     const back = element("button", "invoice-workbench__back", "Back to invoices");
@@ -1204,9 +1408,16 @@ export function createInvoiceWorkbench({ root, request, propertyNode, timezone, 
     const credit = element("section", "invoice-workbench__credit-note");
     const creditHeading = element("h4", "invoice-workbench__credit-note-heading", "Existing credit note");
     const creditIntent = element("button", "invoice-workbench__credit-note-intent", "View credit note"); creditIntent.type = "button";
+    const creditIssueIntent = element("button", "invoice-workbench__credit-issue-intent", "Issue full credit note"); creditIssueIntent.type = "button";
     const creditMessage = element("p", "invoice-workbench__credit-note-message", "Credit note not loaded."); creditMessage.setAttribute("aria-live", "polite");
-    credit.append(creditHeading, creditIntent, creditMessage);
+    const creditIssueSlot = element("div", "invoice-workbench__credit-issue-slot");
+    credit.append(creditHeading, creditIntent, creditIssueIntent, creditMessage, creditIssueSlot);
     creditIntent.addEventListener("click", () => { void loadCreditNote(documentValue, credit, creditIntent, creditMessage, scope, generation); });
+    creditIssueIntent.addEventListener("click", () => {
+      if (current(scope, generation, "detail") && credit.isConnected && creditIssueIntent.isConnected) {
+        renderCreditIssue(documentValue, creditIssueSlot, scope, generation);
+      }
+    });
     const previewSurface = element("section", "invoice-workbench__print-preview");
     previewSurface.hidden = true; previewSurface.setAttribute("aria-live", "polite");
     preview.addEventListener("click", () => { void preparePrint(documentValue.documentId, false, previewSurface, preview, print); });
@@ -1833,7 +2044,7 @@ export function createInvoiceWorkbench({ root, request, propertyNode, timezone, 
       if (disposed) return;
       active = false; disposed = true; scopeGeneration += 1; searchGeneration += 1; detailGeneration += 1; issueGeneration += 1;
       currentIssueRoute = null; creditMode = false;
-      abortAll(); rows = []; nextCursor = null; resetCreditRegister(); printModulePromise = null; registrationRequests.clear(); deliveryRetries.clear();
+      abortAll(); rows = []; nextCursor = null; resetCreditRegister(); printModulePromise = null; registrationRequests.clear(); deliveryRetries.clear(); creditIssueRequests.clear();
       if (previewStyleSheet instanceof CSSStyleSheet && "adoptedStyleSheets" in document) {
         document.adoptedStyleSheets = document.adoptedStyleSheets.filter((sheet) => sheet !== previewStyleSheet);
       } else if (previewStyleSheet && typeof previewStyleSheet.remove === "function") previewStyleSheet.remove();

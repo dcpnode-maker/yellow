@@ -3869,3 +3869,49 @@ abort/invalidate old reads/actions. Slash focuses the visible credit search.
 This is a read-only consumer of the existing450 API, no endpoint/schema/policy
 addition. Root's final33/0(611) and separate browser1/0(54) twice bind accepted
 source; Review469/current PROJECT-STATUS distinguish publication, CI and delivery.
+
+## Cashier full-credit issuance — Order470
+
+Implementation contract; final acceptance and delivery are recorded separately in
+Review470 and PROJECT-STATUS.md. This is a consumer of the existing Order446 API,
+not a new economic, fiscal, permission or schema contract.
+
+From an issued original invoice, **Issue full credit note** opens a confirmation
+surface. Opening it or checking the confirmation does not issue anything. The
+cashier supplies a reason, explicitly confirms a full credit, then submits. The
+surface identifies the original number, date and stored total. The original stays
+unchanged; a credit note is not a cash refund, payment or provider registration.
+
+The command is:
+
+    POST /api/v1/properties/:property/invoices/:originalDocument/credit-notes
+    Content-Type: application/json
+    Idempotency-Key: <secure request identity>
+    {"reason":"<exact confirmed reason>"}
+
+No query, tenant, actor, amount, tax, series, document number or business date is
+submitted. Current authority and all financial values remain server-owned.
+The reason is a nonblank, well-formed string of 1–500 Unicode scalars without ASCII
+controls or DEL. It is not trimmed or normalized; valid C1 and supplementary
+characters are preserved. The key is 8–200 visible ASCII characters, securely
+generated only for a valid confirmed intent.
+
+After sending, bounded controller memory retains the immutable original identity,
+exact reason and key. Concurrent submission is disabled. An uncertain result,
+including network failure, 503 or an invalid success receipt, never unlocks a new
+reason/key. **Retry same credit request** is deliberate and sends the same intent.
+Later 400/403/404/409 responses do not prove an earlier uncertain attempt had no
+effect. Navigation or closing a view is not rollback; returning within the same
+controller retains the submitted intent. Disposal clears private memory rather
+than persisting financial details or credentials in browser storage.
+
+The 200 replay and 201 issue paths both return the same immutable receipt body.
+The UI validates its exact original binding and submitted reason before claiming
+success, without inventing unavailable response-header knowledge. Existing-credit
+discovery remains explicit and read-only; preview/print remains a separate action.
+Discovery does not silently resolve an intent with a different reason.
+
+Active generation, original identity and connected/contained/visible controls guard
+submission. Terminal success blocks another submission. Stale, detached, hidden,
+suspended or disposed controls must not send or render across a changed subject.
+No reason, key, document content or receipt is put in URLs, browser storage or logs.
