@@ -39,11 +39,17 @@ test("Order195: the six flagship systems have structural identity without unsafe
   for (const theme of ["apple", "android", "win95", "glass", "neo", "erp"]) {
     expect(styles).toContain(`:root[data-theme="${theme}"]`);
   }
-  expect(page.match(/class="domain-icon"/g)?.length).toBe(12);
+  expect(page.match(/class="domain-icon"/g)?.length).toBe(13);
   const invoiceTab = page.match(/<button[^>]*id="nav-invoices"[^>]*>[\s\S]*?<\/button>/)?.[0] ?? "";
   expect(invoiceTab).toContain('data-view="invoices"');
   expect(invoiceTab).toContain('class="domain-icon"');
   expect(invoiceTab).toContain('<use href="#ph-invoice"/>');
+  const marketTab = page.match(/<button[^>]*id="nav-market"[^>]*>[\s\S]*?<\/button>/)?.[0] ?? "";
+  expect(marketTab).toContain('data-view="market"');
+  expect(marketTab).toContain('aria-controls="market-view"');
+  expect(marketTab).toContain('class="domain-icon"');
+  expect(marketTab).toContain('<use href="#ph-chart-line-up"/>');
+  expect(page).toContain('<section id="market-view" hidden aria-labelledby="market-title">');
   const symbolIds = [...page.matchAll(/<symbol id="(ph-[a-z-]+)"/g)].map(match => match[1]);
   expect(symbolIds).toEqual([
     "ph-calendar-check", "ph-chart-bar", "ph-calendar-dots", "ph-notebook", "ph-invoice",

@@ -1,6 +1,6 @@
 # Order460 — current-source release checklist, 13 September 2026
 
-Owner: root. Receiving development HEAD63338ed3; accepted Order472 source
+Owner: root. Published development HEADda744f1; accepted Order472 source
 frontier92; last verified sole local41415/frontier91. Source-built, published,
 CI-proved, migrated and served are distinct states.
 
@@ -13,7 +13,7 @@ CI-proved, migrated and served are distinct states.
 - [x] Current CI failures retrieved; isolated proof passes recorded in Q270.
 - [x] Q270 test-routing/provenance repair independently executed and accepted:
   root9pass/4explicitDBskips/0fail/48, exact P0 byte-equivalence, types202.
-  Required GitHub Windows job execution is still a future exact-head CI result.
+  Required Windows job passed on exact da744f1 CI34759204343; full CI did not.
 - [x] Exact source manifest excludes paused445 and frozen471; all working
   bytes/index residuals preserved. Mixed-file proof is not isolated-release proof.
   Q271's pure four-file projector independently passes22/0/518; actual candidate
@@ -36,13 +36,18 @@ CI-proved, migrated and served are distinct states.
   Focused candidate27-file160/20explicit-skips/0fail/2213 includes three actual
   browser journeys; required native9/4DBskips/0fail48, types202/licences23 pass.
   This is selected candidate proof, not the full canonical CI/database battery.
-- [ ] Exact admitted commit published non-force with verified scoped changes.
+- [x] Exact admitted commit published non-force with verified scoped changes.
   Q274 helper independently accepted: root15/0/75, strict types; actual native
   v4/outside flags/staging/working residuals preserved in synthetic proof.
   Exactly115 paths and the single pinned readiness LF projection are admitted;
-  actual root manifest/commit/push receipts remain separate.
+  Root manifest e80eda67 and actual commit receipt300b0a92 publish da744f1.
+  All115 blobs,2306 working-file hashes, outside index/flags, six staged files
+  and unrelated refs were independently checked before the exact nonforce push.
 - [ ] All exact-head required CI jobs pass, including current canonical
   database/referee11/0 and Windows-native execution. Skips are not passes.
+  da744f1 CI34759204343 failed quality on obsolete navigation/catalogue oracles;
+  Windows/local-review passed, downstream database/container/ARM64 skipped.
+  Q275 ten test-only repairs require independent proof and fresh successor CI.
 
 ## Before sole-local cutover
 

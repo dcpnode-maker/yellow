@@ -315,7 +315,21 @@ databaseDescribe("Order 066 immutable targeting drafts", () => {
   test("P1: launch seed adds one exact type, replays, and rejects divergent schema atomically", async () => {
     const type = LAUNCH_EXTENSION_TYPES.find(({ type }) => type === "rate_plan_target");
     expect(type?.jsonSchema).toEqual(RATE_PLAN_TARGET_EXTENSION_SCHEMA);
-    expect(LAUNCH_EXTENSION_TYPES).toHaveLength(10);
+    const identities = LAUNCH_EXTENSION_TYPES.map(({ type, jsonSchema }) => ({ type, schemaId: jsonSchema.$id }));
+    expect(identities).toEqual([
+      { type: "market_compset", schemaId: "yellow/market_compset/v1" },
+      { type: "vertical_profile", schemaId: "pms:vertical_profile:1" },
+      { type: "tax_jurisdiction", schemaId: "pms:tax_jurisdiction:1" },
+      { type: "policy", schemaId: "pms:policy:1" },
+      { type: "statutory_adapter", schemaId: "pms:statutory_adapter:1" },
+      { type: "fiscal_provider", schemaId: "pms:fiscal_provider:1" },
+      { type: "automation_action", schemaId: "pms:automation_action:1" },
+      { type: "rate_model", schemaId: "pms:rate_model:1" },
+      { type: "rate_plan_model", schemaId: "pms:rate_plan_model:1" },
+      { type: "rate_plan_target", schemaId: "pms:rate_plan_target:1" },
+      { type: "rate_plan_release", schemaId: "pms:rate_plan_release:1" },
+    ]);
+    expect(new Set(identities.map(({ type }) => type)).size).toBe(11);
     expect(LAUNCH_EXTENSIONS).toHaveLength(41);
     expect((await admin`SELECT type FROM extension_type WHERE type = 'rate_plan_target'`)).toHaveLength(1);
     const beforeFacts = Number((await admin`SELECT count(*)::int AS count FROM fact_log`)[0]?.count);

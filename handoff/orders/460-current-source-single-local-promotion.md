@@ -920,3 +920,10 @@ there. It replaces stale publisher reuse with minimal native Git operations and
 one standard temporary index, preserving all working residuals and outside staged
 entries. No actual Yellow Git/network mutation follows until independent proof
 and a separate exact root action admission. No extra checkout/object store.
+
+Q275 admits only the ten named current-navigation/catalogue compatibility tests
+and root coordination records after exact da744f1 CI failures. Preserve every
+previous destination/safety assertion while adding the accepted market contract.
+No product/DB/runtime/deadline change; fresh successor CI remains mandatory.
+Publication uses native scoped whole-file Git after complete preservation checks;
+Q274's consumed mixed-file publisher is not replayed.

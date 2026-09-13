@@ -96,13 +96,15 @@ test("Order459: hotel workflow groups replace the catch-all additional workspace
   expect(html).not.toMatch(/id="secondary-workspaces|More workspaces|Fewer workspaces/);
   for (const label of [
     "Operations", "Housekeeping", "Vehicle register", "Inventory setup",
-    "Restrictions", "Rates", "Project status",
+    "Restrictions", "Rates", "Market evidence", "Project status",
   ]) {
     expect(html).toContain(label);
   }
-  expect(html.match(/class="domain-tab(?: is-active)?"/g)).toHaveLength(14);
+  expect(html.match(/class="domain-tab(?: is-active)?"/g)).toHaveLength(15);
   expect(html).toContain('id="nav-invoices" type="button" data-view="invoices" aria-controls="invoices-view"');
   expect(html).toMatch(/id="nav-invoices"[^>]*>[\s\S]*?<svg class="domain-icon"[^>]*>[\s\S]*?<use href="#ph-invoice"\/>/);
+  expect(html).toContain('id="nav-market" type="button" data-view="market" aria-controls="market-view"');
+  expect(html).toMatch(/data-workspace-group="revenue"[\s\S]*?id="nav-market"[^>]*>[\s\S]*?<svg class="domain-icon"[^>]*>[\s\S]*?<use href="#ph-chart-line-up"\/>/);
   expect(css).toContain(".workspace-catalogue-preview");
   expect(css).not.toContain("data-experience");
 });

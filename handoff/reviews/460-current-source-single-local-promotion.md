@@ -1820,3 +1820,53 @@ a20s bound. No existing product deadline/assertion changed.
 Actual read-only115-path inspection succeeded under builder; root separately
 freezes its actual manifest after these documentation receipts. Publication,
 remoteCI and runtime changes are not implied by this source acceptance.
+
+### Q274 actual publication and fresh CI failure
+
+Root froze exact manifest SHA256 e80eda67acab14b74773503ae428a4e56e9b3f428ca5d3b262e67419494aee92
+and separately admitted one native local execution. It completed at commit
+da744f1f73cd194de5e9a267825f8956a12ab030, parent63338ed312f925bddd951665189196e3615a51b9,
+tree1b342311f78bed12b57db4bdf8b2aa79c26c6f5b; completed receipt SHA256
+300b0a921564e1f0a4c97a1fddee76cc5f43256ca9a4ab9121929e11ef4cd33d.
+Root independently checked every115 commit blob, exact diff paths, all2306 working
+hashes, full outside semantic index/persistent flags/stable extensions, unrelated
+refs and all six outside staged files. A separate ordinary nonforce exact-refspec
+push advanced only phase-7/operator-invoice-workflow; remote and draftPR92 head
+readbacks matched. PR body preserved earlier history (LF-normalized readback exact).
+Private immutable evidence: .yellow/evidence/order460/order472-publication-20260913/.
+
+Exact CI34759204343 failed quality; Windows and local-review passed, database,
+container and ARM64 skipped. CodeQL34759202345 passed. Failed logs show five named
+failures plus a stale route assertion; truncated log has no final total, so no
+aggregate failing count or runtime/OOM cause is claimed. Current source adds
+one destination and one extension type; Q275 explicitly scopes ten matching
+compatibility test files after a bounded follow-up scan. No unchanged CI rerun,
+product code, deadline, real DB or running-app change follows from this failure.
+### Q275 exact current-contract test repair — independently accepted
+
+Authors: /root/q258_source_adapter (five source-oracle files),
+/root/q258_runtime_cutover (two outage and two rate files), and
+/root/astra_ultra_handoff (the browser file). Nonimplementer /root inspected
+every changed hunk and personally executed the final exact ten files in Q275:
+`bun test tests/operator-workspace-layout.browser.test.ts tests/operator-management-demo-navigation-finetune.intentional-red.test.ts tests/operator-layout-composition.test.ts tests/operator-workspace-skins.test.ts tests/operator-room-outages-label-alignment.intentional-red.test.ts tests/operator-room-outages-destination-copy.intentional-red.test.ts tests/rate-publication.integration.test.ts tests/operator-adaptive-experience.test.ts tests/rate-targeting.integration.test.ts tests/operator-flagship-motion.test.ts`
+Result:29pass/15explicit DB-environment skips/0fail/2275 assertions,13.47s.
+The actual Chrome journey passed1148 assertions with all original deadlines,
+draft retention, focus, responsive, forced-colour and fallback checks preserved.
+No real rate-publication/targeting DB test ran locally; those remain CI obligations.
+The rate-targeting obsolete assertion was separately reproduced by pure catalogue
+inspection rather than pretending its gated SQL body executed.
+
+Exact literal navigation is16 destinations/15 ordinary tabs, group counts3/5/3/4/1;
+Market and Status share chart-line-up, so15 distinct symbols remain unchanged.
+The flagship exact-class icon count is13, not a new distinct symbol.
+Both catalogue oracles require all11 exact ordered type/schema IDs and uniqueness.
+Outage assertions retain the canonical non-market route and add the property-bound
+market route guard. No assertions, fiscal body, timeout or product file removed.
+All genuine initial REDs and the nine-file27/15skips/0fail2229 intermediate proof
+remain task evidence. Root final types,202 boundaries and23 installed-package
+licence checks pass; status-source2/0/124 also pass.
+
+This is source-only successor acceptance. Before native whole-file publication,
+root freezes exact working bytes/index/refs and scoped paths. Preserve all six
+outside staged files plus paused445/frozen471. Do not replay Q274 publisher.
+Exact successor CI, canonical referee and91-to92 live proof remain mandatory.

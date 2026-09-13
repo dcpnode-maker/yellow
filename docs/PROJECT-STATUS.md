@@ -4,7 +4,7 @@
 <!-- current-phase: 14 -->
 <!-- current-task: Codex Yellow — Order472 priority Overture/God's Eye discovery integration; preserve fiscal work, then resume phase closure and dependency-gated 11→13→17 -->
 <!-- current-order-files: handoff/orders/472-overture-gods-eye-market-discovery-integration.md;handoff/orders/470-cashier-full-credit-note-issue.md;handoff/orders/460-current-source-single-local-promotion.md;handoff/orders/462-pricelabs-intake-and-market-pipeline-integration.md;handoff/orders/461-bounded-irp-sandbox-acceptance.md -->
-<!-- current-lifecycle: ACTIVE2026-09-13 Order460 integrating accepted Order472. Q273 exact candidate8b159b18 passed root160pass20explicit-skips0fail2213 including three actual browser journeys; required native9pass4DBskips0fail48, types202/licences23. Explicit Restore and full preservation verified. Q274 selective-publication helper accepted root15pass0fail75/nativev4 preservation/types; exact115-path publication preparing. Full CI/referee and live91to92 remain pending. Source92, published633 and sole3000 served41415/frontier91 distinct. Frozen471/paused445 and all18phases/11to13to17 preserved; no provider/phaseclosure claim -->
+<!-- current-lifecycle: ACTIVE2026-09-13 Order460 integrating accepted Order472. Q274 exact115-path da744f1 published nonforce to draftPR92 with complete working/outside-index preservation. ExactCI34759204343 quality failed obsolete navigation/catalogue oracles; Windows and local-review passed, database/container/ARM64 skipped. Q275 ten bounded test-only repairs under root combined proof; no unchanged rerun or weakened deadline. Source/published92 and sole3000 served41415/frontier91 distinct. Fresh successor CI/referee and live91to92 recovery remain pending. Frozen471/paused445 and all18phases/11to13to17 preserved; no provider/phaseclosure claim -->
 
 This is the canonical current-state record. Historical orders, reviews, decisions
 and ledger entries remain evidence; their filenames are not an active backlog.
@@ -126,8 +126,9 @@ Strict types,202 import boundaries and23-package licence checks pass.
 
 Q273 reused the existing verified28.7MB source artifact and shared dependency
 junction for exact candidate proof, then restored its original bytes. No extra
-worktree, Docker stack or dependencies were created. Fresh GitHub CI/publication
-and sole-local cutover remain pending; the running app still reports41415/frontier91. No founder action is needed
+worktree, Docker stack or dependencies were created. Q274 publication is complete;
+fresh successor CI and sole-local cutover remain pending. The running app still
+reports41415/frontier91. No founder action is needed
 for this release preparation. See the release checklist for exact remaining gates.
 
 Root independently accepted Q273's candidate helper after45 passing projection/
@@ -137,10 +138,20 @@ ownership/restoration checks and strict types, then froze exact manifest8b159b18
 required Windows9pass/4DBskips/0fail48, types202 and a nonempty23-package licence
 audit passed. Explicit restoration returned the existing artifact to its original
 bytes; a full fresh inspection confirms source/index/refs/dependencies preserved.
-Fresh GitHub CI/publication/cutover remain separate pending steps. Recovery
+At that checkpoint GitHub publication/CI/cutover were separate pending steps. Recovery
 preparation was audited in parallel: consumed91-runtime helpers must not be replayed
 for92. The additional Dubai/KSA/London/India-first and richer-map/client-API messages
 are recorded in the research receipt without duplicating the current release.
+
+**Current published release — Q274/Q275.** Exact115-path commit
+`da744f1f73cd194de5e9a267825f8956a12ab030` is on draftPR92, unmerged. Root verified
+all2306 working-file bytes, outside index entries/flags, all six previously staged
+files and unrelated refs. Exact CI34759204343 passed Windows-native and local-review,
+but quality failed obsolete navigation/catalogue expectations; downstream database,
+container and ARM64 jobs were skipped. CodeQL passed. Q275 is a bounded ten-test
+compatibility repair with exact added Market identities; all existing financial,
+accessibility, session and deadline guards remain. The fresh successor must pass
+full CI before local migration/delivery. No live app, hotel data or phase changed.
 
 **Fiscal checkpoint preserved — Order471 frozen uncommitted.** The provider-request
 UI/source proof is retained; expanded independent browser proof is incomplete,

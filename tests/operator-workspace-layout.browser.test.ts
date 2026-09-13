@@ -12,6 +12,26 @@ const id = (value: number) => `00000000-0000-4000-8000-${String(value).padStart(
 const route = `/p/${id(2)}/invoices`;
 const interfaceChoices = ["ledger", "aura", "relay", "journey", "orbit", "atlas", "focus", "index"] as const;
 const workspaceGroups = ["front-desk", "finance", "operations", "revenue", "system"] as const;
+const expectedNavigation = [
+  ["nav-today", "Today", "#ph-calendar-check", "front-desk"],
+  ["nav-availability", "Availability", "#ph-chart-bar", "front-desk"],
+  ["nav-reservations", "Reservations", "#ph-calendar-dots", "front-desk"],
+  ["nav-folios", "Folios", "#ph-notebook", "finance"],
+  ["nav-invoices", "Invoices", "#ph-invoice", "finance"],
+  ["nav-cashiers", "Cashiers", "#ph-cash-register", "finance"],
+  ["nav-day-close", "Day close", "#ph-calendar-x", "finance"],
+  ["nav-trust", "Owner trust", "#ph-hand-coins", "finance"],
+  ["nav-operations", "Room outages", "#ph-bed", "operations"],
+  ["nav-housekeeping", "Housekeeping", "#ph-broom", "operations"],
+  ["nav-vehicles", "Vehicle register", "#ph-car", "operations"],
+  ["nav-inventory", "Inventory setup", "#ph-package", "revenue"],
+  ["nav-restrictions", "Restrictions", "#ph-prohibit", "revenue"],
+  ["nav-rates", "Rates", "#ph-tag", "revenue"],
+  ["nav-market", "Market evidence", "#ph-chart-line-up", "revenue"],
+  ["nav-status", "Project status", "#ph-chart-line-up", "system"],
+] as const;
+const navigationIdentity = (icon: { id: string; label: string; href: string; group: string }) =>
+  [icon.id, icon.label, icon.href, icon.group];
 const prototypeNumbers = { ledger: "03", aura: "04", relay: "05", journey: "06", orbit: "07", atlas: "08", focus: "09", index: "10" } as const;
 
 // An explicitly synthetic HTTP fixture exercises the real authenticated shell,
@@ -235,7 +255,7 @@ function driver(skin: string, fontExpected: boolean): string {
         const icon=button.querySelector('svg'),use=icon.querySelector('use'),box=icon.getBoundingClientRect(),shape=icon.getBBox(),style=getComputedStyle(icon),buttonStyle=getComputedStyle(button),foreground=rgba(style.color),background=backdrop(button);
         const backgroundChain=[];for(let node=button;node;node=node.parentElement)backgroundChain.push({tag:node.tagName,id:node.id,
           classes:node.className,background:getComputedStyle(node).backgroundColor});
-        iconProof.push({id:button.id,label:button.querySelector('span')?.textContent?.trim(),href:use?.getAttribute('href'),target:button.getBoundingClientRect().height,
+        iconProof.push({id:button.id,label:button.querySelector('span')?.textContent?.trim(),href:use?.getAttribute('href'),group:group.dataset.workspaceGroup,target:button.getBoundingClientRect().height,
           box:[box.width,box.height],shape:[shape.width,shape.height],fill:style.fill,color:style.color,background:background.slice(0,3).map(value=>Math.round(value)),
           buttonColor:buttonStyle.color,buttonBackground:buttonStyle.backgroundColor,borderColor:buttonStyle.borderColor,
           backgroundChain,classes:button.className,active:button.classList.contains('is-active'),focusVisible:button.matches(':focus-visible'),
@@ -509,7 +529,9 @@ test("Order459 eight compositions retain loaded records, drafts and grouped acce
         expect(proof.resources).toContain("/static/fonts/urbanist-v1.330.woff2");
         expect(proof.resources).toContain("/assets/operator-layouts.js");
         expect(proof.resources).not.toContain("/static/icons/phosphor-nav-2.1.1.svg");
-        expect(proof.iconProof).toHaveLength(15);
+        expect(proof.iconProof).toHaveLength(16);
+        expect(proof.iconProof.map(navigationIdentity)).toEqual(expectedNavigation);
+        // Market evidence and Project status intentionally share chart-line-up.
         expect(new Set(proof.iconProof.map((icon: { href: string }) => icon.href)).size).toBe(15);
         for (const icon of proof.iconProof) {
           expect(icon.href).toMatch(/^#ph-[a-z-]+$/);
@@ -540,8 +562,8 @@ test("Order459 eight compositions retain loaded records, drafts and grouped acce
           explicitReduced:{choiceTransition:"0s",miniatureTransition:"0s",miniatureTransform:"none"}});
         expect(proof.audit).toEqual({closedInitially:true,tag:"DETAILS",label:"Document history & verification",
           documentHash:true,sourceHash:true,reservation:true,folio:true,identityOutsideAudit:true,date:"2044-09-06"});
-        expect(proof.groups).toEqual({keys:workspaceGroups,counts:[3,5,3,3,1],
-          summaries:["Front desk3","Finance5","Property3","Rates & inventory3","System1"],
+        expect(proof.groups).toEqual({keys:workspaceGroups,counts:[3,5,3,4,1],
+          summaries:["Front desk3","Finance5","Property3","Rates & inventory4","System1"],
           financeOpen:true,current:["finance"],active:["invoices"],outerTag:"DETAILS",outerOpen:width>1020,
           currentLabel:"Invoices",legacyRemoved:true});
         if(width>1020){
@@ -736,7 +758,8 @@ test("Order459 eight compositions retain loaded records, drafts and grouped acce
       expect(forcedProof.font).toMatchObject({ expected: true, loaded: true, loadError: null, readable: true });
       expect(forcedProof.font.family).toMatch(/^Urbanist/);
       expect(forcedProof.resourceOrigins).toEqual([`http://127.0.0.1:${server.port}`]);
-      expect(forcedProof.iconProof).toHaveLength(15);
+      expect(forcedProof.iconProof).toHaveLength(16);
+      expect(forcedProof.iconProof.map(navigationIdentity)).toEqual(expectedNavigation);
       expect(forcedProof.iconProof.every((icon: { visible: boolean; focus: boolean; target: number; shape: [number, number]; fill: string; color: string; contrast: number }) =>
         icon.visible && icon.focus && icon.target >= 44 && icon.shape[0] > 0 && icon.shape[1] > 0 && icon.fill === icon.color && icon.contrast >= 3)).toBe(true);
       expect(forcedProof.afterCalls).toBe(forcedProof.before.calls);
@@ -746,7 +769,7 @@ test("Order459 eight compositions retain loaded records, drafts and grouped acce
       expect(forcedProof.samples.every((sample: { overflow: boolean; sameMount: boolean; sameDetail: boolean }) =>
         !sample.overflow && sample.sameMount && sample.sameDetail)).toBe(true);
       expect(forcedProof.todaySamples.every((sample: { overflow: boolean; rows: number }) => !sample.overflow && sample.rows === 3)).toBe(true);
-      expect(forcedProof.groups).toMatchObject({ keys: workspaceGroups, counts: [3,5,3,3,1], legacyRemoved: true });
+      expect(forcedProof.groups).toMatchObject({ keys: workspaceGroups, counts: [3,5,3,4,1], legacyRemoved: true });
       if (captures) {
         await send("Runtime.evaluate", {
           expression: "new Promise(resolve=>{const picker=document.querySelector('#workspace-skin-select');picker.value='relay';picker.dispatchEvent(new Event('change',{bubbles:true}));scrollTo(0,0);requestAnimationFrame(()=>requestAnimationFrame(resolve))})",
@@ -813,12 +836,13 @@ test("Order459 eight compositions retain loaded records, drafts and grouped acce
       expect(fallbackFonts.fonts.length).toBeGreaterThan(0);
       expect(fallbackFonts.fonts.every(font => !font.isCustomFont && font.glyphCount > 0)).toBe(true);
       expect(fallbackFonts.fonts.every(font => font.familyName !== "Urbanist")).toBe(true);
-      expect(fallbackProof.iconProof).toHaveLength(15);
+      expect(fallbackProof.iconProof).toHaveLength(16);
+      expect(fallbackProof.iconProof.map(navigationIdentity)).toEqual(expectedNavigation);
       expect(fallbackProof.iconProof.every((icon: { visible: boolean; target: number; shape: [number, number]; contrast: number }) =>
         icon.visible && icon.target >= 44 && icon.shape[0] > 0 && icon.shape[1] > 0 && icon.contrast >= 3)).toBe(true);
       expect(fallbackProof.afterCalls).toBe(fallbackProof.before.calls);
       expect(fallbackProof.audit).toMatchObject({ documentHash: true, sourceHash: true, identityOutsideAudit: true });
-      expect(fallbackProof.groups).toMatchObject({ keys: workspaceGroups, counts: [3,5,3,3,1], legacyRemoved: true });
+      expect(fallbackProof.groups).toMatchObject({ keys: workspaceGroups, counts: [3,5,3,4,1], legacyRemoved: true });
     });
     expect(apiRequests.every(request => request.method === "GET" || request.path.endsWith("/invoices/search"))).toBe(true);
     const todayRequests = apiRequests.filter(request => request.path.includes("/reservation-board?"));

@@ -15,7 +15,7 @@ const groups = {
   "front-desk": [["nav-today", "today"], ["nav-availability", "availability"], ["nav-reservations", "reservations"]],
   finance: [["nav-folios", "folios"], ["nav-invoices", "invoices"], ["nav-cashiers", "cashiers"], ["nav-day-close", "day-close"], ["nav-trust", "trust"]],
   operations: [["nav-operations", "operations"], ["nav-housekeeping", "housekeeping"], ["nav-vehicles", "vehicles"]],
-  revenue: [["nav-inventory", "inventory"], ["nav-restrictions", "restrictions"], ["nav-rates", "rates"]],
+  revenue: [["nav-inventory", "inventory"], ["nav-restrictions", "restrictions"], ["nav-rates", "rates"], ["nav-market", "market"]],
   system: [["nav-status", "status"]],
 } as const;
 
@@ -34,7 +34,7 @@ test("Order459 registers one local presentation controller after the existing op
   expect(layouts).toContain("workbench.dataset.layoutSkin = skin");
 });
 
-test("Order459 groups the original 15 destinations exactly once in five native disclosures", () => {
+test("Order459 groups the current 16 destinations exactly once in five native disclosures", () => {
   expect(html).toContain('<details class="workspace-navigation-disclosure" id="workspace-navigation" open>');
   expect(html).toContain('<summary><span>Workspaces</span><span id="workspace-navigation-current">Today</span></summary>');
   const nav = html.match(/<nav class="domain-nav"[\s\S]*?<\/nav>/)?.[0];
@@ -54,7 +54,8 @@ test("Order459 groups the original 15 destinations exactly once in five native d
     expect(html.match(new RegExp(`id="${escapeRegExp(id)}"`, "g"))).toHaveLength(1);
     expect(html).toContain(`id="${id}" type="button" data-view="${view}" aria-controls="${view}-view"`);
   }
-  expect(nav!.match(/<button[^>]+data-view=/g)).toHaveLength(15);
+  expect(nav!.match(/<button[^>]+data-view=/g)).toHaveLength(16);
+  expect(html).toContain('<button class="domain-tab" id="nav-market" type="button" data-view="market" aria-controls="market-view"><svg class="domain-icon" aria-hidden="true" viewBox="0 0 256 256"><use href="#ph-chart-line-up"/></svg><span>Market evidence</span></button>');
   expect(`${html}\n${operator}\n${layouts}`).not.toMatch(/secondary-workspaces|secondary-workspaces-toggle|More workspaces/);
 });
 
