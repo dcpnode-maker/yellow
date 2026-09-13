@@ -23,6 +23,35 @@ hotel occupancy/demand truth. The claimed MIT label does not resolve upstream
 DLD reuse rights; archive hash, exact version/source and upstream terms remain
 required before ingestion.
 
+Revision1.1 handoff is now reported preserved by the research task in
+[DLD Drive folder](https://drive.google.com/drive/folders/1pm06Pk0qnHMu-lMSFjn2IIxDRrykQZwo),
+with [handoff copy](https://drive.google.com/file/d/1lgLIWgbEqbuCMN_T_JhJN8BxqPlZftpd/view).
+Receiver directly read the task reply, not the archive or this Drive file's bytes.
+Reported transaction archive:
+DLD_Transactions_Kaggle_waelr1985_v1_2026-03-04.zip,89,196,096 bytes,
+SHA256 f6e8ab888dad894c4dbcf32b0d5bdb28674d699ba9ff38e8a5c02b5afe0cd89d.
+Contained CSV reported1,025,416,653bytes/full scan1,665,112rows; counts above retained.
+[Exact versioned source](https://www.kaggle.com/api/v1/datasets/download/waelr1985/dubai-real-estate-transaction?datasetVersionNumber=1).
+instance_date reports DD-MM-YYYY/latest17-02-2026; anomalous values
+02-07-1416,04-02-1417,30-01-1420,23-11-1422 have unknown calendar provenance.
+Upstream rights, completeness and transaction-ID uniqueness remain unverified.
+
+Separate rental/history dataset zainabhejairi/dubai-real-estates-1969-2023 v1 is
+reported archived in3parts/216,834,183bytes; original ZIP SHA256
+29a2c22e4eaac85864fd5b2918eae98aa64aff892bdf04a4a8afcfd2ebd1310f.
+[Versioned source](https://www.kaggle.com/api/v1/datasets/download/zainabhejairi/dubai-real-estates-1969-2023?datasetVersionNumber=1).
+ZIP integrity is research-reported; rental counts/calendar coverage and commercial
+grant remain unknown (labelOther). Root requested the literal3part manifest/URLs/
+hashes before receiver admission. These are not OTA rates, hotel occupancy or
+automatically usable RMS training data.
+
+The two original Jarvis documents remain retained by the research task, not
+regenerated; it reports two502 retrieval failures and pending Drive copies.
+The founder asked that task to build in parallel. Root replied with explicit
+non-overlapping ownership: research performs existing-DLD provenance/uniqueness/
+calendar quality and compact manifests/scripts; Codex owns Yellow code, DB,
+release and CI. No duplicate repository implementation or product-scope change.
+
 The founder suggests the anomalous1416 year could be Hijri. Retain that as a
 hypothesis, preserve raw date/calendar fields and seek source provenance before
 conversion; never infer a calendar solely from the year. No transform was run.
@@ -30,7 +59,8 @@ conversion; never infer a calendar solely from the year. No transform was run.
 The founder also asks to keep research in the existing5TB Google Drive. Root
 requested durable archive/deliverable locations and integrity receipts directly
 from the research task, without a duplicate laptop download or new upload.
-This is not proof a backup exists. Stable source/evidence and permitted datasets
+Research now reports the DLD backup above; receiver has not independently verified
+its file bytes. Stable source/evidence and permitted datasets
 must remain distinct from live database/runtime disks, caches, Git internals and
 secrets. These research inputs do not interrupt the current bounded release.
 

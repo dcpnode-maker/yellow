@@ -76,6 +76,12 @@ CI-proved, migrated and served are distinct states.
   Q279 prepares a transparent test-only two-relation isolation seam and later real
   PostgreSQL proof in a tiny exclusive schema; no public registration or additional
   database is authorized by source preparation.
+  Q279 subsequently received explicit root action admission: final nativeDB6D8BEA,
+  fixed adapterC5B0C57B, production helper6FE1DF20 unchanged. Independent root
+  actual native1pass/0fail/16 in520ms proves isolated rollback/conflict/real advisory
+  contention/added-existing and final public/global fingerprints. Separate query
+  confirms zero remaining proof schemas. This is not fixed-public live registration,
+  full serving-data preservation, recovery creation or live92 migration.
   Read-only nonimplementer audit finds0092 adds only the exact market-authority
   function/owner/ACL and ledger row92; historical table data, sequences, financial
   facts, occupancy, roles and existing schema must remain unchanged. Market
@@ -106,3 +112,9 @@ receipts separately. Success is not claimed until the final app is actually serv
 
 No founder action is required for this preparation. Business/provider inputs
 remain separate from routine implementation and release engineering.
+
+## Q280 successor checkpoint
+
+Root independently inspected frozen supervisor 85611ad04ef07f7fea29f62658e84c7557e3f3e918c7be28569ef44452b7ae6e and native test 61f6b2548695085e75541cb551da041103b812401872af460e7a54d23860c20b; personally executed gated native suite: 21 pass, 0 fail, 42 assertions in 38.39s. Worker: 21/0/42 in 38.03s. Strict types and 202 boundaries pass. Root current-status proofs: exact pure test 1/0/75; adjacent consumers 8 pass, 2 explicit DB skips, 0 fail, 268 assertions. No local state scripts.
+
+Fresh exact-head CI, artifact, full capture/recovery, live92 registration and sole-local promotion remain unchecked. See Q280; no live mutation or phase completion.

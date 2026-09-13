@@ -113,11 +113,11 @@ describe("canonical project status", () => {
     expect(byOrder.get(469)?.summary).toContain("611 assertions");
     expect(byOrder.get(470)?.state).toBe("independently_approved");
     expect(byOrder.get(470)?.summary).toContain("1211 assertions");
-    expect(byOrder.get(471)?.state).toBe("built_unverified");
-    expect(byOrder.get(471)?.summary).toMatch(/frozen.*unaccepted/i);
+    expect(byOrder.get(471)?.state).toBe("independently_approved");
+    expect(byOrder.get(471)?.summary).toMatch(/independently.*approved.*598/i);
     expect(byOrder.get(472)?.state).toBe("independently_approved");
     expect(byOrder.get(472)?.summary).toMatch(/identity.*compset.*map.*attributes.*planner/i);
-    expect(byOrder.get(472)?.remaining).toMatch(/publication.*local.*market-quality/i);
+    expect(byOrder.get(472)?.remaining).toMatch(/published.*local.*market-quality/i);
     expect(byOrder.get(467)?.summary).toContain("34739597186");
     expect(byOrder.get(468)?.summary).toContain("508 assertions");
     for (const order of [463, 464, 465, 466] as const) {

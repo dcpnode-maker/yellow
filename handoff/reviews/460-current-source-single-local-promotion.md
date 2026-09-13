@@ -1996,3 +1996,39 @@ Q278 now separately admits an exact16-path successor and fresh CI after byte,
 index and ref preservation. Q279 remains source-only and is independently
 inspected in parallel; unbounded settlement/cleanup diagnostics need adjudication
 before any actual PostgreSQL action. No serving app or hotel data changed.
+
+## Q278 published; Q279 native proof; Q280 actual CI repair
+
+Root published exact16-path049a4de35b9c549cd34c3e7d68dc939ff66f47c3,
+parentdd38a974, treeba9fb08f89c5610385749cbf438b07398ed5889a. All2321 tracked/
+prior/selected working identities, semantic outside index/flags, six staged
+residuals and unrelated refs preserved; every committed blob checked before one
+nonforce exact-refspec push. PR92 draft/open/unmerged and body readback verified.
+Private admission/completion proof: .yellow/evidence/order460/q278-publication-20260913/.
+
+FreshCI34763673230 failed Linux step on exact stale471 assertion116 in
+project-status.test.ts:26pass/2skip/1fail/292. Windows444 synthetic nonzero child
+failed8s with no child/status/log observations:19pass/1fail/30. Parentdd38 exact
+same bytes passed that case5.5s; cold Add-Type is a hypothesis, not established.
+Local-review passed; downstream skipped; full Q278 browser not reached.
+Root retrieved both actual logs; Q280 repairs current assertions and admits
+minimal safe native startup observations without raising limits.
+
+Q279 final source received independent Astra acceptance and root full read.
+Root Q276/Q279 pure10/0/91; explicit ignored types initially failed because the
+compiler requires --ignoreConfig, corrected invocation passes. Root separately
+admitted/executed final nativeDB6D8BEA on the existing Q265 database:1pass/0fail/16,
+520ms, real advisory wait observed before release, rollback/conflict/added-existing
+and final fingerprint/cleanup pass. Separate read-only schema count0. No public/
+hotel data/roles/databases or serving app changed. Full capture/recovery/live92
+and fixed-public metadata registration remain distinct outstanding gates.
+
+## Q280 — independently executed proof, 13 September
+
+Implementer: /root/q258_source_adapter (two native files). Nonimplementer: /root.
+
+Root independently inspected frozen supervisor 85611ad04ef07f7fea29f62658e84c7557e3f3e918c7be28569ef44452b7ae6e and native test 61f6b2548695085e75541cb551da041103b812401872af460e7a54d23860c20b; personally executed gated native suite: 21 pass, 0 fail, 42 assertions in 38.39s. Worker: 21/0/42 in 38.03s. Strict types and 202 boundaries pass. Root current-status proofs: exact pure test 1/0/75; adjacent consumers 8 pass, 2 explicit DB skips, 0 fail, 268 assertions. No local state scripts.
+
+Startup observation is synthetic-only, static stage/timing, atomically written with a 4KiB cap only after existing root/child checks. Production startup position/guards and all deadlines remain unchanged. Remote timeout cause remains unproven; fresh CI required. Q279 actual isolated native 1/0/16 remains accepted, not live registration. Sole local remains 41415/frontier91.
+
+Exact publication paths and preservation requirements are in Q280.

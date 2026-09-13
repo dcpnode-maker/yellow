@@ -79,3 +79,25 @@ key ordering omitted by the original fixture. One corrected-checker replay on th
 same metadata is admitted; no new target or different data scope. Preserve both
 actual RED results. Definition hashbf649258f3c7d10a1c0a9eec839d786eeb2cc33f3c54085dcb7838b3387d0979
 is now measured from the native16.15 function, not a guessed fixture constant.
+
+## Read-only recovery sizing admission
+
+While Q280 CI repair proceeds, root may inspect only native cluster metadata and
+serving release metadata for recovery preparation. Reuse the same protected
+yellow_deploy authority, first verify exact127.0.0.1:55503/160015/data-directory
+identity through a read-only postgres transaction. Inspect sizes/owners/session
+counts of Yellow databases and serving yellow_order444_review_a10851786f17
+frontier/count plus existence/exactness of the three market registration rows.
+No hotel row values, full preservation capture, role/grant write, schema change,
+connection termination, recovery creation, app restart or helper replay.
+Keep5s connect/10s statement limits and bounded sanitized output. Source/recovery
+pins still await eventual exact accepted successor; measurements are not release
+approval and must be revalidated before a later separately admitted action.
+
+Actual first all-database sizing query failed within the bounded diagnostic;
+no size/result was accepted from it. Narrowed serving-only size + catalogue
+inventory succeeds in2.22s: serving21,740,567bytes/frontier91,29sessions,
+market_compset type0 and market permissions0. Other64 Yellow databases have0sessions.
+Native identity matches. No hotel data was read/changed. This makes explicit
+metadata registration necessary for activation; Q279 isolated proof is not
+evidence that those missing live rows exist.

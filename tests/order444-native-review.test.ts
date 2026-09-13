@@ -46,6 +46,15 @@ type SyntheticChildIdentity = Readonly<{
   executable: string;
 }>;
 type SyntheticStreamObservation = Readonly<{ exists: boolean; size: number; tailComplete: boolean }>;
+const syntheticStartupStages = [
+  "test_root_ready", "stream_pump_initialized", "child_started", "child_identity_bound",
+  "stream_pumps_started", "child_exit_observed", "stream_drain_settled",
+] as const;
+type SyntheticStartupStage = typeof syntheticStartupStages[number];
+type SyntheticStartupObservation = Readonly<{
+  schema: "yellow-order444-native-startup/v1";
+  stages: readonly Readonly<{ stage: SyntheticStartupStage; elapsedMilliseconds: number }>[];
+}>;
 
 const syntheticChildCleanupProbe = String.raw`
 function Invoke-SyntheticChildCleanup {
@@ -92,6 +101,26 @@ function syntheticChildIdentity(value: unknown, startedSource: "process" | "cim"
   return { pid: record.pid as number, startedUtc: record.startedUtc, startedSource, executable: record.executable };
 }
 
+function syntheticStartupObservation(value: unknown): SyntheticStartupObservation | undefined {
+  if (value === null || typeof value !== "object" || Array.isArray(value)) return undefined;
+  const record = value as Record<string, unknown>;
+  if (Reflect.ownKeys(record).sort().join("\n") !== "schema\nstages" || record.schema !== "yellow-order444-native-startup/v1" || !Array.isArray(record.stages)) {
+    return undefined;
+  }
+  let previousElapsed = -1;
+  const stages: Array<{ stage: SyntheticStartupStage; elapsedMilliseconds: number }> = [];
+  for (const [index, item] of record.stages.entries()) {
+    if (item === null || typeof item !== "object" || Array.isArray(item)) return undefined;
+    const stage = item as Record<string, unknown>;
+    if (Reflect.ownKeys(stage).sort().join("\n") !== "elapsedMilliseconds\nstage" ||
+      stage.stage !== syntheticStartupStages[index] || !Number.isSafeInteger(stage.elapsedMilliseconds) ||
+      (stage.elapsedMilliseconds as number) < previousElapsed || (stage.elapsedMilliseconds as number) < 0) return undefined;
+    previousElapsed = stage.elapsedMilliseconds as number;
+    stages.push({ stage: stage.stage as SyntheticStartupStage, elapsedMilliseconds: previousElapsed });
+  }
+  return { schema: "yellow-order444-native-startup/v1", stages };
+}
+
 async function waitForSyntheticChildIdentity(path: string, timeoutMs: number): Promise<SyntheticChildIdentity> {
   const deadline = performance.now() + timeoutMs;
   while (performance.now() < deadline) {
@@ -108,10 +137,16 @@ async function waitForSyntheticChildIdentity(path: string, timeoutMs: number): P
 
 async function observeSyntheticSupervisor(caseRoot: string, childReceiptPath: string) {
   const statusPath = join(caseRoot, "supervisor.3000.status.json");
+  const startupPath = join(caseRoot, "supervisor.3000.startup.json");
   const statusText = existsSync(statusPath) ? await readFile(statusPath, "utf8") : undefined;
   let status: unknown;
   try { status = statusText === undefined ? undefined : JSON.parse(statusText); }
   catch { status = { malformed: true, bytes: Buffer.byteLength(statusText ?? "", "utf8") }; }
+  let startup: SyntheticStartupObservation | { malformed: true } | undefined;
+  if (existsSync(startupPath)) {
+    try { startup = syntheticStartupObservation(JSON.parse(await readFile(startupPath, "utf8"))) ?? { malformed: true }; }
+    catch { startup = { malformed: true }; }
+  }
   let childIdentity: SyntheticChildIdentity | undefined;
   if (existsSync(childReceiptPath)) {
     try { childIdentity = syntheticChildIdentity(JSON.parse(await readFile(childReceiptPath, "utf8")), "process"); }
@@ -138,7 +173,7 @@ async function observeSyntheticSupervisor(caseRoot: string, childReceiptPath: st
       };
     }
   }
-  return { status, childIdentity, streams };
+  return { status, startup, childIdentity, streams };
 }
 
 async function stopOwnedSyntheticChild(
@@ -441,6 +476,19 @@ foreach($change in @(@{password='secret'},@{schema='wrong'},@{propertyNode=$id1.
     expect(result.exitCode, result.stderr.toString()).toBe(0);
   });
 
+  nativeTest("synthetic startup observation never writes before its uniquely named test root validates", async () => {
+    const invalidRoot = join(fixtureRoot, "not-a-supervisor-root");
+    const child = join(fixtureRoot, "startup-observation-child.ps1");
+    await writeFile(child, "exit 0\n", "utf8");
+    const result = runPowerShell(supervisorPath, [
+      "-TestMode", "-TestRoot", invalidRoot, "-TestChildScript", child,
+      "-TestMaximumRuntimeMilliseconds", "4000", "-TestPollMilliseconds", "20",
+    ]);
+    expect(result.exitCode).not.toBe(0);
+    expect(existsSync(invalidRoot)).toBe(false);
+    expect(existsSync(join(fixtureRoot, "supervisor.3000.startup.json"))).toBe(false);
+  });
+
   nativeTest("bounded supervisor records one nonzero child, drains its final output and retains only capped logs", async () => {
     const caseRoot = join(fixtureRoot, "supervisor-nonzero");
     const child = join(fixtureRoot, "nonzero-child.ps1");
@@ -468,6 +516,9 @@ foreach($change in @(@{password='secret'},@{schema='wrong'},@{propertyNode=$id1.
       cleanup,
     });
     expect(exitCode, diagnostic).toBe(7);
+    const startup = syntheticStartupObservation(JSON.parse(await readFile(join(caseRoot, "supervisor.3000.startup.json"), "utf8")));
+    expect(startup?.stages.map(stage => stage.stage)).toEqual([...syntheticStartupStages]);
+    expect(startup?.stages.every(stage => Number.isSafeInteger(stage.elapsedMilliseconds) && stage.elapsedMilliseconds >= 0)).toBe(true);
     const status = JSON.parse(await readFile(join(caseRoot, "supervisor.3000.status.json"), "utf8"));
     expect(status).toMatchObject({ schema: "yellow-order444-native-bounded/v1", launchCount: 1, reason: "child_exit", childExitCode: 7, automaticRestart: false });
     for (const stream of ["stdout", "stderr"]) {

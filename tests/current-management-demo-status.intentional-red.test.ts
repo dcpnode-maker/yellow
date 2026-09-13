@@ -12,11 +12,11 @@ test("Order472 status preserves historical Order444 preview without claiming Pha
   expect(PROJECT_BUILD_SNAPSHOT.recordedWork.at(-1)?.order).toBe(472);
   expect(PROJECT_BUILD_SNAPSHOT.recordedWork.at(-1)?.state).toBe("independently_approved");
   const retainedFiscal = PROJECT_BUILD_SNAPSHOT.recordedWork.find(({ order }) => order === 471);
-  expect(retainedFiscal?.state).toBe("built_unverified");
-  expect(retainedFiscal?.summary).toMatch(/frozen.*unaccepted/i);
+  expect(retainedFiscal?.state).toBe("independently_approved");
+  expect(retainedFiscal?.summary).toMatch(/independently.*approved.*598/i);
   const market = PROJECT_BUILD_SNAPSHOT.recordedWork.at(-1);
   expect(market?.summary).toMatch(/identity.*compset.*map.*attributes.*planner/i);
-  expect(market?.remaining).toMatch(/publication.*local.*market-quality/i);
+  expect(market?.remaining).toMatch(/published.*local.*market-quality/i);
   expect(market?.remaining).toMatch(/not.*live|not.*collection|not.*pricing/i);
   const mergedDelivery = PROJECT_BUILD_SNAPSHOT.recordedWork.find(({ order }) => order === 440);
   expect(mergedDelivery?.state).toBe("proof_in_progress");

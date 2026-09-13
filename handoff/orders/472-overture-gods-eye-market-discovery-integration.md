@@ -474,6 +474,12 @@ inputs to existing Phases13/14; no model installation, production claim or scope
 switch. Root requested stable deliverable links directly from the research task.
 Current map integration continues independently of that response.
 
+Revision1.1 DLD archive/date/Drive findings were later received directly and added
+to the existing receiving record. Research owns source-quality/provenance and
+small manifests/scripts in parallel; Codex retains sole repository/DB/release
+ownership. No duplicated build, unverified import, calendar conversion or licence
+admission follows from the handshake.
+
 ### Q268 source checkpoint accepted — 13 September 2026
 
 Root independently executed the actual integrated map/table/planner browser

@@ -952,3 +952,14 @@ all1148 actual browser assertions. Its explicit16-path publication extension now
 admits one exact-preserved native whole-file commit/nonforce push and fresh CI.
 Q279 remains independent source-only proof preparation, not a release prerequisite
 for publishing the browser repair. No local migration/restart or phase closure.
+
+Q280 admits the exact current471/472 expectations in project-status.test.ts and
+minimal safe native-supervisor startup observations in its two named source/test
+files. Actual049a4de CI failures, source-only bounds and ownership are in Q280.
+No timeout increase/retry or live action; native state-script ban remains.
+
+## Q280 frozen repair accepted
+
+Root independently inspected frozen supervisor 85611ad04ef07f7fea29f62658e84c7557e3f3e918c7be28569ef44452b7ae6e and native test 61f6b2548695085e75541cb551da041103b812401872af460e7a54d23860c20b; personally executed gated native suite: 21 pass, 0 fail, 42 assertions in 38.39s. Worker: 21/0/42 in 38.03s. Strict types and 202 boundaries pass. Root current-status proofs: exact pure test 1/0/75; adjacent consumers 8 pass, 2 explicit DB skips, 0 fail, 268 assertions. No local state scripts.
+
+Q280 admits one preserved 15-path successor publication and fresh CI, not local promotion. Reuse exact-Git artifact tooling through a separately scoped minimal rebind; do not replay consumed overlay/recovery wrappers or create duplicate dependencies.
