@@ -21,3 +21,7 @@ src/http/operator/vendor/qrcodegen-v1.8.0-es6.js whitespace=-blank-at-eol
 
 # Q211: the byte-pinned upstream OFL notice includes one trailing space.
 src/http/operator/vendor/urbanist-v1.330/OFL.txt whitespace=-blank-at-eol
+
+# Q271: preserve hash-pinned upstream CRLF bytes, not normalized text copies.
+src/http/operator/vendor/leaflet-1.9.4/leaflet.css -text
+src/http/operator/vendor/leaflet-1.9.4/LICENSE -text

@@ -1531,3 +1531,292 @@ filename/metadata-reader mistakes remain recorded in compact proof, not erased.
 No credential output; unchanged six workers/fiscal providers off, bounded logs,
 no automatic restart/reset/reseed/migration/newDB/mainmerge/phase-complete claim.
 See .yellow/evidence/order466/q258-r2-promotion-proof-20260913.json.
+
+## Q270 / Q271 release-preparation evidence — 13 September2026
+
+Current source633 remains unmerged; fresh root GET /ready still reports
+41415cc5c6953f71d9b3baada6fd9c7853567128/frontier91 at sole3000. No live
+process/database/Git operation was performed during this preparation.
+
+Q270 builder q258_runtime_cutover changed only its five admitted test/workflow/
+fixture files. Root did not implement those changes; it inspected full diffs
+and the routing test. All seven native test bodies/assertions remain unchanged;
+platform selection/hook ownership and required-host failure are explicit.
+No timeout increase or weakened race/projection assertion.
+
+Root personally executes, with prior environment restored afterward:
+`YELLOW_REQUIRE_NATIVE_REVIEW_RESUME=1 bun test tests/native-review-resume.test.ts tests/ci-proof-routing.test.ts tests/referee-typed-parent-fixtures.integration.test.ts`.
+Actual result9pass/4explicitDBskips/0fail/48 in4.42s. The P3 source check takes
+2.04ms in this focused run; no system-wide speedup benchmark is inferred.
+Types (`bun x --no-install tsc --noEmit`),202 import boundaries and diff check pass.
+No database proof, canonical referee, Linux execution or fresh CI is claimed.
+
+Root independently invokes read-only native Git cat-file against
+97209531aaa7babaa5f6f3013b3e9b2c633d5284:tests/run_invariants.py and compares
+raw bytes: exact fixture equality,12,469 bytes, noCR/finalLF, original full hash.
+This retains stronger original-parent evidence than only pinning its projection.
+
+| Final file | SHA256 |
+| --- | --- |
+| .github/workflows/ci.yml | 7707193145E3940DB5577A8923CE53B2012737A32F3F75551904AA359B42A59F |
+| tests/native-review-resume.test.ts | 19605A70C4B2D46D07434AC6BD762223590EE439F067BF17A4219D2D3F503775 |
+| tests/referee-typed-parent-fixtures.integration.test.ts | DCF36E8EC477CF38B38F027A06555A9C496474C9187CCCE3EF220AD92F5CA0B8 |
+| tests/ci-proof-routing.test.ts | 372CAAD12343D33A858BDCB2C44ECC1C8AD17D52F91861E170E5D56BF914A9E3 |
+| tests/fixtures/order130/referee-p0.txt | 3228279BD99A8F9B6AF99748F31D4D4B482A8E627E16D92644D9D859AD8BEFA1 |
+
+Preserved failures: remote633 attempt2 two default5s timeouts (cause unproven);
+builder routing0/1 before implementation; first fixture copy12,466/hash345cc
+did not match original due a col.relname transcription mismatch, repaired and
+byte-compared before acceptance. Isolated former tests passing does not erase
+remote failures. No unchanged CI replay.
+
+Q271 root vendor correction: actual Git hash-object without object writes
+proved filtered CSS9ade8dc4 differed from raw2961b761, and filtered LICENSE7b41f200
+differed from rawbcb3ba1a. A genuine new asset regression0pass/1fail/3assertions
+preceded exactly two -text attributes. Final assets/map/security19pass/0fail/
+363assertions; actual raw/filtered Git hashes now equal for both. Publisher
+SHA/lengths unchanged. Root-authored .gitattributes AB852041334684AA5212E4274F559EB216B449FF1A25EC34D076C7E251588098;
+updated assets test BAFFB1EED416DD9A04A051DA1D3E129012626E4BDAFC47A4334F0147541A2986.
+
+Q271 pure projection remains in progress; no candidate has been materialized.
+The deployment-checklist skill prompted the explicit source/CI/runtime/recovery
+checklist. It does not substitute for required execution or permit stale rollback.
+
+### Q271 pure projection and Q272 status source acceptance
+
+The in-progress statement above is now historical. Astra Ultra froze the two
+Q271 private helper/test files at00bf6638/ea752410. Nonimplementing root read both
+completely and personally executed:
+`bun test ./.yellow/evidence/order460/order472-release-projection.test.ts tests/current-source-status.test.ts tests/current-management-demo-status.intentional-red.test.ts tests/founder-status.integration.test.ts`.
+Actual30pass/2explicit authenticated-DB skips/0fail/781 assertions in1.64s:
+22 projection tests/518 assertions and8 status/source tests/263 assertions.
+No state scripts or tests/project-status.test.ts were executed locally.
+
+The projector accepts only exact HEAD633 and reviewed-working identities for four
+mixed files, applies eight complete before/after transformations, restores only
+published guest-row behavior, preserves all remaining bytes and market lines,
+and rejects drift, normalization, absent/ambiguous fragments and unknown paths.
+No source artifact/index/object/runtime mutation. Complete output pins:
+
+- src/app.ts:50304 bytes,f6d5b4327a68c118407e8777fe7c605629c74f388a5cbd67072245fc02e6986f
+- src/http/operator.ts:365790 bytes,2fc147be9853f2d120a5c7911d0c808201c040578fc79d11490029ada4ac3dcf
+- src/http/operator/operator.css:343870 bytes,f6d9cfbe85820df9a4335072cfe0a9dcf421afbff2621819ce95c4dad6819783
+- src/http/operator/operator.js:708726 bytes,268d5375cac3905621c5a2965e6dd19c339ececf583145d8b97b871cf394219e
+
+Builder's initial18pass/4fail exposed overly broad dependency/purity assertions:
+published partyProfilePicker panel references and embedded quoted source imports
+are legitimate. Assertions were narrowed with explicit preservation proof; no
+transformation/pin changed. Root's vendor -text correction was independently
+inspected and executed by Astra1pass/4filtered/0fail/6 assertions; raw/filtered
+Git blobs agree for both unchanged originals. Not full isolated release proof.
+
+Q272 five-file status builder q258_runtime_cutover captured genuine stale-source
+RED5pass/2skip/3fail, then source alignment. Root personally inspected full diff
+and executed the8 passing cases above. latest472/current460/active14, appended
+471 built_unverified and472 independent source-only acceptance; only Phase14
+planned→active, all18 states retained, through91 coverage unchanged. No live or
+whole-phase completion was asserted. Source SHA256
+aa49ec64edd83bda76037f9c9b0366db8919f3849fc38aa876476bef751d35be.
+
+Read-only current-schema audit identified stale full-current91 release oracles
+and absent market opt-in database CI coverage. Q272 now admits disjoint exact
+compatibility and strict CI-only test-target tranches. They are in implementation,
+not yet independently accepted. Native proof parser remains unchanged; no local
+database provisioning, historical-prefix rewriting or live action is admitted.
+
+### Q272 compatibility and isolated market CI source accepted
+
+The compatibility builder changed exactly the fourteen admitted files. Root
+inspected the full diff and personally ran the three release/setup oracles:
+13 passed, 0 failed, 171 assertions. Only full-current frontier/ledger expectations
+advance to92;129 tables/119 RLS tables/119 policies and historical prefixes remain.
+Migration0092 checksum is the existing fc20c295 pin; no migration was edited here.
+No setup/native-fiscal/state execution or fresh canonical referee is claimed.
+
+The CI builder's first proposed readiness replacement was rejected: it overwrote
+the untracked four-case negative suite with a one-case positive test. Root restored
+the complete previously captured bytes and verified the original Review472 hash
+0e14d896b3557dd989c065cbbb2164e97d3e8f4ac51fad3575e51e28f0b67bc2.
+The builder then made only three parser/validated-target substitutions. Root
+independently reversed those exact unique substitutions in memory and reproduced
+the original full hash. All test bodies, hostile catalogue mutations, fingerprint
+checks, deliberate rollbacks and20-second deadlines survive byte-for-byte.
+Root's first reversal diagnostic used a different TARGET spelling and failed;
+corrected exact matching passed without changing source. No weakened proof counts
+as acceptance.
+
+Other rejected drafts: redaction checked the assertion return rather than actual
+Error; CI pre-deleted an unowned target; routing assertions searched the whole
+workflow; canonical seed alone omitted the two market permission definitions.
+Repairs capture actual errors, create before installing owned cleanup, isolate
+the mandatory step, and explicitly prepare one guarded synthetic fixture before
+all suites. Genuine routing REDs and no-fixture RED are retained. No timeout
+increase or production permission/grant change was made.
+
+The final CI step has one fixed remote ephemeral database,92 canonical migrations,
+canonical type seed, strict role/loopback/CI-sentinel URLs, guarded fixture setup,
+all three original real suites and exact-owned EXIT cleanup. Native55503 parser
+is unchanged. No generic database fallback, implicit client-data seed, default
+market enablement or local Docker/CI database is introduced.
+
+Root personally executed:
+
+- Protected native target first revalidated read-only as PG160015 on retained
+  D:/Yellow/temp/order434-production-cluster-20260906, schema92,
+  yellow_order472_compset_20260913,20,634,647 bytes before the new proof.
+- With explicit native authority restored afterward,
+  `bun test tests/market-compset-environment.test.ts tests/native-market-compset-proof.test.ts tests/market-compset.integration.test.ts tests/market-api.integration.test.ts tests/market-runtime-readiness.integration.test.ts`
+  passed27/0/347 in5.51s:20 actual PostgreSQL cases plus7 pure authority cases.
+  Includes real cross-tenant/current-grant, immutable replay/concurrency, zero
+  preview effects and all four hostile-readiness cases. Only UUID synthetic
+  cohorts in the retained target; no new cluster/database or live hotel changes.
+- Final routing/current-source run of ci-market-proof-routing, ci-proof-routing,
+  market-compset-environment, release-workflow, free-host-arm64 and
+  setup-current-catalogue-oracle passed18/0/306 in147ms. Some authority cases
+  overlap the previous command; counts are separate executions, not summed.
+- Strict TypeScript,202 import boundaries, licence policy for23 installed
+  packages, and diff check pass.
+
+This is source/native acceptance. Actual GitHub Linux/Windows database/referee
+execution, exact candidate proof, publication and single-local promotion remain
+separate. Fresh sole3000 still41415/frontier91; PG13580 and app17936 unchanged.
+
+### Q273 independent helper acceptance and read-only artifact inspection
+
+Builder: /root/astra_ultra_handoff. Independent nonimplementer: root.
+Root read both final private helper/test files completely, inspected the native
+Prepare/Restore operation boundaries and personally executed:
+
+- `bun test ./.yellow/evidence/order460/order472-candidate-artifact.test.ts ./.yellow/evidence/order460/order472-release-projection.test.ts`:
+  45 pass, 0 fail, 626 assertions in720ms (23 Q273 and22 Q271 cases).
+- Standalone strict TypeScript with `--ignoreConfig --noEmit --strict
+  --noUncheckedIndexedAccess --skipLibCheck --target ESNext --module ESNext
+  --moduleResolution bundler --types bun` and both Q273 files: pass.
+  The first command omitted `--ignoreConfig` and stopped at TS5112; this was
+  a command invocation correction, not a source/assertion change.
+- Explicit read-only `inspectOrder472Candidate()`: pass. All2120 baseline files,
+  five preexisting empty directories, shared dependency identity, immutable
+  source633 tree, native executable/process/reparse and resource guards pass.
+  Candidate2303 files,114 individually enumerated overlay inputs and four new
+  directories. No artifact write, manifest write, runtime/DB or Git mutation
+  occurred in this inspection. Fresh `/ready` still reports41415/frontier91.
+
+Frozen helper SHA256:
+`95c62c89c92130efd19a8542b4815232f02c4d41a814a37ff54c8d1d33751b62`.
+Frozen test SHA256:
+`835bdcd1234fad1f8a9f5146656fff59356f440283dfedb3313a6ad6345a54eb`.
+
+Proof covers cumulative published source refresh, exact projected additions,
+all-or-nothing preflight, exclusive sidecars/copy-before-unlink, partial progress,
+unknown/unowned/changed file rejection, full unchanged-file checks, preserved
+empty directories and bounded directory ownership. Interrupted/truncated ownership
+or file data is preserved and stops automatic restoration; it is not guessed away.
+Native Prepare/Restore remain unexecuted. Their one-use exact manifest and action
+receipts belong in the Q273 private record; no self-invalidating change to frozen
+source inputs is required. No extra deployment framework or dependency tree.
+
+The parallel read-only cutover audit establishes that historical90→91 migration
+helpers and consumed41415 cutover cannot be replayed for92. A narrowly pinned
+91→92 preservation/recovery proof remains necessary before live migration.
+This does not block exact candidate/browser/source work. The newer regional/map
+research requirements are recorded in JARVIS-RMS-RECEIVING-20260913.md and directly
+coordinated with the research task to prevent competing source publication.
+
+### Q273 actual exact-candidate execution and restoration
+
+Root froze manifest SHA256
+`8b159b18b0f40db08d1326c4351372eeedc9237eb102211286fec5fd5b58bd57`
+after the preceding source acceptance, using apply_patch. All22 Q272 pins and
+four Q271 output pins matched. The private action record enumerates260 changed
+paths (183 additions/77 replacements), four new directories and fixed sidecars.
+One separately admitted native Prepare succeeded. No new checkout/dependencies.
+
+Against that exact materialized candidate, root personally executed27 selected
+market/browser/source/status/CI-routing test files:160pass,20explicit environment
+skips,0fail,2213 assertions in12.98s. All three real Chromium journeys executed;
+synthetic HTTP and intercepted tiles, not provider collection or live hotel writes.
+Project strict TypeScript and202 boundaries passed. The plain licence CLI's0
+packages was rejected as empty proof: its glob skips the junction. The unchanged
+candidate audit function, passed the verified shared dependency directory explicitly,
+then inspected23 packages/0failures. No licence policy or source was weakened.
+
+Required Windows-native/provenance proof from the same candidate passed9/0/48
+with4 explicit DB skips in4.50s. All seven Windows-native cases executed.
+These selected proofs do not replace the pending exact-head CI or canonical
+database/referee11/0; no setup/state/Docker/WSL or unrestricted suite ran.
+
+One separately admitted Restore succeeded, restoring the original complete
+artifact aggregate d7aed8b4. A final actual full read-only inspection matches
+the frozen manifest, including source/index/refs and dependency identities.
+Original empty directories/junction preserved; only owned temporary candidate
+files/sidecars were removed. The action pair is consumed historical proof.
+Fresh sole3000 remains41415/frontier91. No live migration, publication or phase
+closure is claimed. The private Q273 action record holds admissions and receipts;
+subsequent current-status documentation is not retroactively part of8b159b18.
+
+| Frozen Q272 file | SHA256 |
+| --- | --- |
+| .github/workflows/ci.yml | f757edccdcb3f1080fded87a2533366b8ab02069ab13f5f9d846227af8545357 |
+| tests/helpers/market-compset-environment.ts | e56f3b0cbc8a3cf1e4315d76405c29196b918b18300eb75695b00f51fa38566c |
+| tests/market-compset-environment.test.ts | 18888848acf0cb32cc126acd6497df7a53dbbecb0879e5fc8d0e5bda4cc50a05 |
+| tests/helpers/market-compset-fixture.ts | 951f05d95625f77adabdcfe57ed6a39636dceba69ee8d74b8094e00135310ecc |
+| tests/market-compset.integration.test.ts | 8b04d19ba7df41a24bac4d182453d4d764136886ffd2589f4a665664efe91c9d |
+| tests/market-api.integration.test.ts | 3753f039197fd2a3e67a1d9840d24af3d956347836af5a343b370826272f1310 |
+| tests/market-runtime-readiness.integration.test.ts | 40dec785a61f8b0f934b36aa2a44bfdc498a25143179aeaa055627c59f5cb0a7 |
+| tests/ci-market-proof-routing.test.ts | 2480f23e97bb931697a6d0fc4cae0292bf91f1c1579dbccb8cac01a1ecb14c4e |
+| .github/workflows/release.yml | 5262fedb69a5ba27269219461557899c7eaf431cf9cf5ace792ef93e0247497c |
+| scripts/local-review.sh | 2340e674553af0594bf88d8bf5a2cc562caeb55b9538a3edf650ff2bea9834b1 |
+| setup.sh | a7d06657edd4f2213581cdb206ac5034e4e33a68379e3958c515bece1eca6741 |
+| setup.ps1 | f17b371784a17072f21cea8ff2116c9691dc095040d88ff707a1c5462b822681 |
+| tests/release-workflow.test.ts | ca61b8e8bf0d726755ff6dbac087fca132e356d9223b6d35fd674d29021b6f32 |
+| tests/free-host-arm64.test.ts | 6ae13e04503de99c20beb46d091756bf261d544d155d5829fa7e853620cc6330 |
+| tests/setup-current-catalogue-oracle.test.ts | 48d2d06cc19b26c1b20b2b50800f2c01496e2a373eb1d11b9fa878cbaa594a11 |
+| tests/migrate.integration.test.ts | 38dc4ffba36ad9ef44f16095bb2f459845217605aca0bbde69c5b2232bfd7824 |
+| tests/database-acceptance.integration.test.ts | d64cb6a3c8349b158a0f905ccdce48940f13b49dc747dd96d3ecc5dff9ad9139 |
+| tests/build-readiness.integration.test.ts | 4e48946317225e19ae15d519ae667d882682e8a350198bd94cf76a58095bb22e |
+| tests/fiscal-retry-readiness.integration.test.ts | 0b5458971ecf7309b5105b92f057ae9a46a1199265214bc89c8720a8d0d9b390 |
+| tests/india-gst-accommodation-final-component-tax-recording.integration.test.ts | 5bc3f047a326829b138ad39409064d5e919716bd212f53b1aad7a3902187d45c |
+| tests/india-gst-accommodation-quoted-rate-applicability-recording.integration.test.ts | b68a3ea779894536b44b83679ecaacb2fefbad1efe6e21b82a37f1ebddd00170 |
+| tests/native-fiscal-release-containment.integration.test.ts | 518f9a002e8fd399dd5b2f1c642aa367f894d1d85050a3034e725cc3f1a38ec4 |
+
+### Q274 publication preparation: exact single-file line-ending projection
+
+Root read the full readiness test and compared native raw/filtered Git identities.
+Only `tests/build-readiness.test.ts` differs:82 CRLF/no lone CR,20254 raw bytes
+`afdf59eb83b8b7c0a3df7ff9f0826244c6491e0e8862f4df5514f84b12bc4def` become
+20172 bytes `2b62b915b7d71d91ea274ab5f5babeb774fac9a5eb39e8837098834e4cba9f7c`.
+Existing `text=auto eol=lf` produces exactly the independently calculated
+`cd47d69d106d56c523bd9c5e88dd72c115631f82` Git blob. Q274 explicitly admits
+this one publication-only projection; working bytes and every test assertion stay.
+Root personally compared Bun1.3.14 Transpiler output: byte-identical19918-byte
+code, SHA256 `2816f80644eb81471b3950033bd9aaba2a53b7b2c500927f9f5987ddcb2372ce`.
+`bun test tests/build-readiness.test.ts`:8pass/0fail/250 assertions,409ms.
+This is not a new isolated-candidate or full CI result. All other product pins
+and two vendored CRLF exceptions retain raw/filtered equality requirements.
+
+Fresh read-only native Git confirms HEAD633/current branch/origin, no configured
+hooksPath or commit.gpgsign and no active hooks in the actual Git hooks directory.
+All six preexisting staged paths remain. Fresh sole3000 `/ready` still reports
+41415/frontier91. No actual publication/index/ref/runtime action has occurred.
+
+### Q274 independent source acceptance
+
+Builder /root/astra_ultra_handoff; nonimplementer reviewer/executor /root.
+Root completely read the helper/test, including final exact-digest, v4 flag and
+failure-receipt corrections. Frozen helper SHA256
+`ECF4323A6788A68F24C95276D35CE58118C567C904B2A1B6B71792AEC098CDBC`;
+test SHA256 `A8CDB398B48592566F9B223707AF5B88BF4EC077CC2E46C4255806E6B4800AB6`.
+Root personally `bun test ./.yellow/evidence/order460/order472-selective-publication.test.ts`:
+15pass/0fail/75 assertions in54.53s, no skipped bodies. Native synthetic Git
+commit/index operations prove actual v4 outside assume-unchanged/skip-worktree
+and staged preservation, exact mixed/new/whole blobs and all working residuals.
+Wrong head/index/input, scoped staging, hooks/signing/filter, aliases and unknown
+paths refuse; after-commit/after-CAS failures are retained without rollback/push.
+Tiny owned synthetic repositories are removed only after path/ownership checks.
+Strict standalone TypeScript with `--ignoreConfig --strict --noUncheckedIndexedAccess`
+passes. Initial builder missing-module RED and default5s new-test harness timeout
+are retained in task output; only newly authored native tests now explicitly have
+a20s bound. No existing product deadline/assertion changed.
+Actual read-only115-path inspection succeeded under builder; root separately
+freezes its actual manifest after these documentation receipts. Publication,
+remoteCI and runtime changes are not implied by this source acceptance.

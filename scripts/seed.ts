@@ -1,4 +1,5 @@
 import { SQL, type ReservedSQL } from "bun";
+import { MARKET_COMPSET_EXTENSION_TYPE, MARKET_COMPSET_SCHEMA } from "../src/contexts/distribution";
 import {
   RATE_MODEL_CATALOGUE,
   RATE_MODEL_EXTENSION_SCHEMA,
@@ -35,6 +36,9 @@ export const SEED_PROPERTY = Object.freeze({
 const SEED_ACTOR_ID = "00000000-0000-0000-0000-000000000960";
 
 export const LAUNCH_EXTENSION_TYPES = Object.freeze([
+  // Managed configuration type only: each property explicitly confirms its own
+  // version through the authorized command. No default instance or grant is seeded.
+  { type: MARKET_COMPSET_EXTENSION_TYPE, jsonSchema: MARKET_COMPSET_SCHEMA },
   {
     type: "vertical_profile",
     jsonSchema: { $id: "pms:vertical_profile:1", type: "object", required: ["terminology", "claim_mode_default", "features"], properties: {

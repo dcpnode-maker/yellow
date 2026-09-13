@@ -258,13 +258,13 @@ describe("Order 064 recorded build snapshot", () => {
     const rows = manifestRows(manifest);
     expect(rows.length).toBeGreaterThan(0);
     expect(PROJECT_BUILD_SNAPSHOT.schemaVersion).toBe(2);
-    expect(PROJECT_BUILD_SNAPSHOT.label).toBe("Current-source receiving integration in progress; cashier credit-note issue source accepted");
+    expect(PROJECT_BUILD_SNAPSHOT.label).toBe("Current-source release integration in progress; bounded market discovery source accepted");
     expect(PROJECT_BUILD_SNAPSHOT.recordedAt).toBe("2026-09-13");
-    expect(PROJECT_BUILD_SNAPSHOT.roadmap.latestBuiltOrder).toBe(470);
+    expect(PROJECT_BUILD_SNAPSHOT.roadmap.latestBuiltOrder).toBe(472);
     expect(PROJECT_BUILD_SNAPSHOT.review.gate3Debt).toBe(0);
     expect(PROJECT_BUILD_SNAPSHOT.review.state).toBe("built_unverified");
     expect(PROJECT_BUILD_SNAPSHOT.roadmap.currentOrder).toBe(460);
-    expect(PROJECT_BUILD_SNAPSHOT.roadmap.activePhase).toBe(7);
+    expect(PROJECT_BUILD_SNAPSHOT.roadmap.activePhase).toBe(14);
     expect(PROJECT_BUILD_SNAPSHOT.roadmap.phaseCount).toBe(18);
     expect(reviewCoverage.throughOrder).toBe(91);
     expect(reviewCoverage.approvedReviewFiles).toContain("045-091-wave-a.md");
@@ -566,7 +566,7 @@ describe("Order 064 recorded build snapshot", () => {
       165, 166, 168, 169, 170, 171, 173, 174, 175, 176, 177, 178,
       179, 180, 181, 182, 183, 184, 185, 186, 188, 189,
       190, 191, 192, 193, 195, 199, 236, 310, 396, 429, 434, 438, 440, 444,
-      453, 454, 455, 458, 459, 460, 461, 462, 463, 464, 465, 466, 467, 468, 469, 470,
+      453, 454, 455, 458, 459, 460, 461, 462, 463, 464, 465, 466, 467, 468, 469, 470, 471, 472,
     ]);
     expect(recordedOrders).not.toContain(167);
     expect(recordedOrders).not.toContain(172);
@@ -579,12 +579,15 @@ describe("Order 064 recorded build snapshot", () => {
     expect(PROJECT_BUILD_SNAPSHOT.recordedWork.filter(({ order }) => order === 440 || order === 444).map(({ order, state }) => [order, state])).toEqual([
       [440, "proof_in_progress"], [444, "proof_in_progress"],
     ]);
-    expect(PROJECT_BUILD_SNAPSHOT.recordedWork.at(-1)?.order).toBe(470);
+    expect(PROJECT_BUILD_SNAPSHOT.recordedWork.at(-1)?.order).toBe(472);
     expect(PROJECT_BUILD_SNAPSHOT.recordedWork.at(-1)?.state).toBe("independently_approved");
     expect(PROJECT_BUILD_SNAPSHOT.recordedWork.find(({ order }) => order === 461)?.summary).toContain("synthetic sandbox transport");
     expect(PROJECT_BUILD_SNAPSHOT.recordedWork.find(({ order }) => order === 462)?.remaining).toContain("No client data has been loaded");
     expect(PROJECT_BUILD_SNAPSHOT.recordedWork.find(({ order }) => order === 463)?.summary).toContain("referee 11/11");
     expect(PROJECT_BUILD_SNAPSHOT.recordedWork.find(({ order }) => order === 464)?.remaining).toContain("published successor 41415cc5");
+    expect(PROJECT_BUILD_SNAPSHOT.recordedWork.find(({ order }) => order === 471)?.state).toBe("built_unverified");
+    expect(PROJECT_BUILD_SNAPSHOT.recordedWork.find(({ order }) => order === 472)?.summary).toMatch(/identity.*compset.*map.*attributes.*planner/i);
+    expect(PROJECT_BUILD_SNAPSHOT.recordedWork.find(({ order }) => order === 472)?.remaining).toMatch(/publication.*local.*market-quality/i);
     expect(PROJECT_BUILD_SNAPSHOT.recordedWork.find(({ order }) => order === 199)?.summary).toMatch(/196–199/);
     expect(PROJECT_BUILD_SNAPSHOT.recordedWork.find(({ order }) => order === 199)?.state).toBe("independently_approved");
     const order236: { readonly state: string; readonly summary: string; readonly remaining?: string } | undefined =
@@ -654,8 +657,8 @@ describe("Order 064 recorded build snapshot", () => {
     expect(PROJECT_BUILD_SNAPSHOT.phases[5]?.state).toBe("reviewed");
     expect(PROJECT_BUILD_SNAPSHOT.phases[6]?.state).toBe("reviewed");
     expect(PROJECT_BUILD_SNAPSHOT.phases[7]?.state).toBe("active");
-    expect(PROJECT_BUILD_SNAPSHOT.phases.slice(8).every(({ state }) => state === "planned")).toBe(true);
-    expect(PROJECT_BUILD_SNAPSHOT.phases.filter(({ state }) => state === "active").map(({ number }) => number)).toEqual([7]);
+    expect(PROJECT_BUILD_SNAPSHOT.phases.filter(({ number }) => number !== 14 && number >= 8).every(({ state }) => state === "planned")).toBe(true);
+    expect(PROJECT_BUILD_SNAPSHOT.phases.filter(({ state }) => state === "active").map(({ number }) => number)).toEqual([7, 14]);
   });
 
   test("P4/P5: health stays exact and assets contain honest same-origin status UI", async () => {

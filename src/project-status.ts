@@ -17,7 +17,7 @@ export interface ProjectRecordedWorkSnapshot {
     | 165 | 166 | 168 | 169 | 170 | 171 | 173 | 174 | 175 | 176 | 177 | 178
     | 179 | 180 | 181 | 182 | 183 | 184 | 185 | 186 | 188 | 189
     | 190 | 191 | 192 | 193 | 195 | 199 | 236 | 310 | 396 | 429 | 434 | 438 | 440 | 444
-    | 453 | 454 | 455 | 458 | 459 | 460 | 461 | 462 | 463 | 464 | 465 | 466 | 467 | 468 | 469 | 470;
+    | 453 | 454 | 455 | 458 | 459 | 460 | 461 | 462 | 463 | 464 | 465 | 466 | 467 | 468 | 469 | 470 | 471 | 472;
   readonly state: ProjectRecordedWorkState;
   readonly summary: string;
   readonly remaining?: string;
@@ -72,12 +72,12 @@ export const DEFAULT_OPERATOR_RUNTIME_STATUS: OperatorRuntimeStatus = Object.fre
 export const PROJECT_BUILD_SNAPSHOT: ProjectBuildSnapshot = Object.freeze({
   schemaVersion: 2,
   recordedAt: "2026-09-13",
-  label: "Current-source receiving integration in progress; cashier credit-note issue source accepted",
+  label: "Current-source release integration in progress; bounded market discovery source accepted",
   roadmap: Object.freeze({
     phaseCount: 18,
-    latestBuiltOrder: 470,
+    latestBuiltOrder: 472,
     currentOrder: 460,
-    activePhase: 7,
+    activePhase: 14,
   }),
   review: Object.freeze({
     independentlyReviewedThroughOrder: INDEPENDENTLY_REVIEWED_THROUGH_ORDER,
@@ -462,6 +462,18 @@ export const PROJECT_BUILD_SNAPSHOT: ProjectBuildSnapshot = Object.freeze({
       summary: "Order 470 independently approved the cashier full-credit-note issue source-only workflow. Root's final proof passed 64 tests with 1211 assertions and 6 explicit real-database skips, including desktop and 390px browser coverage and retained invoice/credit-note regressions. Source 539b3b02, pure proof 3bd83172 and root-owned browser proof 01cbff2f were frozen.",
       remaining: "This source acceptance is not a new runtime promotion or permanent delivery guarantee; the last verified runtime remains 41415/frontier91 and dynamic runtime build information remains authoritative. Publication, provider activation, fiscal eligibility, Phase 7 and whole-application completion remain separate claims.",
     }),
+    Object.freeze({
+      order: 471,
+      state: "built_unverified" as const,
+      summary: "Order 471 retains frozen, unaccepted credit-note provider-registration UI source and its bounded pure checkpoint. Independent browser acceptance remains incomplete; no provider request was made.",
+      remaining: "The retained fiscal source remains unverified while Order472 has priority. No provider activation, runtime promotion, fiscal eligibility or Phase 7 completion follows from this frozen work.",
+    }),
+    Object.freeze({
+      order: 472,
+      state: "independently_approved" as const,
+      summary: "Order 472 independently approved bounded Phase14 market discovery source: property identity suggestions, explicit saved compsets, evidence map, selectable attributes and non-executing planner detail. Review472 records Q267's 153 tests/1641 assertions and Q268's 139 passes/1777 assertions, including native, PostgreSQL and browser proof under their explicit boundaries.",
+      remaining: "This is independent source acceptance only: publication, local integration and market-quality review remain required. It is not live, collection or pricing authority; broader RMS work, retained fiscal Order471 and the dependency-gated 11→13→17 sequence remain.",
+    }),
   ] satisfies readonly ProjectRecordedWorkSnapshot[]),
   phases: Object.freeze([
     Object.freeze({ number: 0, name: "Bootstrap (repo that proves the loop)", state: "reviewed" as const }),
@@ -478,7 +490,7 @@ export const PROJECT_BUILD_SNAPSHOT: ProjectBuildSnapshot = Object.freeze({
     Object.freeze({ number: 11, name: "Groups & Blocks", state: "planned" as const }),
     Object.freeze({ number: 12, name: "UAE ASP + AR + migration tooling", state: "planned" as const }),
     Object.freeze({ number: 13, name: "Voice and Conversational Command Layer", state: "planned" as const }),
-    Object.freeze({ number: 14, name: "Adaptive RMS and Revenue Intelligence", state: "planned" as const }),
+    Object.freeze({ number: 14, name: "Adaptive RMS and Revenue Intelligence", state: "active" as const }),
     Object.freeze({ number: 15, name: "CRM, CRS and Direct Booking", state: "planned" as const }),
     Object.freeze({ number: 16, name: "Reporting, Forecasting and Executive Intelligence", state: "planned" as const }),
     Object.freeze({ number: 17, name: "Events, Outlets and Hotel Interfaces", state: "planned" as const }),

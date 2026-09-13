@@ -872,3 +872,51 @@ app17936/supervisor17096, retainedPG13580/55503, frontier91. Saved-login, invoic
 reads, exact invoice/print assets, native identities and honest fiscal blocker pass.
 Stage17732 is stopped. No reseed/migration/newDB/provider/mainmerge/phase closure.
 Current detail is Q258/Review460 and Order466 q258-r2-promotion-proof evidence.
+
+### Q270 — release-proof efficiency preparation
+
+Q270 explicitly admits the narrow CI/test/provenance fixture repair and root
+release-checklist paths listed there. Preserve existing safety assertions and
+time limits while moving Windows-native execution to its required Windows lane
+and removing P3's avoidable Git process through a verified immutable P0 fixture.
+No live action or publication is authorized by that source scope.
+The current release checklist is handoff/reviews/460-release-checklist-20260913.md.
+Accepted Order472 mixed-file changes require an isolated exact source manifest;
+paused445 and frozen471 remain preserved, not silently included.
+
+Q271 adds only the two named private pure source-projection/test files, with
+bounded ownership of the four mixed app/operator inputs. No working-file or
+Git mutation and no candidate materialization follows from this preparation.
+The final isolated candidate remains a separately scoped, proved release.
+
+Q272 admits the exact five current-source status/snapshot files, tests-first,
+to represent accepted472 and frozen471 without claiming live delivery or phase
+completion. Only Phase14 changes planned -> active; all18 phases retained.
+No local state-script execution or live action follows from this metadata scope.
+
+Q272 further enumerates the fourteen current-schema compatibility files and
+eight isolated market CI/test-environment files under disjoint named ownership.
+This is source-only alignment to92 and required real CI market coverage, without
+weakening native55503 authority, historical prefixes or Q270 Windows proof.
+The exact fixed ephemeral CI database is remote-run only; no local/live DB action
+or publication is admitted by this extension. Independent proof remains required.
+
+Q273 admits exactly the two inert existing-artifact candidate helper/test files
+and root manifest/records. Reuse the exact verified28.7MB source artifact and
+dependency junction; no new worktree, private index/object or dependency tree.
+Only HEAD633 plus individually accepted/pinned changes, with one explicit market
+addendum projection in addition to Q271's four mixed sources. Artifact write and
+restoration require the separate root admission after independent helper proof.
+
+Root's private Q273 action/receipt record is
+`.yellow/evidence/order460/order472-candidate-actions.md`, excluded from the
+candidate source fingerprint. It records the exact manifest hash and separately
+admitted Prepare/Restore footprints without mutating frozen release inputs.
+This is record scope only, not permission to execute an unproved helper.
+
+Q274 admits the two exact inert selective-publication helper/test files, seven
+root governance receipt exceptions and named private publication records listed
+there. It replaces stale publisher reuse with minimal native Git operations and
+one standard temporary index, preserving all working residuals and outside staged
+entries. No actual Yellow Git/network mutation follows until independent proof
+and a separate exact root action admission. No extra checkout/object store.

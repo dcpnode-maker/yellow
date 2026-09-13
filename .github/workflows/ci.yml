@@ -164,6 +164,12 @@ jobs:
       - name: Install frozen native proof dependencies
         run: bun install --frozen-lockfile
 
+      - name: Prove Q200 reboot-resume source boundaries on Windows
+        shell: pwsh
+        env:
+          YELLOW_REQUIRE_NATIVE_REVIEW_RESUME: '1'
+        run: bun test tests/native-review-resume.test.ts
+
       - name: Prove bounded native review ownership and startup failures
         shell: pwsh
         env:
@@ -1026,6 +1032,58 @@ jobs:
           bun run test:database
           bun run schema:check
 
+      - name: Prove Order472 market authority, API and runtime readiness on an isolated target
+        shell: bash
+        run: |
+          set -euo pipefail
+          market_database="yellow_order472_market_ci"
+          cleanup_market_database() {
+            docker compose exec -T postgres psql --username yellow_deploy --dbname postgres --set ON_ERROR_STOP=1 \
+              --command "DROP DATABASE IF EXISTS yellow_order472_market_ci WITH (FORCE)"
+          }
+          unset YELLOW_MIGRATIONS_DIR YELLOW_REVIEW_SEED_URL
+          docker compose exec -T postgres psql --username yellow_deploy --dbname postgres --set ON_ERROR_STOP=1 \
+            --command "CREATE DATABASE ${market_database}"
+          trap cleanup_market_database EXIT
+          market_deploy_url="postgres://yellow_deploy:${YELLOW_DEPLOY_DATABASE_PASSWORD}@${POSTGRES_ADDRESS}/${market_database}"
+          market_runtime_url="postgres://yellow_runtime:${YELLOW_RUNTIME_DATABASE_PASSWORD}@${POSTGRES_ADDRESS}/${market_database}"
+          market_registrar_url="postgres://yellow_extension_registrar:${YELLOW_EXTENSION_REGISTRAR_DATABASE_PASSWORD}@${POSTGRES_ADDRESS}/${market_database}"
+          YELLOW_DEPLOY_DATABASE_URL="$market_deploy_url" \
+          YELLOW_RUNTIME_DATABASE_URL="$market_runtime_url" \
+          YELLOW_EXTENSION_REGISTRAR_DATABASE_URL="$market_registrar_url" \
+            bun run db:migrate
+          YELLOW_DEPLOY_DATABASE_URL="$market_deploy_url" \
+          YELLOW_RUNTIME_DATABASE_URL="$market_runtime_url" \
+          YELLOW_EXTENSION_REGISTRAR_DATABASE_URL="$market_registrar_url" \
+            bun run db:seed
+          export YELLOW_REQUIRE_MARKET_COMPSET_INTEGRATION=1
+          export YELLOW_ORDER472_MARKET_COMPSET_CI_MODE=1
+          export YELLOW_ORDER472_MARKET_COMPSET_DEPLOY_DATABASE_URL="$market_deploy_url"
+          export YELLOW_ORDER472_MARKET_COMPSET_RUNTIME_DATABASE_URL="$market_runtime_url"
+          export YELLOW_ORDER472_MARKET_COMPSET_REGISTRAR_DATABASE_URL="$market_registrar_url"
+          export CI=true
+          export GITHUB_ACTIONS=true
+          export POSTGRES_ADDRESS="$POSTGRES_ADDRESS"
+          bun -e '
+            import { SQL } from "bun";
+            import { readMarketCompsetIntegrationEnvironment } from "./tests/helpers/market-compset-environment";
+            import { seedMarketCompsetFixture } from "./tests/helpers/market-compset-fixture";
+            const environment = readMarketCompsetIntegrationEnvironment();
+            const deploy = new SQL(environment.deployDatabaseUrl, { max: 1, prepare: false });
+            let failureCode;
+            try {
+              await seedMarketCompsetFixture(deploy, { label: "market-ci" });
+            } catch {
+              failureCode = "market_compset_ci_fixture_preparation_failed";
+            } finally {
+              try { await deploy.close({ timeout: 0 }); } catch {
+                failureCode ??= "market_compset_ci_fixture_close_failed";
+              }
+            }
+            if (failureCode !== undefined) throw new Error(failureCode);
+          '
+          bun test tests/market-compset.integration.test.ts tests/market-api.integration.test.ts tests/market-runtime-readiness.integration.test.ts
+
       - name: Prove current operational and fiscal review fixtures with split authority
         shell: bash
         run: |
@@ -1118,7 +1176,7 @@ jobs:
           READY_FILE="$proof_directory/readiness.json" bun -e '
             const body = await Bun.file(process.env.READY_FILE!).json();
             if (body.status !== "ready" || body.build?.revision !== process.env.YELLOW_BUILD_SHA
-                || body.build?.expectedMigrationFrontier !== 91
+                || body.build?.expectedMigrationFrontier !== 92
                 || body.target !== "yellow_runtime_database") process.exit(1);
           '
 

@@ -138,11 +138,12 @@
 </div>
 </details>
 <details class="workspace-group" data-workspace-group="revenue">
-<summary><span>Rates & inventory</span><span class="workspace-group-count">3</span></summary>
+<summary><span>Rates & inventory</span><span class="workspace-group-count">4</span></summary>
 <div class="workspace-group-items">
 <button class="domain-tab" id="nav-inventory" type="button" data-view="inventory" aria-controls="inventory-view"><svg class="domain-icon" aria-hidden="true" viewBox="0 0 256 256"><use href="#ph-package"/></svg><span>Inventory setup</span></button>
 <button class="domain-tab" id="nav-restrictions" type="button" data-view="restrictions" aria-controls="restrictions-view"><svg class="domain-icon" aria-hidden="true" viewBox="0 0 256 256"><use href="#ph-prohibit"/></svg><span>Restrictions</span></button>
 <button class="domain-tab" id="nav-rates" type="button" data-view="rates" aria-controls="rates-view"><svg class="domain-icon" aria-hidden="true" viewBox="0 0 256 256"><use href="#ph-tag"/></svg><span>Rates</span></button>
+<button class="domain-tab" id="nav-market" type="button" data-view="market" aria-controls="market-view"><svg class="domain-icon" aria-hidden="true" viewBox="0 0 256 256"><use href="#ph-chart-line-up"/></svg><span>Market evidence</span></button>
 </div>
 </details>
 <details class="workspace-group" data-workspace-group="system">
@@ -1748,6 +1749,9 @@ Enter a valid range or pasted list to preview the exact rooms.
 </form>
 </div>
 <p class="inventory-status" id="rates-status" role="status" aria-live="polite">Open Rates to load live configuration.</p>
+</section>
+<section id="market-view" hidden aria-labelledby="market-title">
+<div id="market-mount" data-testid="market-mount"></div>
 </section>
 <div class="win-status-bar" aria-hidden="true"><span>Ready</span><span>PostgreSQL truth</span></div>
 <div class="win-taskbar" aria-hidden="true"><strong>Start</strong><span>Yellow Hotel Operations</span><time>Local</time></div>

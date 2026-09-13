@@ -6,7 +6,27 @@ permit; no worker may silently widen an order. A phase is DONE only when its DoD
 checks pass in CI. Every session starts with the ritual below; no phase may modify
 a prior phase's public surface without a written note in `DECISIONS.log`.
 
-## Current implementation status — 2026-09-07, consolidated Codex Yellow work
+## Current priority — 13 September 2026
+
+[Order472](handoff/orders/472-overture-gods-eye-market-discovery-integration.md)
+implements the founder's recovered priority: bounded Phase14 Overture/God's Eye
+discovery -> confirmed compset -> map/table -> existing market planner.
+The [receiving record](docs/research/OVERTURE-GODS-EYE-RECEIVING-20260913.md)
+is authoritative for this handoff; do not repeat research or create a second stack.
+
+Current source checkpoint D1489: property-granted competitor confirmation,
+immutable versions, exact replay and HTTP routes now pass113 focused tests,
+including11 actual PostgreSQL cases on an isolated frontier92 target. The canonical
+schema snapshot is captured from that database. Runtime composition and the
+map/table/planner journey remain; no phase or live-delivery completion is claimed.
+
+This is a sequencing exception, not closure of Phase7 or the later full RMS phase.
+Preserve471 uncommitted and resume fiscal completion after this bounded delivery,
+then follow the retained11→13→17 priority with mandatory dependencies. Phase13
+remains voice; Phase14 remains RMS. All18 phase definitions/DoD below are retained.
+See [PROJECT-STATUS](docs/PROJECT-STATUS.md) for current source, CI and local truth.
+
+## Historical implementation status — 2026-09-07, consolidated Codex Yellow work
 
 PR90 is independently merged as4ba1d6f after all-six CI, actual native ARM64 source
 binding and separate post-merge80 schema/referee11/11. Q207 now implements the

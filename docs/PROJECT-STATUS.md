@@ -1,10 +1,10 @@
 # Yellow project status
 
 <!-- status-schema: yellow-project-status/v1 -->
-<!-- current-phase: 7 -->
-<!-- current-task: Codex Yellow — resumed: integrate existing PriceLabs/market pipelines and private staging, then current-line phase closure and the retained build priorities -->
-<!-- current-order-files: handoff/orders/470-cashier-full-credit-note-issue.md;handoff/orders/460-current-source-single-local-promotion.md;handoff/orders/462-pricelabs-intake-and-market-pipeline-integration.md;handoff/orders/461-bounded-irp-sandbox-acceptance.md -->
-<!-- current-lifecycle: ACTIVE resumed2026-09-13; Order470 cashier full-credit source independently accepted, root64pass/6DBskips/0fail1211 including desktop/390px; Q263 exact15pathpublication preparing. Published4696d4f8ea9 CI34741807806 all six jobs passed, canonical11/0 personally retrieved. Earlier33a459120s CI timeout retained; not a proven cause/fix. Sole3000 verified41415/frontier91 with saved login;468/469/470 not delivered. Q253 policy, real client intake, authentic provider acceptance and remaining phase closure pending -->
+<!-- current-phase: 14 -->
+<!-- current-task: Codex Yellow — Order472 priority Overture/God's Eye discovery integration; preserve fiscal work, then resume phase closure and dependency-gated 11→13→17 -->
+<!-- current-order-files: handoff/orders/472-overture-gods-eye-market-discovery-integration.md;handoff/orders/470-cashier-full-credit-note-issue.md;handoff/orders/460-current-source-single-local-promotion.md;handoff/orders/462-pricelabs-intake-and-market-pipeline-integration.md;handoff/orders/461-bounded-irp-sandbox-acceptance.md -->
+<!-- current-lifecycle: ACTIVE2026-09-13 Order460 integrating accepted Order472. Q273 exact candidate8b159b18 passed root160pass20explicit-skips0fail2213 including three actual browser journeys; required native9pass4DBskips0fail48, types202/licences23. Explicit Restore and full preservation verified. Q274 selective-publication helper accepted root15pass0fail75/nativev4 preservation/types; exact115-path publication preparing. Full CI/referee and live91to92 remain pending. Source92, published633 and sole3000 served41415/frontier91 distinct. Frozen471/paused445 and all18phases/11to13to17 preserved; no provider/phaseclosure claim -->
 
 This is the canonical current-state record. Historical orders, reviews, decisions
 and ledger entries remain evidence; their filenames are not an active backlog.
@@ -12,7 +12,161 @@ and ledger entries remain evidence; their filenames are not an active backlog.
 
 ## Current task
 
-**Current functional continuation — Order470.** The next missing cashier journey
+**Current priority — Order472, bounded Phase14 RMS discovery integration.**
+The actual founder messages in **Yellow technology research** and PR92/PR86
+prioritize Overture/God's Eye before other feature work. Root received both
+handoffs and completed an Astra Ultra source audit. The
+[single receiving record](research/OVERTURE-GODS-EYE-RECEIVING-20260913.md) records
+archive identities, original requirements, reuse, gaps, acceptance and sequencing.
+The next complete flow is property identity -> regional candidates -> explicitly
+confirmed competitor set -> useful2D map/table -> existing market planner.
+Built source now includes normalized discovery, the v2 source-point artifact
+adapter, immutable byte-admission checker, dated refresh fallback and explicit
+native filesystem catalog, plus property-bound competitor confirmation and read APIs.
+The prior backend checkpoint passed113 tests/838 assertions across13 files, including
+11 actual PostgreSQL integration tests and9 native filesystem tests. Strict types
+and202 import boundaries pass. These11 integration tests are not a new execution
+of the canonical11-invariant referee or a whole-application release approval.
+Astra Ultra independently
+executed13 native extractor tests. Two real small range extracts
+(Riyadh33/Dubai35 records) were independently hashed/admitted
+by root; these are all-places evidence, not verified hotel coverage. Exact proof
+and genuine corrected failures are in [Review472](../handoff/reviews/472-market-discovery-intake.md).
+No global archive has been imported into Yellow. Q266 now composes the native
+catalog and managed API at startup when explicitly enabled, and adds a lazy
+Market evidence workspace to the existing operator shell. Its source-point plot,
+filter, paginated records, evidence review and explicit confirmation now have
+actual browser proof with synthetic responses. Source frontier is92; these are
+not yet delivered to the running app. The Windows catalog loads both pinned files through a bounded
+read-only child and rejects unsafe paths, changing/wrong files and partial catalogs.
+Actual native proof is separate from isolated mocked child-supervision tests;
+non-Windows native loading remains explicitly unsupported in this tranche.
+Confirmation now rechecks active actors and current property grants before replay,
+locks before version comparison, and persists immutable versioned evidence with
+atomic facts/outbox. The generic extension API cannot manage or disclose this type.
+Migration0092 and synthetic tests ran only in the Q265 native proof database
+(19,438,615 bytes at that checkpoint); live hotel records and the single app
+were not changed.
+Q267 now connects URL/ID/name/coordinate suggestions to deliberately selected
+identity, displays original saved evidence even outside today's catalog, permits
+market-only users to navigate their own authorized properties, and previews the
+existing planner from an explicit subset of the exact saved competitor-set version.
+The preview is read-only and non-executable: it neither collects rates nor publishes
+prices. Q268 now adds the requested opt-in real street map, selectable table
+attributes, keyboard/click evidence inspection and full bounded planner detail.
+The map cannot select/confirm competitors; external tiles are optional and the
+evidence table remains usable offline. Marker/attribute data retains source
+provenance and reported/unknown status without inventing hotel identity.
+
+The prior Q267 aggregate passed153 tests/1641 assertions across19 files in
+61.41 seconds, including20 actual PostgreSQL cases and9 native filesystem cases.
+Two real-shell browser journeys pass82 assertions against synthetic HTTP responses.
+Strict types and202 import boundaries pass. Review472 records ownership, exact
+hashes, actual failures and repairs. Current-grant/version locks, zero durable
+preview effects, 50+3 property pagination, uncertain retries and late-response
+isolation are covered. No production guard or deadline was weakened. The same
+small guarded synthetic database was reused; no new stack or hotel-data import.
+
+Q268's new source/UI/security aggregate is139pass,20explicit environment-gated
+skips,0fail,1777assertions across19 selected files. The17 executing files include
+three real browser journeys; the new69-assertion map proof intercepts every tile
+request and covers privacy, protocol,500-record limits, mobile containment,
+bounded non-animated keyboard movement, offline handling and session cleanup.
+These are not new native/DB/referee results or release approval. Types and202
+boundaries pass; Review472 retains exact commands, hashes and repaired failures.
+
+The separate ChatGPT research handshake is now [received in the main project](research/JARVIS-RMS-RECEIVING-20260913.md):
+Jarvis cross-device workload, routed model candidates, capacity assumptions and
+evaluation inputs are linked to existing Phases13/14. Literal deliverable names
+were obtained directly, but the other task's sandbox file bytes are not imported.
+No model selection, licence acceptance, hardware purchase or benchmark is implied.
+
+Next: exact-source publication/release gates and single-local integration.
+Resume the preserved fiscal completion
+after this bounded priority; retain dependency-gated11→13→17. Existing cadence,
+margin, source adapters and saved-evidence primitives are reused, not rebuilt.
+No new founder action is required for current source work.
+
+**Current acceleration plan.** Critical native and authorization design uses Astra
+Ultra; disjoint domain, HTTP and UI ownership permits parallel implementation with
+faster workers on bounded work. Fix interaction contracts upfront and run the real
+end-to-end browser journey early: unit-only green did not catch this tranche's
+cross-property and stale-response defects. Root integrates and executes focused
+proofs, with full release gates once per coherent delivery, not per small control.
+The compset slice reuses extensions, idempotency, facts and outbox;
+it adds no production table, separate service or second application stack.
+One small synthetic database is retained in the existing native cluster for proof,
+not another hotel database or copied application. A separate
+read-only CI diagnosis confirms both outstanding timing failures involve external
+children; it does not establish their cause. The isolated AST and referee
+provenance cases now pass unchanged on the native host, without database/app/state
+execution. Q270 admits a test-only efficiency repair: required Windows-native
+execution and a pinned12,469-byte original-parent fixture replacing the provenance
+Git child. Root now independently accepts that repair after actual required
+Windows/source9pass/4explicitDBskips/0fail/48 in4.42s, exact original-parent byte
+comparison, strict types and202 boundaries. All seven native safety test bodies
+and existing deadlines remain unchanged; fresh remote CI is still pending. The
+[current release checklist](../handoff/reviews/460-release-checklist-20260913.md)
+tracks exact-source proof, publication and single-local delivery separately.
+Astra's inclusion audit confirms accepted pins match, but shared app/operator
+files contain paused445 fragments; only accepted hunks may enter the candidate.
+This is not authority to stage whole mixed files or repeat unchanged CI. Q253's one-use
+debit-adjustment policy has been asked separately; current discovery work continues.
+
+**Release integration checkpoint.** Q271's four-file pure projector is independently
+accepted (22 tests,518 assertions), retaining all accepted market code while leaving
+paused445 outside the release. The five-file in-app status update now records
+472/source acceptance and471/frozen status, with all18 phases preserved. Q272 aligns
+full-current release expectations to92 without rewriting historical migration
+prefixes. Root independently ran27 passing checks, including20 real PostgreSQL
+cases in the same small synthetic database, plus18 final routing/release checks.
+An accidental weaker readiness-test replacement was rejected, restored to its
+original full hash, and all hostile cases reexecuted; Review460 records the repair.
+Strict types,202 import boundaries and23-package licence checks pass.
+
+Q273 reused the existing verified28.7MB source artifact and shared dependency
+junction for exact candidate proof, then restored its original bytes. No extra
+worktree, Docker stack or dependencies were created. Fresh GitHub CI/publication
+and sole-local cutover remain pending; the running app still reports41415/frontier91. No founder action is needed
+for this release preparation. See the release checklist for exact remaining gates.
+
+Root independently accepted Q273's candidate helper after45 passing projection/
+ownership/restoration checks and strict types, then froze exact manifest8b159b18
+(2303 candidate files/114 explicit overlay inputs). Actual candidate preparation,
+27-file160pass/20explicit-skips/0fail/2213 including three real browser journeys,
+required Windows9pass/4DBskips/0fail48, types202 and a nonempty23-package licence
+audit passed. Explicit restoration returned the existing artifact to its original
+bytes; a full fresh inspection confirms source/index/refs/dependencies preserved.
+Fresh GitHub CI/publication/cutover remain separate pending steps. Recovery
+preparation was audited in parallel: consumed91-runtime helpers must not be replayed
+for92. The additional Dubai/KSA/London/India-first and richer-map/client-API messages
+are recorded in the research receipt without duplicating the current release.
+
+**Fiscal checkpoint preserved — Order471 frozen uncommitted.** The provider-request
+UI/source proof is retained; expanded independent browser proof is incomplete,
+so it is not accepted/published. Exact hashes and genuine initial RED are in its
+order. Resume it after the bounded new priority; no work is deleted. Phase7 is
+incomplete. This exception does not close any phase or replace11→13→17 priorities.
+
+**Published source checkpoint — Order470/Q263.** Exact15-path63338ed312f925bddd951665189196e3615a51b9
+was committed and non-force pushed to draftPR92. Native preservation proof covers
+all2244 tracked/selected working-file bytes, outside semantic index/persistent flags/
+stable extensions and unrelated refs. ExactCI34743363237 failed quality at459
+Chromium DevTools startup after20seconds and Windows444 nonzero-child proof at the
+unchanged8second parent deadline (null exit, zero output, unavailable child identity).
+Local-review passed; database/ARM64/container skipped. Root personally fetched
+failed logs; neither failing test/helper changed from6d4. This does not prove cause.
+Root unchanged isolated4591/0(1113) in12.69s and4441/0(8) in2.90s pass. One exact-head
+rerun was executed with no source/assertion/skip/timeout change; original failed
+attempt remains historical. Attempt2 Windows-state and local-review pass, but
+quality103687842576 fails two default5second tests: Order442 native-resume AST and
+Order130 parent/referee provenance. Summary:2133pass/1502explicit skips/2fail/1error.
+Database/ARM64/container remain skipped. Neither failing file changed from6d4.
+The read-only worker retrieved exact logs; cause remains unproven. No further
+unchanged retry, assertion removal or timeout increase is authorized here.
+PR description reflects633, not live delivery.
+
+**Accepted implementation — Order470.** The newly built cashier journey
 is deliberately issuing a full credit against an existing invoice through the
 already accepted446 POST. Reason/explicit confirmation, immutable original,
 same-key unknown retries and current-control lifecycle guards are in scope.
@@ -24,7 +178,8 @@ actual desktop/390px, exact confirmation/reason/key, uncertain retries through
 navigation and denials, malformed receipts, detached/hidden/terminal controls,
 in-flight reopening and late cross-property responses. Review470 retains failures.
 Q263 root-coauthored status8pass/2DBskips/0fail248 plus1/0(70), strict types and
-198boundaries pass. Exact15-path publication is preparing, not yet performed.
+198boundaries pass. Exact15-path publication completed as63338ed3 above; its new CI
+failure prevents runtime delivery and is not replaced by parent green evidence.
 No partial/debit,
 refund/provider action, new backend authority or live financial command is involved.
 
@@ -1626,7 +1781,11 @@ PR83's subsequent exact-head green CI discharged the native acceptance condition
 Codex owns implementation and coordination; ordinary development has no separate
 vendor/person dependency. Independent high-risk proof remains required.
 
-## Source and release truth
+## Historical source and release checkpoint — before Q258
+
+The table below preserves its older evidence. Current published source is63338ed3,
+remote main was rechecked as3503b0c, and last verified local is41415/frontier91.
+The current-task section above supersedes older development86/local85 statements.
 
 | Surface | Verified baseline | Release boundary |
 |---|---|---|
@@ -1642,7 +1801,12 @@ vendor/person dependency. Independent high-risk proof remains required.
 A branch, document, test, container build, merge and deployment are separate evidence
 states. The runtime must identify its exact source and applied migration frontier.
 
-## Product status
+## Preserved phase classifications
+
+The following baseline classifications are retained, not a claim that every later
+change has completed its integration. Order472 now brings Phase14's bounded
+discovery dependency into active integration; its complete RMS phase exit and
+other later phase exits remain pending. Phase7 is not complete.
 
 | Scope | Status | Meaning |
 |---|---|---|
@@ -1656,8 +1820,11 @@ states. The runtime must identify its exact source and applied migration frontie
 | Phases8–17 | Planned | Requirements, research and department studies are preserved; documentation is not shipped behavior |
 
 The roadmap contains **18 phases, numbered 0–17**. Founder priority remains
-**11 → 13 → 17**, with mandatory dependencies. From the active phase, the executable
-sequence is `7 → 8 → 9 → 10 → 11 → 12 → 13 → 17 → 14 → 15 → 16`.
+**11 → 13 → 17**, with mandatory dependencies. The founder's received Order472
+exception puts bounded Phase14 discovery integration first, then resumes preserved
+Phase7 work and the prior dependency sequence
+`7 → 8 → 9 → 10 → 11 → 12 → 13 → 17 → 14 → 15 → 16`.
+The early discovery delivery does not complete Phase14 or remove later RMS work.
 
 ## Preserved product destination
 

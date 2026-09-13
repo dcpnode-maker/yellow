@@ -7,7 +7,37 @@ The domain core is a TypeScript/Bun/Elysia modular monolith over PostgreSQL 16.
 Use open-source infrastructure, measured latency and replaceable integrations rather
 than speculative rewrites or a separate app fork for every country.
 
-## Active functional build — 8 September 2026
+## Active functional build — 13 September 2026
+
+Current priority is [Order472](handoff/orders/472-overture-gods-eye-market-discovery-integration.md):
+receive the Overture/God's Eye handoff and connect property discovery, confirmed
+competitor sets and a bounded map/table to the existing market pipeline.
+Read the [receiving record](docs/research/OVERTURE-GODS-EYE-RECEIVING-20260913.md)
+for exact sources, requirements and remaining gaps. Astra Ultra completed the
+architecture audit; archive presence is not an imported or mounted feature.
+
+- **New source checkpoint:** property-bound competitor-set service/API and narrow
+  migration0092 pass independent native proof:113 focused tests, including11 real
+  PostgreSQL integration cases. Source/schema/contracts are updated together.
+  This is not yet a mounted map/workspace or a whole-application release.
+
+- **Published development:** Order470 at63338ed3 in
+  [draftPR92](https://github.com/dcpnode-maker/yellow/pull/92), including accepted
+  full-credit cashier workflow. Not merged or locally delivered.
+- **Release gate:** exactCI34743363237 attempt2 still fails quality on two5second
+  test timeouts; Windows/local-review pass, dependent jobs skipped. Parent469's
+  all-six green result does not approve this later source.
+- **Single local:** last verified41415/frontier91 at
+  [127.0.0.1:3000](http://127.0.0.1:3000), saved login retained. It does not contain
+  later468–472 work. Migration0092 ran only on an isolated synthetic test target.
+  No provider activation or new UI-theme completion is claimed.
+- **Preserved next work:** frozen, uncommitted471 resumes after the bounded
+  discovery priority. All18 phases and dependency-gated11→13→17 remain in scope.
+
+[PROJECT-STATUS](docs/PROJECT-STATUS.md) is the current-state authority.
+The older release records below retain their historical dates.
+
+## Historical functional checkpoint — 8 September 2026
 
 UI/UX, prototypes and visual integration are paused by the founder. Current work
 is the remaining functional backend, with no local-app or provider activation.
@@ -44,7 +74,8 @@ command scaffolds package metadata, while this repository already has the author
 | Source line | Exact commit | Runnable migrations | Public base tables | Acceptance state |
 |---|---|---:|---:|---|
 | Current `main` (remote verified) | [`3503b0c01f336637d2583963c17b792f6ad59efe`](https://github.com/dcpnode-maker/yellow/commit/3503b0c01f336637d2583963c17b792f6ad59efe) | 81 | 128 | Independently merged PR91; later development below is not merged |
-| Published development | [`236df73dce4629dff92a66e1587961133e2dbd89`](https://github.com/dcpnode-maker/yellow/commit/236df73dce4629dff92a66e1587961133e2dbd89) | 87 | 129 | Draft PR92; native87 independently verified; all six exact-source CI jobs and normal CodeQL pass |
+| Current published development | [`63338ed312f925bddd951665189196e3615a51b9`](https://github.com/dcpnode-maker/yellow/commit/63338ed312f925bddd951665189196e3615a51b9) | 91 source migrations | Catalogue not recounted in this receiving step | Draft PR92; current CI fails quality; no merge or new local delivery |
+| Historical development (8 September) | [`236df73dce4629dff92a66e1587961133e2dbd89`](https://github.com/dcpnode-maker/yellow/commit/236df73dce4629dff92a66e1587961133e2dbd89) | 87 | 129 | Historical draft PR92 checkpoint; native87 independently verified; its six exact-source CI jobs and normal CodeQL passed |
 | Historical reviewed baseline | [`443e3826b47025106d1829fcbb406ce6302fbbba`](https://github.com/dcpnode-maker/yellow/commit/443e3826b47025106d1829fcbb406ce6302fbbba) | 77 | 127, including `schema_migration` | [PR83](https://github.com/dcpnode-maker/yellow/pull/83) merged independently reviewed source `92346674`; all five jobs in [CI178](https://github.com/dcpnode-maker/yellow/actions/runs/33993977811) passed, including database acceptance23/23 and referee11/11 |
 | Earlier operational baseline | [`5879e2b719db18077e00556477ba34bdb9b9991c`](https://github.com/dcpnode-maker/yellow/commit/5879e2b719db18077e00556477ba34bdb9b9991c) | 75 | 125, including `schema_migration` | Historical PR82 release; later forward migrations preserve this history |
 

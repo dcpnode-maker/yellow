@@ -4,7 +4,9 @@
  let operator = null;
  let activeView = "today";
  let inventoryData = { unitTypes: [], spaces: [], sellableUnits: [] };
- let propertiesData = [];
+let propertiesData = [];
+let marketOnlyAccess = false;
+let marketPropertyNode = "";
  let invoiceWorkbench = null;
  let invoiceWorkbenchProperty = "";
  let invoiceRouteGeneration = 0;
@@ -308,6 +310,8 @@
  const inventoryView = $("#inventory-view");
  const restrictionsView = $("#restrictions-view");
  const ratesView = $("#rates-view");
+ const marketView = $("#market-view");
+ const marketMount = $("#market-mount");
  const operationsView = $("#operations-view");
  const reservationsView = $("#reservations-view");
  const foliosView = $("#folios-view");
@@ -355,6 +359,9 @@
  const trustInboxMore = $("#trust-inbox-more");
  let trustAccounts = [], trustPreviewData = null, trustApprovals = [], trustApprovalCursor = null;
  let trustRequestGeneration = 0;
+ let marketWorkspace = null;
+ let marketWorkspaceImport = null;
+ let marketWorkspaceGeneration = 0;
  const trustMutationKeys = new Map();
  let dayCloseSealDraft = null;
  let dayCloseSealAttempt = null;
@@ -906,6 +913,46 @@
  }
  return body;
  }
+async function loadMarketWorkspace() {
+ const generation = ++marketWorkspaceGeneration;
+ const currentEffectiveMarketProperty = () => location.pathname.match(/^\/p\/([0-9a-f-]+)\/market$/)?.[1] || marketPropertyNode || propertySelect.value;
+ const routedProperty = location.pathname.match(/^\/p\/([0-9a-f-]+)\/market$/)?.[1] || "";
+ let boundProperty = currentEffectiveMarketProperty();
+ const session = accessToken;
+ if (!accessToken || activeView !== "market" || marketView.hidden) return;
+ try {
+  if (!marketWorkspaceImport) marketWorkspaceImport = import("/assets/operator-market.js");
+  const module = await marketWorkspaceImport;
+  if (generation !== marketWorkspaceGeneration || !accessToken || activeView !== "market" || boundProperty !== currentEffectiveMarketProperty() || marketView.hidden) return;
+  if (!marketWorkspace) {
+   let createdWorkspace;
+   createdWorkspace = module.createMarketWorkspace({
+    root: marketMount,
+    request,
+    propertyNode: boundProperty || null,
+    verifyPropertyNode: Boolean(routedProperty && !marketPropertyNode && routedProperty !== propertySelect.value),
+    onPropertyChange: selected => {
+     if (accessToken !== session || activeView !== "market" || marketView.hidden || marketWorkspace !== createdWorkspace) return;
+     boundProperty = selected;
+     marketPropertyNode = selected;
+     history.replaceState(null, "", `/p/${enc(selected)}/market`);
+    },
+    isActive: () => accessToken === session && activeView === "market" && marketView.hidden === false && currentEffectiveMarketProperty() === boundProperty,
+   });
+   marketWorkspace = createdWorkspace;
+  }
+  await marketWorkspace.load();
+ } catch {
+  if (generation !== marketWorkspaceGeneration || activeView !== "market" || marketView.hidden) return;
+  marketMount.replaceChildren(node("p", "form-message error", "Market evidence workspace could not be opened. No evidence was selected."));
+ }
+ }
+ function resetMarketWorkspace({ dispose = true } = {}) {
+ marketWorkspaceGeneration += 1;
+ if (dispose) marketWorkspace?.dispose(); else marketWorkspace?.suspend();
+ marketWorkspace = null;
+ if (dispose) marketMount.replaceChildren();
+ }
   function setLoginMessage(message, isError = false) {
  loginMessage.textContent = message;
  loginMessage.classList.toggle("error", isError);
@@ -916,8 +963,12 @@
  }
   function showLogin() {
  resetInvoiceWorkbench();
+ resetMarketWorkspace();
+ marketPropertyNode = "";
  closeReservationPickupTaskDetail({ history: false, restoreFocus: false });
  accessToken = "";
+ marketOnlyAccess = false;
+ marketPropertyNode = "";
  operator = null;
  loginView.hidden = false;
  workbenchView.hidden = true;
@@ -1005,8 +1056,10 @@
  restoreLocalLoginDefaults();
  loginForm.elements.email.focus();
  }
-  async function loadProperties() {
- const body = await request("/api/v1/me/properties");
+ async function loadProperties() {
+ let body;
+ try { body = await request("/api/v1/me/properties"); }
+ catch (error) { if (error?.status !== 403) throw error; body = { properties: [] }; }
  propertiesData = body.properties;
  propertySelect.replaceChildren();
  for (const property of body.properties) {
@@ -1022,11 +1075,11 @@
   propertySelect.disabled = true;
  } else {
   propertySelect.disabled = false;
-  const pathProperty = location.pathname.match(/^\/p\/([0-9a-f-]+)\/(?:today|availability|inventory|operations|housekeeping(?:\/tasks\/[0-9a-f-]+)?|vehicles(?:\/[0-9a-f-]+)?|reservations|folios|invoices(?:\/(?:new\/[0-9a-f-]+\/[0-9a-f-]+|[0-9a-f-]+))?|cashiers|day-close|trust|restrictions|rates|status|res\/[0-9a-f-]+(?:\/pickup-task\/[0-9a-f-]+)?|folio\/[0-9a-f-]+)$/)?.[1];
+ const pathProperty = location.pathname.match(/^\/p\/([0-9a-f-]+)\/(?:today|availability|inventory|operations|housekeeping(?:\/tasks\/[0-9a-f-]+)?|vehicles(?:\/[0-9a-f-]+)?|reservations|folios|invoices(?:\/(?:new\/[0-9a-f-]+\/[0-9a-f-]+|[0-9a-f-]+))?|cashiers|day-close|trust|restrictions|rates|market|status|res\/[0-9a-f-]+(?:\/pickup-task\/[0-9a-f-]+)?|folio\/[0-9a-f-]+)$/)?.[1];
   if (pathProperty && body.properties.some(({ id }) => id === pathProperty)) propertySelect.value = pathProperty;
  }
  }
-  function showWorkbench() {
+ function showWorkbench() {
  loginView.hidden = true;
  workbenchView.hidden = false;
  sessionState.textContent = `${operator.displayName} · authenticated`;
@@ -1035,6 +1088,7 @@
  if (location.pathname === "/" && propertySelect.value) {
   history.replaceState({}, "", `/p/${enc(propertySelect.value)}/today`);
  }
+ if (!propertySelect.value && marketOnlyAccess) activeView = "market";
  setView(activeView, false);
  }
   function emptyList(container, message) {
@@ -9905,11 +9959,12 @@ function vehicleReturnPathFromState(state, property) {
  }
   function setView(view, updateHistory = true) {
  const previousView = activeView;
- activeView = ["today", "availability", "inventory", "operations", "housekeeping", "vehicles", "reservations", "folios", "invoices", "cashiers", "day-close", "trust", "restrictions", "rates", "status"].includes(view) ? view : "today";
+ activeView = ["today", "availability", "inventory", "operations", "housekeeping", "vehicles", "reservations", "folios", "invoices", "cashiers", "day-close", "trust", "restrictions", "rates", "market", "status"].includes(view) ? view : "today";
  if (previousView === "invoices" && activeView !== "invoices") {
   invoiceRouteGeneration += 1;
   invoiceWorkbench?.suspend();
  }
+ if (previousView === "market" && activeView !== "market") resetMarketWorkspace({ dispose: false });
  if (previousView === "folios" && activeView !== "folios") {
   clearFolioState();
   if (activeView !== "reservations" || `${location.pathname}${location.search}` !== departureFolioReturn?.originPath) {
@@ -9953,6 +10008,7 @@ function vehicleReturnPathFromState(state, property) {
  inventoryView.hidden = activeView !== "inventory";
  restrictionsView.hidden = activeView !== "restrictions";
  ratesView.hidden = activeView !== "rates";
+ marketView.hidden = activeView !== "market";
  operationsView.hidden = activeView !== "operations";
  reservationsView.hidden = activeView !== "reservations";
  foliosView.hidden = activeView !== "folios";
@@ -9963,15 +10019,16 @@ function vehicleReturnPathFromState(state, property) {
  statusView.hidden = activeView !== "status";
  workbenchTitle.textContent = activeView === "today" ? "Today" : activeView === "inventory" ? "Inventory setup" :
   activeView === "operations" ? "Room outages" : activeView === "housekeeping" ? "Housekeeping" : activeView === "vehicles" ? "Vehicle Register" : activeView === "reservations" ? "Reservations" : activeView === "folios" ? "Folios" : activeView === "cashiers" ? "Cashiers" : activeView === "day-close" ? "Business-day close" : activeView === "trust" ? "Owner trust expenses" : activeView === "restrictions" ? "Restrictions" :
-  activeView === "rates" ? "Rates" : activeView === "invoices" ? "Invoices" : activeView === "status" ? "Project status" : "Availability";
+  activeView === "rates" ? "Rates" : activeView === "market" ? "Market evidence" : activeView === "invoices" ? "Invoices" : activeView === "status" ? "Project status" : "Availability";
  for (const tab of navigation) {
   const selected = tab.dataset.view === activeView;
   tab.classList.toggle("is-active", selected);
   tab.setAttribute("aria-current", selected ? "page" : "false");
  }
  revealWorkspaceGroup(activeView);
- if (propertySelect.value && updateHistory) {
-  history.pushState(null, "", `/p/${propertySelect.value}/${activeView}`);
+ const historyProperty = activeView === "market" ? (marketPropertyNode || location.pathname.match(/^\/p\/([0-9a-f-]+)\/market$/)?.[1] || propertySelect.value) : propertySelect.value;
+ if (historyProperty && updateHistory) {
+  history.pushState(null, "", `/p/${historyProperty}/${activeView}`);
   if (activeView === "day-close" && dayCloseDate.value) history.replaceState({ yellowSurface: "day-close" }, "", dayCloseCanonicalPath(dayCloseDate.value));
  }
  if (activeView === "inventory") void loadInventory();
@@ -10017,6 +10074,7 @@ function vehicleReturnPathFromState(state, property) {
  }
  if (activeView === "restrictions") void loadRestrictions();
  if (activeView === "rates") void loadRates();
+ if (activeView === "market") void loadMarketWorkspace();
  if (activeView === "status") void loadSystemStatus();
  if (activeView === "reservations") {
   syncReservationRoute();
@@ -11501,6 +11559,11 @@ function vehicleReturnPathFromState(state, property) {
   operator = body.user;
   restoreLocalLoginDefaults();
   await loadProperties();
+  if (propertiesData.length === 0) {
+   const market = await request("/api/v1/me/market-properties");
+   marketOnlyAccess = Array.isArray(market?.marketProperties?.properties) && market.marketProperties.properties.length > 0;
+   if (!marketOnlyAccess) throw new Error("No granted operational or market properties");
+  }
   showWorkbench();
   setLoginMessage("");
  } catch (error) {
@@ -11842,6 +11905,8 @@ function vehicleReturnPathFromState(state, property) {
  }
  if (!reservationCreatePanel.hidden) closeReservationCreate({ history: false, force: true });
  resetInvoiceWorkbench();
+ resetMarketWorkspace();
+ marketPropertyNode = "";
  closeReservationPickupTaskDetail({ history: false, restoreFocus: false });
  clearHousekeepingTaskDetailState();
  reservationBookingSearchGeneration += 1;
@@ -11911,6 +11976,7 @@ function vehicleReturnPathFromState(state, property) {
  }
  if (activeView === "restrictions") void loadRestrictions();
  if (activeView === "rates") void loadRates();
+ if (activeView === "market") void loadMarketWorkspace();
  if (activeView === "status") void loadSystemStatus();
  if (activeView === "day-close") void loadDayCloseWorkbench();
  if (activeView === "trust") void loadTrustWorkbench();
@@ -12158,7 +12224,13 @@ housekeepingSheetDate.addEventListener("change", () => {
  departureRetry.addEventListener("click", () => void loadCheckoutReadiness({ focus: true }));
  departureCheckoutForm.addEventListener("submit", (event) => void submitCheckout(event));
  departureCheckoutConfirm.addEventListener("change", syncCheckoutConfirmation);
- window.addEventListener("popstate", () => {
+window.addEventListener("popstate", () => {
+ const marketRoute = location.pathname.match(/^\/p\/([0-9a-f-]+)\/market$/);
+ if (marketRoute) {
+  if (marketPropertyNode !== marketRoute[1]) { marketPropertyNode = ""; resetMarketWorkspace(); }
+  if (activeView !== "market") setView("market", false); else void loadMarketWorkspace();
+  return;
+ }
  if (/^\/p\/[0-9a-f-]+\/day-close$/.test(location.pathname)) {
   if (activeView !== "day-close") setView("day-close", false);
   else void loadDayCloseWorkbench({ businessDate: dayCloseRouteDate(), focus: true });
@@ -12897,6 +12969,7 @@ housekeepingSheetDate.addEventListener("change", () => {
  location.pathname.endsWith("/trust") ? "trust" :
  location.pathname.endsWith("/restrictions") ? "restrictions" :
  location.pathname.endsWith("/rates") ? "rates" :
+ location.pathname.endsWith("/market") ? "market" :
  location.pathname.endsWith("/status") ? "status" : "today";
  setView(initialView, false);
  loginForm.querySelector("button[type=submit]").disabled = false;

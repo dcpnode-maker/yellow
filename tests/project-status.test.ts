@@ -68,9 +68,9 @@ describe("canonical project status", () => {
     expect(PROJECT_BUILD_SNAPSHOT.recordedAt).toBe("2026-09-13");
     expect(PROJECT_BUILD_SNAPSHOT.roadmap).toMatchObject({
       phaseCount: 18,
-      latestBuiltOrder: 470,
+      latestBuiltOrder: 472,
       currentOrder: 460,
-      activePhase: 7,
+      activePhase: 14,
     });
     expect(PROJECT_BUILD_SNAPSHOT.review.independentlyReviewedThroughOrder).toBeGreaterThanOrEqual(91);
 
@@ -113,6 +113,11 @@ describe("canonical project status", () => {
     expect(byOrder.get(469)?.summary).toContain("611 assertions");
     expect(byOrder.get(470)?.state).toBe("independently_approved");
     expect(byOrder.get(470)?.summary).toContain("1211 assertions");
+    expect(byOrder.get(471)?.state).toBe("built_unverified");
+    expect(byOrder.get(471)?.summary).toMatch(/frozen.*unaccepted/i);
+    expect(byOrder.get(472)?.state).toBe("independently_approved");
+    expect(byOrder.get(472)?.summary).toMatch(/identity.*compset.*map.*attributes.*planner/i);
+    expect(byOrder.get(472)?.remaining).toMatch(/publication.*local.*market-quality/i);
     expect(byOrder.get(467)?.summary).toContain("34739597186");
     expect(byOrder.get(468)?.summary).toContain("508 assertions");
     for (const order of [463, 464, 465, 466] as const) {
@@ -146,7 +151,7 @@ describe("canonical project status", () => {
       [0, "reviewed"], [1, "reviewed"], [2, "reviewed"], [3, "reviewed"],
       [4, "built_unverified"], [5, "reviewed"], [6, "reviewed"], [7, "active"],
       [8, "planned"], [9, "planned"], [10, "planned"], [11, "planned"],
-      [12, "planned"], [13, "planned"], [14, "planned"], [15, "planned"],
+      [12, "planned"], [13, "planned"], [14, "active"], [15, "planned"],
       [16, "planned"], [17, "planned"],
     ]);
     expect(JSON.stringify(PROJECT_BUILD_SNAPSHOT)).toBe(originalSnapshot);

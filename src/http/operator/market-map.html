@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+<head>
+ <meta charset="utf-8">
+ <meta name="viewport" content="width=device-width, initial-scale=1">
+ <title>Regional source evidence map · Yellow</title>
+ <link rel="stylesheet" href="/assets/market-map/leaflet.css">
+ <link rel="stylesheet" href="/assets/market-map/frame.css">
+ <script src="/assets/market-map/leaflet.js" defer></script>
+ <script type="module" src="/assets/market-map/frame.js"></script>
+</head>
+<body>
+ <main>
+  <div class="map-toolbar">
+   <h1>Regional source evidence</h1>
+   <button type="button" id="fit-records" data-testid="market-map-fit" disabled>Fit records</button>
+  </div>
+  <p id="map-status" data-testid="market-map-status" role="status" aria-live="polite">Waiting for source records.</p>
+  <p id="map-omitted" data-testid="market-map-omitted">The complete evidence table remains available outside this map.</p>
+  <div id="source-map" data-testid="market-map-canvas" role="region" aria-label="Source evidence street map. Arrow keys pan; plus and minus zoom. Activate a point to inspect, not select it."></div>
+  <p class="map-legend"><span class="legend-point candidate"></span>Candidate <span class="legend-point own"></span>Own-property draft <span class="legend-point comparator"></span>Comparator draft</p>
+  <p class="map-note">Source points are not verified physical identities or current operating status. Basemap coverage is separate from source coverage. Select and confirm only in the evidence table.</p>
+  <p class="map-note">Street tiles: <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">© OpenStreetMap contributors</a>. Public tiles are best-effort, not an offline map. <a href="https://operations.osmfoundation.org/policies/tiles/" target="_blank" rel="noopener noreferrer">Tile usage policy</a>.</p>
+ </main>
+</body>
+</html>

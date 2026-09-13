@@ -2,15 +2,22 @@ import { expect, test } from "bun:test";
 
 import { PROJECT_BUILD_SNAPSHOT } from "../src/project-status";
 
-test("Order470 status preserves historical Order444 preview without claiming Phase7 completion", () => {
+test("Order472 status preserves historical Order444 preview without claiming Phase completion", () => {
   expect(PROJECT_BUILD_SNAPSHOT.schemaVersion).toBe(2);
   expect(PROJECT_BUILD_SNAPSHOT.recordedAt).toBe("2026-09-13");
-  expect(PROJECT_BUILD_SNAPSHOT.roadmap.latestBuiltOrder).toBe(470);
+  expect(PROJECT_BUILD_SNAPSHOT.roadmap.latestBuiltOrder).toBe(472);
   expect(PROJECT_BUILD_SNAPSHOT.roadmap.currentOrder).toBe(460);
   expect(PROJECT_BUILD_SNAPSHOT.review.independentlyReviewedThroughOrder).toBe(91);
-  expect(PROJECT_BUILD_SNAPSHOT.roadmap.activePhase).toBe(7);
-  expect(PROJECT_BUILD_SNAPSHOT.recordedWork.at(-1)?.order).toBe(470);
+  expect(PROJECT_BUILD_SNAPSHOT.roadmap.activePhase).toBe(14);
+  expect(PROJECT_BUILD_SNAPSHOT.recordedWork.at(-1)?.order).toBe(472);
   expect(PROJECT_BUILD_SNAPSHOT.recordedWork.at(-1)?.state).toBe("independently_approved");
+  const retainedFiscal = PROJECT_BUILD_SNAPSHOT.recordedWork.find(({ order }) => order === 471);
+  expect(retainedFiscal?.state).toBe("built_unverified");
+  expect(retainedFiscal?.summary).toMatch(/frozen.*unaccepted/i);
+  const market = PROJECT_BUILD_SNAPSHOT.recordedWork.at(-1);
+  expect(market?.summary).toMatch(/identity.*compset.*map.*attributes.*planner/i);
+  expect(market?.remaining).toMatch(/publication.*local.*market-quality/i);
+  expect(market?.remaining).toMatch(/not.*live|not.*collection|not.*pricing/i);
   const mergedDelivery = PROJECT_BUILD_SNAPSHOT.recordedWork.find(({ order }) => order === 440);
   expect(mergedDelivery?.state).toBe("proof_in_progress");
   expect(mergedDelivery?.summary).toMatch(/durable fiscal submission.*authenticated provider.*immutable signed receipts.*merged through PR91 at 3503b0c/i);
@@ -61,6 +68,6 @@ test("Order470 status preserves historical Order444 preview without claiming Pha
   expect(PROJECT_BUILD_SNAPSHOT.phases.map(({ state }) => state)).toEqual([
     "reviewed", "reviewed", "reviewed", "reviewed", "built_unverified",
     "reviewed", "reviewed", "active", "planned", "planned", "planned", "planned", "planned",
-    "planned", "planned", "planned", "planned", "planned",
+    "planned", "active", "planned", "planned", "planned",
   ]);
 });

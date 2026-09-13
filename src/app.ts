@@ -3,6 +3,13 @@ import { isIP } from "node:net";
 
 import { SECURITY_HEADERS } from "./http/security-headers";
 import { ExtensionHttpApi } from "./http/extensions";
+import { MarketHttpApi } from "./http/market";
+import {
+  MARKET_MAP_FRAME_CONTENT_SECURITY_POLICY,
+  MARKET_MAP_FRAME_PATH,
+  isSuccessfulMarketMapFrameDocument,
+  marketMapAssets,
+} from "./http/market-map";
 import { operatorAssets, type OperatorHttpApi, type OperatorLocalReviewCredentials } from "./http/operator";
 import { hostedDepositAssets, type HostedDepositProviderHttpApi } from "./http/provider";
 import {
@@ -42,6 +49,7 @@ export interface AppOptions {
   readonly database?: Database;
   readonly tenantResolver?: TenantResolver;
   readonly extensionRegistry?: ExtensionRegistry;
+  readonly marketApi?: MarketHttpApi;
   readonly operatorApi?: OperatorHttpApi;
   readonly operatorLocalReviewCredentials?: OperatorLocalReviewCredentials;
   readonly hostedDepositRoutes?: HostedDepositProviderHttpApi;
@@ -58,9 +66,13 @@ export function createApp(options: AppOptions = {}) {
 
   const app = new Elysia()
     .decorate("tenantContext", tenantContext)
-    .onAfterHandle(({ set }) => {
+    .onAfterHandle(({ request, response, set }) => {
       for (const [name, value] of Object.entries(SECURITY_HEADERS)) {
         set.headers[name] = value;
+      }
+      if (options.operatorApi && options.marketApi && isSuccessfulMarketMapFrameDocument(request, response)) {
+        set.headers["content-security-policy"] = MARKET_MAP_FRAME_CONTENT_SECURITY_POLICY;
+        set.headers["x-frame-options"] = "SAMEORIGIN";
       }
     })
     .onError(({ set }) => {
@@ -119,6 +131,41 @@ export function createApp(options: AppOptions = {}) {
       );
   }
 
+  if (options.marketApi) {
+    const market = options.marketApi;
+    const withMarketTenant = async (
+      request: Request,
+      handler: Parameters<TenantContextMiddleware["handle"]>[1],
+    ): Promise<Response> => {
+      try {
+        const handled = await tenantContext.handle(request, handler);
+        return handled instanceof Response ? handled : market.failure(request);
+      } catch {
+        // The middleware rolls back the tenant transaction before this static boundary response.
+        return market.failure(request);
+      }
+    };
+    app
+      .get("/api/v1/properties/:property/market/discovery", ({ request, params }) =>
+        withMarketTenant(request, (context) => market.discovery(context, params.property))
+      )
+      .get("/api/v1/properties/:property/market/compset", ({ request, params }) =>
+        withMarketTenant(request, (context) => market.current(context, params.property))
+      )
+      .post("/api/v1/properties/:property/market/identity/suggest", ({ request, params, body }) =>
+        withMarketTenant(request, (context) => market.suggestIdentity(context, params.property, body))
+      )
+      .post("/api/v1/properties/:property/market/plan/preview", ({ request, params, body }) =>
+        withMarketTenant(request, (context) => market.previewPlan(context, params.property, body))
+      )
+      .get("/api/v1/me/market-properties", ({ request }) =>
+        withMarketTenant(request, (context) => market.properties(context))
+      )
+      .post("/api/v1/properties/:property/market/compset/confirm", ({ request, params, body }) =>
+        withMarketTenant(request, (context) => market.confirm(context, params.property, body))
+      );
+  }
+
   if (options.operatorApi) {
     const operator = options.operatorApi;
     const withOperatorTenant = async (
@@ -139,6 +186,7 @@ export function createApp(options: AppOptions = {}) {
       .get("/p/:property/inventory", ({ request }) => operatorAssets.html(options.operatorLocalReviewCredentials, request))
       .get("/p/:property/restrictions", ({ request }) => operatorAssets.html(options.operatorLocalReviewCredentials, request))
       .get("/p/:property/rates", ({ request }) => operatorAssets.html(options.operatorLocalReviewCredentials, request))
+      .get("/p/:property/market", ({ request }) => operatorAssets.html(options.operatorLocalReviewCredentials, request))
       .get("/p/:property/operations", ({ request }) => operatorAssets.html(options.operatorLocalReviewCredentials, request))
       .get("/p/:property/housekeeping", ({ request }) => operatorAssets.html(options.operatorLocalReviewCredentials, request))
       .get("/p/:property/housekeeping/tasks/:task", ({ request }) => operatorAssets.html(options.operatorLocalReviewCredentials, request))
@@ -160,6 +208,7 @@ export function createApp(options: AppOptions = {}) {
       .get("/assets/operator-interfaces.css", () => operatorAssets.interfacesCss())
       .get("/assets/operator-interfaces.js", () => operatorAssets.interfacesJs())
       .get("/assets/operator-layouts.js", () => operatorAssets.layoutsJs())
+      .get("/assets/operator-market.js", () => operatorAssets.marketJs())
       .get("/assets/operator-invoices.js", () => operatorAssets.invoiceJs())
       .get("/assets/operator-invoice-print.js", () => operatorAssets.invoicePrintJs())
       .get("/assets/vendor/qrcodegen-v1.8.0-es6.js", () => operatorAssets.invoiceQrJs())
@@ -680,6 +729,15 @@ export function createApp(options: AppOptions = {}) {
       .post("/api/v1/properties/:property/inventory/rooms:bulk", ({ request, params, body, tenantContext }) =>
         withOperatorTenant(request, (context) => operator.createBulkRooms(context, params.property, body))
       );
+  }
+
+  if (options.operatorApi && options.marketApi) {
+    app
+      .get(MARKET_MAP_FRAME_PATH, ({ request }) => marketMapAssets.frame(request))
+      .get("/assets/market-map/frame.js", ({ request }) => marketMapAssets.frameScript(request))
+      .get("/assets/market-map/frame.css", ({ request }) => marketMapAssets.frameStyle(request))
+      .get("/assets/market-map/leaflet.js", ({ request }) => marketMapAssets.leafletScript(request))
+      .get("/assets/market-map/leaflet.css", ({ request }) => marketMapAssets.leafletStyle(request));
   }
 
   if (options.hostedDepositRoutes) {

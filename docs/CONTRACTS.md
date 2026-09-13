@@ -347,6 +347,95 @@ recomputed by the domain. The operator workbench deliberately selects one return
 server Party id before the existing booking journey. Merge/anonymisation, addresses,
 identity documents, consent/preferences and profile editing remain planned.
 **distribution**: channels connect · maps CRUD · inbound replay {id} · push status/cursors
+
+Order472 adds a property competitor-set command boundary, independently proved
+against PostgreSQL in D1489; it is not yet mounted in the local
+application. `MarketCompsetService` owns discovery reads, current configuration and
+explicit confirmation using the caller's tenant transaction. HTTP is a small
+adapter; future voice and automation must use the same authorized commands.
+
+| Method and property-relative route | Capability |
+|---|---|
+| GET `/api/v1/properties/:property/market/discovery` | bounded admitted regional catalog, `distribution.market:read` |
+| GET `/api/v1/properties/:property/market/compset` | current property-bound configuration or unconfigured result, `distribution.market:read` |
+| POST `/api/v1/properties/:property/market/compset/confirm` | explicit replacement, `distribution.market:write` and `Idempotency-Key` |
+| POST `/api/v1/properties/:property/market/identity/suggest` | exact admitted-snapshot suggestions; market-read, no selection or URL fetching |
+| POST `/api/v1/properties/:property/market/plan/preview` | derived preview from an exact persisted compset version; market-read, no collection |
+| GET `/api/v1/me/market-properties?cursor=…` | separate current market-read property list; fixed 50-row UUID keyset page |
+
+Confirmation accepts exactly `{expectedActiveVersion,ownProperty,comparators}`.
+The expected version is null for first confirmation or a positive integer for a
+replacement. Each reference is exactly `{logicalId,sha256,sourceRecordId}` selecting
+an immutable server-admitted artifact record. The client hash is a selection
+precondition, never an integrity assertion or permission to load a file. The server
+resolves and retains normalized evidence/provenance, not caller-provided names,
+coordinates, paths, tenant, actor or audit data. At most 500 comparators are allowed;
+duplicates and own-property membership are rejected. An explicit empty set clears
+comparators through a new version, not deletion.
+
+Current active actor and property grants are rechecked at the domain boundary,
+including before replay. Immutable configuration, old-version retirement, facts,
+existing `extension.activated` and actor/property/intent-bound idempotency settle
+atomically. Results are typed and failed writes roll back before an error result
+can be committed by middleware. Generic extension registration/create cannot
+manage `market_compset`, and generic lists must not disclose its property data.
+Declaring the schema grants no user permission and creates no default instance.
+See [configuration shape](EXTENSIONS.md) and [lifecycle](STATE-MACHINES.md).
+
+Q266 adds source startup composition under explicit `YELLOW_MARKET_WORKBENCH=1`
+with normal operator mode. Native artifact admission precedes resources/listening;
+disabled is inert and an invalid enabled catalog fails closed. A separate read-only
+runtime readiness check requires the exact0092 capability body/owner/search_path/
+ACL, canonical type and required permission catalog; it does not grant or repair
+anything. Source migration frontier is92, not the currently running frontier91.
+
+The lazy `/p/:property/market` workspace loads `/assets/operator-market.js` only
+when opened. It consumes these authorized routes, shows dated source-point evidence,
+coverage and provenance, and requires review of explicit own-record/comparator
+choices. Choice changes revoke review; ambiguous retries retain the exact body/key;
+conflicts require fresh loading/confirmation and revoked access clears evidence.
+The16KiB global HTTP body bound is also measured as UTF-8 bytes before sending.
+The500-candidate domain ceiling is not a promise that500 references fit one request.
+Q267 separates market properties from operational property grants. A market-only
+user can sign in without availability permission; market navigation never grants
+access to the other operational routes. The list checks active tenant/user and
+current tenant-bound role/hierarchy predicates. The opaque cursor is only a
+pagination position, not authority. Each subsequent property operation still
+executes migration0092's locked authorization. A later-page deep link must remain
+pending until its market-list membership is verified; it must not show another
+property's evidence under the requested URL.
+
+Identity input is exactly `{snapshot:{logicalId,sha256},target:{recordId?,publicUrl?,
+name?,coordinates?}}`, with at least one explicit target field. The server resolves
+one immutable catalog snapshot and reuses the identity helper. The response is
+`{suggestions:{snapshot,requiresConfirmation:true,ambiguous,candidates}}` with at
+most 500 candidates, exact references, original records/capture/completeness and
+matching reasons. No input URL is fetched or persisted; unsafe/query/fragment URLs
+are rejected. A browser suggestion becomes an editable own-record draft only after
+a separate deliberate choice; it still requires explicit evidence confirmation.
+
+Plan input is exactly `{expectedCompset:{extensionId,version},comparatorIndexes,
+conditions:{destination,lookaheadMonths,selectedSources,guests,pointOfSaleMarket,
+language,lengthsOfStayNights}}`. Distinct indexes select 1–200 comparators from that
+exact persisted version, never the editable draft or a silently truncated set.
+Current authorization and the same property version lock precede the saved-state
+read. Tenant/property, timezone, currency and current instant are server-derived.
+The unchanged planner uses a fixed preview-only entitlement, no success history,
+at most 100 selected requests and batches of 25. The response identifies the saved
+version, normalized conditions, property metadata, one comparator mapping, a
+bounded plan summary and at most 10 samples; it contains no execution keys or
+repeated evidence per request. `previewOnly:true` and `executable:false` are explicit.
+It writes no extension, fact, outbox or idempotency row and schedules no work.
+
+Saved evidence keeps its original reference and capture date, including records
+absent from the current catalog. Input, property, history, session, refresh and
+saved-version changes invalidate affected browser results; permission failures
+clear private evidence. A confirmation receipt is acknowledged separately from
+refreshing the latest saved set; a failed refresh never undoes a recorded receipt.
+These are source contracts, not a claim that Q267 is published, live or a complete
+RMS engine. Exact acceptance and remaining integration are in Review472 and
+PROJECT-STATUS.md.
+
 **compliance**: documents issue/get/render · fiscal submit/status · statutory list_due/submit ·
 erasure request/execute
 **kernel**: extensions CRUD+activate · automations CRUD+test(dry_run) · approvals decide

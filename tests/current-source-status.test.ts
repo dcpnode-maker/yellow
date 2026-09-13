@@ -1,10 +1,10 @@
 import { expect, test } from "bun:test";
 import { PROJECT_BUILD_SNAPSHOT } from "../src/project-status";
 
-test("Order470 distinguishes the next source milestone from current runtime", () => {
+test("Order472 distinguishes the current source priority from dynamic runtime", () => {
   expect(PROJECT_BUILD_SNAPSHOT.recordedAt).toBe("2026-09-13");
-  expect(PROJECT_BUILD_SNAPSHOT.roadmap).toEqual({ phaseCount: 18, latestBuiltOrder: 470, currentOrder: 460, activePhase: 7 });
-  expect(PROJECT_BUILD_SNAPSHOT.label).toBe("Current-source receiving integration in progress; cashier credit-note issue source accepted");
+  expect(PROJECT_BUILD_SNAPSHOT.roadmap).toEqual({ phaseCount: 18, latestBuiltOrder: 472, currentOrder: 460, activePhase: 14 });
+  expect(PROJECT_BUILD_SNAPSHOT.label).toBe("Current-source release integration in progress; bounded market discovery source accepted");
   const newer = PROJECT_BUILD_SNAPSHOT.recordedWork.filter(({ order }) => order > 444);
   expect(newer.map(({ order, state }) => [order, state])).toEqual([
     [453, "independently_approved"], [454, "independently_approved"],
@@ -14,6 +14,7 @@ test("Order470 distinguishes the next source milestone from current runtime", ()
     [463, "proof_in_progress"], [464, "built_unverified"],
     [465, "independently_approved"], [466, "independently_approved"],
     [467, "built_unverified"], [468, "independently_approved"], [469, "independently_approved"], [470, "independently_approved"],
+    [471, "built_unverified"], [472, "independently_approved"],
   ]);
   expect(newer.every(row => Object.isFrozen(row) && row.summary.length > 0 && (row.remaining?.length ?? 0) > 0)).toBe(true);
   const byOrder = new Map(newer.map(row => [row.order, row]));
@@ -54,6 +55,13 @@ test("Order470 distinguishes the next source milestone from current runtime", ()
   expect(byOrder.get(470)?.summary).toContain("1211 assertions");
   expect(byOrder.get(470)?.summary).toContain("6 explicit real-database skips");
   expect(byOrder.get(470)?.remaining).toMatch(/dynamic runtime/i);
+  expect(byOrder.get(471)?.summary).toMatch(/frozen.*unaccepted/i);
+  expect(byOrder.get(471)?.remaining).toMatch(/provider.*activation|Phase 7/i);
+  expect(byOrder.get(472)?.summary).toMatch(/identity.*compset.*map.*attributes.*planner/i);
+  expect(byOrder.get(472)?.summary).toContain("Q267");
+  expect(byOrder.get(472)?.summary).toContain("Q268");
+  expect(byOrder.get(472)?.remaining).toMatch(/publication.*local.*market-quality/i);
+  expect(byOrder.get(472)?.remaining).toMatch(/not.*live|not.*collection|not.*pricing/i);
   for (const order of [463, 464, 465, 466, 467, 468, 469, 470] as const) {
     expect(byOrder.get(order)?.remaining).not.toMatch(/not live|integration remain pending|runtime is stopped/);
     expect(byOrder.get(order)?.remaining).toMatch(/runtime.*(dynamic|identifies)|dynamic runtime/i);
@@ -61,7 +69,7 @@ test("Order470 distinguishes the next source milestone from current runtime", ()
   expect(PROJECT_BUILD_SNAPSHOT.phases.map(({ number, state }) => [number, state])).toEqual([
     [0,"reviewed"],[1,"reviewed"],[2,"reviewed"],[3,"reviewed"],[4,"built_unverified"],
     [5,"reviewed"],[6,"reviewed"],[7,"active"],[8,"planned"],[9,"planned"],[10,"planned"],
-    [11,"planned"],[12,"planned"],[13,"planned"],[14,"planned"],[15,"planned"],[16,"planned"],[17,"planned"],
+    [11,"planned"],[12,"planned"],[13,"planned"],[14,"active"],[15,"planned"],[16,"planned"],[17,"planned"],
   ]);
   expect(PROJECT_BUILD_SNAPSHOT.review.independentlyReviewedThroughOrder).toBe(91);
 });
