@@ -68,7 +68,7 @@ describe("canonical project status", () => {
     expect(PROJECT_BUILD_SNAPSHOT.recordedAt).toBe("2026-09-13");
     expect(PROJECT_BUILD_SNAPSHOT.roadmap).toMatchObject({
       phaseCount: 18,
-      latestBuiltOrder: 466,
+      latestBuiltOrder: 468,
       currentOrder: 460,
       activePhase: 7,
     });
@@ -105,6 +105,10 @@ describe("canonical project status", () => {
     expect(byOrder.get(466)?.summary).toContain("CI run 34725373251");
     expect(byOrder.get(466)?.summary).toContain("container smoke");
     expect(byOrder.get(466)?.remaining).toContain("Q258 locally promoted source 41415cc5");
+    expect(byOrder.get(467)?.state).toBe("built_unverified");
+    expect(byOrder.get(468)?.state).toBe("independently_approved");
+    expect(byOrder.get(467)?.summary).toContain("34739597186");
+    expect(byOrder.get(468)?.summary).toContain("508 assertions");
     for (const order of [463, 464, 465, 466] as const) {
       expect(byOrder.get(order)?.remaining).not.toMatch(/not live|cutover remains unfinished|Local promotion remains unfinished/);
     }

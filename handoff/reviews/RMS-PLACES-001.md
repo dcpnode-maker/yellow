@@ -222,3 +222,11 @@ client checks and server5-degree/radius budgets remain unchanged. Required actua
 browser proof establishes whether this candidate resolves the observed failure;
 the issue report alone is not a Yellow test. Move that proof before the full
 suite under the admitted CI clarification, retaining all required gates.
+
+The independent map reviewer finds no scope/budget/gate regression and personally
+runs10/1explicit browser skip/0fail/69 assertions. Published3f3d3082 cannot start
+CI because the receiver advances to33a39508 (accepted Order468 credit printing).
+Incorporate that exact published source without changing its implementation.
+Only CONTRACTS' appended sections conflict; both complete sections are preserved.
+Status tests merge automatically with this lane's extra receipt assertions intact.
+Current source and required renderer acceptance must use this new combined tree.

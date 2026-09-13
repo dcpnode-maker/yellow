@@ -1,10 +1,10 @@
 import { expect, test } from "bun:test";
 import { PROJECT_BUILD_SNAPSHOT } from "../src/project-status";
 
-test("Order467 distinguishes accepted source and timestamped delivery from current runtime", () => {
+test("Order468 distinguishes accepted source and timestamped delivery from current runtime", () => {
   expect(PROJECT_BUILD_SNAPSHOT.recordedAt).toBe("2026-09-13");
-  expect(PROJECT_BUILD_SNAPSHOT.roadmap).toEqual({ phaseCount: 18, latestBuiltOrder: 466, currentOrder: 460, activePhase: 7 });
-  expect(PROJECT_BUILD_SNAPSHOT.label).toBe("Current-source receiving integration in progress; invoice source accepted");
+  expect(PROJECT_BUILD_SNAPSHOT.roadmap).toEqual({ phaseCount: 18, latestBuiltOrder: 468, currentOrder: 460, activePhase: 7 });
+  expect(PROJECT_BUILD_SNAPSHOT.label).toBe("Current-source receiving integration in progress; credit-note print source accepted");
   const newer = PROJECT_BUILD_SNAPSHOT.recordedWork.filter(({ order }) => order > 444);
   expect(newer.map(({ order, state }) => [order, state])).toEqual([
     [453, "independently_approved"], [454, "independently_approved"],
@@ -13,6 +13,7 @@ test("Order467 distinguishes accepted source and timestamped delivery from curre
     [461, "built_unverified"], [462, "proof_in_progress"],
     [463, "proof_in_progress"], [464, "built_unverified"],
     [465, "independently_approved"], [466, "independently_approved"],
+    [467, "built_unverified"], [468, "independently_approved"],
   ]);
   expect(newer.every(row => Object.isFrozen(row) && row.summary.length > 0 && (row.remaining?.length ?? 0) > 0)).toBe(true);
   const byOrder = new Map(newer.map(row => [row.order, row]));
@@ -46,9 +47,13 @@ test("Order467 distinguishes accepted source and timestamped delivery from curre
   expect(byOrder.get(466)?.remaining).toContain("Current runtime identity remains dynamic");
   expect(byOrder.get(466)?.remaining).toContain("No new database proof, provider activation or Phase 7 completion follows from this local delivery");
   expect(byOrder.get(466)?.remaining).toContain("both exact served invoice assets");
-  for (const order of [463, 464, 465, 466] as const) {
+  expect(byOrder.get(467)?.summary).toContain("d819e080");
+  expect(byOrder.get(467)?.summary).toContain("34739597186");
+  expect(byOrder.get(468)?.summary).toContain("28 tests passed");
+  expect(byOrder.get(468)?.summary).toContain("508 assertions");
+  for (const order of [463, 464, 465, 466, 467, 468] as const) {
     expect(byOrder.get(order)?.remaining).not.toMatch(/not live|integration remain pending|runtime is stopped/);
-    expect(byOrder.get(order)?.remaining).toMatch(/runtime.*(dynamic|identifies)/i);
+    expect(byOrder.get(order)?.remaining).toMatch(/runtime.*(dynamic|identifies)|dynamic runtime/i);
   }
   expect(PROJECT_BUILD_SNAPSHOT.phases.map(({ number, state }) => [number, state])).toEqual([
     [0,"reviewed"],[1,"reviewed"],[2,"reviewed"],[3,"reviewed"],[4,"built_unverified"],

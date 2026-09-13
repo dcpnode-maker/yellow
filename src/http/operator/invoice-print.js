@@ -1,6 +1,7 @@
 import { qrcodegen } from "./vendor/qrcodegen-v1.8.0-es6.js";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+const CREDIT_UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
 const SHA256 = /^[0-9a-f]{64}$/;
 const GSTIN = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][1-9A-Z]Z[0-9A-Z]$/;
 const DOCUMENT_NUMBER = /^[A-Za-z0-9/-]{1,16}$/;
@@ -198,6 +199,48 @@ function validItem(value, index) {
     total: total.text, totalMinor: total.minor, assessableMinor: assessable.minor });
 }
 
+function snapshotTaxSource(contentJson, keys, type, number, date) {
+  let source;
+  try { source = ownRecord(JSON.parse(contentJson), keys.length); } catch { return null; }
+  if (!source || !exact(source, keys) || source.Version !== "1.1") return null;
+  const transaction = ownRecord(source.TranDtls, 2);
+  const identity = ownRecord(source.DocDtls, 3);
+  if (!transaction || !exact(transaction, ["TaxSch", "SupTyp"]) || transaction.TaxSch !== "GST" || transaction.SupTyp !== "B2B"
+    || !identity || !exact(identity, ["Typ", "No", "Dt"]) || identity.Typ !== type || identity.No !== number || identity.Dt !== date) return null;
+  const seller = validParty(source.SellerDtls, false);
+  const buyer = validParty(source.BuyerDtls, true);
+  if (!seller || !buyer || !Array.isArray(source.ItemList) || Object.getPrototypeOf(source.ItemList) !== Array.prototype
+    || source.ItemList.length < 1 || source.ItemList.length > MAX_ITEMS) return null;
+  const items = source.ItemList.map((candidate, index) => validItem(candidate, index));
+  if (items.some((candidate) => candidate === null)) return null;
+  const family = items[0].family;
+  if (items.some((candidate) => candidate.family !== family)) return null;
+  const totals = ownRecord(source.ValDtls, 4);
+  const totalKeys = family === "igst" ? ["AssVal", "IgstVal", "TotInvVal"] : ["AssVal", "CgstVal", "SgstVal", "TotInvVal"];
+  if (!totals || !exact(totals, totalKeys)) return null;
+  const assessable = decimal(totals.AssVal);
+  const total = decimal(totals.TotInvVal);
+  if (!assessable || !total) return null;
+  const itemAssessable = items.reduce((sum, item) => add(sum, item.assessableMinor), 0n);
+  const itemTax = items.reduce((sum, item) => add(sum, item.taxMinor), 0n);
+  const itemTotal = items.reduce((sum, item) => add(sum, item.totalMinor), 0n);
+  let taxParts;
+  if (family === "igst") {
+    const igst = decimal(totals.IgstVal);
+    if (!igst || igst.minor !== itemTax || add(assessable.minor, igst.minor) !== total.minor) return null;
+    taxParts = frozen({ igst: igst.text, cgst: null, sgst: null });
+  } else {
+    const cgst = decimal(totals.CgstVal);
+    const sgst = decimal(totals.SgstVal);
+    if (!cgst || !sgst || add(cgst.minor, sgst.minor) !== itemTax
+      || add(add(assessable.minor, cgst.minor), sgst.minor) !== total.minor) return null;
+    taxParts = frozen({ igst: null, cgst: cgst.text, sgst: sgst.text });
+  }
+  if (assessable.minor !== itemAssessable || total.minor !== itemTotal) return null;
+  return frozen({ source, documentDate: identity.Dt, seller, buyer, items: frozen(items), family, totalMinor: total.minor,
+    totals: frozen({ assessable: assessable.text, total: total.text, ...taxParts }) });
+}
+
 function snapshotInvoice(value) {
   const row = ownRecord(value, 16);
   const keys = ["kind", "documentId", "propertyNode", "reservationId", "folioId", "seriesId", "documentNumber",
@@ -212,49 +255,94 @@ function snapshotInvoice(value) {
     || (row.previousHash !== null && (typeof row.previousHash !== "string" || !SHA256.test(row.previousHash)))
     || typeof row.contentJson !== "string" || row.contentJson.length === 0 || row.contentJson.length > MAX_SOURCE_BYTES
     || new TextEncoder().encode(row.contentJson).byteLength > MAX_SOURCE_BYTES) return null;
-  let source;
-  try { source = ownRecord(JSON.parse(row.contentJson), 7); } catch { return null; }
-  if (!source || !exact(source, ["Version", "TranDtls", "DocDtls", "SellerDtls", "BuyerDtls", "ItemList", "ValDtls"])
-    || source.Version !== "1.1") return null;
-  const transaction = ownRecord(source.TranDtls, 2);
-  const identity = ownRecord(source.DocDtls, 3);
   const expectedDate = `${row.businessDate.slice(8, 10)}/${row.businessDate.slice(5, 7)}/${row.businessDate.slice(0, 4)}`;
-  if (!transaction || !exact(transaction, ["TaxSch", "SupTyp"]) || transaction.TaxSch !== "GST" || transaction.SupTyp !== "B2B"
-    || !identity || !exact(identity, ["Typ", "No", "Dt"]) || identity.Typ !== "INV"
-    || identity.No !== row.documentNumber || identity.Dt !== expectedDate) return null;
-  const seller = validParty(source.SellerDtls, false);
-  const buyer = validParty(source.BuyerDtls, true);
-  if (!seller || !buyer || !Array.isArray(source.ItemList) || Object.getPrototypeOf(source.ItemList) !== Array.prototype
-    || source.ItemList.length < 1 || source.ItemList.length > MAX_ITEMS) return null;
-  const items = source.ItemList.map((candidate, index) => validItem(candidate, index));
-  if (items.some((candidate) => candidate === null)) return null;
-  const projected = items;
-  const family = projected[0].family;
-  if (projected.some((candidate) => candidate.family !== family)) return null;
-  const totals = ownRecord(source.ValDtls, 4);
-  const totalKeys = family === "igst" ? ["AssVal", "IgstVal", "TotInvVal"] : ["AssVal", "CgstVal", "SgstVal", "TotInvVal"];
-  if (!totals || !exact(totals, totalKeys)) return null;
-  const assessable = decimal(totals.AssVal);
-  const total = decimal(totals.TotInvVal);
-  if (!assessable || !total) return null;
-  const itemAssessable = projected.reduce((sum, item) => add(sum, item.assessableMinor), 0n);
-  const itemTax = projected.reduce((sum, item) => add(sum, item.taxMinor), 0n);
-  const itemTotal = projected.reduce((sum, item) => add(sum, item.totalMinor), 0n);
-  let taxParts;
-  if (family === "igst") {
-    const igst = decimal(totals.IgstVal);
-    if (!igst || igst.minor !== itemTax || add(assessable.minor, igst.minor) !== total.minor) return null;
-    taxParts = frozen({ igst: igst.text, cgst: null, sgst: null });
-  } else {
-    const cgst = decimal(totals.CgstVal);
-    const sgst = decimal(totals.SgstVal);
-    if (!cgst || !sgst || add(cgst.minor, sgst.minor) !== itemTax
-      || add(add(assessable.minor, cgst.minor), sgst.minor) !== total.minor) return null;
-    taxParts = frozen({ igst: null, cgst: cgst.text, sgst: sgst.text });
+  const parsed = snapshotTaxSource(row.contentJson,
+    ["Version", "TranDtls", "DocDtls", "SellerDtls", "BuyerDtls", "ItemList", "ValDtls"], "INV", row.documentNumber, expectedDate);
+  if (!parsed) return null;
+  return frozen({ ...row, documentDate: parsed.documentDate, seller: parsed.seller, buyer: parsed.buyer,
+    items: parsed.items, family: parsed.family, totals: parsed.totals });
+}
+
+function validMillisecondTimestamp(value) {
+  if (typeof value !== "string" || !/^(?!0000)\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/.test(value)) return false;
+  const instant = new Date(value);
+  return Number.isFinite(instant.getTime()) && instant.toISOString() === value;
+}
+
+function validCreditReason(value) {
+  if (typeof value !== "string" || value.trim().length === 0 || /[\u0000-\u001f\u007f]/u.test(value)
+    || Array.from(value).length > 500) return false;
+  for (let index = 0; index < value.length; index += 1) {
+    const unit = value.charCodeAt(index);
+    if (unit >= 0xd800 && unit <= 0xdbff) {
+      const next = value.charCodeAt(index + 1);
+      if (!(next >= 0xdc00 && next <= 0xdfff)) return false;
+      index += 1;
+    } else if (unit >= 0xdc00 && unit <= 0xdfff) return false;
   }
-  if (assessable.minor !== itemAssessable || total.minor !== itemTotal) return null;
-  return frozen({ ...row, documentDate: identity.Dt, seller, buyer, items: frozen(projected), family,
-    totals: frozen({ assessable: assessable.text, total: total.text, ...taxParts }) });
+  return true;
+}
+
+function snapshotCreditReceipt(value, original) {
+  const row = ownRecord(value, 23);
+  const keys = ["documentId", "documentKind", "originalDocumentId", "originalDocNo", "originalSha256",
+    "correctionJournalId", "seriesId", "docNo", "propertyNode", "reservationId", "folioId",
+    "supplierRegistrationId", "recipientRegistrationId", "financialYearStart", "currency", "status",
+    "businessDate", "issuedAt", "prevHash", "sha256", "sourceEvidenceHash", "totalMinor", "reason"];
+  if (!row || !exact(row, keys) || row.documentKind !== "credit_note" || row.status !== "issued" || row.currency !== "INR"
+    || ![row.documentId, row.originalDocumentId, row.correctionJournalId, row.seriesId, row.propertyNode,
+      row.reservationId, row.folioId, row.supplierRegistrationId, row.recipientRegistrationId]
+      .every((candidate) => typeof candidate === "string" && CREDIT_UUID.test(candidate))
+    || row.documentId === row.originalDocumentId || row.supplierRegistrationId === row.recipientRegistrationId
+    || typeof row.docNo !== "string" || !DOCUMENT_NUMBER.test(row.docNo)
+    || typeof row.originalDocNo !== "string" || !DOCUMENT_NUMBER.test(row.originalDocNo)
+    || typeof row.originalSha256 !== "string" || !SHA256.test(row.originalSha256)
+    || typeof row.sha256 !== "string" || !SHA256.test(row.sha256)
+    || typeof row.sourceEvidenceHash !== "string" || !SHA256.test(row.sourceEvidenceHash)
+    || (row.prevHash !== null && (typeof row.prevHash !== "string" || !SHA256.test(row.prevHash)))
+    || !validDate(row.businessDate) || !validMillisecondTimestamp(row.issuedAt)
+    || typeof row.financialYearStart !== "string" || !/^\d{4}-04-01$/.test(row.financialYearStart) || !validDate(row.financialYearStart)
+    || typeof row.totalMinor !== "string" || !/^[1-9][0-9]{0,18}$/.test(row.totalMinor)
+    || BigInt(row.totalMinor) > MAX_INT64 || !validCreditReason(row.reason)
+    || row.originalDocumentId !== original.documentId || row.originalDocNo !== original.documentNumber
+    || row.originalSha256 !== original.documentSha256 || row.propertyNode !== original.propertyNode
+    || row.reservationId !== original.reservationId || row.folioId !== original.folioId
+    || row.recipientRegistrationId !== original.recipientRegistrationId) return null;
+  return frozen({ ...row });
+}
+
+function snapshotCreditNote(value, original) {
+  const row = ownRecord(value, 3);
+  if (!row || !exact(row, ["kind", "receipt", "contentJson"]) || row.kind !== "india_native_credit_note_v1"
+    || typeof row.contentJson !== "string" || row.contentJson.length === 0 || row.contentJson.length > MAX_SOURCE_BYTES
+    || new TextEncoder().encode(row.contentJson).byteLength > MAX_SOURCE_BYTES) return null;
+  const receipt = snapshotCreditReceipt(row.receipt, original);
+  if (!receipt) return null;
+  const expectedDate = `${receipt.businessDate.slice(8, 10)}/${receipt.businessDate.slice(5, 7)}/${receipt.businessDate.slice(0, 4)}`;
+  const parsed = snapshotTaxSource(row.contentJson,
+    ["Version", "TranDtls", "DocDtls", "SellerDtls", "BuyerDtls", "ItemList", "ValDtls", "RefDtls", "YellowCredit"],
+    "CRN", receipt.docNo, expectedDate);
+  if (!parsed || parsed.totalMinor !== BigInt(receipt.totalMinor)) return null;
+  const source = parsed.source;
+  const reference = ownRecord(source.RefDtls, 1);
+  const precedents = reference && reference.PrecDocDtls;
+  if (!reference || !exact(reference, ["PrecDocDtls"]) || !Array.isArray(precedents) || Object.getPrototypeOf(precedents) !== Array.prototype
+    || precedents.length !== 1) return null;
+  const preceding = ownRecord(precedents[0], 2);
+  if (!preceding || !exact(preceding, ["InvNo", "InvDt"]) || preceding.InvNo !== receipt.originalDocNo
+    || preceding.InvDt !== original.documentDate) return null;
+  const lineage = ownRecord(source.YellowCredit, 5);
+  if (!lineage || !exact(lineage, ["originalDocumentId", "originalSha256", "reason", "correctionJournalId", "sourceEvidenceHash"])
+    || lineage.originalDocumentId !== receipt.originalDocumentId || lineage.originalSha256 !== receipt.originalSha256
+    || lineage.reason !== receipt.reason || lineage.correctionJournalId !== receipt.correctionJournalId
+    || lineage.sourceEvidenceHash !== receipt.sourceEvidenceHash) return null;
+  return frozen({ documentId: receipt.documentId, propertyNode: receipt.propertyNode, reservationId: receipt.reservationId,
+    folioId: receipt.folioId, seriesId: receipt.seriesId, documentNumber: receipt.docNo, documentDate: parsed.documentDate,
+    issuedAt: receipt.issuedAt, recipientRegistrationId: receipt.recipientRegistrationId,
+    sourceEvidenceHash: receipt.sourceEvidenceHash, documentSha256: receipt.sha256, previousHash: receipt.prevHash,
+    originalDocumentId: receipt.originalDocumentId, originalDocumentNumber: receipt.originalDocNo,
+    originalDocumentDate: preceding.InvDt, reason: receipt.reason, seller: parsed.seller, buyer: parsed.buyer, items: parsed.items,
+    family: parsed.family, totals: parsed.totals });
 }
 
 function validCodes(value) {
@@ -460,7 +548,7 @@ function partyMarkup(label, party) {
   return `<section class="invoice-print__party"><h2>${escapeHtml(label)}</h2>${detailRows(rows)}</section>`;
 }
 
-function itemsMarkup(document) {
+function itemsMarkup(document, caption = "Invoice line items") {
   const taxHeadings = document.family === "igst" ? "<th>IGST</th>" : "<th>CGST</th><th>SGST</th>";
   const columns = document.family === "igst"
     ? ["5%", "9%", "6%", "7%", "15%", "15%", "8%", "15%", "20%"]
@@ -475,19 +563,19 @@ function itemsMarkup(document) {
       + `<td class="invoice-print__amount">${escapeHtml(item.assessable)}</td><td class="invoice-print__amount">${escapeHtml(item.rate)}%</td>`
       + `${taxCells}<td class="invoice-print__amount">${escapeHtml(item.total)}</td></tr>`;
   }).join("");
-  return `<table class="invoice-print__items"><caption>Invoice line items</caption>${columnMarkup}<thead><tr><th>Line</th><th>HSN/SAC</th><th>Qty</th><th>Unit</th>`
+  return `<table class="invoice-print__items"><caption>${escapeHtml(caption)}</caption>${columnMarkup}<thead><tr><th>Line</th><th>HSN/SAC</th><th>Qty</th><th>Unit</th>`
     + `<th>Unit price</th><th>Taxable</th><th>GST rate</th>${taxHeadings}<th>Total</th></tr></thead><tbody>${rows}</tbody></table>`;
 }
 
-function totalsMarkup(document) {
+function totalsMarkup(document, totalLabel = "Invoice total (INR)", label = "Invoice totals") {
   const rows = [["Taxable value", document.totals.assessable, "invoice-print__amount"]];
   if (document.family === "igst") rows.push(["IGST", document.totals.igst, "invoice-print__amount"]);
   else rows.push(["CGST", document.totals.cgst, "invoice-print__amount"], ["SGST", document.totals.sgst, "invoice-print__amount"]);
-  rows.push(["Invoice total (INR)", document.totals.total, "invoice-print__amount invoice-print__total"]);
-  return `<section class="invoice-print__summary" aria-label="Invoice totals">${detailRows(rows)}</section>`;
+  rows.push([totalLabel, document.totals.total, "invoice-print__amount invoice-print__total"]);
+  return `<section class="invoice-print__summary" aria-label="${escapeHtml(label)}">${detailRows(rows)}</section>`;
 }
 
-function providerMarkup(delivery, status, qr) {
+function providerMarkup(delivery, status, qr, documentLabel = "invoice") {
   let details = "";
   if (delivery.kind === "receipt") {
     const receipt = delivery.receipt;
@@ -503,7 +591,7 @@ function providerMarkup(delivery, status, qr) {
       details = `<h2>Provider submission</h2>${detailRows([["Provider", receipt.row.providerKey]])}`;
     }
   }
-  const qrMarkup = qr ? `<figure class="invoice-print__qr">${qr.svg}<p class="invoice-print__qr-note">Use Print for the full-size, scannable QR. This narrow preview does not shrink or crop the signed code.</p><figcaption>Provider-signed QR retained with this issued invoice.</figcaption></figure>` : "";
+  const qrMarkup = qr ? `<figure class="invoice-print__qr">${qr.svg}<p class="invoice-print__qr-note">Use Print for the full-size, scannable QR. This narrow preview does not shrink or crop the signed code.</p><figcaption>Provider-signed QR retained with this issued ${escapeHtml(documentLabel)}.</figcaption></figure>` : "";
   return `<section class="invoice-print__provider" data-registration-state="${escapeHtml(status.code)}"><h2>Provider registration</h2>`
     + `<div class="invoice-print__status"><strong>${escapeHtml(status.label)}</strong><p>${escapeHtml(status.detail)}</p></div>`
     + `<div class="invoice-print__provider-grid"><div>${details}</div>${qrMarkup}</div></section>`;
@@ -543,5 +631,49 @@ export function buildInvoicePrintArtifact(documentValue, deliveryValue) {
       ["Previous document hash", document.previousHash ?? "Genesis — no previous document hash"],
     ])}</section></article>`;
   return frozen({ ok: true, value: frozen({ title: "Tax invoice", markup,
+    stylesheet: INVOICE_PRINT_STYLES, status, qr }) });
+}
+
+/**
+ * Creates escaped print markup for an already-issued native full credit note.  It
+ * binds the complete immutable CRN envelope to a separately valid original INV;
+ * this is structural revalidation, not a new tax, signature, or provider proof.
+ */
+export function buildCreditNotePrintArtifact(documentValue, deliveryValue, originalDocumentValue) {
+  let original;
+  let document;
+  try {
+    original = snapshotInvoice(originalDocumentValue);
+    document = original && snapshotCreditNote(documentValue, original);
+  } catch { document = null; }
+  if (!document) return failure("invalid_document", "Issued credit-note data is invalid");
+  const delivery = snapshotDelivery(deliveryValue, document);
+  if (!delivery) return failure("invalid_delivery", "Credit-note registration data is invalid");
+  const status = registrationStatus(delivery);
+  let qr = null;
+  if (delivery.kind === "receipt" && delivery.receipt.kind === "accepted_signed_v1") {
+    const encoded = createSignedQrArtifact(delivery.receipt.row.signedQRCode);
+    if (!encoded.ok) return encoded;
+    qr = encoded.value;
+  }
+  const markup = `<article class="invoice-print" aria-labelledby="credit-note-print-title">`
+    + `<header class="invoice-print__header"><h1 id="credit-note-print-title">Credit note</h1>`
+    + `<p class="invoice-print__legal-number"><span>Credit note number</span><strong>${escapeHtml(document.documentNumber)}</strong></p>`
+    + `${detailRows([["Credit date", document.documentDate], ["Document type", "CRN"], ["Currency", "INR"]])}</header>`
+    + `<section class="invoice-print__source"><h2>Immutable correction reference</h2>${detailRows([
+      ["Original invoice", document.originalDocumentNumber], ["Original invoice date", document.originalDocumentDate],
+      ["Immutable reason", document.reason], ["Original document ID", document.originalDocumentId],
+    ])}</section>`
+    + `<div class="invoice-print__parties">${partyMarkup("Seller", document.seller)}${partyMarkup("Buyer", document.buyer)}</div>`
+    + `${itemsMarkup(document, "Credit note line items")}${totalsMarkup(document, "Credit total (INR)", "Credit totals")}`
+    + `${providerMarkup(delivery, status, qr, "credit note")}`
+    + `<section class="invoice-print__source"><h2>Immutable source identity</h2>${detailRows([
+      ["Document ID", document.documentId], ["Series ID", document.seriesId], ["Reservation ID", document.reservationId],
+      ["Folio ID", document.folioId], ["Recipient registration ID", document.recipientRegistrationId],
+      ["Issued at (UTC)", document.issuedAt], ["Source evidence SHA-256", document.sourceEvidenceHash],
+      ["Document SHA-256", document.documentSha256],
+      ["Previous document hash", document.previousHash ?? "Genesis — no previous document hash"],
+    ])}</section></article>`;
+  return frozen({ ok: true, value: frozen({ title: "Credit note", markup,
     stylesheet: INVOICE_PRINT_STYLES, status, qr }) });
 }

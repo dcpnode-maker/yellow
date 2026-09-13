@@ -3822,3 +3822,41 @@ business authority. Overture2026-08-19.0/schema1.18.0 is a snapshot, not live
 inventory, price, rooms sold or unconstrained demand. Detailed shapes, setup,
 provenance and acceptance limitations are in
 `docs/research/OVERTURE-MARKET-MAP.md` and `handoff/reviews/RMS-PLACES-001.md`.
+## Existing full-credit preview and print — Order468
+
+This extends, rather than replaces, Order466's summary-only disclosure. The
+existing original-linked summary and registration label remain. After deliberate
+discovery, staff may Preview credit note or Print credit note. Each action reads
+the already-authorized credit document GET, binds its exact receipt to discovery
+and original invoice, then reads current delivery. No issuance/refund/provider
+request, API/schema addition or background refresh is involved.
+
+The inert buildCreditNotePrintArtifact(document, delivery, originalInvoice)
+returns the same frozen print-artifact union as the existing invoice renderer.
+It validates the exact three-key envelope/23-key receipt/nine-key CRN source,
+strict original identity/property/reservation/folio/recipient/hash bindings,
+preceding number/date and five-field YellowCredit lineage. Original stored
+decimal amounts and bounded int64 totals remain exact; no sign inversion,
+revaluation or editable original is introduced. Shared item/tax/total parsing,
+escaping, provider-state and signed-QR rules preserve invoice behavior. Server
+cryptographic validation remains authoritative, not simulated by this browser.
+
+A4 output is labelled Credit note and contains its number/date, original reference,
+immutable reason, seller/buyer, line and tax amounts, credit total in INR, source
+identity and honest provider status. Sandbox/pending/cancelled/ambiguous is never
+called registered production. Mobile uses a compact credit-specific summary;
+the full-size document and scannable QR are retained for Print.
+
+Request generation and current connected disclosure actions guard every async
+step and the iframe print boundary. Navigation, suspend, dispose, property change
+or disclosure refresh prevents stale follow-ups/render/print. Concurrent buttons
+are disabled. HTTP403/404, malformed document/delivery and excessive QR capacity
+block printing with safe action feedback; registration truth remains in its own
+live region and successful retries clear old action errors. No PII is persisted
+in browser storage or URL. Existing backend access checks remain authoritative.
+
+Product source is independently accepted after root's28pass/508 final proof and
+the broader110pass/3explicitDBskips/10259 run. New Chromium scheduling is explicitly
+controlled for functional print/lifecycle assertions, not compositor performance.
+See Review468 for retained failures/hashes; current release/runtime identity is
+only PROJECT-STATUS.md. No phase completion or live delivery is inferred here.

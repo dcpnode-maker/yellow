@@ -17,7 +17,7 @@ export interface ProjectRecordedWorkSnapshot {
     | 165 | 166 | 168 | 169 | 170 | 171 | 173 | 174 | 175 | 176 | 177 | 178
     | 179 | 180 | 181 | 182 | 183 | 184 | 185 | 186 | 188 | 189
     | 190 | 191 | 192 | 193 | 195 | 199 | 236 | 310 | 396 | 429 | 434 | 438 | 440 | 444
-    | 453 | 454 | 455 | 458 | 459 | 460 | 461 | 462 | 463 | 464 | 465 | 466;
+    | 453 | 454 | 455 | 458 | 459 | 460 | 461 | 462 | 463 | 464 | 465 | 466 | 467 | 468;
   readonly state: ProjectRecordedWorkState;
   readonly summary: string;
   readonly remaining?: string;
@@ -72,10 +72,10 @@ export const DEFAULT_OPERATOR_RUNTIME_STATUS: OperatorRuntimeStatus = Object.fre
 export const PROJECT_BUILD_SNAPSHOT: ProjectBuildSnapshot = Object.freeze({
   schemaVersion: 2,
   recordedAt: "2026-09-13",
-  label: "Current-source receiving integration in progress; invoice source accepted",
+  label: "Current-source receiving integration in progress; credit-note print source accepted",
   roadmap: Object.freeze({
     phaseCount: 18,
-    latestBuiltOrder: 466,
+    latestBuiltOrder: 468,
     currentOrder: 460,
     activePhase: 7,
   }),
@@ -437,6 +437,18 @@ export const PROJECT_BUILD_SNAPSHOT: ProjectBuildSnapshot = Object.freeze({
       state: "independently_approved" as const,
       summary: "Order 466 independently approved the read-only invoice credit-note workflow. Q257 published exact successor source 41415cc5c6953f71d9b3baada6fd9c7853567128; CI run 34725373251 passed six jobs: quality, Windows state, local review, database, free-host ARM64 and container smoke.",
       remaining: "Q258 locally promoted source 41415cc5 on September 13, verifying saved-login invoice reads and both exact served invoice assets. Current runtime identity remains dynamic. No new database proof, provider activation or Phase 7 completion follows from this local delivery.",
+    }),
+    Object.freeze({
+      order: 467,
+      state: "built_unverified" as const,
+      summary: "Order 467 reconciles current build status as source-only metadata. Published source d819e080 is under CI run 34739597186; this record preserves the accepted Q258 runtime evidence without claiming a new runtime promotion.",
+      remaining: "At this source checkpoint, exact-head CI is pending after publication; no runtime promotion is inferred. Dynamic runtime build information remains authoritative; no provider activation or Phase 7 completion follows from this source record.",
+    }),
+    Object.freeze({
+      order: 468,
+      state: "independently_approved" as const,
+      summary: "Order 468 independently approved the credit-note preview and print source-only workflow after root's final five-file proof: 28 tests passed with 508 assertions, including the frozen renderer and workbench/browser evidence.",
+      remaining: "The credit-note workflow is source-only and does not claim live delivery, provider activation or Phase 7 completion. Dynamic runtime build information remains authoritative.",
     }),
   ] satisfies readonly ProjectRecordedWorkSnapshot[]),
   phases: Object.freeze([

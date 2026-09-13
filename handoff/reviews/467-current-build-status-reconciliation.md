@@ -77,3 +77,19 @@ bump, test deletion, broad skip, DB/WSL/state execution or runtime change.
 
 Q260 local repair is source-accepted; exact selective successor publication,
 fresh CI and static-snapshot runtime delivery remain separate uncompleted steps.
+
+## Q260 publication checkpoint, 13 September
+
+Q260 completed exact nine-path native selective publication as
+d819e080bbfe1655ab1fff3572584c97d3a143fc, parent
+da9f97d46af3cb78f1ea98e49bed03581686a5ef, tree
+cac7f229048be7ab7526bdc33918b551e1822e5c, to existing draftPR92.
+Root verified all2232 tracked/selected working bytes, exact scoped blobs,
+outside index objects/persistent flags/stable extensions and unrelated refs.
+Ordinary intent-to-add/commit --only and non-force push; no broad stage/reset.
+The first preflight was unused because the browser worker completed a final test
+edit before the mutation; r2 captured the complete frozen receiving baseline.
+Metadata receipts: .yellow/evidence/order467/q260-publication-preflight-r2-20260913.json
+and q260-publication-completed-20260913.json. Exact CI34739597186 has five successful
+jobs; database remains running at this checkpoint. No whole-CI/referee or runtime
+delivery claim. All earlier failures remain evidence. No468 source was included.
