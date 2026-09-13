@@ -36,21 +36,25 @@ function contrast(foreground: string, background: string) {
     / (Math.min(foregroundLuminance, backgroundLuminance) + 0.05);
 }
 
-test("Order195: all six advertised appearances are allowlisted and keep one semantic app", async () => {
+test("Order195 / Order458: six historical CSS families remain internal behind one eight-interface app", async () => {
   const html = await Bun.file(htmlFile).text();
   const script = await Bun.file(scriptFile).text();
-  const appearanceSelect = html.match(/<select id="theme-select"[\s\S]*?<\/select>/)?.[0] ?? "";
-  const advertised = [...appearanceSelect.matchAll(/<option value="([^"]+)">/g)].map((match) => match[1]);
-  expect(advertised).toEqual([...themes]);
-  expect(new Set(advertised).size).toBe(6);
-  for (const theme of advertised) {
-    expect(html).toContain(`<option value="${theme}">`);
-    expect(script).toContain(`"${theme}"`);
-  }
+  const workspaceSelect = html.match(/<select id="workspace-skin-select"[\s\S]*?<\/select>/)?.[0] ?? "";
+  const advertised = [...workspaceSelect.matchAll(/<option value="([^"]+)">([^<]+)<\/option>/g)]
+    .map((match) => [match[1], match[2]]);
+  expect(advertised).toEqual([
+    ["ledger", "Ledger · Precision desk"], ["aura", "Aura · Spatial glass"],
+    ["relay", "Relay · Operations board"], ["journey", "Journey · Guided workspace"],
+    ["orbit", "Orbit · Command centre"], ["atlas", "Atlas · Portfolio studio"],
+    ["focus", "Focus · Task companion"], ["index", "Index · Planning desk"],
+  ]);
+  expect(new Set(advertised.map(([value]) => value)).size).toBe(8);
   expect(html.match(/id="workbench-view"/g)).toHaveLength(1);
-  expect(script).toContain("document.documentElement.dataset.theme = next");
-  expect(script).toContain('const THEMES = new Set(["apple", "android", "win95", "glass", "neo", "erp"])');
-  expect(script).toContain('THEMES.has(theme) ? theme : "apple"');
+  expect(html).not.toMatch(/id="(?:theme|experience)-select"|>Appearance<|>Workspace detail</);
+  expect(script).toContain('const WORKSPACE_SKINS = new Set(["ledger", "aura", "relay", "journey", "orbit", "atlas", "focus", "index"])');
+  expect(script).toContain('WORKSPACE_SKINS.has(skin) ? skin : "ledger"');
+  expect(script).toContain("document.documentElement.dataset.workspaceSkin = next");
+  expect(script).not.toMatch(/document\.documentElement\.dataset\.(?:theme|experience)\s*=|\b(?:THEMES|EXPERIENCES)\b|applyTheme|applyExperience/);
   expect(script).not.toMatch(/localStorage|sessionStorage|document\.cookie|indexedDB/);
 });
 
@@ -115,7 +119,15 @@ test("Order185: welcome text and classic focus remain visibly accessible", async
 });
 
 test("Order185: the material system remains dependency-free and same-origin", async () => {
-  const text = `${await Bun.file(htmlFile).text()}\n${await Bun.file(cssFile).text()}\n${await Bun.file(scriptFile).text()}`;
-  expect(text).not.toMatch(/https?:\/\/|@import|url\s*\(/i);
+  const [html, css, script] = await Promise.all([
+    Bun.file(htmlFile).text(), Bun.file(cssFile).text(), Bun.file(scriptFile).text(),
+  ]);
+  const text = `${html}\n${css}\n${script}`;
+  expect(html.match(/xmlns="http:\/\/www\.w3\.org\/2000\/svg"/g)).toHaveLength(1);
+  expect(css.match(/url\("\/static\/fonts\/urbanist-v1\.330\.woff2"\)/g)).toHaveLength(1);
+  expect(script).not.toMatch(/https?:\/\/|@import|url\s*\(/i);
+  expect(text.replace('xmlns="http://www.w3.org/2000/svg"', "")
+    .replace('url("/static/fonts/urbanist-v1.330.woff2")', ""))
+    .not.toMatch(/https?:\/\/|@import|url\s*\(/i);
   expect(text).not.toMatch(/logo|trademark/i);
 });

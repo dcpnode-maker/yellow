@@ -90,7 +90,7 @@ function isWellFormedUtf16(value: string): boolean {
     const unit = value.charCodeAt(index);
     if (unit >= 0xd800 && unit <= 0xdbff) {
       const next = value.charCodeAt(index + 1);
-      if (next < 0xdc00 || next > 0xdfff) return false;
+      if (!(next >= 0xdc00 && next <= 0xdfff)) return false;
       index += 1;
     } else if (unit >= 0xdc00 && unit <= 0xdfff) return false;
   }
@@ -296,19 +296,53 @@ function party(value: unknown, buyer: boolean): string {
   return `{${values.join(",")}}`;
 }
 
-function documentDetails(value: unknown): string {
-  const source = record(value);
-  exact(source, ["Typ", "No", "Dt"]);
-  if (source.Typ !== "INV" || typeof source.No !== "string" || !DOCUMENT_NUMBER.test(source.No) ||
-      typeof source.Dt !== "string") invalid();
-  const match = DOCUMENT_DATE.exec(source.Dt);
+function documentDate(value: unknown): string {
+  if (typeof value !== "string") invalid();
+  const match = DOCUMENT_DATE.exec(value);
   if (!match) invalid();
   const day = Number(match[1]);
   const month = Number(match[2]);
   const year = Number(match[3]);
   const date = new Date(Date.UTC(year, month - 1, day));
   if (date.getUTCFullYear() !== year || date.getUTCMonth() !== month - 1 || date.getUTCDate() !== day) invalid();
-  return `{"Typ":"INV","No":${jsonString(source.No)},"Dt":${jsonString(source.Dt)}}`;
+  return value;
+}
+
+function documentDetails(value: unknown, expectedKind: "INV" | "CRN"): string {
+  const source = record(value);
+  exact(source, ["Typ", "No", "Dt"]);
+  if (source.Typ !== expectedKind || typeof source.No !== "string" || !DOCUMENT_NUMBER.test(source.No)) invalid();
+  const date = documentDate(source.Dt);
+  return `{"Typ":${jsonString(expectedKind)},"No":${jsonString(source.No)},"Dt":${jsonString(date)}}`;
+}
+
+function precedingDocumentDetails(value: unknown): string {
+  const source = record(value);
+  exact(source, ["PrecDocDtls"]);
+  if (!Array.isArray(source.PrecDocDtls) || source.PrecDocDtls.length !== 1) invalid();
+  const preceding = record(source.PrecDocDtls[0]);
+  exact(preceding, ["InvNo", "InvDt"]);
+  if (typeof preceding.InvNo !== "string" || !DOCUMENT_NUMBER.test(preceding.InvNo)) invalid();
+  const date = documentDate(preceding.InvDt);
+  return `{"PrecDocDtls":[{"InvNo":${jsonString(preceding.InvNo)},"InvDt":${jsonString(date)}}]}`;
+}
+
+function creditReason(value: unknown): void {
+  if (typeof value !== "string" || !isWellFormedUtf16(value) || value.trim().length === 0 ||
+      Array.from(value).length > 500 || /[\u0000-\u001f\u007f]/u.test(value)) invalid();
+}
+
+function yellowCredit(value: unknown, creditDocumentId: string): void {
+  const source = record(value);
+  exact(source, [
+    "originalDocumentId", "originalSha256", "reason", "correctionJournalId", "sourceEvidenceHash",
+  ]);
+  if (typeof source.originalDocumentId !== "string" || !UUID.test(source.originalDocumentId) ||
+      source.originalDocumentId === creditDocumentId ||
+      typeof source.correctionJournalId !== "string" || !UUID.test(source.correctionJournalId) ||
+      typeof source.originalSha256 !== "string" || !SHA256.test(source.originalSha256) ||
+      typeof source.sourceEvidenceHash !== "string" || !SHA256.test(source.sourceEvidenceHash)) invalid();
+  creditReason(source.reason);
 }
 
 function transactionDetails(value: unknown): string {
@@ -406,19 +440,26 @@ function valueDetails(value: unknown, items: readonly ItemProjection[], family: 
   return `{"AssVal":${assessable.lexeme},"CgstVal":${cgst.lexeme},"SgstVal":${sgst.lexeme},"TotInvVal":${total.lexeme}}`;
 }
 
-function project(sourceValue: unknown): string {
+function project(sourceValue: unknown, documentId: string): string {
   const source = record(sourceValue);
-  exact(source, ["Version", "TranDtls", "DocDtls", "SellerDtls", "BuyerDtls", "ItemList", "ValDtls"]);
+  const credit = Object.hasOwn(source, "RefDtls") || Object.hasOwn(source, "YellowCredit");
+  exact(source, credit
+    ? ["Version", "TranDtls", "DocDtls", "SellerDtls", "BuyerDtls", "ItemList", "ValDtls", "RefDtls", "YellowCredit"]
+    : ["Version", "TranDtls", "DocDtls", "SellerDtls", "BuyerDtls", "ItemList", "ValDtls"]);
   if (source.Version !== "1.1" || !Array.isArray(source.ItemList) ||
       source.ItemList.length < 1 || source.ItemList.length > MAX_ITEMS) invalid();
   const projectedItems = source.ItemList.map((candidate, index) => item(candidate, index));
   const family = projectedItems[0]!.family;
   if (projectedItems.some((candidate) => candidate.family !== family)) invalid();
   const itemJson = projectedItems.map((candidate) => candidate.json).join(",");
-  return `{"Version":"1.1","TranDtls":${transactionDetails(source.TranDtls)},` +
-    `"DocDtls":${documentDetails(source.DocDtls)},"SellerDtls":${party(source.SellerDtls, false)},` +
+  const common = `{"Version":"1.1","TranDtls":${transactionDetails(source.TranDtls)},` +
+    `"DocDtls":${documentDetails(source.DocDtls, credit ? "CRN" : "INV")},"SellerDtls":${party(source.SellerDtls, false)},` +
     `"BuyerDtls":${party(source.BuyerDtls, true)},"ItemList":[${itemJson}],` +
-    `"ValDtls":${valueDetails(source.ValDtls, projectedItems, family)}}`;
+    `"ValDtls":${valueDetails(source.ValDtls, projectedItems, family)}`;
+  if (!credit) return `${common}}`;
+  const referenceJson = precedingDocumentDetails(source.RefDtls);
+  yellowCredit(source.YellowCredit, documentId);
+  return `${common},"RefDtls":${referenceJson}}`;
 }
 
 export function projectIssuedIndiaIrpWireCandidate(inputValue: unknown): IssuedIndiaIrpWireCandidateResult {
@@ -439,7 +480,7 @@ export function projectIssuedIndiaIrpWireCandidate(inputValue: unknown): IssuedI
     if (!isWellFormedUtf16(input.contentJson)) invalid();
     new ExactJsonScanner(input.contentJson).scan();
     const parsed: unknown = JSON.parse(input.contentJson);
-    const wireJson = project(parsed);
+    const wireJson = project(parsed, input.documentId);
     const wireSha256 = new Bun.CryptoHasher("sha256").update(wireJson).digest("hex");
     return Object.freeze({
       ok: true as const,

@@ -80,6 +80,28 @@ export const REVIEW_BUSINESS_DAY_SEAL_EDGE_PERMISSION = Object.freeze({
   code: "financials.business-days:seal",
   description: "Seal governed property business days",
 });
+export const REVIEW_FISCAL_PERMISSIONS = Object.freeze([
+  Object.freeze({
+    code: "tax-fiscal.documents:read",
+    description: "Read property-authorized immutable fiscal documents",
+  }),
+  Object.freeze({
+    code: "tax-fiscal.documents:issue",
+    description: "Issue one governed India native fiscal invoice",
+  }),
+  Object.freeze({
+    code: "tax-fiscal.submissions:read",
+    description: "Read a property-authorized durable fiscal delivery receipt",
+  }),
+  Object.freeze({
+    code: "tax-fiscal.submissions:request",
+    description: "Request durable registration of one issued fiscal document",
+  }),
+  Object.freeze({
+    code: "tax-fiscal.submissions:retry",
+    description: "Explicitly retry one fiscal delivery proven not sent",
+  }),
+] as const);
 export const REVIEW_PERMISSIONS = Object.freeze([
   { code: "crm.parties:read", description: "Search tenant-scoped Party profiles" },
   { code: "crm.parties:write", description: "Create tenant-scoped Party profiles" },
@@ -139,6 +161,7 @@ export const REVIEW_PERMISSIONS = Object.freeze([
   { code: "stay-operations.vehicles:read", description: "Read the governed property vehicle register" },
   { code: "stay-operations.vehicles:park", description: "Assign onsite reservation-linked vehicles to governed parking spaces" },
   { code: "tax-fiscal.india-valuation:finalize", description: "Finalize governed India accommodation valuation evidence" },
+  ...REVIEW_FISCAL_PERMISSIONS,
   REVIEW_PICKUP_TASK_DISPATCH_PERMISSION,
   REVIEW_PICKUP_TASK_WORK_PERMISSION,
 ]);
@@ -743,13 +766,22 @@ async function provisionIdentity(
   for (const permission of REVIEW_PERMISSIONS) {
     if (permission.code === REVIEW_DISCREPANCY_CARRY_PERMISSION.code ||
       permission.code === REVIEW_BUSINESS_DAY_SEAL_PERMISSION.code ||
-      permission.code === REVIEW_BUSINESS_DAY_SEAL_EDGE_PERMISSION.code) continue;
+      permission.code === REVIEW_BUSINESS_DAY_SEAL_EDGE_PERMISSION.code ||
+      REVIEW_FISCAL_PERMISSIONS.some(fiscal => fiscal.code === permission.code)) continue;
     await connection`
       INSERT INTO role_permission (role_id, permission_code)
       VALUES (${approverRoleId}::uuid, ${permission.code})
       ON CONFLICT (role_id, permission_code) DO NOTHING
     `;
   }
+  await connection`
+    DELETE FROM role_permission
+    WHERE role_id=${approverRoleId}::uuid
+      AND permission_code IN (
+        ${REVIEW_FISCAL_PERMISSIONS[0].code},${REVIEW_FISCAL_PERMISSIONS[1].code},
+        ${REVIEW_FISCAL_PERMISSIONS[2].code},${REVIEW_FISCAL_PERMISSIONS[3].code},
+        ${REVIEW_FISCAL_PERMISSIONS[4].code})
+  `;
   await connection`
     INSERT INTO role_permission (role_id, permission_code)
     VALUES (${approverRoleId}::uuid, ${REVIEW_POST_SEAL_PERMISSION.code})

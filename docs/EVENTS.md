@@ -26,6 +26,31 @@ outbox by `seq` (SQL) or JetStream by offset.
 
 ## Catalogue v1 (producer → notable consumers)
 
+### document.series.configured — native India fiscal-series configuration
+
+Order453 introduces this v1 producer contract; implementation/native acceptance is
+in progress, not a claim that historical series emitted this event.
+New configuration atomically inserts its document_series row, fact_log configured
+fact and outbox event. Aggregate/entity type=document_series, aggregate/entity ID
+is the new series UUID. Both minimized payloads contain exactly
+{seriesId,propertyNode,supplierRegistrationId,documentKind,prefix,financialYearStart},
+derived from the stored series. FY is YYYY-MM-DD. No GSTIN, Party/guest details,
+money/tax, document number/content, credentials or provider data.
+
+Tenant/property/actor are authenticated; business_date is the transaction-stable
+property-local configuration date. Fact valid_from uses transaction_timestamp;
+outbox event_version=1, causation_id=NULL and SQL generates correlation_id. The
+existing six-argument capability cannot persist the service envelope requestId;
+do not treat that validated value as the event correlation or idempotency receipt.
+The existing publication advisory lock is acquired last before immutable writes.
+Prior publication in the same transaction is denied after initial authority;
+new configuration and its publication commit together or all roll back.
+
+Exact same-key/prefix replay changes no counter and emits nothing. Historical
+unaudited series receive no fabricated events. No consumer is added by this order.
+Consumers must not infer issuance, number allocation, debit-note accounting,
+payment, IRN/registration, cancellation or provider activity from configuration.
+
 **inventory** · space.created · unit_type.created · sellable_unit.created {unit_type_id,space_claims[{space_id,claim_mode}]} · inventory.policy.changed {policy,previous,value} · occupancy.recorded {slot_kind,space_id,period,claim} · occupancy.released · hold.created/.consumed/.expired/.released · restriction.changed · ooo.opened/.closed
 → availability-projection rebuilder, ARI push, Valkey invalidator
 
@@ -59,6 +84,16 @@ adapter key, but never includes Party, identity-document, contact, credential or
 field values. Override authority is recorded only as use/reason after server-derived
 authorization. Consumers must not infer key issue, occupancy mutation, posting/payment,
 folio settlement, statutory submission, business-day movement or checkout.
+
+Order463 reservation alerts reuse `reservation.modified` for create or deactivate.
+The aggregate remains the same tenant/property reservation. The fact/event diff
+is exactly `{alerts:{action:'create'|'deactivate',alertId,active}}`, without note,
+code, Party, identity-document or contact values. The changed alert, fact, outbox
+and idempotency result commit together. Replay and already-inactive no-op emit
+nothing additional. Consumers must not infer a reservation status, occupancy,
+guest identity, billing, approval or statutory change from an annotation.
+The implementation and isolated database proof are accepted; serving-runtime
+integration remains pending under Order460.
 
 Order 212 reuses `reservation.modified` for a changed travel compare-and-set. Its
 minimized diff is `{travel:{direction,before,after}}`, where each present tuple contains
@@ -308,6 +343,20 @@ See [`PROJECT-STATUS.md`](PROJECT-STATUS.md) for current status and
 source, locking, accounting and executable acceptance contract.
 
 ## Consumer registry (who must exist by launch)
+
+### Order446 full credit note — implementation contract, not released
+
+The existing `document.issued` event represents a newly numbered `credit_note`;
+it does not mutate or re-emit the original invoice and is not an external IRP
+acceptance. Its payload is the same immutable receipt: credit/original document
+identities and numbers/hashes, correction journal, series, property/reservation/
+folio, supplier/recipient registrations, fiscal year, INR currency, issue/business
+date, chain/source hashes, positive exact minor-unit string and reason. Actor and
+correlation are envelope fields. One complete financial/document transaction owns
+the binding, posting lines, document, fact, event and idempotency receipt; publication
+comes after financial/day/series locks. Exact replay emits no second event and
+still rechecks current authority. New consumers or provider transmission are not
+implicitly enabled. See Order446 and PROJECT-STATUS.md for executable status.
 
 ### Order440 fiscal delivery events — current80 plus candidate81
 

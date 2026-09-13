@@ -18,7 +18,7 @@ function themeBlock(css: string, theme: string): string {
   return material;
 }
 
-test("Order195: the six founder-selected systems carry structural material vectors", async () => {
+test("Order195 / Order444: retained internal material systems carry structural vectors", async () => {
   const css = await Bun.file(cssFile).text();
   const categories = [
     /--(?:control|card)-radius:/, // geometry
@@ -47,7 +47,7 @@ test("Order185: material signatures, fallbacks and accessibility contracts are e
   expect(css).toMatch(/data-theme="win95"[\s\S]*outset/);
   expect(css).toMatch(/data-theme="win95"[\s\S]*inset/);
   expect(css).toMatch(/data-theme="android"[\s\S]*min-height:\s*48px/);
-  expect(css).toMatch(/data-theme="android"[^\n]*#theme-select[^\n]*#experience-select[^\n]*min-height:\s*48px/);
+  expect(css).toMatch(/#workspace-skin-select[^{}]*\{[^}]*min-height:\s*44px/);
   expect(css).toMatch(/data-theme="neo"[\s\S]*inset/);
   expect(css).toMatch(/@media \(prefers-reduced-motion: reduce\)/);
   expect(css).toContain("@keyframes glass-stage-in");
@@ -87,6 +87,11 @@ test("Order195: skins remain responsive and dependency-free without the retired 
   expect(css).toMatch(/@media \(max-width:\s*900px\)/);
   expect(css).toMatch(/@media \(max-width:\s*560px\)/);
   const all = `${html}\n${css}\n${script}`;
-  expect(all).not.toMatch(/https?:\/\/|@import|url\s*\(/i);
+  expect(html.match(/xmlns="http:\/\/www\.w3\.org\/2000\/svg"/g)).toHaveLength(1);
+  expect(css.match(/url\("\/static\/fonts\/urbanist-v1\.330\.woff2"\)/g)).toHaveLength(1);
+  expect(script).not.toMatch(/https?:\/\/|@import|url\s*\(/i);
+  expect(all.replace('xmlns="http://www.w3.org/2000/svg"', "")
+    .replace('url("/static/fonts/urbanist-v1.330.woff2")', ""))
+    .not.toMatch(/https?:\/\/|@import|url\s*\(/i);
   expect(new TextEncoder().encode(all).byteLength).toBeGreaterThan(0);
 });

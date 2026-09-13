@@ -1,3 +1,4 @@
+import { types as utilTypes } from "node:util";
 import {
   deriveRateEvaluationContext,
   evaluateRateModel,
@@ -15,6 +16,28 @@ const CURRENCY = /^[A-Z]{3}$/;
 const STABLE_KEY = /^[a-z0-9][a-z0-9._:-]{0,127}$/;
 const HOTEL_CODE = /^[A-Z0-9][A-Z0-9._-]{0,63}$/;
 const CHANNEL_CODE = /^[a-z0-9][a-z0-9._-]{0,63}$/;
+
+const derivedStayContexts = new WeakSet<RateStayCompositionContext>();
+
+// Only ordinary data inputs can produce a provenance-bearing output. Exotic
+// inputs retain the existing validation path, including its errors and ordering.
+function inertInput(value: unknown, seen = new Set<object>(), depth = 0, budget = { remaining: 100_000 }): boolean {
+  if (--budget.remaining < 0) return false;
+  if (value === null || typeof value !== "object") return typeof value !== "function";
+  if (depth > 32 || seen.size > 20_000) return false;
+  if (utilTypes.isProxy(value)) return false;
+  // Reject oversized arrays before allocating their own-key list. The visit
+  // budget also counts primitives; it does not bound ownKeys on wide objects.
+  if (Array.isArray(value) && value.length > 731) return false;
+  const prototype = Object.getPrototypeOf(value);
+  if (prototype !== null && prototype !== Object.prototype && prototype !== Array.prototype) return false;
+  if (seen.has(value)) return true;
+  seen.add(value);
+  return Reflect.ownKeys(value).every(key => {
+    const descriptor = Object.getOwnPropertyDescriptor(value, key)!;
+    return "value" in descriptor && inertInput(descriptor.value, seen, depth + 1, budget);
+  });
+}
 
 const POLICY_KINDS = Object.freeze(["cancellation", "deposit", "guarantee", "no_show"] as const);
 const RESTRICTION_KINDS = Object.freeze([
@@ -989,6 +1012,7 @@ function addLocalDays(value: string, days: number): string {
 }
 
 export function deriveRateStayCompositionContext(value: unknown): RateStayCompositionContext {
+  const reusable = inertInput(value);
   const source = requireObject(value, "rate stay composition context");
   const fields = [
     "rateEvaluatorSpec",
@@ -1062,7 +1086,7 @@ export function deriveRateStayCompositionContext(value: unknown): RateStayCompos
       }
     }
   }
-  return Object.freeze({
+  const context = Object.freeze({
     rateEvaluatorSpec: first.common.rateEvaluatorSpec,
     rateEvaluations: Object.freeze(canonicalNights.map(({ common: _common, ...night }) => Object.freeze(night))),
     guests: first.common.guests,
@@ -1073,6 +1097,10 @@ export function deriveRateStayCompositionContext(value: unknown): RateStayCompos
     channelCode: first.common.channelCode,
     channelMappingEvidenceRef: first.common.channelMappingEvidenceRef,
   });
+  // Canonical per-night contexts/results and every common evidence array/object
+  // have been rebuilt and frozen; never register the caller's input identity.
+  if (reusable) derivedStayContexts.add(context);
+  return context;
 }
 
 function stayNightContext(
@@ -1113,7 +1141,9 @@ export function composeRateStayQuote(
   if (!Object.isFrozen(contextValue)) {
     throw new RateCompositionError("stay context must come from deriveRateStayCompositionContext");
   }
-  const context = deriveRateStayCompositionContext(contextValue);
+  const context = derivedStayContexts.has(contextValue as RateStayCompositionContext)
+    ? contextValue as RateStayCompositionContext
+    : deriveRateStayCompositionContext(contextValue);
   if (!exactEqual(context, contextValue)) {
     throw new RateCompositionError("stay context does not match its canonical derived form");
   }

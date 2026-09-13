@@ -2,6 +2,11 @@
 
 **Status:** ACTIVE — private source binding is independently merged through PR90 with complete CI and post-merge80 proof. Q207 provider/signed-receipt/read integration passes actual81 storage, full synthetic protocol journey, authorized GET, schema and clean seed/referee11/11. Current compatibility/full CI and operator invoice/printing plus authentic sandbox acceptance remain.
 Order434's exact candidate is accepted and merged; no provider is activated.
+The next complete operator invoice workflow is admitted by
+[Question208](../questions/208-operator-invoice-workflow.md), with exact ownership,
+public/SQL contracts and proof targets required before implementation/execution.
+It is separate from PR91's frozen provider integration and does not alter that
+candidate's evidence or the retained local preview.
 **Phase:** 7, planned sequence item6.
 **Owner:** Codex coordinator; bounded internal builders, separate high-risk reviewer.
 **Date:** 2026-09-06

@@ -592,3 +592,29 @@ describe("Order 239 attributable rate-quote tax preview", () => {
     expect(bounded.queries.some((statement) => /\b(?:INSERT|UPDATE|DELETE|MERGE|TRUNCATE)\b/i.test(statement))).toBe(false);
   });
 });
+
+describe("Order451 complete quote reuse parity", () => {
+  test("warm and fresh evaluations preserve full financial evidence, ordering and quoteHash", async () => {
+    const options: HarnessOptions[] = [
+      {}, { promotion: true }, { packageMode: "included" },
+      { packageMode: "extra", promotion: true }, { packageMode: "zero" },
+      { taxContent: INCLUSIVE_VAT, taxInclusive: true },
+      { bookable: false }, { resolutionMode: "unassigned" },
+    ];
+    const exact = (value: unknown) => JSON.stringify(value, (_key, entry) =>
+      typeof entry === "bigint" ? { minorUnits: entry.toString() } : entry);
+    for (const configuration of options) {
+      const warm = harness(configuration);
+      const first = await warm.resolve();
+      const repeated = await warm.resolve();
+      const fresh = await harness(configuration).resolve();
+      expect(exact(repeated)).toBe(exact(first));
+      expect(exact(fresh)).toBe(exact(first));
+      expect(repeated.quoteHash).toBe(first.quoteHash);
+      expect(fresh.result.workUnits).toBe(first.result.workUnits);
+      expect(isDeeplyFrozen(repeated)).toBe(true);
+      expect(warm.queries).toHaveLength(2);
+      expect(warm.resolverDates).toEqual(["2026-09-01", "2026-09-02", "2026-09-01", "2026-09-02"]);
+    }
+  });
+});

@@ -534,6 +534,169 @@ date condition, policy formula or publish state.
 
 ---
 
+## `market_compset` — explicitly confirmed property competitor evidence (Order472)
+
+Implementation contract, not a statement that a row is installed or the workflow
+is live. The executable schema is exported as `MARKET_COMPSET_SCHEMA` through
+`src/contexts/distribution/index.ts`; the seed declares this type only. No global,
+default or active instance and no user permission assignment is seeded.
+
+Each tenant/property uses the server-derived key `property:<property UUID>`.
+The immutable content retains confirmed own-property evidence, zero to 500 distinct
+competitor records, actor and PostgreSQL transaction time. Artifact logical ID,
+SHA256 and source record ID select server-admitted evidence; they are not paths
+or proof supplied by a client. Source capture dates, source-point coordinate
+method, attribution and bounded-query completeness stay attached. A complete
+all-places extract never means complete hotel coverage, verified identity, demand
+or current rates.
+
+Current read and confirmation require the active actor's property grant; replay
+does not bypass revalidation. Expected active version is checked under the registry
+version lock. Replacement retires the old version and activates the new snapshot
+atomically with facts, the existing activation event and idempotent receipt.
+Clearing competitors creates a new empty-comparator version; no history is deleted.
+
+JSON Schema below uses only registry-supported keywords. The domain additionally
+checks Unicode/text/array bounds, UUID/date/hash/coordinate validity, source
+reference consistency, duplicate/own-property exclusion, exact property binding
+and an 8 MiB maximum normalized content size on reads and writes. Schema validation
+alone cannot confer confirmation authority. Generic extension endpoints cannot
+register/create this type or expose its instances through a tenant-wide list.
+
+```json
+{
+  "$id": "yellow/market_compset/v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["format","propertyNode","confirmedBy","confirmedAt","ownProperty","comparators"],
+  "properties": {
+    "format": {"enum":["yellow/market-compset/v1"]},
+    "propertyNode": {"type":"string","pattern":"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"},
+    "confirmedBy": {"type":"string","pattern":"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"},
+    "confirmedAt": {"type":"string"},
+    "ownProperty": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["reference","record","capturedAt","coordinateMethod","completeness"],
+      "properties": {
+        "reference": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["logicalId","sha256","sourceRecordId"],
+          "properties": {"logicalId":{"type":"string"},"sha256":{"type":"string","pattern":"^[0-9a-f]{64}$"},"sourceRecordId":{"type":"string"}}
+        },
+        "record": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["provenance","name","coordinates","address","websites","categories","operatingStatus"],
+          "properties": {
+            "provenance": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["source","release","schema","recordId","attribution"],
+              "properties": {
+                "source": {"type":"string"},
+                "release": {"type":"string"},
+                "schema": {"type":"string"},
+                "recordId": {"type":"string"},
+                "attribution": {"type":"string"}
+              }
+            },
+            "name": {"type":"string"},
+            "coordinates": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["latitude","longitude"],
+              "properties": {"latitude":{"type":"number"},"longitude":{"type":"number"}}
+            },
+            "address": {"type":["string","null"]},
+            "websites": {"type":"array","items":{"type":"string"}},
+            "categories": {"type":"array","items":{"type":"string"}},
+            "operatingStatus": {"enum":["unknown","source-reported-open","source-reported-closed"]}
+          }
+        },
+        "capturedAt": {"type":"string"},
+        "coordinateMethod": {"enum":["source-wkb-point"]},
+        "completeness": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["scope","status","sourceRows","returnedRecords","rejectedRows"],
+          "properties": {
+            "scope": {"enum":["publisher-range-extract-all-places"]},
+            "status": {"enum":["complete","incomplete"]},
+            "sourceRows": {"type":"integer","minimum":0},
+            "returnedRecords": {"type":"integer","minimum":0},
+            "rejectedRows": {"type":"integer","minimum":0}
+          }
+        }
+      }
+    },
+    "comparators": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["reference","record","capturedAt","coordinateMethod","completeness"],
+        "properties": {
+          "reference": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["logicalId","sha256","sourceRecordId"],
+            "properties": {"logicalId":{"type":"string"},"sha256":{"type":"string","pattern":"^[0-9a-f]{64}$"},"sourceRecordId":{"type":"string"}}
+          },
+          "record": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["provenance","name","coordinates","address","websites","categories","operatingStatus"],
+            "properties": {
+              "provenance": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["source","release","schema","recordId","attribution"],
+                "properties": {
+                  "source": {"type":"string"},
+                  "release": {"type":"string"},
+                  "schema": {"type":"string"},
+                  "recordId": {"type":"string"},
+                  "attribution": {"type":"string"}
+                }
+              },
+              "name": {"type":"string"},
+              "coordinates": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["latitude","longitude"],
+                "properties": {"latitude":{"type":"number"},"longitude":{"type":"number"}}
+              },
+              "address": {"type":["string","null"]},
+              "websites": {"type":"array","items":{"type":"string"}},
+              "categories": {"type":"array","items":{"type":"string"}},
+              "operatingStatus": {"enum":["unknown","source-reported-open","source-reported-closed"]}
+            }
+          },
+          "capturedAt": {"type":"string"},
+          "coordinateMethod": {"enum":["source-wkb-point"]},
+          "completeness": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["scope","status","sourceRows","returnedRecords","rejectedRows"],
+            "properties": {
+              "scope": {"enum":["publisher-range-extract-all-places"]},
+              "status": {"enum":["complete","incomplete"]},
+              "sourceRows": {"type":"integer","minimum":0},
+              "returnedRecords": {"type":"integer","minimum":0},
+              "rejectedRows": {"type":"integer","minimum":0}
+            }
+          }
+        }
+      }
+    }
+  }
+}
+```
+
+---
+
 ## Tier map (recap)
 
 - **Tier A** — most countries: tax_jurisdiction row only, or nothing. No code.

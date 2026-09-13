@@ -72,7 +72,7 @@ type FolioGeometry = Readonly<{
 }>;
 
 const loadedFolioFixture = (stylesheet: string) => `<!doctype html>
-<html lang="en" data-theme="apple" data-experience="expert"><head><meta charset="utf-8">
+<html lang="en" data-theme="apple" data-workspace-skin="precision"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1"><link rel="stylesheet" href="${stylesheet}"></head>
 <body><main><div class="workbench"><section id="folios-view"><div class="section-heading"><div>
 <p class="eyebrow">Guest ledger evidence</p><h2>Folios</h2></div></div>

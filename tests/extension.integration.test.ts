@@ -45,7 +45,7 @@ let tokenB = "";
 let tokenWithoutPlatform = "";
 
 describe("Order 024 launch extension catalogue", () => {
-  test("all ten schemas accept all 41 launch instances", () => {
+  test("all eleven schemas accept the unchanged 41 launch instances, with no default compset", () => {
     const schemas = new Map<string, (typeof LAUNCH_EXTENSION_TYPES)[number]["jsonSchema"]>(
       LAUNCH_EXTENSION_TYPES.map(({ type, jsonSchema }) => [type, jsonSchema]),
     );
@@ -53,7 +53,9 @@ describe("Order 024 launch extension catalogue", () => {
       const issues = validateJsonSchema(schemas.get(type), content);
       return issues.length === 0 ? [] : [{ type, key, issues }];
     });
-    expect(schemas.size).toBe(10);
+    expect(schemas.size).toBe(11);
+    expect(schemas.has("market_compset")).toBe(true);
+    expect(LAUNCH_EXTENSIONS.filter(({ type }) => type === "market_compset")).toEqual([]);
     expect(LAUNCH_EXTENSIONS).toHaveLength(41);
     expect(invalid).toEqual([]);
   });

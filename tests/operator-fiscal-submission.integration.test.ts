@@ -101,7 +101,7 @@ describe("Q203 HTTP proof target safety", () => {
   test("Q207 protected provider configuration stays default-off and shares one immutable snapshot", async () => {
     const source = await readFile(new URL("../src/server.ts", import.meta.url), "utf8");
     const absent = await loadIndiaIrpAdapterRegistrationsFromEnvironment({});
-    expect(absent).toEqual({ ok: true, value: [] });
+    expect(absent).toEqual({ ok: true, value: [], presentations: [] });
     expect(absent.ok && Object.isFrozen(absent.value)).toBe(true);
     expect(source).toContain(
       'const fiscalSubmissionDeliveryEnabled = workbenchEnabled && Bun.env.YELLOW_FISCAL_SUBMISSION_WORKER === "1"',
@@ -112,8 +112,9 @@ describe("Q203 HTTP proof target safety", () => {
     expect(source).toContain("const verifiedIndiaIrpAdapterRegistrations = providerConfiguration.value");
     expect(source).toMatch(/new VerifiedIndiaIrpAdapterRegistry\(verifiedIndiaIrpAdapterRegistrations\)/);
     expect(source).toMatch(
-      /new FiscalSubmissionAdapterAvailabilityService\(fiscalAdapterRegistry\.identities\(\)\)/,
+      /new FiscalSubmissionAdapterAvailabilityService\(\s*fiscalAdapterRegistry\.identities\(\), verifiedIndiaIrpAdapterPresentations\)/,
     );
+    expect(source).toContain("const verifiedIndiaIrpAdapterPresentations = providerConfiguration.presentations");
     expect(source).toMatch(/new FiscalSubmissionWorker\(fiscalRepository, fiscalAdapterRegistry\)/);
     expect(source).toContain("adapters: fiscalSubmissionAdapters");
     const configurationLoad = source.indexOf(

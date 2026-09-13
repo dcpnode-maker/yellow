@@ -217,8 +217,19 @@ interface FiscalDeliveryReceiptBase {
   readonly transitionSeq: number;
 }
 
+export interface FiscalSubmissionRetryBinding {
+  readonly providerExtensionId: string;
+  readonly providerExtensionVersion: number;
+}
+
+interface FiscalPendingDeliveryReceipt {
+  readonly kind: "pending";
+  /** Runtime validation admits only pending/send, submitted/lookup, or error/retry. */
+  readonly retryBinding?: Readonly<FiscalSubmissionRetryBinding>;
+}
+
 export type FiscalSubmissionDeliveryReceipt = Readonly<FiscalDeliveryReceiptBase & (
-  | { readonly kind: "pending" }
+  | FiscalPendingDeliveryReceipt
   | { readonly kind: "legacy_hash_only"; readonly authorityRef: string | null; readonly responseSha256: string | null }
   | { readonly kind: "rejected"; readonly environment: "sandbox" | "production";
       readonly responseSha256: string; readonly errorCodes: readonly string[] }
@@ -233,6 +244,16 @@ export type FiscalSubmissionDeliveryReceipt = Readonly<FiscalDeliveryReceiptBase
 const READ_BASE_KEYS = ["kind", "submissionId", "tenantId", "propertyNode", "documentId", "documentSha256",
   "wireSha256", "providerKey", "attemptId", "attemptNumber", "status", "disposition", "transitionSeq"] as const;
 
+function snapshotRetryBinding(value: unknown): Readonly<FiscalSubmissionRetryBinding> | null {
+  const row = record(value);
+  if (!row || !exact(row, ["providerExtensionId", "providerExtensionVersion"])
+    || typeof row.providerExtensionId !== "string" || !UUID.test(row.providerExtensionId)
+    || !epoch(row.providerExtensionVersion) || row.providerExtensionVersion < 1
+    || row.providerExtensionVersion > 2147483647) return null;
+  return Object.freeze({ providerExtensionId: row.providerExtensionId,
+    providerExtensionVersion: row.providerExtensionVersion });
+}
+
 /** Validates only the SQL-authorized public projection; refuses raw artifacts/secrets. */
 export function snapshotFiscalSubmissionDeliveryReceipt(value: unknown): FiscalSubmissionDeliveryReceipt | null {
   const row = record(value);
@@ -241,7 +262,8 @@ export function snapshotFiscalSubmissionDeliveryReceipt(value: unknown): FiscalS
     || !sha(row.documentSha256) || !sha(row.wireSha256) || typeof row.providerKey !== "string"
     || !PROVIDER_KEY.test(row.providerKey) || !epoch(row.attemptNumber) || row.attemptNumber < 1
     || row.attemptNumber > 4 || !epoch(row.transitionSeq) || row.transitionSeq < 1) return null;
-  const extra = row.kind === "pending" ? [] : row.kind === "legacy_hash_only" ? ["authorityRef", "responseSha256"]
+  const pendingExtra = row.kind === "pending" && Object.hasOwn(row, "retryBinding") ? ["retryBinding"] : [];
+  const extra = row.kind === "pending" ? pendingExtra : row.kind === "legacy_hash_only" ? ["authorityRef", "responseSha256"]
     : row.kind === "rejected" ? ["environment", "responseSha256", "errorCodes"]
     : row.kind === "provider_cancelled" ? ["environment", "responseSha256", "providerStatus"]
     : row.kind === "accepted_signed_v1" ? ["environment", "responseSha256", "irn", "ackNo", "ackDt",
@@ -252,6 +274,12 @@ export function snapshotFiscalSubmissionDeliveryReceipt(value: unknown): FiscalS
     if (!((row.status === "pending" && row.disposition === "send")
       || (row.status === "submitted" && row.disposition === "lookup")
       || (row.status === "error" && row.disposition === "retry"))) return null;
+    if (Object.hasOwn(row, "retryBinding")) {
+      if (row.status !== "error" || row.disposition !== "retry") return null;
+      const retryBinding = snapshotRetryBinding(row.retryBinding);
+      if (!retryBinding) return null;
+      details = { retryBinding };
+    }
   } else {
     if (row.disposition !== "none") return null;
     if (row.kind === "legacy_hash_only") {

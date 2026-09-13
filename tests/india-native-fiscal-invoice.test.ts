@@ -6,6 +6,7 @@ import {
   IndiaNativeFiscalInvoiceValidationError,
   IndiaNativeFiscalSeriesConfigurationService,
   IndiaNativeFiscalSeriesConflictError,
+  IndiaNativeFiscalSeriesDatabaseError,
   IndiaNativeFiscalSeriesValidationError,
   deriveIndiaFinancialYearStart,
   validateIndiaNativeFiscalPrefix,
@@ -197,7 +198,7 @@ describe("India native fiscal invoice policy helpers", () => {
       return [];
     }) as never;
     await expect(new IndiaNativeFiscalSeriesConfigurationService().configure(tx, seriesInput()))
-      .rejects.toBeInstanceOf(IndiaNativeFiscalSeriesConflictError);
+      .rejects.toBeInstanceOf(IndiaNativeFiscalSeriesDatabaseError);
   });
 
   test("maps the database changed-prefix conflict to the bounded domain error", async () => {

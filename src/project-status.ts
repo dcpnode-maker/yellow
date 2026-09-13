@@ -16,7 +16,8 @@ export interface ProjectRecordedWorkSnapshot {
     | 126 | 127 | 148 | 154 | 155 | 156 | 160 | 161 | 162 | 163 | 164
     | 165 | 166 | 168 | 169 | 170 | 171 | 173 | 174 | 175 | 176 | 177 | 178
     | 179 | 180 | 181 | 182 | 183 | 184 | 185 | 186 | 188 | 189
-    | 190 | 191 | 192 | 193 | 195 | 199 | 236 | 310 | 396 | 429 | 434 | 438 | 440;
+    | 190 | 191 | 192 | 193 | 195 | 199 | 236 | 310 | 396 | 429 | 434 | 438 | 440 | 444
+    | 453 | 454 | 455 | 458 | 459 | 460 | 461 | 462 | 463 | 464 | 465 | 466 | 467 | 468 | 469 | 470 | 471 | 472;
   readonly state: ProjectRecordedWorkState;
   readonly summary: string;
   readonly remaining?: string;
@@ -70,13 +71,13 @@ export const DEFAULT_OPERATOR_RUNTIME_STATUS: OperatorRuntimeStatus = Object.fre
 
 export const PROJECT_BUILD_SNAPSHOT: ProjectBuildSnapshot = Object.freeze({
   schemaVersion: 2,
-  recordedAt: "2026-09-07",
-  label: "Signed fiscal provider integration; operator invoices next",
+  recordedAt: "2026-09-13",
+  label: "Current-source release integration in progress; bounded market discovery source accepted",
   roadmap: Object.freeze({
     phaseCount: 18,
-    latestBuiltOrder: 439,
-    currentOrder: 440,
-    activePhase: 7,
+    latestBuiltOrder: 472,
+    currentOrder: 460,
+    activePhase: 14,
   }),
   review: Object.freeze({
     independentlyReviewedThroughOrder: INDEPENDENTLY_REVIEWED_THROUGH_ORDER,
@@ -356,8 +357,122 @@ export const PROJECT_BUILD_SNAPSHOT: ProjectBuildSnapshot = Object.freeze({
     Object.freeze({
       order: 440,
       state: "proof_in_progress" as const,
-      summary: "Order 440 durable fiscal submission, immutable replay, supervised delivery and private source-bound signature verification are independently merged through PR90 at 4ba1d6f (80 migrations / 128 public tables), with complete CI, native ARM64 execution and post-merge schema/referee 11/11. Q207 provider and signed-receipt integration passes independent actual81 storage, synthetic cryptographic recovery journey, authorized receipt GET, identical schema and clean seed/referee 11/11 in development. The separate Order 440 hotel-journey study remains a fictional design prototype; Order 441 Astra Ultra RMS remains documented research without algorithm runtime or measured uplift.",
-      remaining: "Development81 is not mergedmain80 or the preserved local77. Current/historical runtime compatibility and exact-source Linux/ARM64 CI remain integration gates. Operator invoice discovery, issuance and printing, provider onboarding and authentic sandbox acceptance remain unfinished. No local refresh, provider activation, new-department release or cloud deployment is claimed; Phase 7 is not complete.",
+      summary: "Order 440 Q207 durable fiscal submission, authenticated provider transport, immutable signed receipts and authorized receipt reads are independently merged through PR91 at 3503b0c (81 migrations / 128 public tables). All six CI jobs and normal CodeQL passed, including actual native ARM64 execution, full upgrade compatibility and post-merge schema/referee 11/11. The separate hotel-journey study remains a fictional design prototype; Astra Ultra RMS remains documented research without algorithm runtime or measured uplift.",
+      remaining: "Merged main81 remains distinct from the historically verified Order444 preview85 and retained rollback77. Provider onboarding, authentic external-provider sandbox acceptance and activation remain unfinished. No new-department release or cloud deployment is claimed; Phase 7 is not complete.",
+    }),
+    Object.freeze({
+      order: 444,
+      state: "proof_in_progress" as const,
+      summary: "Order 444 current source builds the three-layout Calm Workbench, Precision Desk and Service Timeline shell plus Q208 operator invoice queue/detail, readiness, confirmed issuance, explicit submission/current receipt and exact print workflow. Q209 independent actual proofs pass populated81-to-85 preservation 2/0 and the synthetic fiscal review seed through genuine production services 8/0 on isolated candidate85 targets. Historical preview receipt: exact a10851786f17f2fdea0cf970320ee8c46a45b670/frontier85 passed all six CI34095296622 jobs and normal CodeQL34095293723, then native promotion was verified on 2026-09-07 at 08:09:38Z. Real browser proof at 08:14:30Z used three prefilled sign-in fields and the actual login button, read synthetic invoice YR/1, mounted 15 destinations, inspected three desktop layouts and the 390px phone view, and signed out with zero business commands.",
+      remaining: "This is a historical verified preview receipt, not a claim that this snapshot's source is serving: dynamic runtime build information owns the actual serving revision/frontier. Old b5ef708/frontier77 is retained for rollback. Mounted destinations are not full transaction acceptance of all 15 workspaces; providers remain unconfigured/default-off. Full Astra identity/journey design, authentic external-provider sandbox acceptance and provider activation remain required. No main merge is claimed. Order 444, Phase 7 and the whole application are not complete.",
+    }),
+    Object.freeze({
+      order: 453,
+      state: "independently_approved" as const,
+      summary: "Order 453 independently proved native fiscal-series configuration, populated upgrade, clean-install schema equality, referee 11/11 and 50 readiness denials/restorations at 90 migrations. Source 87da26f3 was published to draft PR92 after full standing 1983/0; earlier native credit-note and delivery work is included in that source lineage.",
+      remaining: "Exact-head CI exposed the Windows and receipt-test failures now repaired under Order 455. Publication is not main merge, local activation, provider acceptance or Phase-7 completion.",
+    }),
+    Object.freeze({
+      order: 454,
+      state: "independently_approved" as const,
+      summary: "Order 454 adds authorized read-only discovery of configured or absent current-year fiscal numbering. Actual native SQL 10/0 and independent preservation audit pass; root and independent signed HTTP 5/0 each preserve all public rows, catalogue and sequences. Current-day supplier status and current tenant/actor/property authority remain required.",
+      remaining: "Exact-source standing, publication and CI remain release gates. Discovery allocates no number, issues no document, calls no provider and does not complete Phase 7.",
+    }),
+    Object.freeze({
+      order: 455,
+      state: "proof_in_progress" as const,
+      summary: "Order 455 repairs the Windows test harness and signed-receipt disclosure oracle without weakening production safeguards. Root and independent Windows runs pass 20/0. Independent native receipt proof has 16 passed, one upgrade-only skip, zero failures and 4177 assertions; all 59 pre-existing databases and global role/settings state are preserved.",
+      remaining: "The existing 80-to-81 upgrade lane and repaired exact-source CI remain required. Earlier test and preflight failures are retained; no production crypto, SQL or supervisor rule was weakened.",
+    }),
+    Object.freeze({
+      order: 458,
+      state: "built_unverified" as const,
+      summary: "Order 458 builds eight light interfaces: Ledger, Aura, Relay, Journey, Orbit, Atlas, Focus and Index, with selectable spatial depth and reduced-motion support. The separate OTA field/depth/mapping catalogue is documented research, not a live integration.",
+      remaining: "The founder rejected this initial implementation's layout fidelity. Order 459 supersedes its workspace composition; the earlier browser pass is not visual approval or local activation.",
+    }),
+    Object.freeze({
+      order: 459,
+      state: "built_unverified" as const,
+      summary: "Order 459 replaces the flat menu with five hotel-workflow groups while preserving all 15 destinations, routes, permissions and drafts. Eight distinct mounted Today/invoice compositions pass the actual-source browser proof with 1143 assertions, plus responsive geometry and focused regressions; captures use synthetic data.",
+      remaining: "Founder visual acceptance and version-correct local promotion remain separate. These checks do not establish complete transaction coverage of every workspace or native mobile-app delivery.",
+    }),
+    Object.freeze({
+      order: 460,
+      state: "proof_in_progress" as const,
+      summary: "Order 460 retains the Q255 local promotion as historical and records Q258's exact successful local promotion of source41415cc5/frontier91 at 2026-09-13T04:19:14.2088495Z after native PostgreSQL recovery. The earlier failed Q258 staging attempt remains historical evidence; the saved-login invoice and readiness smoke passed during the successful promotion.",
+      remaining: "This is a timestamped local promotion receipt, not a permanent runtime guarantee: dynamic runtime build information remains authoritative for the source and schema currently serving. No database reset, reseed, migration, provider activation or rollback action occurred. Provider acceptance, genuine fiscal eligibility, Phase 7 and the whole application remain incomplete.",
+    }),
+    Object.freeze({
+      order: 461,
+      state: "built_unverified" as const,
+      summary: "Order 461 builds only the synthetic sandbox transport handoff for the IRP acceptance path. The bounded source tests cover synthetic transport behavior; no live provider round-trip, certification or persisted provider receipt is claimed.",
+      remaining: "Provider sandbox acceptance, runtime integration and Phase 7 completion remain pending. This source-built handoff is not deployed or live.",
+    }),
+    Object.freeze({
+      order: 462,
+      state: "proof_in_progress" as const,
+      summary: "Order 462 integrates the PriceLabs intake and market pipeline source with an isolated synthetic staging proof. The staging result proves controlled synthetic import behavior only, not a real client PriceLabs import.",
+      remaining: "Authorized real-client intake, mapping and runtime promotion remain pending. No client data has been loaded and no pipeline is live.",
+    }),
+    Object.freeze({
+      order: 463,
+      state: "proof_in_progress" as const,
+      summary: "Order 463 builds the reservation-alert receiving workflow. Isolated native proof passes 11/0 real database tests and referee 11/11. On September 12, independent read-only proof reproduces the old ACL error and passes the corrected actual runtime-readiness check at migration 91 on the recovered host.",
+      remaining: "The workflow source is included in published successor 41415cc5 and the local release verified on September 13. Dynamic runtime build information identifies the currently serving release. This inclusion does not complete Phase 4 or Phase 7 or substitute for workflow-specific acceptance.",
+    }),
+    Object.freeze({
+      order: 464,
+      state: "built_unverified" as const,
+      summary: "Order 464 builds permission-aware reservation actions for operational details, cancel and reinstate disclosure. Root source proof passes 34 tests with 6 existing database-gated skips and 0 failures.",
+      remaining: "The action source is included in published successor 41415cc5 and the local release verified on September 13. Dynamic runtime build information identifies the currently serving release. Source delivery does not itself establish workflow-specific acceptance or phase completion.",
+    }),
+    Object.freeze({
+      order: 465,
+      state: "independently_approved" as const,
+      summary: "Order 465 independently approved the invoice print retry-receipt compatibility repair as source-only. Published head 46004d6f9b61a02f14259fd3f911e85a72ae0c60 passed six-job CI run 34721116555: quality, Windows state, local review, free-host ARM64, database and container smoke.",
+      remaining: "The repair is included in successor source 41415cc5, locally verified on September 13 with exact served print assets and saved-login invoice smoke. Current runtime identity remains dynamic; provider activation, Q253 policy resolution and Phase 7 completion remain separate.",
+    }),
+    Object.freeze({
+      order: 466,
+      state: "independently_approved" as const,
+      summary: "Order 466 independently approved the read-only invoice credit-note workflow. Q257 published exact successor source 41415cc5c6953f71d9b3baada6fd9c7853567128; CI run 34725373251 passed six jobs: quality, Windows state, local review, database, free-host ARM64 and container smoke.",
+      remaining: "Q258 locally promoted source 41415cc5 on September 13, verifying saved-login invoice reads and both exact served invoice assets. Current runtime identity remains dynamic. No new database proof, provider activation or Phase 7 completion follows from this local delivery.",
+    }),
+    Object.freeze({
+      order: 467,
+      state: "built_unverified" as const,
+      summary: "Order 467 reconciles current build status as source-only metadata. Published source d819e080 passed all six jobs in CI run 34739597186, including the canonical database referee 11 passed, 0 failed; this does not claim a new runtime promotion.",
+      remaining: "Parent CI success does not accept a later source or imply runtime promotion. Dynamic runtime build information remains authoritative; no provider activation or Phase 7 completion follows from this source record.",
+    }),
+    Object.freeze({
+      order: 468,
+      state: "independently_approved" as const,
+      summary: "Order 468 independently approved the credit-note preview and print source-only workflow after root's final five-file proof: 28 tests passed with 508 assertions, including the frozen renderer and workbench/browser evidence.",
+      remaining: "Published source 33a3950843660cf4868ef6720f426432f8430b50's CI34740899088 failed quality on the unchanged Order459 browser timeout; Windows-state and local-review passed while database, ARM64 and container jobs were skipped. The current runtime remains 41415/frontier91; dynamic runtime build information remains authoritative. No live delivery, provider activation or Phase 7 completion is claimed.",
+    }),
+    Object.freeze({
+      order: 469,
+      state: "independently_approved" as const,
+      summary: "Order 469 independently approved the issued credit-note register source-only workflow. Root's final proof passed 33 tests with 611 assertions, including the desktop and 390px register journey and retained invoice/credit print flows.",
+      remaining: "Published source 6d4f8ea9 passed all six jobs in CI run 34741807806, including the canonical database referee: 11 passed, 0 failed. The runtime last verified on September 13 is 41415/frontier91; dynamic runtime build information remains authoritative. No Phase 7 completion, provider activation or full-application claim follows from this source acceptance.",
+    }),
+    Object.freeze({
+      order: 470,
+      state: "independently_approved" as const,
+      summary: "Order 470 independently approved the cashier full-credit-note issue source-only workflow. Root's final proof passed 64 tests with 1211 assertions and 6 explicit real-database skips, including desktop and 390px browser coverage and retained invoice/credit-note regressions. Source 539b3b02, pure proof 3bd83172 and root-owned browser proof 01cbff2f were frozen.",
+      remaining: "This source acceptance is not a new runtime promotion or permanent delivery guarantee; the last verified runtime remains 41415/frontier91 and dynamic runtime build information remains authoritative. Publication, provider activation, fiscal eligibility, Phase 7 and whole-application completion remain separate claims.",
+    }),
+    Object.freeze({
+      order: 471,
+      state: "independently_approved" as const,
+      summary: "Order 471 independently approved the credit-note provider-request UI after repairing three retained-request lifecycle defects. Independent Astra executed 38 tests with 598 assertions, including the frozen desktop/mobile journey with 130 checks at each viewport. This is source acceptance using synthetic responses, not an actual provider registration.",
+      remaining: "Published source dd38a974 includes this accepted workflow. CI34762156051 passed Windows and local-review but failed the Order459 browser outer deadline; downstream database gates were skipped. The last verified local remains41415/frontier91; dynamic runtime build information is authoritative. Current-source release gates, provider activation and Phase 7 completion remain separate.",
+    }),
+    Object.freeze({
+      order: 472,
+      state: "independently_approved" as const,
+      summary: "Order 472 independently approved bounded Phase14 market discovery source: property identity suggestions, explicit saved compsets, evidence map, selectable attributes and non-executing planner detail. Review472 records Q267's 153 tests/1641 assertions and Q268's 139 passes/1777 assertions, including native, PostgreSQL and browser proof under their explicit boundaries.",
+      remaining: "Published source dd38a974 includes this independently accepted work; exact-source release gates, local integration and market-quality review remain required. It is not live, collection or pricing authority; broader RMS work, retained fiscal completion and the dependency-gated 11→13→17 sequence remain.",
     }),
   ] satisfies readonly ProjectRecordedWorkSnapshot[]),
   phases: Object.freeze([
@@ -375,7 +490,7 @@ export const PROJECT_BUILD_SNAPSHOT: ProjectBuildSnapshot = Object.freeze({
     Object.freeze({ number: 11, name: "Groups & Blocks", state: "planned" as const }),
     Object.freeze({ number: 12, name: "UAE ASP + AR + migration tooling", state: "planned" as const }),
     Object.freeze({ number: 13, name: "Voice and Conversational Command Layer", state: "planned" as const }),
-    Object.freeze({ number: 14, name: "Adaptive RMS and Revenue Intelligence", state: "planned" as const }),
+    Object.freeze({ number: 14, name: "Adaptive RMS and Revenue Intelligence", state: "active" as const }),
     Object.freeze({ number: 15, name: "CRM, CRS and Direct Booking", state: "planned" as const }),
     Object.freeze({ number: 16, name: "Reporting, Forecasting and Executive Intelligence", state: "planned" as const }),
     Object.freeze({ number: 17, name: "Events, Outlets and Hotel Interfaces", state: "planned" as const }),

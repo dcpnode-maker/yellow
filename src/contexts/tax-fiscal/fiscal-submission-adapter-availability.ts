@@ -12,6 +12,10 @@ export interface FiscalSubmissionAdapterIdentity {
   readonly providerExtensionVersion: number;
 }
 
+export interface FiscalSubmissionAdapterPresentation extends FiscalSubmissionAdapterIdentity {
+  readonly environment: "sandbox" | "production";
+}
+
 function invalid(): never {
   throw new Error("Fiscal submission adapter identity configuration is invalid");
 }
@@ -53,7 +57,7 @@ function identity(value: unknown): Readonly<FiscalSubmissionAdapterIdentity> | n
   });
 }
 
-function arrayValues(values: unknown): readonly unknown[] {
+function arrayValues(values: unknown, maximum = Number.MAX_SAFE_INTEGER): readonly unknown[] {
   if (typeof values === "object" && values !== null && utilTypes.isProxy(values)) return invalid();
   if (!Array.isArray(values) || Object.getPrototypeOf(values) !== Array.prototype) {
     return invalid();
@@ -61,7 +65,7 @@ function arrayValues(values: unknown): readonly unknown[] {
   const descriptors = Object.getOwnPropertyDescriptors(values) as Record<string, PropertyDescriptor>;
   const length = descriptors["length"];
   const lengthValue = length && "value" in length ? length.value : null;
-  if (typeof lengthValue !== "number" || !Number.isSafeInteger(lengthValue) || lengthValue < 0) return invalid();
+  if (typeof lengthValue !== "number" || !Number.isSafeInteger(lengthValue) || lengthValue < 0 || lengthValue > maximum) return invalid();
   const snapshot: unknown[] = [];
   for (let index = 0; index < lengthValue; index += 1) {
     const descriptor = descriptors[String(index)];
@@ -80,8 +84,9 @@ function arrayValues(values: unknown): readonly unknown[] {
  */
 export class FiscalSubmissionAdapterAvailabilityService {
   readonly #byExtensionId: ReadonlyMap<string, Readonly<FiscalSubmissionAdapterIdentity>>;
+  readonly #presentations: readonly Readonly<FiscalSubmissionAdapterPresentation>[];
 
-  constructor(values: unknown) {
+  constructor(values: unknown, presentations: unknown = []) {
     const byExtensionId = new Map<string, Readonly<FiscalSubmissionAdapterIdentity>>();
     for (const value of arrayValues(values)) {
       const entry = identity(value);
@@ -89,7 +94,27 @@ export class FiscalSubmissionAdapterAvailabilityService {
       byExtensionId.set(entry.providerExtensionId, entry);
     }
     this.#byExtensionId = byExtensionId;
+    const configured = arrayValues(presentations, 16);
+    const seen = new Set<string>();
+    this.#presentations = Object.freeze(configured.map(value => {
+      const row = exactRecord(value);
+      if (!row || Object.keys(row).length !== 4
+          || ![...IDENTITY_KEYS, "environment"].every(key => Object.hasOwn(row, key))
+          || (row.environment !== "sandbox" && row.environment !== "production")) return invalid();
+      const entry = identity({ providerKey: row.providerKey, providerExtensionId: row.providerExtensionId,
+        providerExtensionVersion: row.providerExtensionVersion });
+      if (!entry || seen.has(entry.providerExtensionId)) return invalid();
+      const adapter = byExtensionId.get(entry.providerExtensionId);
+      if (!adapter || adapter.providerKey !== entry.providerKey
+          || adapter.providerExtensionVersion !== entry.providerExtensionVersion) return invalid();
+      seen.add(entry.providerExtensionId);
+      return Object.freeze({ ...entry, environment: row.environment });
+    }));
     Object.freeze(this);
+  }
+
+  configured(): readonly Readonly<FiscalSubmissionAdapterPresentation>[] {
+    return this.#presentations;
   }
 
   find(providerExtensionId: string): Readonly<FiscalSubmissionAdapterIdentity> | undefined {

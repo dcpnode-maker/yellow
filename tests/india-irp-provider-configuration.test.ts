@@ -109,7 +109,7 @@ describe("Q207 protected India IRP provider configuration", () => {
     let called = 0;
     const options = Object.defineProperty({}, "fetch", { enumerable: true, get() { called++; return fetch; } });
     const result = await loadIndiaIrpAdapterRegistrationsFromEnvironment(environment(), options as never);
-    expect(result).toEqual({ ok: true, value: [] });
+    expect(result).toEqual({ ok: true, value: [], presentations: [] });
     expect(called).toBe(0);
     expect(Object.isFrozen(result)).toBe(true);
     if (result.ok) expect(Object.isFrozen(result.value)).toBe(true);
@@ -128,7 +128,7 @@ describe("Q207 protected India IRP provider configuration", () => {
     const result = await loadIndiaIrpAdapterRegistrationsFromEnvironment(environment(files.manifest), {
       fetch: testFetch, clock: () => now,
     });
-    expect(result.ok).toBe(true);
+    expect(result.ok, result.ok ? "provider registry loaded" : result.error.code).toBe(true);
     if (!result.ok) throw new Error(result.error.code);
     expect(fetchCalls).toBe(0);
     expect(Object.isFrozen(result)).toBe(true);
@@ -153,7 +153,12 @@ describe("Q207 protected India IRP provider configuration", () => {
       providerKey: value.providerKey, providerExtensionId: value.providerExtensionId,
       providerExtensionVersion: value.providerExtensionVersion,
     })));
-    const availability = new FiscalSubmissionAdapterAvailabilityService(identities);
+    expect(result.presentations).toEqual(identities.map(entry => ({ ...entry, environment: "sandbox" })));
+    expect(Object.isFrozen(result.presentations)).toBe(true);
+    for (const entry of result.presentations) expect(Object.isFrozen(entry)).toBe(true);
+    expect(JSON.stringify(result.presentations)).not.toMatch(/credentials|password|clientSecret|https|trustBundle|submit|lookup/);
+    const availability = new FiscalSubmissionAdapterAvailabilityService(identities, result.presentations);
+    expect(availability.configured()).toEqual(result.presentations);
     for (const identity of identities) {
       expect(availability.find(identity.providerExtensionId)).toEqual(identity);
     }
@@ -248,7 +253,8 @@ describe("Q207 protected India IRP provider configuration", () => {
       const content = empty + " ".repeat(INDIA_IRP_PROVIDER_DEPLOYMENT_LIMITS.maxManifestBytes + delta - empty.length);
       await privateFile(manifest, content);
       const result = await loadIndiaIrpAdapterRegistrationsFromEnvironment(environment(manifest));
-      expect(result.ok).toBe(delta === 0);
+      expect(result.ok, `manifest bound=${INDIA_IRP_PROVIDER_DEPLOYMENT_LIMITS.maxManifestBytes} delta=${delta} code=${result.ok ? "none" : result.error.code}`)
+        .toBe(delta === 0);
     }
 
     const valid = await validFiles();
@@ -263,7 +269,8 @@ describe("Q207 protected India IRP provider configuration", () => {
         ...valid.entries[0], credentialsFile: secret,
       }] }));
       const result = await loadIndiaIrpAdapterRegistrationsFromEnvironment(environment(manifest));
-      expect(result.ok).toBe(delta === 0);
+      expect(result.ok, `credentials bound=${INDIA_IRP_PROVIDER_DEPLOYMENT_LIMITS.maxCredentialsBytes} delta=${delta} code=${result.ok ? "none" : result.error.code}`)
+        .toBe(delta === 0);
     }
   }, 30_000);
 

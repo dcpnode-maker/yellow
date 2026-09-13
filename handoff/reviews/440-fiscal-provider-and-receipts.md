@@ -833,3 +833,128 @@ The bounded corrections are accepted for development publication following the
 coordinator's standing gate. No merge approval: fresh exact-source all-six CI,
 normal CodeQL, actual current81 downstream gates and final referee/readiness remain
 mandatory. Applied SQL81 and canonical schema/referee inputs were not changed.
+
+### Q207 exact repaired CI, independent merge and postmerge referee — 2026-09-07
+
+Reviewer/integrator: fiscal_http_acceptance, not the production implementer or PR
+author. Root explicitly authorized normal guarded integration after all required
+gates, then the separately admitted new-only postmerge proof. No Q208 source was
+included in this review, merge or proof. Earlier cancelled CI34064668277 remains
+historical failed evidence with unavailable database logs; its original assertion
+was not retrospectively inferred from the separately reproduced catalogue bug.
+
+Verified repaired head978a2d66548fa7f4ab9684c9f7438c0b1e3b4631 over
+base4ba1d6f3e7a37956d565b3c980c7b7796524f668. Tested PR merge objecte26ccf18a0f1a7034dd6f08589d40c640b51ab1e
+had exactly the candidate treeaa5da9a0ae25f93355225ddfdf89fbef4209b07e.
+Personally inspected the terminal job logs using
+`gh api --allow-escape-sequences repos/dcpnode-maker/yellow/actions/jobs/<job-id>/logs`.
+Fresh CI34067083341 completed SUCCESS for all six jobs:
+
+- windows-state101577628942, quality101577629067, local-review101577629077;
+- database101577851814, free-host-arm64101577851836, container-smoke101577851839.
+
+Normal CodeQL34067081602 actions, JavaScript/TypeScript and Python all succeeded.
+The optional AI findings run34067083449 failed separately; it was not a required
+check or a substitute for normal CodeQL. Exact-source personally read outputs:
+
+- Linux full standing:1769 pass,1293 explicit skips,0 fail,23597 assertions,
+  3062 tests/513 files,62.03s; timed exit0,maxRSS540900KiB. Isolated subprocess
+  gate24 pass,1 platform skip,0 fail,231 assertions,27.15s,exit0.
+- Native aarch64 required five-file decoder/JWS/binder/direct-adapter/configuration
+  gate64 pass,0 fail,931 assertions,2.80s; actual POSIX FIFO test35.75ms. ARM
+  canonical referee11/11; separate local-review canonical referee11/11.
+- Migration integration49/0,321 assertions, including actual canonical80→81
+  rollback/upgrade/no-op/drift and fresh-versus-upgraded schema equality. Seed10/0,63.
+- Historical six native suites4/0(29),22/0(263),27/0(401),21/0(262),20/0(1148),
+  22/0(247), followed by issued-wire4/0(230) and actual Q203 HTTP10/0(104).
+- Current81 delivery runtime12/0(104); real Linux server lifecycle6/0(53), including
+  actual SIGTERM and repeated SIGTERM during pending drain. Immutable replay5/0(447);
+  full historical77→78 durability19/0(227).
+- **Full actual80→81 signed durability14/0,597 assertions,26.09s**, including all
+  frontier80 states, original/all retry bytes, required-NULL controls, exact byte
+  bounds, late-write rollback and actor/property/tenant scope. This is the required
+  whole-upgrade proof, not the earlier partially failing local run.
+- Separate fresh81 signed durability13/0 plus one explicit upgrade-only skip,
+  338 assertions,19.13s; authentic synthetic ClearIRP recovery journey4/0(43),51.00s;
+  authorized receipt GET6/0(83),3.14s. These use genuine crypto and isolated fake
+  transport, not a live provider or certification.
+- Release containment/readiness22/0(84), including predecessor80 denial and restored
+  hostile function/table/column authority. Full-current GST recording18/0(1030) and
+  17/0(701); all other required operational/tax compatibility suites succeeded.
+- Final fresh deployment acceptance24/0(71); canonical schema exact match;
+  final canonical referee **11 passed,0 failed**; actual health/runtime readiness
+  step succeeded. Unconditional Compose cleanup executed and succeeded. The
+  failure-only diagnostic step was not needed; no GNU timeout execution is claimed.
+
+Answered and resolved the bot discussion with the published identity repair and
+my personal proof: https://github.com/dcpnode-maker/yellow/pull/91#discussion_r3945628055.
+Final GH checks showed the same head/base, OPEN/CLEAN/MERGEABLE, the only review
+thread resolved, all required checks successful, and unchanged main base. Branch
+protection enforced administrators and conversation resolution, required zero
+approvals, with no additional required-status list or branch rules. Project gates
+were nevertheless all enforced; no bypass was used.
+
+Executed exactly:
+`gh pr merge 91 --repo dcpnode-maker/yellow --merge --match-head-commit 978a2d66548fa7f4ab9684c9f7438c0b1e3b4631`.
+Verified PR91 MERGED at2026-09-06T23:50:02UTC, merge
+3503b0c01f336637d2583963c17b792f6ad59efe, parents
+4ba1d6f3e7a37956d565b3c980c7b7796524f668 and
+978a2d66548fa7f4ab9684c9f7438c0b1e3b4631. Merge tree
+aa5da9a0ae25f93355225ddfdf89fbef4209b07e equals the tested tree; remote main
+was verified at3503b0c. No admin option, auto-merge, branch deletion, local checkout,
+reset, preview promotion or working-tree source operation was performed.
+
+Postmerge admission in Q208 names only new
+yellow_order440_q207_postmerge81_20260907 on existing127.0.0.1:55503. I caught the
+proposed template-name suffix typo before execution; root corrected the admission
+to the actual yellow_order434_production (frontier77). No alternate template was
+created or used. I read the corrected admission, reserved the heavy DB lane and
+explicitly held the Q208 builder until this proof closed.
+
+Fetched only the immutable merge object using
+`git fetch --no-write-fetch-head --no-tags origin 3503b0c01f336637d2583963c17b792f6ad59efe`.
+Mechanically reconstructed exactly81 migrations and five runner/normalizer/seed/
+referee/schema inputs using `git archive --format=zip` for that merge and only
+`migrations scripts/migrate.ts scripts/schema-drift.ts tests/seed_fixture.sql tests/run_invariants.py tests/schema/expected.sql`,
+then native Expand-Archive. Unique retained artifact directory:
+`D:/Yellow/temp/q207-postmerge81-review-27560315f71446688763c1d29a58eea1`;
+merged-inputs.zip SHA256a20ea0c50e0d661460a01644f846788f78997f5bf69a5d7354d7a1781cc01e49.
+Execution cwd was its source directory, not the changing Q208 worktree. Every file
+was hashed and compared with `git show 3503b0c:<path>` before any database mutation.
+The canonical86-input map remained
+a3a9b2d0f0f681898e85b600c7bcd53206dc0433119a1705987565e7087009df,
+identical to the earlier personally executed clean81 proof.
+
+The reviewer Bun orchestration read only approved seed.env deploy authority in
+memory, validated yellow_deploy/127.0.0.1:55503/no URL options and replaced pathname
+only. Before creation it proved target absence, owner CREATEDB, all77 template
+ledger filenames/checksums,127 public tables,0 tenants and0 template sessions.
+It then executed only `CREATE DATABASE "yellow_order440_q207_postmerge81_20260907" TEMPLATE "yellow_order434_production"`.
+No existing target was reused, reset or dropped, and no global roles were changed.
+
+Actual commands/entrypoints on reconstructed bytes:
+
+- `runMigrations({databaseUrl: <command-scoped new-target URL>, logger: () => {}})`:
+  exact0078,0079,0080,0081 applied,81 files discovered, backend9328 for every
+  canonical transaction. All81 resulting ledger filenames/hashes matched.
+- Native PostgreSQL16.15 `pg_dump.exe --schema-only --no-owner --no-comments`,
+  canonical `normalizeSchemaDump(output,true)` and `schemaMismatch`:
+  exact **1645755 bytes**, SHA256
+  60b969a970baa8746f54b5f79eb8a3d5aa08bfafa0ceec1ffaa0dd2bd6f3e83a.
+- Native `psql.exe --no-psqlrc --set ON_ERROR_STOP=1 --file tests/seed_fixture.sql`:
+  exit0, genuine unwrapped canonical seed.
+- Python313 `tests/run_invariants.py yellow_order440_q207_postmerge81_20260907`,
+  YELLOW_DSN scoped only to that child: **11 passed,0 failed of11**. Actual results
+  included exactly one exclusive winner, six bed claims,42501 direct-write denial,
+  balanced/sealed journal guards,100 gapless invoice numbers,118 RLS tenant tables,
+  two security-invoker views and162 commits/0.73s (221/s).
+
+Proof session90422 ended exit0. Final target81 migrations/128 tables/2 synthetic
+tenants. All86 input hashes and pristine template checks remained unchanged.
+Global role metadata excluding passwords plus membership fingerprint stayed
+1a404b9f0aa6c85deaf9ee4d9db2351be8327733b8d1b2f88f6b5221e2a9496e;
+target/template pg_stat_activity rows were empty after closure. Native preview
+read-only checks remained ready atb5ef70842b658183f7b5b4c650c8e78c7a0b513d/frontier77.
+Explicitly released the heavy DB lane to the separately admitted Q208 builder.
+Only this review was appended; no commits, local source integration, provider
+activation or Phase7/Order440 completion is claimed.

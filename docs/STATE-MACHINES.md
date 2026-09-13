@@ -56,6 +56,16 @@ assignments cannot use this path; room moves still close/trim and append a segme
 Assignment preserves `due_in`/`booked`, does not infer room condition or readiness and
 never invokes the separate `due_in -> in_house` check-in command.
 
+### Reservation alerts (`alert.active`, Order463)
+
+An alert is an annotation, not a reservation lifecycle. The existing boolean
+permits create→active and active→inactive through same-property authorized
+commands; inactive→inactive is a no-op. No deletion, edit or reactivation is
+admitted. A terminal reservation may retain operational annotations without
+changing its status. Each actual change emits minimized reservation.modified
+evidence in the same transaction. Implementation and isolated database proof are
+accepted; serving-runtime integration remains pending under Order460.
+
 ## 2. Folio (`folio.status`) — open → settled → closed
 
 | From | To | Exact guard/effect |
@@ -235,6 +245,19 @@ error without changing that issued document. Issued→void is permitted only whe
 jurisdiction allows it; otherwise correction is a credit-note document. Emits
 document.issued / .cleared where the jurisdiction contract defines clearance.
 
+### Order446 native full credit — implementation contract, not released
+
+An issued invoice stays **issued and unchanged**. A distinct full-credit operation
+creates a new issued C-series `credit_note` and inverse correction journal in one
+transaction, with an immutable reference to the original invoice. No intermediate
+pending credit binding is updated to complete; preallocated identities and deferred
+artifact checks require the final complete graph at commit. One original permits
+at most one full credit. Same-key replay returns its original receipt with current
+authority checks and no new number/posting/event. Different payload or conflicting
+second credit fails; failed transactions consume no number. Current open-day and
+authorized post-seal rules apply. This is not an issued→void transition, refund,
+partial/debit correction or provider delivery transition.
+
 ### Order440 delivery head (durable source, not document mutation)
 
 Issued native documents and their number/content/chain remain immutable. The separate
@@ -359,3 +382,27 @@ truth conflicts without a state change. The second transition is not a parking
 command: existing segment checkout validates and releases the claim and clears its
 pointer atomically. Replacement, manual release, reassignment,
 entry/exit, staff/visitor parking and history are outside this state machine.
+
+## 12. Property competitor-set configuration (Order472)
+
+Admitted implementation contract; actual PostgreSQL acceptance and live mounting
+are tracked in `PROJECT-STATUS.md`, not implied by this lifecycle specification.
+The existing extension status is used; no new table or status is introduced.
+
+| From | To | Guard | Evidence / event |
+|---|---|---|---|
+| absent | draft, then active in one transaction | active actor with current property write grant; explicit confirmed own identity and comparator references from the server-admitted catalog; expected active version is null | creation and activation facts; `extension.activated` |
+| active version N | retired N and new active version M | same authorization and catalog guards; expected version equals N under the extension-version lock; M is the next immutable version | retirement, creation and activation facts; one `extension.activated` for M |
+| active | unchanged, exact prior receipt | current authority rechecked before actor/property/command-bound idempotent replay | no duplicate fact, version or event |
+
+An empty comparator list explicitly clears membership while retaining confirmed
+own-property identity in the replacement version. It is not deletion. There is no
+content update, standalone retirement, retired-to-active reactivation or generic
+extension-route override. Stale expected versions, multiple active versions,
+malformed persisted evidence or invalid/duplicate/own-property references reject
+the command. Failure in facts, outbox or idempotency rolls back all changes.
+
+Confirmation records the operator's selection of external evidence. It does not
+verify a physical property, create hotel inventory, collect rates or authorize
+automatic price publication. The confirmed set will feed the existing planner
+through a separately accepted integration step.

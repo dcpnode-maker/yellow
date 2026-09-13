@@ -72,18 +72,15 @@ test("Order330 rethrows non-transient DevTools port-file failures", async () => 
 });
 
 const fullShellFixture = (stylesheet: string) => `<!doctype html>
-<html lang="en" data-theme="apple" data-experience="expert"><head><meta charset="utf-8">
+<html lang="en" data-theme="apple" data-workspace-skin="calm"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1"><link rel="stylesheet" href="${stylesheet}"></head>
 <body><header class="app-bar">
 <div class="brand" aria-label="Yellow Hospitality OS"><span class="brand-mark" aria-hidden="true">Y</span>
 <span><strong>Yellow</strong><small>Hotel Operations</small></span></div>
 <div class="app-actions">
-<label class="experience-control"><span>Workspace detail</span><select id="experience-select" aria-label="Workspace detail">
-<option value="simple">Simple</option><option value="advanced">Advanced</option><option value="expert" selected>Expert</option></select></label>
-<label class="theme-control"><span>Appearance</span><select id="theme-select" aria-label="Appearance">
-<option value="apple">Apple iOS</option><option value="android">Android · Material 3</option>
-<option value="win95">Windows 95 / 98</option><option value="glass">Glassmorphism</option>
-<option value="neo">Neomorphism</option><option value="erp">Enterprise ERP</option></select></label>
+<label class="workspace-skin-control"><span>Workspace layout</span><select id="workspace-skin-select" aria-label="Workspace layout">
+<option value="calm" selected>Calm Workbench</option><option value="precision">Precision Desk</option>
+<option value="timeline">Service Timeline</option></select></label>
 <div class="session-state" id="session-state">Local review · signed out</div></div></header>
 <main><div class="workbench"><section id="folios-view"><div class="section-heading"><div>
 <p class="eyebrow">Guest ledger evidence</p><h2>Folios</h2></div></div>
@@ -199,7 +196,7 @@ test("Order330 intentional red: full app bar and loaded Folio are contained at 3
       { viewport: 375, deviceScaleFactor: 2 }, { viewport: 640, deviceScaleFactor: 2 },
     ]);
     expect(proofs.every(({ nativeSelects, retainedLabels, brand, session, verticalScrollbar }) =>
-      nativeSelects === 2 && retainedLabels.join("|") === "Workspace detail|Appearance" &&
+      nativeSelects === 1 && retainedLabels.join("|") === "Workspace layout" &&
       brand === "Yellow Hospitality OS" && session === "Local review · signed out" && verticalScrollbar)).toBe(true);
     expect(proofs.every(({ rails }) => rails.length === 2 && rails.every(({ usable }) => usable))).toBe(true);
     expect(proofs.map(({ viewport, documentOverflow, bodyOverflow, headerOverflow, workspaceOverflow }) =>

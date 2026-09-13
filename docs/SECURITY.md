@@ -79,6 +79,18 @@ cannot confer authority.
   not a shared multi-process or public-edge limiter.
 - Headers: CSP (no inline script), frame-ancestors none (except kiosk origin),
   referrer-policy strict.
+- Order472/Q268 adds one exact successful GET document exception when both
+  operator and market APIs are composed: /assets/market-map/frame.html allows
+  self framing (XFO SAMEORIGIN) and img-src self, data: and exactly
+  https://tile.openstreetmap.org. Scripts/styles remain self-only; connect-src
+  is none. data: supports the pinned Leaflet cancellation placeholder. Parent,
+  API, other assets, wrong methods, query variants and errors keep global headers.
+  This same-origin frame isolates policy, not confidentiality. Only an explicit
+  Enable map creates it; the prior disclosure explains external tile requests.
+  Its origin/source/nonce/revision-bound messages contain bounded opaque point
+  facts, never tenant credentials or evidence identifiers. Marker interaction
+  only inspects; confirmation uses ordinary authorized APIs. Refresh/property/
+  source/session changes remove the frame and invalidate late messages.
 - Idempotency keys stored hashed; replay window 24 h.
 - Dependency hygiene: Renovate + `bun audit` in CI; lockfile committed.
 
@@ -683,6 +695,18 @@ replacement, operational-block updates, reservation/segment/guest lifecycle,
 journal/posting transitions beyond this structural lock, and future task/fiscal/
 statutory or document mutation. Extension publication/retirement remains separate
 debt; the registration exception from D-417 is closed by migration 0018.
+
+Order463 adds the explicitly named `reservation_alert_annotations` direct-SQL
+capability: migration0091 grants app_role INSERT of tenant_id, subject_type,
+subject_id, code, message, show_on and active, and UPDATE of active only on alert.
+The HTTP edge requires verified reservations.lifecycle:write plus the exact
+property grant. The service binds subject_type=reservation, locks the exact
+tenant/property reservation and alert, and emits minimized atomic evidence.
+RLS is unchanged. Arbitrary SQL inside a trusted app-role transaction could still
+mutate these allowed columns without those application checks; this remains
+explicit capability debt, not a claim of a database-enforced subject/lifecycle
+boundary. No login, broad table mutation, identity/financial authority or raw SQL
+interface is granted. Live activation requires independent ACL/isolation proof.
 
 Migration0073 closes the raw folio-numbering portion of that debt. `app_role` cannot
 update any `document_series` counter and cannot insert, update or delete `document`.

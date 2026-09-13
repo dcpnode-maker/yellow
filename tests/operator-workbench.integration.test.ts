@@ -349,23 +349,41 @@ databaseDescribe("Order 042 authenticated operator workbench", () => {
     const htmlResponse = await request("/");
     const cssResponse = await request("/assets/operator.css");
     const jsResponse = await request("/assets/operator.js");
+    const fontResponse = await request("/static/fonts/urbanist-v1.330.woff2");
+    const spriteResponse = await request("/static/icons/phosphor-nav-2.1.1.svg");
     expect(htmlResponse.headers.get("content-type")).toContain("text/html");
     expect(cssResponse.headers.get("content-type")).toContain("text/css");
     expect(jsResponse.headers.get("content-type")).toContain("text/javascript");
-    for (const response of [htmlResponse, cssResponse, jsResponse]) {
+    expect(fontResponse.headers.get("content-type")).toBe("font/woff2");
+    expect(spriteResponse.headers.get("content-type")).toBe("image/svg+xml");
+    for (const response of [htmlResponse, cssResponse, jsResponse, fontResponse, spriteResponse]) {
       expect(response.headers.get("content-security-policy")).toContain("script-src 'self'");
     }
     const html = await htmlResponse.text();
     const css = await cssResponse.text();
     const js = await jsResponse.text();
+    const font = await fontResponse.arrayBuffer();
+    const sprite = await spriteResponse.text();
+    expect(font.byteLength).toBe(58_004);
+    expect(sprite.match(/<symbol\b/g)).toHaveLength(15);
+    expect((await request("/static/fonts/OFL.txt")).status).toBe(404);
+    expect((await request("/static/icons/LICENSE")).status).toBe(404);
     expect(html).not.toMatch(/<style\b|style\s*=|<script(?![^>]*\bsrc=)/i);
-    expect(`${html}\n${css}\n${js}`).not.toMatch(/https?:\/\//i);
+    expect(`${html}\n${css}\n${js}`
+      .replaceAll('xmlns="http://www.w3.org/2000/svg"', "")
+      .replaceAll('url("/static/fonts/urbanist-v1.330.woff2")', ""))
+      .not.toMatch(/https?:\/\/|@import|url\s*\(/i);
     expect(js).not.toMatch(/localStorage|sessionStorage|document\.cookie|console\.(?:log|debug|info)/);
     expect(js).toContain("let accessToken = \"\";");
     expect(js).not.toContain("fabricated");
-    expect(html).toContain('id="theme-select"');
-    expect(html).toContain('value="apple"');
-    expect(html).toContain('value="android"');
+    expect(html).toContain('id="workspace-skin-select" aria-label="Workspace layout"');
+    for (const [value, label] of [
+      ["ledger", "Ledger · Precision desk"], ["aura", "Aura · Spatial glass"],
+      ["relay", "Relay · Operations board"], ["journey", "Journey · Guided workspace"],
+      ["orbit", "Orbit · Command centre"], ["atlas", "Atlas · Portfolio studio"],
+      ["focus", "Focus · Task companion"], ["index", "Index · Planning desk"],
+    ]) expect(html).toContain(`<option value="${value}">${label}</option>`);
+    expect(html).not.toMatch(/id="(?:theme|experience)-select"/);
     expect(html).toContain('id="bulk-room-form"');
     expect(html).toContain('id="bulk-room-preview"');
     expect(html).toContain('data-view="status"');
@@ -375,11 +393,12 @@ databaseDescribe("Order 042 authenticated operator workbench", () => {
     expect(css).toContain(':root[data-theme="android"]');
     expect(css).toContain(".bulk-room-preview");
     expect(css).toContain(".status-health-grid");
-    expect(js).toContain("document.documentElement.dataset.theme");
+    expect(js).toContain("document.documentElement.dataset.workspaceSkin");
+    expect(js).not.toMatch(/document\.documentElement\.dataset\.(?:theme|experience)\s*=/);
     expect(js).toContain('"rooms:bulk"');
     expect(js).toContain("loadSystemStatus");
     expect(js).not.toMatch(/setInterval|EventSource|WebSocket|api\.github|github\.com/i);
-    expect(js).not.toMatch(/fetch\([^)]*theme|\/api\/[^\s"'`]*theme/);
+    expect(js).not.toMatch(/fetch\([^)]*(?:theme|workspace)|\/api\/[^\s"'`]*(?:theme|workspace)/);
     const server = await Bun.file(new URL("../src/server.ts", import.meta.url)).text();
     expect(server).toContain('return requested ?? "127.0.0.1"');
     expect(server).toContain('YELLOW_OPERATOR_ALLOW_NON_LOOPBACK === "1"');

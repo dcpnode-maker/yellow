@@ -1,5 +1,14 @@
 # Yellow UI/UX direction — efficiency, feel and visual identity
 
+> **Current implementation direction (2026-09-07):** the founder-selected
+> Calm Workbench, Precision Desk and Service Timeline supersede the earlier
+> alternatives discussion below. Global Simple/Advanced/Expert is retired as
+> intended UX; contextual task/role/property disclosure replaces it. Neomorphism
+> work is deferred by the founder's latest message. Read the
+> [exact Astra handoff and current clarification](ASTRA-IMPLEMENTATION-HANDOFF.md)
+> before implementing. Historical prototype and appearance notes below are not
+> a claim that this new flow is integrated or deployed.
+
 **2026-09-05 · Order440 · Research-based design recommendations.**
 
 The product should make a busy shift feel manageable. The signature experience is

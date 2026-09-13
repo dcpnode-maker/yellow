@@ -144,7 +144,13 @@ test("Order 177: Today reuses UUID detail and responsive accessible shell", () =
     ".today-lane-loading span", "prefers-reduced-motion: reduce", "min-height: 44px",
   ]) expect(css).toContain(contract);
   expect(css).not.toMatch(/(?:html|body|\.workbench)[^{]*\{[^}]*overflow-x:\s*(?:hidden|clip)/);
-  expect(`${html}\n${css}\n${todaySource}`).not.toMatch(/https?:\/\/|@import|url\s*\(/i);
+  expect(html.match(/xmlns="http:\/\/www\.w3\.org\/2000\/svg"/g)).toHaveLength(1);
+  expect(css.match(/url\("\/static\/fonts\/urbanist-v1\.330\.woff2"\)/g)).toHaveLength(1);
+  expect(script).not.toMatch(/https?:\/\/|@import|url\s*\(/i);
+  expect(todaySource).not.toMatch(/https?:\/\/|@import|url\s*\(/i);
+  expect(`${html}\n${css}`.replace('xmlns="http://www.w3.org/2000/svg"', "")
+    .replace('url("/static/fonts/urbanist-v1.330.woff2")', ""))
+    .not.toMatch(/https?:\/\/|@import|url\s*\(/i);
 });
 
 test("Order 177 D-454: detail return uses stable identity after lane replacement", () => {

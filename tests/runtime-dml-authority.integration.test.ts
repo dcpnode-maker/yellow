@@ -15,6 +15,7 @@ let runtime: SQL | undefined;
 
 const INSERT_COLUMNS = Object.freeze({
   account: ["currency", "name", "party_id", "property_node", "role", "status", "tenant_id"],
+  alert: ["active", "code", "message", "show_on", "subject_id", "subject_type", "tenant_id"],
   api_idempotency: ["created_at", "expires_at", "key_hash", "operation", "request_hash", "tenant_id"],
   approval_request: ["kind", "payload", "requested_by", "subject_id", "subject_type", "tenant_id"],
   availability_projection: ["blocked", "held", "ooo", "physical", "property_node", "sold", "stay_date", "tenant_id", "unit_type_id", "updated_at"],
@@ -48,6 +49,7 @@ const INSERT_COLUMNS = Object.freeze({
 } as const);
 
 const UPDATE_COLUMNS = Object.freeze({
+  alert: ["active"],
   api_idempotency: ["completed_at", "created_at", "expires_at", "request_hash", "response_body", "response_status"],
   approval_request: ["decided_at", "decided_by", "status"],
   extension: ["status"],
@@ -62,6 +64,8 @@ const UPDATE_COLUMNS = Object.freeze({
 
 const CALLER_SOURCES = Object.freeze<Record<string, string>>({
   "account:INSERT": "src/contexts/financials/folios.ts",
+  "alert:INSERT": "src/contexts/reservations/alerts.ts",
+  "alert:UPDATE": "src/contexts/reservations/alerts.ts",
   "api_idempotency:INSERT": "src/kernel/idempotency.ts",
   "api_idempotency:UPDATE": "src/kernel/idempotency.ts",
   "approval_request:INSERT": "src/kernel/approval.ts",
@@ -107,6 +111,7 @@ const CALLER_SOURCES = Object.freeze<Record<string, string>>({
 });
 
 const RESIDUAL_CAPABILITY_OWNERS = Object.freeze({
+  reservation_alert_annotations: ["alert:INSERT", "alert:UPDATE"],
   approval_decision: ["approval_request:UPDATE"],
   extension_lifecycle: ["extension:UPDATE"],
   financial_folio_opening: ["account:INSERT", "folio:INSERT"],
@@ -170,6 +175,8 @@ describe("Order 150 committed production caller map", () => {
     expect(new Set(namedResiduals).size).toBe(namedResiduals.length);
     expect(namedResiduals).toEqual([
       "account:INSERT",
+      "alert:INSERT",
+      "alert:UPDATE",
       "approval_request:UPDATE",
       "availability_projection:DELETE",
       "availability_projection:INSERT",

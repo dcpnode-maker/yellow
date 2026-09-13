@@ -214,3 +214,24 @@ Keep each assertion branch-specific. When a schema lineage is accepted, update i
 setup count, normalized schema snapshot, database acceptance tests, readiness frontier
 and documentation together from executed PostgreSQL evidence. Never delete a table,
 rewrite an applied migration or weaken an oracle to make an old number match.
+
+### Q208 current development catalogue — 2026-09-07
+
+The operator invoice branch has immutable forwards82–85; it is not yet a release
+of main or the stable founder preview. Actual isolated77→81→85 upgrade proof has
+85 migrations,128 public tables,167 functions,88 indexes,118 RLS tables/policies,
+27 FORCE RLS tables and2 views. The permission catalogue has15 rows, including
+`tax-fiscal.documents:read` with zero assignments before explicit synthetic fixtures.
+The new shape adds no parallel invoice, accounting or tenant store.
+
+Mechanically normalized PostgreSQL16.15 schema:1,732,510bytes, SHA256
+`9c7c57c5c33b40866ef806488e6309c55f65d3a02ef7728264a447641c35cc18`.
+The independent reviewer personally ran canonical seed and referee11/11, preserved
+the original81 ledger, and checked source/template/global-role fingerprints.
+The normalized dump is copied byte-for-byte into `tests/schema/expected.sql`.
+
+Empty1→85 on the shared native cluster was NOT executed: the historical12 runner
+temporarily changes global role membership, prohibited by this target's isolation
+conditions. Exact fresh installation/per-step rollback and fresh-vs-upgrade proof
+are required in disposable CI; no global role or retained local workaround is allowed.
+Main remains its separately verified81 catalogue; the stable preview remains77.

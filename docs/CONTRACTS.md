@@ -17,6 +17,37 @@ or an existing command and never gains arbitrary SQL or database authority. See 
 and [voice/RMS proposal](architecture/VOICE-RMS-PLAN.md). Those specifications create
 no API by themselves.
 
+## Reservation alerts (Order463)
+
+Source implementation with independently executed isolated PostgreSQL91 and
+runtime-readiness proof accepted on September12; publication and serving-runtime
+integration remain pending. `POST /api/v1/properties/{property}/reservations/{reservation}/alerts`
+accepts exactly `{code: string|null, message: string, showOn: "checkin"|"checkout"|"always"}`.
+`POST .../alerts/{alert}/deactivate` accepts exactly `{}`. Both require the existing
+`reservations.lifecycle:write` scope, exact property grant and Idempotency-Key.
+The server derives tenant, actor and audit context; client authority fields are
+rejected. Notes are trimmed nonempty plain text up to1000 Unicode code points,
+allowing ordinary CR/LF/tab; optional code is null or trimmed single-line text
+up to64. Other control characters are rejected. No HTML execution or file upload.
+
+Success is `{alert:{id,code,message,showOn,active},changed,replayed}`. Existing
+reservation-detail readback retains its `alertId` field and adds the server-
+derived top-level `actions.canManageAlerts`. Read-only staff can see notes/codes,
+but cannot mutate them. Create uses a database-generated id and active=true;
+deactivate only changes true to false. Already inactive is a no-op. No delete,
+edit, reactivation, reservation state or finance/occupancy mutation is introduced.
+Terminal reservations may retain operational annotations without reopening them.
+
+The exact reservation/property/tenant is locked before its alert. Actor, property,
+reservation and request fields participate in idempotency identity. Exact replay
+returns the saved result; changed same-key requests conflict. Changed alerts,
+reservation.modified fact/outbox and idempotency receipt commit atomically. Their
+diff contains only `{alerts:{action,alertId,active}}`, never note/code/guest values;
+no-op writes no extra event. The UI retains a retry key on uncertain responses and
+refreshes the authoritative detail, ignoring stale-session/navigation responses.
+Migration0091 supplies only the named alert column grants; see SECURITY.md for
+the remaining direct-SQL capability boundary. Waitlist offers remain separate.
+
 ## Operator audited business-day seal
 
 `POST /api/v1/properties/{property}/business-days/{businessDate}/seal` accepts exactly
@@ -229,7 +260,9 @@ alters the existing `(created_at,id)` order, filter, cursor, limit, permission o
 property boundary. `GET
 /api/v1/properties/{property}/reservations/{reservation UUID}` accepts no
 query parameters and returns the approved reservation aggregate plus server-derived
-`canModify`, `canCancel`, and `canReinstate` actions. Missing, foreign-tenant and
+`canModify`, `canCancel`, and `canReinstate` actions. Order464 requires lifecycle-write
+scope and a matching property grant as well as the existing status predicate for
+each action; these disclosures never replace command-side authorization. Missing, foreign-tenant and
 foreign-property UUID details share one generic reservation not-found response. The
 existing exact `GET .../reservations?confirmationNo=...` lifecycle lookup is unchanged.
 
@@ -314,6 +347,95 @@ recomputed by the domain. The operator workbench deliberately selects one return
 server Party id before the existing booking journey. Merge/anonymisation, addresses,
 identity documents, consent/preferences and profile editing remain planned.
 **distribution**: channels connect · maps CRUD · inbound replay {id} · push status/cursors
+
+Order472 adds a property competitor-set command boundary, independently proved
+against PostgreSQL in D1489; it is not yet mounted in the local
+application. `MarketCompsetService` owns discovery reads, current configuration and
+explicit confirmation using the caller's tenant transaction. HTTP is a small
+adapter; future voice and automation must use the same authorized commands.
+
+| Method and property-relative route | Capability |
+|---|---|
+| GET `/api/v1/properties/:property/market/discovery` | bounded admitted regional catalog, `distribution.market:read` |
+| GET `/api/v1/properties/:property/market/compset` | current property-bound configuration or unconfigured result, `distribution.market:read` |
+| POST `/api/v1/properties/:property/market/compset/confirm` | explicit replacement, `distribution.market:write` and `Idempotency-Key` |
+| POST `/api/v1/properties/:property/market/identity/suggest` | exact admitted-snapshot suggestions; market-read, no selection or URL fetching |
+| POST `/api/v1/properties/:property/market/plan/preview` | derived preview from an exact persisted compset version; market-read, no collection |
+| GET `/api/v1/me/market-properties?cursor=…` | separate current market-read property list; fixed 50-row UUID keyset page |
+
+Confirmation accepts exactly `{expectedActiveVersion,ownProperty,comparators}`.
+The expected version is null for first confirmation or a positive integer for a
+replacement. Each reference is exactly `{logicalId,sha256,sourceRecordId}` selecting
+an immutable server-admitted artifact record. The client hash is a selection
+precondition, never an integrity assertion or permission to load a file. The server
+resolves and retains normalized evidence/provenance, not caller-provided names,
+coordinates, paths, tenant, actor or audit data. At most 500 comparators are allowed;
+duplicates and own-property membership are rejected. An explicit empty set clears
+comparators through a new version, not deletion.
+
+Current active actor and property grants are rechecked at the domain boundary,
+including before replay. Immutable configuration, old-version retirement, facts,
+existing `extension.activated` and actor/property/intent-bound idempotency settle
+atomically. Results are typed and failed writes roll back before an error result
+can be committed by middleware. Generic extension registration/create cannot
+manage `market_compset`, and generic lists must not disclose its property data.
+Declaring the schema grants no user permission and creates no default instance.
+See [configuration shape](EXTENSIONS.md) and [lifecycle](STATE-MACHINES.md).
+
+Q266 adds source startup composition under explicit `YELLOW_MARKET_WORKBENCH=1`
+with normal operator mode. Native artifact admission precedes resources/listening;
+disabled is inert and an invalid enabled catalog fails closed. A separate read-only
+runtime readiness check requires the exact0092 capability body/owner/search_path/
+ACL, canonical type and required permission catalog; it does not grant or repair
+anything. Source migration frontier is92, not the currently running frontier91.
+
+The lazy `/p/:property/market` workspace loads `/assets/operator-market.js` only
+when opened. It consumes these authorized routes, shows dated source-point evidence,
+coverage and provenance, and requires review of explicit own-record/comparator
+choices. Choice changes revoke review; ambiguous retries retain the exact body/key;
+conflicts require fresh loading/confirmation and revoked access clears evidence.
+The16KiB global HTTP body bound is also measured as UTF-8 bytes before sending.
+The500-candidate domain ceiling is not a promise that500 references fit one request.
+Q267 separates market properties from operational property grants. A market-only
+user can sign in without availability permission; market navigation never grants
+access to the other operational routes. The list checks active tenant/user and
+current tenant-bound role/hierarchy predicates. The opaque cursor is only a
+pagination position, not authority. Each subsequent property operation still
+executes migration0092's locked authorization. A later-page deep link must remain
+pending until its market-list membership is verified; it must not show another
+property's evidence under the requested URL.
+
+Identity input is exactly `{snapshot:{logicalId,sha256},target:{recordId?,publicUrl?,
+name?,coordinates?}}`, with at least one explicit target field. The server resolves
+one immutable catalog snapshot and reuses the identity helper. The response is
+`{suggestions:{snapshot,requiresConfirmation:true,ambiguous,candidates}}` with at
+most 500 candidates, exact references, original records/capture/completeness and
+matching reasons. No input URL is fetched or persisted; unsafe/query/fragment URLs
+are rejected. A browser suggestion becomes an editable own-record draft only after
+a separate deliberate choice; it still requires explicit evidence confirmation.
+
+Plan input is exactly `{expectedCompset:{extensionId,version},comparatorIndexes,
+conditions:{destination,lookaheadMonths,selectedSources,guests,pointOfSaleMarket,
+language,lengthsOfStayNights}}`. Distinct indexes select 1–200 comparators from that
+exact persisted version, never the editable draft or a silently truncated set.
+Current authorization and the same property version lock precede the saved-state
+read. Tenant/property, timezone, currency and current instant are server-derived.
+The unchanged planner uses a fixed preview-only entitlement, no success history,
+at most 100 selected requests and batches of 25. The response identifies the saved
+version, normalized conditions, property metadata, one comparator mapping, a
+bounded plan summary and at most 10 samples; it contains no execution keys or
+repeated evidence per request. `previewOnly:true` and `executable:false` are explicit.
+It writes no extension, fact, outbox or idempotency row and schedules no work.
+
+Saved evidence keeps its original reference and capture date, including records
+absent from the current catalog. Input, property, history, session, refresh and
+saved-version changes invalidate affected browser results; permission failures
+clear private evidence. A confirmation receipt is acknowledged separately from
+refreshing the latest saved set; a failed refresh never undoes a recorded receipt.
+These are source contracts, not a claim that Q267 is published, live or a complete
+RMS engine. Exact acceptance and remaining integration are in Review472 and
+PROJECT-STATUS.md.
+
 **compliance**: documents issue/get/render · fiscal submit/status · statutory list_due/submit ·
 erasure request/execute
 **kernel**: extensions CRUD+activate · automations CRUD+test(dry_run) · approvals decide
@@ -3484,3 +3606,431 @@ evidence. Tenant identity is used only in evidence-hash preimages. This contract
 does not choose document origin, configure legal numbering, bind or advance a
 series, emit `DocDtls` or a full invoice number, create a document, submit to IRP,
 or write any database, event, fact, idempotency, provider, API, or UI state.
+
+## Operator invoice workflow — Order440/Q208, development contract
+
+This supersedes the historical blocked-only readiness journey above only through
+the new confirmed native operator path. Its implementation and release evidence
+are tracked in [Q208](../handoff/questions/208-operator-invoice-workflow.md) and
+[current status](PROJECT-STATUS.md); publication, local promotion and provider
+activation are separate. Other fiscal modes are not silently represented as India.
+
+| HTTP boundary under `/api/v1/properties/:property` | Input / result | Required permission |
+|---|---|---|
+| POST `/invoices/search` | Bounded property-local date interval and optional in-body search/folio/reservation/cursor; immutable summaries, count, next cursor | `tax-fiscal.documents:read` |
+| GET `/invoices/:document` | Exact validated immutable issued content and source/hash identity | `tax-fiscal.documents:read` |
+| POST `/reservations/:reservation/folios/:folio/invoice-readiness` | Explicit recipient UUID or null plus governed calendar or null; issued / selection / blocked / ready | Both `tax-fiscal.documents:issue` and `tax-fiscal.india-valuation:finalize` |
+| POST `/reservations/:reservation/folios/:folio/invoice-issue` | Explicit recipient/calendar, displayed selector/confirmation hashes and Idempotency-Key; immutable issue receipt | Same two issue permissions |
+| GET `/invoices/:document/receipt` | Scoped not-requested / ambiguous / legacy / existing authorized delivery receipt | `tax-fiscal.submissions:read` |
+| GET `/fiscal-provider-options` | No query; exact current database/configuration intersection with label and sandbox/production environment | `tax-fiscal.submissions:request` |
+| POST `/fiscal-submissions` | Exactly documentId/providerExtensionId, Idempotency-Key; durable request receipt | `tax-fiscal.submissions:request` |
+| POST `/fiscal-submissions/:submission/retry` | Exactly providerExtensionId, Idempotency-Key; eligible durable retry receipt | `tax-fiscal.submissions:retry` |
+
+Every boundary rechecks current property authority in addition to signed scopes.
+Tenant and actor come only from the verified session. PostgreSQL owner-mediated
+capabilities independently enforce authority; read access does not imply issue,
+delivery, retry or broad table access. All responses are non-cacheable. Guest search
+data stays out of URLs, persistent browser storage and errors. Unsupported
+jurisdiction is explicit after authorization, never a fabricated empty success.
+
+Search is keyset-paginated over business date, microsecond issued timestamp and
+document UUID. Maximum366 days,100 public rows/101 SQL sentinel and120 Unicode
+scalar search characters; counts share the same pre-cursor scope. Money is exact
+nonnegative int64 minor-unit strings. Source hashes and legal content are validated
+before public projection; no mutable party/configuration reread constructs an invoice.
+
+Readiness performs no writes. The legal buyer is never chosen implicitly. The v4
+command recovers immutable native selectors server-side, then the v3 preparation
+compares confirmation after existing source/day/series locks and before the first
+write. One transaction owns numbering, accounting, document, facts and outbox.
+Completed replay survives short-lived API-idempotency expiry but rechecks current
+authority and the original actor/route/recipient/calendar identity. Changed evidence
+returns409 and must be reviewed again; expected hashes confer no authority.
+
+Provider presentation is derived from the same successfully validated protected
+loader snapshot as the actual transport. Only exact extension UUID/version/key and
+environment are retained; no endpoints, credentials or trust keys reach staff.
+An absent configuration returns no choices while still executing SQL authorization.
+Provider choice does not configure or certify a provider, and queued/unknown outcomes
+are not registration success. Retry-only reload-safe provider binding remains a
+separate unfinished UI requirement, not an implied capability of this options list.
+
+### Native full credit notes — Order446 implementation contract (not released)
+
+The new non-UI command issues one complete credit for one previously issued native
+India invoice. It is not a refund, provider submission, partial credit, debit note
+or replacement invoice. Original documents, source postings and provider receipts
+remain immutable. Canonical0087 is published and independently verified on native
+synthetic databases, not promoted to the live app; PROJECT-STATUS.md records
+actual executable and release status.
+
+Both routes are beneath `/api/v1/properties/:property`:
+
+| Route | Input and authority | Result |
+|---|---|---|
+| POST `/invoices/:originalDocument/credit-notes` | Exact JSON `{reason}` plus Idempotency-Key; current `tax-fiscal.documents:issue` AND `financials.adjustments:write` |201 first issuance,200 exact replay; raw immutable receipt JSON |
+| GET `/credit-notes/:creditDocument` | Current `tax-fiscal.documents:read`; no query selectors |200 same receipt or concealed404 |
+
+Session supplies tenant and actor; route supplies property/original. No client
+amount, source, series, folio, accounting, number, tax, date or hash selector is
+accepted. Reason is1–500 Unicode scalar values, nonblank, without ASCII control
+characters/DEL; valid leading/trailing whitespace is preserved, not silently
+normalized. Input and envelope are snapshotted before asynchronous work, rejecting
+proxies/accessors. The database rechecks current authority, including the extra
+`financials.adjustments:post-seal` grant when an original/source day is sealed.
+The correction posts only to the property's current open business day.
+
+One caller-owned transaction binds the exact original source, inverse consideration
+and original rounded tax, correction journal, separately numbered C-series document,
+fact/outbox and replay receipt. Multi-root transfers are credited only for the
+invoice's persisted allocation. No whole-transfer reversal, source UPDATE/DELETE,
+current-tax recomputation or binary floating-point money operation is permitted.
+
+Success body is exactly the durable `receipt_json` returned by PostgreSQL, not a
+re-serialized wrapper. `idempotency-replayed` and correlation metadata are headers;
+they do not change the receipt bytes. All responses are `no-store`. Changed key
+reuse/current financial conflicts return409; invalid input400; denied authority403;
+unavailable/foreign objects404. Malformed storage replies or unexpected failures
+return sanitized503 and roll back, never a fabricated successful document.
+Order447 extends the existing provider guards to exact native full-credit CRN sources; see below.
+
+## Native full-credit fiscal submission (Order447)
+
+The existing fiscal-submission request, delivery worker and authorized receipt GET now support a genuinely issued native full credit (CRN). SQL authenticates the immutable native credit binding and complete correction graph. The original INV projection remains unchanged. Exactly one preceding invoice number/date is emitted; the five-field internal YellowCredit metadata is validated but never sent to the provider.
+
+The signed invoice and QR must cryptographically bind the CRN type, document number/date, supplier, totals and exact preceding invoice reference. Existing provider-version, idempotency, lookup-only uncertain-send recovery, authenticated rejection and immutable receipt rules remain. Full credits issued from both native-v2 and operator-v3 preparation retain native source_version2. This does not add partial/debit/refund behavior, enable a provider or establish external IRP certification.
+
+## Existing full-credit discovery (Order448)
+
+`GET /api/v1/properties/:property/invoices/:document/credit-notes` discovers the
+at-most-one existing full credit from its original invoice UUID. The existing POST
+at the same URL is unchanged. The signed session supplies tenant and actor; current
+`tax-fiscal.documents:read`, property grant and database authority are required.
+No query selectors are accepted. One four-parameter SQL statement always invokes
+the existing non-strict read capability, including on a missing binding, so revoked
+authority cannot become unauthoritative absence.
+
+Success returns200 and the exact immutable receipt_json bytes, with no-store and
+no idempotency-replayed header. Unknown, non-native or foreign originals are the
+same concealed404; missing/currently revoked authority403; invalid selectors400;
+malformed storage or unexpected database failures503. The operation cannot issue,
+retry, submit, post, number or mutate any financial document or record. This is a
+receipt lookup, not a full credit-document content or invoice printing endpoint.
+
+The typed and signed-session API, actual database API proof and separate fixture
+containment audit pass. Exact ten-path source ffb03441 is published with green
+combined local standing and all six CI jobs in34187393111. Local promotion is
+separate: this endpoint is not yet in the running local.
+
+## Complete issued credit document (Order449)
+
+GET `/api/v1/properties/:property/credit-notes/:creditDocument/document` returns
+`{kind:"india_native_credit_note_v1",receipt,contentJson}`. The receipt is the
+existing immutable validated issuance receipt; contentJson is the exact stored
+document string, not newly calculated tax or current guest/registration data.
+Current signed-session scope/property grant and database read authority apply,
+including on absent IDs. No query selectors are accepted.
+
+The service validates stored hash, receipt identity, CRN number/date, original
+invoice reference, all private credit lineage fields and exact integer total
+using the existing lossless fiscal source validator. Success200 is no-store;
+concealed absence404, denied403, invalid input400 and corrupt/unexpected storage503
+reuse existing sanitized responses. Reads issue no financial document, posting,
+number, retry or provider request. This API does not add a UI/print renderer.
+
+Root independently executed the actual PostgreSQL API1/0(48) and complete prior-row
+containment after focused50/0(650) with3 explicit DB skips. Q238 retains the failed
+standing attempts and their scoped repairs. Combined standing1,956/0 now passes
+and source is published in0b1ff327 on draftPR92, not promoted to the running local.
+
+## Authorized issued-credit listing (Order450)
+
+GET `/api/v1/properties/:property/credit-notes` requires canonical `issuedFrom`
+and `issuedBefore` dates, inclusive/exclusive, spanning 1–366 days. Optional `docNo`
+matches an exact fiscal number; `after` is a canonical scope/filter-bound keyset
+cursor; `limit` defaults to 25 and accepts 1–100. Unknown or duplicate selectors,
+malformed cursors and forged tenant/actor selectors are rejected before SQL.
+
+Success returns `{items,nextCursor}` with nine immutable summary fields:
+documentId, originalDocumentId, docNo, originalDocNo, businessDate, propertyNode,
+currency, totalMinor and sha256. Money remains the exact positive integer string
+in the immutable receipt. The service checks typed storage/receipt bindings and
+rejects malformed rows, including overfetch, without returning a partial page.
+
+One authority-first parameterized query rechecks current database permission even
+when a result is empty. Tenant/property/date/UUID ordering uses keyset pagination
+with limit+1, not OFFSET or a matching-count query. Page size bounds returned rows,
+not necessarily rows examined by the database. The cursor grants no authority.
+Signed scope and current property access are checked on every HTTP request.
+Authorized emptiness is 200 with empty items and null cursor; malformed input400,
+denied403 and sanitized storage failure503 retain no-store responses.
+
+Root's real PostgreSQL signed API passes1/0(24); actual planner checks use the
+existing credit/property index and deny revoked authority with SQLSTATE42501.
+All pre-existing rows and financial/fiscal read graphs remain unchanged. This is
+published source in0b1ff327 with combined standing1,956/0, not an enabled live UI.
+
+## Credit-document delivery discovery (Order452)
+
+GET `/api/v1/properties/:property/credit-notes/:creditDocument/delivery` takes no
+query selectors. The signed session supplies tenant and actor. BOTH current
+`tax-fiscal.documents:read` and `tax-fiscal.submissions:read` are required at the
+signed-session/property boundary and inside the database, before resolving absence.
+No client-selected provider, submission, tenant, actor or hash is accepted.
+
+The four-UUID typed input is snapshotted before asynchronous work. One parameterized
+owner-mediated read authenticates the issued CRN, original immutable invoice,
+content hashes, correction lineage and stored issuance receipt. It selects at most
+two durable submission heads and reuses the unchanged signed-receipt projector.
+It does not depend on retained outbox events, widen direct table access, issue,
+retry, allocate a number, or call a provider.
+
+Success is200 `{delivery}` with one frozen union: `not_requested` and `ambiguous`
+carry documentId only; `legacy_unsupported` also carries submissionId; `receipt`
+carries the existing validated receipt and documentId. Ambiguity grants no action
+or chosen head. Canonical legacy and second-head creation guards remain unchanged;
+those defensive states do not imply a supported CRN legacy/multi-head lifecycle.
+Authorized absence404, denied403, invalid400 and sanitized corruption/failure503
+are no-store, without an idempotency-replayed header.
+
+Published557dd031 on draftPR92 after nativeSQL11/0, signedHTTP3/0, rollback3/0,
+canonical89 upgrade/no-op/clean schema equality/referee11/11 and30 readiness fault
+denials/restores. Exact full standing1966/0 passes; new-head CI remains separate.
+This is not live-app promotion. See Order452's review for all failures/corrections.
+
+## Native fiscal-series configuration (Order453; source published)
+
+POST `/api/v1/properties/:property/fiscal-series` accepts exactly
+{supplierRegistrationId,documentKind,prefix}. Signed tenant/actor plus current
+property-scoped tax-fiscal.series:configure are required; SQL rechecks active
+tenant/actor, tenant-coherent role and ancestor-property grant before absence/replay.
+FY/date/counter/series identity are server-owned. Success201 creates one series;
+200 reuses the exact existing key/prefix and returns its unchanged current counter.
+Prefix conflicts409, invalid400, authority403 and sanitized unavailable503 are
+no-store. There is no browser-assigned number or idempotency-header promise.
+
+New series/fact/outbox writes are atomic in the preserved six-argument capability.
+The event contract is documented in EVENTS; replay emits nothing and older series
+receive no backfilled events. AuditEnvelope.requestId is validated, not persisted
+as event correlation; SQL generates a correlation UUID for each new configuration.
+Publication lock is acquired last; a prior publication in the same transaction is
+denied after authorization to avoid inverted lock order. API commands own fresh
+transactions; multi-command publication batching is not claimed. No document is
+issued or number allocated, and configuring debit_note does not implement debit
+valuation/accounting/submission. Independent native proof passes upgrade4/0,
+authority12/0 and signedHTTP5/0, preserving prior financial records. Canonical0090
+matches the tested draft; populated upgrade/no-op and clean-install schema equality,
+11/11 referee and50 runtime-readiness denials/restorations pass. Full standing
+1,983/0 and publication87da26f3 are recorded; its exact CI is red in the test cases
+addressed by455. This is not live-app activation or Phase7 completion.
+
+## Native fiscal-series discovery (Order454; native SQL and HTTP proved)
+
+GET `/api/v1/properties/:property/fiscal-series` accepts exactly two query
+parameters, each once: `supplierRegistrationId` and `documentKind` (invoice,
+credit_note or debit_note). Extra, duplicate or invalid selectors are400. Tenant
+and actor come from the signed session; property-scoped
+`tax-fiscal.series:configure` is required. The tenant transaction rechecks active
+tenant/actor, same-tenant role membership and ancestor-property scope before
+resolving absence. Property-local date and April1 financial-year start are server
+derived; the supplier must have active registration evidence for that exact date.
+
+Success200 is `{series:null}` for an authorized, available but unconfigured kind,
+or `{series:{seriesId,tenantId,propertyNode,supplierRegistrationId,documentKind,
+prefix,financialYearStart,nextNo}}`. `nextNo` is an exact positive int64 decimal
+string, not an allocated/reserved number. Denial is403; unavailable current-day
+supplier evidence or malformed database results produce sanitized503. Responses
+are no-store. The read performs no durable writes, locks, events, numbering,
+configuration replay or provider call; it grants no fiscal issuance authority.
+
+Root native SQL10/0(253) and independent preservation audit pass. Root and
+independent signed HTTP5/0(66 each) preserve all public rows/catalogue/sequences.
+The old HTTP503 remains recorded: its synthetic status was for the prior local
+day. Fresh current-day fixture cohorts passed with production/test unchanged;
+no stale supplier evidence was accepted or backfilled. Exact-source standing,
+publication/CI and local activation remain separate from this functional proof.
+
+## Invoice print compatibility with retry receipts — Order465
+
+The read-only print formatter accepts the existing optional immutable provider
+retry binding only in a `pending` receipt with `status:error` and `disposition:retry`.
+It validates the exact UUID/version1..2147483647 shape already admitted by the server
+receipt contract. Old binding-free receipts remain compatible; unknown/malformed or
+wrong-state bindings fail. This metadata changes no markup, amount, registration label
+or QR and exposes no provider extension identity in the printed artifact. Printing
+does not authorize a retry or contact a provider. This source repair is independently
+verified and published in46004d6f; completed Q255 promoted it to the retained
+frontier91 local app. Current runtime truth remains docs/PROJECT-STATUS.md.
+
+## Existing-credit invoice workbench disclosure — Order466
+
+An issued invoice detail offers Existing credit note / View credit note. Only
+deliberate disclosure calls the existing original-invoice credit discovery GET.
+An exact original-linked immutable receipt then permits the matching credit
+delivery GET. This is a read-only summary, not a credit issuer, editor, refund,
+provider control, full credit-document content view or print endpoint.
+
+The browser binds property, original identity/number/hash, reservation, folio and
+recipient, validates exact receipt shape, positive signed-int64 string money,
+canonical dates/timestamps and bounded Unicode reasons, and renders text safely.
+Discovery404 says No credit note available to view, not that a concealed credit
+does not exist. Denied, unavailable and invalid states remain distinguishable.
+A valid summary survives delivery-only failure; denied refresh clears old data.
+
+Registration metadata reuses the already-served print module's unchanged private
+structural validator through one inert fiscalDeliveryRegistrationStatus facade.
+The frozen result contains code/label only; it is not browser cryptographic
+verification. Only accepted production registration says IRP registered.
+Sandbox, pending, rejected, cancelled, ambiguous and legacy states remain honest.
+Stale, hidden, detached, disposed and property-replaced views cannot apply results
+or initiate follow-up requests. No credit/provider mutation, polling or PII storage.
+
+Root independently executed79pass/9explicit DB skips/0fail with1394 assertions,
+including actual Chromium against synthetic responses; no new real-DB proof is
+claimed for the unchanged APIs. Source is accepted, not published/live at this
+checkpoint. Review466 and PROJECT-STATUS carry the exact identities/release state.
+
+## Existing full-credit preview and print — Order468
+
+This extends, rather than replaces, Order466's summary-only disclosure. The
+existing original-linked summary and registration label remain. After deliberate
+discovery, staff may Preview credit note or Print credit note. Each action reads
+the already-authorized credit document GET, binds its exact receipt to discovery
+and original invoice, then reads current delivery. No issuance/refund/provider
+request, API/schema addition or background refresh is involved.
+
+The inert buildCreditNotePrintArtifact(document, delivery, originalInvoice)
+returns the same frozen print-artifact union as the existing invoice renderer.
+It validates the exact three-key envelope/23-key receipt/nine-key CRN source,
+strict original identity/property/reservation/folio/recipient/hash bindings,
+preceding number/date and five-field YellowCredit lineage. Original stored
+decimal amounts and bounded int64 totals remain exact; no sign inversion,
+revaluation or editable original is introduced. Shared item/tax/total parsing,
+escaping, provider-state and signed-QR rules preserve invoice behavior. Server
+cryptographic validation remains authoritative, not simulated by this browser.
+
+A4 output is labelled Credit note and contains its number/date, original reference,
+immutable reason, seller/buyer, line and tax amounts, credit total in INR, source
+identity and honest provider status. Sandbox/pending/cancelled/ambiguous is never
+called registered production. Mobile uses a compact credit-specific summary;
+the full-size document and scannable QR are retained for Print.
+
+Request generation and current connected disclosure actions guard every async
+step and the iframe print boundary. Navigation, suspend, dispose, property change
+or disclosure refresh prevents stale follow-ups/render/print. Concurrent buttons
+are disabled. HTTP403/404, malformed document/delivery and excessive QR capacity
+block printing with safe action feedback; registration truth remains in its own
+live region and successful retries clear old action errors. No PII is persisted
+in browser storage or URL. Existing backend access checks remain authoritative.
+
+Product source is independently accepted after root's28pass/508 final proof and
+the broader110pass/3explicitDBskips/10259 run. New Chromium scheduling is explicitly
+controlled for functional print/lifecycle assertions, not compositor performance.
+See Review468 for retained failures/hashes; current release/runtime identity is
+only PROJECT-STATUS.md. No phase completion or live delivery is inferred here.
+
+## Issued-credit-note register — Order469
+
+Within the existing invoice workbench, Credit notes deliberately loads the accepted
+GET /api/v1/properties/:property/credit-notes list. Initial invoice mount does not.
+The separate exact credit number accepts1–16 ASCII letters/digits/slash/hyphen;
+required canonical issuedFrom/issuedBefore form an inclusive/exclusive1–366day
+interval. The property-timezone default is today-minus30 through tomorrow
+(31calendar days). Native labels identify the exclusive upper date.
+
+Each request uses a detached submitted filter snapshot, limit25 and only the
+server's opaque bounded nextCursor. No tenant/actor/body, count query, polling,
+per-row full-document lookup or browser storage. Validate the exact two-field
+page and nine-field summaries, canonical UUIDs, property/date/number bindings,
+INR positive int64 minor-unit strings and lowercase64-hex hashes. Preserve DESC
+date/UUID order; reject duplicates, cross-page nonadvancement and repeated cursors;
+retain at most300 rows. The server remains the sole access and fiscal authority.
+
+Empty, permission, invalid filter/cursor, unavailable, offline and malformed states
+are not conflated; failed reads remove actionable stale rows. The list shows only
+stored credit/original numbers, business date and exact money. Review original
+invoice navigates originalDocumentId via the existing history/controller owner,
+visibly restores original detail and leaves466/468 discovery/print responsible
+for full-document reads. No issuance/refund/registration is inferred from a row.
+
+Draft edits, mode/route/property changes, suspend/dispose and detached controls
+abort/invalidate old reads/actions. Slash focuses the visible credit search.
+This is a read-only consumer of the existing450 API, no endpoint/schema/policy
+addition. Root's final33/0(611) and separate browser1/0(54) twice bind accepted
+source; Review469/current PROJECT-STATUS distinguish publication, CI and delivery.
+
+## Cashier full-credit issuance — Order470
+
+Implementation contract; final acceptance and delivery are recorded separately in
+Review470 and PROJECT-STATUS.md. This is a consumer of the existing Order446 API,
+not a new economic, fiscal, permission or schema contract.
+
+From an issued original invoice, **Issue full credit note** opens a confirmation
+surface. Opening it or checking the confirmation does not issue anything. The
+cashier supplies a reason, explicitly confirms a full credit, then submits. The
+surface identifies the original number, date and stored total. The original stays
+unchanged; a credit note is not a cash refund, payment or provider registration.
+
+The command is:
+
+    POST /api/v1/properties/:property/invoices/:originalDocument/credit-notes
+    Content-Type: application/json
+    Idempotency-Key: <secure request identity>
+    {"reason":"<exact confirmed reason>"}
+
+No query, tenant, actor, amount, tax, series, document number or business date is
+submitted. Current authority and all financial values remain server-owned.
+The reason is a nonblank, well-formed string of 1–500 Unicode scalars without ASCII
+controls or DEL. It is not trimmed or normalized; valid C1 and supplementary
+characters are preserved. The key is 8–200 visible ASCII characters, securely
+generated only for a valid confirmed intent.
+
+After sending, bounded controller memory retains the immutable original identity,
+exact reason and key. Concurrent submission is disabled. An uncertain result,
+including network failure, 503 or an invalid success receipt, never unlocks a new
+reason/key. **Retry same credit request** is deliberate and sends the same intent.
+Later 400/403/404/409 responses do not prove an earlier uncertain attempt had no
+effect. Navigation or closing a view is not rollback; returning within the same
+controller retains the submitted intent. Disposal clears private memory rather
+than persisting financial details or credentials in browser storage.
+
+The 200 replay and 201 issue paths both return the same immutable receipt body.
+The UI validates its exact original binding and submitted reason before claiming
+success, without inventing unavailable response-header knowledge. Existing-credit
+discovery remains explicit and read-only; preview/print remains a separate action.
+Discovery does not silently resolve an intent with a different reason.
+
+Active generation, original identity and connected/contained/visible controls guard
+submission. Terminal success blocks another submission. Stale, detached, hidden,
+suspended or disposed controls must not send or render across a changed subject.
+No reason, key, document content or receipt is put in URLs, browser storage or logs.
+
+## Credit-note provider request — Order471
+
+Source/journey accepted; publication and delivery are recorded in Review471 and
+PROJECT-STATUS.md. This consumes existing fiscal-submission and credit-delivery
+APIs and changes no financial policy. A validated issued credit with authorized
+`not_requested` delivery offers deliberate provider registration. Intent loads
+actual configured options; no provider is preselected. The cashier selects one,
+confirms its displayed environment, and presses the final request button.
+
+```text
+POST /api/v1/properties/:property/fiscal-submissions
+Idempotency-Key: <secure retained identity>
+{"documentId":"<credit document>","providerExtensionId":"<selected offered provider>"}
+```
+
+The original invoice, amounts, actor, tenant and provider version are not submitted.
+One immutable credit/original/property/hash/provider/key intent is retained in
+bounded controller memory. Network failures, denials and malformed receipts leave
+the outcome unknown. An explicit same-request retry preserves the exact body/key;
+view replacement, navigation or a later denial never authorizes a fresh identity.
+No automatic retry, provider substitution, print, refund or provider activation.
+
+A bound accepted response means request accepted, not registered or IRN issued.
+The subsequent authorized credit-delivery read alone supplies validated registration
+status. Failed/denied reads remain unavailable, without unlocking another send.
+Current generation/property/credit and actual visible/connected/enabled controls
+are rechecked before effects and after asynchronous boundaries. Reopening during
+a request settles only the current matching view. Disposal clears private memory;
+no persistence across reload is claimed and nothing private enters URLs/storage.

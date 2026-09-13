@@ -32,17 +32,20 @@ function journeyCategory(name: string): string {
   if (markerStart < 0) throw new Error(`Missing journey category: ${name}`);
   const categoryStart = index.lastIndexOf('<div class="management-journey-category">', markerStart);
   const nextCategory = index.indexOf('<div class="management-journey-category">', markerStart + marker.length);
-  const categoryEnd = nextCategory >= 0 ? nextCategory : index.indexOf("</div>\n</div>\n</section>", markerStart);
+  const categoryEnd = nextCategory >= 0 ? nextCategory : index.indexOf("</details>", markerStart);
   if (categoryStart < 0 || categoryEnd < 0) throw new Error(`Unclosed journey category: ${name}`);
   return index.slice(categoryStart, categoryEnd);
 }
 
-test("Order 324 intentional red: all scoped OOO/OOS destinations visibly say Room outages", () => {
-  const preview = element("secondary-workspaces-preview");
+test("Order459: Property navigation and the related workflow retain the Room outages label", () => {
+  const propertyGroup = html.match(/<details class="workspace-group" data-workspace-group="operations"[\s\S]*?<\/details>/)?.[0] ?? "";
   const navigation = element("nav-operations");
   const stayOperations = journeyCategory("Stay operations");
 
-  expect(preview).toContain("Room outages · Housekeeping · Vehicle register");
+  expect(propertyGroup).toContain("<span>Property</span>");
+  expect(propertyGroup).toContain('id="nav-operations"');
+  expect(propertyGroup).toContain('id="nav-housekeeping"');
+  expect(propertyGroup).toContain('id="nav-vehicles"');
   expect(navigation).toContain("<span>Room outages</span>");
   expect(stayOperations).toContain("an eligible Vehicle and room outages.</p>");
   expect(stayOperations).toContain('data-journey-view="operations">Room outages</button>');
@@ -64,7 +67,9 @@ test("Order 324 intentional red: Room outages preserves exact identities and can
   expect(index.match(/data-journey-view=/g)).toHaveLength(JOURNEYS.length);
 
   expect(script).toContain('location.pathname.endsWith("/operations") ? "operations"');
-  expect(script).toContain('history.pushState(null, "", `/p/${propertySelect.value}/${activeView}`)');
+  expect(script).toContain('const historyProperty = activeView === "market" ? (marketPropertyNode || location.pathname.match(/^\\/p\\/([0-9a-f-]+)\\/market$/)?.[1] || propertySelect.value) : propertySelect.value;');
+  expect(script).toContain("if (historyProperty && updateHistory) {");
+  expect(script).toContain('history.pushState(null, "", `/p/${historyProperty}/${activeView}`)');
   expect(script).toContain('const managementJourneyControls = document.querySelectorAll("[data-journey-view]")');
   expect(script).toContain("setView(control.dataset.journeyView)");
   expect(script).toContain("finishWorkspaceNavigation(control.dataset.journeyView)");

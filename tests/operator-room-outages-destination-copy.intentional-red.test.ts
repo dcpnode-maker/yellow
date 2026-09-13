@@ -68,7 +68,9 @@ test("Order 334 intentional red: operations identity, routing, requests and OOO/
   expect(operations).toContain("This view does not create maintenance tasks or change OOS policy.");
 
   expect(script).toContain('location.pathname.endsWith("/operations") ? "operations"');
-  expect(script).toContain('history.pushState(null, "", `/p/${propertySelect.value}/${activeView}`)');
+  expect(script).toContain('const historyProperty = activeView === "market" ? (marketPropertyNode || location.pathname.match(/^\\/p\\/([0-9a-f-]+)\\/market$/)?.[1] || propertySelect.value) : propertySelect.value;');
+  expect(script).toContain("if (historyProperty && updateHistory) {");
+  expect(script).toContain('history.pushState(null, "", `/p/${historyProperty}/${activeView}`)');
   expect(setView).toContain('operationsView.hidden = activeView !== "operations"');
   expect(setView.match(/activeView === "operations"/g)).toHaveLength(2);
   expect(setView).toContain('if (activeView === "operations") void loadOperationalBlocks()');
