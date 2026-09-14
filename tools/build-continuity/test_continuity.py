@@ -39,6 +39,21 @@ class ContinuityTests(unittest.TestCase):
         self.manifest.write_text(json.dumps(self.task))
         self.config.write_text(json.dumps(self.cfg))
         self.answer = json.dumps({"summary": "Synthetic proposal", "files": {"answer.txt": "hello\n"}, "remaining": ["Coordinator review"]})
+        self.symlink_supported = None
+
+    def _ensure_symlink_support(self, link_path, target_path, target_is_directory=False):
+        try:
+            if target_is_directory:
+                link_path.symlink_to(target_path, target_is_directory=True)
+            else:
+                link_path.symlink_to(target_path)
+            self.addCleanup(link_path.unlink, missing_ok=True)
+            self.symlink_supported = True
+            return True
+        except OSError as error:
+            if getattr(error, "winerror", None) == 1314:
+                self.skipTest("Symlink creation unavailable on this Windows host without Developer Mode privileges")
+            raise
 
     def run_worker(self, caller):
         return c.run_task(self.root, self.manifest, self.config, caller=caller)
@@ -115,7 +130,7 @@ class ContinuityTests(unittest.TestCase):
         for name in ["../outside", "/outside", ".env", ".git/config", "x/../out", "x\\out", "C:/out", "x//out", "secrets/key.txt"]:
             with self.subTest(name=name), self.assertRaises(c.Blocked):
                 c.safe_path(self.root, name)
-        (self.root / "link").symlink_to(self.root.parent, target_is_directory=True)
+        self._ensure_symlink_support(self.root / "link", self.root.parent, target_is_directory=True)
         with self.assertRaises(c.Blocked):
             c.safe_path(self.root, "link/out")
 
@@ -131,13 +146,13 @@ class ContinuityTests(unittest.TestCase):
     def test_private_state_symlinks_rejected_before_any_write(self):
         with tempfile.TemporaryDirectory() as outside:
             base = self.root / ".git/yellow-continuity"
-            base.symlink_to(outside, target_is_directory=True)
+            self._ensure_symlink_support(base, outside, target_is_directory=True)
             with self.assertRaises(c.Blocked):
                 self.run_worker(lambda *a: self.fail("Escaped directory called provider"))
             self.assertEqual(list(Path(outside).iterdir()), [])
             base.unlink()
             base.mkdir()
-            (base / self.task["id"]).symlink_to(outside, target_is_directory=True)
+            self._ensure_symlink_support(base / self.task["id"], outside, target_is_directory=True)
             with self.assertRaises(c.Blocked):
                 self.run_worker(lambda *a: self.fail("Escaped task directory called provider"))
             self.assertEqual(list(Path(outside).iterdir()), [])
@@ -146,7 +161,7 @@ class ContinuityTests(unittest.TestCase):
         directory = c.private_directory(self.root, self.task["id"])
         target = self.root / "sentinel.txt"
         target.write_text("preserve")
-        (directory / "state.json").symlink_to(target)
+        self._ensure_symlink_support(directory / "state.json", target)
         with self.assertRaises(c.Blocked):
             self.run_worker(lambda *a: self.fail("State symlink called provider"))
         self.assertEqual(target.read_text(), "preserve")

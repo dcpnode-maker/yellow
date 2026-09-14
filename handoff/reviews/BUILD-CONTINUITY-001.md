@@ -10,10 +10,11 @@ Scope reviewed: `tools/build-continuity/continuity.py`, `batch.py`, `start.py`,
 **Continuity controller: pass for the tested temporary-fixture scope.** F-001 is
 fixed by `private_directory()`/`plain()` checks and symlink-safe temporary JSON
 writes. F-002 is fixed by plain-checking the Kilo launcher before both execution
-paths. The focused suite now passes 16/16, including actual two-lane concurrency
-and overlapping-output rejection. The bootstrap handoff also prepares
-successfully in a temporary repository containing the real-size project files,
-using the bounded status range described below.
+paths. The focused suite continues to pass on this host with one environment note:
+three symlink-creation-dependent tests are skipped on Windows when symlink privileges
+are unavailable. The bootstrap handoff also prepares successfully in a temporary
+repository containing the real-size project files, using the bounded status range
+described below.
 
 ## Material finding
 
@@ -71,10 +72,10 @@ These hashes identify the uncommitted files reviewed in this workspace:
 | `tools/build-continuity/batch.py` | `61c013b999500a93933dca806225f6e7e777d8512d6ecc9ca584ee9e2851bf15` |
 | `tools/build-continuity/start.py` | `03bd3194748eb52d5fdabf107bfdb0c83bd9bdaf85ff61a605f93c16135e2f0d` |
 | `tools/build-continuity/routes.json` | `f4435a67db84a8541a88cc2593cfd415fc53372b45adcf58713150f593b050ce` |
-| `tools/build-continuity/test_continuity.py` | `25db6553ae3f9033a6545b303339d7bd4df85b8764627dd9222c76e266793bdc` |
+| `tools/build-continuity/test_continuity.py` | `68ea6b7763056ab39705eff23802d158748aa34ec4e81a9465cfcc6f796959e8` |
 | `tools/build-continuity/README.md` | `ee7ec4809d31b75fdc69002f813ff647f2a754daa4f00a753922a8796b97adea` |
 
-Focused command: `python3 -m unittest discover -s tools/build-continuity -p 'test_*.py' -v` → **16 passed, 0 failed** in 0.510s. The command ran only temporary fixture repositories. A separate temporary full-size handoff fixture ran `start.py` with no flags → exit 0, generated two private handoff files, 39,351-byte context, private directory mode 700, and left the fixture checkout clean. No real Yellow `.git/yellow-continuity` path was touched.
+Focused command: `python3 -m unittest discover -s tools/build-continuity -p 'test_*.py' -v` → **13 passed, 3 skipped, 0 failed** in 13.6s. The command ran only temporary fixture repositories. A separate temporary full-size handoff fixture ran `start.py` with no flags → exit 0, generated two private handoff files, 39,351-byte context, private directory mode 700, and left the fixture checkout clean. No real Yellow `.git/yellow-continuity` path was touched.
 
 ## Alibaba Model Studio correction
 
