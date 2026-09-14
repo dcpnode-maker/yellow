@@ -35,3 +35,21 @@ Proof: show pinned installed version, inspect bind/auth configuration, attempt a
 local unauthenticated rejection/health check if runtime dependencies support it.
 Record actual failures and leave full-provider activation pending when keys are
 missing. No Yellow application/database changes or new PR without canonical gates.
+
+## MERGED
+
+Merged in this continuity branch after local smoke-proof and independent review:
+
+- Installed and validated pinned OmniRoute 3.8.50 in local private state under
+  `.git/yellow-omniroute`.
+- Inspected bind/auth and runtime hardening; host-side validation and negative
+  auth-health check are verified in the independent review.
+- Created/updated `tools/build-continuity/omniroute.py`, `tools/build-continuity/OMNIROUTE.md`,
+  and `tools/build-continuity/provider-pool.json`; no application database or runtime code paths were modified.
+
+Execution notes:
+
+- `python tools/build-continuity/omniroute.py --install --smoke --port 20139`
+  (or equivalent) passed for local launcher/version/check paths in reviewed run.
+- No authenticated provider activation was performed on this host; full provider
+  enablement remains pending on approved credentials and budget policy.

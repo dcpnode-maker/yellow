@@ -48,3 +48,21 @@ state belongs in the repository's private Git directory, not model-owned memory.
 Do not touch application code, migrations, existing runtime, deployment secrets,
 current project status, or provider billing. The founder has authorized routine
 account setup/sign-in; any specific unresolved terms or host access remain explicit.
+
+## MERGED
+
+Merged in this continuity branch after local verification:
+
+- `tools/build-continuity/test_continuity.py` hardened for Windows symlink-limited
+  hosts (environmental skips) to keep continuity proofs deterministic.
+- `tools/build-continuity/start.py` and continuity tooling execute a bounded handoff
+  bootstrap and expose provider-lane execution for `--api` tasks.
+- Independent review file `handoff/reviews/BUILD-CONTINUITY-001.md` documents synthetic
+  and local proof for all tested scope files.
+
+Verification run on this host:
+
+- `python -m unittest discover -s tools/build-continuity -p 'test_*.py' -v`  
+  Result: 13 passed, 3 skipped, 0 failed
+- `python tools/build-continuity/start.py --api`  
+  Result: prepared task successfully; API task remained `blocked` due missing live provider route.
