@@ -30,8 +30,13 @@ Last generated: 2026-09-14 (local workspace)
 - Active linked worktrees:
   - `C:/Users/astha/Documents/Codex/2026-08-14/cl/outputs/yellow`
   - `C:/Users/astha/Documents/Codex/2026-08-14/cl/outputs/yellow-order175-folio-responsive-containment`
-  - `C:/Users/astha/Documents/Codex/2026-08-14/cl/outputs/yellow-order432-rate-pricing`
 - Git remote: `origin` only
+
+## Consolidation log
+
+- 2026-09-14: Removed clean worktree
+  `C:/Users/astha/Documents/Codex/2026-08-14/cl/outputs/yellow-order432-rate-pricing`
+  (branch `phase-7/order437-main-sync`), preserving active worktrees and branch reachability.
 
 ## Continuity tooling status
 
