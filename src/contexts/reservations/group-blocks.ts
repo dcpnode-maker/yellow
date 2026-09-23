@@ -19,6 +19,18 @@ export interface GroupBlockAllotmentRow {
   readonly rateOverride: unknown | null;
 }
 
+export interface GroupBlockRoomingListRow {
+  readonly reservationId: string;
+  readonly confirmationNo: string;
+  readonly primaryGuestDisplayName: string;
+  readonly status: string;
+  readonly unitTypeCode: string | null;
+  readonly unitTypeName: string | null;
+  readonly stayFrom: string;
+  readonly stayTo: string;
+  readonly pickedUpNights: number;
+}
+
 export interface GroupBlockSummary {
   readonly groupId: string;
   readonly code: string;
@@ -41,6 +53,7 @@ export interface GroupBlockSummary {
   readonly pickupPercent: number;
   readonly cutoffState: "future" | "due_today" | "past_due" | "not_set";
   readonly allotment: readonly GroupBlockAllotmentRow[];
+  readonly roomingList: readonly GroupBlockRoomingListRow[];
 }
 
 export interface GroupBlockWorkbench {
@@ -69,6 +82,7 @@ interface SqlGroupRow {
   readonly pickup_percent: number;
   readonly cutoff_state: string;
   readonly allotment: unknown;
+  readonly rooming_list: unknown;
 }
 
 function validate(input: GroupBlockWorkbenchInput): GroupBlockWorkbenchInput {
@@ -132,6 +146,38 @@ function allotmentRows(value: unknown): readonly GroupBlockAllotmentRow[] {
   }));
 }
 
+function roomingListRows(value: unknown): readonly GroupBlockRoomingListRow[] {
+  if (!Array.isArray(value)) throw new GroupBlockConflictError("Stored group block rooming list is invalid");
+  return Object.freeze(value.map((item) => {
+    if (typeof item !== "object" || item === null || Array.isArray(item)) {
+      throw new GroupBlockConflictError("Stored group block rooming list row is invalid");
+    }
+    const row = item as Record<string, unknown>;
+    if (typeof row.reservationId !== "string" || !UUID.test(row.reservationId) ||
+        typeof row.confirmationNo !== "string" || row.confirmationNo.length < 1 ||
+        typeof row.primaryGuestDisplayName !== "string" || row.primaryGuestDisplayName.length < 1 ||
+        typeof row.status !== "string" || row.status.length < 1 ||
+        (row.unitTypeCode !== null && typeof row.unitTypeCode !== "string") ||
+        (row.unitTypeName !== null && typeof row.unitTypeName !== "string") ||
+        typeof row.stayFrom !== "string" || !MICROSECOND_UTC.test(row.stayFrom) ||
+        typeof row.stayTo !== "string" || !MICROSECOND_UTC.test(row.stayTo) ||
+        typeof row.pickedUpNights !== "number" || !Number.isInteger(row.pickedUpNights) || row.pickedUpNights < 0) {
+      throw new GroupBlockConflictError("Stored group block rooming list row is invalid");
+    }
+    return Object.freeze({
+      reservationId: row.reservationId,
+      confirmationNo: row.confirmationNo,
+      primaryGuestDisplayName: row.primaryGuestDisplayName,
+      status: row.status,
+      unitTypeCode: row.unitTypeCode,
+      unitTypeName: row.unitTypeName,
+      stayFrom: row.stayFrom,
+      stayTo: row.stayTo,
+      pickedUpNights: row.pickedUpNights,
+    });
+  }));
+}
+
 function cutoffState(value: string): GroupBlockSummary["cutoffState"] {
   if (value === "future" || value === "due_today" || value === "past_due" || value === "not_set") return value;
   throw new GroupBlockConflictError("Stored group block cutoff state is invalid");
@@ -183,7 +229,7 @@ export class GroupBlockService {
       ), pickup AS MATERIALIZED (
         SELECT reservation.group_id,
                segment.unit_type_id,
-               (lower(segment.period) AT TIME ZONE property_context.timezone)::date AS stay_date,
+               stay_night.stay_date::date AS stay_date,
                count(*)::int AS picked_up
         FROM reservation
         JOIN property_context ON property_context.id = reservation.property_node
@@ -191,13 +237,17 @@ export class GroupBlockService {
           ON segment.tenant_id = reservation.tenant_id
          AND segment.reservation_id = reservation.id
          AND segment.status <> 'cancelled'
+        CROSS JOIN LATERAL generate_series(
+          (lower(segment.period) AT TIME ZONE property_context.timezone)::date,
+          (upper(segment.period) AT TIME ZONE property_context.timezone)::date - 1,
+          '1 day'::interval
+        ) AS stay_night(stay_date)
         WHERE reservation.tenant_id = ${valid.tenantId}::uuid
           AND reservation.tenant_id = current_setting('app.tenant_id', true)::uuid
           AND reservation.property_node = ${valid.propertyNode}::uuid
           AND reservation.group_id IS NOT NULL
           AND reservation.status <> 'cancelled'
-        GROUP BY reservation.group_id, segment.unit_type_id,
-                 (lower(segment.period) AT TIME ZONE property_context.timezone)::date
+        GROUP BY reservation.group_id, segment.unit_type_id, stay_night.stay_date::date
       ), group_totals AS MATERIALIZED (
         SELECT groups.id AS group_id,
                min(allotment.stay_date) AS arrival_date,
@@ -211,6 +261,40 @@ export class GroupBlockService {
          AND pickup.unit_type_id = allotment.unit_type_id
          AND pickup.stay_date = allotment.stay_date
         GROUP BY groups.id
+      ), rooming_list AS MATERIALIZED (
+        SELECT reservation.group_id,
+               reservation.id AS reservation_id,
+               reservation.confirmation_no,
+               COALESCE(primary_party.display_name, reservation.confirmation_no) AS primary_guest_display_name,
+               reservation.status,
+               unit_type.code AS unit_type_code,
+               unit_type.name AS unit_type_name,
+               to_char(min(lower(segment.period)) AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"') AS stay_from,
+               to_char(max(upper(segment.period)) AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"') AS stay_to,
+               COALESCE(sum(greatest(
+                 (upper(segment.period) AT TIME ZONE property_context.timezone)::date -
+                 (lower(segment.period) AT TIME ZONE property_context.timezone)::date,
+                 0
+               )), 0)::int AS picked_up_nights
+        FROM reservation
+        JOIN property_context ON property_context.id = reservation.property_node
+        JOIN groups ON groups.id = reservation.group_id
+        JOIN party AS primary_party
+          ON primary_party.tenant_id = reservation.tenant_id
+         AND primary_party.id = reservation.primary_party
+        JOIN reservation_segment AS segment
+          ON segment.tenant_id = reservation.tenant_id
+         AND segment.reservation_id = reservation.id
+         AND segment.status <> 'cancelled'
+        LEFT JOIN unit_type
+          ON unit_type.tenant_id = segment.tenant_id
+         AND unit_type.id = segment.unit_type_id
+        WHERE reservation.tenant_id = ${valid.tenantId}::uuid
+          AND reservation.tenant_id = current_setting('app.tenant_id', true)::uuid
+          AND reservation.property_node = ${valid.propertyNode}::uuid
+          AND reservation.status <> 'cancelled'
+        GROUP BY reservation.group_id, reservation.id, reservation.confirmation_no,
+                 primary_party.display_name, reservation.status, unit_type.code, unit_type.name
       )
       SELECT groups.id AS group_id,
              groups.code,
@@ -247,7 +331,22 @@ export class GroupBlockService {
                'pickedUp', COALESCE(pickup.picked_up, 0),
                'remaining', greatest(allotment.blocked - COALESCE(pickup.picked_up, 0), 0),
                'rateOverride', allotment.rate_override
-             ) ORDER BY allotment.stay_date, allotment.unit_type_code) FILTER (WHERE allotment.group_id IS NOT NULL), '[]'::jsonb) AS allotment
+             ) ORDER BY allotment.stay_date, allotment.unit_type_code) FILTER (WHERE allotment.group_id IS NOT NULL), '[]'::jsonb) AS allotment,
+             COALESCE((
+               SELECT jsonb_agg(jsonb_build_object(
+                 'reservationId', rooming_list.reservation_id,
+                 'confirmationNo', rooming_list.confirmation_no,
+                 'primaryGuestDisplayName', rooming_list.primary_guest_display_name,
+                 'status', rooming_list.status,
+                 'unitTypeCode', rooming_list.unit_type_code,
+                 'unitTypeName', rooming_list.unit_type_name,
+                 'stayFrom', rooming_list.stay_from,
+                 'stayTo', rooming_list.stay_to,
+                 'pickedUpNights', rooming_list.picked_up_nights
+               ) ORDER BY rooming_list.stay_from, rooming_list.confirmation_no)
+               FROM rooming_list
+               WHERE rooming_list.group_id = groups.id
+             ), '[]'::jsonb) AS rooming_list
       FROM groups
       JOIN property_context ON property_context.id = groups.property_node
       LEFT JOIN block_status_def AS status_def
@@ -295,6 +394,7 @@ export class GroupBlockService {
       pickupPercent: row.pickup_percent,
       cutoffState: cutoffState(row.cutoff_state),
       allotment: allotmentRows(row.allotment),
+      roomingList: roomingListRows(row.rooming_list),
     }))) });
   }
 }

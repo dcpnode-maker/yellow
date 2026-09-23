@@ -3578,6 +3578,7 @@ function GroupBlockWorkbenchPanel({
       <div className="group-block-list">
         {groups.map((group) => {
           const visibleAllotment = group.allotment.slice(0, 8);
+          const visibleRoomingList = group.roomingList.slice(0, 6);
           return (
             <article className="group-block-card" key={group.groupId} data-cutoff-state={group.cutoffState}>
               <div className="group-block-card-head">
@@ -3609,6 +3610,39 @@ function GroupBlockWorkbenchPanel({
                 ))}
               </div>
               {group.allotment.length > visibleAllotment.length ? <small className="group-block-more">Showing first {visibleAllotment.length} of {group.allotment.length} allotment rows.</small> : null}
+              <div className="group-block-rooming-list" aria-label={`${group.code} rooming list pickup`}>
+                <div className="group-block-section-title">
+                  <strong>Rooming list / pickup</strong>
+                  <small>{group.roomingList.length} reservation{group.roomingList.length === 1 ? "" : "s"} linked to this block</small>
+                </div>
+                {visibleRoomingList.length === 0 ? (
+                  <p className="empty">No reservations have picked up this block yet.</p>
+                ) : visibleRoomingList.map((row) => (
+                  <button
+                    type="button"
+                    key={`${group.groupId}-${row.reservationId}`}
+                    className="group-block-rooming-row"
+                    onClick={() => window.location.assign(`/p/${propertyId}/res/${row.reservationId}`)}
+                    aria-label={`Open reservation ${row.confirmationNo} for ${row.primaryGuestDisplayName}`}
+                  >
+                    <span>
+                      <strong>{row.primaryGuestDisplayName}</strong>
+                      <small>{row.confirmationNo} · {row.status.replaceAll("_", " ")}</small>
+                    </span>
+                    <span>
+                      <strong>{row.unitTypeCode ?? "Room type"}</strong>
+                      <small>{row.unitTypeName ?? "Not assigned"} · {row.pickedUpNights} night{row.pickedUpNights === 1 ? "" : "s"}</small>
+                    </span>
+                    <span>
+                      <strong>{row.stayFrom.slice(0, 10)}</strong>
+                      <small>to {row.stayTo.slice(0, 10)}</small>
+                    </span>
+                  </button>
+                ))}
+                {group.roomingList.length > visibleRoomingList.length ? (
+                  <small className="group-block-more">Showing first {visibleRoomingList.length} of {group.roomingList.length} picked-up reservations.</small>
+                ) : null}
+              </div>
             </article>
           );
         })}

@@ -1774,6 +1774,50 @@ h1 {
 .group-block-allotment > div:first-child { border-top: 0; }
 .group-block-allotment-head { color: #756c41; background: #fff8ce; font-size: 10px; font-weight: 900; letter-spacing: .08em; text-transform: uppercase; }
 .group-block-allotment small { display: block; color: #77705c; font-size: 10px; }
+.group-block-rooming-list {
+  display: grid;
+  gap: 8px;
+  margin-top: 12px;
+  padding: 10px;
+  border: 1px solid rgba(215, 181, 0, .32);
+  border-radius: 14px;
+  background: linear-gradient(180deg, rgba(255, 253, 236, .94), rgba(255, 255, 255, .76));
+}
+.group-block-section-title {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 10px;
+  color: #211d09;
+}
+.group-block-section-title strong { font-size: 12px; letter-spacing: .04em; text-transform: uppercase; }
+.group-block-section-title small { color: #776f45; font-size: 10px; font-weight: 800; text-align: right; }
+.group-block-rooming-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr) minmax(96px, .75fr);
+  gap: 8px;
+  align-items: center;
+  min-height: 44px;
+  padding: 9px 10px;
+  border: 1px solid rgba(31, 29, 20, .09);
+  border-radius: 11px;
+  background: rgba(255, 255, 255, .9);
+  color: #211f15;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.group-block-rooming-row:hover,
+.group-block-rooming-row:focus-visible {
+  border-color: #d9b300;
+  outline: 0;
+  box-shadow: 0 0 0 3px rgba(244, 219, 28, .22), 0 8px 20px rgba(51, 45, 0, .08);
+}
+.group-block-rooming-row span { min-width: 0; }
+.group-block-rooming-row strong,
+.group-block-rooming-row small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.group-block-rooming-row strong { font-size: 12px; font-weight: 880; }
+.group-block-rooming-row small { margin-top: 2px; color: #6c6754; font-size: 10px; font-weight: 720; }
 .reservation-create-next { width: min(100%, 980px); min-width: 0; margin: 0 auto; padding: clamp(16px,3vw,34px); border: 1px solid #e4d36e; border-radius: 20px; background: rgba(255,255,255,.98); box-shadow: 0 22px 70px rgba(91,75,0,.1); }
 .reservation-create-next,
 .reservation-create-next * { box-sizing: border-box; min-width: 0; }
@@ -2426,6 +2470,9 @@ h1 {
   .group-block-card-head { display: grid; align-items: stretch; }
   .group-block-totals { grid-template-columns: repeat(3, minmax(0, 1fr)); min-width: 0; }
   .group-block-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .group-block-section-title { display: grid; align-items: start; }
+  .group-block-section-title small { text-align: left; }
+  .group-block-rooming-row { grid-template-columns: minmax(0, 1fr); }
   .reservation-grid { margin-top: 15px; border-radius: 17px; }
   .detail-card { padding: 18px 15px; border-right: 0; }
   .detail-card dl { grid-template-columns: 78px minmax(0,1fr); gap: 10px 8px; }

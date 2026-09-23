@@ -759,6 +759,17 @@ function groupBlockWorkbenchJson(workbench: GroupBlockWorkbench): JsonValue {
         remaining: row.remaining,
         rateOverride: row.rateOverride,
       })),
+      roomingList: group.roomingList.map((row) => ({
+        reservationId: row.reservationId,
+        confirmationNo: row.confirmationNo,
+        primaryGuestDisplayName: row.primaryGuestDisplayName,
+        status: row.status,
+        unitTypeCode: row.unitTypeCode,
+        unitTypeName: row.unitTypeName,
+        stayFrom: row.stayFrom,
+        stayTo: row.stayTo,
+        pickedUpNights: row.pickedUpNights,
+      })),
     })),
   });
 }

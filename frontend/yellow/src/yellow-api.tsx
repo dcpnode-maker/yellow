@@ -71,6 +71,17 @@ type GroupBlockAllotmentRow = Readonly<{
   remaining: number;
   rateOverride: unknown | null;
 }>;
+type GroupBlockRoomingListRow = Readonly<{
+  reservationId: string;
+  confirmationNo: string;
+  primaryGuestDisplayName: string;
+  status: string;
+  unitTypeCode: string | null;
+  unitTypeName: string | null;
+  stayFrom: string;
+  stayTo: string;
+  pickedUpNights: number;
+}>;
 type GroupBlockSummary = Readonly<{
   groupId: string;
   code: string;
@@ -93,6 +104,7 @@ type GroupBlockSummary = Readonly<{
   pickupPercent: number;
   cutoffState: "future" | "due_today" | "past_due" | "not_set";
   allotment: readonly GroupBlockAllotmentRow[];
+  roomingList: readonly GroupBlockRoomingListRow[];
 }>;
 type GroupBlockWorkbench = Readonly<{ groups: readonly GroupBlockSummary[] }>;
 type ReservationActions = Readonly<{

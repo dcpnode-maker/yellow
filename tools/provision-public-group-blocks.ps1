@@ -110,12 +110,20 @@ BEGIN
   ) AS seed(unit_type_id, stay_date, blocked)
   ON CONFLICT (group_id, unit_type_id, stay_date) DO UPDATE SET blocked=EXCLUDED.blocked, rate_override=EXCLUDED.rate_override;
 
+  UPDATE reservation SET group_id = NULL
+  WHERE tenant_id=v_tenant AND property_node=v_property
+    AND group_id IN (v_mice_group, v_social_group)
+    AND confirmation_no NOT IN (
+      'L3R-FU-0030','L3R-FU-0031','L3R-FU-0032','L3R-FU-0033',
+      'L3R-FU-0034','L3R-FU-0035','L3R-FU-0036','L3R-FU-0037'
+    );
+
   UPDATE reservation SET group_id = v_mice_group, market_code='MICE', source_code='CORP'
   WHERE tenant_id=v_tenant AND property_node=v_property
     AND confirmation_no IN ('L3R-FU-0030','L3R-FU-0031','L3R-FU-0032','L3R-FU-0033');
   UPDATE reservation SET group_id = v_social_group, market_code='SOCIAL', source_code='TRAVEL_TRADE'
   WHERE tenant_id=v_tenant AND property_node=v_property
-    AND confirmation_no IN ('Y-5C9C905F56994573B7091512DD0E9D53');
+    AND confirmation_no IN ('L3R-FU-0034','L3R-FU-0035','L3R-FU-0036','L3R-FU-0037');
 END $$;
 
 COMMIT;

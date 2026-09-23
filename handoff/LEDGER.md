@@ -1586,3 +1586,11 @@ appears here; dispatch/execution remain unverified.
 - Added an idempotent public-demo provisioning script for the synthetic Locanda group blocks `LOC-MICE-0926` and `LOC-SOC-0928`.
 - Extended the colleague-readiness probe so the public demo fails if the group-block workbench loses its configured fixture.
 - Proof: `bun test tests/order625-group-block-provisioning.test.ts`; `powershell -NoProfile -ExecutionPolicy Bypass -File .\tools\provision-public-group-blocks.ps1`; `bun tools/probe-colleague-demo-readiness.ts`; `bun run typecheck`.
+
+# 2026-09-23 — Order 626 group-block rooming-list drilldown
+
+- Added per-block rooming-list/pickup detail to the Opera-style group-block workbench, including guest, reservation, status, room type, stay dates and picked-up nights.
+- Corrected group-block pickup math to count each stay night against matching allotment date and room type.
+- Updated the public demo fixture so the MICE and social blocks both have coherent picked-up reservations.
+- Promoted the public demo image and assets.
+- Proof: `bun test tests/order625-group-block-provisioning.test.ts tests/order626-group-block-rooming-list.test.ts`; `bun run typecheck`; `powershell -NoProfile -ExecutionPolicy Bypass -File .\tools\provision-public-group-blocks.ps1`; direct local group-block API check; `bun tools/probe-colleague-demo-readiness.ts`; `bun tools/probe-mobile-public-demo.ts`; `bun tools/probe-public-demo-performance.ts`.
