@@ -313,6 +313,7 @@ async function validateTrackingTable(
            pg_get_constraintdef(oid, true) AS definition
       FROM pg_constraint
      WHERE conrelid = 'public.schema_migration'::regclass
+       AND contype <> 'n'
      ORDER BY contype, conkey::text, pg_get_constraintdef(oid, true)
   `;
   const actualConstraints = constraints.map(({ contype, conkey, definition }) => ({

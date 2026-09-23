@@ -51,6 +51,7 @@ const TASKS = Object.freeze({
   inactiveActor: "00000000-0000-0000-0000-00000002108a",
   replay: "00000000-0000-0000-0000-00000002108b",
   foreign: "00000000-0000-0000-0000-00000002108c",
+  micros: "00000000-0000-0000-0000-00000002108d",
 });
 
 const SPACES = Object.freeze({
@@ -66,6 +67,7 @@ const SPACES = Object.freeze({
   inactiveActor: "00000000-0000-0000-0000-00000002106a",
   replay: "00000000-0000-0000-0000-00000002106b",
   foreign: "00000000-0000-0000-0000-00000002106c",
+  micros: "00000000-0000-0000-0000-00000002106d",
 });
 
 const UPDATED = Object.freeze({
@@ -80,6 +82,7 @@ const UPDATED = Object.freeze({
   inactiveActor: "2026-08-28T00:08:00.000Z",
   replay: "2026-08-28T00:09:00.000Z",
   foreign: "2026-08-28T00:10:00.000Z",
+  micros: "2026-08-28T00:11:00.000Z",
 });
 
 let deploy: SQL | undefined;
@@ -195,6 +198,7 @@ databaseDescribe("Order 201 governed housekeeping task lifecycle", () => {
       (${SPACES.noCondition}::uuid,${TENANT}::uuid,${PROPERTY}::uuid,'201-N','standard','active','5'),
       (${SPACES.inactiveActor}::uuid,${TENANT}::uuid,${PROPERTY}::uuid,'201-I','standard','active','5'),
       (${SPACES.replay}::uuid,${TENANT}::uuid,${PROPERTY}::uuid,'201-E','standard','active','6'),
+      (${SPACES.micros}::uuid,${TENANT}::uuid,${PROPERTY}::uuid,'201-M','standard','active','6'),
       (${SPACES.foreign}::uuid,${FOREIGN_TENANT}::uuid,${FOREIGN_PROPERTY}::uuid,'201-F','standard','active','1')`;
     await deploy`INSERT INTO unit_condition(tenant_id,space_id,condition,updated_at) VALUES
       (${TENANT}::uuid,${SPACES.assigned}::uuid,'dirty',${UPDATED.assigned}::timestamptz),
@@ -207,6 +211,7 @@ databaseDescribe("Order 201 governed housekeeping task lifecycle", () => {
       (${TENANT}::uuid,${SPACES.wrongSubject}::uuid,'dirty',${UPDATED.wrongSubject}::timestamptz),
       (${TENANT}::uuid,${SPACES.inactiveActor}::uuid,'dirty',${UPDATED.inactiveActor}::timestamptz),
       (${TENANT}::uuid,${SPACES.replay}::uuid,'dirty',${UPDATED.replay}::timestamptz),
+      (${TENANT}::uuid,${SPACES.micros}::uuid,'dirty','2026-08-28T00:11:00.000456Z'::timestamptz),
       (${FOREIGN_TENANT}::uuid,${SPACES.foreign}::uuid,'dirty',${UPDATED.foreign}::timestamptz)`;
     await deploy`INSERT INTO task(id,tenant_id,property_node,kind,status,subject_type,subject_id,assignee_party,priority,completed_at) VALUES
       (${TASKS.assigned}::uuid,${TENANT}::uuid,${PROPERTY}::uuid,'housekeeping','assigned','space',${SPACES.assigned}::uuid,${ATTENDANT}::uuid,1,NULL),
@@ -220,6 +225,7 @@ databaseDescribe("Order 201 governed housekeeping task lifecycle", () => {
       (${TASKS.noCondition}::uuid,${TENANT}::uuid,${PROPERTY}::uuid,'housekeeping','in_progress','space',${SPACES.noCondition}::uuid,${ATTENDANT}::uuid,5,NULL),
       (${TASKS.inactiveActor}::uuid,${TENANT}::uuid,${PROPERTY}::uuid,'housekeeping','in_progress','space',${SPACES.inactiveActor}::uuid,${ATTENDANT}::uuid,5,NULL),
       (${TASKS.replay}::uuid,${TENANT}::uuid,${PROPERTY}::uuid,'housekeeping','assigned','space',${SPACES.replay}::uuid,${ATTENDANT}::uuid,6,NULL),
+      (${TASKS.micros}::uuid,${TENANT}::uuid,${PROPERTY}::uuid,'housekeeping','in_progress','space',${SPACES.micros}::uuid,${ATTENDANT}::uuid,6,NULL),
       (${TASKS.foreign}::uuid,${FOREIGN_TENANT}::uuid,${FOREIGN_PROPERTY}::uuid,'housekeeping','in_progress','space',${SPACES.foreign}::uuid,${FOREIGN_ATTENDANT}::uuid,1,NULL)`;
   });
 
@@ -365,6 +371,39 @@ databaseDescribe("Order 201 governed housekeeping task lifecycle", () => {
         (SELECT count(*)::int FROM api_idempotency WHERE tenant_id=${TENANT}::uuid AND operation='housekeeping.task.transition' AND response_status IS NULL) AS claims
     `;
     expect(artifacts).toEqual([{ facts: 0, events: 0, claims: 0 }]);
+  });
+
+  test("P3b millisecond API timestamp evidence accepts stored microsecond condition truth", async () => {
+    const idempotencyBefore = await deploy!<{ claims: number }[]>`
+      SELECT count(*)::int AS claims
+      FROM api_idempotency
+      WHERE tenant_id=${TENANT}::uuid AND operation='housekeeping.task.transition'
+    `;
+    await expect(command({
+      taskId: TASKS.micros, action: "complete", expectedTaskStatus: "in_progress",
+      expectedRoomCondition: "dirty", expectedRoomUpdatedAt: "2026-08-28T00:11:00.001Z",
+      key: "order635-stale-microsecond-condition",
+    })).rejects.toBeInstanceOf(HousekeepingConflictError);
+    expect(await taskState(TASKS.micros)).toMatchObject({ status: "in_progress", condition: "dirty" });
+    const staleArtifacts = await deploy!<{ facts: number; events: number; claims: number }[]>`
+      SELECT
+        (SELECT count(*)::int FROM fact_log WHERE tenant_id=${TENANT}::uuid AND entity_id IN (${TASKS.micros}::uuid,${SPACES.micros}::uuid)) AS facts,
+        (SELECT count(*)::int FROM outbox WHERE tenant_id=${TENANT}::uuid AND aggregate_id IN (${TASKS.micros}::uuid,${SPACES.micros}::uuid)) AS events,
+        (SELECT count(*)::int FROM api_idempotency WHERE tenant_id=${TENANT}::uuid AND operation='housekeeping.task.transition') AS claims
+    `;
+    expect(staleArtifacts).toEqual([{ facts: 0, events: 0, claims: idempotencyBefore[0]?.claims ?? 0 }]);
+
+    const completed = await command({
+      taskId: TASKS.micros, action: "complete", expectedTaskStatus: "in_progress",
+      expectedRoomCondition: "dirty", expectedRoomUpdatedAt: UPDATED.micros,
+      key: "order635-complete-microsecond-condition",
+    });
+    expect(completed).toMatchObject({ taskStatus: "done", roomCondition: "clean", eligibleAction: "verify" });
+    expect(completed.completedAt).not.toBeNull();
+    const state = await taskState(TASKS.micros);
+    expect(state?.status).toBe("done");
+    expect(state?.condition).toBe("clean");
+    expect(state?.updated_at?.toISOString()).toBe(completed.roomUpdatedAt);
   });
 
   test("P4 stale, malformed, inactive and foreign targets fail closed without mutation", async () => {

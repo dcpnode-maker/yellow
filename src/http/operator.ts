@@ -922,14 +922,17 @@ function parseHousekeepingTransition(body: unknown): HousekeepingTransitionDraft
   if (expectedTaskStatus !== expectedForAction) return null;
   if (body.expectedRoomCondition !== "clean" && body.expectedRoomCondition !== "dirty" &&
       body.expectedRoomCondition !== "pickup" && body.expectedRoomCondition !== "inspected") return null;
-  if (typeof body.expectedRoomUpdatedAt !== "string") return null;
-  const roomUpdatedAt = new Date(body.expectedRoomUpdatedAt);
-  if (!Number.isFinite(roomUpdatedAt.getTime()) || roomUpdatedAt.toISOString() !== body.expectedRoomUpdatedAt) return null;
+  const rawRoomUpdatedAt = body.expectedRoomUpdatedAt instanceof Date
+    ? body.expectedRoomUpdatedAt.toISOString()
+    : body.expectedRoomUpdatedAt;
+  if (typeof rawRoomUpdatedAt !== "string") return null;
+  const roomUpdatedAt = new Date(rawRoomUpdatedAt);
+  if (!Number.isFinite(roomUpdatedAt.getTime()) || roomUpdatedAt.toISOString() !== rawRoomUpdatedAt) return null;
   return Object.freeze({
     action: body.action,
     expectedTaskStatus,
     expectedRoomCondition: body.expectedRoomCondition,
-    expectedRoomUpdatedAt: body.expectedRoomUpdatedAt,
+    expectedRoomUpdatedAt: roomUpdatedAt.toISOString(),
   });
 }
 

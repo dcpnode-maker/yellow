@@ -20703,7 +20703,7 @@ DECLARE
   v_condition public.unit_condition%ROWTYPE;
   v_new_task_status text;
   v_new_condition text;
-  v_now timestamptz := pg_catalog.transaction_timestamp();
+  v_now timestamptz := pg_catalog.date_trunc('milliseconds', pg_catalog.transaction_timestamp());
 BEGIN
   IF session_user <> 'yellow_runtime'
      OR pg_catalog.current_setting('role', true) IS DISTINCT FROM 'app_role'
@@ -20788,7 +20788,8 @@ BEGIN
 
   IF v_task.status <> p_expected_task_status
      OR v_condition.condition <> p_expected_room_condition
-     OR v_condition.updated_at <> p_expected_room_updated_at THEN
+     OR pg_catalog.date_trunc('milliseconds', v_condition.updated_at)
+        <> pg_catalog.date_trunc('milliseconds', p_expected_room_updated_at) THEN
     RAISE EXCEPTION USING ERRCODE = '40001',
       MESSAGE = 'housekeeping transition evidence is stale';
   END IF;

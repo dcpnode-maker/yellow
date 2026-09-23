@@ -1641,3 +1641,18 @@ appears here; dispatch/execution remain unverified.
 - Extended the colleague-readiness probe to require one ready arrival and one blocked arrival guardrail, so the PMS demo proves both the happy path and operational blockers.
 - During governed task exercise, found a separate housekeeping transition precision defect: API DTOs expose millisecond `roomUpdatedAt` while PostgreSQL stores microseconds, so exact transition evidence can reject a freshly-read task. Deferred the function repair out of this bounded fixture order.
 - Proof: `powershell -NoProfile -ExecutionPolicy Bypass -File .\tools\provision-public-ready-checkin-fixture.ps1`; `bun tools/probe-colleague-demo-readiness.ts`; `bun tools/probe-mobile-public-demo.ts`; `bun tools/probe-public-demo-performance.ts`; `bun run typecheck`.
+
+# 2026-09-23 — Order 635 housekeeping transition precision
+
+- Added forward migration `0100_housekeeping_transition_timestamp_precision.sql` so `transition_housekeeping_task` compares `unit_condition.updated_at` and expected evidence at the millisecond precision exposed by the TypeScript/API boundary, while retaining tenant/property/task/status/condition/actor guards and same-transaction fact/outbox behavior.
+- Hardened the HTTP parser to normalize either string or parsed-Date `expectedRoomUpdatedAt` to canonical ISO before passing it to the domain service.
+- Added a lifecycle regression for stored microsecond condition truth with millisecond app evidence.
+- Applied the migration to the live PG18 public demo and proved the real API path: dirty room `114` with stored `2026-09-23T10:15:00.123456Z` transitioned through `start`, `complete`, and `verify` to `verified/inspected`; verified task detail then correctly conceals the completed task.
+- Restored the ready check-in fixture and reran public readiness/mobile/performance probes.
+- Proof: `bun test tests/operator-housekeeping-workbench.integration.test.ts`; `bun run typecheck`; `powershell -NoProfile -ExecutionPolicy Bypass -File .\tools\promote-public-demo.ps1 -SkipTests`; `bun tools/prove-public-housekeeping-transition-flow.ts`; `powershell -NoProfile -ExecutionPolicy Bypass -File .\tools\provision-public-ready-checkin-fixture.ps1`; `bun tools/probe-colleague-demo-readiness.ts`; `bun tools/probe-mobile-public-demo.ts`; `bun tools/probe-public-demo-performance.ts`. Local PG18 lifecycle test also proved `P3b` before public-db role/cleanup artifacts stopped the suite; the public test tenants were removed.
+- Clean PG18 proof: isolated `postgres:18.6-alpine` container `yellow-order635-proof-postgres`, migrated source through `0100_housekeeping_transition_timestamp_precision.sql`, seeded `yellow_order635_test`, then `bun test tests/housekeeping-task-lifecycle.integration.test.ts` passed 6/6 including P1 owner-contained authority and P3b microsecond/millisecond evidence.
+
+# 2026-09-23 — Order 636 PostgreSQL 18 ledger verifier compatibility
+
+- Adjusted the migration runner's `public.schema_migration` constraint verifier to ignore PostgreSQL 18's redundant `pg_constraint.contype = 'n'` NOT NULL rows; column nullability remains validated exactly through `pg_attribute.attnotnull`, and CHECK/PK/UNIQUE constraints remain exact.
+- Proof: fresh isolated `postgres:18.6-alpine` container migrated `yellow_dev` and `yellow_order635_test` through all 100 migrations, including Order 635.
