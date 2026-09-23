@@ -273,6 +273,58 @@ type Stay = Readonly<{
   departureTravel?: Readonly<{ scheduledAt?: string | null; mode?: string | null; carrier?: string | null; serviceNo?: string | null; pickupRequested?: boolean }> | null;
 }>;
 type Lane = Readonly<{ reservations?: readonly Stay[] }>;
+type BusinessMixRow = Readonly<{
+  marketSegmentGroup: string;
+  marketSegment: string;
+  source: string;
+  channel: string;
+  stays: number;
+}>;
+const BUSINESS_HIERARCHY = Object.freeze({
+  markets: Object.freeze({
+    CORP_NEG: Object.freeze({ group: "CORP", segment: "Negotiated corporate" }),
+    CORP: Object.freeze({ group: "CORP", segment: "Corporate transient" }),
+    OTA: Object.freeze({ group: "OTA", segment: "OTA retail" }),
+    WEBSITE: Object.freeze({ group: "WEBSITE", segment: "Brand website" }),
+    DIRECT: Object.freeze({ group: "WEBSITE", segment: "Direct retail" }),
+    MICE: Object.freeze({ group: "GROUPS", segment: "MICE" }),
+    CORP_GROUP: Object.freeze({ group: "GROUPS", segment: "Corporate group" }),
+    SOCIAL: Object.freeze({ group: "GROUPS", segment: "Social group" }),
+    DEFENCE: Object.freeze({ group: "GROUPS", segment: "Defence group" }),
+    INCENTIVE: Object.freeze({ group: "GROUPS", segment: "Incentive group" }),
+    MICE_SOCIAL: Object.freeze({ group: "GROUPS", segment: "Social group" }),
+  }),
+  sources: Object.freeze({
+    BOOKING: Object.freeze({ group: "OTA", label: "Booking.com" }),
+    BOOKING_COM: Object.freeze({ group: "OTA", label: "Booking.com" }),
+    AGODA: Object.freeze({ group: "OTA", label: "Agoda" }),
+    EXPEDIA: Object.freeze({ group: "OTA", label: "Expedia" }),
+    WEBSITE: Object.freeze({ group: "DIRECT", label: "Website" }),
+    DIRECT_WEB: Object.freeze({ group: "DIRECT", label: "Website" }),
+    WALKIN: Object.freeze({ group: "DIRECT", label: "Walk-in" }),
+    PHONE: Object.freeze({ group: "DIRECT", label: "Phone" }),
+    SALES: Object.freeze({ group: "TRAVEL TRADE", label: "Sales office" }),
+    TA: Object.freeze({ group: "TRAVEL TRADE", label: "Travel agent" }),
+  }),
+} as const);
+function commercialCode(value: string | null | undefined): string | null {
+  const normalized = value?.trim().toUpperCase();
+  return normalized && /^[A-Z0-9][A-Z0-9_.-]{0,31}$/u.test(normalized) ? normalized : null;
+}
+function businessMarket(code: string | null): Readonly<{ group: string; segment: string }> {
+  if (code === null) return Object.freeze({ group: "UNMAPPED", segment: "Missing market segment" });
+  return BUSINESS_HIERARCHY.markets[code as keyof typeof BUSINESS_HIERARCHY.markets] ??
+    Object.freeze({ group: "UNMAPPED", segment: code });
+}
+function businessSource(sourceCode: string | null, channelCode: string | null): Readonly<{ group: string; label: string; channel: string }> {
+  const source = sourceCode ?? channelCode;
+  const mapped = source === null ? null : BUSINESS_HIERARCHY.sources[source as keyof typeof BUSINESS_HIERARCHY.sources];
+  return Object.freeze({
+    group: mapped?.group ?? (source === null ? "UNMAPPED" : "UNMAPPED"),
+    label: mapped?.label ?? (source ?? "Missing source"),
+    channel: channelCode ?? "Missing channel",
+  });
+}
 type Property = Readonly<{ id: string; name: string; timezone: string }>;
 type ReservationDetail = Readonly<{
   reservation: Readonly<{
@@ -7233,21 +7285,33 @@ export function App() {
       ? Math.round((inHouseCount / configuredRooms) * 100)
       : null;
   const businessMix = useMemo(() => {
-    const counts = new Map<string, { label: string; source: string; stays: number }>();
+    const counts = new Map<string, BusinessMixRow>();
     for (const stay of [
       ...(dueInQuery.data?.reservations ?? []),
       ...(dueOutQuery.data?.reservations ?? []),
       ...(inHouseQuery.data?.reservations ?? []),
     ]) {
-      const market = stay.marketCode?.trim() || "UNMAPPED";
-      const source = stay.sourceCode?.trim() || stay.channelCode?.trim() || "UNKNOWN";
-      const channel = stay.channelCode?.trim() || "no channel";
-      const key = `${market}|${source}|${channel}`;
-      const current = counts.get(key) ?? { label: market, source: `${source} · ${channel}`, stays: 0 };
+      const marketCode = commercialCode(stay.marketCode);
+      const sourceCode = commercialCode(stay.sourceCode);
+      const channelCode = commercialCode(stay.channelCode);
+      const market = businessMarket(marketCode);
+      const source = businessSource(sourceCode, channelCode);
+      const key = `${market.group}|${market.segment}|${source.label}|${source.channel}`;
+      const current = counts.get(key) ?? {
+        marketSegmentGroup: market.group,
+        marketSegment: market.segment,
+        source: source.label,
+        channel: source.channel,
+        stays: 0,
+      };
       counts.set(key, { ...current, stays: current.stays + 1 });
     }
     return [...counts.values()]
-      .sort((left, right) => right.stays - left.stays || left.label.localeCompare(right.label) || left.source.localeCompare(right.source))
+      .sort((left, right) => right.stays - left.stays ||
+        left.marketSegmentGroup.localeCompare(right.marketSegmentGroup) ||
+        left.marketSegment.localeCompare(right.marketSegment) ||
+        left.source.localeCompare(right.source) ||
+        left.channel.localeCompare(right.channel))
       .slice(0, 3);
   }, [dueInQuery.data?.reservations, dueOutQuery.data?.reservations, inHouseQuery.data?.reservations]);
   const localGreeting = propertyLocalGreeting(new Date(), selected?.timezone ?? "UTC");

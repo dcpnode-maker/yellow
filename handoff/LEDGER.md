@@ -1656,3 +1656,9 @@ appears here; dispatch/execution remain unverified.
 
 - Adjusted the migration runner's `public.schema_migration` constraint verifier to ignore PostgreSQL 18's redundant `pg_constraint.contype = 'n'` NOT NULL rows; column nullability remains validated exactly through `pg_attribute.attnotnull`, and CHECK/PK/UNIQUE constraints remain exact.
 - Proof: fresh isolated `postgres:18.6-alpine` container migrated `yellow_dev` and `yellow_order635_test` through all 100 migrations, including Order 635.
+
+# 2026-09-23 — Order 637 Today business contribution hierarchy
+
+- Upgraded the Today glass Business Mix strip from raw market/source/channel codes to the founder-described hotel hierarchy: Market Segment Group → Market Segment with source/channel evidence.
+- Kept the surface read-only, movement-row based and conservative: missing or unknown codes render as explicit unmapped evidence instead of guessed commercial truth.
+- Proof: `bun test tests/order633-today-business-mix.test.ts tests/order637-today-business-hierarchy.test.ts tests/order611-today-glass-dashboard.test.ts`; `bun run typecheck`.

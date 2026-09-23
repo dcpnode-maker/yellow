@@ -18,8 +18,10 @@ type DemoStep = Readonly<{
 }>;
 
 type BusinessMixSignal = Readonly<{
-  label: string;
+  marketSegmentGroup: string;
+  marketSegment: string;
   source: string;
+  channel: string;
   stays: number;
 }>;
 
@@ -150,16 +152,16 @@ export function TodayGlassDashboard({
         </div>
       </div>
 
-      <section className="today-business-mix" aria-label="Business mix by market and source">
+      <section className="today-business-mix" aria-label="Business mix by market segment group, market segment and source">
         <div>
           <span>BUSINESS MIX</span>
-          <strong>Market · source · channel</strong>
+          <strong>MSG → MS · source · channel</strong>
         </div>
         {businessMix.length ? <ul>{businessMix.map((item) => (
-          <li key={`${item.label}-${item.source}`}>
-            <span>{item.label}</span>
+          <li key={`${item.marketSegmentGroup}-${item.marketSegment}-${item.source}-${item.channel}`}>
+            <span>{item.marketSegmentGroup}</span>
             <strong>{item.stays}</strong>
-            <small>{item.source}</small>
+            <small>{item.marketSegment} · {item.source} · {item.channel}</small>
           </li>
         ))}</ul> : <p>No coded movement rows yet.</p>}
       </section>

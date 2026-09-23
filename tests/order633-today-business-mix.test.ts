@@ -11,8 +11,8 @@ test("Order 633 Today dashboard renders market/source/channel business mix", () 
   expect(app).toContain("stay.channelCode");
   expect(app).toContain("businessMix={businessMix}");
   expect(dashboard).toContain("type BusinessMixSignal");
-  expect(dashboard).toContain("Business mix by market and source");
-  expect(dashboard).toContain("Market · source · channel");
+  expect(dashboard).toContain("Business mix by market segment group, market segment and source");
+  expect(dashboard).toContain("MSG → MS · source · channel");
   expect(dashboard).toContain("No coded movement rows yet.");
 });
 
