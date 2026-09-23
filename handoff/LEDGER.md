@@ -1572,3 +1572,11 @@ appears here; dispatch/execution remain unverified.
 - 2026-09-23: Order 621 added the colleague demo readiness probe; focused test, live public probe and typecheck passed.
 
 - 2026-09-23: Order 622 added the mobile-first public demo probe; mobile probe, typecheck, colleague readiness and speed gates passed.
+# 2026-09-23 — Orders 623/624 group blocks + PG18 public demo
+
+- Added Opera-style group block read workbench over existing `reservation_group` and `block_allotment` primitives.
+- Added public React group-block panel inside the Reservation workspace with blocked/picked-up/remaining, cutoff, wash and master-folio evidence.
+- Seeded synthetic public-demo Locanda group blocks: `LOC-MICE-0926` and `LOC-SOC-0928`.
+- Cut public demo database over to PostgreSQL 18.6 using a fresh PG18 volume while preserving the PG16 base volume.
+- Independent review `/root/pg18_group_block_review` approved after fixing scope and volume isolation findings.
+- Proof: `bun test tests/order623-group-block-workbench.test.ts`, `bun run typecheck`, colleague readiness probe, mobile probe, performance probe.

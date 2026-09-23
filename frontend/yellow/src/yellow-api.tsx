@@ -61,6 +61,40 @@ type Stay = Readonly<{
 const nameOf = (stay: Stay): string => stay.primaryGuestDisplayName ?? stay.primaryPartyName ?? stay.confirmationNo;
 type Lane = Readonly<{ reservations?: readonly Stay[] }>;
 type Property = Readonly<{ id: string; name: string; timezone: string }>;
+type GroupBlockAllotmentRow = Readonly<{
+  unitTypeId: string;
+  unitTypeCode: string;
+  unitTypeName: string;
+  stayDate: string;
+  blocked: number;
+  pickedUp: number;
+  remaining: number;
+  rateOverride: unknown | null;
+}>;
+type GroupBlockSummary = Readonly<{
+  groupId: string;
+  code: string;
+  name: string | null;
+  status: string;
+  statusDeductsInventory: boolean;
+  accountPartyId: string | null;
+  accountPartyName: string | null;
+  cutoffDate: string | null;
+  elastic: boolean;
+  washSchedule: unknown | null;
+  masterFolioId: string | null;
+  masterFolioNo: string | null;
+  masterFolioStatus: string | null;
+  arrivalDate: string | null;
+  departureDate: string | null;
+  blockedRooms: number;
+  pickedUpRooms: number;
+  remainingRooms: number;
+  pickupPercent: number;
+  cutoffState: "future" | "due_today" | "past_due" | "not_set";
+  allotment: readonly GroupBlockAllotmentRow[];
+}>;
+type GroupBlockWorkbench = Readonly<{ groups: readonly GroupBlockSummary[] }>;
 type ReservationActions = Readonly<{
   canModify: boolean;
   canCancel: boolean;
@@ -1013,6 +1047,13 @@ async function loadReservationBoard(): Promise<Lane> {
     if (!response.ok) throw new Error("Reservations are unavailable.");
     return response.json() as Promise<Readonly<{ reservations?: Stay[]; nextCursor?: string | null }>>;
   });
+}
+async function loadGroupBlocks(): Promise<GroupBlockWorkbench> {
+  const response = await fetch(`/api/v1/properties/${propertyId}/group-blocks`, {
+    headers: { authorization: `Bearer ${await session()}` },
+  });
+  if (!response.ok) throw new Error("Group blocks are unavailable.");
+  return response.json() as Promise<GroupBlockWorkbench>;
 }
 async function loadPartyStayHistory(partyId: string): Promise<Lane> {
   const r = await fetch(
@@ -2826,4 +2867,4 @@ function exactStateReply(
 export type { Status, Stay, Lane, Property, ReservationActions, ReservationDetail, CheckInReadiness, DueInRoomCandidate, DueInRoomCandidateResult, ArrivalCleaningCandidate, ArrivalCleaningCandidateResult, ArrivalCleaningTaskResult, DueInRoomAssignmentInput, CheckoutReadiness, PartyProfile, ReservationGuestRole, ReservationGuestDraft, ReservationGuestReplacement, ReservationOffer, CreatedReservation, ReservationCreateEvidence, DuplicatePartyEvidence, ReservationLifecycleMutationResult, CancellationPolicyDecision, CancelReservationReceipt, ReinstateReservationReceipt, ReservationLifecycleReceipt, HousekeepingCondition, HousekeepingTaskAction, HousekeepingTask, HousekeepingTransitionReceipt, HousekeepingActionProposal, OperationalBlock, PropertyRestriction, InventoryPolicySummary, CommercialSnapshot, PropertySettingsSnapshot, PerformanceMetric, OperatingPerformance, CashierSnapshot, FolioChargeOption, FolioTransferGroup, FolioTransferMemberEffect, FolioTransferPreview, FolioTransferReceipt, FolioTransferDraft, FolioTransferAttempt, FolioChargeGroup, FolioStatement, HostedDepositState, HostedDepositStatus, HostedDepositInstrument, HostedDepositWorkbench, HostedDepositLink, DepositApplicationReceipt, DepositDraft, DepositAttempt, ReceivableTarget, ReceivablePreview, ReceivableApprovalReceipt, ReceivableTransferReceipt, Turn, AssistantMemory, AssistantCard, GuestAllocationProposal, CashierChargeProposal, VoiceBillWindowTransferProposal, FolioChargeReceipt, ArrivalConversationCommand, ArrivalConversationProposal, Recognition };
 export type { ReservationOperationalFields, ReservationMutableFields };
 export { sameReservationOffer };
-export { session, loadProperties, loadLane, loadReservationBoard, loadPartyStayHistory, searchPartyProfiles, propertyLocalDate, propertyLocalDateTimeToIso, childAgesFrom, reservationApiError, searchReservationOffers, commitReservation, duplicatePartyEvidence, reservationMatchesCreateReceipt, ReservationCommandRequestError, ReservationLifecycleRequestError, validateReservationActions, validateCancelReservationReceipt, validateReinstateReservationReceipt, idempotencyReplayEvidence, loadHousekeeping, loadHousekeepingTask, isCanonicalInstant, hasExactKeys, isHousekeepingAction, validateHousekeepingTask, housekeepingTaskMatchesProposal, validateHousekeepingTransitionReceipt, housekeepingTaskReflectsAction, housekeepingFailureIsUncertain, transitionHousekeepingTask, loadOperationalBlocks, loadCommercialSnapshot, loadOperatingPerformance, loadPropertySettings, loadCashierSnapshot, loadFolioStatement, exactObject, validDepositStatus, validDepositInstrument, validateDepositWorkbench, depositResponse, loadHostedDepositWorkbench, loadHostedDepositStatus, createHostedDeposit, applyHostedDeposit, validateReceivableTarget, validateReceivablePreview, sameReceivablePreview, receivableResponse, loadReceivableTargets, previewReceivableTransfer, requestReceivableApproval, submitReceivableTransfer, validateFolioChargeReceipt, FolioChargeRequestError, postFolioCharge, isExactTransferMinor, validateFolioTransferEffect, validateFolioTransferPreview, sameTransferPreview, transferReasonIsValid, transferWindowNameIsValid, voiceTransferText, resolveVoiceTransferGroup, receiptMatchesVoiceTransfer, requestFolioTransferPreview, wakeReply, guestHistoryReply, loadReservation, loadCheckInReadiness, loadCheckoutReadiness, commitCheckIn, openPrimaryFolio, loadDueInRoomCandidates, assignDueInRoom, loadArrivalCleaningCandidate, createArrivalCleaningTask, transitionFolioStatus, commitCheckout, cancelReservationLifecycle, reinstateReservationLifecycle, normalizeReservationOperationalValue, modifyReservationOperationalDetails, parseGuestShareBasisPoints, reservationGuestAllocationsMatch, reservationGuestReplacementFromDetail, normaliseGuestLookup, replaceReservationGuests, localReply, workspaceReply, exactStateReply, FolioTransferRequestError, loadDepartureServices, loadDepartureServiceQueue, createDepartureServiceProposal, transitionDepartureService };
+export { session, loadProperties, loadLane, loadReservationBoard, loadGroupBlocks, loadPartyStayHistory, searchPartyProfiles, propertyLocalDate, propertyLocalDateTimeToIso, childAgesFrom, reservationApiError, searchReservationOffers, commitReservation, duplicatePartyEvidence, reservationMatchesCreateReceipt, ReservationCommandRequestError, ReservationLifecycleRequestError, validateReservationActions, validateCancelReservationReceipt, validateReinstateReservationReceipt, idempotencyReplayEvidence, loadHousekeeping, loadHousekeepingTask, isCanonicalInstant, hasExactKeys, isHousekeepingAction, validateHousekeepingTask, housekeepingTaskMatchesProposal, validateHousekeepingTransitionReceipt, housekeepingTaskReflectsAction, housekeepingFailureIsUncertain, transitionHousekeepingTask, loadOperationalBlocks, loadCommercialSnapshot, loadOperatingPerformance, loadPropertySettings, loadCashierSnapshot, loadFolioStatement, exactObject, validDepositStatus, validDepositInstrument, validateDepositWorkbench, depositResponse, loadHostedDepositWorkbench, loadHostedDepositStatus, createHostedDeposit, applyHostedDeposit, validateReceivableTarget, validateReceivablePreview, sameReceivablePreview, receivableResponse, loadReceivableTargets, previewReceivableTransfer, requestReceivableApproval, submitReceivableTransfer, validateFolioChargeReceipt, FolioChargeRequestError, postFolioCharge, isExactTransferMinor, validateFolioTransferEffect, validateFolioTransferPreview, sameTransferPreview, transferReasonIsValid, transferWindowNameIsValid, voiceTransferText, resolveVoiceTransferGroup, receiptMatchesVoiceTransfer, requestFolioTransferPreview, wakeReply, guestHistoryReply, loadReservation, loadCheckInReadiness, loadCheckoutReadiness, commitCheckIn, openPrimaryFolio, loadDueInRoomCandidates, assignDueInRoom, loadArrivalCleaningCandidate, createArrivalCleaningTask, transitionFolioStatus, commitCheckout, cancelReservationLifecycle, reinstateReservationLifecycle, normalizeReservationOperationalValue, modifyReservationOperationalDetails, parseGuestShareBasisPoints, reservationGuestAllocationsMatch, reservationGuestReplacementFromDetail, normaliseGuestLookup, replaceReservationGuests, localReply, workspaceReply, exactStateReply, FolioTransferRequestError, loadDepartureServices, loadDepartureServiceQueue, createDepartureServiceProposal, transitionDepartureService };

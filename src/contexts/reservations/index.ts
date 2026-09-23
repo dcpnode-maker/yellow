@@ -37,6 +37,17 @@ export type {
   ReservationBoardRow,
 } from "./board";
 export {
+  GroupBlockConflictError,
+  GroupBlockService,
+  GroupBlockValidationError,
+} from "./group-blocks";
+export type {
+  GroupBlockAllotmentRow,
+  GroupBlockSummary,
+  GroupBlockWorkbench,
+  GroupBlockWorkbenchInput,
+} from "./group-blocks";
+export {
   ReservationGuestConflictError,
   ReservationGuestNotFoundError,
   ReservationGuestService,

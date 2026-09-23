@@ -588,6 +588,9 @@ export function createApp(options: AppOptions = {}) {
       .get("/api/v1/properties/:property/reservation-board", ({ request, params, tenantContext }) =>
         withOperatorTenant(request, (context) => operator.reservationBoard(context, params.property))
       )
+      .get("/api/v1/properties/:property/group-blocks", ({ request, params, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.groupBlocks(context, params.property))
+      )
       .get("/api/v1/properties/:property/operating-performance", ({ request, params, tenantContext }) =>
         withOperatorTenant(request, (context) => operator.operatingPerformance(context, params.property))
       )

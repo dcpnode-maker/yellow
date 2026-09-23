@@ -180,6 +180,9 @@ import {
   ReservationBoardConflictError,
   ReservationBoardService,
   ReservationBoardValidationError,
+  GroupBlockConflictError,
+  GroupBlockService,
+  GroupBlockValidationError,
   ReservationDetailConflictError,
   ReservationDetailNotFoundError,
   ReservationDetailService,
@@ -195,6 +198,7 @@ import {
   type ReservationAlertShowOn,
   type RequestedReservationGuest,
   type ReservationBoardPage,
+  type GroupBlockWorkbench,
   type ReservationMutableFields,
   type ExpectedSegmentPeriod,
   type ReservationTravelDirection,
@@ -719,6 +723,43 @@ function reservationBoardJson(page: ReservationBoardPage): JsonValue {
       departureTravel: reservation.departureTravel,
     })),
     nextCursor: page.nextCursor,
+  });
+}
+
+function groupBlockWorkbenchJson(workbench: GroupBlockWorkbench): JsonValue {
+  return jsonValue({
+    groups: workbench.groups.map((group) => ({
+      groupId: group.groupId,
+      code: group.code,
+      name: group.name,
+      status: group.status,
+      statusDeductsInventory: group.statusDeductsInventory,
+      accountPartyId: group.accountPartyId,
+      accountPartyName: group.accountPartyName,
+      cutoffDate: group.cutoffDate,
+      elastic: group.elastic,
+      washSchedule: group.washSchedule,
+      masterFolioId: group.masterFolioId,
+      masterFolioNo: group.masterFolioNo,
+      masterFolioStatus: group.masterFolioStatus,
+      arrivalDate: group.arrivalDate,
+      departureDate: group.departureDate,
+      blockedRooms: group.blockedRooms,
+      pickedUpRooms: group.pickedUpRooms,
+      remainingRooms: group.remainingRooms,
+      pickupPercent: group.pickupPercent,
+      cutoffState: group.cutoffState,
+      allotment: group.allotment.map((row) => ({
+        unitTypeId: row.unitTypeId,
+        unitTypeCode: row.unitTypeCode,
+        unitTypeName: row.unitTypeName,
+        stayDate: row.stayDate,
+        blocked: row.blocked,
+        pickedUp: row.pickedUp,
+        remaining: row.remaining,
+        rateOverride: row.rateOverride,
+      })),
+    })),
   });
 }
 
@@ -1911,6 +1952,7 @@ type ReservationSegmentOperations = Pick<ReservationSegmentService,
 >>;
 type ReservationTravelOperations = Pick<ReservationTravelService, "put">;
 type ReservationBoardOperations = Pick<ReservationBoardService, "list">;
+type GroupBlockOperations = Pick<GroupBlockService, "workbench">;
 type OperatingPerformanceOperations = Pick<OperatingPerformanceService, "load">;
 type ReservationDetailOperations = Pick<ReservationDetailService, "findById"> &
   Partial<Pick<ReservationDetailService, "pickupTaskDetail">>;
@@ -2427,6 +2469,7 @@ export class OperatorHttpApi {
   readonly #reservationLifecycle?: ReservationLifecycleOperations;
   readonly #reservationSegments?: ReservationSegmentOperations;
   readonly #reservationBoard?: ReservationBoardOperations;
+  readonly #groupBlocks: GroupBlockOperations = new GroupBlockService();
   readonly #operatingPerformance?: OperatingPerformanceOperations;
   readonly #reservationDetail?: ReservationDetailOperations;
   readonly #parties?: PartyOperations;
@@ -5362,6 +5405,35 @@ export class OperatorHttpApi {
       ...query,
     });
     return apiResponse(context.request, canonicalJson(reservationBoardJson(page)));
+  }
+
+  async groupBlocks(context: TenantRequestContext, propertyNode: string): Promise<Response> {
+    if (!UUID.test(propertyNode) || new URL(context.request.url).search.length > 0) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Property identifier is invalid");
+    }
+    if (!hasScope(context, RESERVATION_LIFECYCLE_READ_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Group block access is not granted");
+    }
+    if (!this.#groupBlocks) return this.unavailable(context.request);
+    const grants = await listGrantedProperties(context, RESERVATION_LIFECYCLE_READ_SCOPE);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 403, "auth/property_forbidden", "Forbidden", "Property access is not granted");
+    }
+    try {
+      const workbench = await this.#groupBlocks.workbench(context.tx, {
+        tenantId: context.tenantId,
+        propertyNode,
+      });
+      return apiResponse(context.request, canonicalJson(groupBlockWorkbenchJson(workbench)));
+    } catch (error) {
+      if (error instanceof GroupBlockValidationError) {
+        return apiError(context.request, 400, "request/invalid", "Invalid request", error.message);
+      }
+      if (error instanceof GroupBlockConflictError) {
+        return apiError(context.request, 409, "reservations/group_block_conflict", "Group block conflict", error.message);
+      }
+      throw error;
+    }
   }
 
   async checkInReadiness(

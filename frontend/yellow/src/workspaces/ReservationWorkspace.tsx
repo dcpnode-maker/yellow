@@ -314,7 +314,7 @@ function housekeepingActionCopy(action: HousekeepingTaskAction): Readonly<{ butt
   if (action === "complete") return { button: "Mark physically clean", statement: "A granted operator records the staff declaration that physical cleaning is complete.", outcome: "The task will become done and the room condition will become clean." };
   return { button: "Verify inspected", statement: "A granted supervisor records the staff declaration that the clean room was physically inspected.", outcome: "The task will become verified and the room condition will become inspected." };
 }
-const { session, loadReservation, loadCheckInReadiness, loadCheckoutReadiness, commitCheckIn, commitCheckout, openPrimaryFolio, transitionFolioStatus, loadDueInRoomCandidates, assignDueInRoom, loadArrivalCleaningCandidate, createArrivalCleaningTask, loadReservationBoard, loadLane, loadProperties, loadPartyStayHistory, searchPartyProfiles, searchReservationOffers, commitReservation, duplicatePartyEvidence, reservationMatchesCreateReceipt, sameReservationOffer, ReservationCommandRequestError, cancelReservationLifecycle, reinstateReservationLifecycle, ReservationLifecycleRequestError, loadHousekeeping, loadHousekeepingTask, transitionHousekeepingTask, loadOperationalBlocks, loadCommercialSnapshot, loadOperatingPerformance, loadPropertySettings, loadCashierSnapshot, loadFolioStatement, postFolioCharge, requestFolioTransferPreview, previewMatchesFolioTransferDraft, submitFolioTransfer, receiptMatchesVoiceTransfer, resolveVoiceTransferGroup, exactObject, validateFolioChargeReceipt, validateFolioTransferEffect, validateFolioTransferPreview, sameTransferPreview, validateHousekeepingTask, housekeepingTaskMatchesProposal, validateHousekeepingTransitionReceipt, housekeepingTaskReflectsAction, housekeepingFailureIsUncertain, isHousekeepingAction, isCanonicalInstant, reservationApiError, childAgesFrom, propertyLocalDate, propertyLocalDateTimeToIso, normalizeReservationOperationalValue, modifyReservationOperationalDetails, parseGuestShareBasisPoints, reservationGuestAllocationsMatch, reservationGuestReplacementFromDetail, normaliseGuestLookup, replaceReservationGuests, FolioChargeRequestError, FolioTransferRequestError, PrimaryFolioRequestError, GovernedCheckoutRequestError, loadDepartureServices, createDepartureServiceProposal, transitionDepartureService } = AppRuntime;
+const { session, loadReservation, loadCheckInReadiness, loadCheckoutReadiness, commitCheckIn, commitCheckout, openPrimaryFolio, transitionFolioStatus, loadDueInRoomCandidates, assignDueInRoom, loadArrivalCleaningCandidate, createArrivalCleaningTask, loadReservationBoard, loadGroupBlocks, loadLane, loadProperties, loadPartyStayHistory, searchPartyProfiles, searchReservationOffers, commitReservation, duplicatePartyEvidence, reservationMatchesCreateReceipt, sameReservationOffer, ReservationCommandRequestError, cancelReservationLifecycle, reinstateReservationLifecycle, ReservationLifecycleRequestError, loadHousekeeping, loadHousekeepingTask, transitionHousekeepingTask, loadOperationalBlocks, loadCommercialSnapshot, loadOperatingPerformance, loadPropertySettings, loadCashierSnapshot, loadFolioStatement, postFolioCharge, requestFolioTransferPreview, previewMatchesFolioTransferDraft, submitFolioTransfer, receiptMatchesVoiceTransfer, resolveVoiceTransferGroup, exactObject, validateFolioChargeReceipt, validateFolioTransferEffect, validateFolioTransferPreview, sameTransferPreview, validateHousekeepingTask, housekeepingTaskMatchesProposal, validateHousekeepingTransitionReceipt, housekeepingTaskReflectsAction, housekeepingFailureIsUncertain, isHousekeepingAction, isCanonicalInstant, reservationApiError, childAgesFrom, propertyLocalDate, propertyLocalDateTimeToIso, normalizeReservationOperationalValue, modifyReservationOperationalDetails, parseGuestShareBasisPoints, reservationGuestAllocationsMatch, reservationGuestReplacementFromDetail, normaliseGuestLookup, replaceReservationGuests, FolioChargeRequestError, FolioTransferRequestError, PrimaryFolioRequestError, GovernedCheckoutRequestError, loadDepartureServices, createDepartureServiceProposal, transitionDepartureService } = AppRuntime;
 function formatMovementTime(
   value: string | null | undefined,
   timezone: string,
@@ -3500,6 +3500,10 @@ function ReservationBoardWorkspace({ timezone }: Readonly<{ timezone: string }>)
     queryKey: ["reservation-board", propertyId],
     queryFn: loadReservationBoard,
   });
+  const groupBlocks = useQuery({
+    queryKey: ["group-blocks", propertyId],
+    queryFn: loadGroupBlocks,
+  });
   if (creating)
     return <ReservationCreateWorkspace timezone={timezone} onCancel={() => setCreating(false)} onCreated={async () => { await board.refetch(); }} />;
   if (board.isLoading)
@@ -3523,12 +3527,92 @@ function ReservationBoardWorkspace({ timezone }: Readonly<{ timezone: string }>)
   return (
     <section className="reservation-board-next">
       <div className="reservation-board-actions"><button type="button" onClick={() => setCreating(true)}>New reservation</button></div>
+      <GroupBlockWorkbenchPanel
+        loading={groupBlocks.isLoading}
+        error={groupBlocks.isError ? groupBlocks.error.message : null}
+        groups={groupBlocks.data?.groups ?? []}
+      />
       <MovementGrid
         status="all"
         lane={board.data}
         timezone={timezone}
         open={(stay) => window.location.assign(`/p/${propertyId}/res/${stay.reservationId}`)}
       />
+    </section>
+  );
+}
+
+function GroupBlockWorkbenchPanel({
+  loading,
+  error,
+  groups,
+}: Readonly<{
+  loading: boolean;
+  error: string | null;
+  groups: Awaited<ReturnType<typeof loadGroupBlocks>>["groups"];
+}>) {
+  const totals = groups.reduce((acc, group) => ({
+    blocked: acc.blocked + group.blockedRooms,
+    pickedUp: acc.pickedUp + group.pickedUpRooms,
+    remaining: acc.remaining + group.remainingRooms,
+  }), { blocked: 0, pickedUp: 0, remaining: 0 });
+  return (
+    <section className="group-block-workbench" aria-labelledby="group-block-workbench-title">
+      <header>
+        <div>
+          <span className="state">GROUP RESERVATIONS · BLOCK MANAGEMENT</span>
+          <h2 id="group-block-workbench-title">Opera-style group blocks</h2>
+          <p>Read-only group header, allotment, pickup, cutoff/wash and master-folio evidence from Yellow’s PMS tables.</p>
+        </div>
+        <div className="group-block-totals" aria-label="Group block totals">
+          <span><strong>{totals.blocked}</strong><small>blocked</small></span>
+          <span><strong>{totals.pickedUp}</strong><small>picked up</small></span>
+          <span><strong>{totals.remaining}</strong><small>remaining</small></span>
+        </div>
+      </header>
+      {loading ? <p className="empty">Loading group block workbench…</p> : null}
+      {error ? <p className="error" role="alert">{error}</p> : null}
+      {!loading && !error && groups.length === 0 ? (
+        <p className="empty">No group blocks are configured for this property yet. The module is ready for MICE, social, corporate and travel-trade block data.</p>
+      ) : null}
+      <div className="group-block-list">
+        {groups.map((group) => {
+          const visibleAllotment = group.allotment.slice(0, 8);
+          return (
+            <article className="group-block-card" key={group.groupId} data-cutoff-state={group.cutoffState}>
+              <div className="group-block-card-head">
+                <div>
+                  <span className="state">{group.code} · {group.status}{group.statusDeductsInventory ? " · deducting" : " · non-deducting"}</span>
+                  <h3>{group.name ?? group.code}</h3>
+                  <p>{group.accountPartyName ?? "No company/agent linked"} · {group.arrivalDate ?? "No dates"} → {group.departureDate ?? "No dates"}</p>
+                </div>
+                <strong>{group.pickupPercent}% pickup</strong>
+              </div>
+              <dl className="group-block-metrics">
+                <div><dt>Blocked</dt><dd>{group.blockedRooms}</dd></div>
+                <div><dt>Picked up</dt><dd>{group.pickedUpRooms}</dd></div>
+                <div><dt>Remaining</dt><dd>{group.remainingRooms}</dd></div>
+                <div><dt>Cutoff</dt><dd>{group.cutoffDate ?? "Not set"} · {group.cutoffState.replaceAll("_", " ")}</dd></div>
+                <div><dt>Master folio</dt><dd>{group.masterFolioNo ?? "Not linked"}{group.masterFolioStatus ? ` · ${group.masterFolioStatus}` : ""}</dd></div>
+                <div><dt>Wash</dt><dd>{group.washSchedule === null ? "No schedule" : "Schedule configured"}</dd></div>
+              </dl>
+              <div className="group-block-allotment" role="table" aria-label={`${group.code} allotment`}>
+                <div role="row" className="group-block-allotment-head"><span>Room type</span><span>Date</span><span>Block</span><span>Pickup</span><span>Left</span></div>
+                {visibleAllotment.map((row) => (
+                  <div role="row" key={`${group.groupId}-${row.unitTypeId}-${row.stayDate}`}>
+                    <span>{row.unitTypeCode}<small>{row.unitTypeName}</small></span>
+                    <span>{row.stayDate}</span>
+                    <span>{row.blocked}</span>
+                    <span>{row.pickedUp}</span>
+                    <span>{row.remaining}</span>
+                  </div>
+                ))}
+              </div>
+              {group.allotment.length > visibleAllotment.length ? <small className="group-block-more">Showing first {visibleAllotment.length} of {group.allotment.length} allotment rows.</small> : null}
+            </article>
+          );
+        })}
+      </div>
     </section>
   );
 }
