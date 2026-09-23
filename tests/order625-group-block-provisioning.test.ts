@@ -24,5 +24,7 @@ describe("Order 625 reproducible public group block fixture", () => {
     expect(probe).toContain("groups.length >= 2");
     expect(probe).toContain("blockedRooms");
     expect(probe).toContain("pickedUpRooms");
+    expect(probe).toContain("roomingListNights === pickedUpRooms");
+    expect(probe).toContain("primaryGuestDisplayName");
   });
 });

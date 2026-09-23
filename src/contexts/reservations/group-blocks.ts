@@ -271,11 +271,13 @@ export class GroupBlockService {
                unit_type.name AS unit_type_name,
                to_char(min(lower(segment.period)) AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"') AS stay_from,
                to_char(max(upper(segment.period)) AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"') AS stay_to,
-               COALESCE(sum(greatest(
-                 (upper(segment.period) AT TIME ZONE property_context.timezone)::date -
-                 (lower(segment.period) AT TIME ZONE property_context.timezone)::date,
-                 0
-               )), 0)::int AS picked_up_nights
+               COALESCE(sum(CASE WHEN EXISTS (
+                 SELECT 1
+                 FROM allotment
+                 WHERE allotment.group_id = reservation.group_id
+                   AND allotment.unit_type_id = segment.unit_type_id
+                   AND allotment.stay_date = stay_night.stay_date::date
+               ) THEN 1 ELSE 0 END), 0)::int AS picked_up_nights
         FROM reservation
         JOIN property_context ON property_context.id = reservation.property_node
         JOIN groups ON groups.id = reservation.group_id
@@ -286,6 +288,11 @@ export class GroupBlockService {
           ON segment.tenant_id = reservation.tenant_id
          AND segment.reservation_id = reservation.id
          AND segment.status <> 'cancelled'
+        CROSS JOIN LATERAL generate_series(
+          (lower(segment.period) AT TIME ZONE property_context.timezone)::date,
+          (upper(segment.period) AT TIME ZONE property_context.timezone)::date - 1,
+          '1 day'::interval
+        ) AS stay_night(stay_date)
         LEFT JOIN unit_type
           ON unit_type.tenant_id = segment.tenant_id
          AND unit_type.id = segment.unit_type_id

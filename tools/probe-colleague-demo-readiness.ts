@@ -110,10 +110,19 @@ async function main() {
   const groups = asArray(groupBlocks.groups).map(asRecord);
   const blockedRooms = groups.reduce((sum, group) => sum + (typeof group.blockedRooms === "number" ? group.blockedRooms : 0), 0);
   const pickedUpRooms = groups.reduce((sum, group) => sum + (typeof group.pickedUpRooms === "number" ? group.pickedUpRooms : 0), 0);
+  const roomingList = groups.flatMap((group) => asArray(group.roomingList).map(asRecord));
+  const roomingListNights = roomingList.reduce((sum, row) => sum + (typeof row.pickedUpNights === "number" ? row.pickedUpNights : 0), 0);
+  const roomingListHasReservationLinks = roomingList.some((row) =>
+    typeof row.reservationId === "string" &&
+    typeof row.confirmationNo === "string" &&
+    typeof row.primaryGuestDisplayName === "string" &&
+    typeof row.stayFrom === "string" &&
+    typeof row.stayTo === "string",
+  );
   checks.push({
     name: "group block workbench",
-    ok: groups.length >= 2 && blockedRooms > 0 && pickedUpRooms > 0,
-    evidence: `${groups.length} group block(s), blocked=${blockedRooms}, pickedUp=${pickedUpRooms}`,
+    ok: groups.length >= 2 && blockedRooms > 0 && pickedUpRooms > 0 && roomingList.length >= 2 && roomingListHasReservationLinks && roomingListNights === pickedUpRooms,
+    evidence: `${groups.length} group block(s), blocked=${blockedRooms}, pickedUp=${pickedUpRooms}, roomingList=${roomingList.length}, nights=${roomingListNights}`,
   });
 
   const arrivalId = firstId(arrivals);

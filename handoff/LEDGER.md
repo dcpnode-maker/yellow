@@ -1594,3 +1594,8 @@ appears here; dispatch/execution remain unverified.
 - Updated the public demo fixture so the MICE and social blocks both have coherent picked-up reservations.
 - Promoted the public demo image and assets.
 - Proof: `bun test tests/order625-group-block-provisioning.test.ts tests/order626-group-block-rooming-list.test.ts`; `bun run typecheck`; `powershell -NoProfile -ExecutionPolicy Bypass -File .\tools\provision-public-group-blocks.ps1`; direct local group-block API check; `bun tools/probe-colleague-demo-readiness.ts`; `bun tools/probe-mobile-public-demo.ts`; `bun tools/probe-public-demo-performance.ts`.
+
+# 2026-09-23 — Order 627 colleague-readiness rooming-list proof
+
+- Extended the colleague-readiness probe to verify group-block rooming-list reservation links and require picked-up room-nights to equal rooming-list picked-up nights.
+- Proof: `bun test tests/order625-group-block-provisioning.test.ts`; `bun tools/probe-colleague-demo-readiness.ts`.
