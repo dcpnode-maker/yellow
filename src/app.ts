@@ -594,6 +594,9 @@ export function createApp(options: AppOptions = {}) {
       .get("/api/v1/properties/:property/operating-performance", ({ request, params, tenantContext }) =>
         withOperatorTenant(request, (context) => operator.operatingPerformance(context, params.property))
       )
+      .get("/api/v1/properties/:property/commercial-contribution", ({ request, params, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.commercialContribution(context, params.property))
+      )
       .get("/api/v1/properties/:property/reservations/:reservation", ({ request, params, tenantContext }) =>
         withOperatorTenant(request, (context) => operator.reservationDetail(
           context, params.property, params.reservation,

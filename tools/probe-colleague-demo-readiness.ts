@@ -99,6 +99,28 @@ async function main() {
     evidence: `roomNights=${today.roomNights ?? "missing"}, roomsAvailable=${today.roomsAvailable ?? "missing"}, revenue=${today.roomRevenueMinor ?? "missing"}`,
   });
 
+  const contribution = asRecord(await requestJson(`/api/v1/properties/${encodeURIComponent(propertyId)}/commercial-contribution`, { token }));
+  const contributionTotal = asRecord(contribution.total);
+  const contributionGroups = asArray(contribution.groups).map(asRecord);
+  const contributionSegments = contributionGroups.flatMap((group) => asArray(group.segments).map(asRecord));
+  const contributionSources = contributionSegments.flatMap((segment) => asArray(segment.sources).map(asRecord));
+  const hasMappedMsg = contributionGroups.some((group) => asRecord(group.marketSegmentGroup).reason === null);
+  const hasMappedMs = contributionSegments.some((segment) => asRecord(segment.marketSegment).reason === null);
+  const hasMappedSource = contributionSources.some((source) => asRecord(source.source).reason === null);
+  checks.push({
+    name: "commercial contribution hierarchy",
+    ok: contribution.provenance === "stats_daily_commercial_taxonomy" &&
+      typeof contributionTotal.roomNights === "number" &&
+      typeof contributionTotal.roomRevenueMinor === "string" &&
+      contributionGroups.length > 0 &&
+      contributionSegments.length > 0 &&
+      contributionSources.length > 0 &&
+      hasMappedMsg &&
+      hasMappedMs &&
+      hasMappedSource,
+    evidence: `groups=${contributionGroups.length}, segments=${contributionSegments.length}, sources=${contributionSources.length}, roomNights=${contributionTotal.roomNights ?? "missing"}, revenue=${contributionTotal.roomRevenueMinor ?? "missing"}`,
+  });
+
   const arrivals = await lane(propertyId, "due_in", token);
   const departures = await lane(propertyId, "due_out", token);
   const inHouse = await lane(propertyId, "in_house", token);

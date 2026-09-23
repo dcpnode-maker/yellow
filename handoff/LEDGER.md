@@ -1689,3 +1689,11 @@ appears here; dispatch/execution remain unverified.
 - Kept the default colleague-readiness probe read-only after login; finance mutation proof remains a deliberate separate command.
 - Proved cashier/posting is operational on the live demo without touching occupancy, checkout, settled folios, direct SQL writes, or immutable journal tables outside the API. Live evidence: reservation `L3R-DI-0016`, folio `2160af77-e84a-433d-b803-5b7c105d374a`, transaction `L3R_BEVERAGE`, journal `cec62413-8c8b-4c97-8461-ebff17e15304`, replayed idempotently with one matching statement row.
 - Proof: `bun test tests\order640-public-finance-posting-proof.test.ts tests\order621-colleague-demo-readiness-probe.test.ts`; `bun tools\prove-public-finance-posting-flow.ts`; `bun tools\probe-colleague-demo-readiness.ts`; `bun run typecheck`; `bun tools\probe-mobile-public-demo.ts`; `bun tools\probe-public-demo-performance.ts`.
+
+# 2026-09-23 — Order 641 commercial contribution read model
+
+- Added a read-only commercial contribution API that rolls current property-local `stats_daily` rows through the configured commercial attribution taxonomy into market segment group → market segment → source/channel metrics.
+- Metrics use integer minor-unit math for room nights, rooms available, room revenue, occupancy basis points, ADR and RevPAR; no schema, occupancy, journal, posting or external-provider write was added.
+- Added a reproducible synthetic public-demo taxonomy fixture for Locanda. The live stats projection is currently aggregated as `ALL/ALL/ALL`, so the contribution proof honestly reports one mapped "All current business" hierarchy while reservation movement rows continue to prove detailed OTA/direct commercial codes separately.
+- Rebuilt/restarted the public demo and extended colleague readiness to fail if the server-owned contribution hierarchy disappears.
+- Proof: `powershell -NoProfile -ExecutionPolicy Bypass -File .\tools\promote-public-demo.ps1 -SkipTests`; `powershell -NoProfile -ExecutionPolicy Bypass -File .\tools\provision-public-commercial-taxonomy.ps1`; `bun tools\probe-colleague-demo-readiness.ts`; `bun test tests\order641-commercial-contribution-read-model.test.ts`; `bun run typecheck`; `bun tools\probe-mobile-public-demo.ts`; `bun tools\probe-public-demo-performance.ts`.
