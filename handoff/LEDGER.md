@@ -1604,3 +1604,8 @@ appears here; dispatch/execution remain unverified.
 
 - Extended the public colleague-readiness probe to verify Hindi operational cancellation intent routes to Reservations, detects the cancel operation and remains confirmation-gated.
 - Proof: `bun test tests/order628-multilingual-overwatch-readiness.test.ts`; `bun tools/probe-colleague-demo-readiness.ts`.
+
+# 2026-09-23 — Order 629 business-day close readiness proof
+
+- Extended the public colleague-readiness probe to verify the business-day close/Night Audit workbench entry and detailed readiness blocker surface.
+- Proof: `bun test tests/order629-business-day-close-readiness-proof.test.ts`; `bun tools/probe-colleague-demo-readiness.ts`.

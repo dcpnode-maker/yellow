@@ -161,6 +161,24 @@ async function main() {
     evidence: Object.keys(cashier).sort().slice(0, 8).join(", "),
   });
 
+  const businessDayEntry = asRecord(await requestJson(`/api/v1/properties/${encodeURIComponent(propertyId)}/business-days/close-workbench`, { token }));
+  const businessDate = typeof businessDayEntry.businessDate === "string" ? businessDayEntry.businessDate : "";
+  const businessDayWorkbench = businessDate
+    ? asRecord(await requestJson(`/api/v1/properties/${encodeURIComponent(propertyId)}/business-days/${encodeURIComponent(businessDate)}/close-workbench`, { token }))
+    : {};
+  const readiness = asRecord(businessDayWorkbench.readiness);
+  const openDays = asArray(businessDayWorkbench.openDays);
+  const readinessReasons = asArray(readiness.reasons).map(asRecord);
+  checks.push({
+    name: "business-day close readiness",
+    ok: /^\d{4}-\d{2}-\d{2}$/.test(businessDate) &&
+      businessDayWorkbench.businessDate === businessDate &&
+      typeof readiness.ready === "boolean" &&
+      openDays.length > 0 &&
+      readinessReasons.every((reason) => typeof reason.code === "string" && typeof reason.source === "string"),
+    evidence: `businessDate=${businessDate || "missing"}, ready=${readiness.ready ?? "missing"}, openDays=${openDays.length}, blockers=${readinessReasons.length}`,
+  });
+
   const folioId = await firstOpenFolioId(propertyId, token, [...departures, ...inHouse]);
   if (typeof folioId !== "string") {
     checks.push({ name: "folio statement", ok: false, evidence: "no due-out or in-house reservation exposes an open primary folio" });
