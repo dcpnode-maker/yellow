@@ -3,7 +3,7 @@
 Yellow is an actively implemented, tenant-scoped hotel and STR platform: PMS,
 bookkeeping and cashier finance, stay operations and fiscal compliance, with planned
 channel management, booking engine/CRS, CRM, multilingual voice, RMS and hotel interfaces.
-The domain core is a TypeScript/Bun/Elysia modular monolith over PostgreSQL 16.
+The domain core is a TypeScript/Bun/Elysia modular monolith over PostgreSQL 18.
 Use open-source infrastructure, measured latency and replaceable integrations rather
 than speculative rewrites or a separate app fork for every country.
 

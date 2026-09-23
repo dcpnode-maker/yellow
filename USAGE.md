@@ -1,7 +1,7 @@
 # Using and developing Yellow
 
 Yellow is an actively built multi-tenant hotel/STR ERP: TypeScript/Bun/Elysia over
-PostgreSQL 16 in a modular monolith. Read [PROJECT.md](PROJECT.md) first and navigate
+PostgreSQL 18 in a modular monolith. Read [PROJECT.md](PROJECT.md) first and navigate
 with [the project map](docs/PROJECT-MAP.md). Setup guidance:
 [START-HERE.md](START-HERE.md) / [Windows](START-HERE-WINDOWS.md).
 Read [PROJECT-STATUS](docs/PROJECT-STATUS.md) for the one current task and the exact

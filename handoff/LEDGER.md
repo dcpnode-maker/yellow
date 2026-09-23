@@ -1662,3 +1662,9 @@ appears here; dispatch/execution remain unverified.
 - Upgraded the Today glass Business Mix strip from raw market/source/channel codes to the founder-described hotel hierarchy: Market Segment Group → Market Segment with source/channel evidence.
 - Kept the surface read-only, movement-row based and conservative: missing or unknown codes render as explicit unmapped evidence instead of guessed commercial truth.
 - Proof: `bun test tests/order633-today-business-mix.test.ts tests/order637-today-business-hierarchy.test.ts tests/order611-today-glass-dashboard.test.ts`; `bun run typecheck`.
+
+# 2026-09-23 — Order 624 PostgreSQL 18 runtime alignment
+
+- Aligned the canonical Compose runtime with the approved PostgreSQL 18 cutover path: pinned official `postgres:18.6-alpine3.24` by digest, mounted a fresh PG18-compatible `yellow-pg18data` volume at `/var/lib/postgresql`, and preserved the old `yellow-pgdata` rollback volume definition.
+- Updated the current top-level project description from PostgreSQL 16 to PostgreSQL 18 so new implementation decisions target the current database line.
+- Proof: `bun test tests/runtime-storage-containment.test.ts`; `bun run typecheck`; `bun tools/probe-colleague-demo-readiness.ts`.

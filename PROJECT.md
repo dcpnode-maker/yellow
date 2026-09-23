@@ -15,7 +15,7 @@ Why it's built this way: duplicated rules drift. Two copies survive; four don't.
 A full-scope hospitality ERP (PMS + channel manager + booking engine + CRS + CRM +
 native hotel finance) for hotels, hostels, serviced apartments and STR. Two-person
 founding team; AI agents write essentially all code; a founder reviews every
-critical-path change. Stack: **TypeScript (strict) · Bun · Elysia · PostgreSQL 16 ·
+critical-path change. Stack: **TypeScript (strict) · Bun · Elysia · PostgreSQL 18 ·
 modular monolith**. Zero-cost doctrine: runs on free/OSS infrastructure.
 
 **Current state:** read [docs/PROJECT-STATUS.md](docs/PROJECT-STATUS.md) before using

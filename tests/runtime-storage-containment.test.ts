@@ -9,7 +9,7 @@ type Diagnostics = {
 
 const compose = Bun.YAML.parse(
   readFileSync(new URL("../docker-compose.yml", import.meta.url), "utf8"),
-) as { services: Record<string, Diagnostics & Record<string, unknown>> };
+) as { services: Record<string, Diagnostics & Record<string, unknown>>; volumes?: Record<string, unknown> };
 
 describe("runtime diagnostic storage policy", () => {
   test("every service has bounded logs, no automatic restart and no process core file", () => {
@@ -27,13 +27,23 @@ describe("runtime diagnostic storage policy", () => {
 
   test("diagnostic containment preserves database storage and loopback exposure", () => {
     expect(compose.services.postgres?.volumes).toEqual([
-      "yellow-pgdata:/var/lib/postgresql/data",
+      "yellow-pg18data:/var/lib/postgresql",
     ]);
     expect(compose.services.app?.ports).toEqual([
       "127.0.0.1:${YELLOW_APP_PORT:-3000}:3000",
     ]);
     expect(compose.services.postgres?.ports).toEqual([
       "127.0.0.1:${YELLOW_POSTGRES_PORT:-5442}:5432",
+    ]);
+  });
+
+  test("PostgreSQL runtime is pinned to the approved PostgreSQL 18 image", () => {
+    expect(compose.services.postgres?.image).toBe(
+      "postgres:18.6-alpine3.24@sha256:d8703cd7fba306b9fec9268ecedfa8a966846c053036a60e3635791957eb2f66",
+    );
+    expect(Object.keys(compose.volumes ?? {}).sort()).toEqual([
+      "yellow-pg18data",
+      "yellow-pgdata",
     ]);
   });
 });
