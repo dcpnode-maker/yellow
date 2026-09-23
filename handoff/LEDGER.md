@@ -1668,3 +1668,10 @@ appears here; dispatch/execution remain unverified.
 - Aligned the canonical Compose runtime with the approved PostgreSQL 18 cutover path: pinned official `postgres:18.6-alpine3.24` by digest, mounted a fresh PG18-compatible `yellow-pg18data` volume at `/var/lib/postgresql`, and preserved the old `yellow-pgdata` rollback volume definition.
 - Updated the current top-level project description from PostgreSQL 16 to PostgreSQL 18 so new implementation decisions target the current database line.
 - Proof: `bun test tests/runtime-storage-containment.test.ts`; `bun run typecheck`; `bun tools/probe-colleague-demo-readiness.ts`.
+
+# 2026-09-23 — Order 638 ready checkout demo fixture
+
+- Prepared the public demo's ready departure through the governed folio-status API only: settled zero-balance folio `L3R-FOL-4` for reservation `L3R-IH-0002`, making checkout readiness prove `ready=true` without committing checkout.
+- Extended the colleague-readiness probe to require both one ready checkout fixture and one blocked checkout guardrail, including room, occupancy and settled/closed zero-balance folio evidence.
+- Added a source regression so future readiness probes cannot collapse checkout back to shape-only boolean evidence.
+- Proof: `bun test tests/order638-ready-checkout-demo-fixture.test.ts tests/order621-colleague-demo-readiness-probe.test.ts`; `bun tools/probe-colleague-demo-readiness.ts`; `bun run typecheck`; `bun tools/probe-mobile-public-demo.ts`; `bun tools/probe-public-demo-performance.ts`.

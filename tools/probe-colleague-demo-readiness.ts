@@ -223,6 +223,47 @@ async function main() {
     evidence: `ready=${checkoutReadiness.ready}, blockers=${asArray(checkoutReadiness.blockers).length}`,
   });
 
+  let readyCheckoutEvidence = "no due-out reservation is ready for checkout";
+  let blockedCheckoutEvidence = "no due-out reservation exposes blockers";
+  let readyCheckoutOk = false;
+  let blockedCheckoutOk = false;
+  for (const row of departures) {
+    if (typeof row.reservationId !== "string") continue;
+    const readiness = asRecord(await requestJson(`/api/v1/properties/${encodeURIComponent(propertyId)}/reservations/${encodeURIComponent(row.reservationId)}/checkout-readiness`, { token }));
+    const blockers = asArray(readiness.blockers);
+    const folios = asArray(readiness.folios).map(asRecord);
+    const room = asRecord(readiness.room);
+    const occupancy = asRecord(readiness.occupancy);
+    const confirmationNo = typeof row.confirmationNo === "string" ? row.confirmationNo : row.reservationId;
+    if (readiness.ready === true &&
+        blockers.length === 0 &&
+        typeof room.spaceCode === "string" &&
+        typeof room.spaceId === "string" &&
+        typeof occupancy.occupancyId === "string" &&
+        folios.length > 0 &&
+        folios.every((folio) =>
+          (folio.status === "settled" || folio.status === "closed") &&
+          folio.balanceMinor === "0" &&
+          typeof folio.folioId === "string")) {
+      readyCheckoutOk = true;
+      readyCheckoutEvidence = `${confirmationNo}, room=${room.spaceCode}, folios=${folios.map((folio) => `${folio.folioNo ?? folio.folioId}:${folio.status}`).join("/")}`;
+    }
+    if (readiness.ready === false && blockers.length > 0) {
+      blockedCheckoutOk = true;
+      blockedCheckoutEvidence = `${confirmationNo}, blockers=${blockers.join("/")}`;
+    }
+  }
+  checks.push({
+    name: "ready checkout fixture",
+    ok: readyCheckoutOk,
+    evidence: readyCheckoutEvidence,
+  });
+  checks.push({
+    name: "blocked checkout guardrail",
+    ok: blockedCheckoutOk,
+    evidence: blockedCheckoutEvidence,
+  });
+
   const housekeepingConditions = asRecord(await requestJson(`/api/v1/properties/${encodeURIComponent(propertyId)}/housekeeping/conditions?limit=100`, { token }));
   const rooms = asArray(housekeepingConditions.rooms);
   checks.push({ name: "housekeeping conditions", ok: rooms.length > 0, evidence: `${rooms.length} room condition record(s)` });
