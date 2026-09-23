@@ -56,6 +56,8 @@ describe("Overwatch guided navigation", () => {
     const reply = await new OverwatchService(undefined).respond({ message: "Change the rate for tomorrow" });
     expect(reply.navigation).toBe("rates");
     expect(reply.requiresConfirmation).toBe(true);
+    expect(reply.provider).toBe("not_configured");
+    expect(reply.model).toBeNull();
     expect(reply.answer).toContain("not configured");
   });
 
@@ -97,7 +99,11 @@ describe("Overwatch guided navigation", () => {
       if (attempted.length === 1) return new Response("quota", { status: 429 });
       return new Response(JSON.stringify({ candidates: [{ content: { parts: [{ text: "Yellow online" }] } }] }), { status: 200 });
     });
-    await expect(service.respond({ message: "Hello" })).resolves.toMatchObject({ answer: "Yellow online" });
+    await expect(service.respond({ message: "Hello" })).resolves.toMatchObject({
+      answer: "Yellow online",
+      provider: "gemini",
+      model: "gemini-3.6-flash",
+    });
     expect(attempted).toEqual(["quota-exhausted", "available"]);
   });
 
@@ -107,7 +113,10 @@ describe("Overwatch guided navigation", () => {
       attempted.push(String(new Headers(init?.headers).get("x-goog-api-key")));
       return new Response("not found", { status: 404 });
     });
-    await service.respond({ message: "Hello" });
+    await expect(service.respond({ message: "Hello" })).resolves.toMatchObject({
+      provider: "local_fallback",
+      model: "gemini-3.6-flash",
+    });
     expect(attempted).toEqual(["bad-model"]);
   });
 
@@ -117,7 +126,11 @@ describe("Overwatch guided navigation", () => {
       endpoint = String(input);
       return new Response(JSON.stringify({ candidates: [{ content: { parts: [{ text: "Yellow online" }] } }] }), { status: 200 });
     });
-    await expect(service.respond({ message: "Hello" })).resolves.toMatchObject({ answer: "Yellow online" });
+    await expect(service.respond({ message: "Hello" })).resolves.toMatchObject({
+      answer: "Yellow online",
+      provider: "gemini",
+      model: "gemini-flash-lite-latest",
+    });
     expect(endpoint).toContain("models/gemini-flash-lite-latest:generateContent");
   });
 

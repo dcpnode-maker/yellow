@@ -1675,3 +1675,10 @@ appears here; dispatch/execution remain unverified.
 - Extended the colleague-readiness probe to require both one ready checkout fixture and one blocked checkout guardrail, including room, occupancy and settled/closed zero-balance folio evidence.
 - Added a source regression so future readiness probes cannot collapse checkout back to shape-only boolean evidence.
 - Proof: `bun test tests/order638-ready-checkout-demo-fixture.test.ts tests/order621-colleague-demo-readiness-probe.test.ts`; `bun tools/probe-colleague-demo-readiness.ts`; `bun run typecheck`; `bun tools/probe-mobile-public-demo.ts`; `bun tools/probe-public-demo-performance.ts`.
+
+# 2026-09-23 — Order 639 Overwatch Gemini provider evidence
+
+- Added non-secret provider metadata to Overwatch replies so the public demo can prove whether an answer used the Gemini path, local fallback, or no configured provider. The response exposes only provider path and model id; it never exposes API keys, prompts, raw provider payloads, or guest/payment data.
+- Extended the colleague-readiness probe to require a live Gemini-backed Overwatch response using `gemini-flash-lite-latest`, while preserving multilingual confirmation-gated Hindi cancellation proof.
+- Rebuilt and restarted the public demo app; health, readiness, mobile and performance probes passed against the live tunnel.
+- Proof: `bun test tests/jarvis.test.ts tests/order639-overwatch-gemini-provider-evidence.test.ts tests/order628-multilingual-overwatch-readiness.test.ts tests/order621-colleague-demo-readiness-probe.test.ts`; `bun run typecheck`; `powershell -NoProfile -ExecutionPolicy Bypass -File .\tools\promote-public-demo.ps1 -SkipTests`; `bun tools/probe-colleague-demo-readiness.ts`; `bun tools/probe-mobile-public-demo.ts`; `bun tools/probe-public-demo-performance.ts`.

@@ -8,6 +8,8 @@ export interface OverwatchReply {
   readonly focus: OverwatchFocus;
   readonly requiresConfirmation: boolean;
   readonly reservationOperation: OverwatchReservationOperation;
+  readonly provider: "gemini" | "local_fallback" | "not_configured";
+  readonly model: string | null;
 }
 
 interface OverwatchTurn {
@@ -137,7 +139,7 @@ export class OverwatchService {
     const focus = focusFor(message);
     const reservationOperation = reservationOperationFor(message);
     const requiresConfirmation = needsConfirmation(message) || reservationOperation !== null;
-    if (this.#apiKeys.length === 0) return { answer: "Overwatch is available for guided navigation, but its Gemini connection is not configured.", navigation, focus, requiresConfirmation, reservationOperation };
+    if (this.#apiKeys.length === 0) return { answer: "Overwatch is available for guided navigation, but its Gemini connection is not configured.", navigation, focus, requiresConfirmation, reservationOperation, provider: "not_configured", model: null };
 
     const fallback = (): OverwatchReply => ({
       answer: requiresConfirmation
@@ -151,6 +153,8 @@ export class OverwatchService {
       focus,
       requiresConfirmation,
       reservationOperation,
+      provider: "local_fallback",
+      model: this.model,
     });
     for (const apiKey of this.#apiKeys) {
       let response: Response;
@@ -172,7 +176,7 @@ export class OverwatchService {
       }
       const payload = await response.json() as { candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }> };
       const answer = payload.candidates?.[0]?.content?.parts?.map((part) => part.text ?? "").join("").trim();
-      if (answer) return { answer, navigation, focus, requiresConfirmation, reservationOperation };
+      if (answer) return { answer, navigation, focus, requiresConfirmation, reservationOperation, provider: "gemini", model: this.model };
     }
     return fallback();
   }

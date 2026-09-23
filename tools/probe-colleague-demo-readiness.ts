@@ -319,6 +319,19 @@ async function main() {
     evidence: `navigation=${overwatch.navigation ?? "missing"}, focus=${overwatch.focus ?? "missing"}, requiresConfirmation=${overwatch.requiresConfirmation ?? "missing"}`,
   });
 
+  const geminiOverwatch = asRecord(await requestJson("/api/v1/jarvis:ask", {
+    method: "POST",
+    token,
+    body: { message: "Hello Overwatch", history: [] },
+  }));
+  checks.push({
+    name: "Overwatch Gemini provider evidence",
+    ok: typeof geminiOverwatch.answer === "string" &&
+      geminiOverwatch.provider === "gemini" &&
+      geminiOverwatch.model === "gemini-flash-lite-latest",
+    evidence: `provider=${geminiOverwatch.provider ?? "missing"}, model=${geminiOverwatch.model ?? "missing"}`,
+  });
+
   const hindiOverwatch = asRecord(await requestJson("/api/v1/jarvis:ask", {
     method: "POST",
     token,
