@@ -1580,3 +1580,9 @@ appears here; dispatch/execution remain unverified.
 - Cut public demo database over to PostgreSQL 18.6 using a fresh PG18 volume while preserving the PG16 base volume.
 - Independent review `/root/pg18_group_block_review` approved after fixing scope and volume isolation findings.
 - Proof: `bun test tests/order623-group-block-workbench.test.ts`, `bun run typecheck`, colleague readiness probe, mobile probe, performance probe.
+
+# 2026-09-23 — Order 625 reproducible group-block fixture
+
+- Added an idempotent public-demo provisioning script for the synthetic Locanda group blocks `LOC-MICE-0926` and `LOC-SOC-0928`.
+- Extended the colleague-readiness probe so the public demo fails if the group-block workbench loses its configured fixture.
+- Proof: `bun test tests/order625-group-block-provisioning.test.ts`; `powershell -NoProfile -ExecutionPolicy Bypass -File .\tools\provision-public-group-blocks.ps1`; `bun tools/probe-colleague-demo-readiness.ts`; `bun run typecheck`.

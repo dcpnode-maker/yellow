@@ -106,6 +106,16 @@ async function main() {
   checks.push({ name: "departure lane", ok: departures.length > 0, evidence: `${departures.length} due-out reservation(s)` });
   checks.push({ name: "in-house lane", ok: inHouse.length > 0, evidence: `${inHouse.length} in-house reservation(s)` });
 
+  const groupBlocks = asRecord(await requestJson(`/api/v1/properties/${encodeURIComponent(propertyId)}/group-blocks`, { token }));
+  const groups = asArray(groupBlocks.groups).map(asRecord);
+  const blockedRooms = groups.reduce((sum, group) => sum + (typeof group.blockedRooms === "number" ? group.blockedRooms : 0), 0);
+  const pickedUpRooms = groups.reduce((sum, group) => sum + (typeof group.pickedUpRooms === "number" ? group.pickedUpRooms : 0), 0);
+  checks.push({
+    name: "group block workbench",
+    ok: groups.length >= 2 && blockedRooms > 0 && pickedUpRooms > 0,
+    evidence: `${groups.length} group block(s), blocked=${blockedRooms}, pickedUp=${pickedUpRooms}`,
+  });
+
   const arrivalId = firstId(arrivals);
   const departureId = firstId(departures);
   const inHouseId = firstId(inHouse);
