@@ -1570,3 +1570,5 @@ appears here; dispatch/execution remain unverified.
 - 2026-09-23: Order 620 added Today colleague demo path; focused tests, typecheck, build, public promotion and speed probe passed.
 
 - 2026-09-23: Order 621 added the colleague demo readiness probe; focused test, live public probe and typecheck passed.
+
+- 2026-09-23: Order 622 added the mobile-first public demo probe; mobile probe, typecheck, colleague readiness and speed gates passed.
