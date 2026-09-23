@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    branches: [main, phase-7/codex-consolidated-release]
   pull_request:
   workflow_dispatch:
 
@@ -28,26 +28,36 @@ jobs:
         run: |
           $ErrorActionPreference = 'Stop'
           $probePath = 'handoff/questions/zz-ci-windows-state-probe.md'
-          $probeListing = "  $($probePath -replace '\\', '/')"
 
           function Get-StateSnapshot([string] $step) {
             $output = @(& .\state.ps1 6>&1 | ForEach-Object { "$_" })
-            $line = @($output | Where-Object { $_ -match '^Open work:' })
-            if ($line.Count -ne 1) {
-              throw "$step diverged: expected exactly one Open work line, got $($line.Count)"
+            $line = @($output | Where-Object { $_ -match '^Historical records:' })
+            $taskLine = @($output | Where-Object { $_ -match '^Current task: .+' })
+            $lifecycleLine = @($output | Where-Object { $_ -match '^Lifecycle: .+' })
+            $phaseLine = @($output | Where-Object { $_ -match '^Phase: \d+ · .+' })
+            if ($line.Count -ne 1 -or $taskLine.Count -ne 1 -or $lifecycleLine.Count -ne 1 -or $phaseLine.Count -ne 1) {
+              throw "$step diverged: expected one historical/task/lifecycle/phase line; got historical=$($line.Count) task=$($taskLine.Count) lifecycle=$($lifecycleLine.Count) phase=$($phaseLine.Count)"
             }
-            if ($line[0] -notmatch '^Open work: orders=(\d+) open \((\d+) total\) reviews=(\d+) open \((\d+) total\) questions=(\d+) open \((\d+) total\)$') {
-              throw "$step diverged: could not parse Open work line: $($line[0])"
+            if ($line[0] -notmatch '^Historical records: orders=(\d+) total \((\d+) lack legacy MERGED marker\) reviews=(\d+) total questions=(\d+) without legacy resolution marker \((\d+) total\)$') {
+              throw "$step diverged: could not parse Historical records line: $($line[0])"
+            }
+            $ordersTotal = [int] $Matches[1]
+            $ordersLegacyUnclosed = [int] $Matches[2]
+            $reviewsTotal = [int] $Matches[3]
+            $questionsUnresolved = [int] $Matches[4]
+            $questionsTotal = [int] $Matches[5]
+            $lifecycle = $lifecycleLine[0].Substring('Lifecycle: '.Length)
+            if ($phaseLine[0] -notmatch '^Phase: (\d+) · (.+)$' -or $Matches[2] -ne $lifecycle) {
+              throw "$step diverged: phase lifecycle does not match '$($lifecycleLine[0])': $($phaseLine[0])"
             }
             return [pscustomobject]@{
               Output = $output
               Line = $line[0]
-              OrdersOpen = [int] $Matches[1]
-              OrdersTotal = [int] $Matches[2]
-              ReviewsOpen = [int] $Matches[3]
-              ReviewsTotal = [int] $Matches[4]
-              QuestionsOpen = [int] $Matches[5]
-              QuestionsTotal = [int] $Matches[6]
+              OrdersTotal = $ordersTotal
+              OrdersLegacyUnclosed = $ordersLegacyUnclosed
+              ReviewsTotal = $reviewsTotal
+              QuestionsUnresolved = $questionsUnresolved
+              QuestionsTotal = $questionsTotal
             }
           }
 
@@ -55,24 +65,60 @@ jobs:
             [string] $step,
             [object] $actual,
             [object] $baseline,
-            [int] $questionOpenDelta,
+            [int] $questionUnresolvedDelta,
             [int] $questionTotalDelta
           ) {
             $sameNonQuestionCounts =
-              $actual.OrdersOpen -eq $baseline.OrdersOpen -and
               $actual.OrdersTotal -eq $baseline.OrdersTotal -and
-              $actual.ReviewsOpen -eq $baseline.ReviewsOpen -and
+              $actual.OrdersLegacyUnclosed -eq $baseline.OrdersLegacyUnclosed -and
               $actual.ReviewsTotal -eq $baseline.ReviewsTotal
-            $expectedQuestionsOpen = $baseline.QuestionsOpen + $questionOpenDelta
+            $expectedQuestionsUnresolved = $baseline.QuestionsUnresolved + $questionUnresolvedDelta
             $expectedQuestionsTotal = $baseline.QuestionsTotal + $questionTotalDelta
             if (
               -not $sameNonQuestionCounts -or
-              $actual.QuestionsOpen -ne $expectedQuestionsOpen -or
+              $actual.QuestionsUnresolved -ne $expectedQuestionsUnresolved -or
               $actual.QuestionsTotal -ne $expectedQuestionsTotal
             ) {
-              throw "$step diverged: expected question deltas open=$questionOpenDelta total=$questionTotalDelta from '$($baseline.Line)', got '$($actual.Line)'"
+              throw "$step diverged: expected question deltas unresolved=$questionUnresolvedDelta total=$questionTotalDelta from '$($baseline.Line)', got '$($actual.Line)'"
             }
           }
+
+          $originalPath = $env:PATH
+          $childPowerShell = (Get-Process -Id $PID).Path
+          $startInfo = [System.Diagnostics.ProcessStartInfo]::new()
+          $startInfo.FileName = $childPowerShell
+          $startInfo.WorkingDirectory = (Get-Location).Path
+          $startInfo.UseShellExecute = $false
+          $startInfo.RedirectStandardOutput = $true
+          $startInfo.RedirectStandardError = $true
+          $startInfo.ArgumentList.Add('-NoProfile')
+          $startInfo.ArgumentList.Add('-ExecutionPolicy')
+          $startInfo.ArgumentList.Add('Bypass')
+          $startInfo.ArgumentList.Add('-File')
+          $startInfo.ArgumentList.Add((Resolve-Path .\state.ps1).Path)
+          $startInfo.Environment['PATH'] = [Environment]::SystemDirectory
+
+          $failedReportProcess = [System.Diagnostics.Process]::Start($startInfo)
+          $failedReportStdout = $failedReportProcess.StandardOutput.ReadToEnd()
+          $failedReportStderr = $failedReportProcess.StandardError.ReadToEnd()
+          $failedReportProcess.WaitForExit()
+          $failedReportExit = $failedReportProcess.ExitCode
+          $failedReportText = "$failedReportStdout`n$failedReportStderr"
+
+          if ($env:PATH -ne $originalPath) {
+            throw 'missing-Git report diverged: parent PATH changed'
+          }
+          if ($failedReportExit -eq 0) {
+            throw 'missing-Git report diverged: incomplete child report returned exit 0'
+          }
+          if ($failedReportText -match '(?m)^Referee:') {
+            throw 'missing-Git report diverged: incomplete child emitted the completion footer'
+          }
+          if ($failedReportText -notmatch 'YELLOW state report failed:') {
+            throw 'missing-Git report diverged: labelled failure was absent'
+          }
+
+          $afterFailedReport = Get-StateSnapshot 'missing-Git environment restoration'
 
           if (Test-Path -LiteralPath $probePath) {
             throw "baseline diverged: probe already exists at $probePath"
@@ -83,8 +129,8 @@ jobs:
             Set-Content -LiteralPath $probePath -Value '# Windows state CI probe'
             $unmarked = Get-StateSnapshot 'unmarked question'
             Assert-Counts 'unmarked question' $unmarked $baseline 1 1
-            if ($unmarked.Output -notcontains $probeListing) {
-              throw "unmarked question diverged: $probePath was not listed under Open questions"
+            if ($unmarked.Output -match [regex]::Escape($probePath)) {
+              throw "unmarked question diverged: historical probe leaked into the current-task listing"
             }
 
             Add-Content -LiteralPath $probePath -Value '## RESOLVED'
@@ -98,8 +144,8 @@ jobs:
             Set-Content -LiteralPath $probePath -Value '# Windows state CI probe', 'This line contains ## RESOLVED inside it.'
             $nearMiss = Get-StateSnapshot 'inline-marker near-miss'
             Assert-Counts 'inline-marker near-miss' $nearMiss $baseline 1 1
-            if ($nearMiss.Output -notcontains $probeListing) {
-              throw "inline-marker near-miss diverged: $probePath was not listed under Open questions"
+            if ($nearMiss.Output -match [regex]::Escape($probePath)) {
+              throw "inline-marker near-miss diverged: historical probe leaked into the current-task listing"
             }
           } finally {
             Remove-Item -LiteralPath $probePath -Force -ErrorAction SilentlyContinue
@@ -110,12 +156,28 @@ jobs:
             throw "probe cleanup diverged: expected '$($baseline.Line)', got '$($restored.Line)'"
           }
 
+      - name: Set up Bun for required native Windows proof
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
+        with:
+          bun-version: 1.3.14
+
+      - name: Install frozen native proof dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Prove bounded native review ownership and startup failures
+        shell: pwsh
+        env:
+          YELLOW_REQUIRE_ORDER444_NATIVE_REVIEW: '1'
+        run: bun test tests/order444-native-review.test.ts
+
   quality:
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
       - name: Check out repository
         uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          fetch-depth: 0
 
       - name: Reject UTF-8 BOMs
         shell: bash
@@ -151,8 +213,18 @@ jobs:
       - name: Typecheck
         run: bun run typecheck
 
+      - name: Prove subprocess isolation on the Linux runner
+        run: >-
+          /usr/bin/time -v bun test
+          tests/project-status.test.ts
+          tests/owned-proof-process.test.ts
+          tests/import-boundaries.test.ts
+          tests/operator-business-day-seal-browser.integration.test.ts
+          tests/operator-owner-trust-workbench-browser.integration.test.ts
+          tests/operator-business-day-discrepancy-carry-browser.integration.test.ts
+
       - name: Test
-        run: bun test
+        run: /usr/bin/time -v bun test
 
   container-smoke:
     needs: quality
@@ -210,9 +282,10 @@ jobs:
   database:
     needs: quality
     runs-on: ubuntu-24.04
-    timeout-minutes: 20
+    timeout-minutes: 35
     env:
       COMPOSE_PROJECT_NAME: yellow-ci-database
+      YELLOW_DATABASE_NAME: yellow_ci_deployment
     steps:
       - name: Check out repository
         uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
@@ -231,6 +304,23 @@ jobs:
         run: |
           bun install --frozen-lockfile
           python -m pip install --require-hashes --only-binary=:all: -r requirements-ci.txt
+
+      - name: Generate isolated database authority
+        shell: bash
+        run: |
+          set -euo pipefail
+          deploy_password="$(bun -e 'const b=crypto.getRandomValues(new Uint8Array(48));process.stdout.write(Buffer.from(b).toString("base64url"));')"
+          runtime_password="$(bun -e 'const b=crypto.getRandomValues(new Uint8Array(48));process.stdout.write(Buffer.from(b).toString("base64url"));')"
+          registrar_password="$(bun -e 'const b=crypto.getRandomValues(new Uint8Array(48));process.stdout.write(Buffer.from(b).toString("base64url"));')"
+          if [[ "$deploy_password" == "$runtime_password" || "$deploy_password" == "$registrar_password" || "$runtime_password" == "$registrar_password" ]]; then exit 1; fi
+          echo "::add-mask::$deploy_password"
+          echo "::add-mask::$runtime_password"
+          echo "::add-mask::$registrar_password"
+          {
+            echo "YELLOW_DEPLOY_DATABASE_PASSWORD=$deploy_password"
+            echo "YELLOW_RUNTIME_DATABASE_PASSWORD=$runtime_password"
+            echo "YELLOW_EXTENSION_REGISTRAR_DATABASE_PASSWORD=$registrar_password"
+          } >> "$GITHUB_ENV"
 
       - name: Start pinned PostgreSQL
         shell: bash
@@ -262,24 +352,662 @@ jobs:
           fi
 
           {
-            echo "ADMIN_URL=postgres://yellow:yellow@${postgres_address}/postgres"
-            echo "DEPLOYMENT_URL=postgres://yellow:yellow@${postgres_address}/yellow_ci_deployment"
-            echo "INVARIANT_URL=postgres://yellow:yellow@${postgres_address}/yellow_ci_invariant"
-            echo "YELLOW_MIGRATION_TEST_ADMIN_URL=postgres://yellow:yellow@${postgres_address}/postgres"
-            echo "YELLOW_SEED_TEST_ADMIN_URL=postgres://yellow:yellow@${postgres_address}/postgres"
+            echo "POSTGRES_ADDRESS=${postgres_address}"
+            echo "ADMIN_URL=postgres://yellow_deploy:${YELLOW_DEPLOY_DATABASE_PASSWORD}@${postgres_address}/postgres"
+            echo "DEPLOYMENT_URL=postgres://yellow_deploy:${YELLOW_DEPLOY_DATABASE_PASSWORD}@${postgres_address}/yellow_ci_deployment"
+            echo "DEPLOYMENT_RUNTIME_URL=postgres://yellow_runtime:${YELLOW_RUNTIME_DATABASE_PASSWORD}@${postgres_address}/yellow_ci_deployment"
+            echo "DEPLOYMENT_REGISTRAR_URL=postgres://yellow_extension_registrar:${YELLOW_EXTENSION_REGISTRAR_DATABASE_PASSWORD}@${postgres_address}/yellow_ci_deployment"
+            echo "INVARIANT_URL=postgres://yellow_deploy:${YELLOW_DEPLOY_DATABASE_PASSWORD}@${postgres_address}/yellow_ci_invariant"
+            echo "INVARIANT_RUNTIME_URL=postgres://yellow_runtime:${YELLOW_RUNTIME_DATABASE_PASSWORD}@${postgres_address}/yellow_ci_invariant"
+            echo "YELLOW_DEPLOY_DATABASE_URL=postgres://yellow_deploy:${YELLOW_DEPLOY_DATABASE_PASSWORD}@${postgres_address}/postgres"
+            echo "YELLOW_MIGRATION_TEST_ADMIN_URL=postgres://yellow_deploy:${YELLOW_DEPLOY_DATABASE_PASSWORD}@${postgres_address}/postgres"
+            echo "YELLOW_SEED_TEST_ADMIN_URL=postgres://yellow_deploy:${YELLOW_DEPLOY_DATABASE_PASSWORD}@${postgres_address}/postgres"
           } >> "$GITHUB_ENV"
 
+      - name: Provision exact database authority roles
+        shell: bash
+        run: |
+          set -euo pipefail
+          postgres_address="$(docker compose port postgres 5432)"
+          YELLOW_DEPLOY_DATABASE_URL="postgres://yellow_deploy:${YELLOW_DEPLOY_DATABASE_PASSWORD}@${postgres_address}/${YELLOW_DATABASE_NAME}" \
+          YELLOW_RUNTIME_DATABASE_PASSWORD="$YELLOW_RUNTIME_DATABASE_PASSWORD" \
+          YELLOW_EXTENSION_REGISTRAR_DATABASE_PASSWORD="$YELLOW_EXTENSION_REGISTRAR_DATABASE_PASSWORD" \
+            bun scripts/provision-local-database-authority.ts
+
+      - name: Execute isolated Phase 3 database proofs
+        shell: bash
+        run: |
+          YELLOW_PHASE3_GATE_DEPLOY_URL="$ADMIN_URL" \
+          YELLOW_PHASE3_GATE_RUNTIME_URL="postgres://yellow_runtime:${YELLOW_RUNTIME_DATABASE_PASSWORD}@${POSTGRES_ADDRESS}/postgres" \
+          YELLOW_PHASE3_GATE_REGISTRAR_URL="postgres://yellow_extension_registrar:${YELLOW_EXTENSION_REGISTRAR_DATABASE_PASSWORD}@${POSTGRES_ADDRESS}/postgres" \
+          YELLOW_PHASE3_GATE_PASSWORD='Order079-CI-Proof-Only!' \
+            bun run test:phase3-gate
+
       - name: Run migration integration suite
-        run: bun run test:db:migrate
+        shell: bash
+        run: |
+          set -euo pipefail
+          YELLOW_DEPLOY_DATABASE_URL="$ADMIN_URL" \
+          YELLOW_RUNTIME_DATABASE_URL="postgres://yellow_runtime:${YELLOW_RUNTIME_DATABASE_PASSWORD}@${POSTGRES_ADDRESS}/postgres" \
+          YELLOW_REQUIRE_MIGRATION_DB=1 \
+          YELLOW_REQUIRE_ORDER434_DATABASE=1 \
+          YELLOW_ORDER434_MIGRATIONS_DIR="$GITHUB_WORKSPACE/migrations" \
+          YELLOW_ORDER434_PG_DUMP_COMPOSE=1 \
+            bun test tests/migrate.integration.test.ts
 
       - name: Run seed integration suite
         run: bun run test:db:seed
+
+      - name: Prove Order434 native fiscal suite on a fresh migrated 80 database
+        shell: bash
+        timeout-minutes: 35
+        run: |
+          set -euo pipefail
+          native_template="yellow_ci_order434_native_template"
+          native_clones=()
+          native_migrations="$(mktemp -d "$RUNNER_TEMP/yellow-order434-prefix80.XXXXXX")"
+          signed_migrations=''
+          current85_migrations=''
+          current86_migrations=''
+          trap 'for native_clone in "${native_clones[@]}"; do docker compose exec -T postgres psql --username yellow_deploy --dbname postgres --set ON_ERROR_STOP=1 --command "DROP DATABASE IF EXISTS ${native_clone} WITH (FORCE)"; done; docker compose exec -T postgres psql --username yellow_deploy --dbname postgres --set ON_ERROR_STOP=1 --command "DROP DATABASE IF EXISTS ${native_template} WITH (FORCE)"; if [[ -n "${native_migrations:-}" && -d "$native_migrations" && "$native_migrations" == "$RUNNER_TEMP"/yellow-order434-prefix80.* ]]; then rm -r -- "$native_migrations"; fi; if [[ -n "${signed_migrations:-}" && -d "$signed_migrations" && "$signed_migrations" == "$RUNNER_TEMP"/yellow-order440-prefix81.* ]]; then rm -r -- "$signed_migrations"; fi; if [[ -n "${current85_migrations:-}" && -d "$current85_migrations" && "$current85_migrations" == "$RUNNER_TEMP"/yellow-order440-prefix85.* ]]; then rm -r -- "$current85_migrations"; fi; if [[ -n "${current86_migrations:-}" && -d "$current86_migrations" && "$current86_migrations" == "$RUNNER_TEMP"/yellow-order440-prefix86.* ]]; then rm -r -- "$current86_migrations"; fi' EXIT
+          for migration in "$GITHUB_WORKSPACE"/migrations/*.sql; do
+            filename="$(basename "$migration")"
+            if (( 10#${filename:0:4} <= 80 )); then cp "$migration" "$native_migrations/$filename"; fi
+          done
+          docker compose exec -T postgres psql --username yellow_deploy --dbname postgres --set ON_ERROR_STOP=1 \
+            --command "DROP DATABASE IF EXISTS ${native_template} WITH (FORCE)"
+          docker compose exec -T postgres psql --username yellow_deploy --dbname postgres --set ON_ERROR_STOP=1 \
+            --command "CREATE DATABASE ${native_template}"
+          export YELLOW_REQUIRE_ORDER434_DATABASE=1
+          export YELLOW_REQUIRE_ORDER434_NATIVE_ACCOUNTING_DATABASE=1
+          export YELLOW_REQUIRE_ORDER434_NATIVE_ISSUANCE_DATABASE=1
+          export YELLOW_ORDER434_MIGRATIONS_DIR="$native_migrations"
+          export YELLOW_ORDER434_PG_DUMP_COMPOSE=1
+          YELLOW_MIGRATIONS_DIR="$native_migrations" \
+          YELLOW_DEPLOY_DATABASE_URL="postgres://yellow_deploy:${YELLOW_DEPLOY_DATABASE_PASSWORD}@${POSTGRES_ADDRESS}/${native_template}" \
+          YELLOW_RUNTIME_DATABASE_URL="postgres://yellow_runtime:${YELLOW_RUNTIME_DATABASE_PASSWORD}@${POSTGRES_ADDRESS}/${native_template}" \
+            bun run db:migrate
+          clone_index=0
+          for proof_file in \
+            tests/india-gst-accommodation-ordinary-regime-evidence.integration.test.ts \
+            tests/india-native-fiscal-source-completion.integration.test.ts \
+            tests/india-native-fiscal-accounting.integration.test.ts \
+            tests/india-native-fiscal-preparation.integration.test.ts \
+            tests/india-native-fiscal-source-locks.integration.test.ts \
+            tests/india-native-fiscal-completion.integration.test.ts; do
+            clone_index=$((clone_index + 1))
+            native_clone="yellow_ci_order434_native_${clone_index}"
+            native_clones+=("$native_clone")
+            docker compose exec -T postgres psql --username yellow_deploy --dbname postgres --set ON_ERROR_STOP=1 \
+              --command "CREATE DATABASE ${native_clone} TEMPLATE ${native_template}"
+            export YELLOW_ORDER434_DEPLOY_DATABASE_URL="postgres://yellow_deploy:${YELLOW_DEPLOY_DATABASE_PASSWORD}@${POSTGRES_ADDRESS}/${native_clone}"
+            export YELLOW_ORDER434_RUNTIME_DATABASE_URL="postgres://yellow_runtime:${YELLOW_RUNTIME_DATABASE_PASSWORD}@${POSTGRES_ADDRESS}/${native_clone}"
+            export YELLOW_ORDER434_NATIVE_ACCOUNTING_DEPLOY_DATABASE_URL="$YELLOW_ORDER434_DEPLOY_DATABASE_URL"
+            export YELLOW_ORDER434_NATIVE_ACCOUNTING_RUNTIME_DATABASE_URL="$YELLOW_ORDER434_RUNTIME_DATABASE_URL"
+            export YELLOW_ORDER434_NATIVE_ISSUANCE_RUNTIME_DATABASE_URL="$YELLOW_ORDER434_RUNTIME_DATABASE_URL"
+            printf 'Order434 native proof: %s\n' "$proof_file"
+            bun test "$proof_file"
+            docker compose exec -T postgres psql --username yellow_deploy --dbname postgres --set ON_ERROR_STOP=1 \
+              --command "DROP DATABASE IF EXISTS ${native_clone} WITH (FORCE)"
+          done
+
+          # Required Order440 proof uses the same pristine migrated template,
+          # never a tenant fixture left behind by the preceding native suites.
+          wire_database="yellow_order440_ci"
+          native_clones+=("$wire_database")
+          docker compose exec -T postgres psql --username yellow_deploy --dbname postgres --set ON_ERROR_STOP=1 \
+            --command "CREATE DATABASE ${wire_database} TEMPLATE ${native_template}"
+          YELLOW_ORDER440_DEPLOY_DATABASE_URL="postgres://yellow_deploy:${YELLOW_DEPLOY_DATABASE_PASSWORD}@${POSTGRES_ADDRESS}/${wire_database}" \
+          YELLOW_ORDER440_RUNTIME_DATABASE_URL="postgres://yellow_runtime:${YELLOW_RUNTIME_DATABASE_PASSWORD}@${POSTGRES_ADDRESS}/${wire_database}" \
+          YELLOW_REQUIRE_ORDER440_DATABASE=1 \
+            bun test tests/india-irp-issued-wire-candidate.integration.test.ts
+          docker compose exec -T postgres psql --username yellow_deploy --dbname postgres --set ON_ERROR_STOP=1 \
+            --command "DROP DATABASE ${wire_database} WITH (FORCE)"
+
+          # Q203 exercises signed-session HTTP against an isolated current80 clone.
+          q203_database="yellow_order440_q203_ci"
+          native_clones+=("$q203_database")
+          docker compose exec -T postgres psql --username yellow_deploy --dbname postgres --set ON_ERROR_STOP=1 \
+            --command "CREATE DATABASE ${q203_database} TEMPLATE ${native_template}"
+          YELLOW_ORDER440_HTTP_DEPLOY_DATABASE_URL="postgres://yellow_deploy:${YELLOW_DEPLOY_DATABASE_PASSWORD}@${POSTGRES_ADDRESS}/${q203_database}" \
+          YELLOW_ORDER440_HTTP_RUNTIME_DATABASE_URL="postgres://yellow_runtime:${YELLOW_RUNTIME_DATABASE_PASSWORD}@${POSTGRES_ADDRESS}/${q203_database}" \
+          YELLOW_REQUIRE_ORDER440_HTTP=1 \
+            bun test tests/operator-fiscal-submission.integration.test.ts
+          docker compose exec -T postgres psql --username yellow_deploy --dbname postgres --set ON_ERROR_STOP=1 \
+            --command "DROP DATABASE ${q203_database} WITH (FORCE)"
+
+          # Q204 and Q207 retain their exact historical81 catalogue even after the
+          # current release advances. Their own suites verify the complete ledger.
+          signed_migrations="$(mktemp -d "$RUNNER_TEMP/yellow-order440-prefix81.XXXXXX")"
+          for migration in "$GITHUB_WORKSPACE"/migrations/*.sql; do
+            filename="$(basename "$migration")"
+            if (( 10#${filename:0:4} <= 81 )); then cp "$migration" "$signed_migrations/$filename"; fi
+          done
+          export YELLOW_MIGRATIONS_DIR="$signed_migrations"
+
+          # Q204 exercises actual HTTP/discovery/transport/reconciliation on an
+          # empty exact81 clone. The isolated adapter is never production authority.
+          q204_database="yellow_order440_q204_ci"
+          native_clones+=("$q204_database")
+          docker compose exec -T postgres psql --username yellow_deploy --dbname postgres --set ON_ERROR_STOP=1 \
+            --command "CREATE DATABASE ${q204_database} TEMPLATE ${native_template}"
+          YELLOW_DEPLOY_DATABASE_URL="postgres://yellow_deploy:${YELLOW_DEPLOY_DATABASE_PASSWORD}@${POSTGRES_ADDRESS}/${q204_database}" \
+            bun run db:migrate
+          YELLOW_ORDER440_DELIVERY_DEPLOY_DATABASE_URL="postgres://yellow_deploy:${YELLOW_DEPLOY_DATABASE_PASSWORD}@${POSTGRES_ADDRESS}/${q204_database}" \
+          YELLOW_ORDER440_DELIVERY_RUNTIME_DATABASE_URL="postgres://yellow_runtime:${YELLOW_RUNTIME_DATABASE_PASSWORD}@${POSTGRES_ADDRESS}/${q204_database}" \
+          YELLOW_REQUIRE_ORDER440_DELIVERY=1 \
+            bun test tests/fiscal-submission-delivery-runtime.integration.test.ts
+          YELLOW_REQUIRE_SERVER_FISCAL_PROCESS=1 \
+            bun test tests/server-fiscal-runtime.test.ts
+          docker compose exec -T postgres psql --username yellow_deploy --dbname postgres --set ON_ERROR_STOP=1 \
+            --command "DROP DATABASE ${q204_database} WITH (FORCE)"
+
+          # Q205 records real request/retry receipts on78, then proves their
+          # immutable HTTP bytes through the forward79 upgrade and later attempts.
+          q205_database="yellow_order440_q205_ci"
+          native_clones+=("$q205_database")
+          docker compose exec -T postgres psql --username yellow_deploy --dbname postgres --set ON_ERROR_STOP=1 \
+            --command "CREATE DATABASE ${q205_database}"
+          replay_migrations="$(mktemp -d "$RUNNER_TEMP/yellow-order440-prefix78.XXXXXX")"
+          for migration in "$GITHUB_WORKSPACE"/migrations/*.sql; do
+            filename="$(basename "$migration")"
+            if (( 10#${filename:0:4} <= 78 )); then cp "$migration" "$replay_migrations/$filename"; fi
+          done
+          YELLOW_DEPLOY_DATABASE_URL="postgres://yellow_deploy:${YELLOW_DEPLOY_DATABASE_PASSWORD}@${POSTGRES_ADDRESS}/${q205_database}" \
+          YELLOW_ORDER440_PRE_MIGRATIONS_DIR="$replay_migrations" \
+            bun -e 'import { runMigrations } from "./scripts/migrate"; const result = await runMigrations({ databaseUrl: process.env.YELLOW_DEPLOY_DATABASE_URL, migrationsDirectory: process.env.YELLOW_ORDER440_PRE_MIGRATIONS_DIR }); if (result.discoveredFiles !== 78) throw new Error("Expected the exact prefix-78 predecessor");'
+          YELLOW_ORDER440_REPLAY_DEPLOY_DATABASE_URL="postgres://yellow_deploy:${YELLOW_DEPLOY_DATABASE_PASSWORD}@${POSTGRES_ADDRESS}/${q205_database}" \
+          YELLOW_ORDER440_REPLAY_RUNTIME_DATABASE_URL="postgres://yellow_runtime:${YELLOW_RUNTIME_DATABASE_PASSWORD}@${POSTGRES_ADDRESS}/${q205_database}" \
+          YELLOW_REQUIRE_ORDER440_REPLAY=1 YELLOW_ORDER440_REPLAY_APPLY_UPGRADE=1 \
+            bun test tests/fiscal-submission-immutable-replay.integration.test.ts
+          [[ "$replay_migrations" == "$RUNNER_TEMP"/yellow-order440-prefix78.* ]]
+          rm -r -- "$replay_migrations"
+          docker compose exec -T postgres psql --username yellow_deploy --dbname postgres --set ON_ERROR_STOP=1 \
+            --command "DROP DATABASE ${q205_database} WITH (FORCE)"
+
+          # Q201 proves legacy retention and atomic canonical 77-to-78 upgrade.
+          durable_database="yellow_order440_durable_ci"
+          native_clones+=("$durable_database")
+          docker compose exec -T postgres psql --username yellow_deploy --dbname postgres --set ON_ERROR_STOP=1 \
+            --command "CREATE DATABASE ${durable_database}"
+          durable_migrations="$(mktemp -d "$RUNNER_TEMP/yellow-order440-prefix77.XXXXXX")"
+          for migration in "$GITHUB_WORKSPACE"/migrations/*.sql; do
+            filename="$(basename "$migration")"
+            if (( 10#${filename:0:4} <= 77 )); then cp "$migration" "$durable_migrations/$filename"; fi
+          done
+          YELLOW_DEPLOY_DATABASE_URL="postgres://yellow_deploy:${YELLOW_DEPLOY_DATABASE_PASSWORD}@${POSTGRES_ADDRESS}/${durable_database}" \
+          YELLOW_ORDER440_PRE_MIGRATIONS_DIR="$durable_migrations" \
+            bun -e 'import { runMigrations } from "./scripts/migrate"; const result = await runMigrations({ databaseUrl: process.env.YELLOW_DEPLOY_DATABASE_URL, migrationsDirectory: process.env.YELLOW_ORDER440_PRE_MIGRATIONS_DIR }); if (result.discoveredFiles !== 77) throw new Error("Expected the exact prefix-77 predecessor");'
+          YELLOW_ORDER440_DURABLE_DEPLOY_DATABASE_URL="postgres://yellow_deploy:${YELLOW_DEPLOY_DATABASE_PASSWORD}@${POSTGRES_ADDRESS}/${durable_database}" \
+          YELLOW_ORDER440_DURABLE_RUNTIME_DATABASE_URL="postgres://yellow_runtime:${YELLOW_RUNTIME_DATABASE_PASSWORD}@${POSTGRES_ADDRESS}/${durable_database}" \
+          YELLOW_REQUIRE_ORDER440_DURABILITY=1 \
+            bun test tests/fiscal-submission-durability.integration.test.ts
+          [[ "$durable_migrations" == "$RUNNER_TEMP"/yellow-order440-prefix77.* ]]
+          rm -r -- "$durable_migrations"
+          docker compose exec -T postgres psql --username yellow_deploy --dbname postgres --set ON_ERROR_STOP=1 \
+            --command "DROP DATABASE ${durable_database} WITH (FORCE)"
+
+          # Q207 independently exercises the genuine frontier80-to81 preservation
+          # path. The historical Q203 fixture above remains on canonical80.
+          q207_upgrade_database="yellow_order440_q207_upgrade_ci"
+          native_clones+=("$q207_upgrade_database")
+          docker compose exec -T postgres psql --username yellow_deploy --dbname postgres --set ON_ERROR_STOP=1 \
+            --command "CREATE DATABASE ${q207_upgrade_database} TEMPLATE ${native_template}"
+          YELLOW_ORDER440_SIGNED_DEPLOY_DATABASE_URL="postgres://yellow_deploy:${YELLOW_DEPLOY_DATABASE_PASSWORD}@${POSTGRES_ADDRESS}/${q207_upgrade_database}" \
+          YELLOW_ORDER440_SIGNED_RUNTIME_DATABASE_URL="postgres://yellow_runtime:${YELLOW_RUNTIME_DATABASE_PASSWORD}@${POSTGRES_ADDRESS}/${q207_upgrade_database}" \
+          YELLOW_REQUIRE_ORDER440_SIGNED=1 YELLOW_ORDER440_SIGNED_APPLY_UPGRADE=1 \
+            bun test tests/fiscal-signed-receipt-durability.integration.test.ts
+          docker compose exec -T postgres psql --username yellow_deploy --dbname postgres --set ON_ERROR_STOP=1 \
+            --command "DROP DATABASE ${q207_upgrade_database} WITH (FORCE)"
+
+          # Q207's empty exact historical81 durability proof must close first. The full
+          # authenticated protocol journey and signed-session GET then use that
+          # same isolated81 target sequentially, never an old80 fixture.
+          q207_database="yellow_order440_q207_ci"
+          native_clones+=("$q207_database")
+          docker compose exec -T postgres psql --username yellow_deploy --dbname postgres --set ON_ERROR_STOP=1 \
+            --command "CREATE DATABASE ${q207_database} TEMPLATE ${native_template}"
+          q207_deploy_url="postgres://yellow_deploy:${YELLOW_DEPLOY_DATABASE_PASSWORD}@${POSTGRES_ADDRESS}/${q207_database}"
+          q207_runtime_url="postgres://yellow_runtime:${YELLOW_RUNTIME_DATABASE_PASSWORD}@${POSTGRES_ADDRESS}/${q207_database}"
+          YELLOW_DEPLOY_DATABASE_URL="$q207_deploy_url" bun run db:migrate
+          YELLOW_ORDER440_SIGNED_DEPLOY_DATABASE_URL="$q207_deploy_url" \
+          YELLOW_ORDER440_SIGNED_RUNTIME_DATABASE_URL="$q207_runtime_url" \
+          YELLOW_REQUIRE_ORDER440_SIGNED=1 \
+            bun test tests/fiscal-signed-receipt-durability.integration.test.ts
+          YELLOW_ORDER440_SIGNED_DEPLOY_DATABASE_URL="$q207_deploy_url" \
+          YELLOW_ORDER440_SIGNED_RUNTIME_DATABASE_URL="$q207_runtime_url" \
+          YELLOW_REQUIRE_ORDER440_SIGNED=1 \
+            bun test tests/fiscal-signed-provider-journey.integration.test.ts
+          YELLOW_ORDER440_SIGNED_DEPLOY_DATABASE_URL="$q207_deploy_url" \
+          YELLOW_ORDER440_SIGNED_RUNTIME_DATABASE_URL="$q207_runtime_url" \
+          YELLOW_REQUIRE_ORDER440_SIGNED=1 \
+            bun test tests/operator-fiscal-submission-receipt.integration.test.ts
+          docker compose exec -T postgres psql --username yellow_deploy --dbname postgres --set ON_ERROR_STOP=1 \
+            --command "DROP DATABASE ${q207_database} WITH (FORCE)"
+
+          # Q209 and Q208 are frozen current85 evidence. Never allow a later
+          # frontier migration to silently relabel those historical proofs.
+          current85_migrations="$(mktemp -d "$RUNNER_TEMP/yellow-order440-prefix85.XXXXXX")"
+          for migration in "$GITHUB_WORKSPACE"/migrations/*.sql; do
+            filename="$(basename "$migration")"
+            if (( 10#${filename:0:4} <= 85 )); then cp "$migration" "$current85_migrations/$filename"; fi
+          done
+
+          # Q209 creates genuine predecessor records on81, then proves that the
+          # unchanged82–85 upgrade preserves all artifacts and old command replays.
+          q209_database="yellow_order440_q209_populated_ci"
+          native_clones+=("$q209_database")
+          docker compose exec -T postgres psql --username yellow_deploy --dbname postgres --set ON_ERROR_STOP=1 \
+            --command "CREATE DATABASE ${q209_database} TEMPLATE ${native_template}"
+          q209_deploy_url="postgres://yellow_deploy:${YELLOW_DEPLOY_DATABASE_PASSWORD}@${POSTGRES_ADDRESS}/${q209_database}"
+          q209_runtime_url="postgres://yellow_runtime:${YELLOW_RUNTIME_DATABASE_PASSWORD}@${POSTGRES_ADDRESS}/${q209_database}"
+          YELLOW_MIGRATIONS_DIR="$signed_migrations" YELLOW_DEPLOY_DATABASE_URL="$q209_deploy_url" bun run db:migrate
+          env -u YELLOW_MIGRATIONS_DIR \
+            YELLOW_ORDER440_Q209_DEPLOY_DATABASE_URL="$q209_deploy_url" \
+            YELLOW_ORDER440_Q209_RUNTIME_DATABASE_URL="$q209_runtime_url" \
+            YELLOW_REQUIRE_ORDER440_Q209_DATABASE=1 \
+            bun test tests/india-native-fiscal-populated-upgrade.integration.test.ts
+          docker compose exec -T postgres psql --username yellow_deploy --dbname postgres --set ON_ERROR_STOP=1 \
+            --command "DROP DATABASE ${q209_database} WITH (FORCE)"
+
+          # Q208 is a distinct empty current85 target. It must not inherit the
+          # historical signed-receipt migration prefix or any earlier fixture rows.
+          q208_database="yellow_order440_q208_fresh85_ci"
+          unset YELLOW_MIGRATIONS_DIR
+          [[ "$signed_migrations" == "$RUNNER_TEMP"/yellow-order440-prefix81.* ]]
+          rm -r -- "$signed_migrations"
+          signed_migrations=''
+          native_clones+=("$q208_database")
+          docker compose exec -T postgres psql --username yellow_deploy --dbname postgres --set ON_ERROR_STOP=1 \
+            --command "CREATE DATABASE ${q208_database}"
+          q208_deploy_url="postgres://yellow_deploy:${YELLOW_DEPLOY_DATABASE_PASSWORD}@${POSTGRES_ADDRESS}/${q208_database}"
+          q208_runtime_url="postgres://yellow_runtime:${YELLOW_RUNTIME_DATABASE_PASSWORD}@${POSTGRES_ADDRESS}/${q208_database}"
+          YELLOW_MIGRATIONS_DIR="$current85_migrations" YELLOW_DEPLOY_DATABASE_URL="$q208_deploy_url" bun run db:migrate
+          YELLOW_ORDER440_Q208_DEPLOY_DATABASE_URL="$q208_deploy_url" \
+          YELLOW_ORDER440_Q208_RUNTIME_DATABASE_URL="$q208_runtime_url" \
+          YELLOW_REQUIRE_ORDER440_Q208_DATABASE=1 \
+            bun test tests/india-native-fiscal-operator.integration.test.ts
+          docker compose exec -T postgres psql --username yellow_deploy --dbname postgres --set ON_ERROR_STOP=1 \
+            --command "DROP DATABASE ${q208_database} WITH (FORCE)"
+
+          # Q212 proves both a fresh current86 catalogue and a populated exact85
+          # predecessor upgraded through only the forward retry-binding migration.
+          current86_migrations="$(mktemp -d "$RUNNER_TEMP/yellow-order440-prefix86.XXXXXX")"
+          for migration in "$GITHUB_WORKSPACE"/migrations/*.sql; do
+            filename="$(basename "$migration")"
+            if (( 10#${filename:0:4} <= 86 )); then cp "$migration" "$current86_migrations/$filename"; fi
+          done
+          q212_fresh_database="yellow_order440_q212_fresh86_ci"
+          native_clones+=("$q212_fresh_database")
+          docker compose exec -T postgres psql --username yellow_deploy --dbname postgres --set ON_ERROR_STOP=1 \
+            --command "CREATE DATABASE ${q212_fresh_database}"
+          q212_fresh_deploy_url="postgres://yellow_deploy:${YELLOW_DEPLOY_DATABASE_PASSWORD}@${POSTGRES_ADDRESS}/${q212_fresh_database}"
+          q212_fresh_runtime_url="postgres://yellow_runtime:${YELLOW_RUNTIME_DATABASE_PASSWORD}@${POSTGRES_ADDRESS}/${q212_fresh_database}"
+          YELLOW_MIGRATIONS_DIR="$current86_migrations" YELLOW_DEPLOY_DATABASE_URL="$q212_fresh_deploy_url" bun run db:migrate
+          YELLOW_ORDER440_Q212_DEPLOY_DATABASE_URL="$q212_fresh_deploy_url" \
+          YELLOW_ORDER440_Q212_RUNTIME_DATABASE_URL="$q212_fresh_runtime_url" \
+          YELLOW_REQUIRE_ORDER440_Q212_DATABASE=1 \
+            bun test tests/fiscal-retry-binding.integration.test.ts
+          docker compose exec -T postgres psql --username yellow_deploy --dbname postgres --set ON_ERROR_STOP=1 \
+            --command "DROP DATABASE ${q212_fresh_database} WITH (FORCE)"
+
+          q212_upgrade_database="yellow_order440_q212_upgrade85_ci"
+          native_clones+=("$q212_upgrade_database")
+          docker compose exec -T postgres psql --username yellow_deploy --dbname postgres --set ON_ERROR_STOP=1 \
+            --command "CREATE DATABASE ${q212_upgrade_database}"
+          q212_upgrade_deploy_url="postgres://yellow_deploy:${YELLOW_DEPLOY_DATABASE_PASSWORD}@${POSTGRES_ADDRESS}/${q212_upgrade_database}"
+          q212_upgrade_runtime_url="postgres://yellow_runtime:${YELLOW_RUNTIME_DATABASE_PASSWORD}@${POSTGRES_ADDRESS}/${q212_upgrade_database}"
+          YELLOW_MIGRATIONS_DIR="$current85_migrations" YELLOW_DEPLOY_DATABASE_URL="$q212_upgrade_deploy_url" bun run db:migrate
+          YELLOW_ORDER440_Q212_MIGRATIONS_DIR="$current86_migrations" \
+            YELLOW_ORDER440_Q212_DEPLOY_DATABASE_URL="$q212_upgrade_deploy_url" \
+            YELLOW_ORDER440_Q212_RUNTIME_DATABASE_URL="$q212_upgrade_runtime_url" \
+            YELLOW_REQUIRE_ORDER440_Q212_DATABASE=1 YELLOW_ORDER440_Q212_APPLY_UPGRADE=1 \
+            bun test tests/fiscal-retry-binding.integration.test.ts
+          docker compose exec -T postgres psql --username yellow_deploy --dbname postgres --set ON_ERROR_STOP=1 \
+            --command "DROP DATABASE ${q212_upgrade_database} WITH (FORCE)"
+          [[ "$current85_migrations" == "$RUNNER_TEMP"/yellow-order440-prefix85.* ]]
+          rm -r -- "$current85_migrations"
+          current85_migrations=''
+          [[ "$current86_migrations" == "$RUNNER_TEMP"/yellow-order440-prefix86.* ]]
+          rm -r -- "$current86_migrations"
+          current86_migrations=''
+
+      - name: Prove Order446 credit-note backend on isolated fresh88 and populated86 targets
+        shell: bash
+        timeout-minutes: 35
+        run: |
+          set -euo pipefail
+          fresh_database="yellow_order446_fresh88_ci"
+          upgrade_database="yellow_order446_upgrade86_ci"
+          readiness_database="yellow_order440_q212_current88_ci"
+          prefix86="$(mktemp -d "$RUNNER_TEMP/yellow-order446-prefix86.XXXXXX")"
+          prefix88="$(mktemp -d "$RUNNER_TEMP/yellow-order446-prefix88.XXXXXX")"
+          trap 'for database in "$fresh_database" "$upgrade_database" "$readiness_database"; do docker compose exec -T postgres psql --username yellow_deploy --dbname postgres --set ON_ERROR_STOP=1 --command "DROP DATABASE IF EXISTS ${database} WITH (FORCE)"; done; if [[ -d "$prefix86" && "$prefix86" == "$RUNNER_TEMP"/yellow-order446-prefix86.* ]]; then rm -r -- "$prefix86"; fi; if [[ -d "$prefix88" && "$prefix88" == "$RUNNER_TEMP"/yellow-order446-prefix88.* ]]; then rm -r -- "$prefix88"; fi' EXIT
+          for migration in "$GITHUB_WORKSPACE"/migrations/*.sql; do
+            filename="$(basename "$migration")"
+            if (( 10#${filename:0:4} <= 86 )); then cp "$migration" "$prefix86/$filename"; fi
+            if (( 10#${filename:0:4} <= 88 )); then cp "$migration" "$prefix88/$filename"; fi
+          done
+
+          docker compose exec -T postgres psql --username yellow_deploy --dbname postgres --set ON_ERROR_STOP=1 \
+            --command "CREATE DATABASE ${fresh_database}"
+          fresh_deploy_url="postgres://yellow_deploy:${YELLOW_DEPLOY_DATABASE_PASSWORD}@${POSTGRES_ADDRESS}/${fresh_database}"
+          fresh_runtime_url="postgres://yellow_runtime:${YELLOW_RUNTIME_DATABASE_PASSWORD}@${POSTGRES_ADDRESS}/${fresh_database}"
+          YELLOW_MIGRATIONS_DIR="$prefix88" YELLOW_DEPLOY_DATABASE_URL="$fresh_deploy_url" bun run db:migrate
+          YELLOW_ORDER446_DEPLOY_DATABASE_URL="$fresh_deploy_url" \
+          YELLOW_ORDER446_RUNTIME_DATABASE_URL="$fresh_runtime_url" \
+          YELLOW_REQUIRE_ORDER446_DATABASE=1 \
+            bun test tests/india-native-fiscal-credit-note.integration.test.ts
+          YELLOW_ORDER446_DEPLOY_DATABASE_URL="$fresh_deploy_url" \
+          YELLOW_ORDER446_RUNTIME_DATABASE_URL="$fresh_runtime_url" \
+          YELLOW_REQUIRE_ORDER446_DATABASE=1 \
+            bun test tests/operator-fiscal-credit-note.integration.test.ts
+          YELLOW_ORDER446_DEPLOY_DATABASE_URL="$fresh_deploy_url" \
+          YELLOW_ORDER446_RUNTIME_DATABASE_URL="$fresh_runtime_url" \
+          YELLOW_REQUIRE_ORDER450_DATABASE=1 \
+            bun test tests/operator-fiscal-credit-note-list.integration.test.ts
+
+          docker compose exec -T postgres psql --username yellow_deploy --dbname postgres --set ON_ERROR_STOP=1 \
+            --command "CREATE DATABASE ${readiness_database}"
+          readiness_deploy_url="postgres://yellow_deploy:${YELLOW_DEPLOY_DATABASE_PASSWORD}@${POSTGRES_ADDRESS}/${readiness_database}"
+          readiness_runtime_url="postgres://yellow_runtime:${YELLOW_RUNTIME_DATABASE_PASSWORD}@${POSTGRES_ADDRESS}/${readiness_database}"
+          YELLOW_MIGRATIONS_DIR="$prefix88" YELLOW_DEPLOY_DATABASE_URL="$readiness_deploy_url" bun run db:migrate
+          YELLOW_ORDER452_PREDECESSOR_DEPLOY_URL="$readiness_deploy_url" \
+          YELLOW_ORDER452_PREDECESSOR_RUNTIME_URL="$readiness_runtime_url" bun -e '
+            import { SQL } from "bun";
+            import { assertRuntimeReleaseReadiness } from "./src/kernel";
+            const deploy = new SQL(process.env.YELLOW_ORDER452_PREDECESSOR_DEPLOY_URL, { max: 1, prepare: false });
+            const runtime = new SQL(process.env.YELLOW_ORDER452_PREDECESSOR_RUNTIME_URL, { max: 1, prepare: false });
+            try {
+              const [row] = await deploy`SELECT count(*)::int migrations,max(version)::int frontier FROM public.schema_migration`;
+              if (row.migrations !== 88 || row.frontier !== 88) throw new Error("Expected exact preserved canonical88");
+              let denied = false;
+              try { await assertRuntimeReleaseReadiness(runtime); }
+              catch (error) { if (!(error instanceof Error) || error.message !== "runtime release readiness is unavailable") throw error; denied = true; }
+              if (!denied) throw new Error("Canonical88 must not satisfy current89 readiness");
+            } finally { await runtime.close(); await deploy.close(); }
+          '
+
+          docker compose exec -T postgres psql --username yellow_deploy --dbname postgres --set ON_ERROR_STOP=1 \
+            --command "CREATE DATABASE ${upgrade_database}"
+          upgrade_deploy_url="postgres://yellow_deploy:${YELLOW_DEPLOY_DATABASE_PASSWORD}@${POSTGRES_ADDRESS}/${upgrade_database}"
+          upgrade_runtime_url="postgres://yellow_runtime:${YELLOW_RUNTIME_DATABASE_PASSWORD}@${POSTGRES_ADDRESS}/${upgrade_database}"
+          YELLOW_MIGRATIONS_DIR="$prefix86" YELLOW_DEPLOY_DATABASE_URL="$upgrade_deploy_url" bun run db:migrate
+          YELLOW_ORDER446_UPGRADE_DEPLOY_DATABASE_URL="$upgrade_deploy_url" \
+          YELLOW_ORDER446_UPGRADE_RUNTIME_DATABASE_URL="$upgrade_runtime_url" \
+          YELLOW_REQUIRE_ORDER446_UPGRADE_DATABASE=1 \
+            bun test tests/india-native-fiscal-credit-note-upgrade.integration.test.ts
+
+      - name: Prove Order447 credit submission on isolated current88 and populated87 targets
+        shell: bash
+        timeout-minutes: 35
+        run: |
+          set -euo pipefail
+          current_database="yellow_order447_current88_ci"
+          upgrade_database="yellow_order447_upgrade87_ci"
+          prefix87="$(mktemp -d "$RUNNER_TEMP/yellow-order447-prefix87.XXXXXX")"
+          prefix88="$(mktemp -d "$RUNNER_TEMP/yellow-order447-prefix88.XXXXXX")"
+          trap 'for database in "$current_database" "$upgrade_database"; do docker compose exec -T postgres psql --username yellow_deploy --dbname postgres --set ON_ERROR_STOP=1 --command "DROP DATABASE IF EXISTS ${database} WITH (FORCE)"; done; if [[ -d "$prefix87" && "$prefix87" == "$RUNNER_TEMP"/yellow-order447-prefix87.* ]]; then rm -r -- "$prefix87"; fi; if [[ -d "$prefix88" && "$prefix88" == "$RUNNER_TEMP"/yellow-order447-prefix88.* ]]; then rm -r -- "$prefix88"; fi' EXIT
+          for migration in "$GITHUB_WORKSPACE"/migrations/*.sql; do
+            filename="$(basename "$migration")"
+            if (( 10#${filename:0:4} <= 87 )); then cp "$migration" "$prefix87/$filename"; fi
+            if (( 10#${filename:0:4} <= 88 )); then cp "$migration" "$prefix88/$filename"; fi
+          done
+          prepare_order447_prerequisites() {
+            YELLOW_ORDER447_PREREQUISITE_URL="$1" bun -e '
+              import { SQL } from "bun";
+              import { LAUNCH_EXTENSION_TYPES } from "./scripts/seed";
+              const database = new SQL(process.env.YELLOW_ORDER447_PREREQUISITE_URL, { max: 1, prepare: false });
+              const permissions = [
+                { code: "financials.adjustments:write", description: "Create governed immutable folio adjustments" },
+                { code: "financials.adjustments:post-seal", description: "Post governed corrections referencing sealed source days" },
+              ];
+              const providers = LAUNCH_EXTENSION_TYPES.filter(value => value.type === "fiscal_provider");
+              if (providers.length !== 1) throw new Error("Expected one canonical fiscal_provider schema");
+              const provider = providers[0];
+              try {
+                await database.begin(async tx => {
+                  const [before] = await tx`SELECT
+                    (SELECT count(*)::int FROM public.permission WHERE code IN (${permissions[0].code},${permissions[1].code})) permissions,
+                    EXISTS(SELECT 1 FROM public.extension_type WHERE type=${provider.type}) provider`;
+                  if (before.permissions !== 0 || before.provider) throw new Error("Order447 CI prerequisites already exist");
+                  for (const permission of permissions) {
+                    await tx`INSERT INTO public.permission(code,description) VALUES(${permission.code},${permission.description})`;
+                  }
+                  await tx`INSERT INTO public.extension_type(type,json_schema) VALUES(${provider.type},${JSON.stringify(provider.jsonSchema)}::jsonb)`;
+                  const [after] = await tx`SELECT
+                    (SELECT count(*)::int FROM public.permission WHERE code IN (${permissions[0].code},${permissions[1].code})) permissions,
+                    EXISTS(SELECT 1 FROM public.extension_type WHERE type=${provider.type}) provider`;
+                  if (after.permissions !== 2 || !after.provider) throw new Error("Order447 CI prerequisites incomplete");
+                });
+              } finally { await database.close(); }
+            '
+          }
+
+          docker compose exec -T postgres psql --username yellow_deploy --dbname postgres --set ON_ERROR_STOP=1 \
+            --command "CREATE DATABASE ${current_database}"
+          current_deploy_url="postgres://yellow_deploy:${YELLOW_DEPLOY_DATABASE_PASSWORD}@${POSTGRES_ADDRESS}/${current_database}"
+          current_runtime_url="postgres://yellow_runtime:${YELLOW_RUNTIME_DATABASE_PASSWORD}@${POSTGRES_ADDRESS}/${current_database}"
+          YELLOW_MIGRATIONS_DIR="$prefix88" YELLOW_DEPLOY_DATABASE_URL="$current_deploy_url" bun run db:migrate
+          prepare_order447_prerequisites "$current_deploy_url"
+          YELLOW_ORDER447_TARGET_MODE=ci-canonical \
+          YELLOW_REQUIRE_ORDER447_CI_CANONICAL=1 \
+          YELLOW_ORDER447_CI_DATABASE_ADDRESS="$POSTGRES_ADDRESS" \
+          YELLOW_ORDER447_DEPLOY_DATABASE_URL="$current_deploy_url" \
+          YELLOW_ORDER447_RUNTIME_DATABASE_URL="$current_runtime_url" \
+          YELLOW_REQUIRE_ORDER447_DATABASE=1 \
+          YELLOW_REQUIRE_ORDER447_PROVIDER_JOURNEY=1 \
+          YELLOW_REQUIRE_ORDER447_OPERATOR_ORIGIN=1 \
+          YELLOW_REQUIRE_ORDER447_RECOVERY=1 \
+            bun test tests/india-native-credit-submission.integration.test.ts tests/india-native-credit-provider-journey.integration.test.ts tests/india-native-credit-operator-origin.integration.test.ts tests/india-native-credit-submission-recovery.integration.test.ts
+
+          docker compose exec -T postgres psql --username yellow_deploy --dbname postgres --set ON_ERROR_STOP=1 \
+            --command "CREATE DATABASE ${upgrade_database}"
+          upgrade_deploy_url="postgres://yellow_deploy:${YELLOW_DEPLOY_DATABASE_PASSWORD}@${POSTGRES_ADDRESS}/${upgrade_database}"
+          upgrade_runtime_url="postgres://yellow_runtime:${YELLOW_RUNTIME_DATABASE_PASSWORD}@${POSTGRES_ADDRESS}/${upgrade_database}"
+          YELLOW_MIGRATIONS_DIR="$prefix87" YELLOW_DEPLOY_DATABASE_URL="$upgrade_deploy_url" bun run db:migrate
+          prepare_order447_prerequisites "$upgrade_deploy_url"
+          YELLOW_ORDER447_TARGET_MODE=ci-canonical \
+          YELLOW_REQUIRE_ORDER447_CI_CANONICAL=1 \
+          YELLOW_ORDER447_CI_DATABASE_ADDRESS="$POSTGRES_ADDRESS" \
+          YELLOW_ORDER447_UPGRADE_DEPLOY_DATABASE_URL="$upgrade_deploy_url" \
+          YELLOW_ORDER447_UPGRADE_RUNTIME_DATABASE_URL="$upgrade_runtime_url" \
+          YELLOW_REQUIRE_ORDER447_UPGRADE_DATABASE=1 \
+            bun test tests/india-native-credit-submission-upgrade.integration.test.ts
+
+      - name: Prove Order452 credit delivery discovery on isolated current89 and populated88 targets
+        shell: bash
+        timeout-minutes: 35
+        run: |
+          set -euo pipefail
+          current_database="yellow_order452_current89_ci"
+          upgrade_database="yellow_order452_upgrade88_ci"
+          prefix88="$(mktemp -d "$RUNNER_TEMP/yellow-order452-prefix88.XXXXXX")"
+          prefix89="$(mktemp -d "$RUNNER_TEMP/yellow-order452-prefix89.XXXXXX")"
+          trap 'for database in "$current_database" "$upgrade_database"; do docker compose exec -T postgres psql --username yellow_deploy --dbname postgres --set ON_ERROR_STOP=1 --command "DROP DATABASE IF EXISTS ${database} WITH (FORCE)"; done; if [[ -d "$prefix88" && "$prefix88" == "$RUNNER_TEMP"/yellow-order452-prefix88.* ]]; then rm -r -- "$prefix88"; fi; if [[ -d "$prefix89" && "$prefix89" == "$RUNNER_TEMP"/yellow-order452-prefix89.* ]]; then rm -r -- "$prefix89"; fi' EXIT
+          for migration in "$GITHUB_WORKSPACE"/migrations/*.sql; do
+            filename="$(basename "$migration")"
+            if (( 10#${filename:0:4} <= 88 )); then cp "$migration" "$prefix88/$filename"; fi
+            if (( 10#${filename:0:4} <= 89 )); then cp "$migration" "$prefix89/$filename"; fi
+          done
+          prepare_order452_prerequisites() {
+            YELLOW_ORDER452_PREREQUISITE_URL="$1" bun -e '
+              import { SQL } from "bun";
+              import { LAUNCH_EXTENSION_TYPES } from "./scripts/seed";
+              const database = new SQL(process.env.YELLOW_ORDER452_PREREQUISITE_URL, { max: 1, prepare: false });
+              const permissions = [
+                { code: "financials.adjustments:write", description: "Create governed immutable folio adjustments" },
+                { code: "financials.adjustments:post-seal", description: "Post governed corrections referencing sealed source days" },
+              ];
+              const providers = LAUNCH_EXTENSION_TYPES.filter(value => value.type === "fiscal_provider");
+              if (providers.length !== 1) throw new Error("Expected one canonical fiscal_provider schema");
+              const provider = providers[0];
+              try {
+                await database.begin(async tx => {
+                  const [before] = await tx`SELECT
+                    (SELECT count(*)::int FROM public.permission WHERE code IN (${permissions[0].code},${permissions[1].code})) permissions,
+                    EXISTS(SELECT 1 FROM public.extension_type WHERE type=${provider.type}) provider`;
+                  if (before.permissions !== 0 || before.provider) throw new Error("Order452 CI prerequisites already exist");
+                  for (const permission of permissions) {
+                    await tx`INSERT INTO public.permission(code,description) VALUES(${permission.code},${permission.description})`;
+                  }
+                  await tx`INSERT INTO public.extension_type(type,json_schema) VALUES(${provider.type},${JSON.stringify(provider.jsonSchema)}::jsonb)`;
+                  const [after] = await tx`SELECT
+                    (SELECT count(*)::int FROM public.permission WHERE code IN (${permissions[0].code},${permissions[1].code})) permissions,
+                    EXISTS(SELECT 1 FROM public.extension_type WHERE type=${provider.type}) provider`;
+                  if (after.permissions !== 2 || !after.provider) throw new Error("Order452 CI prerequisites incomplete");
+                });
+              } finally { await database.close(); }
+            '
+          }
+
+          docker compose exec -T postgres psql --username yellow_deploy --dbname postgres --set ON_ERROR_STOP=1 \
+            --command "CREATE DATABASE ${current_database}"
+          current_deploy_url="postgres://yellow_deploy:${YELLOW_DEPLOY_DATABASE_PASSWORD}@${POSTGRES_ADDRESS}/${current_database}"
+          current_runtime_url="postgres://yellow_runtime:${YELLOW_RUNTIME_DATABASE_PASSWORD}@${POSTGRES_ADDRESS}/${current_database}"
+          YELLOW_MIGRATIONS_DIR="$prefix89" YELLOW_DEPLOY_DATABASE_URL="$current_deploy_url" bun run db:migrate
+          prepare_order452_prerequisites "$current_deploy_url"
+          YELLOW_ORDER452_TARGET_MODE=ci-canonical \
+          YELLOW_REQUIRE_ORDER452_CI_CANONICAL=1 \
+          YELLOW_ORDER452_CI_DATABASE_ADDRESS="$POSTGRES_ADDRESS" \
+          YELLOW_ORDER452_DEPLOY_DATABASE_URL="$current_deploy_url" \
+          YELLOW_ORDER452_RUNTIME_DATABASE_URL="$current_runtime_url" \
+          YELLOW_REQUIRE_ORDER452_DATABASE=1 \
+            bun test tests/india-native-credit-delivery.integration.test.ts tests/operator-native-credit-delivery.integration.test.ts
+
+          docker compose exec -T postgres psql --username yellow_deploy --dbname postgres --set ON_ERROR_STOP=1 \
+            --command "CREATE DATABASE ${upgrade_database}"
+          upgrade_deploy_url="postgres://yellow_deploy:${YELLOW_DEPLOY_DATABASE_PASSWORD}@${POSTGRES_ADDRESS}/${upgrade_database}"
+          upgrade_runtime_url="postgres://yellow_runtime:${YELLOW_RUNTIME_DATABASE_PASSWORD}@${POSTGRES_ADDRESS}/${upgrade_database}"
+          YELLOW_MIGRATIONS_DIR="$prefix88" YELLOW_DEPLOY_DATABASE_URL="$upgrade_deploy_url" bun run db:migrate
+          prepare_order452_prerequisites "$upgrade_deploy_url"
+          YELLOW_ORDER452_TARGET_MODE=ci-canonical \
+          YELLOW_REQUIRE_ORDER452_CI_CANONICAL=1 \
+          YELLOW_ORDER452_CI_DATABASE_ADDRESS="$POSTGRES_ADDRESS" \
+          YELLOW_ORDER452_UPGRADE_DEPLOY_DATABASE_URL="$upgrade_deploy_url" \
+          YELLOW_ORDER452_UPGRADE_RUNTIME_DATABASE_URL="$upgrade_runtime_url" \
+          YELLOW_REQUIRE_ORDER452_UPGRADE_DATABASE=1 \
+          YELLOW_REQUIRE_ORDER452_CANONICAL_UPGRADE=1 \
+            bun test tests/india-native-credit-delivery-upgrade.integration.test.ts
+
+      - name: Prove Order453 fiscal series on isolated current90 and populated89 targets
+        shell: bash
+        timeout-minutes: 35
+        run: |
+          set -euo pipefail
+          current_database="yellow_order453_current90_ci"
+          upgrade_database="yellow_order453_upgrade89_ci"
+          readiness_database="yellow_order453_q212_current90_ci"
+          prefix89="$(mktemp -d "$RUNNER_TEMP/yellow-order453-prefix89.XXXXXX")"
+          trap 'for database in "$current_database" "$upgrade_database" "$readiness_database"; do docker compose exec -T postgres psql --username yellow_deploy --dbname postgres --set ON_ERROR_STOP=1 --command "DROP DATABASE IF EXISTS ${database} WITH (FORCE)"; done; if [[ -d "$prefix89" && "$prefix89" == "$RUNNER_TEMP"/yellow-order453-prefix89.* ]]; then rm -r -- "$prefix89"; fi' EXIT
+          for migration in "$GITHUB_WORKSPACE"/migrations/*.sql; do
+            filename="$(basename "$migration")"
+            if (( 10#${filename:0:4} <= 89 )); then cp "$migration" "$prefix89/$filename"; fi
+          done
+
+          docker compose exec -T postgres psql --username yellow_deploy --dbname postgres --set ON_ERROR_STOP=1 \
+            --command "CREATE DATABASE ${current_database}"
+          current_deploy_url="postgres://yellow_deploy:${YELLOW_DEPLOY_DATABASE_PASSWORD}@${POSTGRES_ADDRESS}/${current_database}"
+          current_runtime_url="postgres://yellow_runtime:${YELLOW_RUNTIME_DATABASE_PASSWORD}@${POSTGRES_ADDRESS}/${current_database}"
+          env -u YELLOW_MIGRATIONS_DIR YELLOW_DEPLOY_DATABASE_URL="$current_deploy_url" bun run db:migrate
+          YELLOW_ORDER453_TARGET_MODE=ci-canonical \
+          YELLOW_REQUIRE_ORDER453_CI_CANONICAL=1 \
+          YELLOW_ORDER453_CI_DATABASE_ADDRESS="$POSTGRES_ADDRESS" \
+          YELLOW_ORDER453_DEPLOY_DATABASE_URL="$current_deploy_url" \
+          YELLOW_ORDER453_RUNTIME_DATABASE_URL="$current_runtime_url" \
+          YELLOW_REQUIRE_ORDER453_DATABASE=1 \
+          YELLOW_ORDER453_NATIVE_EXECUTE_AFTER_HANDOFF=1 \
+            bun test tests/india-native-fiscal-series-authority.integration.test.ts tests/operator-native-fiscal-series.integration.test.ts
+
+          docker compose exec -T postgres psql --username yellow_deploy --dbname postgres --set ON_ERROR_STOP=1 \
+            --command "CREATE DATABASE ${upgrade_database}"
+          upgrade_deploy_url="postgres://yellow_deploy:${YELLOW_DEPLOY_DATABASE_PASSWORD}@${POSTGRES_ADDRESS}/${upgrade_database}"
+          upgrade_runtime_url="postgres://yellow_runtime:${YELLOW_RUNTIME_DATABASE_PASSWORD}@${POSTGRES_ADDRESS}/${upgrade_database}"
+          YELLOW_MIGRATIONS_DIR="$prefix89" YELLOW_DEPLOY_DATABASE_URL="$upgrade_deploy_url" bun run db:migrate
+          YELLOW_ORDER453_TARGET_MODE=ci-canonical \
+          YELLOW_REQUIRE_ORDER453_CI_CANONICAL=1 \
+          YELLOW_ORDER453_CI_DATABASE_ADDRESS="$POSTGRES_ADDRESS" \
+          YELLOW_ORDER453_UPGRADE_DEPLOY_DATABASE_URL="$upgrade_deploy_url" \
+          YELLOW_ORDER453_UPGRADE_RUNTIME_DATABASE_URL="$upgrade_runtime_url" \
+          YELLOW_REQUIRE_ORDER453_UPGRADE_DATABASE=1 \
+          YELLOW_REQUIRE_ORDER453_CANONICAL_UPGRADE=1 \
+          YELLOW_ORDER453_NATIVE_EXECUTE_AFTER_HANDOFF=1 \
+            bun test tests/india-native-fiscal-series-upgrade.integration.test.ts
+
+          docker compose exec -T postgres psql --username yellow_deploy --dbname postgres --set ON_ERROR_STOP=1 \
+            --command "CREATE DATABASE ${readiness_database}"
+          readiness_deploy_url="postgres://yellow_deploy:${YELLOW_DEPLOY_DATABASE_PASSWORD}@${POSTGRES_ADDRESS}/${readiness_database}"
+          readiness_runtime_url="postgres://yellow_runtime:${YELLOW_RUNTIME_DATABASE_PASSWORD}@${POSTGRES_ADDRESS}/${readiness_database}"
+          env -u YELLOW_MIGRATIONS_DIR YELLOW_DEPLOY_DATABASE_URL="$readiness_deploy_url" bun run db:migrate
+          YELLOW_ORDER453_Q212_DEPLOY_DATABASE_URL="$readiness_deploy_url" \
+          YELLOW_ORDER453_Q212_RUNTIME_DATABASE_URL="$readiness_runtime_url" \
+          YELLOW_REQUIRE_ORDER453_Q212_DATABASE=1 \
+            bun test tests/fiscal-retry-readiness.integration.test.ts
+
+      - name: Prove native fiscal release containment on fresh and upgraded databases
+        shell: bash
+        run: |
+          set -euo pipefail
+          export YELLOW_DEPLOY_DATABASE_URL="$ADMIN_URL"
+          export YELLOW_RUNTIME_DATABASE_URL="postgres://yellow_runtime:${YELLOW_RUNTIME_DATABASE_PASSWORD}@${POSTGRES_ADDRESS}/postgres"
+          export YELLOW_REQUIRE_NATIVE_FISCAL_CONTAINMENT=1 YELLOW_REQUIRE_BUILD_READINESS=1
+          bun test tests/native-fiscal-release-containment.integration.test.ts tests/build-readiness.integration.test.ts
+
+      - name: Prove released operational and tax compatibility with split runtime authority
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker compose exec -T postgres psql --username yellow_deploy --dbname postgres --set ON_ERROR_STOP=1 \
+            --command 'CREATE DATABASE yellow_ci_compatibility_unseeded'
+          export YELLOW_DEPLOY_DATABASE_URL="postgres://yellow_deploy:${YELLOW_DEPLOY_DATABASE_PASSWORD}@${POSTGRES_ADDRESS}/yellow_ci_compatibility_unseeded"
+          export YELLOW_REQUIRE_PHASE5_JOURNEY=1 YELLOW_REQUIRE_FOLIO_TRANSFERS=1
+          export YELLOW_REQUIRE_POSITIVE_TAX_CORRECTION=1 YELLOW_REQUIRE_ORDER408_DATABASE=1
+          export YELLOW_REQUIRE_BUSINESS_DAY_SEAL=1 YELLOW_REQUIRE_STAY_CHECKIN=1
+          export YELLOW_REQUIRE_CHECKOUT=1 YELLOW_REQUIRE_SECURITY_DEFINER=1
+          bun run db:migrate
+          docker compose exec -T postgres psql --username yellow_deploy --dbname postgres --set ON_ERROR_STOP=1 \
+            --command 'CREATE DATABASE yellow_ci_compatibility TEMPLATE yellow_ci_compatibility_unseeded'
+          export YELLOW_DEPLOY_DATABASE_URL="postgres://yellow_deploy:${YELLOW_DEPLOY_DATABASE_PASSWORD}@${POSTGRES_ADDRESS}/yellow_ci_compatibility"
+          bun run db:seed
+          proof_index=0
+          for proof_file in \
+            tests/phase-5-financial-journey.integration.test.ts \
+            tests/financial-folio-transfers.integration.test.ts \
+            tests/positive-tax-correction.integration.test.ts \
+            tests/india-final-component-tax-correction.integration.test.ts \
+            tests/business-day-seal.integration.test.ts \
+            tests/stay-checkin.integration.test.ts \
+            tests/stay-checkout.integration.test.ts \
+            tests/security-definer-containment.integration.test.ts \
+            tests/india-gst-accommodation-quoted-rate-applicability-recording.integration.test.ts \
+            tests/india-gst-accommodation-final-component-tax-recording.integration.test.ts; do
+            proof_index=$((proof_index + 1))
+            proof_database="yellow_ci_compat_${proof_index}"
+            case "$proof_file" in
+              tests/india-gst-accommodation-quoted-rate-applicability-recording.integration.test.ts|tests/india-gst-accommodation-final-component-tax-recording.integration.test.ts)
+                proof_template=yellow_ci_compatibility_unseeded ;;
+              *) proof_template=yellow_ci_compatibility ;;
+            esac
+            docker compose exec -T postgres psql --username yellow_deploy --dbname postgres --set ON_ERROR_STOP=1 \
+              --command "CREATE DATABASE \"${proof_database}\" TEMPLATE \"${proof_template}\""
+            export YELLOW_DEPLOY_DATABASE_URL="postgres://yellow_deploy:${YELLOW_DEPLOY_DATABASE_PASSWORD}@${POSTGRES_ADDRESS}/${proof_database}"
+            export YELLOW_RUNTIME_DATABASE_URL="postgres://yellow_runtime:${YELLOW_RUNTIME_DATABASE_PASSWORD}@${POSTGRES_ADDRESS}/${proof_database}"
+            export YELLOW_FOLIO_TRANSFERS_URL="$YELLOW_RUNTIME_DATABASE_URL"
+            export YELLOW_ORDER400_DATABASE_URL="$YELLOW_DEPLOY_DATABASE_URL"
+            export YELLOW_ORDER400_RUNTIME_DATABASE_URL="$YELLOW_RUNTIME_DATABASE_URL"
+            export YELLOW_ORDER367_DATABASE_URL="$YELLOW_DEPLOY_DATABASE_URL"
+            export YELLOW_ORDER367_RUNTIME_DATABASE_URL="$YELLOW_RUNTIME_DATABASE_URL"
+            printf 'Isolated compatibility proof: %s\n' "$proof_file"
+            bun test "$proof_file"
+            docker compose exec -T postgres psql --username yellow_deploy --dbname postgres --set ON_ERROR_STOP=1 \
+              --command "DROP DATABASE \"${proof_database}\" WITH (FORCE)"
+          done
 
       - name: Create fresh acceptance databases
         shell: bash
         run: |
           set -euo pipefail
-          docker compose exec -T postgres psql --username yellow --dbname postgres --set ON_ERROR_STOP=1 <<'SQL'
+          docker compose exec -T postgres psql --username yellow_deploy --dbname postgres --set ON_ERROR_STOP=1 <<'SQL'
           DROP DATABASE IF EXISTS yellow_ci_deployment WITH (FORCE);
           CREATE DATABASE yellow_ci_deployment;
           DROP DATABASE IF EXISTS yellow_ci_invariant WITH (FORCE);
@@ -288,7 +1016,9 @@ jobs:
 
       - name: Prove deployment migration and seed
         run: |
-          export DATABASE_URL="$DEPLOYMENT_URL"
+          export YELLOW_DEPLOY_DATABASE_URL="$DEPLOYMENT_URL"
+          export YELLOW_RUNTIME_DATABASE_URL="$DEPLOYMENT_RUNTIME_URL"
+          export YELLOW_EXTENSION_REGISTRAR_DATABASE_URL="$DEPLOYMENT_REGISTRAR_URL"
           export YELLOW_DATABASE_ACCEPTANCE_URL="$DEPLOYMENT_URL"
           export YELLOW_SCHEMA_DATABASE=yellow_ci_deployment
           bun run db:migrate
@@ -296,10 +1026,62 @@ jobs:
           bun run test:database
           bun run schema:check
 
-      - name: Start application and verify exact health
+      - name: Prove current operational and fiscal review fixtures with split authority
         shell: bash
         run: |
           set -euo pipefail
+          proof_database='yellow_order444_q209_seed_ci'
+          docker compose exec -T postgres psql --username yellow_deploy --dbname postgres --set ON_ERROR_STOP=1 \
+            --command "CREATE DATABASE ${proof_database}"
+          trap 'docker compose exec -T postgres psql --username yellow_deploy --dbname postgres --set ON_ERROR_STOP=1 --command "DROP DATABASE yellow_order444_q209_seed_ci WITH (FORCE)"' EXIT
+          unset YELLOW_MIGRATIONS_DIR YELLOW_REVIEW_SEED_URL
+          export YELLOW_DEPLOY_DATABASE_URL="postgres://yellow_deploy:${YELLOW_DEPLOY_DATABASE_PASSWORD}@${POSTGRES_ADDRESS}/${proof_database}"
+          export YELLOW_RUNTIME_DATABASE_URL="postgres://yellow_runtime:${YELLOW_RUNTIME_DATABASE_PASSWORD}@${POSTGRES_ADDRESS}/${proof_database}"
+          proof_password="$(bun -e 'process.stdout.write(Buffer.from(crypto.getRandomValues(new Uint8Array(48))).toString("base64url"));')"
+          echo "::add-mask::$proof_password"
+          echo "::add-mask::${proof_password}-approver"
+          export YELLOW_REVIEW_SEED_PASSWORD="$proof_password"
+          export YELLOW_REVIEW_APPROVER_PASSWORD="${proof_password}-approver"
+          bun run db:migrate
+          YELLOW_REQUIRE_REVIEW_SEED=1 bun test tests/review-seed.integration.test.ts
+          YELLOW_REQUIRE_FISCAL_REVIEW_SEED=1 bun test tests/fiscal-review-seed.integration.test.ts
+
+      - name: Prove invariant database through canonical referee
+        shell: bash
+        run: |
+          set -euo pipefail
+          export YELLOW_DEPLOY_DATABASE_URL="$INVARIANT_URL"
+          export YELLOW_RUNTIME_DATABASE_URL="$INVARIANT_RUNTIME_URL"
+          export YELLOW_DSN="$INVARIANT_URL"
+          bun run db:migrate
+          docker compose exec -T postgres psql --username yellow_deploy --dbname yellow_ci_invariant --set ON_ERROR_STOP=1 < tests/seed_fixture.sql
+          python tests/run_invariants.py yellow_ci_invariant
+
+      - name: Start application and verify exact health plus database-backed runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          proof_directory="$(mktemp -d)"
+          trap 'rm -rf "$proof_directory"' EXIT
+
+          review_password="$(bun -e 'const b=crypto.getRandomValues(new Uint8Array(48));process.stdout.write(Buffer.from(b).toString("base64url"));')"
+          approver_password="$(bun -e 'const b=crypto.getRandomValues(new Uint8Array(48));process.stdout.write(Buffer.from(b).toString("base64url"));')"
+          token_secret="$(bun -e 'const b=crypto.getRandomValues(new Uint8Array(48));process.stdout.write(Buffer.from(b).toString("base64url"));')"
+          if [[ "$review_password" == "$approver_password" ]]; then exit 1; fi
+          echo "::add-mask::$review_password"
+          echo "::add-mask::$approver_password"
+          echo "::add-mask::$token_secret"
+
+          YELLOW_DEPLOY_DATABASE_URL="$DEPLOYMENT_URL" \
+          YELLOW_REVIEW_PASSWORD="$review_password" \
+          YELLOW_REVIEW_APPROVER_PASSWORD="$approver_password" \
+            bun scripts/seed-review.ts
+
+          export YELLOW_BUILD_SHA="$(git rev-parse HEAD)"
+          export YELLOW_OPERATOR_WORKBENCH=1
+          export YELLOW_HOLD_EXPIRY_WORKER=1
+          export YELLOW_AVAILABILITY_PROJECTION_WORKER=1
+          export YELLOW_TOKEN_SECRET="$token_secret"
           docker compose up --detach app
           if ! app_address="$(docker compose port app 3000 2>/dev/null)"; then
             echo "app service has no published application address" >&2
@@ -310,34 +1092,217 @@ jobs:
             exit 1
           fi
 
+          app_ready=0
           for attempt in {1..30}; do
             status=""
-            if ! status="$(curl --silent --show-error --output /tmp/yellow-health-body --write-out '%{http_code}' "http://${app_address}/health")"; then
+            if ! status="$(curl --silent --show-error --output "$proof_directory/health.json" --write-out '%{http_code}' "http://${app_address}/health")"; then
               status=""
             fi
             body=""
-            if [[ -f /tmp/yellow-health-body ]]; then
-              body="$(cat /tmp/yellow-health-body)"
+            if [[ -f "$proof_directory/health.json" ]]; then
+              body="$(cat "$proof_directory/health.json")"
             fi
-            if [[ "$status" == "200" && "$body" == '{"status":"ok"}' ]]; then exit 0; fi
+            if [[ "$status" == "200" && "$body" == '{"status":"ok"}' ]]; then
+              app_ready=1
+              break
+            fi
             sleep 1
           done
-          exit 1
+          if [[ "$app_ready" != "1" ]]; then
+            echo "application did not reach exact health" >&2
+            exit 1
+          fi
 
-      - name: Prove invariant database through canonical referee
-        shell: bash
-        run: |
-          set -euo pipefail
-          export DATABASE_URL="$INVARIANT_URL"
-          export YELLOW_DSN="$INVARIANT_URL"
-          bun run db:migrate
-          docker compose exec -T postgres psql --username yellow --dbname yellow_ci_invariant --set ON_ERROR_STOP=1 < tests/seed_fixture.sql
-          python tests/run_invariants.py yellow_ci_invariant
+          curl --fail --silent --show-error --max-time 10 \
+            "http://${app_address}/ready" --output "$proof_directory/readiness.json"
+          READY_FILE="$proof_directory/readiness.json" bun -e '
+            const body = await Bun.file(process.env.READY_FILE!).json();
+            if (body.status !== "ready" || body.build?.revision !== process.env.YELLOW_BUILD_SHA
+                || body.build?.expectedMigrationFrontier !== 91
+                || body.target !== "yellow_runtime_database") process.exit(1);
+          '
+
+          LOGIN_PASSWORD="$review_password" LOGIN_FILE="$proof_directory/login-request.json" bun -e '
+            await Bun.write(process.env.LOGIN_FILE!, JSON.stringify({
+              tenant: "yellow-demo", email: "operator@yellow.local", password: process.env.LOGIN_PASSWORD,
+            }));
+          '
+          login_status="$(curl --silent --show-error \
+            --output "$proof_directory/login-response.json" --write-out '%{http_code}' \
+            --header 'content-type: application/json' --data-binary "@$proof_directory/login-request.json" \
+            "http://${app_address}/api/v1/auth/local:login")"
+          if [[ "$login_status" != "200" ]]; then
+            echo "database-backed local login returned HTTP $login_status" >&2
+            exit 1
+          fi
+          access_token="$(LOGIN_FILE="$proof_directory/login-response.json" bun -e '
+            const body = await Bun.file(process.env.LOGIN_FILE!).json();
+            if (typeof body.accessToken !== "string" || body.accessToken.length < 32 || body.tokenType !== "Bearer") {
+              process.exit(1);
+            }
+            process.stdout.write(body.accessToken);
+          ')"
+          echo "::add-mask::$access_token"
+          AUTH_TOKEN="$access_token" AUTH_FILE="$proof_directory/auth.curl" bun -e '
+            await Bun.write(process.env.AUTH_FILE!, `header = "Authorization: Bearer ${process.env.AUTH_TOKEN}"\n`);
+          '
+
+          status_status="$(curl --silent --show-error --config "$proof_directory/auth.curl" \
+            --output "$proof_directory/system-status.json" --write-out '%{http_code}' \
+            "http://${app_address}/api/v1/properties/4518a22f-b455-54c6-a50a-4584383749b9/system-status")"
+          if [[ "$status_status" != "200" ]]; then
+            echo "authenticated tenant database probe returned HTTP $status_status" >&2
+            exit 1
+          fi
+          STATUS_FILE="$proof_directory/system-status.json" YELLOW_DATABASE_NAME="$YELLOW_DATABASE_NAME" bun -e '
+            const body = await Bun.file(process.env.STATUS_FILE!).json();
+            if (body?.live?.database?.state !== "operational"
+                || body.live.database.tenantContext !== true
+                || body.live.database.database !== process.env.YELLOW_DATABASE_NAME
+                || body?.live?.workers?.holdExpiry !== "configured"
+                || body.live.workers.availabilityProjection !== "configured") {
+              process.exit(1);
+            }
+          '
+
+          projection_ready=0
+          for attempt in {1..30}; do
+            cursor_exists="$(docker compose exec -T postgres psql --username yellow_deploy \
+              --dbname "$YELLOW_DATABASE_NAME" --tuples-only --no-align --command \
+              "SELECT EXISTS (SELECT 1 FROM consumer_cursor WHERE consumer = 'availability-projection')")"
+            if [[ "$cursor_exists" == "t" ]]; then
+              projection_ready=1
+              break
+            fi
+            sleep 1
+          done
+          if [[ "$projection_ready" != "1" ]]; then
+            echo "availability projection worker did not establish its runtime database cursor" >&2
+            exit 1
+          fi
+
+          runtime_sessions="$(docker compose exec -T postgres psql --username yellow_deploy \
+            --dbname "$YELLOW_DATABASE_NAME" --tuples-only --no-align --command \
+            "SELECT count(*) FROM pg_stat_activity WHERE datname = current_database() AND usename = 'yellow_runtime'")"
+          if [[ ! "$runtime_sessions" =~ ^[0-9]+$ || "$runtime_sessions" -lt 4 ]]; then
+            echo "runtime startup did not establish the application and worker database sessions" >&2
+            exit 1
+          fi
 
       - name: Print database logs on failure
         if: failure()
-        run: docker compose logs --no-color postgres app
+        timeout-minutes: 1
+        run: |
+          echo "Bounded PostgreSQL/app tail; partial diagnostics only (40 records/container, 64 KiB, 25s maximum producer lifetime)."
+          set +e
+          timeout --kill-after=5s 20s docker compose logs --no-color --tail 40 postgres app | tail -c 65536
+          diagnostic_status=("${PIPESTATUS[@]}")
+          set -e
+          printf '\nDiagnostic producer exit=%s; tail exit=%s. This does not replace the failed acceptance result.\n' "${diagnostic_status[0]}" "${diagnostic_status[1]}"
 
       - name: Remove database stack and volumes
         if: always()
         run: docker compose down --volumes --remove-orphans
+
+  local-review:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    env:
+      COMPOSE_PROJECT_NAME: yellow-review
+      YELLOW_DATABASE_NAME: yellow_dev
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
+        with:
+          bun-version: 1.3.14
+
+      - name: Set up Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
+        with:
+          python-version: "3.12"
+
+      - name: Install frozen verification dependencies
+        run: |
+          bun install --frozen-lockfile
+          python -m pip install --require-hashes --only-binary=:all: -r requirements-ci.txt
+
+      - name: Prove the supported local launcher, canonical referee, readiness and login
+        run: ./scripts/local-review.sh start
+
+      - name: Verify local status after startup
+        run: ./scripts/local-review.sh status
+
+      - name: Stop local preview
+        if: always()
+        run: |
+          if [ -f .yellow/runtime-database-authority.env ]; then
+            ./scripts/local-review.sh stop
+          fi
+
+  free-host-arm64:
+    needs: quality
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    env:
+      COMPOSE_PROJECT_NAME: yellow-arm64-proof
+      YELLOW_DATABASE_NAME: yellow_dev
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+
+      - name: Require a native ARM64 runner
+        run: test "$(uname -m)" = "aarch64"
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
+        with:
+          bun-version: 1.3.14
+
+      - name: Set up Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
+        with:
+          python-version: "3.12"
+
+      - name: Install frozen verification dependencies
+        run: |
+          bun -e 'if (process.platform !== "linux" || process.arch !== "arm64") process.exit(1)'
+          bun install --frozen-lockfile
+          python -m pip install --require-hashes --only-binary=:all: -r requirements-ci.txt
+
+      - name: Verify fiscal decoder, pinned RS256 and direct ClearIRP on native ARM64
+        run: bun test tests/fiscal-exact-json.test.ts tests/fiscal-signed-jws.test.ts tests/india-irp-signed-receipt-binding.test.ts tests/clearirp-direct-adapter.test.ts tests/india-irp-provider-configuration.test.ts
+
+      - name: Prove native ARM64 image targets and exact source identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          revision="$(git rev-parse --verify HEAD)"
+          test "$revision" = "$GITHUB_SHA"
+          for target in runtime database-tools; do
+            image="yellow-arm64-proof:$target"
+            docker build --target "$target" --build-arg "YELLOW_BUILD_SHA=$revision" --tag "$image" .
+            architecture="$(docker image inspect --format '{{.Os}}/{{.Architecture}}' "$image")"
+            test "$architecture" = "linux/arm64"
+            image_revision="$(docker image inspect --format '{{index .Config.Labels "org.opencontainers.image.revision"}}' "$image")"
+            test "$image_revision" = "$revision"
+          done
+
+      - name: Prove ARM64 migration, canonical referee, readiness and synthetic login
+        run: ./scripts/local-review.sh start
+
+      - name: Verify ARM64 database-backed local status
+        run: ./scripts/local-review.sh status
+
+      - name: Stop isolated ARM64 preview
+        if: always()
+        run: |
+          if [ -f .yellow/runtime-database-authority.env ]; then
+            ./scripts/local-review.sh stop
+          fi

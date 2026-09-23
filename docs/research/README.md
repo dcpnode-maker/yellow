@@ -3,6 +3,35 @@
 Archive, not instructions. `PROJECT.md` and `DECISIONS.log` are what govern; these
 files explain WHY, which matters when someone later asks "can we just change X?"
 
+## Current research and requirements
+
+The [Astra Ultra RMS algorithm portfolio](RMS-ALGORITHMS-ASTRA-ULTRA.md),
+dated2026-09-06 under [Order441](../../handoff/orders/441-astra-ultra-rms-algorithm-research.md),
+compares known methods with three falsifiable Yellow-specific combinations. The
+founder-selected research model is GPT-6 Astra with Ultra reasoning; the production
+runtime remains a separate measured low-cost choice. No algorithm or revenue uplift
+is claimed as implemented or measured. Phase14 and11 → 13 → 17 priority are unchanged.
+
+The [Astra hotel-operations review](HOTEL-OPERATIONS-REVIEW.md), Order440,
+independently connects the full guest lifecycle to departmental work, handoffs and
+exceptions. Its [16 synthetic case studies](../design/HOTEL-CASEBOOK.md) and
+[interactive workbench specification](../design/STAFF-WORKBENCH-SPEC.md) feed the
+same Codex Yellow task. Public-source observations, original design hypotheses,
+prototype behavior and unbuilt production scope are explicitly distinguished.
+
+The earlier [Astra takeover review](ASTRA-TAKEOVER-REVIEW.md) preserves the independent
+analysis of the visible shared conversation, architecture and consolidation.
+
+The [2026-09-05 staff/STR ecosystem research](STAFF-STR-ECOSYSTEM-2026-09.md)
+adds the founder's Beds24/major-PMS and PriceLabs comparisons. Its implementation
+direction is tracked in the [feature register](../FEATURE-REGISTER.md),
+[staff journeys](../design/STAFF-JOURNEYS.md), [OTA plan](../integrations/OTA-CONNECTIVITY.md),
+[voice/RMS plan](../architecture/VOICE-RMS-PLAN.md) and
+[regional packs](../architecture/REGIONAL-PACKS.md). Public documentation research
+is not hands-on product verification, legal advice or a completed integration.
+
+## Original design archive
+
 | File | What it established |
 |---|---|
 | `differential-analysis-round-1.md` | Folio belongs to Account, not reservation. 12 missing entities. Automation trigger+condition+action shape. |
@@ -13,4 +42,13 @@ files explain WHY, which matters when someone later asks "can we just change X?"
 | `../ARCHITECTURE-v3.html` | The zero-cost full-stack architecture: four doctrines, 16 primitives, 13 contexts, INR cost model, spend triggers. |
 
 Provenance: designed clean-room from USALI 12th, HTNG/OpenTravel, and public modern-PMS
-APIs. No Oracle/OPERA materials were used at any point.
+APIs. Those original research rounds did not use Oracle/OPERA materials. The separately
+dated September research includes public Oracle documentation; this does not alter
+the original archive's provenance.
+
+
+Order440's expanded product-design review adds
+[HOSPITALITY-UX-BENCHMARK.md](HOSPITALITY-UX-BENCHMARK.md),
+[UIUX-DIRECTION.md](../design/UIUX-DIRECTION.md) and
+[APP-NAME-SHORTLIST.md](APP-NAME-SHORTLIST.md). Benchmarks distinguish documented
+capabilities from design inference; proposed names are not selected or cleared brands.

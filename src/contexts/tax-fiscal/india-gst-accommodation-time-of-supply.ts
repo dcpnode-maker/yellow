@@ -1,0 +1,131 @@
+import { types as utilTypes } from "node:util";
+import type { Tx } from "../../kernel";
+import { parsePositiveTaxAttributionSnapshot } from "./attribution";
+
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+const SHA256 = /^[0-9a-f]{64}$/;
+const DATE = /^(\d{4})-(\d{2})-(\d{2})$/;
+const INPUT_KEYS = ["tenantId", "propertyNode", "reservationId", "serviceProvisionSnapshotId", "paymentReceiptSnapshotId", "invoiceIssueSnapshotId", "serviceProvisionDate", "paymentReceiptDate", "invoiceIssueDate", "ordinaryRegimeSource", "ordinaryRegimeEvidenceSha256"] as const;
+const ROW_KEYS = ["tenant_id", "service_id", "payment_id", "invoice_id", "property_node", "reservation_id", "service_date", "payment_date", "invoice_date", "service_currency", "payment_currency", "invoice_currency", "payment_amount", "invoice_amount", "service_evidence", "payment_evidence", "invoice_evidence", "books_date", "bank_date", "service_source", "service_rule", "payment_source", "payment_rule", "invoice_source", "invoice_rule", "coverage_scope", "invoice_series", "invoice_serial", "lineage_id", "lineage_property_node", "lineage_hold_binding_id", "lineage_attribution_id", "lineage_reservation_id", "lineage_segment_id", "lineage_quote_hash", "lineage_snapshot_hash", "lineage_currency", "service_lineage_id", "service_hold_binding_id", "service_attribution_id", "service_segment_id", "service_quote_hash", "service_snapshot_hash", "attribution_snapshot"] as const;
+type Row = Record<string, unknown>;
+export type IndiaGstAccommodationTimeOfSupplyInput = { readonly [K in typeof INPUT_KEYS[number]]: string };
+type Input = IndiaGstAccommodationTimeOfSupplyInput;
+
+export type IndiaGstAccommodationTimeOfSupplyBranch = "section13_2_a_invoice_or_payment" | "section13_2_b_service_or_payment";
+export interface IndiaGstAccommodationOrdinaryTimeOfSupplyDatesInput {
+  readonly serviceProvisionDate: string;
+  readonly paymentReceiptDate: string;
+  readonly invoiceIssueDate: string;
+}
+export interface IndiaGstAccommodationOrdinaryTimeOfSupplyDatesResult {
+  readonly deadlineDate: string;
+  readonly candidateDates: Readonly<
+    | { readonly invoiceIssueDate: string; readonly paymentReceiptDate: string }
+    | { readonly serviceProvisionDate: string; readonly paymentReceiptDate: string }
+  >;
+  readonly branch: IndiaGstAccommodationTimeOfSupplyBranch;
+  readonly timeOfSupplyDate: string;
+}
+export interface IndiaGstAccommodationTimeOfSupplyResult {
+  readonly serviceProvisionSnapshotId: string; readonly paymentReceiptSnapshotId: string; readonly invoiceIssueSnapshotId: string;
+  readonly propertyNode: string; readonly reservationId: string;
+  readonly reservationLineage: Readonly<{ lineageId: string; holdBindingId: string; attributionId: string; reservationId: string; segmentId: string; originQuoteHash: string; snapshotHash: string; currency: string }>;
+  readonly attribution: Readonly<{ originKind: "rate_quote"; lineId: "room"; revenueGroup: "room_revenue" }>;
+  readonly serviceProvisionDate: string; readonly paymentReceiptDate: string; readonly invoiceIssueDate: string;
+  readonly deadlineDate: string; readonly candidateDates: Readonly<{ invoiceIssueDate: string; paymentReceiptDate: string } | { serviceProvisionDate: string; paymentReceiptDate: string }>; readonly branch: IndiaGstAccommodationTimeOfSupplyBranch; readonly timeOfSupplyDate: string;
+  readonly regime: "ordinary_rule47_30_day"; readonly source: "governed_rule47_ordinary_regime_record";
+  readonly legalRule: "CGST_ACT_13_2_A_OR_B_ORDINARY_TIME_OF_SUPPLY"; readonly ordinaryRegimeEvidenceSha256: string;
+  readonly invoiceSeries: string; readonly invoiceSerial: string; readonly coverageScope: "full_attribution";
+  readonly supplierBooksEntryDate: string; readonly supplierBankCreditDate: string; readonly serviceProvisionSource: "governed_service_provision_record"; readonly serviceProvisionLegalRule: "CGST_ACT_13_2_B_SERVICE_PROVISION_DATE_INPUT_ONLY"; readonly paymentReceiptSource: "governed_supplier_payment_receipt_record"; readonly paymentReceiptLegalRule: "CGST_ACT_13_2_EXPLANATION_II_PAYMENT_RECEIPT_DATE_INPUT_ONLY"; readonly invoiceIssueSource: "governed_supplier_tax_invoice_record"; readonly invoiceIssueLegalRule: "CGST_ACT_13_2_INVOICE_DATE_INPUT_ONLY";
+  readonly serviceProvisionEvidenceSha256: string; readonly paymentReceiptEvidenceSha256: string; readonly invoiceIssueEvidenceSha256: string;
+  readonly amountMinor: string; readonly currency: string; readonly evidenceHash: string;
+}
+export class IndiaGstAccommodationTimeOfSupplyValidationError extends Error { constructor(message: string) { super(message); this.name = "IndiaGstAccommodationTimeOfSupplyValidationError"; } }
+export class IndiaGstAccommodationTimeOfSupplyNotFoundError extends Error { constructor(message: string) { super(message); this.name = "IndiaGstAccommodationTimeOfSupplyNotFoundError"; } }
+export class IndiaGstAccommodationTimeOfSupplyConflictError extends Error { constructor(message: string) { super(message); this.name = "IndiaGstAccommodationTimeOfSupplyConflictError"; } }
+
+function exact(value: unknown, keys: readonly string[], subject: string, E: new (m: string) => Error): Row {
+  if (typeof value !== "object" || value === null || Array.isArray(value) || utilTypes.isProxy(value) || Object.getOwnPropertySymbols(value).length || (Object.getPrototypeOf(value) !== Object.prototype && Object.getPrototypeOf(value) !== null)) throw new E(`${subject} must be an exact plain object`);
+  const ds = Object.getOwnPropertyDescriptors(value), actual = Object.keys(ds).sort(), expected = [...keys].sort();
+  if (actual.length !== expected.length || actual.some((k, i) => k !== expected[i]) || Object.values(ds).some(d => d.get !== undefined || d.set !== undefined || d.enumerable !== true || !("value" in d))) throw new E(`${subject} shape is invalid`);
+  return value as Row;
+}
+function text(value: unknown, subject: string, E = IndiaGstAccommodationTimeOfSupplyConflictError): string { if (typeof value !== "string") throw new E(`${subject} is invalid`); return value; }
+function uuid(value: unknown, subject: string, E = IndiaGstAccommodationTimeOfSupplyConflictError): string { const v = text(value, subject, E); if (!UUID.test(v)) throw new E(`${subject} is invalid`); return v; }
+function hash(value: unknown, subject: string): string { const v = text(value, subject); if (!SHA256.test(v)) throw new IndiaGstAccommodationTimeOfSupplyConflictError(`${subject} is invalid`); return v; }
+function date(value: unknown, subject: string, E = IndiaGstAccommodationTimeOfSupplyConflictError): string { const v = text(value, subject, E), m = DATE.exec(v); if (!m) throw new E(`${subject} is invalid`); const y = +m[1]!, mo = +m[2]!, d = +m[3]!, leap = y % 4 === 0 && (y % 100 !== 0 || y % 400 === 0), days = [31, leap ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]; if (y === 0 || mo < 1 || mo > 12 || d < 1 || d > (days[mo - 1] ?? 0)) throw new E(`${subject} is invalid`); return v; }
+function add30(v: string): string { const [ys, ms, ds] = v.split("-"); let y = +ys!, m = +ms!, d = +ds!; for (let i = 0; i < 30; i++) { d++; const leap = y % 4 === 0 && (y % 100 !== 0 || y % 400 === 0), max = [31, leap ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31][m - 1]!; if (d > max) { d = 1; m++; if (m > 12) { m = 1; y++; } } } if (y > 9999) throw new IndiaGstAccommodationTimeOfSupplyConflictError("ordinary deadline exceeds supported calendar"); return `${String(y).padStart(4, "0")}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}`; }
+function freeze<T>(value: T): T { if (typeof value === "object" && value !== null && !Object.isFrozen(value)) { for (const key of Reflect.ownKeys(value)) freeze((value as Record<PropertyKey, unknown>)[key]); Object.freeze(value); } return value; }
+function digest(value: unknown): string { return new Bun.CryptoHasher("sha256").update(JSON.stringify(value)).digest("hex"); }
+
+/**
+ * Origin-independent Rule 47 / Section 13 date calculation.
+ *
+ * This is evidence calculation only. It does not authenticate any persisted
+ * service, payment, ordinary-regime, or invoice-timing root.
+ */
+export function deriveIndiaGstAccommodationOrdinaryTimeOfSupplyDates(
+  rawInput: IndiaGstAccommodationOrdinaryTimeOfSupplyDatesInput,
+): IndiaGstAccommodationOrdinaryTimeOfSupplyDatesResult {
+  const input = exact(
+    rawInput,
+    ["serviceProvisionDate", "paymentReceiptDate", "invoiceIssueDate"],
+    "ordinary time-of-supply date input",
+    IndiaGstAccommodationTimeOfSupplyValidationError,
+  ) as unknown as IndiaGstAccommodationOrdinaryTimeOfSupplyDatesInput;
+  const serviceProvisionDate = date(
+    input.serviceProvisionDate,
+    "serviceProvisionDate",
+    IndiaGstAccommodationTimeOfSupplyValidationError,
+  );
+  const paymentReceiptDate = date(
+    input.paymentReceiptDate,
+    "paymentReceiptDate",
+    IndiaGstAccommodationTimeOfSupplyValidationError,
+  );
+  const invoiceIssueDate = date(
+    input.invoiceIssueDate,
+    "invoiceIssueDate",
+    IndiaGstAccommodationTimeOfSupplyValidationError,
+  );
+  const deadlineDate = add30(serviceProvisionDate);
+  const timely = invoiceIssueDate <= deadlineDate;
+  const branch: IndiaGstAccommodationTimeOfSupplyBranch = timely
+    ? "section13_2_a_invoice_or_payment"
+    : "section13_2_b_service_or_payment";
+  const candidateDates = timely
+    ? Object.freeze({ invoiceIssueDate, paymentReceiptDate })
+    : Object.freeze({ serviceProvisionDate, paymentReceiptDate });
+  const timeOfSupplyDate = timely
+    ? (invoiceIssueDate < paymentReceiptDate ? invoiceIssueDate : paymentReceiptDate)
+    : (serviceProvisionDate < paymentReceiptDate ? serviceProvisionDate : paymentReceiptDate);
+  return Object.freeze({ deadlineDate, candidateDates, branch, timeOfSupplyDate });
+}
+
+function build(raw: Row, input: Input): IndiaGstAccommodationTimeOfSupplyResult {
+  const r = exact(raw, ROW_KEYS, "stored time-of-supply row", IndiaGstAccommodationTimeOfSupplyConflictError);
+  const tenant = uuid(r.tenant_id, "stored tenant"), serviceId = uuid(r.service_id, "stored service snapshot"), paymentId = uuid(r.payment_id, "stored payment snapshot"), invoiceId = uuid(r.invoice_id, "stored invoice snapshot"), property = uuid(r.property_node, "stored property"), reservation = uuid(r.reservation_id, "stored reservation");
+  const serviceDate = date(r.service_date, "stored service date"), paymentDate = date(r.payment_date, "stored payment date"), invoiceDate = date(r.invoice_date, "stored invoice date"), books = date(r.books_date, "stored books date"), bank = date(r.bank_date, "stored bank date");
+  const lineageId = uuid(r.lineage_id, "lineage id"), hold = uuid(r.lineage_hold_binding_id, "lineage hold binding"), attrId = uuid(r.lineage_attribution_id, "lineage attribution"), lineReservation = uuid(r.lineage_reservation_id, "lineage reservation"), segment = uuid(r.lineage_segment_id, "lineage segment"), lineProp = uuid(r.lineage_property_node, "lineage property");
+  const quote = hash(r.lineage_quote_hash, "lineage quote hash"), snap = hash(r.lineage_snapshot_hash, "lineage snapshot hash"), currency = text(r.lineage_currency, "lineage currency"), serviceCurrency = text(r.service_currency, "service currency"), paymentCurrency = text(r.payment_currency, "payment currency"), invoiceCurrency = text(r.invoice_currency, "invoice currency");
+  if (![currency, serviceCurrency, paymentCurrency, invoiceCurrency].every(v => /^[A-Z]{3}$/.test(v))) throw new IndiaGstAccommodationTimeOfSupplyConflictError("currency is invalid");
+  const amounts = [text(r.payment_amount, "payment amount"), text(r.invoice_amount, "invoice amount")];
+  for (const amount of amounts) if (!/^(0|[1-9][0-9]*)$/.test(amount) || BigInt(amount) <= 0n) throw new IndiaGstAccommodationTimeOfSupplyConflictError("amount is invalid");
+  for (const key of ["service_evidence", "payment_evidence", "invoice_evidence"] as const) hash(r[key], key);
+  if (tenant !== input.tenantId || serviceId !== input.serviceProvisionSnapshotId || paymentId !== input.paymentReceiptSnapshotId || invoiceId !== input.invoiceIssueSnapshotId || property !== input.propertyNode || reservation !== input.reservationId || serviceDate !== input.serviceProvisionDate || paymentDate !== input.paymentReceiptDate || invoiceDate !== input.invoiceIssueDate || lineProp !== property || lineReservation !== reservation || uuid(r.service_lineage_id, "service lineage") !== lineageId || uuid(r.service_hold_binding_id, "service hold binding") !== hold || uuid(r.service_attribution_id, "service attribution") !== attrId || uuid(r.service_segment_id, "service segment") !== segment || hash(r.service_quote_hash, "service quote hash") !== quote || hash(r.service_snapshot_hash, "service snapshot hash") !== snap || serviceCurrency !== currency || paymentCurrency !== currency || invoiceCurrency !== currency || amounts[0] !== amounts[1] || paymentDate !== (books < bank ? books : bank) || r.coverage_scope !== "full_attribution" || r.service_source !== "governed_service_provision_record" || r.service_rule !== "CGST_ACT_13_2_B_SERVICE_PROVISION_DATE_INPUT_ONLY" || r.payment_source !== "governed_supplier_payment_receipt_record" || r.payment_rule !== "CGST_ACT_13_2_EXPLANATION_II_PAYMENT_RECEIPT_DATE_INPUT_ONLY" || r.invoice_source !== "governed_supplier_tax_invoice_record" || r.invoice_rule !== "CGST_ACT_13_2_INVOICE_DATE_INPUT_ONLY") throw new IndiaGstAccommodationTimeOfSupplyConflictError("evidence conflicts with complete predecessor lineage");
+  try { const a = parsePositiveTaxAttributionSnapshot(r.attribution_snapshot); if (a.origin.kind !== "rate_quote" || a.origin.quoteHash !== quote || a.snapshotHash !== snap || a.currency !== currency || a.revenueLine.lineId !== "room" || a.revenueLine.revenueGroup !== "room_revenue" || a.evaluation.grandTotalMinor.toString() !== amounts[0]) throw new Error(); } catch { throw new IndiaGstAccommodationTimeOfSupplyConflictError("canonical attribution is malformed"); }
+  const ordinaryDates = deriveIndiaGstAccommodationOrdinaryTimeOfSupplyDates({
+    serviceProvisionDate: serviceDate,
+    paymentReceiptDate: paymentDate,
+    invoiceIssueDate: invoiceDate,
+  });
+  const reservationLineage = Object.freeze({ lineageId, holdBindingId: hold, attributionId: attrId, reservationId: lineReservation, segmentId: segment, originQuoteHash: quote, snapshotHash: snap, currency });
+  const attribution = Object.freeze({ originKind: "rate_quote" as const, lineId: "room" as const, revenueGroup: "room_revenue" as const });
+  const invoiceSeries = text(r.invoice_series, "invoice series"), invoiceSerial = text(r.invoice_serial, "invoice serial");
+  if (!/^[A-Za-z0-9][A-Za-z0-9._/-]{0,63}$/.test(invoiceSeries) || !/^[A-Za-z0-9][A-Za-z0-9._/-]{0,63}$/.test(invoiceSerial)) throw new IndiaGstAccommodationTimeOfSupplyConflictError("invoice identity is invalid");
+  const evidence = { serviceProvisionSnapshotId: serviceId, paymentReceiptSnapshotId: paymentId, invoiceIssueSnapshotId: invoiceId, propertyNode: property, reservationId: reservation, reservationLineage, attribution, serviceProvisionDate: serviceDate, paymentReceiptDate: paymentDate, invoiceIssueDate: invoiceDate, deadlineDate: ordinaryDates.deadlineDate, candidateDates: ordinaryDates.candidateDates, branch: ordinaryDates.branch, timeOfSupplyDate: ordinaryDates.timeOfSupplyDate, regime: "ordinary_rule47_30_day" as const, source: "governed_rule47_ordinary_regime_record" as const, legalRule: "CGST_ACT_13_2_A_OR_B_ORDINARY_TIME_OF_SUPPLY" as const, ordinaryRegimeEvidenceSha256: input.ordinaryRegimeEvidenceSha256, invoiceSeries, invoiceSerial, supplierBooksEntryDate: books, supplierBankCreditDate: bank, coverageScope: "full_attribution" as const, serviceProvisionSource: "governed_service_provision_record" as const, serviceProvisionLegalRule: "CGST_ACT_13_2_B_SERVICE_PROVISION_DATE_INPUT_ONLY" as const, paymentReceiptSource: "governed_supplier_payment_receipt_record" as const, paymentReceiptLegalRule: "CGST_ACT_13_2_EXPLANATION_II_PAYMENT_RECEIPT_DATE_INPUT_ONLY" as const, invoiceIssueSource: "governed_supplier_tax_invoice_record" as const, invoiceIssueLegalRule: "CGST_ACT_13_2_INVOICE_DATE_INPUT_ONLY" as const, serviceProvisionEvidenceSha256: r.service_evidence as string, paymentReceiptEvidenceSha256: r.payment_evidence as string, invoiceIssueEvidenceSha256: r.invoice_evidence as string, amountMinor: amounts[0]!, currency };
+  return freeze({ ...evidence, evidenceHash: digest({ tenantId: tenant, ...evidence }) });
+}
+
+export class IndiaGstAccommodationTimeOfSupplyService { async resolve(tx: Tx, raw: Input): Promise<IndiaGstAccommodationTimeOfSupplyResult> { if (typeof tx !== "function") throw new IndiaGstAccommodationTimeOfSupplyValidationError("tenant transaction is unavailable"); const input = exact(raw, INPUT_KEYS, "time-of-supply input", IndiaGstAccommodationTimeOfSupplyValidationError) as Input; const tenant = uuid(input.tenantId, "tenantId", IndiaGstAccommodationTimeOfSupplyValidationError); uuid(input.propertyNode, "propertyNode", IndiaGstAccommodationTimeOfSupplyValidationError); uuid(input.reservationId, "reservationId", IndiaGstAccommodationTimeOfSupplyValidationError); uuid(input.serviceProvisionSnapshotId, "serviceProvisionSnapshotId", IndiaGstAccommodationTimeOfSupplyValidationError); uuid(input.paymentReceiptSnapshotId, "paymentReceiptSnapshotId", IndiaGstAccommodationTimeOfSupplyValidationError); uuid(input.invoiceIssueSnapshotId, "invoiceIssueSnapshotId", IndiaGstAccommodationTimeOfSupplyValidationError); date(input.serviceProvisionDate, "serviceProvisionDate", IndiaGstAccommodationTimeOfSupplyValidationError); date(input.paymentReceiptDate, "paymentReceiptDate", IndiaGstAccommodationTimeOfSupplyValidationError); date(input.invoiceIssueDate, "invoiceIssueDate", IndiaGstAccommodationTimeOfSupplyValidationError); if (input.ordinaryRegimeSource !== "governed_rule47_ordinary_regime_record" || !SHA256.test(input.ordinaryRegimeEvidenceSha256)) throw new IndiaGstAccommodationTimeOfSupplyValidationError("unsupported or malformed ordinary regime evidence"); const rows = await tx<Row[]>`SELECT service.tenant_id::text AS tenant_id, service.id::text AS service_id, payment.id::text AS payment_id, invoice.id::text AS invoice_id, service.property_node::text AS property_node, service.reservation_id::text AS reservation_id, service.service_provision_date::text AS service_date, payment.payment_receipt_date::text AS payment_date, invoice.invoice_issue_date::text AS invoice_date, service.currency::text AS service_currency, payment.currency::text AS payment_currency, invoice.currency::text AS invoice_currency, payment.amount_minor::text AS payment_amount, invoice.amount_minor::text AS invoice_amount, service.service_provision_evidence_sha256 AS service_evidence, payment.payment_receipt_evidence_sha256 AS payment_evidence, invoice.invoice_issue_evidence_sha256 AS invoice_evidence, payment.supplier_books_entry_date::text AS books_date, payment.supplier_bank_credit_date::text AS bank_date, service.service_provision_source AS service_source, service.legal_rule AS service_rule, payment.payment_receipt_source AS payment_source, payment.legal_rule AS payment_rule, invoice.invoice_issue_source AS invoice_source, invoice.legal_rule AS invoice_rule, invoice.coverage_scope, invoice.invoice_series, invoice.invoice_serial, service.reservation_lineage_id::text AS service_lineage_id, service.hold_binding_id::text AS service_hold_binding_id, service.attribution_id::text AS service_attribution_id, service.segment_id::text AS service_segment_id, service.origin_quote_hash AS service_quote_hash, service.snapshot_hash AS service_snapshot_hash, lineage.id::text AS lineage_id, lineage.property_node::text AS lineage_property_node, lineage.binding_id::text AS lineage_hold_binding_id, lineage.attribution_id::text AS lineage_attribution_id, lineage.reservation_id::text AS lineage_reservation_id, lineage.segment_id::text AS lineage_segment_id, lineage.origin_quote_hash AS lineage_quote_hash, lineage.snapshot_hash AS lineage_snapshot_hash, lineage.currency::text AS lineage_currency, attribution.snapshot AS attribution_snapshot FROM public.india_gst_accommodation_service_provision_snapshot AS service JOIN public.india_gst_accommodation_payment_receipt_snapshot AS payment ON payment.tenant_id = service.tenant_id AND payment.service_provision_snapshot_id = service.id JOIN public.india_gst_accommodation_invoice_issue_snapshot AS invoice ON invoice.tenant_id = service.tenant_id AND invoice.service_provision_snapshot_id = service.id JOIN public.tax_attribution_reservation_binding AS lineage ON lineage.tenant_id = service.tenant_id AND lineage.id = service.reservation_lineage_id AND lineage.property_node = service.property_node AND lineage.binding_id = service.hold_binding_id AND lineage.attribution_id = service.attribution_id AND lineage.reservation_id = service.reservation_id AND lineage.segment_id = service.segment_id AND lineage.origin_quote_hash = service.origin_quote_hash AND lineage.snapshot_hash = service.snapshot_hash AND lineage.currency = service.currency JOIN public.tax_attribution_snapshot AS attribution ON attribution.tenant_id = service.tenant_id AND attribution.id = service.attribution_id AND attribution.property_node = service.property_node AND attribution.origin_kind = 'rate_quote' AND attribution.origin_quote_hash = service.origin_quote_hash AND attribution.snapshot_hash = service.snapshot_hash AND attribution.currency = service.currency WHERE service.tenant_id = ${tenant}::uuid AND service.tenant_id = current_setting('app.tenant_id', true)::uuid AND service.id = ${input.serviceProvisionSnapshotId}::uuid AND payment.id = ${input.paymentReceiptSnapshotId}::uuid AND invoice.id = ${input.invoiceIssueSnapshotId}::uuid AND service.property_node = ${input.propertyNode}::uuid AND service.reservation_id = ${input.reservationId}::uuid AND service.service_provision_date = ${input.serviceProvisionDate}::date AND payment.payment_receipt_date = ${input.paymentReceiptDate}::date AND invoice.invoice_issue_date = ${input.invoiceIssueDate}::date AND service.service_provision_source = 'governed_service_provision_record' AND payment.payment_receipt_source = 'governed_supplier_payment_receipt_record' AND invoice.invoice_issue_source = 'governed_supplier_tax_invoice_record'`; if (!rows.length) throw new IndiaGstAccommodationTimeOfSupplyNotFoundError("selected time-of-supply evidence is unavailable"); if (rows.length !== 1 || !rows[0]) throw new IndiaGstAccommodationTimeOfSupplyConflictError("selected time-of-supply evidence is ambiguous"); return build(rows[0], input); } }
+export function resolveIndiaGstAccommodationTimeOfSupply(tx: Tx, input: Input): Promise<IndiaGstAccommodationTimeOfSupplyResult> { return new IndiaGstAccommodationTimeOfSupplyService().resolve(tx, input); }

@@ -18,11 +18,42 @@ if [ "$dirty" -eq 0 ]; then dirty_text=clean; else dirty_text="$dirty uncommitte
 printf 'Git: %s · %s · %s\n' "$branch" "$head" "$dirty_text"
 
 orders_total=0
-orders_open=()
+historical_unclosed=()
+order_files=()
 for file in handoff/orders/*.md; do
   [ -f "$file" ] || continue
   ((orders_total += 1))
-  if ! grep -q '^## MERGED' "$file"; then orders_open+=("$file"); fi
+  order_files+=("$file")
+done
+# Scan each group in one process, rather than forking once per historical record.
+# NUL-delimited filenames preserve spaces/newlines and empty groups never read stdin.
+if [ "${#order_files[@]}" -gt 0 ]; then
+  while IFS= read -r -d '' file; do
+    historical_unclosed+=("$file")
+  done < <(grep -LZ '^## MERGED' -- "${order_files[@]}")
+fi
+
+status_file=${YELLOW_PROJECT_STATUS_FILE:-docs/PROJECT-STATUS.md}
+read_status_field() {
+  local key=$1
+  sed -nE "s/^<!-- ${key}: (.*) -->$/\1/p" "$status_file" | head -n 1
+}
+status_schema=$(read_status_field status-schema)
+current_phase=$(read_status_field current-phase)
+current_task=$(read_status_field current-task)
+current_lifecycle=$(read_status_field current-lifecycle)
+IFS=';' read -r -a current_order_files <<< "$(read_status_field current-order-files)"
+if [ "$status_schema" != 'yellow-project-status/v1' ] ||
+   ! [[ "$current_phase" =~ ^[0-9]+$ ]] ||
+   [ -z "$current_task" ] || [ -z "$current_lifecycle" ]; then
+  echo 'Status: invalid docs/PROJECT-STATUS.md metadata' >&2
+  exit 1
+fi
+for file in "${current_order_files[@]}"; do
+  if [ -z "$file" ] || [ ! -f "$file" ]; then
+    printf 'Status: current order file is missing: %s\n' "$file" >&2
+    exit 1
+  fi
 done
 
 reviews_total=0
@@ -33,37 +64,65 @@ done
 
 questions_total=0
 questions_open=()
+question_candidates=()
 for file in handoff/questions/*.md; do
   [ -f "$file" ] || continue
   ((questions_total += 1))
-  if ! grep -Eq '^## (RESOLVED|RATIFIED)' "$file"; then questions_open+=("$file"); fi
+  name=${file##*/}
+  number=${name%%-*}
+  response="handoff/questions/${number}-ARCHITECT-RESPONSE.md"
+  if [[ "$name" != *-ARCHITECT-RESPONSE.md ]] &&
+     [ ! -f "$response" ]; then
+    question_candidates+=("$file")
+  fi
 done
+if [ "${#question_candidates[@]}" -gt 0 ]; then
+  while IFS= read -r -d '' file; do
+    questions_open+=("$file")
+  done < <(grep -LEZ '^## (RESOLVED|RATIFIED)' -- "${question_candidates[@]}")
+fi
 
-printf 'Open work: orders=%s open (%s total) reviews=0 open (%s total) questions=%s open (%s total)\n' \
-  "${#orders_open[@]}" "$orders_total" "$reviews_total" "${#questions_open[@]}" "$questions_total"
-if [ "${#orders_open[@]}" -gt 0 ]; then
-  printf 'Open orders:\n'
-  printf '  %s\n' "${orders_open[@]}"
-fi
-if [ "${#questions_open[@]}" -gt 0 ]; then
-  printf 'Open questions:\n'
-  printf '  %s\n' "${questions_open[@]}"
-fi
+printf 'Current task: %s\n' "$current_task"
+printf 'Lifecycle: %s\n' "$current_lifecycle"
+printf 'Current order files:\n'
+printf '  %s\n' "${current_order_files[@]}"
+printf 'Historical records: orders=%s total (%s lack legacy MERGED marker) reviews=%s total questions=%s without legacy resolution marker (%s total)\n' \
+  "$orders_total" "${#historical_unclosed[@]}" "$reviews_total" "${#questions_open[@]}" "$questions_total"
 
 running=''
-if command -v docker >/dev/null 2>&1 && docker info >/dev/null 2>&1; then
-  running=$(docker compose ps --services --status running 2>/dev/null || true)
+tables=''
+if command -v docker >/dev/null 2>&1 &&
+   command -v timeout >/dev/null 2>&1; then
+  if probe=$(
+    {
+      timeout --signal=KILL 1s bash -s <<'YELLOW_DOCKER_PROBE'
+set -uo pipefail
+if ! running=$(docker compose ps --services --status running 2>/dev/null); then
+  exit 1
+fi
+tables=''
+if printf '%s\n' "$running" | grep -qx postgres; then
+  if ! tables=$(docker compose exec -T postgres psql -U yellow_deploy -d yellow_test -tAc \
+    "SELECT count(*) FROM pg_tables WHERE schemaname='public';" 2>/dev/null | tr -d '[:space:]'); then
+    tables=''
+  fi
+fi
+printf '%s\n%s\n' "$tables" "$running"
+YELLOW_DOCKER_PROBE
+    } 2>/dev/null
+  ); then
+    if [[ "$probe" == *$'\n'* ]]; then
+      tables=${probe%%$'\n'*}
+      running=${probe#*$'\n'}
+    fi
+  fi
 fi
 for service in app postgres valkey; do
   if printf '%s\n' "$running" | grep -qx "$service"; then status=up; else status=down; fi
   printf 'Service %s: %s\n' "$service" "$status"
 done
-if printf '%s\n' "$running" | grep -qx postgres; then
-  tables=$(docker compose exec -T postgres psql -U yellow -d yellow_test -tAc \
-    "SELECT count(*) FROM pg_tables WHERE schemaname='public';" 2>/dev/null | tr -d '[:space:]' || true)
-  [ -n "$tables" ] && printf 'yellow_test tables: %s (80 baseline + schema_migration; expected 81)\n' "$tables"
-fi
+[ -n "$tables" ] && printf 'yellow_test public tables: %s (validate against the PROJECT-STATUS migration frontier)\n' "$tables"
 
-echo 'Phase: 0 · cumulative review pending'
+printf 'Phase: %s · %s\n' "$current_phase" "$current_lifecycle"
 echo 'Reading: PROJECT.md -> AGENTS.md -> BUILD-PLAN.md -> handoff/ROSTER.md -> docs/WORKFLOW.md'
 echo 'Referee: ./setup.sh --db-only -> 11 passed, 0 failed of 11'

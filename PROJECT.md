@@ -1,9 +1,10 @@
 # PROJECT.md — canonical constitution (ALL agents read this first)
 
-**This file is the single source of truth.** `CLAUDE.md`, `AGENTS.md`, and every
-future per-agent file are thin adapters that point here and add only a role. If an
-adapter ever contradicts this file, **this file wins** — and the contradiction is a
-bug to fix, not a judgement call.
+**This file is the single source of truth for engineering rules.**
+`docs/PROJECT-STATUS.md` is the single current-state record. `CLAUDE.md`, `AGENTS.md`,
+and every future per-agent file are thin adapters that point here and add only a role.
+If an adapter ever contradicts this file, **this file wins** — and the contradiction
+is a bug to fix, not a judgement call.
 
 Why it's built this way: duplicated rules drift. Two copies survive; four don't.
 
@@ -13,17 +14,23 @@ Why it's built this way: duplicated rules drift. Two copies survive; four don't.
 
 A full-scope hospitality ERP (PMS + channel manager + booking engine + CRS + CRM +
 native hotel finance) for hotels, hostels, serviced apartments and STR. Two-person
-founding team; AI agents write essentially all code and, per founder directive
-(`DECISIONS.log` D-91, `handoff/CODEX-HANDOFF.md`), review each other's high-risk
-changes — an independent agent that did not implement a change personally executes
-its proof before merge; the founder is looped in for credentials, spending,
-legal/business policy, irreversible external actions, and missing product intent, not
-for routine code review. Stack: **TypeScript (strict) · Bun · Elysia · PostgreSQL 16 ·
+founding team; AI agents write essentially all code; a founder reviews every
+critical-path change. Stack: **TypeScript (strict) · Bun · Elysia · PostgreSQL 16 ·
 modular monolith**. Zero-cost doctrine: runs on free/OSS infrastructure.
 
-**Current state:** the immutable 80-table baseline is applied by the production
-runner, which adds `schema_migration` (81 public tables total); deterministic demo
-seed, schema drift, health, and the 11/11 invariant battery are Phase-0 gates.
+**Current state:** read [docs/PROJECT-STATUS.md](docs/PROJECT-STATUS.md) before using
+a branch, local app or deployment. The immutable 80-table migration is the baseline;
+the runner adds `schema_migration`, and forward migrations expand that catalogue.
+Reviewed `main` at `443e3826b47025106d1829fcbb406ce6302fbbba` has 77 applied
+migrations and 127 public base tables including that ledger. PR83 merged the
+independently approved Order434 source after all five CI jobs passed at
+`92346674c784b552356934e168d60e4b9650497a`. Migration76 adds two tables and
+migration77 adds none. The earlier main5879e2b7 frontier was 75 migrations / 125 tables;
+that is historical release evidence, not today's setup oracle.
+The exact source and migration frontier must come from current release evidence, not
+the historical 81-table Phase-0 count. [SCHEMA-GUIDE](docs/SCHEMA-GUIDE.md) defines
+these scopes and safe inspection. Deterministic seed, schema drift, health and the
+11/11 invariant battery remain required gates.
 
 ## The Ten Invariants (violating any is never acceptable)
 
@@ -89,8 +96,8 @@ invariants 4 or 7; hand-write availability math outside the projection rebuilder
 ## Session ritual — every agent, every session
 
 1. Run `./state.sh` — this prints identical ground truth for everyone: branch, head,
-   phase, last ledger lines, last decisions, open orders and questions.
-2. Read this file, then `BUILD-PLAN.md` for the **current phase only**.
+   canonical current task/lifecycle/phase, historical record counts and service state.
+2. Read `docs/PROJECT-STATUS.md`, then `BUILD-PLAN.md` for the **current phase only**.
 3. `grep -i "<topic>" DECISIONS.log` **before deciding anything** — the answer may
    already exist, and re-deciding it wastes budget and creates contradictions.
 4. State in one sentence what you're doing and which order/phase it serves.
@@ -102,7 +109,7 @@ invariants 4 or 7; hand-write availability math outside the projection rebuilder
 | Question | File |
 |---|---|
 | What are the rules? | **this file** |
-| What's the data model? | `migrations/0001_init.sql` |
+| What's the data model? | immutable baseline `migrations/0001_init.sql`, ordered `migrations/`, and [schema guide](docs/SCHEMA-GUIDE.md) |
 | What are the API/module contracts? | `docs/CONTRACTS.md` |
 | What state transitions are legal? | `docs/STATE-MACHINES.md` |
 | What events exist? | `docs/EVENTS.md` |
@@ -110,9 +117,10 @@ invariants 4 or 7; hand-write availability math outside the projection rebuilder
 | What does the UI do? | `docs/UI-SPEC.md` |
 | What's already been decided? | `DECISIONS.log` |
 | What are we building next? | `BUILD-PLAN.md` |
+| What is current right now? | `docs/PROJECT-STATUS.md` |
 | Who does what? | `docs/WORKFLOW.md`, `handoff/ROSTER.md` |
 | What just happened? | `handoff/LEDGER.md` |
-| Is it still correct? | `./setup.sh --db-only` → 81 tables and 11/11 |
+| Is it still correct? | current release catalogue checks + `./setup.sh --db-only` → 11/11 |
 
 ## The referee
 

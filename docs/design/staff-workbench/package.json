@@ -1,0 +1,6 @@
+{
+  "name": "yellow-staff-journey-design",
+  "private": true,
+  "description": "Order440 fictional interaction study; no production domain writes",
+  "scripts": { "dev": "node preview.mjs" }
+}

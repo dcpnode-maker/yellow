@@ -1,93 +1,184 @@
-# Yellow — hospitality ERP build package
+# Yellow — hospitality operating system
 
-Everything Claude Code needs to build the system without re-deciding anything.
-The thinking is done; this package is the thinking, made executable.
+Yellow is an actively implemented, tenant-scoped hotel and STR platform: PMS,
+bookkeeping and cashier finance, stay operations and fiscal compliance, with planned
+channel management, booking engine/CRS, CRM, multilingual voice, RMS and hotel interfaces.
+The domain core is a TypeScript/Bun/Elysia modular monolith over PostgreSQL 16.
+Use open-source infrastructure, measured latency and replaceable integrations rather
+than speculative rewrites or a separate app fork for every country.
 
-## What's here
+## Active functional build — 8 September 2026
 
-| File | What it is | Where it goes |
-|---|---|---|
-| `migrations/0001_init.sql` | Immutable executable baseline: 80 tables, 13 contexts, RLS, choke points, hardening. The runner adds `schema_migration` for 81 public tables. |
-| `CLAUDE.md` | The constitution Claude Code reads every session: Ten Invariants, module boundaries, branded types, never-do list. | repo root |
-| `STATE-MACHINES.md` | Every status column's legal transitions + guards + emitted events. | repo `docs/` |
-| `EVENTS.md` | Event envelope, subject scheme, full catalogue v1, consumer registry. | repo `docs/` |
-| `CONTRACTS.md` | API conventions, THE availability contract, module surfaces, provider ports. | repo `docs/` |
-| `EXTENSIONS.md` | JSON Schemas + launch instances for all extension registry content (verticals, tax incl. India GST slabs, policies, statutory, fiscal, automation actions). | repo `docs/` + Phase-1 seed |
-| `BUILD-PLAN.md` | 13 phases with definition-of-done each, session ritual. | repo root |
-| `UI-SPEC.md` | The seven surfaces: three-tier model, screen inventory, keyboard grammar, offline. | repo `docs/` |
-| `SECURITY.md` | Threat model & controls: auth, RLS layers, PII/token handling, incident basics. | repo `docs/` |
-| `DEPENDENCIES.md` | Vendor risk register: Class A/B/C, OSS replacements, licence policy, CI gates. | repo `docs/` |
-| `docs/ARCHITECTURE-v3.html` | The zero-cost architecture: doctrines, primitives, cost model, spend triggers. |
-| `docs/research/` | The four analysis rounds behind every locked decision. |
-| `docs-mockups-ui-v1.html` | Five-screen UI mockups rendered from fixture data. | repo `docs/mockups/` |
-| `DECISIONS.log` | Seeded with every locked decision + rejected alternative. Append-only. | repo root |
-| `tests/` | 56-case QA suite (v1.1), repaired seed fixture, TS stress port, executable invariant battery + 11/11 run results. | repo `tests/` |
-| `skills/yellow-entity-patterns/` | Skill: how to add/extend entities without drift. | `~/.claude/skills/` |
-| `skills/yellow-postgres-patterns/` | Skill: claim-range occupancy, RLS under PgBouncer, insert-only, outbox. | `~/.claude/skills/` |
-| `skills/yellow-compliance-rules/` | Skill: fiscal chains, ZATCA/IRP/UAE-ASP, statutory, trust, GDPR. | `~/.claude/skills/` |
-| `prototype/` | The stress test that found P1 and proved the fix (1,409 commits/sec; 50-thread race → 1 winner). Re-run any time: needs local PG16. | keep for Phase-2 porting |
+UI/UX, prototypes and visual integration are paused by the founder. Current work
+is the remaining functional backend, with no local-app or provider activation.
 
-**New here?** macOS/Linux → `START-HERE.md` · Windows 11 → `docs/WALKTHROUGH-WINDOWS.html` (open in a browser — click-by-click with checkboxes) or `START-HERE-WINDOWS.md`.
-`USAGE.md` is the ongoing operating manual once you're set up.
+- **Published development:** [Order446](handoff/orders/446-india-native-fiscal-full-credit-note-issuance.md)
+  adds native full credit notes with immutable originals, separate C-series
+  numbering, balanced corrective journals and authorized issue/read/replay APIs.
+  It is published in [draft PR92](https://github.com/dcpnode-maker/yellow/pull/92),
+  not merged or deployed. Independent native database, concurrency, real API and
+  clean87 referee11/11 proofs are in [review446](handoff/reviews/446-india-native-fiscal-full-credit-note-issuance.md).
+- **Being built:** [Order447](handoff/orders/447-native-credit-note-fiscal-submission.md)
+  connects genuine credit notes to the existing submission worker and verified
+  signed receipts. Draft88 is confined to a synthetic proof database; it is not
+  yet a canonical migration or a connected external fiscal provider.
+- **Required CI:** [Q218](handoff/questions/218-current87-financial-catalogue-oracles.md)
+  and [Q220](handoff/questions/220-current87-migration-acceptance-oracles.md) repair
+  stale current-schema test expectations. The latest published checkpoint is
+  `236df73d`; all six required CI jobs and normal CodeQL pass. Earlier failed
+  database runs and their skipped downstream gates are not counted as successful.
+- **Local app:** retained `a1085178`/migration85 on port3000 is unchanged. Source
+  publication does not mean the local process contains those later capabilities.
 
-## Setup (one command)
+The local canonical status record has later functional updates pending selective
+publication; this dated section and the linked orders distinguish those updates
+from older status prose. No completion percentage or Phase7 closure is implied.
 
-```bash
-unzip yellow.zip && cd yellow
-./setup.sh
-```
+## GitHub checkout and schema count
 
-Checks prerequisites → starts PostgreSQL 16 + Valkey → runs the production migration
-and deterministic demo seed → builds a separate invariant database through the same
-runner → **runs the 11/11 battery on your machine**. Full setup also verifies health.
-It never creates accounts or repositories. `--db-only` runs the database path only.
+This is an existing Bun project. Clone or open the repository, then install the locked
+dependency graph with `bun install --frozen-lockfile`. Do **not** run `bun init`: that
+command scaffolds package metadata, while this repository already has the authoritative
+[`package.json`](package.json) and [`bun.lock`](bun.lock).
 
-## Setup (manual, if you prefer)
+| Source line | Exact commit | Runnable migrations | Public base tables | Acceptance state |
+|---|---|---:|---:|---|
+| Current `main` (remote verified) | [`3503b0c01f336637d2583963c17b792f6ad59efe`](https://github.com/dcpnode-maker/yellow/commit/3503b0c01f336637d2583963c17b792f6ad59efe) | 81 | 128 | Independently merged PR91; later development below is not merged |
+| Published development | [`236df73dce4629dff92a66e1587961133e2dbd89`](https://github.com/dcpnode-maker/yellow/commit/236df73dce4629dff92a66e1587961133e2dbd89) | 87 | 129 | Draft PR92; native87 independently verified; all six exact-source CI jobs and normal CodeQL pass |
+| Historical reviewed baseline | [`443e3826b47025106d1829fcbb406ce6302fbbba`](https://github.com/dcpnode-maker/yellow/commit/443e3826b47025106d1829fcbb406ce6302fbbba) | 77 | 127, including `schema_migration` | [PR83](https://github.com/dcpnode-maker/yellow/pull/83) merged independently reviewed source `92346674`; all five jobs in [CI178](https://github.com/dcpnode-maker/yellow/actions/runs/33993977811) passed, including database acceptance23/23 and referee11/11 |
+| Earlier operational baseline | [`5879e2b719db18077e00556477ba34bdb9b9991c`](https://github.com/dcpnode-maker/yellow/commit/5879e2b719db18077e00556477ba34bdb9b9991c) | 75 | 125, including `schema_migration` | Historical PR82 release; later forward migrations preserve this history |
 
-1. `mkdir yellow && cd $_ && git init`
-2. Keep `PROJECT.md`, the role adapters, `BUILD-PLAN.md`, the immutable
-   `migrations/0001_init.sql`, and `docs/` together in the repository.
-3. Copy the three skill folders into `~/.claude/skills/`.
-4. MCP servers for Claude Code: **postgres** (point at the dev compose DB — lets
-   Claude inspect real schema/data while coding) and **github** (PRs, issues).
-5. `DECISIONS.log` ships seeded — keep appending.
-6. Run `./state.sh`, then open your agent on the current reviewed work order.
+The historical **80** is the number of application tables declared by immutable
+`migrations/0001_init.sql`. The migration runner creates the ledger as table 81, and
+later forward migrations expand the catalogue. Historical migration 76
+adds two tables; migration 77 adds no table. See the [schema guide](docs/SCHEMA-GUIDE.md)
+for definitions, arithmetic and read-only catalogue queries. A source count does not
+prove that an existing local or cloud database has applied those migrations.
 
-## What this package is NOT (the honest 30%)
+## Start with the actual project
 
-- **Domain implementation.** Phase 0 supplies the health scaffold and verified
-  platform loop; the hospitality contexts are built in later phases.
-- **Credentials & certifications.** ZATCA sandbox onboarding, India IRP GSP access,
-  Booking.com/Expedia partner certification (start now — calendar-gated), UAE ASP
-  vendor selection. Only you can sign up.
-- **Design pixels.** The three-tier surface model is specified; visual design happens
-  in Phase 10.
-- **Judgement calls mid-build.** ~a dozen small decisions will surface (library picks,
-  edge semantics). That's what `DECISIONS.log` is for — decide once, write it down.
-- **Ops runbooks** beyond what Architecture v3 §12 defines — they get written as the
-  compose stack becomes real in Phase 0.
+Read [PROJECT.md](PROJECT.md), your [role adapter](AGENTS.md), then
+[current project status](docs/PROJECT-STATUS.md) and
+[the project map](docs/PROJECT-MAP.md). The [feature register](docs/FEATURE-REGISTER.md)
+maps the founder's current requirements to phases, design, existing source and
+remaining acceptance work. [START-HERE.md](START-HERE.md),
+[Windows setup](START-HERE-WINDOWS.md) and [USAGE.md](USAGE.md) describe working on
+this existing repository—not creating another package or database.
 
-## Provenance
+**Consolidated baseline: 2026-09-05.** Orders438/439 bring the operational application,
+current project records and repeatable local setup into one Codex-owned release in
+[PR #82](https://github.com/dcpnode-maker/yellow/pull/82). Independent reviewers verified
+all five CI jobs, including the real database and complete local launcher. All 62 PRs
+in the original audit have recorded closure and source-preservation evidence.
+Use reviewed `main` for the app and [RELEASE](docs/RELEASE.md) to start or update it.
+[PROJECT-STATUS](docs/PROJECT-STATUS.md) distinguishes source acceptance, merge, the
+user's local runtime and cloud deployment. No cloud host is connected yet.
 
-Designed clean-room from USALI 12th, HTNG/OpenTravel, and public API docs of modern
-PMSs — no Oracle/OPERA materials were used. Four research rounds + a system stress
-test are archived in the project outputs (`differential-analysis-round-*.md`,
-`system-stress-test-round-4.md`).
+## Guest and staff journeys — Astra review
 
-## The one number to remember
+Order440 connects the hotel guest lifecycle to work across FO, HK, finance, sales,
+banquets, F&B, spa, engineering, concierge, security, stores and management.
 
-The occupancy prototype's naive constraint design **failed** under concurrency
-(double-sold a private room over live bed sales). The claim-range redesign in
-`migrations/0001_init.sql` contains the fix, proven at 1,409 commits/sec with zero
-conflicts admitted.
-That failure cost one afternoon on paper. In production it would have cost the
-company. That is what this package is for.
+- [Independent findings](docs/research/HOTEL-OPERATIONS-REVIEW.md)
+- [Hospitality UX benchmark](docs/research/HOSPITALITY-UX-BENCHMARK.md) and [UI/UX direction](docs/design/UIUX-DIRECTION.md)
+- [App name shortlist](docs/research/APP-NAME-SHORTLIST.md) — preliminary, no rename yet
+- [Guest and department journeys](docs/design/STAFF-JOURNEYS.md)
+- [16 synthetic case studies](docs/design/HOTEL-CASEBOOK.md)
+- [Interactive workbench and local viewing instructions](docs/design/STAFF-WORKBENCH-SPEC.md)
 
+The prototype has 16 department views and 14 playable fictional scenarios. It is a
+reviewable design inside this repository; the main hotel's domain commands and
+future-phase acceptance remain authoritative. This work is part of the same Codex
+Yellow task, with no separate development owner or app backend.
 
-## Using Codex instead of (or alongside) Claude Code
+## Current build snapshot
 
-See `docs/CODEX.md` — `AGENTS.md` and `.codex/config.toml` are already wired.
+The roadmap has **18 phases, numbered 0–17**:
 
-## Two agents, one repo
-`docs/WORKFLOW.md` — Codex builds, Claude Fable reviews. Handoff files in `handoff/`.
-`docs/CODEX.md` — Codex setup. `docs/MERGE-PLAN.md` — combining with the existing PMS.
+| Phases | Recorded state |
+|---|---|
+| 0–3, 5, 6 | Independently reviewed |
+| 4 | Built; final integration/review outstanding |
+| 7 | Active; native invoice/operator and full-credit backend built in development; credit submission447 and remaining fiscal completion continue; not phase-complete |
+| 8–17 | Planned |
+
+Order430 was rejected for incomplete canonical provenance (D1323).
+[Order434](handoff/orders/434-native-fiscal-source-completion.md) completed the governed native source repair and merged through PR83. Forward
+migration0075 still contains the rejected legacy capability; reviewed0076/0077 add
+the new source path. Main integration does not claim IRP provider activation or a
+refreshed hotel runtime. Founder priority is
+**11 → 13 → 17**, subject to mandatory dependencies. From the active phase:
+`7 → 8 → 9 → 10 → 11 → 12 → 13 → 17 → 14 → 15 → 16`.
+
+[BUILD-PLAN.md](BUILD-PLAN.md) owns phase definitions;
+[ROADMAP.md](handoff/ROADMAP.md), [decisions](DECISIONS.log) and
+[ledger](handoff/LEDGER.md) carry current execution evidence.
+[The recorded app status model](src/project-status.ts) is not a live GitHub query;
+its per-order prose can lag later decisions until a scoped status update.
+Neither it nor a filename is proof that a local process has the latest build.
+
+## Current product direction in the original specifications
+
+| Area | Original specification and detailed implementation destination |
+|---|---|
+| Hotel and STR workspaces; reservations, arrivals, room readiness and checkout coordination | [UI specification](docs/UI-SPEC.md), [domain model](docs/DOMAIN-MODEL-V1.md), [staff journeys](docs/design/STAFF-JOURNEYS.md) |
+| Cashiering, immutable corrections, folio windows, payer separation and authorized post-seal actions | [Contracts](docs/CONTRACTS.md), [state machines](docs/STATE-MACHINES.md), [events](docs/EVENTS.md) |
+| Apple, Android/Pixel, Win95/98, glass, neo and ERP materials with contextual disclosure | [Design](docs/DESIGN.md), [UI specification](docs/UI-SPEC.md) |
+| Multilingual voice answers and role-bound workflow actions; explainable room recommendations | [AI architecture](docs/AI-ARCHITECTURE.md), [voice/RMS plan](docs/architecture/VOICE-RMS-PLAN.md) |
+| Revenue/profit forecasting, STR revenue workbench, permitted market signals and OTA visibility | [Voice/RMS plan](docs/architecture/VOICE-RMS-PLAN.md), [OTA connectivity](docs/integrations/OTA-CONNECTIVITY.md) |
+| Lightweight country/region/locality/property preferences, Arabic/RTL and local distribution | [Extensions](docs/EXTENSIONS.md), [regional packs](docs/architecture/REGIONAL-PACKS.md) |
+| Durable developer/AI handoff, order/phase traceability and one repository lineage | [Project map](docs/PROJECT-MAP.md), [feature register](docs/FEATURE-REGISTER.md) |
+
+These are linked requirements and designs, not a claim that all workflows, native
+appearances, providers, voice or RMS are implemented. Preserve the distinction
+between a located foundation and the complete requested experience. The design
+direction allows different layouts; the existing runtime's global
+Simple/Advanced/Expert selector is not the final contextual-disclosure design.
+
+## Source, architecture and evidence
+
+- [PROJECT.md](PROJECT.md) is the canonical constitution; [AGENTS.md](AGENTS.md) and
+  [CLAUDE.md](CLAUDE.md) are role adapters, not competing constitutions.
+- [migrations/0001_init.sql](migrations/0001_init.sql) is the immutable **80-table,
+  13-context baseline**. The migration runner adds its ledger; later forward migrations
+  expand the schema. **13 contexts is not 13 phases**, and 81 is not today's table census.
+  Use the [schema guide](docs/SCHEMA-GUIDE.md) for the branch-specific catalogue.
+- [src/contexts](src/contexts), [kernel](src/kernel), [contracts](docs/CONTRACTS.md),
+  [events](docs/EVENTS.md) and [security](docs/SECURITY.md) define executable boundaries.
+- [Orders](handoff/orders), [reviews](handoff/reviews), decisions and ledger preserve
+  exact scope, findings and proof. Historical records are not rewritten to look new.
+- [Tests](tests), [dependency policy](docs/DEPENDENCIES.md), [lockfile](bun.lock) and
+  [CI](.github/workflows) provide reproducible checks. Database skips are not passes.
+- [Research](docs/research/README.md) separates historical findings, dated public-source
+  research and proposed capability. The September
+  [PMS/STR benchmark](docs/research/STAFF-STR-ECOSYSTEM-2026-09.md) includes public
+  Oracle/Beds24 material; it does not claim copied proprietary code or assets.
+
+## Development and local review
+
+Use the existing checkout. Before starting services, read the platform setup guide
+and identify the retained runtime. Unix `./setup.sh --db-only` migrates development
+data and recreates disposable `yellow_test`; it is a mutating proof workflow, not
+a read-only health command. The required invariant referee is **11 passed, 0 failed**.
+Full setup also starts/verifies the app; a current serving-source receipt is still
+required before calling the founder's local app up to date.
+
+The desired single review URL is `http://127.0.0.1:3000`, not a live-status promise.
+See [local review](docs/LOCAL-REVIEW.md) alongside its current runtime order.
+Keep synthetic login-prefill credentials and database authority protected and out
+of Git. Never restore deleted hotel records, duplicate stacks or erase active work
+merely to make a demo available.
+
+## Implementation and external boundaries
+
+Codex is the sole implementation and coordination owner. It may use bounded internal
+models selected by risk, cost and capability. High-risk changes require a qualified
+non-implementer to execute proof personally; implementers do not self-review or
+self-merge. See [workflow](docs/WORKFLOW.md) and [roster](handoff/ROSTER.md).
+
+Provider contracts, certifications, credentials, spending and legal/business policy
+remain explicit external gates. Public API documentation does not establish access.
+Source-permitted market collection and approved own-extranet operations do not imply
+anonymous scraping, access-control evasion, universal integrations or guaranteed OTA
+ranking. Research, design and a green service check are never substitutes for an
+implemented, tested and authorized customer journey.

@@ -4,9 +4,11 @@ import {
   IndiaGstAccommodationInvoiceTimelinessNotFoundError,
   IndiaGstAccommodationInvoiceTimelinessService,
   IndiaGstAccommodationInvoiceTimelinessValidationError,
+} from "../src/contexts/tax-fiscal";
+import {
   createPositiveTaxAttributionSnapshot,
   type CreatePositiveTaxAttributionSnapshotInput,
-} from "../src/contexts/tax-fiscal";
+} from "../src/contexts/tax-fiscal/attribution";
 import type { Tx } from "../src/kernel";
 
 const id = (n: number) => `00000000-0000-0000-0000-${String(n).padStart(12, "0")}`;
@@ -36,7 +38,7 @@ const row = (overrides: Row = {}): Row => {
     tenant_id: TENANT, invoice_issue_snapshot_id: INVOICE, service_provision_snapshot_id: SERVICE,
     property_node: PROPERTY, reservation_id: RESERVATION, service_provision_date: "2043-06-01",
     invoice_issue_date: "2043-07-01", currency: "INR", amount_minor: "10500", coverage_scope: "full_attribution",
-    invoice_series: "FY2043", invoice_serial: "000042", invoice_issue_source: "governed_supplier_tax_invoice_record",
+    invoice_issue_source: "governed_supplier_tax_invoice_record", invoice_series: "FY2043", invoice_serial: "000042",
     invoice_issue_evidence_sha256: "f".repeat(64), invoice_legal_rule: "CGST_ACT_13_2_INVOICE_DATE_INPUT_ONLY",
     service_provision_source: "governed_service_provision_record", service_provision_evidence_sha256: SERVICE_EVIDENCE,
     service_legal_rule: "CGST_ACT_13_2_B_SERVICE_PROVISION_DATE_INPUT_ONLY", reservation_lineage_id: LINE,
@@ -79,12 +81,33 @@ describe("Order 293 exact India GST accommodation invoice timeliness", () => {
     expect(actual.result).toBe("timely"); expect(actual.deadlineDate).toBe("2043-07-01");
   });
 
+  test("date-only deadline preserves early centuries and leap/century/month/year transitions", async () => {
+    const service = new IndiaGstAccommodationInvoiceTimelinessService();
+    for (const [serviceDate, deadline] of [["0001-01-01", "0001-01-31"], ["0043-12-15", "0044-01-14"], ["0099-12-15", "0100-01-14"], ["2000-02-01", "2000-03-02"], ["1900-02-01", "1900-03-03"], ["2043-12-15", "2044-01-14"]] as const) {
+      const actual = await service.resolve(tx([row({ service_provision_date: serviceDate, invoice_issue_date: deadline })]), input({ serviceProvisionDate: serviceDate, invoiceIssueDate: deadline }));
+      expect(actual.deadlineDate).toBe(deadline); expect(actual.result).toBe("timely");
+    }
+  });
+
+  test("deadline overflow beyond YYYY range fails closed", async () => {
+    await expect(new IndiaGstAccommodationInvoiceTimelinessService().resolve(tx([row({ service_provision_date: "9999-12-31", invoice_issue_date: "9999-12-31" })]), input({ serviceProvisionDate: "9999-12-31", invoiceIssueDate: "9999-12-31" }))).rejects.toBeInstanceOf(IndiaGstAccommodationInvoiceTimelinessConflictError);
+  });
+
   test("returns fixed-order recursively frozen replayable evidence without tenant disclosure", async () => {
     const service = new IndiaGstAccommodationInvoiceTimelinessService();
     const actual = await service.resolve(tx([row()]), input());
     expect(actual).not.toHaveProperty("tenantId"); deepFrozen(actual);
     expect(await service.resolve(tx([row()]), input())).toEqual(actual);
-    expect(Object.keys(actual)).toEqual(["invoiceIssueSnapshotId", "serviceProvisionSnapshotId", "propertyNode", "serviceProvisionDate", "invoiceIssueDate", "deadlineDate", "regime", "source", "legalRule", "result", "amountMinor", "currency", "evidenceHash"]);
+    expect(Object.keys(actual)).toEqual(["invoiceIssueSnapshotId", "serviceProvisionSnapshotId", "propertyNode", "reservationId", "reservationLineage", "attribution", "serviceProvisionDate", "invoiceIssueDate", "deadlineDate", "regime", "source", "legalRule", "ordinaryRegimeEvidenceSha256", "invoiceSeries", "invoiceSerial", "coverageScope", "invoiceIssueSource", "invoiceIssueLegalRule", "serviceProvisionSource", "invoiceIssueEvidenceSha256", "serviceProvisionEvidenceSha256", "serviceProvisionLegalRule", "result", "amountMinor", "currency", "evidenceHash"]);
+    expect(actual.invoiceSeries).toBe("FY2043"); expect(actual.invoiceSerial).toBe("000042");
+    expect(actual.invoiceIssueEvidenceSha256).toBe("f".repeat(64)); expect(actual.serviceProvisionEvidenceSha256).toBe(SERVICE_EVIDENCE);
+    expect(actual.reservationId).toBe(RESERVATION);
+    expect(actual.reservationLineage).toEqual({ lineageId: LINE, holdBindingId: HOLD, attributionId: ATTR, reservationId: RESERVATION, segmentId: SEGMENT, originQuoteHash: QUOTE, snapshotHash: String(row().snapshot_hash), currency: "INR" });
+    expect(actual.attribution).toEqual({ originKind: "rate_quote", lineId: "room", revenueGroup: "room_revenue" });
+    expect(actual.coverageScope).toBe("full_attribution");
+    const changed = await service.resolve(tx([row()]), input({ ordinaryRegimeEvidenceSha256: "2".repeat(64) }));
+    expect(changed.ordinaryRegimeEvidenceSha256).toBe("2".repeat(64));
+    expect(changed.evidenceHash).not.toBe(actual.evidenceHash);
   });
 
   test("exact nine-key plain input rejects missing, extras, proxy, accessor and symbols before SQL", async () => {
@@ -92,6 +115,8 @@ describe("Order 293 exact India GST accommodation invoice timeliness", () => {
     for (const key of Object.keys(exact)) { const candidate = { ...exact } as Mutable; delete candidate[key]; bad.push(candidate); }
     const accessor = { ...exact } as Mutable; Object.defineProperty(accessor, "invoiceIssueDate", { enumerable: true, get: () => exact.invoiceIssueDate }); bad.push(accessor);
     bad.push({ ...exact, [Symbol("hostile")]: true });
+    for (const [key, value] of [["tenantId", "not-a-uuid"], ["propertyNode", "not-a-uuid"], ["reservationId", "not-a-uuid"], ["serviceProvisionSnapshotId", "not-a-uuid"], ["invoiceIssueSnapshotId", "not-a-uuid"], ["serviceProvisionDate", "2043-02-30"], ["invoiceIssueDate", "2043-13-01"], ["ordinaryRegimeEvidenceSha256", "not-a-sha256"]] as const)
+      bad.push({ ...exact, [key]: value });
     for (const candidate of bad) { let calls = 0; const query = (async () => { calls++; return []; }) as unknown as Tx;
       await expect(new IndiaGstAccommodationInvoiceTimelinessService().resolve(query, candidate as never)).rejects.toBeInstanceOf(IndiaGstAccommodationInvoiceTimelinessValidationError); expect(calls).toBe(0); }
   });
@@ -102,17 +127,29 @@ describe("Order 293 exact India GST accommodation invoice timeliness", () => {
     await expect(service.resolve(tx([row(), row({ invoice_issue_snapshot_id: OTHER_INVOICE })]), input())).rejects.toBeInstanceOf(IndiaGstAccommodationInvoiceTimelinessConflictError);
   });
 
+  test("stored row exact shape is mandatory and accessors, proxies and symbols fail closed", async () => {
+    const service = new IndiaGstAccommodationInvoiceTimelinessService();
+    const extra = { ...row(), extra: true };
+    const missing = { ...row() } as Mutable; delete missing.invoice_issue_date;
+    const accessor = { ...row() } as Mutable; Object.defineProperty(accessor, "invoice_issue_date", { enumerable: true, get: () => "2043-07-01" });
+    const symbol = { ...row(), [Symbol("hostile")]: true };
+    for (const candidate of [extra, missing, accessor, new Proxy(row(), {}), symbol])
+      await expect(service.resolve(tx([candidate]), input())).rejects.toBeInstanceOf(IndiaGstAccommodationInvoiceTimelinessConflictError);
+  });
+
   test("ordinary source/legal/hash and full amount/currency coherence are mandatory", async () => {
     const service = new IndiaGstAccommodationInvoiceTimelinessService();
-    for (const defect of [{ ordinary_regime_source: "in_house_clearance" }, { ordinary_regime_legal_rule: "CGST_RULE_47_EXCEPTION" }, { ordinary_regime_evidence_sha256: "A".repeat(64) }, { currency: "CAD" }, { service_currency: "CAD" }, { amount_minor: "1" }, { coverage_scope: "partial_attribution" }, { property_node: id(29390) }, { reservation_id: id(29391) }, { lineage_id: id(29392) }, { snapshot_hash: SERVICE_HASH }, { attribution_snapshot: null }]) {
+    for (const defect of [{ currency: "CAD" }, { service_currency: "CAD" }, { amount_minor: "1" }, { coverage_scope: "partial_attribution" }, { property_node: id(29390) }, { reservation_id: id(29391) }, { lineage_id: id(29392) }, { snapshot_hash: SERVICE_HASH }, { attribution_snapshot: null }, { invoice_issue_evidence_sha256: "not-a-sha256" }, { service_provision_evidence_sha256: "not-a-sha256" }, { invoice_issue_evidence_sha256: "A".repeat(64) }, { service_provision_evidence_sha256: "A".repeat(64) }, { invoice_series: "" }, { invoice_serial: "" }]) {
       await expect(service.resolve(tx([row(defect)]), input())).rejects.toBeInstanceOf(IndiaGstAccommodationInvoiceTimelinessConflictError);
     }
   });
 
   test("every exception regime and unsupported literal fails closed", async () => {
     const service = new IndiaGstAccommodationInvoiceTimelinessService();
-    for (const regime of ["financial_institution_nbfc", "distinct_person", "continuous_supply", "reverse_charge", "exempt", "composition", "low_value", "receipt_voucher", "refund_voucher", "revised_invoice", "credit_note", "debit_note", "consolidated_invoice", "partial_attribution", "excess_attribution", ""])
+    for (const regime of ["financial_institution_nbfc", "distinct_person", "continuous_supply", "reverse_charge", "exempt", "composition", "low_value", "receipt_voucher", "refund_voucher", "revised_invoice", "credit_note", "debit_note", "consolidated_invoice", "partial_attribution", "excess_attribution", "", "governed_rule47_ordinary_regime_record\0"])
       await expect(service.resolve(tx([row()]), input({ ordinaryRegimeSource: regime }))).rejects.toBeInstanceOf(IndiaGstAccommodationInvoiceTimelinessValidationError);
+    for (const evidenceHash of ["", "not-a-sha256", "A".repeat(64), "1".repeat(63), "1".repeat(65)])
+      await expect(service.resolve(tx([row()]), input({ ordinaryRegimeEvidenceSha256: evidenceHash }))).rejects.toBeInstanceOf(IndiaGstAccommodationInvoiceTimelinessValidationError);
   });
 
   test("query is one equality-bound read with complete lineage and no clock/network/write/substitution", async () => {
@@ -127,5 +164,33 @@ describe("Order 293 exact India GST accommodation invoice timeliness", () => {
     const service = new IndiaGstAccommodationInvoiceTimelinessService();
     for (const defect of [{ tenant_id: OTHER }, { service_provision_snapshot_id: id(29393) }, { invoice_issue_snapshot_id: id(29394) }, { reservation_lineage_id: id(29395) }, { origin_quote_hash: "9".repeat(64) }, { invoice_issue_date: "2043-07-03" }, { service_provision_date: "2043-06-02" }])
       await expect(service.resolve(tx([row(defect)]), input())).rejects.toBeInstanceOf(IndiaGstAccommodationInvoiceTimelinessConflictError);
+  });
+
+  test("identity evidence changes bind the tenant-bound result hash", async () => {
+    const service = new IndiaGstAccommodationInvoiceTimelinessService();
+    const baseline = await service.resolve(tx([row()]), input());
+    const changedInvoice = await service.resolve(tx([row({ invoice_issue_evidence_sha256: "e".repeat(64) })]), input());
+    const changedService = await service.resolve(tx([row({ service_provision_evidence_sha256: "d".repeat(64) })]), input());
+    expect(changedInvoice.evidenceHash).not.toBe(baseline.evidenceHash); expect(changedService.evidenceHash).not.toBe(baseline.evidenceHash);
+  });
+
+  test("complete predecessor identity is exposed and bound", async () => {
+    const service = new IndiaGstAccommodationInvoiceTimelinessService();
+    const baseline = await service.resolve(tx([row()]), input());
+    for (const [field, value] of [["invoice_series", "FY2044"], ["invoice_serial", "000043"]] as const) {
+      const changed = await service.resolve(tx([row({ [field]: value })]), input());
+      expect(changed.evidenceHash).not.toBe(baseline.evidenceHash);
+    }
+    for (const field of ["reservation_lineage_id", "hold_binding_id", "attribution_id", "reservation_id", "segment_id"] as const) {
+      await expect(service.resolve(tx([row({ [field]: id(29380) })]), input())).rejects.toBeInstanceOf(IndiaGstAccommodationInvoiceTimelinessConflictError);
+    }
+    for (const field of ["origin_quote_hash", "snapshot_hash", "currency"] as const) {
+      await expect(service.resolve(tx([row({ [field]: field === "currency" ? "CAD" : "9".repeat(64) })]), input())).rejects.toBeInstanceOf(IndiaGstAccommodationInvoiceTimelinessConflictError);
+    }
+  });
+
+  test("timeliness source contains no Date constructor or clock dependency", async () => {
+    const source = await Bun.file(new URL("../src/contexts/tax-fiscal/india-gst-accommodation-invoice-timeliness.ts", import.meta.url)).text();
+    expect(source).not.toMatch(/\bDate\s*\(|Date\.UTC|Date\.now|new\s+Date/i);
   });
 });

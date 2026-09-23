@@ -1,6 +1,6 @@
 # ORDER NNN — <slug>
 
-**Phase:** N · **Branch:** `phase-N/<slug>` · **Written by:** <agent — Codex by default; see `handoff/CODEX-HANDOFF.md`> · **Date:**
+**Phase:** N · **Branch:** `phase-N/<slug>` · **Written by:** acting order owner · **Date:**
 
 ## Goal
 One sentence. If it needs two, split the order.

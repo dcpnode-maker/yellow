@@ -2,6 +2,7 @@ import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { randomUUID } from "node:crypto";
 import {
   mkdtemp,
+  readdir,
   readFile,
   rename,
   rm,
@@ -9,7 +10,7 @@ import {
   unlink,
   writeFile,
 } from "node:fs/promises";
-import { join, resolve } from "node:path";
+import { isAbsolute, join, resolve } from "node:path";
 import { tmpdir } from "node:os";
 import { SQL, type Subprocess } from "bun";
 import {
@@ -17,18 +18,35 @@ import {
   runMigrations,
   type MigrationRunResult,
 } from "../scripts/migrate";
+import { normalizeSchemaDump } from "../scripts/schema-drift";
 
 const PROJECT_ROOT = resolve(import.meta.dir, "..");
 const MIGRATE_SCRIPT = resolve(PROJECT_ROOT, "scripts", "migrate.ts");
+const PROJECT_MIGRATIONS = resolve(PROJECT_ROOT, "migrations");
 const BASELINE_PATH = resolve(PROJECT_ROOT, "migrations", "0001_init.sql");
 const BASELINE_BYTES = await readFile(BASELINE_PATH);
+const BUSINESS_DAY_SEAL_MIGRATION = await readFile(
+  resolve(PROJECT_ROOT, "migrations", "0013_revoke_app_role_business_day_seal.sql"),
+);
 const BASELINE_SHA256 = "fe2a9fc949c6bacded3f8d3fc4d14fc596a83ebde9aeb043eb10845f07b30923";
-const ADMIN_URL = process.env.YELLOW_MIGRATION_TEST_ADMIN_URL;
+const ADMIN_URL = process.env.YELLOW_DEPLOY_DATABASE_URL ?? process.env.YELLOW_MIGRATION_TEST_ADMIN_URL;
+const RUNTIME_URL = process.env.YELLOW_RUNTIME_DATABASE_URL;
 const REQUIRE_DATABASE = process.env.YELLOW_REQUIRE_MIGRATION_DB === "1";
+const REQUIRE_ORDER434_DATABASE = process.env.YELLOW_REQUIRE_ORDER434_DATABASE === "1";
+const ORDER434_MIGRATIONS_DIR = process.env.YELLOW_ORDER434_MIGRATIONS_DIR;
+const ORDER434_PG_DUMP = process.env.YELLOW_ORDER434_PG_DUMP;
+const ORDER434_PG_DUMP_COMPOSE = process.env.YELLOW_ORDER434_PG_DUMP_COMPOSE === "1";
 const FORBIDDEN_DATABASES = new Set(["yellow_dev", "yellow_test"]);
 
 if (REQUIRE_DATABASE && !ADMIN_URL) {
   throw new Error("YELLOW_MIGRATION_TEST_ADMIN_URL is required by bun run test:db:migrate");
+}
+if (REQUIRE_ORDER434_DATABASE && (!ADMIN_URL || !RUNTIME_URL
+    || !ORDER434_MIGRATIONS_DIR || (!ORDER434_PG_DUMP && !ORDER434_PG_DUMP_COMPOSE))) {
+  throw new Error("Order434 migration proof requires admin/runtime URLs, an absolute migration directory and an explicit real pg_dump transport");
+}
+if (ORDER434_PG_DUMP && ORDER434_PG_DUMP_COMPOSE) {
+  throw new Error("Order434 native and Compose pg_dump transports are mutually exclusive");
 }
 
 type FileContents = string | Uint8Array;
@@ -74,7 +92,7 @@ async function withDatabase<T>(
   const adminClient = requiredAdmin();
   await adminClient.unsafe(`CREATE DATABASE ${quoteIdentifier(databaseName)}`);
   const targetUrl = databaseUrl(databaseName);
-  const sql = new SQL(targetUrl);
+  const sql = new SQL(targetUrl, { max: 1, prepare: false });
 
   try {
     return await run({ databaseName, databaseUrl: targetUrl, sql });
@@ -123,7 +141,7 @@ function spawnRunner(targetUrl: string, directory: string): Subprocess<"ignore",
     cwd: PROJECT_ROOT,
     env: {
       ...process.env,
-      DATABASE_URL: targetUrl,
+      YELLOW_DEPLOY_DATABASE_URL: targetUrl,
       YELLOW_MIGRATIONS_DIR: directory,
     },
     stdin: "ignore",
@@ -154,10 +172,108 @@ function summaryEvidence(output: string): SummaryEvidence {
   };
 }
 
+interface ExactLedgerRow {
+  readonly version_bytes: string;
+  readonly filename_bytes: string;
+  readonly checksum_bytes: string;
+  readonly applied_at_bytes: string;
+}
+
+async function exactLedger(sql: SQL, through = 9999): Promise<readonly ExactLedgerRow[]> {
+  return sql<ExactLedgerRow[]>`
+    SELECT pg_catalog.encode(pg_catalog.int8send(version),'hex') AS version_bytes,
+           pg_catalog.encode(pg_catalog.textsend(filename),'hex') AS filename_bytes,
+           pg_catalog.encode(pg_catalog.textsend(checksum_sha256),'hex') AS checksum_bytes,
+           pg_catalog.encode(pg_catalog.timestamptz_send(applied_at),'hex') AS applied_at_bytes
+      FROM public.schema_migration WHERE version<=${through} ORDER BY version`;
+}
+
+async function order434CandidateFiles(): Promise<Readonly<Record<string, Uint8Array>>> {
+  if (!ORDER434_MIGRATIONS_DIR) throw new Error("YELLOW_ORDER434_MIGRATIONS_DIR is unavailable");
+  if (!isAbsolute(ORDER434_MIGRATIONS_DIR)) throw new Error("YELLOW_ORDER434_MIGRATIONS_DIR must be absolute");
+  const names = (await readdir(ORDER434_MIGRATIONS_DIR)).filter(name =>
+    name.endsWith(".sql") && Number(name.slice(0, 4)) <= 77).sort();
+  const versions = names.map(name => Number(name.slice(0, 4)));
+  expect(versions).toEqual(Array.from({ length: 77 }, (_, index) => index + 1));
+  expect(names.slice(-3)).toEqual([
+    "0075_contain_unapproved_native_fiscal_issuance.sql",
+    "0076_india_native_fiscal_source_evidence.sql",
+    "0077_india_native_fiscal_source_completion.sql",
+  ]);
+  const files = Object.fromEntries(await Promise.all(names.map(async name =>
+    [name, await readFile(resolve(ORDER434_MIGRATIONS_DIR, name))] as const)));
+  const repositoryNames = (await readdir(PROJECT_MIGRATIONS)).filter(name => name.endsWith(".sql")).sort();
+  expect(repositoryNames.slice(0, 75)).toEqual(names.slice(0, 75));
+  const predecessorMismatches = (await Promise.all(repositoryNames.slice(0, 75).map(async name =>
+    Buffer.compare(files[name]!, await readFile(resolve(PROJECT_MIGRATIONS, name))) === 0 ? null : name)))
+    .filter((name): name is string => name !== null);
+  expect(predecessorMismatches).toEqual([]);
+  const canonicalCompletion = repositoryNames.filter(name => Number(name.slice(0, 4)) >= 76
+    && Number(name.slice(0, 4)) <= 77);
+  expect(canonicalCompletion).toEqual(names.slice(75));
+  const completionMismatches = (await Promise.all(canonicalCompletion.map(async name =>
+    Buffer.compare(files[name]!, await readFile(resolve(PROJECT_MIGRATIONS, name))) === 0 ? null : name)))
+    .filter((name): name is string => name !== null);
+  expect(completionMismatches).toEqual([]);
+  return files;
+}
+
+function fileSha256(bytes: Uint8Array): string {
+  return new Bun.CryptoHasher("sha256").update(bytes).digest("hex");
+}
+
+async function canonicalMigrationFiles(
+  through: number,
+  from = 2,
+): Promise<Readonly<Record<string, Uint8Array>>> {
+  const names = (await readdir(PROJECT_MIGRATIONS)).filter((name) => {
+    const version = Number(name.slice(0, 4));
+    return name.endsWith(".sql") && version >= from && version <= through;
+  });
+  return Object.fromEntries(await Promise.all(names.map(async (name) =>
+    [name, await readFile(resolve(PROJECT_MIGRATIONS, name))] as const)));
+}
+
+let order434DumpVersionVerified = false;
+
+async function normalizedOrder434Dump(databaseUrl: string): Promise<string> {
+  const parsed = new URL(databaseUrl);
+  const databaseName = parsed.pathname.slice(1);
+  if (!/^postgres(?:ql)?:$/.test(parsed.protocol)
+      || decodeURIComponent(parsed.username) !== "yellow_deploy"
+      || !/^yellow_migrate_[a-z0-9_]+$/.test(databaseName)) {
+    throw new Error("Order434 dump must target its exact isolated deployment-role proof database");
+  }
+  if (!ORDER434_PG_DUMP_COMPOSE && (!ORDER434_PG_DUMP || !isAbsolute(ORDER434_PG_DUMP))) {
+    throw new Error("YELLOW_ORDER434_PG_DUMP must be an absolute binary path");
+  }
+  const command = ORDER434_PG_DUMP_COMPOSE
+    ? ["docker", "compose", "exec", "-T", "postgres", "pg_dump"]
+    : [ORDER434_PG_DUMP!];
+  if (!order434DumpVersionVerified) {
+    const version = await collectChild(Bun.spawn([...command, "--version"], {
+      cwd: PROJECT_ROOT, stdin: "ignore", stdout: "pipe", stderr: "pipe",
+    }));
+    if (version.exitCode !== 0 || !/^pg_dump \(PostgreSQL\) 16\.15(?:\s|$)/.test(version.stdout.trim())) {
+      throw new Error("Order434 schema proof requires the genuine PostgreSQL 16.15 dump client");
+    }
+    order434DumpVersionVerified = true;
+  }
+  const connection = ORDER434_PG_DUMP_COMPOSE
+    ? ["--username", "yellow_deploy", "--dbname", databaseName]
+    : ["--dbname", databaseUrl];
+  const child = Bun.spawn([...command, ...connection, "--schema-only",
+    "--no-owner", "--no-comments"], { cwd: PROJECT_ROOT, stdin: "ignore", stdout: "pipe", stderr: "pipe" });
+  const result = await collectChild(child);
+  if (result.exitCode !== 0) throw new Error(`Order434 pg_dump failed (${result.exitCode}): ${result.stderr.trim()}`);
+  return normalizeSchemaDump(result.stdout, true);
+}
+
 describe("migration CLI", () => {
-  test("requires DATABASE_URL instead of silently selecting a database", async () => {
+  test("requires YELLOW_DEPLOY_DATABASE_URL instead of silently selecting a database", async () => {
     const env = { ...process.env };
     delete env.DATABASE_URL;
+    delete env.YELLOW_DEPLOY_DATABASE_URL;
     delete env.YELLOW_MIGRATIONS_DIR;
     const child = Bun.spawn([process.execPath, MIGRATE_SCRIPT], {
       cwd: PROJECT_ROOT,
@@ -170,8 +286,180 @@ describe("migration CLI", () => {
 
     expect(result.exitCode).toBe(1);
     expect(result.stdout).toBe("");
-    expect(result.stderr.trim()).toBe("DATABASE_URL is required");
+    expect(result.stderr.trim()).toBe("YELLOW_DEPLOY_DATABASE_URL is required");
   });
+});
+
+const order434MigrationDescribe = REQUIRE_ORDER434_DATABASE ? describe.serial : describe.skip;
+let order434UpgradeDump: string | undefined;
+let order434ImmutableLedger: readonly ExactLedgerRow[] | undefined;
+let order434FinalLedger: readonly ExactLedgerRow[] | undefined;
+
+order434MigrationDescribe("Order434 production migration 75 to 77 boundary", () => {
+  beforeAll(async () => {
+    const parsed = new URL(requiredAdminUrl());
+    const adminDatabase = parsed.pathname.replace(/^\//, "");
+    if (FORBIDDEN_DATABASES.has(adminDatabase)) {
+      throw new Error(`Order434 admin URL must not point at protected database ${adminDatabase}`);
+    }
+    admin = new SQL(requiredAdminUrl(), { max: 1, prepare: false });
+    const [role] = await admin<Array<{ is_superuser: boolean }>>`
+      SELECT rolsuper AS is_superuser FROM pg_roles WHERE rolname=current_user`;
+    if (!role?.is_superuser) throw new Error("Order434 migration proof requires a PostgreSQL superuser admin URL");
+  });
+
+  afterAll(async () => {
+    await admin?.close();
+    admin = undefined;
+  });
+
+  test("upgrades exact production 75 through fail-closed 76 and atomic 77", async () => {
+    const candidate = await order434CandidateFiles();
+    const through75 = Object.fromEntries(Object.entries(candidate)
+      .filter(([name]) => Number(name.slice(0, 4)) >= 2 && Number(name.slice(0, 4)) <= 75));
+    await withDatabase(async ({ databaseUrl: targetUrl, sql }) => {
+      await withMigrationDirectory(through75, async directory => {
+        const predecessor = await runMigrations({ databaseUrl: targetUrl,
+          migrationsDirectory: directory, logger: () => undefined });
+        expect(predecessor.appliedFiles).toHaveLength(75);
+        expect(predecessor.appliedFiles.at(-1)).toBe("0075_contain_unapproved_native_fiscal_issuance.sql");
+        order434ImmutableLedger = await exactLedger(sql, 75);
+        expect(order434ImmutableLedger).toHaveLength(75);
+
+        const legacyAt75 = await sql<Array<{ app: boolean; runtime: boolean; public: boolean }>>`
+          SELECT has_function_privilege('app_role',p.oid,'EXECUTE') AS app,
+                 has_function_privilege('yellow_runtime',p.oid,'EXECUTE') AS runtime,
+                 EXISTS(SELECT 1 FROM aclexplode(coalesce(p.proacl,acldefault('f',p.proowner))) acl
+                   WHERE acl.grantee=0 AND acl.privilege_type='EXECUTE') AS public
+            FROM pg_proc p WHERE p.oid=
+              'public.commit_india_native_fiscal_invoice(uuid,uuid,uuid,uuid,uuid,uuid,text,jsonb,uuid)'::regprocedure`;
+        expect(legacyAt75).toEqual([{ app: false, runtime: false, public: false }]);
+
+        await writeFile(resolve(directory, "0076_india_native_fiscal_source_evidence.sql"),
+          candidate["0076_india_native_fiscal_source_evidence.sql"]!);
+        const evidence = await runMigrations({ databaseUrl: targetUrl,
+          migrationsDirectory: directory, logger: () => undefined });
+        expect(evidence.appliedFiles).toEqual(["0076_india_native_fiscal_source_evidence.sql"]);
+        expect(await exactLedger(sql, 75)).toEqual(order434ImmutableLedger);
+        expect(await exactLedger(sql)).toHaveLength(76);
+        expect(await sql<Array<{ filename: string; checksum_sha256: string }>>`
+          SELECT filename,checksum_sha256 FROM public.schema_migration WHERE version=76`)
+          .toEqual([{ filename: "0076_india_native_fiscal_source_evidence.sql",
+            checksum_sha256: fileSha256(candidate["0076_india_native_fiscal_source_evidence.sql"]!) }]);
+        const partialAuthority = await sql<Array<{ legacy_app: boolean; final_app_grants: number }>>`
+          SELECT has_function_privilege('app_role',
+              'public.commit_india_native_fiscal_invoice(uuid,uuid,uuid,uuid,uuid,uuid,text,jsonb,uuid)','EXECUTE') AS legacy_app,
+            (SELECT count(*)::int FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace
+              WHERE n.nspname='public' AND p.proname IN (
+                'prepare_india_native_fiscal_invoice_v2','consume_india_native_fiscal_accounting_event',
+                'read_india_native_accounting_source_closure','commit_india_native_fiscal_invoice_v2',
+                'create_approval_request_with_options')
+                AND has_function_privilege('app_role',p.oid,'EXECUTE')) AS final_app_grants`;
+        expect(partialAuthority).toEqual([{ legacy_app: false, final_app_grants: 0 }]);
+        const partialDump = await normalizedOrder434Dump(targetUrl);
+        const ledgerAt76 = await exactLedger(sql);
+
+        const genuine77 = candidate["0077_india_native_fiscal_source_completion.sql"]!;
+        const injectedFailure = new Uint8Array([
+          ...genuine77,
+          ...new TextEncoder().encode("\nDO $order434_atomic_failure$ BEGIN RAISE EXCEPTION USING ERRCODE='55000', MESSAGE='Order434 injected migration rollback'; END $order434_atomic_failure$;\n"),
+        ]);
+        await writeFile(resolve(directory, "0077_india_native_fiscal_source_completion.sql"), injectedFailure);
+        const failure = await migrationFailure(() => runMigrations({ databaseUrl: targetUrl,
+          migrationsDirectory: directory, logger: () => undefined }));
+        expect(failure).toMatchObject({ errno: "55000", rollbackConnectionUsable: true });
+        expect(failure.backendPid).toBeNumber();
+        expect(await exactLedger(sql)).toEqual(ledgerAt76);
+        expect(await normalizedOrder434Dump(targetUrl)).toBe(partialDump);
+
+        await writeFile(resolve(directory, "0077_india_native_fiscal_source_completion.sql"), genuine77);
+        const completion = await runMigrations({ databaseUrl: targetUrl,
+          migrationsDirectory: directory, logger: () => undefined });
+        expect(completion.appliedFiles).toEqual(["0077_india_native_fiscal_source_completion.sql"]);
+        expect(completion.transactionBackendPids).toEqual([completion.backendPid]);
+        expect(await exactLedger(sql, 75)).toEqual(order434ImmutableLedger);
+        order434FinalLedger = await exactLedger(sql);
+        expect(order434FinalLedger).toHaveLength(77);
+        expect(await sql<Array<{ filename: string; checksum_sha256: string }>>`
+          SELECT filename,checksum_sha256 FROM public.schema_migration WHERE version=77`)
+          .toEqual([{ filename: "0077_india_native_fiscal_source_completion.sql",
+            checksum_sha256: fileSha256(genuine77) }]);
+        const finalAuthority = await sql<Array<{
+          signature: string; app: boolean; runtime: boolean; public: boolean;
+        }>>`
+          WITH expected(signature) AS (VALUES
+            ('public.prepare_india_native_fiscal_invoice_v2(uuid,uuid,uuid,uuid,uuid,uuid,uuid,uuid,uuid,uuid,uuid,uuid,uuid,uuid,uuid,text,text,date,date[],text[],text,uuid)'),
+            ('public.consume_india_native_fiscal_accounting_event(uuid,uuid)'),
+            ('public.read_india_native_accounting_source_closure(uuid,uuid)'),
+            ('public.commit_india_native_fiscal_invoice_v2(uuid,uuid,uuid,uuid,text,jsonb,uuid)'),
+            ('public.create_approval_request_with_options(uuid,uuid,uuid,uuid,text,text,uuid,jsonb,timestamptz)')
+          )
+          SELECT expected.signature,has_function_privilege('app_role',p.oid,'EXECUTE') AS app,
+            has_function_privilege('yellow_runtime',p.oid,'EXECUTE') AS runtime,
+            EXISTS(SELECT 1 FROM aclexplode(coalesce(p.proacl,acldefault('f',p.proowner))) acl
+              WHERE acl.grantee=0 AND acl.privilege_type='EXECUTE') AS public
+          FROM expected JOIN pg_proc p ON p.oid=to_regprocedure(expected.signature)
+          ORDER BY expected.signature`;
+        expect(finalAuthority).toHaveLength(5);
+        expect(finalAuthority.every(row => row.app && !row.runtime && !row.public)).toBeTrue();
+        expect(await sql<Array<{ app: boolean; runtime: boolean; public: boolean }>>`
+          SELECT has_function_privilege('app_role',p.oid,'EXECUTE') AS app,
+                 has_function_privilege('yellow_runtime',p.oid,'EXECUTE') AS runtime,
+                 EXISTS(SELECT 1 FROM aclexplode(coalesce(p.proacl,acldefault('f',p.proowner))) acl
+                   WHERE acl.grantee=0 AND acl.privilege_type='EXECUTE') AS public
+            FROM pg_proc p WHERE p.oid=
+              'public.commit_india_native_fiscal_invoice(uuid,uuid,uuid,uuid,uuid,uuid,text,jsonb,uuid)'::regprocedure`)
+          .toEqual([{ app: false, runtime: false, public: false }]);
+        order434UpgradeDump = await normalizedOrder434Dump(targetUrl);
+
+        const noOpLog: string[] = [];
+        const noOp = await runMigrations({ databaseUrl: targetUrl, migrationsDirectory: directory,
+          logger: line => noOpLog.push(line) });
+        expect(noOp).toMatchObject({ appliedFiles: [], discoveredFiles: 77, transactionBackendPids: [] });
+        expect(noOpLog).toHaveLength(1);
+        expect(noOpLog[0]).toContain("applied=0 status=no-op");
+        expect(await exactLedger(sql)).toEqual(order434FinalLedger);
+        expect(await normalizedOrder434Dump(targetUrl)).toBe(order434UpgradeDump);
+
+        await writeFile(resolve(directory, "0077_india_native_fiscal_source_completion.sql"),
+          new Uint8Array([...genuine77, 0x0a]));
+        const drift = await migrationFailure(() => runMigrations({ databaseUrl: targetUrl,
+          migrationsDirectory: directory, logger: () => undefined }));
+        expect(drift.message).toContain("Applied migration checksum mismatch for version 77");
+        expect(await exactLedger(sql)).toEqual(order434FinalLedger);
+        expect(await normalizedOrder434Dump(targetUrl)).toBe(order434UpgradeDump);
+      });
+    });
+  }, 180_000);
+
+  test("fresh 77 is schema-identical to the production-75 upgrade", async () => {
+    if (!order434UpgradeDump || !order434ImmutableLedger || !order434FinalLedger) {
+      throw new Error("Order434 upgrade proof must complete before fresh equivalence");
+    }
+    const upgradeDump = order434UpgradeDump;
+    const immutableLedger = order434ImmutableLedger;
+    const finalLedger = order434FinalLedger;
+    const candidate = await order434CandidateFiles();
+    await withDatabase(async ({ databaseUrl: targetUrl, sql }) => {
+      await withMigrationDirectory(candidate, async directory => {
+        const result = await runMigrations({ databaseUrl: targetUrl,
+          migrationsDirectory: directory, logger: () => undefined });
+        expect(result.appliedFiles).toHaveLength(77);
+        expect(result.appliedFiles.slice(-3)).toEqual([
+          "0075_contain_unapproved_native_fiscal_issuance.sql",
+          "0076_india_native_fiscal_source_evidence.sql",
+          "0077_india_native_fiscal_source_completion.sql",
+        ]);
+        const freshImmutable = await exactLedger(sql, 75);
+        expect(freshImmutable.map(({ applied_at_bytes: _ignored, ...row }) => row))
+          .toEqual(immutableLedger.map(({ applied_at_bytes: _ignored, ...row }) => row));
+        const freshLedger = await exactLedger(sql);
+        expect(freshLedger.map(({ applied_at_bytes: _ignored, ...row }) => row))
+          .toEqual(finalLedger.map(({ applied_at_bytes: _ignored, ...row }) => row));
+        expect(await normalizedOrder434Dump(targetUrl)).toBe(upgradeDump);
+      });
+    });
+  }, 180_000);
 });
 
 const databaseDescribe = ADMIN_URL ? describe.serial : describe.skip;
@@ -197,6 +485,1174 @@ databaseDescribe("Bun SQL migration runner", () => {
     await admin?.close();
     admin = undefined;
   });
+
+  describe("Order440 canonical migration 77 to 78 boundary", () => {
+    let upgradedSchema: string | undefined;
+    let immutableLedger: readonly ExactLedgerRow[] | undefined;
+    let finalLedger: readonly ExactLedgerRow[] | undefined;
+
+    test("preserves legacy rows and the prior ledger through rollback, upgrade, no-op and checksum drift", async () => {
+      const through77 = await canonicalMigrationFiles(77);
+      const through78 = await canonicalMigrationFiles(78);
+      const canonical78 = await readFile(resolve(
+        PROJECT_MIGRATIONS,
+        "0078_fiscal_submission_durability.sql",
+      ));
+      expect(fileSha256(canonical78)).toBe(
+        "65323a81a999a11e3d55893411c994c0b841af9b0465ca7e80630fd78d0ffae6",
+      );
+
+      await withDatabase(async ({ databaseUrl: targetUrl, sql }) => {
+        await withMigrationDirectory(through77, async (directory) => {
+          const predecessor = await runMigrations({
+            databaseUrl: targetUrl,
+            migrationsDirectory: directory,
+            logger: () => undefined,
+          });
+          expect(predecessor.appliedFiles).toHaveLength(77);
+        });
+
+        const tenantId = randomUUID();
+        const propertyId = randomUUID();
+        const documentId = randomUUID();
+        const submissionId = randomUUID();
+        await sql`INSERT INTO public.tenant(id,slug,name)
+          VALUES(${tenantId}::uuid,${`q201-${tenantId}`},'Q201 legacy tenant')`;
+        await sql`INSERT INTO public.org_node(id,tenant_id,path,kind,name,timezone,currency)
+          VALUES(${propertyId}::uuid,${tenantId}::uuid,${`q201${tenantId.replaceAll("-", "")}.property`}::ltree,
+            'property','Q201 property','UTC','INR')`;
+        await sql`INSERT INTO public.document(id,tenant_id,property_node,kind,status,content)
+          VALUES(${documentId}::uuid,${tenantId}::uuid,${propertyId}::uuid,'invoice','issued','{"legacy":true}'::jsonb)`;
+        await sql`INSERT INTO public.fiscal_submission(
+          id,tenant_id,document_id,provider_key,mode,status,authority_ref,response
+        ) VALUES(
+          ${submissionId}::uuid,${tenantId}::uuid,${documentId}::uuid,
+          'in-irp','reporting','accepted','legacy-authority','{"legacy":true}'::jsonb
+        )`;
+
+        const legacyBefore = await sql<Array<{ bytes: string }>>`
+          SELECT pg_catalog.encode(pg_catalog.convert_to(row_to_json(ROW(
+                   submission.id,submission.tenant_id,submission.document_id,
+                   submission.provider_key,submission.mode,submission.status,
+                   submission.authority_ref,submission.qr_payload,submission.response,
+                   submission.submitted_at,submission.resolved_at
+                 ))::text,'UTF8'),'hex') AS bytes
+            FROM public.fiscal_submission submission WHERE id=${submissionId}::uuid`;
+        immutableLedger = await exactLedger(sql, 77);
+        expect(immutableLedger).toHaveLength(77);
+        const schemaBefore = await normalizedOrder434Dump(targetUrl);
+
+        const injected78 = new Uint8Array([
+          ...canonical78,
+          ...new TextEncoder().encode(
+            "\nDO $order440_atomic_failure$ BEGIN RAISE EXCEPTION USING ERRCODE='55000', MESSAGE='Order440 injected migration rollback'; END $order440_atomic_failure$;\n",
+          ),
+        ]);
+        await withMigrationDirectory({ ...through77,
+          "0078_fiscal_submission_durability.sql": injected78 }, async (directory) => {
+          const failure = await migrationFailure(() => runMigrations({
+            databaseUrl: targetUrl,
+            migrationsDirectory: directory,
+            logger: () => undefined,
+          }));
+          expect(failure).toMatchObject({ errno: "55000", rollbackConnectionUsable: true });
+        });
+        expect(await exactLedger(sql)).toEqual(immutableLedger);
+        expect(await normalizedOrder434Dump(targetUrl)).toBe(schemaBefore);
+        expect(await sql<Array<{ bytes: string }>>`
+          SELECT pg_catalog.encode(pg_catalog.convert_to(row_to_json(ROW(
+                   submission.id,submission.tenant_id,submission.document_id,
+                   submission.provider_key,submission.mode,submission.status,
+                   submission.authority_ref,submission.qr_payload,submission.response,
+                   submission.submitted_at,submission.resolved_at
+                 ))::text,'UTF8'),'hex') AS bytes
+            FROM public.fiscal_submission submission WHERE id=${submissionId}::uuid`).toEqual(legacyBefore);
+
+        const upgrade = await withMigrationDirectory(through78, directory => runMigrations({
+          databaseUrl: targetUrl,
+          migrationsDirectory: directory,
+          logger: () => undefined,
+        }));
+        expect(upgrade.appliedFiles).toEqual(["0078_fiscal_submission_durability.sql"]);
+        expect(upgrade.transactionBackendPids).toEqual([upgrade.backendPid]);
+        expect(await exactLedger(sql, 77)).toEqual(immutableLedger);
+        finalLedger = await exactLedger(sql);
+        expect(finalLedger).toHaveLength(78);
+        expect(await sql<Array<{ filename: string; checksum_sha256: string }>>`
+          SELECT filename,checksum_sha256 FROM public.schema_migration WHERE version=78`).toEqual([{
+          filename: "0078_fiscal_submission_durability.sql",
+          checksum_sha256: fileSha256(canonical78),
+        }]);
+        expect(await sql<Array<{ bytes: string }>>`
+          SELECT pg_catalog.encode(pg_catalog.convert_to(row_to_json(ROW(
+                   submission.id,submission.tenant_id,submission.document_id,
+                   submission.provider_key,submission.mode,submission.status,
+                   submission.authority_ref,submission.qr_payload,submission.response,
+                   submission.submitted_at,submission.resolved_at
+                 ))::text,'UTF8'),'hex') AS bytes
+            FROM public.fiscal_submission submission WHERE id=${submissionId}::uuid`).toEqual(legacyBefore);
+        expect(await sql<Array<{ all_null: boolean }>>`
+          SELECT delivery_version IS NULL AND property_node IS NULL AND business_date IS NULL
+             AND document_sha256 IS NULL AND wire_sha256 IS NULL AND wire_text IS NULL
+             AND provider_extension_id IS NULL AND provider_extension_version IS NULL
+             AND attempt_id IS NULL AND attempt_number IS NULL AND retry_count IS NULL
+             AND transition_seq IS NULL AND claim_token_hash IS NULL AND claim_expires_at IS NULL
+             AND claim_action IS NULL AND disposition IS NULL AND reconciliation_reason IS NULL
+             AND resolution_source IS NULL AND response_sha256 IS NULL AND requested_by IS NULL
+             AND request_id IS NULL AS all_null
+            FROM public.fiscal_submission WHERE id=${submissionId}::uuid`).toEqual([{ all_null: true }]);
+        upgradedSchema = await normalizedOrder434Dump(targetUrl);
+
+        const noOp = await withMigrationDirectory(through78, directory => runMigrations({
+          databaseUrl: targetUrl,
+          migrationsDirectory: directory,
+          logger: () => undefined,
+        }));
+        expect(noOp).toMatchObject({ appliedFiles: [], discoveredFiles: 78, transactionBackendPids: [] });
+        expect(await exactLedger(sql)).toEqual(finalLedger);
+
+        await withMigrationDirectory({ ...through77,
+          "0078_fiscal_submission_durability.sql": new Uint8Array([...canonical78, 0x0a]) }, async (directory) => {
+          const drift = await migrationFailure(() => runMigrations({
+            databaseUrl: targetUrl,
+            migrationsDirectory: directory,
+            logger: () => undefined,
+          }));
+          expect(drift.message).toContain("Applied migration checksum mismatch for version 78");
+        });
+        expect(await exactLedger(sql)).toEqual(finalLedger);
+        expect(await normalizedOrder434Dump(targetUrl)).toBe(upgradedSchema);
+      });
+    }, 240_000);
+
+    test("fresh 78 is schema-identical to the canonical 77 upgrade", async () => {
+      if (!upgradedSchema || !immutableLedger || !finalLedger) {
+        throw new Error("Order440 upgrade proof must complete before fresh equivalence");
+      }
+      const expectedSchema = upgradedSchema;
+      const expectedImmutable = immutableLedger;
+      const expectedFinal = finalLedger;
+      const through78 = await canonicalMigrationFiles(78);
+      await withDatabase(async ({ databaseUrl: targetUrl, sql }) => {
+        const fresh = await withMigrationDirectory(through78, directory => runMigrations({
+          databaseUrl: targetUrl,
+          migrationsDirectory: directory,
+          logger: () => undefined,
+        }));
+        expect(fresh.appliedFiles).toHaveLength(78);
+        expect(fresh.appliedFiles.at(-1)).toBe("0078_fiscal_submission_durability.sql");
+        expect((await exactLedger(sql, 77)).map(({ applied_at_bytes: _ignored, ...row }) => row))
+          .toEqual(expectedImmutable.map(({ applied_at_bytes: _ignored, ...row }) => row));
+        expect((await exactLedger(sql)).map(({ applied_at_bytes: _ignored, ...row }) => row))
+          .toEqual(expectedFinal.map(({ applied_at_bytes: _ignored, ...row }) => row));
+        expect(await normalizedOrder434Dump(targetUrl)).toBe(expectedSchema);
+      });
+    }, 180_000);
+  });
+
+  describe("Order440/Q205 canonical migration 78 to 79 boundary", () => {
+    let upgradedSchema: string | undefined;
+    let immutableLedger: readonly ExactLedgerRow[] | undefined;
+    let finalLedger: readonly ExactLedgerRow[] | undefined;
+
+    test("rolls back exactly, upgrades canonical 79, no-ops, and refuses checksum drift", async () => {
+      const through78 = await canonicalMigrationFiles(78);
+      const through79 = await canonicalMigrationFiles(79);
+      const canonical79 = await readFile(resolve(
+        PROJECT_MIGRATIONS,
+        "0079_fiscal_immutable_command_receipts.sql",
+      ));
+      expect(Object.keys(through79).filter(name => Number(name.slice(0, 4)) === 79))
+        .toEqual(["0079_fiscal_immutable_command_receipts.sql"]);
+
+      await withDatabase(async ({ databaseUrl: targetUrl, sql }) => {
+        await withMigrationDirectory(through78, async (directory) => {
+          const predecessor = await runMigrations({
+            databaseUrl: targetUrl,
+            migrationsDirectory: directory,
+            logger: () => undefined,
+          });
+          expect(predecessor.appliedFiles).toHaveLength(78);
+          expect(predecessor.appliedFiles.at(-1)).toBe("0078_fiscal_submission_durability.sql");
+        });
+
+        immutableLedger = await exactLedger(sql, 78);
+        expect(immutableLedger).toHaveLength(78);
+        const schemaBefore = await normalizedOrder434Dump(targetUrl);
+        const injected79 = new Uint8Array([
+          ...canonical79,
+          ...new TextEncoder().encode(
+            "\nDO $q205_atomic_failure$ BEGIN RAISE EXCEPTION USING ERRCODE='55000', MESSAGE='Q205 injected migration rollback'; END $q205_atomic_failure$;\n",
+          ),
+        ]);
+        await withMigrationDirectory({ ...through78,
+          "0079_fiscal_immutable_command_receipts.sql": injected79 }, async (directory) => {
+          const failure = await migrationFailure(() => runMigrations({
+            databaseUrl: targetUrl,
+            migrationsDirectory: directory,
+            logger: () => undefined,
+          }));
+          expect(failure).toMatchObject({ errno: "55000", rollbackConnectionUsable: true });
+        });
+        expect(await exactLedger(sql)).toEqual(immutableLedger);
+        expect(await normalizedOrder434Dump(targetUrl)).toBe(schemaBefore);
+
+        const upgrade = await withMigrationDirectory(through79, directory => runMigrations({
+          databaseUrl: targetUrl,
+          migrationsDirectory: directory,
+          logger: () => undefined,
+        }));
+        expect(upgrade.appliedFiles).toEqual(["0079_fiscal_immutable_command_receipts.sql"]);
+        expect(upgrade.transactionBackendPids).toEqual([upgrade.backendPid]);
+        expect(await exactLedger(sql, 78)).toEqual(immutableLedger);
+        finalLedger = await exactLedger(sql);
+        expect(finalLedger).toHaveLength(79);
+        expect(await sql<Array<{ filename: string; checksum_sha256: string }>>`
+          SELECT filename,checksum_sha256 FROM public.schema_migration WHERE version=79`).toEqual([{
+          filename: "0079_fiscal_immutable_command_receipts.sql",
+          checksum_sha256: fileSha256(canonical79),
+        }]);
+        upgradedSchema = await normalizedOrder434Dump(targetUrl);
+
+        const noOp = await withMigrationDirectory(through79, directory => runMigrations({
+          databaseUrl: targetUrl,
+          migrationsDirectory: directory,
+          logger: () => undefined,
+        }));
+        expect(noOp).toMatchObject({ appliedFiles: [], discoveredFiles: 79, transactionBackendPids: [] });
+        expect(await exactLedger(sql)).toEqual(finalLedger);
+        expect(await normalizedOrder434Dump(targetUrl)).toBe(upgradedSchema);
+
+        await withMigrationDirectory({ ...through78,
+          "0079_fiscal_immutable_command_receipts.sql": new Uint8Array([...canonical79, 0x0a]) }, async (directory) => {
+          const drift = await migrationFailure(() => runMigrations({
+            databaseUrl: targetUrl,
+            migrationsDirectory: directory,
+            logger: () => undefined,
+          }));
+          expect(drift.message).toContain("Applied migration checksum mismatch for version 79");
+        });
+        expect(await exactLedger(sql)).toEqual(finalLedger);
+        expect(await normalizedOrder434Dump(targetUrl)).toBe(upgradedSchema);
+      });
+    }, 240_000);
+
+    test("fresh canonical 79 is schema-identical to the canonical 78 upgrade", async () => {
+      if (!upgradedSchema || !immutableLedger || !finalLedger) {
+        throw new Error("Q205 upgrade proof must complete before fresh equivalence");
+      }
+      const expectedSchema = upgradedSchema;
+      const expectedImmutable = immutableLedger;
+      const expectedFinal = finalLedger;
+      const through79 = await canonicalMigrationFiles(79);
+      await withDatabase(async ({ databaseUrl: targetUrl, sql }) => {
+        const fresh = await withMigrationDirectory(through79, directory => runMigrations({
+          databaseUrl: targetUrl,
+          migrationsDirectory: directory,
+          logger: () => undefined,
+        }));
+        expect(fresh.appliedFiles).toHaveLength(79);
+        expect(fresh.appliedFiles.at(-1)).toBe("0079_fiscal_immutable_command_receipts.sql");
+        expect((await exactLedger(sql, 78)).map(({ applied_at_bytes: _ignored, ...row }) => row))
+          .toEqual(expectedImmutable.map(({ applied_at_bytes: _ignored, ...row }) => row));
+        expect((await exactLedger(sql)).map(({ applied_at_bytes: _ignored, ...row }) => row))
+          .toEqual(expectedFinal.map(({ applied_at_bytes: _ignored, ...row }) => row));
+        expect(await normalizedOrder434Dump(targetUrl)).toBe(expectedSchema);
+      });
+    }, 180_000);
+  });
+
+  describe("Order440/Q204 canonical migration 79 to 80 boundary", () => {
+    let upgradedSchema: string | undefined;
+    let immutableLedger: readonly ExactLedgerRow[] | undefined;
+    let finalLedger: readonly ExactLedgerRow[] | undefined;
+
+    test("rolls back exactly, upgrades canonical 80, no-ops, and refuses checksum drift", async () => {
+      const through79 = await canonicalMigrationFiles(79);
+      const through80 = await canonicalMigrationFiles(80);
+      const canonical80 = await readFile(resolve(PROJECT_MIGRATIONS, "0080_fiscal_submission_delivery_runtime.sql"));
+      expect(Object.keys(through80).filter(name => Number(name.slice(0, 4)) === 80))
+        .toEqual(["0080_fiscal_submission_delivery_runtime.sql"]);
+      expect(fileSha256(canonical80)).toBe("2c6b1a82e031470bace7ae8b37a2d67e54497014bd1e82f5364d23a2ce25f250");
+      await withDatabase(async ({ databaseUrl: targetUrl, sql }) => {
+        await withMigrationDirectory(through79, directory => runMigrations({ databaseUrl: targetUrl, migrationsDirectory: directory, logger: () => undefined }));
+        immutableLedger = await exactLedger(sql, 79);
+        const schemaBefore = await normalizedOrder434Dump(targetUrl);
+        const injected80 = new Uint8Array([...canonical80, ...new TextEncoder().encode(
+          "\nDO $q204_atomic_failure$ BEGIN RAISE EXCEPTION USING ERRCODE='55000', MESSAGE='Q204 injected migration rollback'; END $q204_atomic_failure$;\n",
+        )]);
+        await withMigrationDirectory({ ...through79, "0080_fiscal_submission_delivery_runtime.sql": injected80 }, async directory => {
+          const failure = await migrationFailure(() => runMigrations({ databaseUrl: targetUrl, migrationsDirectory: directory, logger: () => undefined }));
+          expect(failure).toMatchObject({ errno: "55000", rollbackConnectionUsable: true });
+        });
+        expect(await exactLedger(sql)).toEqual(immutableLedger);
+        expect(await normalizedOrder434Dump(targetUrl)).toBe(schemaBefore);
+        const upgrade = await withMigrationDirectory(through80, directory => runMigrations({ databaseUrl: targetUrl, migrationsDirectory: directory, logger: () => undefined }));
+        expect(upgrade.appliedFiles).toEqual(["0080_fiscal_submission_delivery_runtime.sql"]);
+        expect(upgrade.transactionBackendPids).toEqual([upgrade.backendPid]);
+        expect(await exactLedger(sql, 79)).toEqual(immutableLedger);
+        finalLedger = await exactLedger(sql);
+        expect(finalLedger).toHaveLength(80);
+        expect(await sql<Array<{ filename: string; checksum_sha256: string }>>`SELECT filename,checksum_sha256 FROM public.schema_migration WHERE version=80`).toEqual([{
+          filename: "0080_fiscal_submission_delivery_runtime.sql", checksum_sha256: fileSha256(canonical80),
+        }]);
+        upgradedSchema = await normalizedOrder434Dump(targetUrl);
+        const noOp = await withMigrationDirectory(through80, directory => runMigrations({ databaseUrl: targetUrl, migrationsDirectory: directory, logger: () => undefined }));
+        expect(noOp).toMatchObject({ appliedFiles: [], discoveredFiles: 80, transactionBackendPids: [] });
+        expect(await exactLedger(sql)).toEqual(finalLedger);
+        await withMigrationDirectory({ ...through79, "0080_fiscal_submission_delivery_runtime.sql": new Uint8Array([...canonical80, 0x0a]) }, async directory => {
+          const drift = await migrationFailure(() => runMigrations({ databaseUrl: targetUrl, migrationsDirectory: directory, logger: () => undefined }));
+          expect(drift.message).toContain("Applied migration checksum mismatch for version 80");
+        });
+        expect(await exactLedger(sql)).toEqual(finalLedger);
+        expect(await normalizedOrder434Dump(targetUrl)).toBe(upgradedSchema);
+      });
+    }, 240_000);
+
+    test("fresh canonical 80 is schema-identical to the canonical 79 upgrade", async () => {
+      if (!upgradedSchema || !immutableLedger || !finalLedger) throw new Error("Q204 upgrade proof must complete before fresh equivalence");
+      const expectedSchema = upgradedSchema;
+      const expectedImmutable = immutableLedger;
+      const expectedFinal = finalLedger;
+      const through80 = await canonicalMigrationFiles(80);
+      await withDatabase(async ({ databaseUrl: targetUrl, sql }) => {
+        const fresh = await withMigrationDirectory(through80, directory => runMigrations({ databaseUrl: targetUrl, migrationsDirectory: directory, logger: () => undefined }));
+        expect(fresh.appliedFiles).toHaveLength(80);
+        expect(fresh.appliedFiles.at(-1)).toBe("0080_fiscal_submission_delivery_runtime.sql");
+        expect((await exactLedger(sql, 79)).map(({ applied_at_bytes: _ignored, ...row }) => row)).toEqual(expectedImmutable.map(({ applied_at_bytes: _ignored, ...row }) => row));
+        expect((await exactLedger(sql)).map(({ applied_at_bytes: _ignored, ...row }) => row)).toEqual(expectedFinal.map(({ applied_at_bytes: _ignored, ...row }) => row));
+        expect(await normalizedOrder434Dump(targetUrl)).toBe(expectedSchema);
+      });
+    }, 180_000);
+  });
+
+  describe("Order440/Q207 canonical migration 80 to 81 boundary", () => {
+    let upgradedSchema: string | undefined;
+    let immutableLedger: readonly ExactLedgerRow[] | undefined;
+    let finalLedger: readonly ExactLedgerRow[] | undefined;
+
+    test("rolls back exactly, upgrades canonical 81, no-ops, and refuses checksum drift", async () => {
+      const through80 = await canonicalMigrationFiles(80);
+      const through81 = await canonicalMigrationFiles(81);
+      const canonical81 = await readFile(resolve(PROJECT_MIGRATIONS, "0081_fiscal_signed_delivery_receipts.sql"));
+      expect(Object.keys(through81).filter(name => Number(name.slice(0, 4)) === 81))
+        .toEqual(["0081_fiscal_signed_delivery_receipts.sql"]);
+      expect(fileSha256(canonical81)).toBe("d2e4e34a4587f4ee12ed5c43f8fac9d4186345877bdbb75ac74217460f0e06ac");
+      await withDatabase(async ({ databaseUrl: targetUrl, sql }) => {
+        await withMigrationDirectory(through80, directory => runMigrations({
+          databaseUrl: targetUrl, migrationsDirectory: directory, logger: () => undefined,
+        }));
+        immutableLedger = await exactLedger(sql, 80);
+        expect(immutableLedger).toHaveLength(80);
+        const schemaBefore = await normalizedOrder434Dump(targetUrl);
+        const injected81 = new Uint8Array([...canonical81, ...new TextEncoder().encode(
+          "\nDO $q207_atomic_failure$ BEGIN RAISE EXCEPTION USING ERRCODE='55000', MESSAGE='Q207 injected migration rollback'; END $q207_atomic_failure$;\n",
+        )]);
+        await withMigrationDirectory({ ...through80, "0081_fiscal_signed_delivery_receipts.sql": injected81 }, async directory => {
+          const failure = await migrationFailure(() => runMigrations({
+            databaseUrl: targetUrl, migrationsDirectory: directory, logger: () => undefined,
+          }));
+          expect(failure).toMatchObject({ errno: "55000", rollbackConnectionUsable: true });
+        });
+        expect(await exactLedger(sql)).toEqual(immutableLedger);
+        expect(await normalizedOrder434Dump(targetUrl)).toBe(schemaBefore);
+
+        const upgrade = await withMigrationDirectory(through81, directory => runMigrations({
+          databaseUrl: targetUrl, migrationsDirectory: directory, logger: () => undefined,
+        }));
+        expect(upgrade.appliedFiles).toEqual(["0081_fiscal_signed_delivery_receipts.sql"]);
+        expect(upgrade.transactionBackendPids).toEqual([upgrade.backendPid]);
+        expect(await exactLedger(sql, 80)).toEqual(immutableLedger);
+        finalLedger = await exactLedger(sql);
+        expect(finalLedger).toHaveLength(81);
+        expect(await sql<Array<{ filename: string; checksum_sha256: string }>>`
+          SELECT filename,checksum_sha256 FROM public.schema_migration WHERE version=81`).toEqual([{
+          filename: "0081_fiscal_signed_delivery_receipts.sql", checksum_sha256: fileSha256(canonical81),
+        }]);
+        upgradedSchema = await normalizedOrder434Dump(targetUrl);
+
+        const noOp = await withMigrationDirectory(through81, directory => runMigrations({
+          databaseUrl: targetUrl, migrationsDirectory: directory, logger: () => undefined,
+        }));
+        expect(noOp).toMatchObject({ appliedFiles: [], discoveredFiles: 81, transactionBackendPids: [] });
+        expect(await exactLedger(sql)).toEqual(finalLedger);
+
+        await withMigrationDirectory({
+          ...through80,
+          "0081_fiscal_signed_delivery_receipts.sql": new Uint8Array([...canonical81, 0x0a]),
+        }, async directory => {
+          const drift = await migrationFailure(() => runMigrations({
+            databaseUrl: targetUrl, migrationsDirectory: directory, logger: () => undefined,
+          }));
+          expect(drift.message).toContain("Applied migration checksum mismatch for version 81");
+        });
+        expect(await exactLedger(sql)).toEqual(finalLedger);
+        expect(await normalizedOrder434Dump(targetUrl)).toBe(upgradedSchema);
+      });
+    }, 240_000);
+
+    test("fresh canonical 81 is schema-identical to the canonical 80 upgrade", async () => {
+      if (!upgradedSchema || !immutableLedger || !finalLedger) {
+        throw new Error("Q207 upgrade proof must complete before fresh equivalence");
+      }
+      const expectedSchema = upgradedSchema;
+      const expectedImmutable = immutableLedger;
+      const expectedFinal = finalLedger;
+      const through81 = await canonicalMigrationFiles(81);
+      await withDatabase(async ({ databaseUrl: targetUrl, sql }) => {
+        const fresh = await withMigrationDirectory(through81, directory => runMigrations({
+          databaseUrl: targetUrl, migrationsDirectory: directory, logger: () => undefined,
+        }));
+        expect(fresh.appliedFiles).toHaveLength(81);
+        expect(fresh.appliedFiles.at(-1)).toBe("0081_fiscal_signed_delivery_receipts.sql");
+        expect((await exactLedger(sql, 80)).map(({ applied_at_bytes: _ignored, ...row }) => row))
+          .toEqual(expectedImmutable.map(({ applied_at_bytes: _ignored, ...row }) => row));
+        expect((await exactLedger(sql)).map(({ applied_at_bytes: _ignored, ...row }) => row))
+          .toEqual(expectedFinal.map(({ applied_at_bytes: _ignored, ...row }) => row));
+        expect(await normalizedOrder434Dump(targetUrl)).toBe(expectedSchema);
+      });
+    }, 180_000);
+  });
+
+  describe("Order440/Q208 canonical migration 81 to 85 boundary", () => {
+    const q208Migrations = [
+      [82, "0082_india_native_fiscal_operator_workflow.sql",
+        "702f66b3e05547f397e2393ae5a608a6f0c3069ec534b2c947bfc309983bf185"],
+      [83, "0083_india_native_fiscal_operator_calendar_bounds.sql",
+        "5a8ac565f3aaebfee4245121a434dba5867f558091a58aad87f23bed5dee0705"],
+      [84, "0084_india_native_fiscal_operator_query_execution.sql",
+        "e9d8b75f832e687f567806e82faaece7672cdbcf4ee8813c9c7b56cfc78ecd69"],
+      [85, "0085_india_native_fiscal_operator_command.sql",
+        "c94c97efbb237fb99c5a35caf01faefa4d7fee98a07d8b30b89bec3ce0a7670c"],
+    ] as const;
+    let upgradedSchema: string | undefined;
+    let immutableLedger: readonly ExactLedgerRow[] | undefined;
+    let finalLedger: readonly ExactLedgerRow[] | undefined;
+
+    test("rolls back each forward step, upgrades exact 82-85, no-ops, and refuses checksum drift", async () => {
+      const through81 = await canonicalMigrationFiles(81);
+      await withDatabase(async ({ databaseUrl: targetUrl, sql }) => {
+        await withMigrationDirectory(through81, directory => runMigrations({
+          databaseUrl: targetUrl, migrationsDirectory: directory, logger: () => undefined,
+        }));
+        immutableLedger = await exactLedger(sql, 81);
+        expect(immutableLedger).toHaveLength(81);
+
+        for (const [version, filename, checksum] of q208Migrations) {
+          const previousLedger = await exactLedger(sql);
+          const previousSchema = await normalizedOrder434Dump(targetUrl);
+          const throughPrevious = await canonicalMigrationFiles(version - 1);
+          const throughCurrent = await canonicalMigrationFiles(version);
+          const canonical = await readFile(resolve(PROJECT_MIGRATIONS, filename));
+          expect(Object.keys(throughCurrent).filter(name => Number(name.slice(0, 4)) === version))
+            .toEqual([filename]);
+          expect(fileSha256(canonical)).toBe(checksum);
+          const injected = new Uint8Array([...canonical, ...new TextEncoder().encode(
+            `\nDO $q208_atomic_failure$ BEGIN RAISE EXCEPTION USING ERRCODE='55000', MESSAGE='Q208 injected migration ${version} rollback'; END $q208_atomic_failure$;\n`,
+          )]);
+          await withMigrationDirectory({ ...throughPrevious, [filename]: injected }, async directory => {
+            const failure = await migrationFailure(() => runMigrations({
+              databaseUrl: targetUrl, migrationsDirectory: directory, logger: () => undefined,
+            }));
+            expect(failure).toMatchObject({ errno: "55000", rollbackConnectionUsable: true });
+          });
+          expect(await exactLedger(sql)).toEqual(previousLedger);
+          expect(await normalizedOrder434Dump(targetUrl)).toBe(previousSchema);
+
+          const upgrade = await withMigrationDirectory(throughCurrent, directory => runMigrations({
+            databaseUrl: targetUrl, migrationsDirectory: directory, logger: () => undefined,
+          }));
+          expect(upgrade.appliedFiles).toEqual([filename]);
+          expect(upgrade.transactionBackendPids).toEqual([upgrade.backendPid]);
+          expect(await exactLedger(sql, version - 1)).toEqual(previousLedger);
+          expect(await sql<Array<{ filename: string; checksum_sha256: string }>>`
+            SELECT filename,checksum_sha256 FROM public.schema_migration WHERE version=${version}`)
+            .toEqual([{ filename, checksum_sha256: checksum }]);
+        }
+
+        finalLedger = await exactLedger(sql);
+        expect(finalLedger).toHaveLength(85);
+        expect(await exactLedger(sql, 81)).toEqual(immutableLedger);
+        upgradedSchema = await normalizedOrder434Dump(targetUrl);
+        const through85 = await canonicalMigrationFiles(85);
+        const noOp = await withMigrationDirectory(through85, directory => runMigrations({
+          databaseUrl: targetUrl, migrationsDirectory: directory, logger: () => undefined,
+        }));
+        expect(noOp).toMatchObject({ appliedFiles: [], discoveredFiles: 85, transactionBackendPids: [] });
+        expect(await exactLedger(sql)).toEqual(finalLedger);
+
+        const canonical85 = await readFile(resolve(PROJECT_MIGRATIONS, q208Migrations.at(-1)![1]));
+        await withMigrationDirectory({ ...through85,
+          [q208Migrations.at(-1)![1]]: new Uint8Array([...canonical85, 0x0a]),
+        }, async directory => {
+          const drift = await migrationFailure(() => runMigrations({
+            databaseUrl: targetUrl, migrationsDirectory: directory, logger: () => undefined,
+          }));
+          expect(drift.message).toContain("Applied migration checksum mismatch for version 85");
+        });
+        expect(await exactLedger(sql)).toEqual(finalLedger);
+        expect(await normalizedOrder434Dump(targetUrl)).toBe(upgradedSchema);
+      });
+    }, 360_000);
+
+    test("fresh canonical 85 is schema-identical to the canonical 81 upgrade", async () => {
+      if (!upgradedSchema || !immutableLedger || !finalLedger) {
+        throw new Error("Q208 upgrade proof must complete before fresh equivalence");
+      }
+      const expectedSchema = upgradedSchema;
+      const expectedImmutable = immutableLedger;
+      const expectedFinal = finalLedger;
+      const through85 = await canonicalMigrationFiles(85);
+      await withDatabase(async ({ databaseUrl: targetUrl, sql }) => {
+        const fresh = await withMigrationDirectory(through85, directory => runMigrations({
+          databaseUrl: targetUrl, migrationsDirectory: directory, logger: () => undefined,
+        }));
+        expect(fresh.appliedFiles).toHaveLength(85);
+        expect(fresh.appliedFiles.at(-1)).toBe("0085_india_native_fiscal_operator_command.sql");
+        expect((await exactLedger(sql, 81)).map(({ applied_at_bytes: _ignored, ...row }) => row))
+          .toEqual(expectedImmutable.map(({ applied_at_bytes: _ignored, ...row }) => row));
+        expect((await exactLedger(sql)).map(({ applied_at_bytes: _ignored, ...row }) => row))
+          .toEqual(expectedFinal.map(({ applied_at_bytes: _ignored, ...row }) => row));
+        expect(await normalizedOrder434Dump(targetUrl)).toBe(expectedSchema);
+      });
+    }, 240_000);
+  });
+
+  describe("Order440/Q212 canonical migration 85 to 86 boundary", () => {
+    const filename = "0086_fiscal_submission_retry_binding.sql";
+    const checksum = "40c55de6a34fb0f0ba354e5e37d210500038018fa649cf9437e29813fa0b915e";
+    let upgradedSchema: string | undefined;
+    let predecessorLedger: readonly ExactLedgerRow[] | undefined;
+    let finalLedger: readonly ExactLedgerRow[] | undefined;
+
+    test("rolls back 86, preserves exact 1-85, upgrades, no-ops and refuses checksum drift", async () => {
+      const through85 = await canonicalMigrationFiles(85);
+      const through86 = await canonicalMigrationFiles(86);
+      const canonical = await readFile(resolve(PROJECT_MIGRATIONS, filename));
+      expect(Object.keys(through86).filter(name => Number(name.slice(0, 4)) === 86)).toEqual([filename]);
+      expect(fileSha256(canonical)).toBe(checksum);
+      await withDatabase(async ({ databaseUrl: targetUrl, sql }) => {
+        const predecessor = await withMigrationDirectory(through85, directory => runMigrations({
+          databaseUrl: targetUrl, migrationsDirectory: directory, logger: () => undefined,
+        }));
+        expect(predecessor.appliedFiles).toHaveLength(85);
+        expect(predecessor.appliedFiles.at(-1)).toBe("0085_india_native_fiscal_operator_command.sql");
+        predecessorLedger = await exactLedger(sql);
+        const predecessorSchema = await normalizedOrder434Dump(targetUrl);
+        const injected = new Uint8Array([...canonical, ...new TextEncoder().encode(
+          "\nDO $q212_atomic_failure$ BEGIN RAISE EXCEPTION USING ERRCODE='55000', MESSAGE='Q212 injected migration 86 rollback'; END $q212_atomic_failure$;\n",
+        )]);
+        await withMigrationDirectory({ ...through85, [filename]: injected }, async directory => {
+          const failure = await migrationFailure(() => runMigrations({
+            databaseUrl: targetUrl, migrationsDirectory: directory, logger: () => undefined,
+          }));
+          expect(failure).toMatchObject({
+            errno: "55000",
+            rollbackConnectionUsable: true,
+            message: "Q212 injected migration 86 rollback (SQLSTATE 55000)",
+          });
+        });
+        expect(await exactLedger(sql)).toEqual(predecessorLedger);
+        expect(await normalizedOrder434Dump(targetUrl)).toBe(predecessorSchema);
+
+        const upgrade = await withMigrationDirectory(through86, directory => runMigrations({
+          databaseUrl: targetUrl, migrationsDirectory: directory, logger: () => undefined,
+        }));
+        expect(upgrade.appliedFiles).toEqual([filename]);
+        expect(upgrade.transactionBackendPids).toEqual([upgrade.backendPid]);
+        expect(await exactLedger(sql, 85)).toEqual(predecessorLedger);
+        expect(await sql<Array<{ filename: string; checksum_sha256: string }>>`
+          SELECT filename,checksum_sha256 FROM public.schema_migration WHERE version=86`)
+          .toEqual([{ filename, checksum_sha256: checksum }]);
+        finalLedger = await exactLedger(sql);
+        expect(finalLedger).toHaveLength(86);
+        upgradedSchema = await normalizedOrder434Dump(targetUrl);
+
+        const noOp = await withMigrationDirectory(through86, directory => runMigrations({
+          databaseUrl: targetUrl, migrationsDirectory: directory, logger: () => undefined,
+        }));
+        expect(noOp).toMatchObject({ appliedFiles: [], discoveredFiles: 86, transactionBackendPids: [] });
+        expect(await exactLedger(sql)).toEqual(finalLedger);
+
+        await withMigrationDirectory({ ...through86,
+          [filename]: new Uint8Array([...canonical, 0x0a]),
+        }, async directory => {
+          const drift = await migrationFailure(() => runMigrations({
+            databaseUrl: targetUrl, migrationsDirectory: directory, logger: () => undefined,
+          }));
+          expect(drift.message).toContain("Applied migration checksum mismatch for version 86");
+        });
+        expect(await exactLedger(sql)).toEqual(finalLedger);
+        expect(await normalizedOrder434Dump(targetUrl)).toBe(upgradedSchema);
+      });
+    }, 300_000);
+
+    test("fresh canonical 86 is schema-identical to the canonical 85 upgrade", async () => {
+      if (!upgradedSchema || !predecessorLedger || !finalLedger) {
+        throw new Error("Q212 upgrade proof must complete before fresh equivalence");
+      }
+      const expectedSchema = upgradedSchema;
+      const expectedPredecessor = predecessorLedger;
+      const expectedFinal = finalLedger;
+      const through86 = await canonicalMigrationFiles(86);
+      await withDatabase(async ({ databaseUrl: targetUrl, sql }) => {
+        const fresh = await withMigrationDirectory(through86, directory => runMigrations({
+          databaseUrl: targetUrl, migrationsDirectory: directory, logger: () => undefined,
+        }));
+        expect(fresh.appliedFiles).toHaveLength(86);
+        expect(fresh.appliedFiles.at(-1)).toBe(filename);
+        expect((await exactLedger(sql, 85)).map(({ applied_at_bytes: _ignored, ...row }) => row))
+          .toEqual(expectedPredecessor.map(({ applied_at_bytes: _ignored, ...row }) => row));
+        expect((await exactLedger(sql)).map(({ applied_at_bytes: _ignored, ...row }) => row))
+          .toEqual(expectedFinal.map(({ applied_at_bytes: _ignored, ...row }) => row));
+        expect(await normalizedOrder434Dump(targetUrl)).toBe(expectedSchema);
+      });
+    }, 240_000);
+  });
+
+  describe("Order446 canonical migration 86 to 87 boundary", () => {
+    const filename = "0087_india_native_fiscal_credit_note.sql";
+    const checksum = "c8b4ada5702807a0705a13e888e95730e0dbcc8ac7796e0ad2358208a5f873ba";
+    let upgradedSchema: string | undefined;
+    let predecessorLedger: readonly ExactLedgerRow[] | undefined;
+    let finalLedger: readonly ExactLedgerRow[] | undefined;
+
+    test("rolls back 87, preserves exact 1-86, applies once, no-ops and refuses checksum drift", async () => {
+      const through86 = await canonicalMigrationFiles(86);
+      const through87 = await canonicalMigrationFiles(87);
+      const canonical = await readFile(resolve(PROJECT_MIGRATIONS, filename));
+      expect(Object.keys(through87).filter(name => Number(name.slice(0, 4)) === 87)).toEqual([filename]);
+      expect(fileSha256(canonical)).toBe(checksum);
+      await withDatabase(async ({ databaseUrl: targetUrl, sql }) => {
+        const predecessor = await withMigrationDirectory(through86, directory => runMigrations({
+          databaseUrl: targetUrl, migrationsDirectory: directory, logger: () => undefined,
+        }));
+        expect(predecessor.appliedFiles).toHaveLength(86);
+        expect(predecessor.appliedFiles.at(-1)).toBe("0086_fiscal_submission_retry_binding.sql");
+        predecessorLedger = await exactLedger(sql);
+        const predecessorSchema = await normalizedOrder434Dump(targetUrl);
+        const injected = new Uint8Array([...canonical, ...new TextEncoder().encode(
+          "\nDO $order446_atomic_failure$ BEGIN RAISE EXCEPTION USING ERRCODE='55000', MESSAGE='Order446 injected migration 87 rollback'; END $order446_atomic_failure$;\n",
+        )]);
+        await withMigrationDirectory({ ...through86, [filename]: injected }, async directory => {
+          const failure = await migrationFailure(() => runMigrations({
+            databaseUrl: targetUrl, migrationsDirectory: directory, logger: () => undefined,
+          }));
+          expect(failure).toMatchObject({
+            errno: "55000",
+            rollbackConnectionUsable: true,
+            message: "Order446 injected migration 87 rollback (SQLSTATE 55000)",
+          });
+        });
+        expect(await exactLedger(sql)).toEqual(predecessorLedger);
+        expect(await normalizedOrder434Dump(targetUrl)).toBe(predecessorSchema);
+
+        const upgrade = await withMigrationDirectory(through87, directory => runMigrations({
+          databaseUrl: targetUrl, migrationsDirectory: directory, logger: () => undefined,
+        }));
+        expect(upgrade.appliedFiles).toEqual([filename]);
+        expect(upgrade.transactionBackendPids).toEqual([upgrade.backendPid]);
+        expect(await exactLedger(sql, 86)).toEqual(predecessorLedger);
+        expect(await sql<Array<{ filename: string; checksum_sha256: string }>>`
+          SELECT filename,checksum_sha256 FROM public.schema_migration WHERE version=87`)
+          .toEqual([{ filename, checksum_sha256: checksum }]);
+        finalLedger = await exactLedger(sql);
+        expect(finalLedger).toHaveLength(87);
+        upgradedSchema = await normalizedOrder434Dump(targetUrl);
+
+        const noOp = await withMigrationDirectory(through87, directory => runMigrations({
+          databaseUrl: targetUrl, migrationsDirectory: directory, logger: () => undefined,
+        }));
+        expect(noOp).toMatchObject({ appliedFiles: [], discoveredFiles: 87, transactionBackendPids: [] });
+        expect(await exactLedger(sql)).toEqual(finalLedger);
+
+        await withMigrationDirectory({ ...through87,
+          [filename]: new Uint8Array([...canonical, 0x0a]),
+        }, async directory => {
+          const drift = await migrationFailure(() => runMigrations({
+            databaseUrl: targetUrl, migrationsDirectory: directory, logger: () => undefined,
+          }));
+          expect(drift.message).toContain("Applied migration checksum mismatch for version 87");
+        });
+        expect(await exactLedger(sql)).toEqual(finalLedger);
+        expect(await normalizedOrder434Dump(targetUrl)).toBe(upgradedSchema);
+      });
+    }, 300_000);
+
+    test("fresh canonical 87 is schema-identical to the canonical 86 upgrade", async () => {
+      if (!upgradedSchema || !predecessorLedger || !finalLedger) {
+        throw new Error("Order446 upgrade proof must complete before fresh equivalence");
+      }
+      const expectedSchema = upgradedSchema;
+      const expectedPredecessor = predecessorLedger;
+      const expectedFinal = finalLedger;
+      const through87 = await canonicalMigrationFiles(87);
+      await withDatabase(async ({ databaseUrl: targetUrl, sql }) => {
+        const fresh = await withMigrationDirectory(through87, directory => runMigrations({
+          databaseUrl: targetUrl, migrationsDirectory: directory, logger: () => undefined,
+        }));
+        expect(fresh.appliedFiles).toHaveLength(87);
+        expect(fresh.appliedFiles.at(-1)).toBe(filename);
+        expect((await exactLedger(sql, 86)).map(({ applied_at_bytes: _ignored, ...row }) => row))
+          .toEqual(expectedPredecessor.map(({ applied_at_bytes: _ignored, ...row }) => row));
+        expect((await exactLedger(sql)).map(({ applied_at_bytes: _ignored, ...row }) => row))
+          .toEqual(expectedFinal.map(({ applied_at_bytes: _ignored, ...row }) => row));
+        expect(await normalizedOrder434Dump(targetUrl)).toBe(expectedSchema);
+      });
+    }, 240_000);
+  });
+
+  describe("Order447 canonical migration 87 to 88 boundary", () => {
+    const filename = "0088_native_credit_fiscal_submission.sql";
+    const checksum = "214754e94bdfb0a2163395c9ab4449b0b5e87da7830c45e69d77ac05a2cddb64";
+    let upgradedSchema: string | undefined;
+    let predecessorLedger: readonly ExactLedgerRow[] | undefined;
+    let finalLedger: readonly ExactLedgerRow[] | undefined;
+
+    test("rolls back 88, preserves exact 1-87, applies once, no-ops and refuses checksum drift", async () => {
+      const through87 = await canonicalMigrationFiles(87);
+      const through88 = await canonicalMigrationFiles(88);
+      const canonical = await readFile(resolve(PROJECT_MIGRATIONS, filename));
+      expect(Object.keys(through88).filter(name => Number(name.slice(0, 4)) === 88)).toEqual([filename]);
+      expect(fileSha256(canonical)).toBe(checksum);
+      await withDatabase(async ({ databaseUrl: targetUrl, sql }) => {
+        const predecessor = await withMigrationDirectory(through87, directory => runMigrations({
+          databaseUrl: targetUrl, migrationsDirectory: directory, logger: () => undefined,
+        }));
+        expect(predecessor.appliedFiles).toHaveLength(87);
+        expect(predecessor.appliedFiles.at(-1)).toBe("0087_india_native_fiscal_credit_note.sql");
+        predecessorLedger = await exactLedger(sql);
+        const predecessorSchema = await normalizedOrder434Dump(targetUrl);
+        const injected = new Uint8Array([...canonical, ...new TextEncoder().encode(
+          "\nDO $order447_atomic_failure$ BEGIN RAISE EXCEPTION USING ERRCODE='PZ447', MESSAGE='Order447 injected migration 88 rollback'; END $order447_atomic_failure$;\n",
+        )]);
+        await withMigrationDirectory({ ...through87, [filename]: injected }, async directory => {
+          const failure = await migrationFailure(() => runMigrations({
+            databaseUrl: targetUrl, migrationsDirectory: directory, logger: () => undefined,
+          }));
+          expect(failure).toMatchObject({ errno: "PZ447", rollbackConnectionUsable: true,
+            message: "Order447 injected migration 88 rollback (SQLSTATE PZ447)" });
+        });
+        expect(await exactLedger(sql)).toEqual(predecessorLedger);
+        expect(await normalizedOrder434Dump(targetUrl)).toBe(predecessorSchema);
+
+        const upgrade = await withMigrationDirectory(through88, directory => runMigrations({
+          databaseUrl: targetUrl, migrationsDirectory: directory, logger: () => undefined,
+        }));
+        expect(upgrade.appliedFiles).toEqual([filename]);
+        expect(upgrade.transactionBackendPids).toEqual([upgrade.backendPid]);
+        expect(await exactLedger(sql, 87)).toEqual(predecessorLedger);
+        expect(await sql<Array<{ filename: string; checksum_sha256: string }>>`
+          SELECT filename,checksum_sha256 FROM public.schema_migration WHERE version=88`)
+          .toEqual([{ filename, checksum_sha256: checksum }]);
+        finalLedger = await exactLedger(sql);
+        expect(finalLedger).toHaveLength(88);
+        upgradedSchema = await normalizedOrder434Dump(targetUrl);
+        const noOp = await withMigrationDirectory(through88, directory => runMigrations({
+          databaseUrl: targetUrl, migrationsDirectory: directory, logger: () => undefined,
+        }));
+        expect(noOp).toMatchObject({ appliedFiles: [], discoveredFiles: 88, transactionBackendPids: [] });
+        expect(await exactLedger(sql)).toEqual(finalLedger);
+        await withMigrationDirectory({ ...through88,
+          [filename]: new Uint8Array([...canonical, 0x0a]),
+        }, async directory => {
+          const drift = await migrationFailure(() => runMigrations({
+            databaseUrl: targetUrl, migrationsDirectory: directory, logger: () => undefined,
+          }));
+          expect(drift.message).toContain("Applied migration checksum mismatch for version 88");
+        });
+        expect(await exactLedger(sql)).toEqual(finalLedger);
+        expect(await normalizedOrder434Dump(targetUrl)).toBe(upgradedSchema);
+      });
+    }, 300_000);
+
+    test("fresh canonical 88 is schema-identical to the canonical 87 upgrade", async () => {
+      if (!upgradedSchema || !predecessorLedger || !finalLedger) {
+        throw new Error("Order447 upgrade proof must complete before fresh equivalence");
+      }
+      const expectedSchema = upgradedSchema;
+      const expectedPredecessor = predecessorLedger;
+      const expectedFinal = finalLedger;
+      const through88 = await canonicalMigrationFiles(88);
+      await withDatabase(async ({ databaseUrl: targetUrl, sql }) => {
+        const fresh = await withMigrationDirectory(through88, directory => runMigrations({
+          databaseUrl: targetUrl, migrationsDirectory: directory, logger: () => undefined,
+        }));
+        expect(fresh.appliedFiles).toHaveLength(88);
+        expect(fresh.appliedFiles.at(-1)).toBe(filename);
+        expect((await exactLedger(sql, 87)).map(({ applied_at_bytes: _ignored, ...row }) => row))
+          .toEqual(expectedPredecessor.map(({ applied_at_bytes: _ignored, ...row }) => row));
+        expect((await exactLedger(sql)).map(({ applied_at_bytes: _ignored, ...row }) => row))
+          .toEqual(expectedFinal.map(({ applied_at_bytes: _ignored, ...row }) => row));
+        expect(await normalizedOrder434Dump(targetUrl)).toBe(expectedSchema);
+      });
+    }, 240_000);
+  });
+
+  describe("Order452 canonical migration 88 to 89 boundary", () => {
+    const filename = "0089_native_credit_delivery_discovery.sql";
+    const checksum = "26aac42e59146dfa29f558dc75209166420a5aa7621bc34b1f6ec0f9c834c1cd";
+    let upgradedSchema: string | undefined;
+    let predecessorLedger: readonly ExactLedgerRow[] | undefined;
+    let finalLedger: readonly ExactLedgerRow[] | undefined;
+
+    test("rolls back 89, preserves exact 1-88, applies once, no-ops and refuses checksum drift", async () => {
+      const through88 = await canonicalMigrationFiles(88);
+      const through89 = await canonicalMigrationFiles(89);
+      const canonical = await readFile(resolve(PROJECT_MIGRATIONS, filename));
+      expect(Object.keys(through89).filter(name => Number(name.slice(0, 4)) === 89)).toEqual([filename]);
+      expect(fileSha256(canonical)).toBe(checksum);
+      await withDatabase(async ({ databaseUrl: targetUrl, sql }) => {
+        const predecessor = await withMigrationDirectory(through88, directory => runMigrations({
+          databaseUrl: targetUrl, migrationsDirectory: directory, logger: () => undefined,
+        }));
+        expect(predecessor.appliedFiles).toHaveLength(88);
+        expect(predecessor.appliedFiles.at(-1)).toBe("0088_native_credit_fiscal_submission.sql");
+        predecessorLedger = await exactLedger(sql);
+        const predecessorSchema = await normalizedOrder434Dump(targetUrl);
+        const injected = new Uint8Array([...canonical, ...new TextEncoder().encode(
+          "\nDO $order452_atomic_failure$ BEGIN RAISE EXCEPTION USING ERRCODE='PZ452', MESSAGE='Order452 injected migration 89 rollback'; END $order452_atomic_failure$;\n",
+        )]);
+        await withMigrationDirectory({ ...through88, [filename]: injected }, async directory => {
+          const failure = await migrationFailure(() => runMigrations({
+            databaseUrl: targetUrl, migrationsDirectory: directory, logger: () => undefined,
+          }));
+          expect(failure).toMatchObject({ errno: "PZ452", rollbackConnectionUsable: true,
+            message: "Order452 injected migration 89 rollback (SQLSTATE PZ452)" });
+        });
+        expect(await exactLedger(sql)).toEqual(predecessorLedger);
+        expect(await normalizedOrder434Dump(targetUrl)).toBe(predecessorSchema);
+
+        const upgrade = await withMigrationDirectory(through89, directory => runMigrations({
+          databaseUrl: targetUrl, migrationsDirectory: directory, logger: () => undefined,
+        }));
+        expect(upgrade.appliedFiles).toEqual([filename]);
+        expect(upgrade.transactionBackendPids).toEqual([upgrade.backendPid]);
+        expect(await exactLedger(sql, 88)).toEqual(predecessorLedger);
+        expect(await sql<Array<{ filename: string; checksum_sha256: string }>>`
+          SELECT filename,checksum_sha256 FROM public.schema_migration WHERE version=89`)
+          .toEqual([{ filename, checksum_sha256: checksum }]);
+        finalLedger = await exactLedger(sql);
+        expect(finalLedger).toHaveLength(89);
+        upgradedSchema = await normalizedOrder434Dump(targetUrl);
+        const noOp = await withMigrationDirectory(through89, directory => runMigrations({
+          databaseUrl: targetUrl, migrationsDirectory: directory, logger: () => undefined,
+        }));
+        expect(noOp).toMatchObject({ appliedFiles: [], discoveredFiles: 89, transactionBackendPids: [] });
+        expect(await exactLedger(sql)).toEqual(finalLedger);
+        await withMigrationDirectory({ ...through89,
+          [filename]: new Uint8Array([...canonical, 0x0a]),
+        }, async directory => {
+          const drift = await migrationFailure(() => runMigrations({
+            databaseUrl: targetUrl, migrationsDirectory: directory, logger: () => undefined,
+          }));
+          expect(drift.message).toContain("Applied migration checksum mismatch for version 89");
+        });
+        expect(await exactLedger(sql)).toEqual(finalLedger);
+        expect(await normalizedOrder434Dump(targetUrl)).toBe(upgradedSchema);
+      });
+    }, 300_000);
+
+    test("fresh canonical 89 is schema-identical to the canonical 88 upgrade", async () => {
+      if (!upgradedSchema || !predecessorLedger || !finalLedger) {
+        throw new Error("Order452 upgrade proof must complete before fresh equivalence");
+      }
+      const expectedSchema = upgradedSchema;
+      const expectedPredecessor = predecessorLedger;
+      const expectedFinal = finalLedger;
+      const through89 = await canonicalMigrationFiles(89);
+      await withDatabase(async ({ databaseUrl: targetUrl, sql }) => {
+        const fresh = await withMigrationDirectory(through89, directory => runMigrations({
+          databaseUrl: targetUrl, migrationsDirectory: directory, logger: () => undefined,
+        }));
+        expect(fresh.appliedFiles).toHaveLength(89);
+        expect(fresh.appliedFiles.at(-1)).toBe(filename);
+        expect((await exactLedger(sql, 88)).map(({ applied_at_bytes: _ignored, ...row }) => row))
+          .toEqual(expectedPredecessor.map(({ applied_at_bytes: _ignored, ...row }) => row));
+        expect((await exactLedger(sql)).map(({ applied_at_bytes: _ignored, ...row }) => row))
+          .toEqual(expectedFinal.map(({ applied_at_bytes: _ignored, ...row }) => row));
+        expect(await normalizedOrder434Dump(targetUrl)).toBe(expectedSchema);
+      });
+    }, 240_000);
+  });
+
+  describe("Order453 canonical migration 89 to 90 boundary", () => {
+    const filename = "0090_india_native_fiscal_series_configuration.sql";
+    const checksum = "67802156fe1a35d76023361dc8461699dad204017ff727441523fa9fb2b1faf9";
+    let upgradedSchema: string | undefined;
+    let predecessorLedger: readonly ExactLedgerRow[] | undefined;
+    let finalLedger: readonly ExactLedgerRow[] | undefined;
+
+    test("rolls back 90, preserves exact 1-89, applies once, no-ops and refuses checksum drift", async () => {
+      const through89 = await canonicalMigrationFiles(89);
+      const through90 = await canonicalMigrationFiles(90);
+      const canonical = await readFile(resolve(PROJECT_MIGRATIONS, filename));
+      expect(Object.keys(through90).filter(name => Number(name.slice(0, 4)) === 90)).toEqual([filename]);
+      expect(fileSha256(canonical)).toBe(checksum);
+      await withDatabase(async ({ databaseUrl: targetUrl, sql }) => {
+        const predecessor = await withMigrationDirectory(through89, directory => runMigrations({
+          databaseUrl: targetUrl, migrationsDirectory: directory, logger: () => undefined,
+        }));
+        expect(predecessor.appliedFiles).toHaveLength(89);
+        expect(predecessor.appliedFiles.at(-1)).toBe("0089_native_credit_delivery_discovery.sql");
+        predecessorLedger = await exactLedger(sql);
+        const predecessorSchema = await normalizedOrder434Dump(targetUrl);
+        const injected = new Uint8Array([...canonical, ...new TextEncoder().encode(
+          "\nDO $order453_atomic_failure$ BEGIN RAISE EXCEPTION USING ERRCODE='PZ453', MESSAGE='Order453 injected migration 90 rollback'; END $order453_atomic_failure$;\n",
+        )]);
+        await withMigrationDirectory({ ...through89, [filename]: injected }, async directory => {
+          const failure = await migrationFailure(() => runMigrations({
+            databaseUrl: targetUrl, migrationsDirectory: directory, logger: () => undefined,
+          }));
+          expect(failure).toMatchObject({ errno: "PZ453", rollbackConnectionUsable: true,
+            message: "Order453 injected migration 90 rollback (SQLSTATE PZ453)" });
+        });
+        expect(await exactLedger(sql)).toEqual(predecessorLedger);
+        expect(await normalizedOrder434Dump(targetUrl)).toBe(predecessorSchema);
+
+        const upgrade = await withMigrationDirectory(through90, directory => runMigrations({
+          databaseUrl: targetUrl, migrationsDirectory: directory, logger: () => undefined,
+        }));
+        expect(upgrade.appliedFiles).toEqual([filename]);
+        expect(upgrade.transactionBackendPids).toEqual([upgrade.backendPid]);
+        expect(await exactLedger(sql, 89)).toEqual(predecessorLedger);
+        expect(await sql<Array<{ filename: string; checksum_sha256: string }>>`
+          SELECT filename,checksum_sha256 FROM public.schema_migration WHERE version=90`)
+          .toEqual([{ filename, checksum_sha256: checksum }]);
+        finalLedger = await exactLedger(sql);
+        expect(finalLedger).toHaveLength(90);
+        upgradedSchema = await normalizedOrder434Dump(targetUrl);
+        const noOp = await withMigrationDirectory(through90, directory => runMigrations({
+          databaseUrl: targetUrl, migrationsDirectory: directory, logger: () => undefined,
+        }));
+        expect(noOp).toMatchObject({ appliedFiles: [], discoveredFiles: 90, transactionBackendPids: [] });
+        expect(await exactLedger(sql)).toEqual(finalLedger);
+        await withMigrationDirectory({ ...through90,
+          [filename]: new Uint8Array([...canonical, 0x0a]),
+        }, async directory => {
+          const drift = await migrationFailure(() => runMigrations({
+            databaseUrl: targetUrl, migrationsDirectory: directory, logger: () => undefined,
+          }));
+          expect(drift.message).toContain("Applied migration checksum mismatch for version 90");
+        });
+        expect(await exactLedger(sql)).toEqual(finalLedger);
+        expect(await normalizedOrder434Dump(targetUrl)).toBe(upgradedSchema);
+      });
+    }, 300_000);
+
+    test("fresh canonical 90 is schema-identical to the canonical 89 upgrade", async () => {
+      if (!upgradedSchema || !predecessorLedger || !finalLedger) {
+        throw new Error("Order453 upgrade proof must complete before fresh equivalence");
+      }
+      const expectedSchema = upgradedSchema;
+      const expectedPredecessor = predecessorLedger;
+      const expectedFinal = finalLedger;
+      const through90 = await canonicalMigrationFiles(90);
+      await withDatabase(async ({ databaseUrl: targetUrl, sql }) => {
+        const fresh = await withMigrationDirectory(through90, directory => runMigrations({
+          databaseUrl: targetUrl, migrationsDirectory: directory, logger: () => undefined,
+        }));
+        expect(fresh.appliedFiles).toHaveLength(90);
+        expect(fresh.appliedFiles.at(-1)).toBe(filename);
+        expect((await exactLedger(sql, 89)).map(({ applied_at_bytes: _ignored, ...row }) => row))
+          .toEqual(expectedPredecessor.map(({ applied_at_bytes: _ignored, ...row }) => row));
+        expect((await exactLedger(sql)).map(({ applied_at_bytes: _ignored, ...row }) => row))
+          .toEqual(expectedFinal.map(({ applied_at_bytes: _ignored, ...row }) => row));
+        expect(await normalizedOrder434Dump(targetUrl)).toBe(expectedSchema);
+      });
+    }, 240_000);
+  });
+
+  test(
+    "rejects migration 0015 atomically while yellow_runtime is connected, then retries after drain",
+    async () => {
+      if (!RUNTIME_URL) return;
+      await withDatabase(async ({ databaseName, databaseUrl: targetUrl, sql }) => {
+        const predecessorFiles = await readdir(PROJECT_MIGRATIONS);
+        const predecessor = Object.fromEntries(await Promise.all(
+          predecessorFiles
+            .filter((filename) => {
+              const version = Number(filename.slice(0, 4));
+              return filename.endsWith(".sql") && version >= 2 && version <= 14;
+            })
+            .map(async (filename) => [filename, await readFile(resolve(PROJECT_MIGRATIONS, filename))] as const),
+        ));
+        await withMigrationDirectory(predecessor, async (directory) => {
+          await runMigrations({ databaseUrl: targetUrl, migrationsDirectory: directory, logger: () => undefined });
+        });
+
+        const runtimeTargetUrl = new URL(RUNTIME_URL);
+        runtimeTargetUrl.pathname = `/${databaseName}`;
+        const blocker = new SQL(runtimeTargetUrl.toString(), { max: 1 });
+        await blocker`SELECT 1`;
+        try {
+          await expect(
+            runMigrations({ databaseUrl: targetUrl, migrationsDirectory: PROJECT_MIGRATIONS, logger: () => undefined }),
+          ).rejects.toThrow(/active session|drain/i);
+
+          const failedLedger = await sql<{ version: string | bigint }[]>`
+            SELECT version FROM public.schema_migration ORDER BY version
+          `;
+          expect(failedLedger.map((row) => Number(row.version))).toEqual(
+            Array.from({ length: 14 }, (_, index) => index + 1),
+          );
+          const ownership = await sql<{ owner: string; owner_objects: number }[]>`
+            SELECT pg_get_userbyid(m.relowner) AS owner,
+                   (SELECT count(*)::int
+                      FROM pg_catalog.pg_class c
+                      JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace
+                     WHERE n.nspname = 'public' AND pg_get_userbyid(c.relowner) = 'yellow_owner') AS owner_objects
+              FROM pg_catalog.pg_class m
+             WHERE m.oid = 'public.schema_migration'::regclass
+          `;
+          expect(ownership).toEqual([{ owner: "yellow_deploy", owner_objects: 0 }]);
+        } finally {
+          await blocker.close();
+        }
+
+        const retry = await runMigrations({
+          databaseUrl: targetUrl,
+          migrationsDirectory: PROJECT_MIGRATIONS,
+          logger: () => undefined,
+        });
+        expect(retry.appliedFiles).toContain("0015_runtime_database_authority.sql");
+        const completed = await sql<{ version: string | bigint; filename: string }[]>`
+          SELECT version, filename FROM public.schema_migration WHERE version = 15
+        `;
+        expect(completed.map((row) => ({ ...row, version: Number(row.version) }))).toEqual([{
+          version: 15,
+          filename: "0015_runtime_database_authority.sql",
+        }]);
+      });
+    },
+    120_000,
+  );
+
+  test(
+    "migration 0015 transfers the owned outbox sequence with its parent table",
+    async () => {
+      await withDatabase(async ({ databaseUrl: targetUrl, sql }) => {
+        let failure: unknown;
+        let result: MigrationRunResult | undefined;
+        try {
+          result = await runMigrations({
+            databaseUrl: targetUrl,
+            migrationsDirectory: PROJECT_MIGRATIONS,
+            logger: () => undefined,
+          });
+        } catch (error) {
+          failure = error;
+        }
+
+        const ledger = await sql<{ version: string | bigint }[]>`
+          SELECT version FROM public.schema_migration ORDER BY version
+        `;
+        const owners = await sql<{ relname: string; owner: string }[]>`
+          SELECT c.relname, pg_get_userbyid(c.relowner) AS owner
+            FROM pg_catalog.pg_class c
+            JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace
+           WHERE n.nspname = 'public' AND c.relname IN ('outbox', 'outbox_seq_seq')
+           ORDER BY c.relname
+        `;
+
+        if (failure) {
+          // Keep the builder red with direct evidence that 0015 rolled back before
+          // any owner transfer or ledger insertion.
+          expect(ledger.map((row) => Number(row.version))).toEqual(
+            Array.from({ length: 14 }, (_, index) => index + 1),
+          );
+          expect(owners).toEqual([
+            { relname: "outbox", owner: "yellow_deploy" },
+            { relname: "outbox_seq_seq", owner: "yellow_deploy" },
+          ]);
+          throw failure;
+        }
+
+        expect(result?.appliedFiles).toContain("0015_runtime_database_authority.sql");
+        expect(ledger.map((row) => Number(row.version))).toContain(15);
+        expect(owners).toEqual([
+          { relname: "outbox", owner: "yellow_owner" },
+          { relname: "outbox_seq_seq", owner: "yellow_owner" },
+        ]);
+      });
+    },
+    120_000,
+  );
+
+  test(
+    "reuses the cluster-global runtime membership across databases and fails closed on extras",
+    async () => {
+      const exactMembership = [{ role_name: "app_role", member_name: "yellow_runtime" }];
+
+      await withDatabase(async ({ databaseUrl: firstUrl, sql: firstSql }) => {
+        const first = await runMigrations({
+          databaseUrl: firstUrl,
+          migrationsDirectory: PROJECT_MIGRATIONS,
+          logger: () => undefined,
+        });
+        expect(first.appliedFiles).toContain("0015_runtime_database_authority.sql");
+        const firstMembership = await firstSql<{ role_name: string; member_name: string }[]>`
+          SELECT pg_get_userbyid(roleid) AS role_name, pg_get_userbyid(member) AS member_name
+            FROM pg_catalog.pg_auth_members
+           WHERE roleid = 'app_role'::regrole OR member = 'yellow_runtime'::regrole
+           ORDER BY role_name, member_name
+        `;
+        expect(firstMembership).toEqual(exactMembership);
+      });
+
+      await withDatabase(async ({ databaseUrl: secondUrl, sql: secondSql }) => {
+        const second = await runMigrations({
+          databaseUrl: secondUrl,
+          migrationsDirectory: PROJECT_MIGRATIONS,
+          logger: () => undefined,
+        });
+        expect(second.appliedFiles).toContain("0012_app_role_nonlogin.sql");
+        expect(second.appliedFiles).toContain("0015_runtime_database_authority.sql");
+        const secondLedger = await secondSql<{ version: string | bigint }[]>`
+          SELECT version FROM public.schema_migration WHERE version IN (12, 15) ORDER BY version
+        `;
+        expect(secondLedger.map((row) => Number(row.version))).toEqual([12, 15]);
+        const secondMembership = await secondSql<{ role_name: string; member_name: string }[]>`
+          SELECT pg_get_userbyid(roleid) AS role_name, pg_get_userbyid(member) AS member_name
+            FROM pg_catalog.pg_auth_members
+           WHERE roleid = 'app_role'::regrole OR member = 'yellow_runtime'::regrole
+           ORDER BY role_name, member_name
+        `;
+        expect(secondMembership).toEqual(exactMembership);
+      });
+
+      await admin!.unsafe("GRANT app_role TO yellow_owner");
+      try {
+        await withDatabase(async ({ databaseUrl: malformedUrl, sql: malformedSql }) => {
+          const error = await migrationFailure(() => runMigrations({
+            databaseUrl: malformedUrl,
+            migrationsDirectory: PROJECT_MIGRATIONS,
+            logger: () => undefined,
+          }));
+          expect(error.errno).toBe("55000");
+          const malformedLedger = await malformedSql<{ version: string | bigint }[]>`
+            SELECT version FROM public.schema_migration ORDER BY version
+          `;
+          expect(malformedLedger.map((row) => Number(row.version))).toEqual(
+            Array.from({ length: 11 }, (_, index) => index + 1),
+          );
+          const malformedMembership = await admin!<{ role_name: string; member_name: string }[]>`
+            SELECT pg_get_userbyid(roleid) AS role_name, pg_get_userbyid(member) AS member_name
+              FROM pg_catalog.pg_auth_members
+             WHERE roleid = 'app_role'::regrole OR member = 'yellow_runtime'::regrole
+             ORDER BY role_name, member_name
+          `;
+          expect(malformedMembership).toEqual([
+            { role_name: "app_role", member_name: "yellow_owner" },
+            ...exactMembership,
+          ]);
+        });
+      } finally {
+        await admin!.unsafe("REVOKE app_role FROM yellow_owner");
+      }
+    },
+    180_000,
+  );
 
   test(
     "applies the immutable baseline once, validates metadata, and is a stable no-op",
@@ -260,6 +1716,2223 @@ databaseDescribe("Bun SQL migration runner", () => {
           `;
           expect(ledgerAfter[0]?.applied_at.getTime()).toBe(ledgerBefore[0]?.applied_at.getTime());
         });
+      });
+    },
+    60_000,
+  );
+
+  test(
+    "applies the exact app_role internalization migration without schema changes",
+    async () => {
+      await withDatabase(async ({ databaseUrl: targetUrl, sql }) => {
+        const result = await runMigrations({
+          databaseUrl: targetUrl,
+          migrationsDirectory: PROJECT_MIGRATIONS,
+          logger: () => undefined,
+        });
+        expect(result.appliedFiles).toContain("0012_app_role_nonlogin.sql");
+
+        const ledger = await sql<
+          { version: string | bigint; filename: string; checksum_sha256: string }[]
+        >`
+          SELECT version, filename, checksum_sha256
+            FROM public.schema_migration
+           WHERE version = 12
+        `;
+        expect(ledger.map((row) => ({ ...row, version: Number(row.version) }))).toEqual([{
+          version: 12,
+          filename: "0012_app_role_nonlogin.sql",
+          checksum_sha256: "6f377ca182bcbd8ece5c6a0688597b4a4e0fc5129345a80f6f9d31076fb0ed25",
+        }]);
+
+        const role = await sql<Array<{
+          can_login: boolean;
+          connection_limit: number;
+          password_is_null: boolean;
+          safe_attributes: boolean;
+          memberships: number;
+        }>>`
+          SELECT r.rolcanlogin AS can_login,
+                 r.rolconnlimit AS connection_limit,
+                 r.rolpassword IS NULL AS password_is_null,
+                 NOT (r.rolsuper OR r.rolcreatedb OR r.rolcreaterole OR r.rolinherit
+                      OR r.rolreplication OR r.rolbypassrls) AS safe_attributes,
+                 (SELECT count(*)::int
+                    FROM pg_catalog.pg_auth_members
+                   WHERE roleid = r.oid OR member = r.oid) AS memberships
+            FROM pg_catalog.pg_authid AS r
+           WHERE r.rolname = 'app_role'
+        `;
+        expect(role).toEqual([{
+          can_login: false,
+          connection_limit: 0,
+          password_is_null: true,
+          safe_attributes: true,
+          memberships: 1,
+        }]);
+
+        const tableCount = await sql<{ count: number }[]>`
+          SELECT count(*)::int AS count FROM pg_catalog.pg_tables WHERE schemaname = 'public'
+        `;
+        expect(tableCount).toEqual([{ count: 130 }]);
+      });
+    },
+    60_000,
+  );
+
+  test(
+    "applies exact owner-only business-day seal authority and fails if the function is absent",
+    async () => {
+      await withDatabase(async ({ databaseUrl: targetUrl, sql }) => {
+        const result = await runMigrations({
+          databaseUrl: targetUrl,
+          migrationsDirectory: PROJECT_MIGRATIONS,
+          logger: () => undefined,
+        });
+        expect(result.appliedFiles).toContain("0013_revoke_app_role_business_day_seal.sql");
+
+        const ledger = await sql<
+          { version: string | bigint; filename: string; checksum_sha256: string }[]
+        >`
+          SELECT version, filename, checksum_sha256
+            FROM public.schema_migration
+           WHERE version = 13
+        `;
+        expect(ledger.map((row) => ({ ...row, version: Number(row.version) }))).toEqual([{
+          version: 13,
+          filename: "0013_revoke_app_role_business_day_seal.sql",
+          checksum_sha256: "75aef629ebc90a7c2ba3dcf94532295cfce57fc521197d7b5cdc6b6d5a1bf712",
+        }]);
+
+        const authority = await sql<Array<{
+          owner_matches: boolean;
+          owner_execute: boolean;
+          public_execute: boolean;
+          app_execute: boolean;
+        }>>`
+          SELECT pg_get_userbyid(p.proowner) = 'yellow_owner' AS owner_matches,
+                 has_function_privilege('yellow_owner', p.oid, 'EXECUTE') AS owner_execute,
+                 has_function_privilege('public', p.oid, 'EXECUTE') AS public_execute,
+                 has_function_privilege('app_role', p.oid, 'EXECUTE') AS app_execute
+            FROM pg_catalog.pg_proc AS p
+           WHERE p.oid = 'public.seal_business_day(uuid,uuid,date,uuid)'::regprocedure
+        `;
+        expect(authority).toEqual([{
+          owner_matches: true,
+          owner_execute: true,
+          public_execute: false,
+          app_execute: false,
+        }]);
+      });
+
+      await withDatabase(async ({ databaseUrl: targetUrl, sql }) => {
+        await withMigrationDirectory({
+          "0002_remove_business_day_seal.sql":
+            "DROP FUNCTION public.seal_business_day(uuid,uuid,date,uuid);\n",
+          "0013_revoke_app_role_business_day_seal.sql": BUSINESS_DAY_SEAL_MIGRATION,
+        }, async (directory) => {
+          const error = await migrationFailure(() => runMigrations({
+            databaseUrl: targetUrl,
+            migrationsDirectory: directory,
+            logger: () => undefined,
+          }));
+          expect(error.errno).toBe("42883");
+          const ledger = await sql<Array<{ version: number | bigint }>>`
+            SELECT version FROM public.schema_migration ORDER BY version
+          `;
+          expect(ledger.map(({ version }) => Number(version))).toEqual([1, 2]);
+        });
+      });
+    },
+    60_000,
+  );
+
+  test(
+    "applies the exact positive runtime DML authority migration",
+    async () => {
+      await withDatabase(async ({ databaseUrl: targetUrl, sql }) => {
+        const result = await runMigrations({
+          databaseUrl: targetUrl,
+          migrationsDirectory: PROJECT_MIGRATIONS,
+          logger: () => undefined,
+        });
+        expect(result.appliedFiles).toContain("0016_runtime_dml_authority.sql");
+        const ledger = await sql<Array<{ version: number | bigint; filename: string; checksum_sha256: string }>>`
+          SELECT version, filename, checksum_sha256
+            FROM public.schema_migration
+           WHERE version = 16
+        `;
+        expect(ledger.map((row) => ({ ...row, version: Number(row.version) }))).toEqual([{
+          version: 16,
+          filename: "0016_runtime_dml_authority.sql",
+          checksum_sha256: "216e79ab0b10a697b79e99872cbf3a65394dcdf94773af1fd4c13862f4e83fe5",
+        }]);
+      });
+    },
+    60_000,
+  );
+
+  test(
+    "applies the exact financial row-lock capability migration",
+    async () => {
+      await withDatabase(async ({ databaseUrl: targetUrl, sql }) => {
+        const result = await runMigrations({
+          databaseUrl: targetUrl,
+          migrationsDirectory: PROJECT_MIGRATIONS,
+          logger: () => undefined,
+        });
+        expect(result.appliedFiles).toContain("0017_financial_row_lock_capability.sql");
+        const ledger = await sql<Array<{ version: number | bigint; filename: string; checksum_sha256: string }>>`
+          SELECT version, filename, checksum_sha256
+            FROM public.schema_migration
+           WHERE version = 17
+        `;
+        expect(ledger.map((row) => ({ ...row, version: Number(row.version) }))).toEqual([{
+          version: 17,
+          filename: "0017_financial_row_lock_capability.sql",
+          checksum_sha256: "0d784fab670353b665e464d350e92ab5e6de401a131a737a63b86e1844a6ec81",
+        }]);
+      });
+    },
+    60_000,
+  );
+
+  test(
+    "applies the exact extension type registrar capability migration",
+    async () => {
+      await withDatabase(async ({ databaseUrl: targetUrl, sql }) => {
+        const result = await runMigrations({
+          databaseUrl: targetUrl,
+          migrationsDirectory: PROJECT_MIGRATIONS,
+          logger: () => undefined,
+        });
+        expect(result.appliedFiles).toContain("0018_extension_type_registration_capability.sql");
+        const ledger = await sql<Array<{ version: number | bigint; filename: string; checksum_sha256: string }>>`
+          SELECT version, filename, checksum_sha256
+            FROM public.schema_migration
+           WHERE version = 18
+        `;
+        expect(ledger.map((row) => ({ ...row, version: Number(row.version) }))).toEqual([{
+          version: 18,
+          filename: "0018_extension_type_registration_capability.sql",
+          checksum_sha256: "77e80f10c1c148fe79dcf71c546afe87fbdf97ac7f320644f5e550c88d409fc3",
+        }]);
+      });
+    },
+    60_000,
+  );
+
+  test(
+    "applies the exact governed cashier-session migration",
+    async () => {
+      await withDatabase(async ({ databaseUrl: targetUrl, sql }) => {
+        const result = await runMigrations({
+          databaseUrl: targetUrl,
+          migrationsDirectory: PROJECT_MIGRATIONS,
+          logger: () => undefined,
+        });
+        expect(result.appliedFiles).toContain("0024_governed_cashier_sessions.sql");
+        const ledger = await sql<Array<{
+          version: number | bigint;
+          filename: string;
+          checksum_sha256: string;
+        }>>`
+          SELECT version, filename, checksum_sha256
+            FROM public.schema_migration
+           WHERE version = 24
+        `;
+        expect(ledger.map((row) => ({ ...row, version: Number(row.version) }))).toEqual([{
+          version: 24,
+          filename: "0024_governed_cashier_sessions.sql",
+          checksum_sha256: "8884596df1155a308c752e733834e9cdcf95dd462b286450c6dbc3ae22b50e76",
+        }]);
+
+        const shape = await sql<Array<{ tables: number; policies: number; functions: number }>>`
+          SELECT
+            (SELECT count(*)::int FROM pg_catalog.pg_tables WHERE schemaname = 'public') AS tables,
+            (SELECT count(*)::int FROM pg_catalog.pg_policies WHERE schemaname = 'public') AS policies,
+            (SELECT count(*)::int
+               FROM pg_catalog.pg_proc AS procedure
+               JOIN pg_catalog.pg_namespace AS namespace ON namespace.oid = procedure.pronamespace
+              WHERE namespace.nspname = 'public'
+                AND procedure.proname IN (
+                  'open_cashier_session', 'append_cashier_count', 'close_cashier_session'
+                )) AS functions
+        `;
+        expect(shape).toEqual([{ tables: 130, policies: 120, functions: 3 }]);
+      });
+    },
+    60_000,
+  );
+
+  test(
+    "applies the exact governed receivable-transfer migration",
+    async () => {
+      await withDatabase(async ({ databaseUrl: targetUrl, sql }) => {
+        const result = await runMigrations({
+          databaseUrl: targetUrl,
+          migrationsDirectory: PROJECT_MIGRATIONS,
+          logger: () => undefined,
+        });
+        expect(result.appliedFiles).toContain("0025_governed_receivable_transfer.sql");
+        const ledger = await sql<Array<{
+          version: number | bigint;
+          filename: string;
+          checksum_sha256: string;
+        }>>`
+          SELECT version, filename, checksum_sha256
+            FROM public.schema_migration
+           WHERE version = 25
+        `;
+        expect(ledger.map((row) => ({ ...row, version: Number(row.version) }))).toEqual([{
+          version: 25,
+          filename: "0025_governed_receivable_transfer.sql",
+          checksum_sha256: "ce3fe52783ffb467f56a2a7342c0a5808ab8824d625f3b01b5e3532e1191c9fe",
+        }]);
+
+        const shape = await sql<Array<{
+          tables: number; policies: number; functions: number; approvalColumns: number;
+        }>>`
+          SELECT
+            (SELECT count(*)::int FROM pg_catalog.pg_tables WHERE schemaname = 'public') AS tables,
+            (SELECT count(*)::int FROM pg_catalog.pg_policies WHERE schemaname = 'public') AS policies,
+            (SELECT count(*)::int
+               FROM pg_catalog.pg_proc AS procedure
+               JOIN pg_catalog.pg_namespace AS namespace ON namespace.oid = procedure.pronamespace
+              WHERE namespace.nspname = 'public'
+                AND procedure.proname = 'create_receivable_transfer') AS functions,
+            (SELECT count(*)::int
+               FROM information_schema.columns
+              WHERE table_schema = 'public' AND table_name = 'journal'
+                AND column_name = 'approval_request_id') AS "approvalColumns"
+        `;
+        expect(shape).toEqual([{ tables: 130, policies: 120, functions: 1, approvalColumns: 1 }]);
+      });
+    },
+    60_000,
+  );
+
+  test(
+    "applies the exact governed housekeeping-task transition migration",
+    async () => {
+      await withDatabase(async ({ databaseUrl: targetUrl, sql }) => {
+        const result = await runMigrations({
+          databaseUrl: targetUrl,
+          migrationsDirectory: PROJECT_MIGRATIONS,
+          logger: () => undefined,
+        });
+        expect(result.appliedFiles).toContain("0026_governed_housekeeping_task_transition.sql");
+        const ledger = await sql<Array<{
+          version: number | bigint;
+          filename: string;
+          checksum_sha256: string;
+        }>>`
+          SELECT version, filename, checksum_sha256
+            FROM public.schema_migration
+           WHERE version = 26
+        `;
+        expect(ledger.map((row) => ({ ...row, version: Number(row.version) }))).toEqual([{
+          version: 26,
+          filename: "0026_governed_housekeeping_task_transition.sql",
+          checksum_sha256: "f3667d8443db21ad921512bfadc453e9a9f341b60594f888dad7f69a88f0fba6",
+        }]);
+
+        const shape = await sql<Array<{
+          tables: number; policies: number; functions: number;
+        }>>`
+          SELECT
+            (SELECT count(*)::int FROM pg_catalog.pg_tables WHERE schemaname = 'public') AS tables,
+            (SELECT count(*)::int FROM pg_catalog.pg_policies WHERE schemaname = 'public') AS policies,
+            (SELECT count(*)::int
+               FROM pg_catalog.pg_proc AS procedure
+               JOIN pg_catalog.pg_namespace AS namespace ON namespace.oid = procedure.pronamespace
+              WHERE namespace.nspname = 'public'
+                AND procedure.proname = 'transition_housekeeping_task') AS functions
+        `;
+        expect(shape).toEqual([{ tables: 130, policies: 120, functions: 1 }]);
+      });
+    },
+    60_000,
+  );
+
+  test(
+    "applies the exact governed housekeeping task-sheet generation migration",
+    async () => {
+      await withDatabase(async ({ databaseUrl: targetUrl, sql }) => {
+        const result = await runMigrations({
+          databaseUrl: targetUrl,
+          migrationsDirectory: PROJECT_MIGRATIONS,
+          logger: () => undefined,
+        });
+        expect(result.appliedFiles).toContain("0027_governed_housekeeping_task_sheet_generation.sql");
+        const ledger = await sql<Array<{
+          version: number | bigint; filename: string; checksum_sha256: string;
+        }>>`
+          SELECT version, filename, checksum_sha256
+          FROM public.schema_migration
+          WHERE version = 27
+        `;
+        expect(ledger.map((row) => ({ ...row, version: Number(row.version) }))).toEqual([{
+          version: 27,
+          filename: "0027_governed_housekeeping_task_sheet_generation.sql",
+          checksum_sha256: "fb46db4af1ebca0dd1d66501e51ed2064c5dc108a40701a6a7b00d170b30be43",
+        }]);
+        const shape = await sql<Array<{ functions: number; indexes: number }>>`
+          SELECT
+            (SELECT count(*)::int FROM pg_proc AS procedure
+              JOIN pg_namespace AS namespace ON namespace.oid=procedure.pronamespace
+              WHERE namespace.nspname='public'
+                AND procedure.proname='govern_housekeeping_task_sheet') AS functions,
+            (SELECT count(*)::int FROM pg_indexes
+              WHERE schemaname='public'
+                AND indexname IN ('task_sheet_property_date_unique','task_housekeeping_sheet_space_unique')) AS indexes
+        `;
+        expect(shape).toEqual([{ functions: 1, indexes: 2 }]);
+      });
+    },
+    60_000,
+  );
+
+  test(
+    "applies the exact governed initial unit-condition migration",
+    async () => {
+      await withDatabase(async ({ databaseUrl: targetUrl, sql }) => {
+        const result = await runMigrations({
+          databaseUrl: targetUrl,
+          migrationsDirectory: PROJECT_MIGRATIONS,
+          logger: () => undefined,
+        });
+        expect(result.appliedFiles).toContain("0030_governed_unit_condition_initialization.sql");
+        const ledger = await sql<Array<{
+          version: number | bigint; filename: string; checksum_sha256: string;
+        }>>`
+          SELECT version, filename, checksum_sha256
+            FROM public.schema_migration
+           WHERE version = 30
+        `;
+        expect(ledger.map((row) => ({ ...row, version: Number(row.version) }))).toEqual([{
+          version: 30,
+          filename: "0030_governed_unit_condition_initialization.sql",
+          checksum_sha256: "2afcace484bcba5f3513a92102216f8f73da2159e1f2348f6870b459fcef8524",
+        }]);
+        const shape = await sql<Array<{ functions: number }>>`
+          SELECT count(*)::int AS functions
+            FROM pg_catalog.pg_proc AS procedure
+            JOIN pg_catalog.pg_namespace AS namespace ON namespace.oid=procedure.pronamespace
+           WHERE namespace.nspname='public'
+             AND procedure.proname='initialize_unit_condition'
+        `;
+        expect(shape).toEqual([{ functions: 1 }]);
+      });
+    },
+    60_000,
+  );
+
+  test(
+    "applies the exact governed arrival pickup-task transition migration",
+    async () => {
+      await withDatabase(async ({ databaseUrl: targetUrl, sql }) => {
+        const result = await runMigrations({
+          databaseUrl: targetUrl,
+          migrationsDirectory: PROJECT_MIGRATIONS,
+          logger: () => undefined,
+        });
+        expect(result.appliedFiles).toContain("0031_governed_arrival_pickup_task_transition.sql");
+        const ledger = await sql<Array<{
+          version: number | bigint; filename: string; checksum_sha256: string;
+        }>>`
+          SELECT version, filename, checksum_sha256
+            FROM public.schema_migration
+           WHERE version = 31
+        `;
+        expect(ledger.map((row) => ({ ...row, version: Number(row.version) }))).toEqual([{
+          version: 31,
+          filename: "0031_governed_arrival_pickup_task_transition.sql",
+          checksum_sha256: "e337fcb52b38e98d5877f3ce927dd54825d465d90328104d87e1df83a187598f",
+        }]);
+        const shape = await sql<Array<{ functions: number }>>`
+          SELECT count(*)::int AS functions
+            FROM pg_catalog.pg_proc AS procedure
+            JOIN pg_catalog.pg_namespace AS namespace ON namespace.oid=procedure.pronamespace
+           WHERE namespace.nspname='public'
+             AND procedure.proname='transition_arrival_pickup_task'
+        `;
+        expect(shape).toEqual([{ functions: 1 }]);
+      });
+    },
+    60_000,
+  );
+
+  test(
+    "applies the exact governed arrival room-cleaning task migration",
+    async () => {
+      await withDatabase(async ({ databaseUrl: targetUrl, sql }) => {
+        const result = await runMigrations({
+          databaseUrl: targetUrl,
+          migrationsDirectory: PROJECT_MIGRATIONS,
+          logger: () => undefined,
+        });
+        expect(result.appliedFiles).toContain("0032_governed_arrival_room_cleaning_task.sql");
+        const ledger = await sql<Array<{
+          version: number | bigint; filename: string; checksum_sha256: string;
+        }>>`
+          SELECT version, filename, checksum_sha256
+            FROM public.schema_migration
+           WHERE version = 32
+        `;
+        expect(ledger.map((row) => ({ ...row, version: Number(row.version) }))).toEqual([{
+          version: 32,
+          filename: "0032_governed_arrival_room_cleaning_task.sql",
+          checksum_sha256: "f69c72349c237d635826136575ec1c66ccb48cf0f0ac9b3ea4a83f786b2a6718",
+        }]);
+        const shape = await sql<Array<{ functions: number; taskInsert: boolean; taskUpdate: boolean }>>`
+          SELECT
+            (SELECT count(*)::int
+               FROM pg_catalog.pg_proc AS procedure
+               JOIN pg_catalog.pg_namespace AS namespace ON namespace.oid=procedure.pronamespace
+              WHERE namespace.nspname='public'
+                AND procedure.proname='create_arrival_room_cleaning_task') AS functions,
+            has_table_privilege('app_role', 'public.task', 'INSERT') AS "taskInsert",
+            has_table_privilege('app_role', 'public.task', 'UPDATE') AS "taskUpdate"
+        `;
+        expect(shape).toEqual([{ functions: 1, taskInsert: false, taskUpdate: false }]);
+      });
+    },
+    60_000,
+  );
+
+  test(
+    "applies the exact governed due-in room-assignment migration",
+    async () => {
+      await withDatabase(async ({ databaseUrl: targetUrl, sql }) => {
+        const result = await runMigrations({
+          databaseUrl: targetUrl,
+          migrationsDirectory: PROJECT_MIGRATIONS,
+          logger: () => undefined,
+        });
+        expect(result.appliedFiles).toContain("0033_governed_due_in_room_assignment.sql");
+        const ledger = await sql<Array<{
+          version: number | bigint; filename: string; checksum_sha256: string;
+        }>>`
+          SELECT version, filename, checksum_sha256
+            FROM public.schema_migration
+           WHERE version = 33
+        `;
+        expect(ledger.map((row) => ({ ...row, version: Number(row.version) }))).toEqual([{
+          version: 33,
+          filename: "0033_governed_due_in_room_assignment.sql",
+          checksum_sha256: "cd983c31250bc5ace863fe156bc6aa15927eac74ba24ab449eff692e87aae82d",
+        }]);
+      });
+    },
+    60_000,
+  );
+
+  test(
+    "applies the exact bounded runtime due-arrival scope migration",
+    async () => {
+      await withDatabase(async ({ databaseUrl: targetUrl, sql }) => {
+        const result = await runMigrations({
+          databaseUrl: targetUrl,
+          migrationsDirectory: PROJECT_MIGRATIONS,
+          logger: () => undefined,
+        });
+        expect(result.appliedFiles).toContain("0034_runtime_due_arrival_scopes.sql");
+        const ledger = await sql<Array<{
+          version: number | bigint; filename: string; checksum_sha256: string;
+        }>>`
+          SELECT version, filename, checksum_sha256
+            FROM public.schema_migration
+           WHERE version = 34
+        `;
+        expect(ledger.map((row) => ({ ...row, version: Number(row.version) }))).toEqual([{
+          version: 34,
+          filename: "0034_runtime_due_arrival_scopes.sql",
+          checksum_sha256: "b59480ab270c8822c9f972de527fc47ab73c411dc9037d37e6d3d326f19cc21a",
+        }]);
+        const capability = await sql<Array<{
+          owner: string; publicExecute: boolean; appExecute: boolean; runtimeExecute: boolean;
+          volatility: string; config: string[] | null;
+        }>>`
+          SELECT pg_catalog.pg_get_userbyid(procedure.proowner) AS owner,
+                 pg_catalog.has_function_privilege('public', procedure.oid, 'EXECUTE') AS "publicExecute",
+                 pg_catalog.has_function_privilege('app_role', procedure.oid, 'EXECUTE') AS "appExecute",
+                 pg_catalog.has_function_privilege('yellow_runtime', procedure.oid, 'EXECUTE') AS "runtimeExecute",
+                 procedure.provolatile::text AS volatility,
+                 procedure.proconfig AS config
+            FROM pg_catalog.pg_proc AS procedure
+            JOIN pg_catalog.pg_namespace AS namespace ON namespace.oid=procedure.pronamespace
+           WHERE namespace.nspname='public'
+             AND procedure.proname='runtime_due_arrival_scopes'
+        `;
+        expect(capability).toEqual([{
+          owner: "yellow_owner",
+          publicExecute: false,
+          appExecute: false,
+          runtimeExecute: true,
+          volatility: "s",
+          config: ["search_path=pg_catalog, public, pg_temp"],
+        }]);
+      });
+    },
+    60_000,
+  );
+
+  test(
+    "applies the exact bounded runtime due-departure scope migration",
+    async () => {
+      await withDatabase(async ({ databaseUrl: targetUrl, sql }) => {
+        const result = await runMigrations({
+          databaseUrl: targetUrl,
+          migrationsDirectory: PROJECT_MIGRATIONS,
+          logger: () => undefined,
+        });
+        expect(result.appliedFiles).toContain("0035_runtime_due_departure_scopes.sql");
+        const ledger = await sql<Array<{
+          version: number | bigint; filename: string; checksum_sha256: string;
+        }>>`
+          SELECT version, filename, checksum_sha256
+            FROM public.schema_migration
+           WHERE version = 35
+        `;
+        expect(ledger.map((row) => ({ ...row, version: Number(row.version) }))).toEqual([{
+          version: 35,
+          filename: "0035_runtime_due_departure_scopes.sql",
+          checksum_sha256: "ee102c6e479badc14fb8945d0c493905840d1c58845b9def4d74d6e2bf1a7447",
+        }]);
+        const capability = await sql<Array<{
+          owner: string; publicExecute: boolean; appExecute: boolean; runtimeExecute: boolean;
+          volatility: string; config: string[] | null;
+        }>>`
+          SELECT pg_catalog.pg_get_userbyid(procedure.proowner) AS owner,
+                 pg_catalog.has_function_privilege('public', procedure.oid, 'EXECUTE') AS "publicExecute",
+                 pg_catalog.has_function_privilege('app_role', procedure.oid, 'EXECUTE') AS "appExecute",
+                 pg_catalog.has_function_privilege('yellow_runtime', procedure.oid, 'EXECUTE') AS "runtimeExecute",
+                 procedure.provolatile::text AS volatility,
+                 procedure.proconfig AS config
+            FROM pg_catalog.pg_proc AS procedure
+            JOIN pg_catalog.pg_namespace AS namespace ON namespace.oid=procedure.pronamespace
+           WHERE namespace.nspname='public'
+             AND procedure.proname='runtime_due_departure_scopes'
+        `;
+        expect(capability).toEqual([{
+          owner: "yellow_owner",
+          publicExecute: false,
+          appExecute: false,
+          runtimeExecute: true,
+          volatility: "s",
+          config: ["search_path=pg_catalog, public, pg_temp"],
+        }]);
+      });
+    },
+    60_000,
+  );
+
+  test(
+    "applies the exact governed room-discrepancy reporting migration",
+    async () => {
+      await withDatabase(async ({ databaseUrl: targetUrl, sql }) => {
+        const result = await runMigrations({
+          databaseUrl: targetUrl,
+          migrationsDirectory: PROJECT_MIGRATIONS,
+          logger: () => undefined,
+        });
+        expect(result.appliedFiles).toContain("0036_governed_room_discrepancy_reporting.sql");
+        const ledger = await sql<Array<{
+          version: number | bigint; filename: string; checksum_sha256: string;
+        }>>`
+          SELECT version, filename, checksum_sha256
+            FROM public.schema_migration
+           WHERE version = 36
+        `;
+        expect(ledger.map((row) => ({ ...row, version: Number(row.version) }))).toEqual([{
+          version: 36,
+          filename: "0036_governed_room_discrepancy_reporting.sql",
+          checksum_sha256: "bd72ca9ff3b02d4f0c00b4ce82a6afb1591056b71a04cebda71b61efacc61b76",
+        }]);
+        const capability = await sql<Array<{
+          owner: string; securityDefiner: boolean; publicExecute: boolean; appExecute: boolean;
+          runtimeExecute: boolean; volatility: string; config: string[] | null;
+        }>>`
+          SELECT pg_catalog.pg_get_userbyid(procedure.proowner) AS owner,
+                 procedure.prosecdef AS "securityDefiner",
+                 pg_catalog.has_function_privilege('public', procedure.oid, 'EXECUTE') AS "publicExecute",
+                 pg_catalog.has_function_privilege('app_role', procedure.oid, 'EXECUTE') AS "appExecute",
+                 pg_catalog.has_function_privilege('yellow_runtime', procedure.oid, 'EXECUTE') AS "runtimeExecute",
+                 procedure.provolatile::text AS volatility,
+                 procedure.proconfig AS config
+            FROM pg_catalog.pg_proc AS procedure
+            JOIN pg_catalog.pg_namespace AS namespace ON namespace.oid=procedure.pronamespace
+           WHERE namespace.nspname='public'
+             AND procedure.oid =
+               'public.report_room_discrepancy(uuid,uuid,uuid,text,integer,uuid)'::regprocedure
+        `;
+        expect(capability).toEqual([{
+          owner: "yellow_owner",
+          securityDefiner: true,
+          publicExecute: false,
+          appExecute: true,
+          runtimeExecute: false,
+          volatility: "v",
+          config: ["search_path=pg_catalog, public"],
+        }]);
+        const parkingChokePoint = await sql<Array<{
+          owner: string; securityDefiner: boolean; publicExecute: boolean; appExecute: boolean;
+          runtimeExecute: boolean; volatility: string; config: string[] | null;
+        }>>`
+          SELECT pg_catalog.pg_get_userbyid(procedure.proowner) AS owner,
+                 procedure.prosecdef AS "securityDefiner",
+                 pg_catalog.has_function_privilege('public', procedure.oid, 'EXECUTE') AS "publicExecute",
+                 pg_catalog.has_function_privilege('app_role', procedure.oid, 'EXECUTE') AS "appExecute",
+                 pg_catalog.has_function_privilege('yellow_runtime', procedure.oid, 'EXECUTE') AS "runtimeExecute",
+                 procedure.provolatile::text AS volatility,
+                 procedure.proconfig AS config
+            FROM pg_catalog.pg_proc AS procedure
+            JOIN pg_catalog.pg_namespace AS namespace ON namespace.oid=procedure.pronamespace
+           WHERE namespace.nspname='public'
+             AND procedure.oid =
+               'public.record_occupancy(uuid,uuid,tstzrange,uuid,text,boolean,uuid)'::regprocedure
+        `;
+        expect(parkingChokePoint).toEqual([{
+          owner: "yellow_owner",
+          securityDefiner: true,
+          publicExecute: false,
+          appExecute: false,
+          runtimeExecute: false,
+          volatility: "v",
+          config: ["search_path=pg_catalog, public, pg_temp"],
+        }]);
+      });
+    },
+    60_000,
+  );
+
+  test(
+    "applies the exact governed vehicle-parking assignment migration",
+    async () => {
+      await withDatabase(async ({ databaseUrl: targetUrl, sql }) => {
+        const result = await runMigrations({
+          databaseUrl: targetUrl,
+          migrationsDirectory: PROJECT_MIGRATIONS,
+          logger: () => undefined,
+        });
+        expect(result.appliedFiles).toContain("0037_governed_vehicle_parking_assignment.sql");
+        const ledger = await sql<Array<{
+          version: number | bigint; filename: string; checksum_sha256: string;
+        }>>`
+          SELECT version, filename, checksum_sha256
+            FROM public.schema_migration
+           WHERE version = 37
+        `;
+        expect(ledger.map((row) => ({ ...row, version: Number(row.version) }))).toEqual([{
+          version: 37,
+          filename: "0037_governed_vehicle_parking_assignment.sql",
+          checksum_sha256: "82df1de46ee97771390d1d102142380b40b590456f687fdd1bd0cd1d3a4d601a",
+        }]);
+        const capability = await sql<Array<{
+          owner: string; securityDefiner: boolean; publicExecute: boolean; appExecute: boolean;
+          runtimeExecute: boolean; volatility: string; config: string[] | null;
+        }>>`
+          SELECT pg_catalog.pg_get_userbyid(procedure.proowner) AS owner,
+                 procedure.prosecdef AS "securityDefiner",
+                 pg_catalog.has_function_privilege('public', procedure.oid, 'EXECUTE') AS "publicExecute",
+                 pg_catalog.has_function_privilege('app_role', procedure.oid, 'EXECUTE') AS "appExecute",
+                 pg_catalog.has_function_privilege('yellow_runtime', procedure.oid, 'EXECUTE') AS "runtimeExecute",
+                 procedure.provolatile::text AS volatility,
+                 procedure.proconfig AS config
+            FROM pg_catalog.pg_proc AS procedure
+            JOIN pg_catalog.pg_namespace AS namespace ON namespace.oid=procedure.pronamespace
+           WHERE namespace.nspname='public'
+             AND procedure.oid =
+               'public.assign_vehicle_parking(uuid,uuid,uuid,uuid,uuid)'::regprocedure
+        `;
+        expect(capability).toEqual([{
+          owner: "yellow_owner",
+          securityDefiner: true,
+          publicExecute: false,
+          appExecute: true,
+          runtimeExecute: false,
+          volatility: "v",
+          config: ["search_path=pg_catalog, public"],
+        }]);
+      });
+    },
+    60_000,
+  );
+
+  test(
+    "applies the exact canonical tax-attribution persistence migration",
+    async () => {
+      await withDatabase(async ({ databaseUrl: targetUrl, sql }) => {
+        const result = await runMigrations({
+          databaseUrl: targetUrl,
+          migrationsDirectory: PROJECT_MIGRATIONS,
+          logger: () => undefined,
+        });
+        expect(result.appliedFiles).toContain("0038_canonical_tax_attribution_persistence.sql");
+
+        const ledger = await sql<Array<{
+          version: number | bigint; filename: string; checksum_sha256: string;
+        }>>`
+          SELECT version, filename, checksum_sha256
+            FROM public.schema_migration
+           WHERE version = 38
+        `;
+        expect(ledger.map((row) => ({ ...row, version: Number(row.version) }))).toEqual([{
+          version: 38,
+          filename: "0038_canonical_tax_attribution_persistence.sql",
+          checksum_sha256: "dea9cfaf573d56ce2c0f5ee7987bf7009d12d0517f72dcd8a3b316232937f982",
+        }]);
+
+        const relation = await sql<Array<{
+          owner: string; rls: boolean; tenantPolicy: boolean; appSelect: boolean;
+          rawDmlDenied: boolean; propertyFk: boolean; actorFk: boolean; hashUnique: boolean;
+        }>>`
+          SELECT pg_catalog.pg_get_userbyid(cls.relowner) AS owner,
+                 cls.relrowsecurity AS rls,
+                 EXISTS (
+                   SELECT 1 FROM pg_catalog.pg_policy
+                    WHERE polrelid=cls.oid AND polname='tenant_isolation'
+                 ) AS "tenantPolicy",
+                 pg_catalog.has_table_privilege(
+                   'app_role', cls.oid, 'SELECT'
+                 ) AS "appSelect",
+                 NOT (
+                   pg_catalog.has_table_privilege('app_role', cls.oid, 'INSERT')
+                   OR pg_catalog.has_table_privilege('app_role', cls.oid, 'UPDATE')
+                   OR pg_catalog.has_table_privilege('app_role', cls.oid, 'DELETE')
+                   OR pg_catalog.has_table_privilege('app_role', cls.oid, 'TRUNCATE')
+                 ) AS "rawDmlDenied",
+                 EXISTS (
+                   SELECT 1 FROM pg_catalog.pg_constraint
+                    WHERE conrelid=cls.oid
+                      AND conname='tax_attribution_snapshot_property_fk'
+                      AND confrelid='public.org_node'::regclass
+                 ) AS "propertyFk",
+                 EXISTS (
+                   SELECT 1 FROM pg_catalog.pg_constraint
+                    WHERE conrelid=cls.oid
+                      AND conname='tax_attribution_snapshot_actor_fk'
+                      AND confrelid='public.app_user'::regclass
+                 ) AS "actorFk",
+                 EXISTS (
+                   SELECT 1 FROM pg_catalog.pg_constraint
+                    WHERE conrelid=cls.oid
+                      AND conname='tax_attribution_snapshot_hash_uq'
+                      AND contype='u'
+                 ) AS "hashUnique"
+            FROM pg_catalog.pg_class AS cls
+           WHERE cls.oid='public.tax_attribution_snapshot'::regclass
+        `;
+        expect(relation).toEqual([{
+          owner: "yellow_owner",
+          rls: true,
+          tenantPolicy: true,
+          appSelect: true,
+          rawDmlDenied: true,
+          propertyFk: true,
+          actorFk: true,
+          hashUnique: true,
+        }]);
+
+        const capability = await sql<Array<{
+          owner: string; securityDefiner: boolean; publicExecute: boolean; appExecute: boolean;
+          runtimeExecute: boolean; volatility: string; config: string[] | null;
+        }>>`
+          SELECT pg_catalog.pg_get_userbyid(procedure.proowner) AS owner,
+                 procedure.prosecdef AS "securityDefiner",
+                 pg_catalog.has_function_privilege('public', procedure.oid, 'EXECUTE') AS "publicExecute",
+                 pg_catalog.has_function_privilege('app_role', procedure.oid, 'EXECUTE') AS "appExecute",
+                 pg_catalog.has_function_privilege('yellow_runtime', procedure.oid, 'EXECUTE') AS "runtimeExecute",
+                 procedure.provolatile::text AS volatility,
+                 procedure.proconfig AS config
+            FROM pg_catalog.pg_proc AS procedure
+            JOIN pg_catalog.pg_namespace AS namespace ON namespace.oid=procedure.pronamespace
+           WHERE namespace.nspname='public'
+             AND procedure.oid =
+               'public.record_tax_attribution_snapshot(uuid,uuid,uuid,integer,text,text,text,text,jsonb)'::regprocedure
+        `;
+        expect(capability).toEqual([{
+          owner: "yellow_owner",
+          securityDefiner: true,
+          publicExecute: false,
+          appExecute: true,
+          runtimeExecute: false,
+          volatility: "v",
+          config: ["search_path=pg_catalog, public, pg_temp"],
+        }]);
+      });
+    },
+    60_000,
+  );
+
+  test(
+    "applies the exact quoted-tax cart-hold binding migration and denies capability abuse",
+    async () => {
+      await withDatabase(async ({ databaseUrl: targetUrl, sql }) => {
+        const result = await runMigrations({
+          databaseUrl: targetUrl,
+          migrationsDirectory: PROJECT_MIGRATIONS,
+          logger: () => undefined,
+        });
+        expect(result.appliedFiles).toContain("0040_quoted_tax_hold_binding.sql");
+
+        const ledger = await sql<Array<{
+          version: number | bigint; filename: string; checksum_sha256: string;
+        }>>`
+          SELECT version, filename, checksum_sha256
+            FROM public.schema_migration
+           WHERE version = 40
+        `;
+        expect(ledger.map((row) => ({ ...row, version: Number(row.version) }))).toEqual([{
+          version: 40,
+          filename: "0040_quoted_tax_hold_binding.sql",
+          checksum_sha256: "b61d1332acf17df9189612d355fb584754bdd7ddda9782e377bf73be44cc589b",
+        }]);
+
+        const relation = await sql<Array<{
+          owner: string; rls: boolean; tenantPolicy: boolean; appSelect: boolean;
+          rawDmlDenied: boolean; propertyFk: boolean; actorFk: boolean;
+          holdFk: boolean; attributionFk: boolean; holdUnique: boolean;
+          attributionUnique: boolean; snapshotHashUnique: boolean; parentHoldIdentity: boolean;
+          parentAttributionIdentity: boolean;
+        }>>`
+          SELECT pg_catalog.pg_get_userbyid(cls.relowner) AS owner,
+                 cls.relrowsecurity AS rls,
+                 EXISTS (
+                   SELECT 1 FROM pg_catalog.pg_policy
+                    WHERE polrelid=cls.oid AND polname='tenant_isolation'
+                 ) AS "tenantPolicy",
+                 pg_catalog.has_table_privilege('app_role', cls.oid, 'SELECT') AS "appSelect",
+                 NOT (
+                   pg_catalog.has_table_privilege('app_role', cls.oid, 'INSERT')
+                   OR pg_catalog.has_table_privilege('app_role', cls.oid, 'UPDATE')
+                   OR pg_catalog.has_table_privilege('app_role', cls.oid, 'DELETE')
+                   OR pg_catalog.has_table_privilege('app_role', cls.oid, 'TRUNCATE')
+                 ) AS "rawDmlDenied",
+                 EXISTS (
+                   SELECT 1 FROM pg_catalog.pg_constraint
+                    WHERE conrelid=cls.oid
+                      AND conname='tax_attribution_hold_binding_property_fk'
+                      AND confrelid='public.org_node'::regclass
+                 ) AS "propertyFk",
+                 EXISTS (
+                   SELECT 1 FROM pg_catalog.pg_constraint
+                    WHERE conrelid=cls.oid
+                      AND conname='tax_attribution_hold_binding_actor_fk'
+                      AND confrelid='public.app_user'::regclass
+                 ) AS "actorFk",
+                 EXISTS (
+                   SELECT 1 FROM pg_catalog.pg_constraint
+                    WHERE conrelid=cls.oid
+                      AND conname='tax_attribution_hold_binding_hold_fk'
+                      AND confrelid='public.hold'::regclass
+                 ) AS "holdFk",
+                 EXISTS (
+                   SELECT 1 FROM pg_catalog.pg_constraint
+                    WHERE conrelid=cls.oid
+                      AND conname='tax_attribution_hold_binding_attribution_fk'
+                      AND confrelid='public.tax_attribution_snapshot'::regclass
+                 ) AS "attributionFk",
+                 EXISTS (
+                   SELECT 1 FROM pg_catalog.pg_constraint
+                    WHERE conrelid=cls.oid
+                      AND conname='tax_attribution_hold_binding_hold_uq'
+                      AND contype='u'
+                 ) AS "holdUnique",
+                 EXISTS (
+                   SELECT 1 FROM pg_catalog.pg_constraint
+                    WHERE conrelid=cls.oid
+                      AND conname='tax_attribution_hold_binding_attribution_uq'
+                      AND contype='u'
+                 ) AS "attributionUnique",
+                 EXISTS (
+                   SELECT 1 FROM pg_catalog.pg_constraint
+                    WHERE conrelid=cls.oid
+                      AND conname='tax_attribution_hold_binding_snapshot_hash_uq'
+                      AND contype='u'
+                 ) AS "snapshotHashUnique",
+                 EXISTS (
+                   SELECT 1 FROM pg_catalog.pg_constraint
+                    WHERE conrelid='public.hold'::regclass
+                      AND conname='hold_tax_binding_identity_uq'
+                      AND contype='u'
+                 ) AS "parentHoldIdentity",
+                 EXISTS (
+                   SELECT 1 FROM pg_catalog.pg_constraint
+                    WHERE conrelid='public.tax_attribution_snapshot'::regclass
+                      AND conname='tax_attribution_snapshot_binding_identity_uq'
+                      AND contype='u'
+                 ) AS "parentAttributionIdentity"
+            FROM pg_catalog.pg_class AS cls
+           WHERE cls.oid='public.tax_attribution_hold_binding'::regclass
+        `;
+        expect(relation).toEqual([{
+          owner: "yellow_owner",
+          rls: true,
+          tenantPolicy: true,
+          appSelect: true,
+          rawDmlDenied: true,
+          propertyFk: true,
+          actorFk: true,
+          holdFk: true,
+          attributionFk: true,
+          holdUnique: true,
+          attributionUnique: true,
+          snapshotHashUnique: true,
+          parentHoldIdentity: true,
+          parentAttributionIdentity: true,
+        }]);
+
+        const capability = await sql<Array<{
+          owner: string; securityDefiner: boolean; publicExecute: boolean;
+          appExecute: boolean; runtimeExecute: boolean; volatility: string;
+          config: string[] | null; result: string;
+        }>>`
+          SELECT pg_catalog.pg_get_userbyid(procedure.proowner) AS owner,
+                 procedure.prosecdef AS "securityDefiner",
+                 pg_catalog.has_function_privilege('public', procedure.oid, 'EXECUTE') AS "publicExecute",
+                 pg_catalog.has_function_privilege('app_role', procedure.oid, 'EXECUTE') AS "appExecute",
+                 pg_catalog.has_function_privilege('yellow_runtime', procedure.oid, 'EXECUTE') AS "runtimeExecute",
+                 procedure.provolatile::text AS volatility,
+                 procedure.proconfig AS config,
+                 pg_catalog.pg_get_function_result(procedure.oid) AS result
+            FROM pg_catalog.pg_proc AS procedure
+           WHERE procedure.oid =
+             'public.record_tax_attribution_hold_binding(uuid,uuid,uuid,uuid,uuid)'::regprocedure
+        `;
+        expect(capability).toEqual([{
+          owner: "yellow_owner",
+          securityDefiner: true,
+          publicExecute: false,
+          appExecute: true,
+          runtimeExecute: false,
+          volatility: "v",
+          config: ["search_path=pg_catalog, public, pg_temp"],
+          result: "TABLE(binding_id uuid, property_node uuid, hold_id uuid, attribution_id uuid, origin_quote_hash text, snapshot_hash text, currency character, bound_by uuid, bound_at timestamp with time zone, created boolean)",
+        }]);
+
+        const expectSqlstate = async (operation: () => Promise<unknown>, state: string) => {
+          try {
+            await operation();
+          } catch (error) {
+            expect((error as { errno?: string }).errno).toBe(state);
+            return;
+          }
+          throw new Error(`Expected SQLSTATE ${state}`);
+        };
+        await expectSqlstate(
+          () => sql.begin(async (tx) => {
+            await tx.unsafe("SET LOCAL ROLE app_role");
+            await tx`SELECT * FROM public.record_tax_attribution_hold_binding(
+              ${randomUUID()}::uuid, ${randomUUID()}::uuid, ${randomUUID()}::uuid,
+              ${randomUUID()}::uuid, ${randomUUID()}::uuid
+            )`;
+          }),
+          "42501",
+        );
+        await expectSqlstate(
+          () => sql.begin(async (tx) => {
+            await tx.unsafe("SET LOCAL ROLE app_role");
+            await tx.unsafe("INSERT INTO public.tax_attribution_hold_binding DEFAULT VALUES");
+          }),
+          "42501",
+        );
+      });
+    },
+    60_000,
+  );
+
+  test(
+    "applies the exact positive-tax semantic-route migration with SELECT-only app authority",
+    async () => {
+      await withDatabase(async ({ databaseUrl: targetUrl, sql }) => {
+        const result = await runMigrations({
+          databaseUrl: targetUrl,
+          migrationsDirectory: PROJECT_MIGRATIONS,
+          logger: () => undefined,
+        });
+        expect(result.appliedFiles).toContain("0043_positive_tax_semantic_route.sql");
+
+        const ledger = await sql<Array<{
+          version: number | bigint; filename: string; checksum_sha256: string;
+        }>>`
+          SELECT version, filename, checksum_sha256
+            FROM public.schema_migration
+           WHERE version = 43
+        `;
+        expect(ledger.map((row) => ({ ...row, version: Number(row.version) }))).toEqual([{
+          version: 43,
+          filename: "0043_positive_tax_semantic_route.sql",
+          checksum_sha256: "a5036df30f07c4c8add08c46cdb805c71b87597efa542e368e64aa35d572bf40",
+        }]);
+
+        const relation = await sql<Array<{
+          tables: number; policies: number; owner: string; rls: boolean;
+          appSelect: boolean; appMutation: boolean; publicPrivileges: number;
+          runtimePrivileges: number; constraintCount: number;
+          tenantLeadingLookup: boolean;
+        }>>`
+          SELECT
+            (SELECT count(*)::int FROM pg_catalog.pg_tables
+              WHERE schemaname = 'public') AS tables,
+            (SELECT count(*)::int FROM pg_catalog.pg_policies
+              WHERE schemaname = 'public') AS policies,
+            pg_catalog.pg_get_userbyid(class.relowner) AS owner,
+            class.relrowsecurity AS rls,
+            pg_catalog.has_table_privilege('app_role', class.oid, 'SELECT') AS "appSelect",
+            (
+              pg_catalog.has_table_privilege('app_role', class.oid, 'INSERT')
+              OR pg_catalog.has_table_privilege('app_role', class.oid, 'UPDATE')
+              OR pg_catalog.has_table_privilege('app_role', class.oid, 'DELETE')
+              OR pg_catalog.has_table_privilege('app_role', class.oid, 'TRUNCATE')
+            ) AS "appMutation",
+            (
+              SELECT count(*)::int
+                FROM pg_catalog.aclexplode(
+                  COALESCE(class.relacl, pg_catalog.acldefault('r', class.relowner))
+                ) AS acl
+               WHERE acl.grantee = 0
+            ) AS "publicPrivileges",
+            (
+              SELECT count(*)::int
+                FROM unnest(ARRAY[
+                  'SELECT','INSERT','UPDATE','DELETE','TRUNCATE','REFERENCES','TRIGGER'
+                ]) AS privilege
+               WHERE pg_catalog.has_table_privilege('yellow_runtime', class.oid, privilege)
+            ) AS "runtimePrivileges",
+            (
+              SELECT count(*)::int FROM pg_catalog.pg_constraint
+               WHERE conrelid = class.oid
+            ) AS "constraintCount",
+            EXISTS (
+              SELECT 1
+                FROM pg_catalog.pg_index AS index
+                JOIN pg_catalog.pg_class AS index_class ON index_class.oid = index.indexrelid
+                JOIN pg_catalog.pg_attribute AS leading_attribute
+                  ON leading_attribute.attrelid = class.oid
+                 AND leading_attribute.attnum = (index.indkey::smallint[])[0]
+               WHERE index.indrelid = class.oid
+                 AND index_class.relname = 'tax_semantic_route_lookup'
+                 AND leading_attribute.attname = 'tenant_id'
+            ) AS "tenantLeadingLookup"
+          FROM pg_catalog.pg_class AS class
+         WHERE class.oid = 'public.tax_semantic_route'::regclass
+        `;
+        expect(relation).toEqual([{
+          tables: 130,
+          policies: 120,
+          owner: "yellow_owner",
+          rls: true,
+          appSelect: true,
+          appMutation: false,
+          publicPrivileges: 0,
+          runtimePrivileges: 0,
+          constraintCount: 12,
+          tenantLeadingLookup: true,
+        }]);
+      });
+    },
+    60_000,
+  );
+
+  test(
+    "stages historical lineage then applies correction, repair and all India fiscal evidence exactly once",
+    async () => {
+      await withDatabase(async ({ databaseUrl: targetUrl, sql }) => {
+        const predecessorFiles = await readdir(PROJECT_MIGRATIONS);
+        const predecessor = Object.fromEntries(await Promise.all(
+          predecessorFiles
+            .filter((filename) => {
+              const version = Number(filename.slice(0, 4));
+              return filename.endsWith(".sql") && version >= 2 && version <= 44;
+            })
+            .map(async (filename) => [
+              filename,
+              await readFile(resolve(PROJECT_MIGRATIONS, filename)),
+            ] as const),
+        ));
+
+        await withMigrationDirectory(predecessor, async (directory) => {
+          const predecessorResult = await runMigrations({
+            databaseUrl: targetUrl,
+            migrationsDirectory: directory,
+            logger: () => undefined,
+          });
+          expect(predecessorResult.appliedFiles).toHaveLength(44);
+        });
+
+        const predecessorLedger = await sql<Array<{
+          version_bytes: string; filename_bytes: string; checksum_bytes: string; applied_at_bytes: string;
+        }>>`
+          SELECT pg_catalog.encode(pg_catalog.int8send(version), 'hex') AS version_bytes,
+                 pg_catalog.encode(pg_catalog.textsend(filename), 'hex') AS filename_bytes,
+                 pg_catalog.encode(pg_catalog.textsend(checksum_sha256), 'hex') AS checksum_bytes,
+                 pg_catalog.encode(pg_catalog.timestamptz_send(applied_at), 'hex') AS applied_at_bytes
+            FROM public.schema_migration
+           WHERE version <= 44
+           ORDER BY version
+        `;
+
+        const result = await runMigrations({
+          databaseUrl: targetUrl,
+          migrationsDirectory: PROJECT_MIGRATIONS,
+          logger: () => undefined,
+        });
+        expect(result.appliedFiles).toEqual([
+          "0045_governed_positive_tax_correction.sql",
+          "0046_positive_tax_posting_ordinal_repair.sql",
+          "0047_property_fiscal_registration.sql",
+          "0048_party_fiscal_registration.sql",
+          "0049_property_fiscal_location.sql",
+          "0050_india_gst_item_classification.sql",
+          "0051_india_gst_supplier_service_location.sql",
+          "0052_india_gst_recipient_sez_status.sql",
+          "0053_india_gst_supplier_sez_status.sql",
+          "0054_india_sez_unit_loa_renewal.sql",
+          "0055_india_gst_supplier_registration_status.sql",
+          "0056_india_gst_accommodation_service_provision_date.sql",
+          "0057_india_gst_accommodation_payment_receipt_date.sql",
+          "0058_india_gst_accommodation_invoice_issue_date.sql",
+          "0059_tax_extension_effective_period.sql",
+          "0060_owner_trust_negative_authorization.sql",
+          "0061_runtime_due_business_day_scopes.sql",
+          "0062_india_gst_accommodation_final_valuation.sql",
+          "0063_governed_business_day_discrepancy_carry.sql",
+          "0064_audited_business_day_seal.sql",
+          "0065_business_day_roll_contention_repair.sql",
+          "0066_business_day_read_permission.sql",
+          "0067_business_day_seal_permission.sql",
+          "0068_prepare_owner_trust_expense.sql",
+          "0069_india_gst_accommodation_quoted_rate_applicability.sql",
+          "0070_india_gst_accommodation_final_component_tax.sql",
+          "0071_governed_india_final_component_tax_posting.sql",
+          "0072_governed_india_final_component_tax_correction.sql",
+          "0073_document_series_runtime_authority_containment.sql",
+          "0074_india_native_fiscal_invoice_authority.sql",
+          "0075_contain_unapproved_native_fiscal_issuance.sql",
+          "0076_india_native_fiscal_source_evidence.sql",
+          "0077_india_native_fiscal_source_completion.sql",
+          "0078_fiscal_submission_durability.sql",
+          "0079_fiscal_immutable_command_receipts.sql",
+          "0080_fiscal_submission_delivery_runtime.sql",
+          "0081_fiscal_signed_delivery_receipts.sql",
+          "0082_india_native_fiscal_operator_workflow.sql",
+          "0083_india_native_fiscal_operator_calendar_bounds.sql",
+          "0084_india_native_fiscal_operator_query_execution.sql",
+          "0085_india_native_fiscal_operator_command.sql",
+          "0086_fiscal_submission_retry_binding.sql",
+          "0087_india_native_fiscal_credit_note.sql",
+          "0088_native_credit_fiscal_submission.sql",
+          "0089_native_credit_delivery_discovery.sql",
+          "0090_india_native_fiscal_series_configuration.sql",
+          "0091_reservation_alert_authority.sql",
+        ]);
+
+        const preservedLedger = await sql<Array<{
+          version_bytes: string; filename_bytes: string; checksum_bytes: string; applied_at_bytes: string;
+        }>>`
+          SELECT pg_catalog.encode(pg_catalog.int8send(version), 'hex') AS version_bytes,
+                 pg_catalog.encode(pg_catalog.textsend(filename), 'hex') AS filename_bytes,
+                 pg_catalog.encode(pg_catalog.textsend(checksum_sha256), 'hex') AS checksum_bytes,
+                 pg_catalog.encode(pg_catalog.timestamptz_send(applied_at), 'hex') AS applied_at_bytes
+            FROM public.schema_migration
+           WHERE version <= 44
+           ORDER BY version
+        `;
+        expect(preservedLedger).toEqual(predecessorLedger);
+
+        const upgradedLedger = await sql<Array<{
+          version_bytes: string; filename_bytes: string; checksum_bytes: string; applied_at_bytes: string;
+        }>>`
+          SELECT pg_catalog.encode(pg_catalog.int8send(version), 'hex') AS version_bytes,
+                 pg_catalog.encode(pg_catalog.textsend(filename), 'hex') AS filename_bytes,
+                 pg_catalog.encode(pg_catalog.textsend(checksum_sha256), 'hex') AS checksum_bytes,
+                 pg_catalog.encode(pg_catalog.timestamptz_send(applied_at), 'hex') AS applied_at_bytes
+            FROM public.schema_migration
+           ORDER BY version
+        `;
+        expect(upgradedLedger).toHaveLength(99);
+
+        const noOpLog: string[] = [];
+        const noOp = await runMigrations({
+          databaseUrl: targetUrl,
+          migrationsDirectory: PROJECT_MIGRATIONS,
+          logger: (message) => noOpLog.push(message),
+        });
+        expect(noOp.appliedFiles).toEqual([]);
+        expect(noOp.discoveredFiles).toBe(99);
+        expect(noOp.transactionBackendPids).toEqual([]);
+        expect(noOpLog).toHaveLength(1);
+        expect(noOpLog[0]).toContain("applied=0 status=no-op");
+
+        const noOpLedger = await sql<Array<{
+          version_bytes: string; filename_bytes: string; checksum_bytes: string; applied_at_bytes: string;
+        }>>`
+          SELECT pg_catalog.encode(pg_catalog.int8send(version), 'hex') AS version_bytes,
+                 pg_catalog.encode(pg_catalog.textsend(filename), 'hex') AS filename_bytes,
+                 pg_catalog.encode(pg_catalog.textsend(checksum_sha256), 'hex') AS checksum_bytes,
+                 pg_catalog.encode(pg_catalog.timestamptz_send(applied_at), 'hex') AS applied_at_bytes
+            FROM public.schema_migration
+           ORDER BY version
+        `;
+        expect(noOpLedger).toEqual(upgradedLedger);
+
+        const ledger = await sql<Array<{
+          version: number | bigint; filename: string; checksum_sha256: string;
+        }>>`
+          SELECT version, filename, checksum_sha256
+            FROM public.schema_migration
+           WHERE version IN (44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73)
+           ORDER BY version
+        `;
+        expect(ledger.map((row) => ({ ...row, version: Number(row.version) }))).toEqual([
+          {
+            version: 44,
+            filename: "0044_governed_positive_tax_posting.sql",
+            checksum_sha256: "5ea338b18aabb3cb2c5a4613c00ebf57806be881b956b13df1e2c95262cce55c",
+          },
+          {
+            version: 45,
+            filename: "0045_governed_positive_tax_correction.sql",
+            checksum_sha256: "aec7f04eaa0536568adf68d51d7e2fa3ff578cd043b3079c080a680d6e210dba",
+          },
+          {
+            version: 46,
+            filename: "0046_positive_tax_posting_ordinal_repair.sql",
+            checksum_sha256: "bd7fb83f619aabf76b7247246a096ca09275823d07cbdceeb2deec8a1e76b574",
+          },
+          {
+            version: 47,
+            filename: "0047_property_fiscal_registration.sql",
+            checksum_sha256: "7e5b8a912230ebbd7cf033b4883a7138ba5ae2d9fcb007dda42b5345d1c95bf0",
+          },
+          {
+            version: 48,
+            filename: "0048_party_fiscal_registration.sql",
+            checksum_sha256: "d57c5db53f75d719ef2e802a738f815cd03a54a87dbdec1f8813574666e0012f",
+          },
+          {
+            version: 49,
+            filename: "0049_property_fiscal_location.sql",
+            checksum_sha256: "7efed30ed6d84b7229ec298425925c38d28c13dc570f8e03eabc35fe17c276b4",
+          },
+          {
+            version: 50,
+            filename: "0050_india_gst_item_classification.sql",
+            checksum_sha256: "a3eeba9a7a4b00c580c822126b8c48d17053c9acaccbf15538cadfddb47d9433",
+          },
+          {
+            version: 51,
+            filename: "0051_india_gst_supplier_service_location.sql",
+            checksum_sha256: "af457264bb976d64930022eb4686a55096248bf0b9e1f13151454b47d47b2496",
+          },
+          {
+            version: 52,
+            filename: "0052_india_gst_recipient_sez_status.sql",
+            checksum_sha256: "7a318a99c4e3e40722fc97c0445b3475e7cedc10feb651b4c5049f4e3afd65da",
+          },
+          {
+            version: 53,
+            filename: "0053_india_gst_supplier_sez_status.sql",
+            checksum_sha256: "e5208a1698c06db64842946876c90912c03d9aa0481ed0ceced6fa0295020c3d",
+          },
+          {
+            version: 54,
+            filename: "0054_india_sez_unit_loa_renewal.sql",
+            checksum_sha256: "54a65ae32acfc5e232037129685a7c7edfb950aa66b54d4ea053c7acf11bb717",
+          },
+          {
+            version: 55,
+            filename: "0055_india_gst_supplier_registration_status.sql",
+            checksum_sha256: "c0f50dc59178da55cd89ad06bcbd4ee48f36a48e154c07e41b089a7608cb1f80",
+          },
+          {
+            version: 56,
+            filename: "0056_india_gst_accommodation_service_provision_date.sql",
+            checksum_sha256: "920b98c03e65e7ed968b2fe277f6f9d67185be125a68aec3123b9ad0b8f27658",
+          },
+          {
+            version: 57,
+            filename: "0057_india_gst_accommodation_payment_receipt_date.sql",
+            checksum_sha256: "12108a774929f7541090c628d28972b313498d51cd84b0d3a9ccd6b541d25117",
+          },
+          {
+            version: 58,
+            filename: "0058_india_gst_accommodation_invoice_issue_date.sql",
+            checksum_sha256: "d2eaf70479a602ec82dc5abe73442475abb80ed8ec3f2ef3ec333b182c30dddf",
+          },
+          {
+            version: 59,
+            filename: "0059_tax_extension_effective_period.sql",
+            checksum_sha256: "b920169d3776ff8f9804b8273c27a35d750a704919f3f1012af50ec94166f2e8",
+          },
+          {
+            version: 60,
+            filename: "0060_owner_trust_negative_authorization.sql",
+            checksum_sha256: "2379fed5d09385a19f6abcc2a27582b3d1d77495a7b3c1b49437d66baade4f11",
+          },
+          {
+            version: 61,
+            filename: "0061_runtime_due_business_day_scopes.sql",
+            checksum_sha256: "50cf8593ac385b74fbe61da9d28f0ecf59b78297c7aff46ad073f34409efc34f",
+          },
+          {
+            version: 62,
+            filename: "0062_india_gst_accommodation_final_valuation.sql",
+            checksum_sha256: "0107247dd397886cdfdb5444c841d536f4288fcbc8407cc2a55e76279820d10c",
+          },
+          {
+            version: 63,
+            filename: "0063_governed_business_day_discrepancy_carry.sql",
+            checksum_sha256: "2b9dc9c73b77b68a06cae3e2dd05da88e00f3f073a41232bada2569c7d49702b",
+          },
+          {
+            version: 64,
+            filename: "0064_audited_business_day_seal.sql",
+            checksum_sha256: "82a1c49f936c0ae13ddc8325f9ca54002958ac382bda607edd544dfe71284db7",
+          },
+          {
+            version: 65,
+            filename: "0065_business_day_roll_contention_repair.sql",
+            checksum_sha256: "8e28af137263ff23ecacb1f9e49b4f48b203d5f8c3773d1c2471c5a78cae331a",
+          },
+          {
+            version: 66,
+            filename: "0066_business_day_read_permission.sql",
+            checksum_sha256: "9a479726039063c5d3f54997347a19e1da5c3542766bd0be2fc5b512b6b82d67",
+          },
+          {
+            version: 67,
+            filename: "0067_business_day_seal_permission.sql",
+            checksum_sha256: "a2c3ae78442c29c56766eae6d718970f39fa493ae1ec30427ac44489cf42b2c5",
+          },
+          {
+            version: 68,
+            filename: "0068_prepare_owner_trust_expense.sql",
+            checksum_sha256: "19eedaa18ae6816825535c98a794c5fa0ed420c4c12776f960183dced1966884",
+          },
+          {
+            version: 69,
+            filename: "0069_india_gst_accommodation_quoted_rate_applicability.sql",
+            checksum_sha256: "622aed18c22baf6793cc8ff7ac8dea8b9af4c1688ced5dc341f21b6f3305688e",
+          },
+          {
+            version: 70,
+            filename: "0070_india_gst_accommodation_final_component_tax.sql",
+            checksum_sha256: "a9eefe19e7d31e71aba55bc88146cbdf1f0b75915c691bbc3dabbe50b627a4f2",
+          },
+          {
+            version: 71,
+            filename: "0071_governed_india_final_component_tax_posting.sql",
+            checksum_sha256: "e0c377b9d881403a2b88742c7d2e09e3723526e76cedb52a465ef57f530919c5",
+          },
+          {
+            version: 72,
+            filename: "0072_governed_india_final_component_tax_correction.sql",
+            checksum_sha256: "2407d1433672e5f5a958af39acf96406b41ca0e190d1d8987100cd59c5b0f22d",
+          },
+          {
+            version: 73,
+            filename: "0073_document_series_runtime_authority_containment.sql",
+            checksum_sha256: "d5cef790f3f75f902de457d22e21f272530a77257f65daac1bb5e6e51f1688aa",
+          },
+        ]);
+
+        const authority = await sql<Array<{
+          signature: string; owner: string; securityDefiner: boolean;
+          config: string[]; appExecute: boolean; runtimeExecute: boolean;
+        }>>`
+          SELECT p.oid::regprocedure::text AS signature,
+                 pg_catalog.pg_get_userbyid(p.proowner) AS owner,
+                 p.prosecdef AS "securityDefiner",
+                 p.proconfig AS config,
+                 pg_catalog.has_function_privilege('app_role', p.oid, 'EXECUTE')
+                   AS "appExecute",
+                 pg_catalog.has_function_privilege('yellow_runtime', p.oid, 'EXECUTE')
+                   AS "runtimeExecute"
+            FROM pg_catalog.pg_proc AS p
+            JOIN pg_catalog.pg_namespace AS n ON n.oid = p.pronamespace
+           WHERE n.nspname = 'public'
+             AND p.proname IN (
+               'create_positive_tax_correction_header',
+               'record_positive_tax_correction_root'
+             )
+           ORDER BY signature
+        `;
+        expect(authority).toEqual([
+          {
+            signature: "create_positive_tax_correction_header(uuid,uuid,uuid,text,uuid)",
+            owner: "yellow_owner", securityDefiner: true,
+            config: ["search_path=pg_catalog, public, pg_temp"],
+            appExecute: true, runtimeExecute: false,
+          },
+          {
+            signature: "record_positive_tax_correction_root(uuid,uuid,uuid,uuid)",
+            owner: "yellow_owner", securityDefiner: true,
+            config: ["search_path=pg_catalog, public, pg_temp"],
+            appExecute: true, runtimeExecute: false,
+          },
+        ]);
+
+        const counts = await sql<Array<{
+          tables: number; rlsTables: number; policies: number; forceRlsTables: number;
+        }>>`
+          SELECT
+            (SELECT pg_catalog.count(*)::int FROM pg_catalog.pg_tables
+              WHERE schemaname = 'public') AS tables,
+            (SELECT pg_catalog.count(*)::int
+               FROM pg_catalog.pg_class AS class
+               JOIN pg_catalog.pg_namespace AS namespace ON namespace.oid = class.relnamespace
+              WHERE namespace.nspname = 'public'
+                AND class.relkind IN ('r', 'p')
+                AND class.relrowsecurity) AS "rlsTables",
+            (SELECT pg_catalog.count(*)::int FROM pg_catalog.pg_policies
+              WHERE schemaname = 'public') AS policies,
+            (SELECT pg_catalog.count(*)::int
+               FROM pg_catalog.pg_class AS class
+               JOIN pg_catalog.pg_namespace AS namespace ON namespace.oid = class.relnamespace
+              WHERE namespace.nspname = 'public'
+                AND class.relkind IN ('r', 'p')
+                AND class.relforcerowsecurity) AS "forceRlsTables"
+        `;
+        expect(counts).toEqual([{
+          tables: 130, rlsTables: 120, policies: 120, forceRlsTables: 29,
+        }]);
+
+        const registration = await sql<Array<{
+          owner: string; rls: boolean; policies: number;
+          appSelect: boolean; appMutation: boolean; runtimePrivileges: number;
+          constraintCount: number; tenantLeadingLookup: boolean;
+        }>>`
+          SELECT pg_catalog.pg_get_userbyid(class.relowner) AS owner,
+                 class.relrowsecurity AS rls,
+                 (SELECT count(*)::int FROM pg_catalog.pg_policy
+                   WHERE polrelid = class.oid AND polname = 'tenant_isolation') AS policies,
+                 pg_catalog.has_table_privilege('app_role', class.oid, 'SELECT') AS "appSelect",
+                 (
+                   pg_catalog.has_table_privilege('app_role', class.oid, 'INSERT')
+                   OR pg_catalog.has_table_privilege('app_role', class.oid, 'UPDATE')
+                   OR pg_catalog.has_table_privilege('app_role', class.oid, 'DELETE')
+                   OR pg_catalog.has_table_privilege('app_role', class.oid, 'TRUNCATE')
+                 ) AS "appMutation",
+                 (
+                   SELECT count(*)::int
+                     FROM unnest(ARRAY[
+                       'SELECT','INSERT','UPDATE','DELETE','TRUNCATE','REFERENCES','TRIGGER'
+                     ]) AS privilege
+                    WHERE pg_catalog.has_table_privilege('yellow_runtime', class.oid, privilege)
+                 ) AS "runtimePrivileges",
+                 (SELECT count(*)::int FROM pg_catalog.pg_constraint
+                   WHERE conrelid = class.oid) AS "constraintCount",
+                 EXISTS (
+                   SELECT 1
+                     FROM pg_catalog.pg_index AS index
+                     JOIN pg_catalog.pg_class AS index_class ON index_class.oid = index.indexrelid
+                     JOIN pg_catalog.pg_attribute AS leading_attribute
+                       ON leading_attribute.attrelid = class.oid
+                      AND leading_attribute.attnum = (index.indkey::smallint[])[0]
+                    WHERE index.indrelid = class.oid
+                      AND index_class.relname = 'property_fiscal_registration_lookup'
+                      AND leading_attribute.attname = 'tenant_id'
+                 ) AS "tenantLeadingLookup"
+            FROM pg_catalog.pg_class AS class
+           WHERE class.oid = 'public.property_fiscal_registration'::regclass
+        `;
+        expect(registration).toEqual([{
+          owner: "yellow_owner", rls: true, policies: 1,
+          appSelect: true, appMutation: false, runtimePrivileges: 0,
+          constraintCount: 19, tenantLeadingLookup: true,
+        }]);
+
+        const propertyLocation = await sql<Array<{
+          owner: string; rls: boolean; forceRls: boolean; policies: number;
+          appSelect: boolean; appMutation: boolean; runtimePrivileges: number;
+          constraintCount: number; requiredConstraints: number;
+          primaryKeyIsTenantProperty: boolean; compositePropertyForeignKey: boolean;
+          tenantLeadingIndexes: number; totalIndexes: number;
+        }>>`
+          SELECT pg_catalog.pg_get_userbyid(class.relowner) AS owner,
+                 class.relrowsecurity AS rls,
+                 class.relforcerowsecurity AS "forceRls",
+                 (SELECT count(*)::int FROM pg_catalog.pg_policy
+                   WHERE polrelid = class.oid AND polname = 'tenant_isolation') AS policies,
+                 pg_catalog.has_table_privilege('app_role', class.oid, 'SELECT') AS "appSelect",
+                 (
+                   pg_catalog.has_table_privilege('app_role', class.oid, 'INSERT')
+                   OR pg_catalog.has_table_privilege('app_role', class.oid, 'UPDATE')
+                   OR pg_catalog.has_table_privilege('app_role', class.oid, 'DELETE')
+                   OR pg_catalog.has_table_privilege('app_role', class.oid, 'TRUNCATE')
+                 ) AS "appMutation",
+                 (
+                   SELECT count(*)::int
+                     FROM unnest(ARRAY[
+                       'SELECT','INSERT','UPDATE','DELETE','TRUNCATE','REFERENCES','TRIGGER'
+                     ]) AS privilege
+                    WHERE pg_catalog.has_table_privilege('yellow_runtime', class.oid, privilege)
+                 ) AS "runtimePrivileges",
+                 (SELECT count(*)::int FROM pg_catalog.pg_constraint
+                   WHERE conrelid = class.oid) AS "constraintCount",
+                 (
+                   SELECT count(*)::int FROM pg_catalog.pg_constraint
+                    WHERE conrelid = class.oid
+                      AND conname = ANY(ARRAY[
+                        'property_fiscal_location_pk',
+                        'property_fiscal_location_property_fk',
+                        'property_fiscal_location_country_ck',
+                        'property_fiscal_location_state_ck',
+                        'property_fiscal_location_address_line1_ck',
+                        'property_fiscal_location_locality_ck',
+                        'property_fiscal_location_pin_ck'
+                      ])
+                 ) AS "requiredConstraints",
+                 EXISTS (
+                   SELECT 1 FROM pg_catalog.pg_constraint AS constraint_row
+                    WHERE constraint_row.conrelid = class.oid
+                      AND constraint_row.conname = 'property_fiscal_location_pk'
+                      AND pg_catalog.pg_get_constraintdef(constraint_row.oid)
+                        = 'PRIMARY KEY (tenant_id, property_node)'
+                 ) AS "primaryKeyIsTenantProperty",
+                 EXISTS (
+                   SELECT 1 FROM pg_catalog.pg_constraint AS constraint_row
+                    WHERE constraint_row.conrelid = class.oid
+                      AND constraint_row.conname = 'property_fiscal_location_property_fk'
+                      AND pg_catalog.pg_get_constraintdef(constraint_row.oid)
+                        = 'FOREIGN KEY (tenant_id, property_node) REFERENCES org_node(tenant_id, id)'
+                 ) AS "compositePropertyForeignKey",
+                 (
+                   SELECT count(*)::int
+                     FROM pg_catalog.pg_index AS index
+                     JOIN pg_catalog.pg_attribute AS leading_attribute
+                       ON leading_attribute.attrelid = class.oid
+                      AND leading_attribute.attnum = (index.indkey::smallint[])[0]
+                    WHERE index.indrelid = class.oid
+                      AND leading_attribute.attname = 'tenant_id'
+                 ) AS "tenantLeadingIndexes",
+                 (SELECT count(*)::int FROM pg_catalog.pg_index AS index
+                   WHERE index.indrelid = class.oid) AS "totalIndexes"
+            FROM pg_catalog.pg_class AS class
+           WHERE class.oid = 'public.property_fiscal_location'::regclass
+        `;
+        expect(propertyLocation).toEqual([{
+          owner: "yellow_owner", rls: true, forceRls: true, policies: 1,
+          appSelect: true, appMutation: false, runtimePrivileges: 0,
+          constraintCount: 7, requiredConstraints: 7,
+          primaryKeyIsTenantProperty: true, compositePropertyForeignKey: true,
+          tenantLeadingIndexes: 1, totalIndexes: 1,
+        }]);
+
+        const itemClassification = await sql<Array<{
+          owner: string; rls: boolean; forceRls: boolean; policies: number;
+          appSelect: boolean; appMutation: boolean; runtimePrivileges: number;
+          constraintCount: number; requiredConstraints: number;
+          identityNullsNotDistinct: boolean; compositePropertyForeignKey: boolean;
+          extensionForeignKey: boolean; tenantLeadingIndexes: number; totalIndexes: number;
+        }>>`
+          SELECT pg_catalog.pg_get_userbyid(class.relowner) AS owner,
+                 class.relrowsecurity AS rls,
+                 class.relforcerowsecurity AS "forceRls",
+                 (SELECT count(*)::int FROM pg_catalog.pg_policy
+                   WHERE polrelid = class.oid AND polname = 'tenant_isolation') AS policies,
+                 pg_catalog.has_table_privilege('app_role', class.oid, 'SELECT') AS "appSelect",
+                 (
+                   pg_catalog.has_table_privilege('app_role', class.oid, 'INSERT')
+                   OR pg_catalog.has_table_privilege('app_role', class.oid, 'UPDATE')
+                   OR pg_catalog.has_table_privilege('app_role', class.oid, 'DELETE')
+                   OR pg_catalog.has_table_privilege('app_role', class.oid, 'TRUNCATE')
+                 ) AS "appMutation",
+                 (
+                   SELECT count(*)::int
+                     FROM unnest(ARRAY[
+                       'SELECT','INSERT','UPDATE','DELETE','TRUNCATE','REFERENCES','TRIGGER'
+                     ]) AS privilege
+                    WHERE pg_catalog.has_table_privilege('yellow_runtime', class.oid, privilege)
+                 ) AS "runtimePrivileges",
+                 (SELECT count(*)::int FROM pg_catalog.pg_constraint
+                   WHERE conrelid = class.oid) AS "constraintCount",
+                 (
+                   SELECT count(*)::int FROM pg_catalog.pg_constraint
+                    WHERE conrelid = class.oid
+                      AND conname = ANY(ARRAY[
+                        'india_gst_item_classification_pk',
+                        'india_gst_item_classification_identity_uq',
+                        'india_gst_item_classification_property_fk',
+                        'india_gst_item_classification_extension_fk',
+                        'india_gst_item_classification_jurisdiction_owner_ck',
+                        'india_gst_item_classification_jurisdiction_key_ck',
+                        'india_gst_item_classification_jurisdiction_version_ck',
+                        'india_gst_item_classification_jurisdiction_hash_ck',
+                        'india_gst_item_classification_country_ck',
+                        'india_gst_item_classification_line_ck',
+                        'india_gst_item_classification_revenue_group_ck',
+                        'india_gst_item_classification_system_ck',
+                        'india_gst_item_classification_code_ck',
+                        'india_gst_item_classification_service_ck'
+                      ])
+                 ) AS "requiredConstraints",
+                 EXISTS (
+                   SELECT 1
+                     FROM pg_catalog.pg_index AS index
+                     JOIN pg_catalog.pg_class AS index_class ON index_class.oid = index.indexrelid
+                    WHERE index.indrelid = class.oid
+                      AND index_class.relname = 'india_gst_item_classification_identity_uq'
+                      AND index.indisunique
+                      AND index.indnullsnotdistinct
+                 ) AS "identityNullsNotDistinct",
+                 EXISTS (
+                   SELECT 1 FROM pg_catalog.pg_constraint AS constraint_row
+                    WHERE constraint_row.conrelid = class.oid
+                      AND constraint_row.conname = 'india_gst_item_classification_property_fk'
+                      AND pg_catalog.pg_get_constraintdef(constraint_row.oid)
+                        = 'FOREIGN KEY (tenant_id, property_node) REFERENCES org_node(tenant_id, id)'
+                 ) AS "compositePropertyForeignKey",
+                 EXISTS (
+                   SELECT 1 FROM pg_catalog.pg_constraint AS constraint_row
+                    WHERE constraint_row.conrelid = class.oid
+                      AND constraint_row.conname = 'india_gst_item_classification_extension_fk'
+                      AND pg_catalog.pg_get_constraintdef(constraint_row.oid)
+                        = 'FOREIGN KEY (jurisdiction_extension_id) REFERENCES extension(id)'
+                 ) AS "extensionForeignKey",
+                 (
+                   SELECT count(*)::int
+                     FROM pg_catalog.pg_index AS index
+                     JOIN pg_catalog.pg_attribute AS leading_attribute
+                       ON leading_attribute.attrelid = class.oid
+                      AND leading_attribute.attnum = (index.indkey::smallint[])[0]
+                    WHERE index.indrelid = class.oid
+                      AND leading_attribute.attname = 'tenant_id'
+                 ) AS "tenantLeadingIndexes",
+                 (SELECT count(*)::int FROM pg_catalog.pg_index AS index
+                   WHERE index.indrelid = class.oid) AS "totalIndexes"
+            FROM pg_catalog.pg_class AS class
+           WHERE class.oid = 'public.india_gst_item_classification'::regclass
+        `;
+        expect(itemClassification).toEqual([{
+          owner: "yellow_owner", rls: true, forceRls: true, policies: 1,
+          appSelect: true, appMutation: false, runtimePrivileges: 0,
+          constraintCount: 14, requiredConstraints: 14,
+          identityNullsNotDistinct: true,
+          compositePropertyForeignKey: true, extensionForeignKey: true,
+          tenantLeadingIndexes: 2, totalIndexes: 2,
+        }]);
+
+        const supplierServiceLocation = await sql<Array<{
+          owner: string; rls: boolean; forceRls: boolean; policies: number;
+          appSelect: boolean; appMutation: boolean; runtimePrivileges: number;
+          constraintCount: number; requiredConstraints: number;
+          exactIdentity: boolean; compositeRegistrationForeignKey: boolean;
+          tenantLeadingIndexes: number; totalIndexes: number;
+        }>>`
+          SELECT pg_catalog.pg_get_userbyid(class.relowner) AS owner,
+                 class.relrowsecurity AS rls,
+                 class.relforcerowsecurity AS "forceRls",
+                 (SELECT count(*)::int FROM pg_catalog.pg_policy
+                   WHERE polrelid = class.oid AND polname = 'tenant_isolation') AS policies,
+                 pg_catalog.has_table_privilege('app_role', class.oid, 'SELECT') AS "appSelect",
+                 (
+                   pg_catalog.has_table_privilege('app_role', class.oid, 'INSERT')
+                   OR pg_catalog.has_table_privilege('app_role', class.oid, 'UPDATE')
+                   OR pg_catalog.has_table_privilege('app_role', class.oid, 'DELETE')
+                   OR pg_catalog.has_table_privilege('app_role', class.oid, 'TRUNCATE')
+                 ) AS "appMutation",
+                 (
+                   SELECT count(*)::int
+                     FROM unnest(ARRAY[
+                       'SELECT','INSERT','UPDATE','DELETE','TRUNCATE','REFERENCES','TRIGGER'
+                     ]) AS privilege
+                    WHERE pg_catalog.has_table_privilege('yellow_runtime', class.oid, privilege)
+                 ) AS "runtimePrivileges",
+                 (SELECT count(*)::int FROM pg_catalog.pg_constraint
+                   WHERE conrelid = class.oid) AS "constraintCount",
+                 (
+                   SELECT count(*)::int FROM pg_catalog.pg_constraint
+                    WHERE conrelid = class.oid
+                      AND conname = ANY(ARRAY[
+                        'india_gst_supplier_service_location_pk',
+                        'india_gst_supplier_service_location_identity_uq',
+                        'india_gst_supplier_service_location_registration_fk',
+                        'india_gst_supplier_service_location_supplier_hash_ck',
+                        'india_gst_supplier_service_location_scope_ck',
+                        'india_gst_supplier_service_location_registered_place_ck',
+                        'india_gst_supplier_service_location_basis_ck',
+                        'india_gst_supplier_service_location_legal_rule_ck'
+                      ])
+                 ) AS "requiredConstraints",
+                 EXISTS (
+                   SELECT 1 FROM pg_catalog.pg_constraint AS constraint_row
+                    WHERE constraint_row.conrelid = class.oid
+                      AND constraint_row.conname = 'india_gst_supplier_service_location_identity_uq'
+                      AND pg_catalog.pg_get_constraintdef(constraint_row.oid)
+                        = 'UNIQUE (tenant_id, supplier_registration_id, supplier_evidence_hash, service_scope)'
+                 ) AS "exactIdentity",
+                 EXISTS (
+                   SELECT 1 FROM pg_catalog.pg_constraint AS constraint_row
+                    WHERE constraint_row.conrelid = class.oid
+                      AND constraint_row.conname = 'india_gst_supplier_service_location_registration_fk'
+                      AND pg_catalog.pg_get_constraintdef(constraint_row.oid)
+                        = 'FOREIGN KEY (tenant_id, supplier_registration_id) REFERENCES property_fiscal_registration(tenant_id, id)'
+                 ) AS "compositeRegistrationForeignKey",
+                 (
+                   SELECT count(*)::int
+                     FROM pg_catalog.pg_index AS index
+                     JOIN pg_catalog.pg_attribute AS leading_attribute
+                       ON leading_attribute.attrelid = class.oid
+                      AND leading_attribute.attnum = (index.indkey::smallint[])[0]
+                    WHERE index.indrelid = class.oid
+                      AND leading_attribute.attname = 'tenant_id'
+                 ) AS "tenantLeadingIndexes",
+                 (SELECT count(*)::int FROM pg_catalog.pg_index AS index
+                   WHERE index.indrelid = class.oid) AS "totalIndexes"
+            FROM pg_catalog.pg_class AS class
+           WHERE class.oid = 'public.india_gst_supplier_service_location'::regclass
+        `;
+        expect(supplierServiceLocation).toEqual([{
+          owner: "yellow_owner", rls: true, forceRls: true, policies: 1,
+          appSelect: true, appMutation: false, runtimePrivileges: 0,
+          constraintCount: 8, requiredConstraints: 8,
+          exactIdentity: true, compositeRegistrationForeignKey: true,
+          tenantLeadingIndexes: 2, totalIndexes: 2,
+        }]);
+
+        const partyRegistration = await sql<Array<{
+          owner: string; rls: boolean; policies: number;
+          appSelect: boolean; appMutation: boolean; runtimePrivileges: number;
+          constraintCount: number; tenantLeadingIndexes: number; totalIndexes: number;
+          compositePartyForeignKey: boolean;
+        }>>`
+          SELECT pg_catalog.pg_get_userbyid(class.relowner) AS owner,
+                 class.relrowsecurity AS rls,
+                 (SELECT count(*)::int FROM pg_catalog.pg_policy
+                   WHERE polrelid = class.oid AND polname = 'tenant_isolation') AS policies,
+                 pg_catalog.has_table_privilege('app_role', class.oid, 'SELECT') AS "appSelect",
+                 (
+                   pg_catalog.has_table_privilege('app_role', class.oid, 'INSERT')
+                   OR pg_catalog.has_table_privilege('app_role', class.oid, 'UPDATE')
+                   OR pg_catalog.has_table_privilege('app_role', class.oid, 'DELETE')
+                   OR pg_catalog.has_table_privilege('app_role', class.oid, 'TRUNCATE')
+                 ) AS "appMutation",
+                 (
+                   SELECT count(*)::int
+                     FROM unnest(ARRAY[
+                       'SELECT','INSERT','UPDATE','DELETE','TRUNCATE','REFERENCES','TRIGGER'
+                     ]) AS privilege
+                    WHERE pg_catalog.has_table_privilege('yellow_runtime', class.oid, privilege)
+                 ) AS "runtimePrivileges",
+                 (SELECT count(*)::int FROM pg_catalog.pg_constraint
+                   WHERE conrelid = class.oid) AS "constraintCount",
+                 (
+                   SELECT count(*)::int
+                     FROM pg_catalog.pg_index AS index
+                     JOIN pg_catalog.pg_attribute AS leading_attribute
+                       ON leading_attribute.attrelid = class.oid
+                      AND leading_attribute.attnum = (index.indkey::smallint[])[0]
+                    WHERE index.indrelid = class.oid
+                      AND leading_attribute.attname = 'tenant_id'
+                 ) AS "tenantLeadingIndexes",
+                 (SELECT count(*)::int FROM pg_catalog.pg_index AS index
+                   WHERE index.indrelid = class.oid) AS "totalIndexes",
+                 EXISTS (
+                   SELECT 1 FROM pg_catalog.pg_constraint AS constraint_row
+                    WHERE constraint_row.conrelid = class.oid
+                      AND constraint_row.conname = 'party_fiscal_registration_party_fk'
+                      AND pg_catalog.pg_get_constraintdef(constraint_row.oid)
+                        = 'FOREIGN KEY (tenant_id, party_id) REFERENCES party(tenant_id, id)'
+                 ) AS "compositePartyForeignKey"
+            FROM pg_catalog.pg_class AS class
+           WHERE class.oid = 'public.party_fiscal_registration'::regclass
+        `;
+        expect(partyRegistration).toEqual([{
+          owner: "yellow_owner", rls: true, policies: 1,
+          appSelect: true, appMutation: false, runtimePrivileges: 0,
+          constraintCount: 13, tenantLeadingIndexes: 4, totalIndexes: 4,
+          compositePartyForeignKey: true,
+        }]);
+      });
+    },
+    60_000,
+  );
+
+  test(
+    "applies the exact account-folio integrity migration and rejects tenant-crossing references",
+    async () => {
+      await withDatabase(async ({ databaseUrl: targetUrl, sql }) => {
+        const result = await runMigrations({
+          databaseUrl: targetUrl,
+          migrationsDirectory: PROJECT_MIGRATIONS,
+          logger: () => undefined,
+        });
+        expect(result.appliedFiles).toContain("0009_account_folio_integrity.sql");
+
+        const ledger = await sql<
+          { version: string | bigint; filename: string; checksum_sha256: string }[]
+        >`
+          SELECT version, filename, checksum_sha256
+            FROM schema_migration
+           WHERE version = 9
+        `;
+        expect(ledger.map((row) => ({ ...row, version: Number(row.version) }))).toEqual([{
+          version: 9,
+          filename: "0009_account_folio_integrity.sql",
+          checksum_sha256: "56d3d47e2007d9106376459dc77623551f21731c5b6312e43e6ab100150205c2",
+        }]);
+
+        const tenantA = randomUUID();
+        const tenantB = randomUUID();
+        const propertyA = randomUUID();
+        const propertyB = randomUUID();
+        const partyA = randomUUID();
+        const partyB = randomUUID();
+        const reservationA = randomUUID();
+        const reservationB = randomUUID();
+        const accountA = randomUUID();
+        const accountB = randomUUID();
+
+        await sql`INSERT INTO tenant (id, slug, name) VALUES
+          (${tenantA}::uuid, ${`migration-a-${tenantA}`}, 'Migration A'),
+          (${tenantB}::uuid, ${`migration-b-${tenantB}`}, 'Migration B')`;
+        await sql`INSERT INTO org_node (id, tenant_id, path, kind, name, timezone, currency) VALUES
+          (${propertyA}::uuid, ${tenantA}::uuid, ${`migration_a_${tenantA.replaceAll("-", "")}`}::ltree, 'property', 'A', 'UTC', 'USD'),
+          (${propertyB}::uuid, ${tenantB}::uuid, ${`migration_b_${tenantB.replaceAll("-", "")}`}::ltree, 'property', 'B', 'UTC', 'USD')`;
+        await sql`INSERT INTO party (id, tenant_id, kind, display_name) VALUES
+          (${partyA}::uuid, ${tenantA}::uuid, 'person', 'Party A'),
+          (${partyB}::uuid, ${tenantB}::uuid, 'person', 'Party B')`;
+        await sql`INSERT INTO reservation
+          (id, tenant_id, property_node, confirmation_no, primary_party, currency)
+          VALUES
+          (${reservationA}::uuid, ${tenantA}::uuid, ${propertyA}::uuid, 'MIG-A', ${partyA}::uuid, 'USD'),
+          (${reservationB}::uuid, ${tenantB}::uuid, ${propertyB}::uuid, 'MIG-B', ${partyB}::uuid, 'USD')`;
+        await sql`INSERT INTO account
+          (id, tenant_id, property_node, role, party_id, name, currency)
+          VALUES
+          (${accountA}::uuid, ${tenantA}::uuid, ${propertyA}::uuid, 'guest', ${partyA}::uuid, 'Guest account', 'USD'),
+          (${accountB}::uuid, ${tenantB}::uuid, ${propertyB}::uuid, 'guest', ${partyB}::uuid, 'Guest account', 'USD')`;
+
+        const expectSqlstate = async (operation: () => Promise<unknown>, state: string) => {
+          try {
+            await operation();
+          } catch (error) {
+            expect((error as { errno?: string }).errno).toBe(state);
+            return;
+          }
+          throw new Error(`Expected SQLSTATE ${state}`);
+        };
+
+        await expectSqlstate(
+          () => sql`INSERT INTO account
+            (tenant_id, property_node, role, party_id, name, currency)
+            VALUES (${tenantA}::uuid, ${propertyB}::uuid, 'guest', ${partyA}::uuid, 'Wrong property', 'USD')`,
+          "23503",
+        );
+        await expectSqlstate(
+          () => sql`INSERT INTO account
+            (tenant_id, property_node, role, party_id, name, currency)
+            VALUES (${tenantA}::uuid, ${propertyA}::uuid, 'guest', ${partyB}::uuid, 'Wrong party', 'USD')`,
+          "23503",
+        );
+        await expectSqlstate(
+          () => sql`INSERT INTO folio (tenant_id, account_id, reservation_id, folio_no, window_no)
+            VALUES (${tenantA}::uuid, ${accountB}::uuid, ${reservationA}::uuid, 'MIG-XA', 1)`,
+          "23503",
+        );
+        await expectSqlstate(
+          () => sql`INSERT INTO folio (tenant_id, account_id, reservation_id, folio_no, window_no)
+            VALUES (${tenantA}::uuid, ${accountA}::uuid, ${reservationB}::uuid, 'MIG-XR', 1)`,
+          "23503",
+        );
+
+        await sql`INSERT INTO folio (tenant_id, account_id, reservation_id, folio_no, window_no)
+          VALUES (${tenantA}::uuid, ${accountA}::uuid, ${reservationA}::uuid, 'MIG-1', 1)`;
+        await expectSqlstate(
+          () => sql`INSERT INTO folio (tenant_id, account_id, reservation_id, folio_no, window_no)
+            VALUES (${tenantA}::uuid, ${accountA}::uuid, ${reservationA}::uuid, 'MIG-2', 1)`,
+          "23505",
+        );
+      });
+    },
+    60_000,
+  );
+
+  test(
+    "applies exact posting integrity, read-only routes, and authority-safe day sealing",
+    async () => {
+      await withDatabase(async ({ databaseUrl: targetUrl, sql }) => {
+        const result = await runMigrations({
+          databaseUrl: targetUrl,
+          migrationsDirectory: PROJECT_MIGRATIONS,
+          logger: () => undefined,
+        });
+        expect(result.appliedFiles).toContain("0010_financial_posting_integrity.sql");
+
+        const ledger = await sql<
+          { version: string | bigint; filename: string; checksum_sha256: string }[]
+        >`SELECT version, filename, checksum_sha256 FROM schema_migration WHERE version = 10`;
+        expect(ledger.map((row) => ({ ...row, version: Number(row.version) }))).toEqual([{
+          version: 10,
+          filename: "0010_financial_posting_integrity.sql",
+          checksum_sha256: "859bdbbba98d858ac04e24f51751914c2cda10073b26c3c068ff8a27d4698ae3",
+        }]);
+
+        const tableCount = await sql<{ count: number }[]>`
+          SELECT count(*)::int AS count FROM pg_tables WHERE schemaname = 'public'
+        `;
+        expect(tableCount).toEqual([{ count: 130 }]);
+
+        const privileges = await sql<{
+          route_rls: boolean;
+          route_select: boolean;
+          route_insert: boolean;
+          route_update: boolean;
+          route_delete: boolean;
+          code_insert: boolean;
+          code_update: boolean;
+          code_delete: boolean;
+          day_update: boolean;
+          public_seal: boolean;
+          app_seal: boolean;
+        }[]>`
+          SELECT
+            (SELECT relrowsecurity FROM pg_class WHERE oid = 'tx_code_route'::regclass) AS route_rls,
+            has_table_privilege('app_role', 'tx_code_route', 'SELECT') AS route_select,
+            has_table_privilege('app_role', 'tx_code_route', 'INSERT') AS route_insert,
+            has_table_privilege('app_role', 'tx_code_route', 'UPDATE') AS route_update,
+            has_table_privilege('app_role', 'tx_code_route', 'DELETE') AS route_delete,
+            has_table_privilege('app_role', 'tx_code', 'INSERT') AS code_insert,
+            has_table_privilege('app_role', 'tx_code', 'UPDATE') AS code_update,
+            has_table_privilege('app_role', 'tx_code', 'DELETE') AS code_delete,
+            has_table_privilege('app_role', 'business_day', 'UPDATE') AS day_update,
+            has_function_privilege('public', 'seal_business_day(uuid,uuid,date,uuid)', 'EXECUTE') AS public_seal,
+            has_function_privilege('app_role', 'seal_business_day(uuid,uuid,date,uuid)', 'EXECUTE') AS app_seal
+        `;
+        expect(privileges).toEqual([{
+          route_rls: true,
+          route_select: true,
+          route_insert: false,
+          route_update: false,
+          route_delete: false,
+          code_insert: false,
+          code_update: false,
+          code_delete: false,
+          day_update: false,
+          public_seal: false,
+          app_seal: false,
+        }]);
+
+        const tenantA = randomUUID();
+        const tenantB = randomUUID();
+        const propertyA = randomUUID();
+        const propertyB = randomUUID();
+        const guestA = randomUUID();
+        const otherGuestA = randomUUID();
+        const revenueA = randomUUID();
+        const guestB = randomUUID();
+        const folioA = randomUUID();
+        const journalA = randomUUID();
+
+        await sql`INSERT INTO tenant (id, slug, name) VALUES
+          (${tenantA}::uuid, ${`posting-a-${tenantA}`}, 'Posting A'),
+          (${tenantB}::uuid, ${`posting-b-${tenantB}`}, 'Posting B')`;
+        await sql`INSERT INTO org_node (id, tenant_id, path, kind, name, timezone, currency) VALUES
+          (${propertyA}::uuid, ${tenantA}::uuid, ${`posting_a_${tenantA.replaceAll("-", "")}`}::ltree, 'property', 'A', 'UTC', 'USD'),
+          (${propertyB}::uuid, ${tenantB}::uuid, ${`posting_b_${tenantB.replaceAll("-", "")}`}::ltree, 'property', 'B', 'UTC', 'USD')`;
+        await sql`INSERT INTO account (id, tenant_id, property_node, role, name, currency) VALUES
+          (${guestA}::uuid, ${tenantA}::uuid, ${propertyA}::uuid, 'guest', 'Guest A', 'USD'),
+          (${otherGuestA}::uuid, ${tenantA}::uuid, ${propertyA}::uuid, 'guest', 'Other guest A', 'USD'),
+          (${revenueA}::uuid, ${tenantA}::uuid, ${propertyA}::uuid, 'revenue', 'Revenue A', 'USD'),
+          (${guestB}::uuid, ${tenantB}::uuid, ${propertyB}::uuid, 'guest', 'Guest B', 'USD')`;
+        await sql`INSERT INTO folio (id, tenant_id, account_id, folio_no)
+          VALUES (${folioA}::uuid, ${tenantA}::uuid, ${guestA}::uuid, 'POST-1')`;
+        await sql`INSERT INTO business_day (tenant_id, property_node, business_date) VALUES
+          (${tenantA}::uuid, ${propertyA}::uuid, '2026-08-24'),
+          (${tenantB}::uuid, ${propertyB}::uuid, '2026-08-24')`;
+        await sql`INSERT INTO tx_code (code, name, grp, usali_line, default_dr, default_cr)
+          VALUES ('MIGROOM', 'Migration room', 'revenue', 'Rooms', 'guest', 'revenue')`;
+        await sql`INSERT INTO tx_code_route
+          (tenant_id, property_node, currency, tx_code, credit_account_id)
+          VALUES (${tenantA}::uuid, ${propertyA}::uuid, 'USD', 'MIGROOM', ${revenueA}::uuid)`;
+
+        const expectSqlstate = async (operation: () => Promise<unknown>, state: string) => {
+          try {
+            await operation();
+          } catch (error) {
+            expect((error as { errno?: string }).errno).toBe(state);
+            return;
+          }
+          throw new Error(`Expected SQLSTATE ${state}`);
+        };
+
+        const visibleRoutes = await sql.begin(async (tx) => {
+          await tx.unsafe("SET LOCAL ROLE app_role");
+          await tx`SELECT set_config('app.tenant_id', ${tenantA}, true)`;
+          return tx<{ tenant_id: string; tx_code: string }[]>`
+            SELECT tenant_id::text, tx_code FROM tx_code_route ORDER BY tx_code
+          `;
+        });
+        expect(visibleRoutes).toEqual([{ tenant_id: tenantA, tx_code: "MIGROOM" }]);
+
+        await expectSqlstate(
+          () => sql.begin(async (tx) => {
+            await tx.unsafe("SET LOCAL ROLE app_role");
+            await tx`SELECT seal_business_day(${tenantA}::uuid, ${propertyA}::uuid, '2026-08-24', NULL)`;
+          }),
+          "42501",
+        );
+        await expectSqlstate(
+          () => sql.begin(async (tx) => {
+            await tx.unsafe("SET LOCAL ROLE app_role");
+            await tx`SELECT set_config('app.tenant_id', ${tenantB}, true)`;
+            await tx`SELECT seal_business_day(${tenantA}::uuid, ${propertyA}::uuid, '2026-08-24', NULL)`;
+          }),
+          "42501",
+        );
+        await expectSqlstate(
+          () => sql`INSERT INTO journal
+            (tenant_id, property_node, business_date, kind, description, currency)
+            VALUES (${tenantA}::uuid, ${propertyA}::uuid, '2026-08-25', 'charge', 'Missing day', 'USD')`,
+          "P0011",
+        );
+
+        await sql`INSERT INTO journal
+          (id, tenant_id, property_node, business_date, kind, description, currency)
+          VALUES (${journalA}::uuid, ${tenantA}::uuid, ${propertyA}::uuid, '2026-08-24', 'charge', 'Balanced', 'USD')`;
+        await expectSqlstate(
+          () => sql`INSERT INTO posting_line
+            (tenant_id, journal_id, seq, account_id, folio_id, tx_code, amount_minor, business_date, currency)
+            VALUES (${tenantB}::uuid, ${journalA}::uuid, 1, ${guestB}::uuid, NULL, 'MIGROOM', 1, '2026-08-24', 'USD')`,
+          "23503",
+        );
+        await expectSqlstate(
+          () => sql`INSERT INTO posting_line
+            (tenant_id, journal_id, seq, account_id, folio_id, tx_code, amount_minor, business_date, currency)
+            VALUES (${tenantA}::uuid, ${journalA}::uuid, 1, ${otherGuestA}::uuid, ${folioA}::uuid, 'MIGROOM', 1, '2026-08-24', 'USD')`,
+          "23503",
+        );
+        await expectSqlstate(
+          () => sql`INSERT INTO posting_line
+            (tenant_id, journal_id, seq, account_id, folio_id, tx_code, amount_minor, business_date, currency)
+            VALUES (${tenantA}::uuid, ${journalA}::uuid, 1, ${guestA}::uuid, ${folioA}::uuid, 'MIGROOM', 1, '2026-08-23', 'USD')`,
+          "23503",
+        );
+
+        await sql.begin(async (tx) => {
+          await tx`INSERT INTO posting_line
+            (tenant_id, journal_id, seq, account_id, folio_id, tx_code, amount_minor, business_date)
+            VALUES
+            (${tenantA}::uuid, ${journalA}::uuid, 1, ${guestA}::uuid, ${folioA}::uuid, 'MIGROOM', 12345, '2026-08-24'),
+            (${tenantA}::uuid, ${journalA}::uuid, 2, ${revenueA}::uuid, NULL, 'MIGROOM', -12345, '2026-08-24')`;
+        });
+        const derived = await sql<{ currencies: string[]; total: string | bigint }[]>`
+          SELECT array_agg(trim(currency) ORDER BY seq) AS currencies, sum(amount_minor) AS total
+            FROM posting_line WHERE journal_id = ${journalA}::uuid
+        `;
+        expect(derived.map((row) => ({
+          currencies: row.currencies,
+          total: BigInt(row.total),
+        }))).toEqual([{ currencies: ["USD", "USD"], total: 0n }]);
+
+        await expectSqlstate(
+          () => sql.begin(async (tx) => {
+            const id = randomUUID();
+            await tx`INSERT INTO journal
+              (id, tenant_id, property_node, business_date, kind, description, currency)
+              VALUES (${id}::uuid, ${tenantA}::uuid, ${propertyA}::uuid, '2026-08-24', 'charge', 'Unbalanced', 'USD')`;
+            await tx`INSERT INTO posting_line
+              (tenant_id, journal_id, seq, account_id, tx_code, amount_minor, business_date, currency)
+              VALUES (${tenantA}::uuid, ${id}::uuid, 1, ${guestA}::uuid, 'MIGROOM', 1, '2026-08-24', 'USD')`;
+          }),
+          "P0010",
+        );
+
+        await sql`
+          SELECT seal_business_day(${tenantA}::uuid, ${propertyA}::uuid, '2026-08-24', NULL)
+        `;
+        await expectSqlstate(
+          () => sql`INSERT INTO journal
+            (tenant_id, property_node, business_date, kind, description, currency)
+            VALUES (${tenantA}::uuid, ${propertyA}::uuid, '2026-08-24', 'charge', 'Late', 'USD')`,
+          "P0011",
+        );
+        await sql`INSERT INTO journal
+          (tenant_id, property_node, business_date, kind, description, currency)
+          VALUES (${tenantA}::uuid, ${propertyA}::uuid, '2026-08-24', 'adjustment', 'Allowed correction path', 'USD')`;
+      });
+    },
+    60_000,
+  );
+
+  test(
+    "applies exact SECURITY DEFINER containment and least-authority ACLs",
+    async () => {
+      await withDatabase(async ({ databaseUrl: targetUrl, sql }) => {
+        const result = await runMigrations({
+          databaseUrl: targetUrl,
+          migrationsDirectory: PROJECT_MIGRATIONS,
+          logger: () => undefined,
+        });
+        expect(result.appliedFiles).toContain("0011_security_definer_containment.sql");
+        expect(result.appliedFiles).toContain("0039_parking_occupancy_definer_path_repair.sql");
+
+        const ledger = await sql<
+          { version: string | bigint; filename: string; checksum_sha256: string }[]
+        >`SELECT version, filename, checksum_sha256 FROM schema_migration WHERE version = 11`;
+        expect(ledger.map((row) => ({ ...row, version: Number(row.version) }))).toEqual([{
+          version: 11,
+          filename: "0011_security_definer_containment.sql",
+          checksum_sha256: "6c9af4f72fa6be5a2c0e256624620c7ee8cf61d709c3ca99a37cd126bbe57796",
+        }]);
+
+        const repairLedger = await sql<
+          { version: string | bigint; filename: string; checksum_sha256: string }[]
+        >`SELECT version, filename, checksum_sha256 FROM schema_migration WHERE version = 39`;
+        expect(repairLedger.map((row) => ({ ...row, version: Number(row.version) }))).toEqual([{
+          version: 39,
+          filename: "0039_parking_occupancy_definer_path_repair.sql",
+          checksum_sha256: "365ffb951f4ea5f4febac97ed7a4d86d5c342891d0d5464e8a36a73653c1b841",
+        }]);
+
+        const functions = await sql<{
+          count: number;
+          unsafeConfig: number;
+          publicExecute: number;
+          appExecute: number;
+        }[]>`
+          SELECT count(*)::int AS count,
+                 count(*) FILTER (
+                   WHERE p.proconfig <> ARRAY['search_path=pg_catalog, public, pg_temp']::text[]
+                 )::int AS "unsafeConfig",
+                 count(*) FILTER (WHERE EXISTS (
+                   SELECT 1
+                     FROM aclexplode(COALESCE(p.proacl, acldefault('f', p.proowner))) AS acl
+                    WHERE acl.grantee = 0 AND acl.privilege_type = 'EXECUTE'
+                 ))::int AS "publicExecute",
+                 count(*) FILTER (
+                   WHERE has_function_privilege('app_role', p.oid, 'EXECUTE')
+                 )::int AS "appExecute"
+            FROM pg_proc AS p
+            JOIN pg_namespace AS n ON n.oid = p.pronamespace
+           WHERE n.nspname = 'public'
+             AND p.oid IN (
+               'public.record_occupancy(uuid,uuid,tstzrange,uuid,text,boolean)'::regprocedure::oid,
+               'public.record_occupancy(uuid,uuid,tstzrange,uuid,text,boolean,uuid)'::regprocedure::oid,
+               'public.release_occupancy(uuid,uuid)'::regprocedure::oid,
+               'public.expire_holds()'::regprocedure::oid,
+               'public.prune_outbox(interval)'::regprocedure::oid,
+               'public.assert_day_open()'::regprocedure::oid,
+               'public.seal_business_day(uuid,uuid,date,uuid)'::regprocedure::oid
+             )
+        `;
+        expect(functions).toEqual([{
+          count: 7,
+          unsafeConfig: 0,
+          publicExecute: 0,
+          appExecute: 2,
+        }]);
+
+        try {
+          await sql`SELECT public.prune_outbox(interval '-1 second')`;
+          throw new Error("negative retention unexpectedly succeeded");
+        } catch (error) {
+          expect((error as { errno?: string }).errno).toBe("22023");
+        }
       });
     },
     60_000,
@@ -366,7 +4039,13 @@ databaseDescribe("Bun SQL migration runner", () => {
         }
 
         await withMigrationDirectory({ "source.txt": "SELECT 1;\n" }, async (directory) => {
-          await symlink(resolve(directory, "source.txt"), resolve(directory, "0002_link.sql"), "file");
+          try {
+            await symlink(resolve(directory, "source.txt"), resolve(directory, "0002_link.sql"), "file");
+          } catch (error) {
+            if (process.platform !== "win32" || (error as NodeJS.ErrnoException).code !== "EPERM") throw error;
+            expect(error).toMatchObject({ code: "EPERM" });
+            return;
+          }
           const error = await migrationFailure(() =>
             runMigrations({ databaseUrl: targetUrl, migrationsDirectory: directory, logger: () => undefined }),
           );

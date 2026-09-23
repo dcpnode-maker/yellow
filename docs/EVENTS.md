@@ -8,14 +8,20 @@ NATS JetStream subject `pms.<tenant>.<context>.<event_type>`.
 
 ```json
 {
-  "id": "uuid", "seq": 123456,
-  "tenant_id": "uuid", "property_node": "uuid|null",
+  "id": "uuid",
+  "seq": 123456,
+  "tenant_id": "uuid",
+  "property_node": "uuid|null",
   "business_date": "2026-08-13",
-  "aggregate_type": "reservation", "aggregate_id": "uuid",
-  "event_type": "reservation.checked_in", "event_version": 1,
+  "aggregate_type": "reservation",
+  "aggregate_id": "uuid",
+  "event_type": "reservation.checked_in",
+  "event_version": 1,
   "actor_id": "uuid|null",
-  "correlation_id": "uuid", "causation_id": "uuid|null",
-  "occurred_at": "iso", "payload": { }
+  "correlation_id": "uuid",
+  "causation_id": "uuid|null",
+  "occurred_at": "iso",
+  "payload": {}
 }
 ```
 
@@ -26,29 +32,430 @@ outbox by `seq` (SQL) or JetStream by offset.
 
 ## Catalogue v1 (producer → notable consumers)
 
-**inventory** · space.created · unit_type.created · occupancy.recorded {slot_kind,space_id,period,claim} · occupancy.released · hold.created/.consumed/.expired · restriction.changed · ooo.opened/.closed
+### property.identity.changed — canonical property-name transition
+
+Order581 emits this event only when the governed property-name command commits a
+real normalized-name change. The aggregate and fact entity are `org_node`; both IDs
+are the exact property UUID. The version-1 event payload is exactly
+`{version,changed_fields:["name"]}`. Consumers reload canonical identity and must not
+infer timezone, currency, hierarchy, configuration, address, amenity, operating-policy
+or publication changes. The corresponding fact additionally records previous/new
+names and request correlation for audit. The locked property-local business date and
+effective instant come from PostgreSQL transaction time. No-op and exact replay emit
+nothing; name, fact, event and durable idempotency receipt commit together or all roll
+back.
+
+### folio.series.configured — non-fiscal folio numbering configuration
+
+Order562 adds one Financials-owned configuration event when a property first gains
+its single non-fiscal folio numbering series. The aggregate/entity type is
+`document_series` and its identity is the stored series UUID. Fact and event payloads
+contain exactly `{seriesId,propertyNode,kind:'folio',prefix,fiscal:false}`. The
+property-local configuration date, current actor and request correlation are
+server-derived. Creation, fact and event commit atomically.
+
+Exact same-prefix requests with a new idempotency key return the current series and
+emit nothing; same-key replay returns the original stored HTTP result only after a
+fresh locked validation of current actor, tenant, exact-property membership and
+permission. Any fiscal-shaped or duplicate `kind='folio'` root fails closed. The event does
+not allocate or reset a number and consumers must not infer a folio, account, guest,
+reservation, posting, payment, invoice, tax/fiscal document or occupancy change.
+No guest, contact, credential, document, tax or money data appears in the payload.
+
+### document.series.configured — native India fiscal-series configuration
+
+Order453 introduces this v1 producer contract; implementation/native acceptance is
+in progress, not a claim that historical series emitted this event.
+New configuration atomically inserts its document_series row, fact_log configured
+fact and outbox event. Aggregate/entity type=document_series, aggregate/entity ID
+is the new series UUID. Both minimized payloads contain exactly
+{seriesId,propertyNode,supplierRegistrationId,documentKind,prefix,financialYearStart},
+derived from the stored series. FY is YYYY-MM-DD. No GSTIN, Party/guest details,
+money/tax, document number/content, credentials or provider data.
+
+Tenant/property/actor are authenticated; business_date is the transaction-stable
+property-local configuration date. Fact valid_from uses transaction_timestamp;
+outbox event_version=1, causation_id=NULL and SQL generates correlation_id. The
+existing six-argument capability cannot persist the service envelope requestId;
+do not treat that validated value as the event correlation or idempotency receipt.
+The existing publication advisory lock is acquired last before immutable writes.
+Prior publication in the same transaction is denied after initial authority;
+new configuration and its publication commit together or all roll back.
+
+Exact same-key/prefix replay changes no counter and emits nothing. Historical
+unaudited series receive no fabricated events. No consumer is added by this order.
+Consumers must not infer issuance, number allocation, debit-note accounting,
+payment, IRN/registration, cancellation or provider activity from configuration.
+
+**inventory** · space.created · unit_type.created · sellable_unit.created {unit_type_id,space_claims[{space_id,claim_mode}]} · inventory.policy.changed {policy,previous,value} · occupancy.recorded {slot_kind,space_id,period,claim} · occupancy.released · hold.created/.consumed/.expired/.released · restriction.changed · ooo.opened/.closed
 → availability-projection rebuilder, ARI push, Valkey invalidator
 
-**reservations** · reservation.confirmed {segments[{unit_type,period,rate_plan}],channel} · .modified {diff} · .cancelled {reason,penalty_journal?} · .no_show · .checked_in {segment,space} · .checked_out · .reinstated · .due_in/.due_out · segment.moved {from_space,to_space} · group.status_changed {deducts_delta} · block.rooms_released
+**rates** · policy.created {kind} · rate_plan.created {code,currency,policy_ids} · rate_price.created {rate_plan_id,unit_type_id,stay_dates,dow_mask,currency} · rate_price.superseded {old_rate_price_id,new_rate_price_id,currency}
+→ quote versioning, direct-booking cache invalidation, distribution ARI
+
+**reservations** · reservation.confirmed {segments[{unit_type,period,rate_plan}],channel} · .modified {diff} · .cancelled {reason,penalty_journal?} · .no_show · .checked_in {segment_id,space_id,primary_folio_id,room_condition,dirty_room_override_used,dirty_room_override_reason?,statutory_adapter_key?,identity_evidence_required,identity_evidence_satisfied} · .checked_out · .reinstated · .due_in/.due_out · segment.moved {from_space,to_space} · group.status_changed {deducts_delta} · block.rooms_released
 → folio automations, HK task generation, statutory scheduler, stats, ARI, messaging
 
-**financials** · journal.posted {kind,lines:[{account,folio?,tx_code,amount_minor}]} · folio.opened/.settled/.closed · payment.authorized/.captured/.refunded/.failed · credit.limit_breached · cashier.closed {over_short} · business_day.opened/.sealed · deposit.requested/.matured
+`reservation.due_in` is the minimized evidence that one coherent parent changed from
+`reserved` to `due_in` at its transaction-stable property-local arrival date. Its
+payload contains only reservation id, previous/current parent status, segment id,
+unchanged `booked` segment status and business date. The producer writes the parent
+status, fact, outbox row and idempotency result in one transaction; the referenced
+latest segment is not mutated. Rerun/concurrent workers produce no duplicate event,
+and publication failure leaves no status or evidence artifact. Consumers must not
+infer segment-state change, catch-up/no-show, check-in, occupancy/assignment, room
+condition/task, folio or financial/business-day/statutory effects.
+
+`reservation.due_out` is the minimized evidence that one coherent parent changed from
+`in_house` to `due_out` on its transaction-stable property-local departure date. Its
+payload contains only reservation id, previous/current parent status, segment id,
+unchanged `in_house` segment status and business date. The parent, fact, outbox and
+idempotency result commit together while the segment and occupancy remain unchanged.
+Consumers must not infer checkout, occupancy release, folio/financial action,
+business-day movement, room condition, housekeeping task or statutory effect.
+
+`reservation.checked_in` is the minimized evidence of the exact reservation and active
+segment entering `in_house` together. It may name the room, primary folio and configured
+adapter key, but never includes Party, identity-document, contact, credential or legal
+field values. Override authority is recorded only as use/reason after server-derived
+authorization. Consumers must not infer key issue, occupancy mutation, posting/payment,
+folio settlement, statutory submission, business-day movement or checkout.
+
+Order463 reservation alerts reuse `reservation.modified` for create or deactivate.
+The aggregate remains the same tenant/property reservation. The fact/event diff
+is exactly `{alerts:{action:'create'|'deactivate',alertId,active}}`, without note,
+code, Party, identity-document or contact values. The changed alert, fact, outbox
+and idempotency result commit together. Replay and already-inactive no-op emit
+nothing additional. Consumers must not infer a reservation status, occupancy,
+guest identity, billing, approval or statutory change from an annotation.
+The implementation and isolated database proof are accepted; serving-runtime
+integration remains pending under Order460.
+
+Order 212 reuses `reservation.modified` for a changed travel compare-and-set. Its
+minimized diff is `{travel:{direction,before,after}}`, where each present tuple contains
+only mode, carrier, service number, canonical scheduled instant and pickup-requested
+intent. Create has `before:null`; exact no-op emits no fact or event. The event contains
+no travel id, note, pickup-task id, Party/contact, vehicle/parking, occupancy, financial
+or statutory data. Consumers must not infer pickup-task creation, transport completion,
+onsite presence, room occupancy or any charge from the recorded intent.
+
+Order 213 consumes `reservation.modified` only as a wake-up signal and re-reads the
+current locked arrival row. A qualifying unlinked pickup request produces exactly one
+`task.created` fact/outbox pair with aggregate type `task`. Its minimized payload is
+`{taskId,kind:'guest_request',subjectType:'reservation',subjectId,department:'transport',
+dueAt}`. Actor and correlation are copied from the source event and causation is the
+source event id. The consumer marker, task, travel link, fact and event commit in one
+transaction. No-op source truth emits nothing. Consumers must not infer assignment,
+dispatch, driver/vehicle, contact, onsite arrival, completion, charge or occupancy.
+
+**financials** · journal.posted {kind,lines:[{account,folio?,tx_code,amount_minor}],payment_id?,operation_id?} · trust.owner_expense_posted {trustAccountId,payableAccountId,ownerPartyId,amountMinor,availableBeforeMinor,projectedAvailableMinor,approvalRequestId?} · folio.opened {folio_id,account_id,reservation_id,window_no,folio_no,name?} · folio.settled/.closed {folio_id,account_id,reservation_id,window_no,previous_status,status} · payment.authorized/.incrementally_authorized/.captured/.refunded/.voided/.failed/.indeterminate/.reconciled {operation_id,payment_id,phase,outcome,amount_minor,currency,journal_id?} · credit.limit_breached · cashier.opened/.counted/.closed {session_id,drawer_id,count_id?,over_short_minor?} · business_day.opened/.sealed · deposit.requested {hosted_request_id,operation_id,folio_id,amount_minor,currency,expires_at,generation} · deposit.applied {application_id,hosted_request_id,operation_id,folio_id,amount_minor,journal_id} · deposit.matured
 → documents, AR, trust splits (Automation), dashboards, GL export
+
+The owner-trust workbench adds no event type. Read-only discovery, preview and
+`prepare_owner_trust_expense` emit nothing. Negative authorization reuses the kernel
+`approval.requested` and `approval.decided` contracts with server-derived evidence;
+the final post alone emits the existing `journal.posted` and
+`trust.owner_expense_posted` events atomically with the balanced immutable journal.
+Consumers must not infer bank movement, payout completion, statement generation,
+reconciliation or settlement from those events.
+
+`folio.settled` and `folio.closed` describe only a monotonic, exact-zero folio-window
+state transition. Their producer writes one fact and one outbox row in the same tenant
+transaction as the bounded PostgreSQL transition and durable idempotent response. They
+contain identifiers and state only: no contact, instrument/token, payment, journal,
+invoice/fiscal or client-supplied balance data. Consumers must not infer checkout,
+account closure, payment-provider settlement, document issue or business-day close.
+
+`cashier.opened`, `cashier.counted` and `cashier.closed` describe attributable cash
+custody only. The producer writes the fact and outbox row with the governed session
+transition. Events contain session/drawer/count identifiers and terminal over/short
+only where applicable; they contain no denomination, account, payment, instrument,
+journal or caller-supplied total. Consumers must not infer cash posting, discrepancy
+write-off, provider settlement or business-day seal.
+
+`receivable.transferred` describes one immutable guest-debt transfer. Its minimized
+payload contains only guest folio/account, receivable account/party, exact amount,
+currency, journal and approval identifier where consumed. The producer writes the
+fact and outbox row in the same transaction as the balanced journal. Consumers must
+not infer an AR invoice, allocation, aging state, external accounting export, checkout,
+document issue, fiscalization or folio settlement from this event.
 
 **housekeeping/stay** · unit.condition_changed · task.created/.status_changed · discrepancy.reported/.resolved · queue.entered/.cleared · message.received/.sent
 
-**profiles** · party.created/.merged {into} · party.anonymised · consent.changed
+Order 201 produces `task.status_changed` for each governed adjacent housekeeping
+transition. Its minimized payload identifies the task, space, previous/current task
+status and action. Complete and verify additionally produce
+`unit.condition_changed`, containing the space and previous/current condition; start
+does not emit a condition event because it does not change condition. The matching
+fact(s), outbox row(s), task status, completion time and condition actor/time commit in
+one transaction. These events contain no assignee/guest PII and do not imply task
+creation, sheets/cadence, occupancy, reservation, financial or statutory effects.
+
+Order 228 also produces `task.status_changed` for each exact governed arrival-pickup
+assignment, start or completion. Its minimized payload identifies the task,
+reservation, action and previous/current task status; assignment identity is not
+published. Task state, one matching fact and one outbox event commit in one
+transaction. Replay or concurrent stale evidence cannot publish a second effect.
+Consumers must not infer transport success beyond recorded task completion, and must
+not infer travel edits, vehicle/driver/parking state, occupancy, check-in, charges,
+business-day work or statutory submission.
+
+Order 227 also produces `unit.condition_changed` when an authorized actor deliberately
+records the first condition for an active exact-property room. The minimized payload
+contains the space, `previous_condition: null`, the explicitly selected `clean`,
+`dirty` or `pickup` condition, and the server-recorded update instant. `inspected`
+remains available only through the governed verification transition. The inserted
+condition, matching fact and outbox row commit in one transaction and imply no task,
+reservation, check-in, occupancy, OOO/OOS, financial, day or statutory effect.
+
+Order 202 produces one `task.created` fact/outbox pair for every task created by one
+governed task-sheet generation transaction. Its minimized payload identifies the
+task, sheet, physical space, property-local sheet date and resolved cadence; it does
+not carry guest or attendant PII. The `task_sheet`, all assigned tasks and every
+matching fact/outbox row commit together. Replay or concurrency does not publish a
+second event for the same deterministic sheet/space task. Consumers must not infer a
+task transition, condition change, reservation/occupancy mutation, credit allocation,
+financial effect, business-day action or statutory submission from `task.created`.
+
+Order 229 produces one `task.created` fact/outbox pair only when the governed arrival
+room-cleaning command creates a new assigned housekeeping/space task. The aggregate is
+that task and the minimized payload is
+`{reservation_id,space_id,room_condition,assignee_party_id,status:'assigned',department:'Housekeeping',priority:1,due_at}`.
+Task, fact, outbox and idempotent receipt commit in one transaction. Returning an
+existing assigned/in-progress exact-room task, exact replay, or a losing concurrent
+contender emits no second pair. The event contains no guest/contact/note/payment or
+statutory data. Consumers must not infer that cleaning started or completed, that the
+room condition changed, or that reservation, check-in, occupancy, key, folio,
+financial, business-day, travel, vehicle, parking or statutory state changed.
+
+Order 235 produces `discrepancy.reported` only when an explicit room observation
+differs from PostgreSQL-derived coherent current stay/occupancy truth. The aggregate
+is the newly inserted discrepancy. Its minimized payload contains the physical room
+id, derived `sleep|skip|person` kind and canonical reported/system tokens; it contains
+no reservation, segment, occupancy-row, guest, contact or caller-supplied system
+truth. The discrepancy, matching fact and outbox row commit in one transaction.
+Matching truth, exact replay and a losing concurrent contender emit nothing new.
+Consumers must not infer condition change, task creation, queue/carry resolution,
+checkout/check-in, financial, business-day or statutory effects.
+
+Order 236 reuses `occupancy.recorded` only when one governed parking assignment creates
+its exclusive claim. The aggregate remains the occupancy row; the minimized payload
+contains the parking space, linked reservation segment, server-derived period and
+canonical exclusive claim, without guest/contact data or caller-supplied stay truth.
+The occupancy, `vehicle.parking_space` binding, fact, outbox and idempotent receipt
+commit together. Exact replay and losing contenders emit nothing new. Consumers must
+not infer vehicle entry/exit, parking replacement/release, room occupancy, stay-state,
+financial, business-day or statutory effects.
+
+**profiles** · party.created/.updated/.reconciled {changed_fields}/.merged {into} · party.anonymised · consent.changed
+
+**accounts** · account.reconciled {account_id,changed_fields}
+
+`party.updated {party_id,changed_fields}` records one governed active Party profile
+presentation update. The payload identifies only the Party and changed field names;
+it contains no display name, legal name, contact, role, preference, reservation or
+financial value. The Party change, fact, outbox event and idempotency receipt commit
+in one transaction. Exact replay and an already-current request emit no new event.
+
+`party.reconciled {party_id,changed_fields}` is reserved for the one governed
+synthetic `ARR-CLEAN` fixture repair. It carries no names, attributes, guest data or
+reservation values and has the same atomic fact/outbox boundary.
 
 **distribution** · inbound.received {channel,external_id} · inbound.processed {reservation_id}/.failed · ari.push_requested {channel,unit_types,date_range} · map.changed
 
-**tax/fiscal/statutory** · document.issued {kind,doc_no,hash} · document.cleared/.rejected {authority_ref} · statutory.due {adapter,due_at} · statutory.submitted/.accepted/.failed · erasure.completed
+**tax/fiscal/statutory** · tax.attribution_recorded {attribution_id,property_node,origin_kind,origin_quote_hash,snapshot_hash,currency} · tax.attribution_bound {binding_id,attribution_id,hold_id,property_node,origin_quote_hash,snapshot_hash,currency} · tax.attribution_posted {posting_binding_id,journal_id,lineage_id,attribution_id,reservation_id,segment_id,folio_id,origin_quote_hash,snapshot_hash,currency} · tax.attribution_reversed {posting_binding_id,original_journal_id,reversal_journal_id,lineage_id,attribution_id,reservation_id,segment_id,folio_id,origin_quote_hash,snapshot_hash,currency,effect} · document.issued {kind,doc_no,hash} · document.cleared/.rejected {authority_ref} · statutory.due {adapter,due_at} · statutory.submitted/.accepted/.failed · erasure.completed
+
+`india_gst.accommodation_final_valuation_recorded {valuationId,reservationId,folioId,windowNo,buyerPartyId,generation,disposition,evidenceHash}` states only that one immutable governed valuation-evidence generation was recorded. It contains no guest profile, posting amounts, tax amounts, invoice content or IRP payload. Consumers must not infer calculation, posting, document issue or fiscal submission.
+
+`india_gst.accommodation_quoted_rate_applicability_recorded {applicabilityId,reservationId,folioId,evidenceHash}` states only that one immutable, typed Order341 quoted-rate applicability bundle passed persisted ancestry and evidence reconstruction. It contains no guest profile, calendar payload, quoted amount, tax amount, component detail, posting, invoice or IRP content. Consumers must not infer final tax calculation, a financial posting, document issue, fiscal submission or Phase completion.
+
+`india_gst.accommodation_final_component_tax_recorded {taxId,reservationId,folioId,valuationId,valuationGeneration,generation,evidenceHash}` states only that one immutable, database-derived India accommodation component-tax generation was recorded for the current ordinary-final valuation. The bounded payload contains no guest/buyer data, taxable value, rate, component amount, total, account, journal, route, invoice, document or IRP payload. Root, room-night/component evidence, one matching fact, this outbox event and its idempotency receipt commit together. Replay and losing correction contenders emit no duplicate. Consumers must not infer posting, invoice issue, fiscal submission, payment, settlement or business-day completion.
+
+Order407 emits the existing `journal.posted` and
+`india_gst.accommodation_final_component_tax_posted {posting_binding_id,journal_id,tax_id,tax_generation,valuation_id,applicability_id,reservation_id,folio_id,currency}`
+only after one current Order367 tax root has become one balanced governed charge and
+the immutable root-to-journal binding exists. The journal event carries its normal
+canonical line facts; the India event is identity-only and contains no guest/buyer
+data, full tax detail, component amounts, route configuration, document or provider
+payload. Journal, lines, binding, both facts/outbox rows and the completed idempotency
+receipt commit atomically. Replay and losing same-root contenders emit neither pair.
+Consumers may infer only that the named final-tax root was financially posted; they
+must not infer correction/reversal, invoice issue, fiscal finality, IRP submission,
+payment, settlement, transfer or business-day completion.
+
+`tax.attribution_recorded` states only that one exact positive Order-240 `rate_quote`
+snapshot became an immutable tenant root under one contextual property and actor. The
+new root, matching fact, minimized outbox row and idempotent receipt commit in one
+transaction; exact replay or concurrent same-snapshot recording emits no duplicate.
+The payload contains attribution and property ids, origin kind, quote and snapshot
+hashes and currency only. It contains no full snapshot, guest/Party data, amount,
+night, component, account, posting or document content. Consumers must not infer
+property ownership of the quote, offer acceptance, inventory protection, reservation,
+folio, posting, invoice, fiscal finality or submission from this evidence event.
+
+`tax.attribution_bound` states only that one authoritative fresh quote produced one
+temporary cart hold and its exact persisted positive attribution in the same tenant
+transaction. Its payload is identity-only and excludes guest/Party data, full quote,
+snapshot, amount, tax components, accounts and document content. Retention after hold
+expiry/release is audit evidence, not a reservation, price promise, posting, invoice
+or submission outcome.
+
+Order262 emits `journal.posted` and `tax.attribution_posted` only after the same
+transaction has appended the exact balanced positive-tax charge, its insert-only
+root guest line and one immutable attribution-to-journal binding. The journal event
+uses the existing contract and adds only journal kind, lineage/reservation/folio
+identity and the exact configured account/folio/transaction-code/amount line facts.
+The tax event is identity-only: binding, journal, lineage, attribution, reservation,
+segment, folio, quote/snapshot hashes and currency. It carries no full snapshot,
+`tax_detail`, guest/Party data or document/provider content. Policy-blocked truth,
+replay and a converging contender emit neither pair. Consumers may treat the pair as
+posting evidence only; they must not infer an invoice, fiscal finality, India
+decomposition, correction/reversal, payment, settlement, transfer or submission.
+
+Order266 emits `journal.posted` and `tax.attribution_reversed` only after one complete
+balanced adjustment has sign-negated every posting of an exact Order262 journal and
+the database has created its canonical version-2 full-reversal root evidence. The tax
+event contains only the immutable original posting-binding and lineage identities,
+the original and reversal journal ids, quote/snapshot hashes, currency and
+`effect:'full_reversal'`; it contains no guest/Party data, route configuration, full
+tax detail or document/provider content. Replay and a losing concurrent contender
+emit neither pair. Consumers may net the financial posting but must not infer a cash
+refund, replacement invoice, fiscal credit note, India decomposition, tax return
+amendment, settlement or submission.
 
 **kernel** · extension.activated {type,key,version} · automation.fired {automation_id,action,result} · approval.requested/.decided
 
+Order408 emits `journal.posted` and
+`india_gst.accommodation_final_component_tax_journal_reversed` only after one
+current-open-day adjustment has exactly sign-negated every line of one governed
+Order407 journal and PostgreSQL has appended its immutable reversal binding. The
+India event carries only reversal/posting binding, tax, original/reversal journal,
+reservation and folio identities, INR currency and `effect:'full_reversal'`; it
+contains no guest/Party data, full tax detail, amounts, routes or document/provider
+content. Replay and a losing concurrent contender emit neither pair. Consumers may
+net the named financial posting, but must not infer a cash refund, replacement
+invoice, credit note, tax-return amendment, payment, settlement or submission.
+
+## Order434 native fiscal source events — merged source contract
+
+These version1 events extend the existing envelope. This section documents the
+source path merged through PR83; provider activation and deployment retain separate
+evidence. Source
+recorders derive tenant/property/actor/business date and canonical hashes on the
+trusted boundary. No event accepts guest profiles, card data, caller-selected money
+or a legal body.
+
+| Event                                                 | Producer → consumer                       | Identity-only payload and meaning                                                                                                                                                                                                                              |
+| ----------------------------------------------------- | ----------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `india_gst.accommodation_service_provision_recorded`  | TaxFiscal → audit/projections             | `{serviceProvisionSnapshotId,reservationId,attributionId,evidenceHash}`: explicit externally evidenced service date recorded; not inferred service completion or invoice approval.                                                                             |
+| `india_gst.accommodation_payment_receipt_recorded`    | TaxFiscal → audit/projections             | `{paymentReceiptSnapshotId,serviceProvisionSnapshotId,reservationId,evidenceHash}`: supplied books/bank receipt evidence recorded; no payment capture, settlement or money movement.                                                                           |
+| `india_gst.accommodation_ordinary_regime_recorded`    | TaxFiscal → audit/projections             | `{ordinaryRegimeEvidenceId,serviceProvisionSnapshotId,reservationId,attributionId,evidenceHash}`: affirmative governed ordinary-regime evidence recorded; no inferred eligibility or exceptional regime.                                                       |
+| `india_gst.native_accommodation_accounting_requested` | TaxFiscal → Financials same-Tx handler    | `{nativeTimingId,documentId,taxId,applicabilityId,valuationId,reservationId,folioId,sourceBasisHash}`: exact dependent preparation requests its database-derived incremental tax accounting. Existence of an event alone is not authority.                     |
+| `india_gst.native_accommodation_accounting_bound`     | Financials → TaxFiscal same-Tx completion | `{bindingId,nativeTimingId,taxId,valuationId,reservationId,folioId,journalId,evidenceHash}`: immutable binding of original consideration and optional tax-only journal; `journalId` is null only for native zero tax. Not document issue or fiscal submission. |
+
+Each intake root, fact, event and completed idempotency receipt commits together;
+exact replay emits nothing. For native issuance, all financial/source/day/series
+locks precede the first outbox publication. A dedicated tenant transaction writes
+the request, invokes the Financials-owned event-ID handler in that same transaction,
+then validates and completes the native document. No kernel consumer cursor, second
+connection, separate commit or asynchronous accounting completion is introduced.
+
+The Financials handler checks exact persisted event identity, type/version, payload,
+actor/property/date and current-transaction preparation before deriving money. Its
+immutable accounting binding deduplicates the effect. The bound event and optional
+`journal.posted` causally reference the request. The existing `document.issued` event
+is emitted only with the completed document in this same transaction. Number
+allocation follows final canonical authentication; any rejection rolls back every
+new dependent artifact.
+
+Permanent fiscal rows retain event IDs/hashes, not a foreign key blocking normal
+outbox pruning. Later exact replay uses permanent timing/binding/origin/receipt
+evidence even after the corresponding outbox rows have passed normal retention. This
+does not add a new asynchronous consumer or relax any runtime grant. The accounting
+request is handled inline by `IndiaNativeFiscalAccountingEventHandler`; ordinary
+relay consumers still process committed outbox events through their own durable
+cursors and must not rerun the same-transaction accounting command.
+
+The executable entry and inline adapter are
+[`IssueIndiaNativeFiscalInvoiceCommand`](../src/commands/issue-india-native-fiscal-invoice.ts)
+and
+[`IndiaNativeFiscalAccountingEventHandler`](../src/contexts/financials/india-native-fiscal-accounting.ts).
+
+Executable event and replay evidence lives in
+[`tests/india-native-fiscal-accounting.integration.test.ts`](../tests/india-native-fiscal-accounting.integration.test.ts),
+[`tests/india-native-fiscal-preparation.integration.test.ts`](../tests/india-native-fiscal-preparation.integration.test.ts),
+[`tests/india-native-fiscal-completion.integration.test.ts`](../tests/india-native-fiscal-completion.integration.test.ts),
+and [`tests/india-native-fiscal-source-locks.integration.test.ts`](../tests/india-native-fiscal-source-locks.integration.test.ts).
+See [`PROJECT-STATUS.md`](PROJECT-STATUS.md) for current status and
+[`Order434`](../handoff/orders/434-native-fiscal-source-completion.md) for the full
+source, locking, accounting and executable acceptance contract.
+
 ## Consumer registry (who must exist by launch)
+
+### Order446 full credit note — implementation contract, not released
+
+The existing `document.issued` event represents a newly numbered `credit_note`;
+it does not mutate or re-emit the original invoice and is not an external IRP
+acceptance. Its payload is the same immutable receipt: credit/original document
+identities and numbers/hashes, correction journal, series, property/reservation/
+folio, supplier/recipient registrations, fiscal year, INR currency, issue/business
+date, chain/source hashes, positive exact minor-unit string and reason. Actor and
+correlation are envelope fields. One complete financial/document transaction owns
+the binding, posting lines, document, fact, event and idempotency receipt; publication
+comes after financial/day/series locks. Exact replay emits no second event and
+still rechecks current authority. New consumers or provider transmission are not
+implicitly enabled. See Order446 and PROJECT-STATUS.md for executable status.
+
+### Order440 fiscal delivery events — current80 plus candidate81
+
+`fiscal.submission.requested`, `fiscal.submission.claimed`,
+`fiscal.submission.reconciled` and `fiscal.submission.retry_requested` describe changes
+to the delivery head, not issuance or government acceptance of an invoice. Q199's
+database owner functions atomically write the head, protected receipt history, fact
+and outbox entry. Payloads carry bounded submission/attempt/document/provider identities,
+document and wire hashes, status/disposition and transition sequence. Never include
+claim secrets, credentials, guest records, signed-invoice bodies or raw provider errors.
+
+The protected head is the current receipt authority and protected append-only history
+is the transition audit authority: generic fact insertion and consumer deduplication
+cannot forge or replace either. Consumers may be rebuilt from outbox; a provider
+attempt cannot be safely repeated merely because an event was replayed. After
+uncertainty or lease expiry, an authoritative lookup claim is required.
+Candidate81 extends the version1 `fiscal.submission.reconciled` outcome vocabulary
+with `provider_cancelled`. That outcome is valid only for an authenticated lookup and
+records status `error`, disposition `none`, reason `provider_cancelled`, lookup
+resolution source, no authority reference and a response hash. It is terminal,
+non-discoverable and non-retryable. A definitive rejected receipt likewise carries
+no invented IRN. Exact legacy terminal-response replay emits no duplicate event.
+
+The terminal receipt envelope remains on the protected submission head. Signed
+invoice/QR tokens and canonical base64 raw/decrypted response evidence are not copied
+into history, fact or outbox payloads; the existing events remain bounded identity and
+hash notifications. Current merged80 registers no provider. Candidate81's protected
+file loader is all-or-nothing and defaults to the same immutable empty registry when
+no file is configured; it adds no asynchronous outbox consumer and activates no
+provider, local runtime or external call. Its passed generated-key protocol journey
+uses an injected synthetic transport while exercising the real adapter, worker,
+actual81 persistence and receipt GET; it neither publishes receipt bodies through the
+outbox nor proves an authentic external-provider sandbox interaction.
+
+### Planned launch consumers
 
 projection-rebuilder (availability, stats_daily, folio_balance cache) · valkey-invalidator ·
 automation-engine (matches trigger_event, evaluates condition AST, executes action) ·
 ari-pusher (per channel, batched 5–30 s adaptive) · statutory-scheduler · document-issuer ·
 notifier (email/WA templates) · fiscal-submitter. Each stores its own cursor; all are
 disposable and rebuild from outbox (Doctrine 1).
+
+`business_day.opened {property_node,business_date,opened_at}` is emitted only by the
+transaction that first inserts the PostgreSQL/property-timezone-derived current day.
+It says nothing about older-day readiness, reconciliation or sealing.
+
+Order593 departure coordination reuses `task.created` only when a confirmed proposal
+creates its canonical task, and `task.status_changed` only for assign/start/complete.
+Payloads contain request/reservation/parent/role identifiers, service kind, action,
+version, previous/current task status and bounded outcome. Propose and withdraw append
+`departure_service.propose`/`departure_service.withdraw` facts only: neither claims that
+operational work exists. Task changes, facts and outbox commit in one transaction;
+publication uses the kernel's canonical outbox sequencing advisory lock. No guest contact,
+free-text allegation, image, monetary value or physical-room inference is published.

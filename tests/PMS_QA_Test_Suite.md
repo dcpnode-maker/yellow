@@ -820,18 +820,18 @@ WHERE kind = 'invoice';
 **Setup:** Property in India, room rate = ₹7,500/night
 **Action:** Compute tax for 1 night
 **Expected:**
-- Slab: >₹7,500 → 18% GST with ITC
-- Tax = ₹1,350 (18% of 7,500)
-- Total = ₹8,850
+- Slab: ≤₹7,500 → 5% GST without ITC
+- Tax = ₹375 (5% of 7,500)
+- Total = ₹7,875
 - Document: IRN generated, signed QR stored
 
 **Boundary Tests:**
 | Rate | Expected GST | ITC |
 |------|-------------|-----|
-| ₹999 | 0% (exempt) | No |
-| ₹1,000 | 0% (exempt, boundary) | No |
+| ₹0 | Rejected (zero-value postings remain invalid) | No |
+| ₹1,000 | 5% = ₹50 | No |
 | ₹1,001 | 5% = ₹50.05 | No |
-| ₹7,500 | 5% = ₹375 | No |
+| ₹7,500 | 5% = ₹375 (boundary) | No |
 | ₹7,501 | 18% = ₹1,350.18 | Yes |
 
 ---
@@ -1041,6 +1041,24 @@ SELECT count(DISTINCT tenant_id) FROM current_rate_price; -- Expected: 1
 
 ## SQL Health Check Queries (Run After Any Test)
 
+### TC-8.6 🔒 Order307 rate-change-date evidence boundary
+
+**Setup:** Use the exact approved India accommodation predecessor/successor pair
+and its official Notification 15/2025 source evidence.
+
+**Action:** Resolve with exactly `{tenantId, rateVersionPair}`; recompute the
+tenant-bound pair hash before deriving the source-bound rate-change date.
+
+**Expected:** The result is recursively frozen and deterministically replayable,
+derives `2025-09-22` from Kolkata midnight at
+`2025-09-21T18:30:00.000000Z`, and includes pair/source/evidence hashes. Any
+substituted pair field, source hash, period, threshold, band, ITC flag, nil-band
+claim, caller date, clock, timezone, calendar field, or surplus input is rejected.
+
+**Authority boundary:** This test proves evidence only. It must not classify
+Section 14, count working days, select a tax rate, calculate GST, post, issue a
+document, submit to IRP, or mutate any database row.
+
 ```sql
 -- 1. All journals balance?
 SELECT j.id, j.kind, SUM(pl.amount_minor) as imbalance
@@ -1118,3 +1136,118 @@ SELECT COUNT(*) FROM space; -- Should return 0 for non-existent tenant
 
 *Generated for the Yellow build. Share this document with Claude Code 
 as the canonical test specification for Phase 0-12 validation.*
+
+## Order 304 — India GST accommodation rate-version pair proof
+
+This Tier-3 compliance slice is a read-only composition over the existing extension
+registry and selected-extension effective-period projections. The live fixture uses
+two tenants and one property per tenant. Tenant A receives an explicitly inserted,
+retired version 1 and active version 2 of `in-gst-lodging`; their ranges are exactly
+`[2022-07-17T18:30:00.000000Z,2025-09-21T18:30:00.000000Z)` and
+`[2025-09-21T18:30:00.000000Z,infinity)`. Tenant B receives a separate pair.
+
+The integration proof must establish:
+
+- exact predecessor/successor ids, owner, key, type, status, version and periods;
+- 12%-with-ITC then 18%-with-ITC predecessor `GST_ROOM` slabs, and 5%-without-ITC
+  then 18%-with-ITC successor slabs, with no nil band;
+- all three official source-byte hashes and canonical content hashes are present in
+  the frozen evidence, while tenant identity is absent from the returned shape;
+- one-microsecond period drift, foreign ids, duplicate/invisible identities, status,
+  owner, version, key, type, threshold, rate, ITC, nil-band and source-hash changes
+  fail closed;
+- `runtime_visible_extensions` conceals Tenant B from Tenant A and the existing
+  tax-jurisdiction resolver still selects only active successor version 2;
+- after fixture setup, extension, fact, outbox, journal, posting and fiscal-submission
+  row snapshots are byte-identical following successful, foreign and failed reads.
+
+The proof may not seed production history, mutate extension state, choose a retired
+rate, use a clock/latest lookup, calculate tax, apply section 14, or touch fiscal
+documents, IRP, API, UI or downstream state. Missing `YELLOW_ORDER304_*` URLs skip
+the live block unless `YELLOW_REQUIRE_ORDER304_DATABASE=1`, in which case the test
+fails closed before execution.
+
+## Order 305 — fresh-bootstrap India GST accommodation launch history
+
+The live proof creates a disposable real PostgreSQL database, runs the complete
+migration set, and then runs the production seed. It must establish exactly one
+global `in-gst-lodging` predecessor/successor pair: retired v1 over
+`[2022-07-17T18:30:00.000000Z,2025-09-21T18:30:00.000000Z)` with 12%-with-ITC then
+18%-with-ITC bands, and active v2 over
+`[2025-09-21T18:30:00.000000Z,infinity)` with 5%-without-ITC then 18%-with-ITC
+bands. Both use the INR 7,500 threshold and preserve the unchanged 5% `GST_FNB`
+example.
+
+The proof must cover first insert, exact replay with no new audit/effect rows, a
+collision that rolls the complete seed transaction back without repair, exact
+runtime visibility of both rows, and the existing active-only resolver returning
+v2. Resolver reads must leave extension, fact, outbox, journal, posting, document
+and fiscal-submission snapshots unchanged. It must not touch an installed database
+or select retired content for a stay. Missing `YELLOW_ORDER305_*` configuration
+skips this live block; `YELLOW_REQUIRE_ORDER305_DATABASE=1` with no explicit
+Order305 deploy/admin URL fails before execution.
+
+## Order 306 — historical India GST accommodation resolution
+
+The live proof creates a disposable PostgreSQL database, applies all migrations, runs
+the exact Order305 fresh seed, and adds only bounded tenant/property/assignment test
+fixtures. It must establish that one active same-tenant property and one exact
+`in-gst-lodging` assignment resolve whole Kolkata local days before the cutover to
+retired v1 and days at/after the cutover to active v2. A foreign property is concealed
+from the wrong tenant while its own tenant can resolve it. PostgreSQL-derived DST
+23/25-hour and awkward-offset envelopes are asserted where the database permits.
+
+The proof must reject a local day whose UTC envelope crosses the Kolkata cutover,
+return recursively frozen tenant-hidden evidence with a deterministic hash, and leave
+extension, assignment, fact, outbox, journal, posting, document and fiscal-submission
+snapshots byte-identical across repeated successful and failed reads. It must use a
+transaction-local tenant setting and `app_role`, and must never choose by clock,
+latest/max version or caller extension id, mutate installed data, select a retired rate
+for a stay, calculate tax, apply section 14, or touch downstream fiscal/API/UI state.
+Missing `YELLOW_ORDER306_*` URLs skip this live block; setting
+`YELLOW_REQUIRE_ORDER306_DATABASE=1` without explicit deploy/admin and runtime URLs
+fails before execution.
+
+### TC-8.7 🔒 Order308 component-family evidence boundary
+
+Resolve exactly `{tenantId,supplyNature}` after recomputing the tenant-bound
+candidate hash. Inter-State and every SEZ direction return frozen `igst`;
+ordinary intra-State returns `cgst_sgst`, except `04`, `26`, `31`, `35`, `38`,
+which return `cgst_utgst`; `01`, `07`, and `34` remain State-tax-side. Mutated
+or rehashed semantic fields, source/hash evidence, hostile object shapes, or
+surplus rate/value/amount/split fields fail closed. This test grants no rate,
+amount, split, posting, document, IRP, Section 14, calendar, API/UI or write
+authority.
+
+### TC-8.8 🔒 Order309 accommodation levy-input bundle boundary
+
+Call exactly `{tenantId,historicalResolution,supplyNature,componentFamily}` with
+complete approved Order306, Order287 and Order308 evidence. For the predecessor day,
+successor day and every approved `igst`, `cgst_sgst` and `cgst_utgst` family, the bundle succeeds only when
+property, civil supply date and selected-extension jurisdiction id/key/version/content
+hash agree. It must independently recompute the Order306 resolution hash and Order287
+candidate hash, revalidate the exact Order304 pair, prove that the selected member
+uniquely contains the complete property-local day, re-derive Order308 from the full
+Order287 evidence and require exact equality with the supplied component-family
+result. A component-family result hash alone is not accepted as provenance.
+
+Assert the returned projection is recursively frozen, byte-stable and tenant-hidden;
+contains only property/reservation/folio/date, exact selected-version identity and
+complete aggregate `GST_ROOM` slabs, component family/statutory source, predecessor
+hashes and its deterministic evidence hash; and preserves exact slab order,
+`750000` threshold, 12%-with-ITC or 5%-without-ITC lower band, 18%-with-ITC unbounded
+upper band and nil-band absence for the selected version.
+
+Mutation-sensitive proof must reject cross-tenant/property/date/jurisdiction id/key/
+version/content/family mutations, wrong selected members, altered pair or evidence
+hashes, partial/malformed evidence, and fully recomputed semantic mutants. Explicitly
+relabel each family and recompute every exposed JSON/hash; each mutant must still fail
+the independent derivation. Repeat D-850 ancestry mutants for supplier and recipient:
+`regular` with an SEZ status, and an SEZ taxpayer type with non-SEZ or the other SEZ
+status, must fail even when fully rehashed. Thawed,
+proxy, accessor, symbol-bearing, non-plain or surplus shapes fail closed, including
+surplus caller rate/value/amount/split/rounding/residual/calendar fields. Static proof
+must show no SQL/write or downstream amount, decomposition, posting, correction,
+reverse-charge, Section 14/calendar, zero-rating/authorized-operations, payer,
+`SupTyp`, `IgstOnIntra`, item/document/IRP/API/UI/local authority, while unchanged
+schema and referee evidence remain green.

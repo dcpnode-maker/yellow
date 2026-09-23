@@ -1,0 +1,78 @@
+{
+  "schemaVersion": 1,
+  "scenarioKey": "india-riverstone",
+  "synthetic": true,
+  "property": {
+    "displayName": "Riverstone Test Hotel",
+    "countryCode": "IN",
+    "currency": "INR",
+    "timeZone": "Asia/Kolkata"
+  },
+  "roomClasses": [
+    { "code": "STANDARD", "label": "Standard" },
+    { "code": "ACCESSIBLE", "label": "Accessible" },
+    { "code": "FAMILY", "label": "Family" },
+    { "code": "SUITE", "label": "Suite" }
+  ],
+  "roomTypes": [
+    { "code": "STD", "classCode": "STANDARD", "label": "Standard", "quantity": 24, "adultCapacity": 2, "childCapacity": 1, "accessible": false, "connectsToTypeCodes": [] },
+    { "code": "ACC", "classCode": "ACCESSIBLE", "label": "Accessible King", "quantity": 3, "adultCapacity": 2, "childCapacity": 1, "accessible": true, "connectsToTypeCodes": [] },
+    { "code": "FAM_K", "classCode": "FAMILY", "label": "Family King", "quantity": 4, "adultCapacity": 2, "childCapacity": 2, "accessible": false, "connectsToTypeCodes": ["FAM_T"] },
+    { "code": "FAM_T", "classCode": "FAMILY", "label": "Family Twin", "quantity": 4, "adultCapacity": 2, "childCapacity": 2, "accessible": false, "connectsToTypeCodes": ["FAM_K"] },
+    { "code": "STE", "classCode": "SUITE", "label": "Suite", "quantity": 5, "adultCapacity": 3, "childCapacity": 2, "accessible": false, "connectsToTypeCodes": [] }
+  ],
+  "boardPlans": [
+    { "code": "EP", "normalized": "room_only", "label": "Room only", "inclusions": [] },
+    { "code": "CP", "normalized": "breakfast", "label": "Breakfast", "inclusions": ["breakfast"] },
+    { "code": "MAP", "normalized": "half_board", "label": "Breakfast and one main meal", "inclusions": ["breakfast", "one_main_meal"] },
+    { "code": "AP", "normalized": "full_board", "label": "Breakfast, lunch and dinner", "inclusions": ["breakfast", "lunch", "dinner"] }
+  ],
+  "policies": [
+    { "code": "FLEX", "refundability": "refundable", "description": "Synthetic flexible-policy intent; deadlines and charges await configured policy." },
+    { "code": "NRF", "refundability": "non_refundable", "description": "Synthetic non-refundable-policy intent; collection and legal wording are not asserted." }
+  ],
+  "packages": [
+    { "code": "WORKDAY", "label": "Workday stay", "inclusions": ["wifi", "workspace"] },
+    { "code": "FAMILY", "label": "Family discovery", "inclusions": ["breakfast", "late_checkout_request"] }
+  ],
+  "sources": [
+    { "code": "direct_web", "capability": "current_intent" },
+    { "code": "front_desk", "capability": "current_intent" },
+    { "code": "phone", "capability": "current_intent" },
+    { "code": "corporate", "capability": "current_intent" },
+    { "code": "travel_agent", "capability": "current_intent" },
+    { "code": "ota_a", "capability": "future_phase_9" }
+  ],
+  "partyShapes": [
+    { "code": "SOLO", "adults": 1, "childAges": [] },
+    { "code": "COUPLE", "adults": 2, "childAges": [] },
+    { "code": "FAMILY_YOUNG", "adults": 2, "childAges": [4, 9] },
+    { "code": "FAMILY_TEEN", "adults": 2, "childAges": [15] },
+    { "code": "TRIPLE", "adults": 3, "childAges": [] }
+  ],
+  "corporatePatterns": [
+    { "code": "CORP_NEGOTIATED", "syntheticAccount": "Fictional Meridian Services", "stayNights": [1, 4] },
+    { "code": "PROJECT_CREW", "syntheticAccount": "Fictional Northstar Works", "stayNights": [5, 28] }
+  ],
+  "groupPatterns": [
+    { "code": "WEDDING_BLOCK", "kind": "block", "rooms": [12, 28], "authority": "future_scenario_intent", "targetPhase": 11 },
+    { "code": "TOUR_SERIES", "kind": "group", "rooms": [8, 18], "authority": "future_scenario_intent", "targetPhase": 11 }
+  ],
+  "longStayPatterns": [
+    { "code": "RELOCATION", "nights": [14, 60] },
+    { "code": "EXTENDED_PROJECT", "nights": [30, 120] }
+  ],
+  "seasons": [
+    { "code": "WINTER_HIGH", "startMonthDay": "10-01", "endMonthDay": "03-31", "demandBasisPoints": 12500 },
+    { "code": "SUMMER_LOW", "startMonthDay": "04-01", "endMonthDay": "06-30", "demandBasisPoints": 7500 },
+    { "code": "MONSOON", "startMonthDay": "07-01", "endMonthDay": "09-30", "demandBasisPoints": 9500 }
+  ],
+  "edgeCases": ["leap_day_stay", "midnight_arrival", "child_age_change", "connecting_room_request", "accessible_room_request", "early_arrival_request", "late_checkout_request", "no_show_intent", "overlapping_corporate_and_group_intent"],
+  "authority": {
+    "taxFiscal": "pending_policy",
+    "groupsBlocks": "future_phase",
+    "databaseAuthority": false,
+    "importedReservations": false,
+    "purpose": "future_uat_input"
+  }
+}

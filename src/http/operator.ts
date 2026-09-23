@@ -1,0 +1,7500 @@
+import { readFileSync } from "node:fs";
+import { types as utilTypes } from "node:util";
+import { fileURLToPath } from "node:url";
+import { DepartureServiceCoordinationService, DepartureServiceError, DEPARTURE_SERVICE_ACTIONS,
+  normalizeDepartureServiceProposal, type DepartureServiceAction } from "../contexts/stay-operations";
+import { issueIndiaNativeFiscalInvoiceForOperatorInTransaction } from "../commands/issue-india-native-fiscal-invoice";
+import { listIndiaNativeFiscalCreditNotesInTransaction } from "../commands/list-india-native-fiscal-credit-notes";
+import { readIndiaNativeCreditDeliveryInTransaction } from "../commands/read-india-native-credit-delivery";
+import { readIndiaNativeFiscalSeriesInTransaction } from "../commands/read-india-native-fiscal-series";
+import { configureIndiaNativeFiscalSeriesInTransaction } from "../commands/configure-india-native-fiscal-series";
+import {
+  discoverIndiaNativeFiscalCreditNoteInTransaction,
+  issueIndiaNativeFiscalCreditNoteInTransaction,
+  readIndiaNativeFiscalCreditNoteDocumentInTransaction,
+  readIndiaNativeFiscalCreditNoteInTransaction,
+} from "../commands/issue-india-native-fiscal-credit-note";
+import {
+  IndiaNativeFiscalCreditNoteAuthorizationError,
+  IndiaNativeFiscalCreditNoteConflictError,
+  IndiaNativeFiscalCreditNoteNotFoundError,
+  IndiaNativeFiscalCreditNoteValidationError,
+  snapshotIndiaNativeFiscalCreditNoteDiscoveryInput,
+  snapshotIndiaNativeFiscalCreditNoteIssueInput,
+  snapshotIndiaNativeFiscalCreditNoteListInput,
+  type IndiaNativeFiscalCreditNoteListResult,
+} from "../contexts/tax-fiscal";
+
+import {
+  LocalLoginLimitedError,
+  LocalLoginService,
+  PropertyIdentityAuthorizationError,
+  PropertyIdentityConflictError,
+  PropertyIdentityProfileService,
+  PropertyIdentityValidationError,
+  type LocalLoginInput,
+} from "../contexts/identity";
+import {
+  PartyDuplicateReviewRequiredError,
+  PartyProfileService,
+  PartyProfileValidationError,
+  type PartyContactInput,
+  type PartyKind,
+  type PartyRole,
+} from "../contexts/crm";
+import {
+  ChargeCorrectionAuthorizationError,
+  ChargeCorrectionConflictError,
+  ChargeCorrectionNotFoundError,
+  ChargeCorrectionService,
+  ChargeCorrectionValidationError,
+  ChargeConflictError,
+  ChargeNotFoundError,
+  ChargeService,
+  ChargeValidationError,
+  CashierAuthorizationError,
+  CashierConflictError,
+  CashierNotFoundError,
+  CashierService,
+  CashierValidationError,
+  BusinessDayCloseWorkbenchUnavailableError,
+  BusinessDayCloseWorkbenchValidationError,
+  BusinessDaySealConflictError,
+  BusinessDaySealService,
+  BusinessDaySealValidationError,
+  BusinessDayDiscrepancyCarryOperatorConflictError,
+  BusinessDayDiscrepancyCarryOperatorService,
+  BusinessDayDiscrepancyCarryOperatorUnavailableError,
+  BusinessDayDiscrepancyCarryOperatorValidationError,
+  loadBusinessDayCloseWorkbench,
+  loadBusinessDayCloseWorkbenchEntry,
+  type BusinessDayCloseWorkbench,
+  type BusinessDayCloseWorkbenchInput,
+  FolioConflictError,
+  FolioNotFoundError,
+  FolioService,
+  NonFiscalFolioSeriesConfigurationService,
+  NonFiscalFolioSeriesConflictError,
+  NonFiscalFolioSeriesUnavailableError,
+  NonFiscalFolioSeriesValidationError,
+  FolioTransferConflictError,
+  FolioTransferNotFoundError,
+  FolioTransferService,
+  FolioTransferValidationError,
+  FolioStatementNotFoundError,
+  FolioStatementService,
+  FolioStatementValidationError,
+  FolioSettlementConflictError,
+  FolioSettlementNotFoundError,
+  FolioSettlementService,
+  FolioSettlementValidationError,
+  FolioValidationError,
+  HostedDepositConflictError,
+  HostedDepositNotFoundError,
+  HostedDepositService,
+  HostedDepositValidationError,
+  OwnerTrustExpenseWorkbenchNotFoundError,
+  OwnerTrustExpenseWorkbenchService,
+  OwnerTrustExpenseWorkbenchUnavailableError,
+  OwnerTrustExpenseWorkbenchValidationError,
+  ReceivableConflictError,
+  ReceivableNotFoundError,
+  ReceivableService,
+  ReceivableValidationError,
+} from "../contexts/financials";
+import {
+  AvailabilityService,
+  AvailabilityProjectionService,
+  HoldConflictError,
+  HoldService,
+  InventoryConflictError,
+  InventoryNotFoundError,
+  InventoryPolicyService,
+  InventoryService,
+  InventoryValidationError,
+  OperationalBlockConflictError,
+  OperationalBlockService,
+  RestrictionService,
+  type CreateSellableUnitInput,
+  type CreateSpaceInput,
+  type CreateUnitTypeInput,
+  type RestrictionDraft,
+  type RestrictionKind,
+  type SearchAvailabilityInput,
+  type RebuildAvailabilityProjectionInput,
+} from "../contexts/inventory";
+import {
+  RATE_MODEL_CATALOGUE,
+  RateAuthoringError,
+  RateConfigurationService,
+  RateConflictError,
+  RateEvaluationError,
+  RateIntentError,
+  RateIntentService,
+  RateModelService,
+  RateNotFoundError,
+  RatePricingService,
+  RatePublicationConflictError,
+  RatePublicationError,
+  RatePublicationNotFoundError,
+  RatePublicationService,
+  RateQuoteConflictError,
+  RateQuoteError,
+  RateQuoteNotFoundError,
+  RateQuoteService,
+  RateTargetService,
+  RateValidationError,
+  compileRateAuthoringCommand,
+  type CreatePolicyInput,
+  type CreateRatePriceInput,
+  type CreateRatePlanInput,
+  type CanonicalRateAuthoringCommand,
+  type PolicyKind,
+  type RateModelDraft,
+  type RatePlanRelease,
+  type RatePricingInput,
+  type RateTargetDraft,
+} from "../contexts/rates";
+import { OperatingPerformanceService } from "../contexts/reporting";
+import {
+  ReservationCommitService,
+  ReservationConflictError,
+  ReservationAlertConflictError,
+  ReservationAlertNotFoundError,
+  ReservationAlertService,
+  ReservationAlertValidationError,
+  ReservationGuestConflictError,
+  ReservationGuestNotFoundError,
+  ReservationGuestService,
+  ReservationGuestValidationError,
+  ReservationApprovalRequiredError,
+  ReservationLifecycleConflictError,
+  ReservationLifecycleNotFoundError,
+  ReservationLifecycleService,
+  ReservationLifecycleValidationError,
+  ReservationSegmentService,
+  ReservationTravelConflictError,
+  ReservationTravelNotFoundError,
+  ReservationTravelService,
+  ReservationTravelValidationError,
+  ReservationBoardConflictError,
+  ReservationBoardService,
+  ReservationBoardValidationError,
+  ReservationDetailConflictError,
+  ReservationDetailNotFoundError,
+  ReservationDetailService,
+  ReservationDetailValidationError,
+  RESERVATION_STATUSES,
+  ReservationNotFoundError,
+  ReservationOfferSearchService,
+  ReservationOfferSearchTooBroadError,
+  ReservationOfferValidationError,
+  ReservationValidationError,
+  type ReservationOfferSearchInput,
+  type ReservationOfferSearchResult,
+  type ReservationAlertShowOn,
+  type RequestedReservationGuest,
+  type ReservationBoardPage,
+  type ReservationMutableFields,
+  type ExpectedSegmentPeriod,
+  type ReservationTravelDirection,
+  type ReservationTravelMode,
+  type ReservationTravelTuple,
+} from "../contexts/reservations";
+import {
+  ArrivalPickupTaskDispatchConflictError,
+  ArrivalPickupTaskDispatchNotFoundError,
+  ArrivalPickupTaskDispatchService,
+  ArrivalPickupTaskDispatchValidationError,
+  CheckoutConflictError,
+  CheckoutNotFoundError,
+  CheckoutReadinessNotFoundError,
+  CheckoutReadinessValidationError,
+  CheckoutService,
+  CheckoutValidationError,
+  CheckInConflictError,
+  CheckInNotFoundError,
+  CheckInService,
+  CheckInValidationError,
+  VehicleRegisterConflictError,
+  VehicleRegisterNotFoundError,
+  VehicleRegisterService,
+  VehicleRegisterValidationError,
+  VehicleParkingAssignmentService,
+  VehicleParkingConflictError,
+  VehicleParkingNotFoundError,
+  VehicleParkingValidationError,
+  type VehicleRegisterPage,
+  type VehicleRegisterRow,
+} from "../contexts/stay-operations";
+import {
+  ArrivalRoomCleaningConflictError,
+  ArrivalRoomCleaningNotFoundError,
+  ArrivalRoomCleaningTaskService,
+  ArrivalRoomCleaningValidationError,
+  HousekeepingDiscrepancyConflictError,
+  HousekeepingDiscrepancyNotFoundError,
+  HousekeepingDiscrepancyService,
+  HousekeepingDiscrepancyValidationError,
+  HousekeepingConflictError,
+  HousekeepingNotFoundError,
+  HousekeepingSheetConflictError,
+  HousekeepingSheetNotFoundError,
+  HousekeepingSheetService,
+  HousekeepingSheetValidationError,
+  HousekeepingTaskService,
+  HousekeepingUnsupportedCadenceError,
+  HousekeepingValidationError,
+  type HousekeepingConditionPage,
+  type HousekeepingDiscrepancy,
+  type HousekeepingObservedPresence,
+  type HousekeepingTaskAction,
+  type HousekeepingTaskBoardItem,
+  type HousekeepingTaskDetail,
+} from "../contexts/housekeeping";
+import {
+  FiscalSubmissionAdapterAvailabilityService,
+  FiscalSubmissionService,
+  FiscalSubmissionReceiptReadService,
+  IndiaNativeFiscalDocumentReadService,
+  IndiaNativeFiscalOperatorReadService,
+  IndiaNativeFiscalInvoiceValidationError,
+  IndiaNativeFiscalInvoiceAuthorizationError,
+  IndiaNativeFiscalInvoiceNotFoundError,
+  IndiaNativeFiscalInvoiceConflictError,
+  IndiaNativeFiscalInvoiceStaleEvidenceError,
+  IndiaNativeFiscalSeriesAuthorizationError,
+  IndiaNativeFiscalSeriesDatabaseError,
+  IndiaNativeFiscalSeriesConflictError,
+  IndiaNativeFiscalSeriesValidationError,
+  snapshotIndiaNativeFiscalSeriesDiscoveryInput,
+  IndiaNativeCreditDeliveryAuthorizationError,
+  IndiaNativeCreditDeliveryDatabaseError,
+  IndiaNativeCreditDeliveryValidationError,
+  snapshotIndiaNativeFiscalInvoiceCalendarEvidence,
+  type IndiaNativeFiscalInvoiceCalendarEvidence,
+  snapshotFiscalSubmissionDeliveryReceipt,
+  snapshotFiscalSubmissionReceipt,
+  type FiscalSubmissionReceipt,
+} from "../contexts/tax-fiscal";
+import {
+  createAuditEnvelope,
+  IdempotencyConflictError,
+  IdempotencyValidationError,
+  PostgresIdempotency,
+  type JsonValue,
+  type TenantRequestContext,
+  type Tx,
+} from "../kernel";
+import {
+  DEFAULT_OPERATOR_RUNTIME_STATUS,
+  PROJECT_BUILD_SNAPSHOT,
+  type OperatorRuntimeStatus,
+} from "../project-status";
+
+const AVAILABILITY_SCOPE = "inventory.availability:read";
+const CONFIGURATION_READ_SCOPE = "inventory.configuration:read";
+const CONFIGURATION_WRITE_SCOPE = "inventory.configuration:write";
+const RESTRICTION_READ_SCOPE = "inventory.restriction:read";
+const RESTRICTION_WRITE_SCOPE = "inventory.restriction:write";
+const RATE_READ_SCOPE = "rates.configuration:read";
+const RATE_WRITE_SCOPE = "rates.configuration:write";
+const PRICING_READ_SCOPE = "rates.pricing:read";
+const PRICING_WRITE_SCOPE = "rates.pricing:write";
+const BLOCK_READ_SCOPE = "inventory.blocks:read";
+const BLOCK_WRITE_SCOPE = "inventory.blocks:write";
+const POLICY_READ_SCOPE = "inventory.policy:read";
+const POLICY_WRITE_SCOPE = "inventory.policy:write";
+const HOLD_READ_SCOPE = "inventory.holds:read";
+const HOLD_WRITE_SCOPE = "inventory.holds:write";
+const OFFLINE_LEASE_READ_SCOPE = "inventory.offline_leases:read";
+const OFFLINE_LEASE_WRITE_SCOPE = "inventory.offline_leases:write";
+const RESERVATION_WRITE_SCOPE = "reservations.booking:write";
+const RESERVATION_GUEST_READ_SCOPE = "reservations.guests:read";
+const RESERVATION_GUEST_WRITE_SCOPE = "reservations.guests:write";
+const RESERVATION_LIFECYCLE_READ_SCOPE = "reservations.lifecycle:read";
+const RESERVATION_LIFECYCLE_WRITE_SCOPE = "reservations.lifecycle:write";
+const RESERVATION_SEGMENT_READ_SCOPE = "reservations.segments:read";
+const RESERVATION_SEGMENT_WRITE_SCOPE = "reservations.segments:write";
+const PARTY_READ_SCOPE = "crm.parties:read";
+const PARTY_WRITE_SCOPE = "crm.parties:write";
+const PROPERTY_PROFILE_READ_SCOPE = "identity.property-profile:read";
+const PROPERTY_PROFILE_WRITE_SCOPE = "identity.property-profile:write";
+const FOLIO_READ_SCOPE = "financials.folios:read";
+const FOLIO_OPEN_SCOPE = "financials.folios:open";
+const FOLIO_SERIES_CONFIGURE_SCOPE = "financials.folio-series:configure";
+const FOLIO_SETTLE_SCOPE = "financials.folios:settle";
+const FOLIO_CLOSE_SCOPE = "financials.folios:close";
+const FOLIO_TRANSFER_SCOPE = "financials.transfers:write";
+const CHARGE_WRITE_SCOPE = "financials.charges:write";
+const ADJUSTMENT_WRITE_SCOPE = "financials.adjustments:write";
+const ADJUSTMENT_POST_SEAL_SCOPE = "financials.adjustments:post-seal";
+const PAYMENT_READ_SCOPE = "financials.payments:read";
+const PAYMENT_WRITE_SCOPE = "financials.payments:write";
+const DEPOSIT_APPLY_SCOPE = "financials.deposits:apply";
+const CASHIER_READ_SCOPE = "financials.cashiers:read";
+const CASHIER_OPERATE_SCOPE = "financials.cashiers:operate";
+const CASHIER_SUPERVISE_SCOPE = "financials.cashiers:supervise";
+const RECEIVABLE_READ_SCOPE = "financials.receivables:read";
+const RECEIVABLE_TRANSFER_SCOPE = "financials.receivables:transfer";
+const RECEIVABLE_APPROVE_SCOPE = "financials.receivables:approve";
+const BUSINESS_DAY_READ_SCOPE = "financials.business-days:read";
+const BUSINESS_DAY_SEAL_SCOPE = "financials.business-days:seal";
+const BUSINESS_DAY_CARRY_SCOPE = "financials.business-day:carry-discrepancy";
+const BUSINESS_DAY_CARRY_APPROVE_SCOPE = "financials.business-day:approve-discrepancy-carry";
+const OWNER_TRUST_POST_SCOPE = "financials.trust:post";
+const OWNER_TRUST_APPROVE_SCOPE = "financials.trust:approve-negative";
+const CHECKIN_READ_SCOPE = "stay-operations.checkin:read";
+const CHECKIN_COMMIT_SCOPE = "stay-operations.checkin:commit";
+const CHECKIN_DIRTY_ROOM_OVERRIDE_SCOPE = "stay-operations.checkin:dirty-room-override";
+const CHECKOUT_READINESS_SCOPE = "stay-operations.checkout:read";
+const CHECKOUT_COMMIT_SCOPE = "stay-operations.checkout:commit";
+const VEHICLE_REGISTER_READ_SCOPE = "stay-operations.vehicles:read";
+const VEHICLE_PARK_SCOPE = "stay-operations.vehicles:park";
+const PICKUP_TASK_DISPATCH_SCOPE = "stay-operations.pickup-tasks:dispatch";
+const PICKUP_TASK_WORK_SCOPE = "stay-operations.pickup-tasks:work";
+const HOUSEKEEPING_READ_SCOPE = "housekeeping.tasks:read";
+const HOUSEKEEPING_WORK_SCOPE = "housekeeping.tasks:work";
+const HOUSEKEEPING_INSPECT_SCOPE = "housekeeping.tasks:inspect";
+const HOUSEKEEPING_CONDITION_INITIALIZE_SCOPE = "housekeeping.conditions:initialize";
+const HOUSEKEEPING_SHEET_READ_SCOPE = "housekeeping.sheets:read";
+const HOUSEKEEPING_SHEET_GENERATE_SCOPE = "housekeeping.sheets:generate";
+const HOUSEKEEPING_ARRIVAL_TASK_READ_SCOPE = "housekeeping.arrival-tasks:read";
+const HOUSEKEEPING_ARRIVAL_TASK_CREATE_SCOPE = "housekeeping.arrival-tasks:create";
+const HOUSEKEEPING_DISCREPANCY_READ_SCOPE = "housekeeping.discrepancies:read";
+const HOUSEKEEPING_DISCREPANCY_REPORT_SCOPE = "housekeeping.discrepancies:report";
+const FISCAL_SUBMISSION_REQUEST_SCOPE = "tax-fiscal.submissions:request";
+const FISCAL_SUBMISSION_RETRY_SCOPE = "tax-fiscal.submissions:retry";
+const FISCAL_SUBMISSION_READ_SCOPE = "tax-fiscal.submissions:read";
+const FISCAL_DOCUMENT_READ_SCOPE = "tax-fiscal.documents:read";
+const FISCAL_SERIES_CONFIGURE_SCOPE = "tax-fiscal.series:configure";
+const FISCAL_ISSUE_SCOPES = ["tax-fiscal.documents:issue", "tax-fiscal.india-valuation:finalize"] as const;
+const FISCAL_CREDIT_SCOPES = ["tax-fiscal.documents:issue", "financials.adjustments:write"] as const;
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+const ISO_INSTANT = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2})(?:\.(\d{1,3}))?)?(Z|([+-])(\d{2}):(\d{2}))$/;
+const LOCAL_DATE = /^(\d{4})-(\d{2})-(\d{2})$/;
+
+function isObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function exactKeys(value: Record<string, unknown>, required: readonly string[], optional: readonly string[] = []): boolean {
+  const keys = Object.keys(value);
+  return required.every((key) => keys.includes(key)) &&
+    keys.every((key) => required.includes(key) || optional.includes(key));
+}
+
+function propertyIdentityRenameBody(value: unknown): Readonly<{
+  expectedVersion: number;
+  name: string;
+}> | null {
+  if (typeof value !== "object" || value === null || utilTypes.isProxy(value)) return null;
+  try {
+    if (Array.isArray(value) || ![Object.prototype, null].includes(Object.getPrototypeOf(value))) return null;
+    const keys = Reflect.ownKeys(value);
+    if (keys.length !== 2 || !keys.includes("expectedVersion") || !keys.includes("name")) return null;
+    const expected = Object.getOwnPropertyDescriptor(value, "expectedVersion");
+    const name = Object.getOwnPropertyDescriptor(value, "name");
+    if (!expected || !("value" in expected) || !expected.enumerable ||
+        !name || !("value" in name) || !name.enumerable ||
+        typeof expected.value !== "number" || typeof name.value !== "string") return null;
+    return Object.freeze({ expectedVersion: expected.value, name: name.value });
+  } catch {
+    return null;
+  }
+}
+
+interface FiscalSubmissionRequestBody {
+  readonly documentId: string;
+  readonly providerExtensionId: string;
+}
+
+interface FiscalSubmissionRetryBody {
+  readonly providerExtensionId: string;
+}
+
+interface FiscalSeriesConfigurationBody {
+  readonly supplierRegistrationId: string;
+  readonly documentKind: "invoice" | "credit_note" | "debit_note";
+  readonly prefix: string;
+}
+
+function fiscalSeriesConfigurationBody(value: unknown): Readonly<FiscalSeriesConfigurationBody> | null {
+  if (typeof value !== "object" || value === null || Array.isArray(value) || utilTypes.isProxy(value)) return null;
+  try {
+    const prototype = Object.getPrototypeOf(value);
+    if (prototype !== Object.prototype && prototype !== null) return null;
+    const descriptors = Object.getOwnPropertyDescriptors(value);
+    const keys = Reflect.ownKeys(value);
+    const expected = ["supplierRegistrationId", "documentKind", "prefix"] as const;
+    if (keys.length !== expected.length || keys.some((key) => typeof key !== "string" || !expected.includes(key as typeof expected[number]))) return null;
+    for (const key of expected) {
+      const descriptor = descriptors[key];
+      if (!descriptor || !("value" in descriptor) || descriptor.get !== undefined || descriptor.set !== undefined || descriptor.enumerable !== true) return null;
+    }
+    const supplierRegistrationId = descriptors.supplierRegistrationId!.value;
+    const documentKind = descriptors.documentKind!.value;
+    const prefix = descriptors.prefix!.value;
+    if (typeof supplierRegistrationId !== "string" || !UUID.test(supplierRegistrationId) ||
+        (documentKind !== "invoice" && documentKind !== "credit_note" && documentKind !== "debit_note") ||
+        typeof prefix !== "string" || prefix.trim() !== prefix || prefix.length < 1 || prefix.length > 12 || !/^[A-Za-z0-9/-]+$/.test(prefix) || prefix.length + 1 > 16) return null;
+    return Object.freeze({ supplierRegistrationId, documentKind, prefix });
+  } catch { return null; }
+}
+
+function fiscalSubmissionBody(
+  value: unknown,
+  kind: "request",
+): Readonly<FiscalSubmissionRequestBody> | null;
+function fiscalSubmissionBody(
+  value: unknown,
+  kind: "retry",
+): Readonly<FiscalSubmissionRetryBody> | null;
+function fiscalSubmissionBody(
+  value: unknown,
+  kind: "request" | "retry",
+): Readonly<FiscalSubmissionRequestBody | FiscalSubmissionRetryBody> | null {
+  if (typeof value !== "object" || value === null || utilTypes.isProxy(value)) return null;
+  try {
+    if (Array.isArray(value)) return null;
+    const prototype = Object.getPrototypeOf(value);
+    if (prototype !== Object.prototype && prototype !== null) return null;
+    const descriptors = Object.getOwnPropertyDescriptors(value);
+    const keys = Reflect.ownKeys(value);
+    const expected = kind === "request" ? ["documentId", "providerExtensionId"] : ["providerExtensionId"];
+    if (keys.some((key) => typeof key === "symbol") || keys.length !== expected.length
+        || !keys.every((key) => expected.includes(String(key)))) return null;
+    const snapshot: Record<string, unknown> = {};
+    for (const key of expected) {
+      const descriptor = descriptors[key];
+      if (!descriptor || descriptor.get !== undefined || descriptor.set !== undefined
+          || !("value" in descriptor) || descriptor.enumerable !== true) return null;
+      snapshot[key] = descriptor.value;
+    }
+    if (typeof snapshot.providerExtensionId !== "string" || !UUID.test(snapshot.providerExtensionId)) return null;
+    if (kind === "retry") return Object.freeze({ providerExtensionId: snapshot.providerExtensionId });
+    if (typeof snapshot.documentId !== "string" || !UUID.test(snapshot.documentId)) return null;
+    return Object.freeze({ documentId: snapshot.documentId, providerExtensionId: snapshot.providerExtensionId });
+  } catch {
+    return null;
+  }
+}
+
+function hasJsonContentType(request: Request): boolean {
+  const value = request.headers.get("content-type");
+  return value !== null && /^application\/json(?:\s*;\s*charset=utf-8)?$/i.test(value);
+}
+
+/** Snapshot only the public reason field; never invoke a caller's getters/proxy. */
+function fiscalCreditNoteBody(value: unknown): Readonly<{ reason: unknown }> | null {
+  if (typeof value !== "object" || value === null || utilTypes.isProxy(value)) return null;
+  try {
+    if (Array.isArray(value) || ![Object.prototype, null].includes(Object.getPrototypeOf(value))) return null;
+    const keys = Reflect.ownKeys(value);
+    if (keys.length !== 1 || keys[0] !== "reason") return null;
+    const descriptor = Object.getOwnPropertyDescriptor(value, "reason");
+    if (!descriptor || !("value" in descriptor) || !descriptor.enumerable) return null;
+    return Object.freeze({ reason: descriptor.value });
+  } catch { return null; }
+}
+
+/** Durable receipt bytes are authoritative; request/replay metadata belongs in headers. */
+function fiscalCreditNoteResponse(request: Request, receiptJson: string, replayed?: boolean, requestId?: string): Response {
+  return new Response(receiptJson, {
+    status: replayed === false ? 201 : 200,
+    headers: {
+      "content-type": "application/json; charset=utf-8",
+      "cache-control": "no-store",
+      "x-correlation-id": requestId ?? correlationId(request),
+      ...(replayed === undefined ? {} : { "idempotency-replayed": String(replayed) }),
+    },
+  });
+}
+
+function invoiceStaffBody(value: unknown, issue: boolean): Readonly<{
+  recipientRegistrationId: string | null; calendarEvidence: IndiaNativeFiscalInvoiceCalendarEvidence | null;
+  expectedSelectorHash?: string; expectedConfirmationHash?: string;
+}> | null {
+  if (typeof value !== "object" || value === null || utilTypes.isProxy(value)) return null;
+  try {
+    if (Array.isArray(value) || ![Object.prototype, null].includes(Object.getPrototypeOf(value))) return null;
+    const keys = issue ? ["recipientRegistrationId", "calendarEvidence", "expectedSelectorHash", "expectedConfirmationHash"] : ["recipientRegistrationId", "calendarEvidence"];
+    const own = Reflect.ownKeys(value);
+    if (own.length !== keys.length || own.some(key => typeof key !== "string" || !keys.includes(key))) return null;
+    const input: Record<string, unknown> = Object.create(null);
+    for (const key of keys) {
+      const descriptor = Object.getOwnPropertyDescriptor(value, key);
+      if (!descriptor || !("value" in descriptor) || !descriptor.enumerable) return null;
+      input[key] = descriptor.value;
+    }
+    const recipient = input.recipientRegistrationId;
+    if ((recipient !== null || issue) && (typeof recipient !== "string" || !UUID.test(recipient))) return null;
+    const calendarEvidence = snapshotIndiaNativeFiscalInvoiceCalendarEvidence(input.calendarEvidence);
+    if (!issue) return Object.freeze({ recipientRegistrationId: recipient as string | null, calendarEvidence });
+    if (typeof input.expectedSelectorHash !== "string" || !/^[0-9a-f]{64}$/.test(input.expectedSelectorHash)
+      || typeof input.expectedConfirmationHash !== "string" || !/^[0-9a-f]{64}$/.test(input.expectedConfirmationHash)) return null;
+    return Object.freeze({ recipientRegistrationId: recipient as string, calendarEvidence,
+      expectedSelectorHash: input.expectedSelectorHash, expectedConfirmationHash: input.expectedConfirmationHash });
+  } catch { return null; }
+}
+
+function invoiceSqlState(error: unknown): string | null {
+  if (typeof error !== "object" || error === null || utilTypes.isProxy(error)) return null;
+  for (const key of ["errno", "sqlState", "code"]) {
+    const descriptor = Object.getOwnPropertyDescriptor(error, key);
+    if (descriptor && "value" in descriptor && typeof descriptor.value === "string"
+      && /^[A-Z0-9]{5}$/.test(descriptor.value)) return descriptor.value;
+  }
+  return null;
+}
+
+function invoiceSearchBody(value: unknown): Readonly<Record<string, unknown>> | null {
+  if (typeof value !== "object" || value === null || utilTypes.isProxy(value)) return null;
+  try {
+    if (Array.isArray(value) || (Object.getPrototypeOf(value) !== Object.prototype && Object.getPrototypeOf(value) !== null)) return null;
+    const keys = Reflect.ownKeys(value);
+    const allowed = ["issuedFrom", "issuedBefore", "reservationId", "folioId", "query", "after", "limit"];
+    if (!keys.includes("issuedFrom") || !keys.includes("issuedBefore") || keys.some(key => typeof key !== "string" || !allowed.includes(key))) return null;
+    const descriptors = Object.getOwnPropertyDescriptors(value);
+    const snapshot: Record<string, unknown> = Object.create(null);
+    for (const key of keys as string[]) {
+      const descriptor = descriptors[key];
+      if (!descriptor || !("value" in descriptor) || !descriptor.enumerable) return null;
+      snapshot[key] = descriptor.value;
+    }
+    return Object.freeze(snapshot);
+  } catch { return null; }
+}
+
+const POSITIVE_INT64 = /^[1-9][0-9]*$/;
+const INT64_MAX = 9_223_372_036_854_775_807n;
+const CHARGE_TX_CODE = /^[A-Z0-9][A-Z0-9._-]{0,31}$/;
+const CHARGE_QUANTITY = /^(?:0\.[0-9]{1,3}|[1-9][0-9]{0,6}(?:\.[0-9]{1,3})?)$/;
+const IDEMPOTENCY_KEY = /^[\x21-\x7e]{8,200}$/;
+const FOLIO_REFERENCE = /^[A-Z0-9][A-Z0-9._\/-]{0,63}$/;
+
+function ownerTrustExpenseBody(body: unknown, approvalOptional = false): {
+  amountMinor: string;
+  reason: string;
+  approvalRequestId?: string;
+} | null {
+  if (!isObject(body) || !exactKeys(body, ["amountMinor", "reason"], approvalOptional ? ["approvalRequestId"] : []) ||
+      typeof body.amountMinor !== "string" || !POSITIVE_INT64.test(body.amountMinor) ||
+      BigInt(body.amountMinor) > INT64_MAX || typeof body.reason !== "string" || body.reason.trim() !== body.reason ||
+      body.reason.normalize("NFC") !== body.reason ||
+      new TextEncoder().encode(body.reason).length < 1 || new TextEncoder().encode(body.reason).length > 500 ||
+      /[\x00-\x1f\x7f\u200b-\u200d\u202a-\u202e\u2060\u2066-\u2069\ufeff]/u.test(body.reason) ||
+      (body.approvalRequestId !== undefined && (typeof body.approvalRequestId !== "string" || !UUID.test(body.approvalRequestId)))) return null;
+  return Object.freeze({ amountMinor: body.amountMinor, reason: body.reason,
+    ...(body.approvalRequestId === undefined ? {} : { approvalRequestId: body.approvalRequestId }) });
+}
+
+function ownerTrustPageQuery(request: Request): { after?: string; limit?: number } | null {
+  const query = new URL(request.url).searchParams;
+  if ([...query.keys()].some((key) => key !== "after" && key !== "limit") ||
+      query.getAll("after").length > 1 || query.getAll("limit").length > 1) return null;
+  const after = query.get("after"); const rawLimit = query.get("limit");
+  if (after !== null && !/^[A-Za-z0-9_-]{1,2048}$/.test(after)) return null;
+  if (rawLimit !== null && !/^(?:[1-9]|[1-9][0-9]|100)$/.test(rawLimit)) return null;
+  return Object.freeze({ ...(after === null ? {} : { after }), ...(rawLimit === null ? {} : { limit: Number(rawLimit) }) });
+}
+
+function statementQuery(request: Request): { after?: string; limit?: number } | null {
+  const query = new URL(request.url).searchParams;
+  if ([...query.keys()].some((key) => key !== "after" && key !== "limit") ||
+      query.getAll("after").length > 1 || query.getAll("limit").length > 1) return null;
+  const after = query.get("after");
+  const rawLimit = query.get("limit");
+  if (after !== null && (after.length < 1 || after.length > 512 || !/^[A-Za-z0-9_-]+$/.test(after))) return null;
+  if (rawLimit !== null && !/^(?:[1-9]|[1-9][0-9]|100)$/.test(rawLimit)) return null;
+  return Object.freeze({
+    ...(after === null ? {} : { after }),
+    ...(rawLimit === null ? {} : { limit: Number(rawLimit) }),
+  });
+}
+
+function vehicleRegisterQuery(request: Request): {
+  registration?: string;
+  cursor?: string;
+  limit?: number;
+} | null {
+  const query = new URL(request.url).searchParams;
+  const allowed = ["registration", "cursor", "limit"] as const;
+  if ([...query.keys()].some((key) => !allowed.includes(key as typeof allowed[number])) ||
+      allowed.some((key) => query.getAll(key).length > 1)) return null;
+  const registration = query.get("registration");
+  const cursor = query.get("cursor");
+  const rawLimit = query.get("limit");
+  if (registration !== null && registration.length > 512) return null;
+  if (cursor !== null && !/^[A-Za-z0-9_-]{1,2048}$/.test(cursor)) return null;
+  if (rawLimit !== null && !/^(?:[1-9]|[1-9][0-9]|100)$/.test(rawLimit)) return null;
+  return Object.freeze({
+    ...(registration === null ? {} : { registration }),
+    ...(cursor === null ? {} : { cursor }),
+    ...(rawLimit === null ? {} : { limit: Number(rawLimit) }),
+  });
+}
+
+function vehicleRegisterRowJson(vehicle: VehicleRegisterRow): JsonValue {
+  return jsonValue({
+    vehicleId: vehicle.vehicleId,
+    registration: vehicle.registration,
+    make: vehicle.make,
+    model: vehicle.model,
+    colour: vehicle.colour,
+    driverName: vehicle.driverName,
+    reservationId: vehicle.reservationId,
+    partyId: vehicle.partyId,
+    enteredAt: vehicle.enteredAt,
+    exitedAt: vehicle.exitedAt,
+  });
+}
+
+function vehicleRegisterJson(page: VehicleRegisterPage): JsonValue {
+  return jsonValue({
+    vehicles: page.vehicles.map(vehicleRegisterRowJson),
+    nextCursor: page.nextCursor,
+  });
+}
+
+function housekeepingConditionQuery(request: Request): {
+  condition?: "clean" | "dirty" | "pickup" | "inspected";
+  cursor?: string;
+  limit?: number;
+} | null {
+  const query = new URL(request.url).searchParams;
+  const allowed = ["condition", "cursor", "limit"] as const;
+  if ([...query.keys()].some((key) => !allowed.includes(key as typeof allowed[number])) ||
+      allowed.some((key) => query.getAll(key).length > 1)) return null;
+  const rawCondition = query.get("condition");
+  const condition = rawCondition === null
+    ? undefined
+    : (["clean", "dirty", "pickup", "inspected"] as const)
+      .find((candidate) => candidate === rawCondition);
+  if (rawCondition !== null && condition === undefined) return null;
+  const cursor = query.get("cursor");
+  const rawLimit = query.get("limit");
+  if (cursor !== null && !/^[A-Za-z0-9_-]{1,2048}$/.test(cursor)) return null;
+  if (rawLimit !== null && !/^(?:[1-9]|[1-9][0-9]|100)$/.test(rawLimit)) return null;
+  return Object.freeze({
+    ...(condition === undefined ? {} : { condition }),
+    ...(cursor === null ? {} : { cursor }),
+    ...(rawLimit === null ? {} : { limit: Number(rawLimit) }),
+  });
+}
+
+function housekeepingConditionJson(page: HousekeepingConditionPage): JsonValue {
+  return jsonValue({
+    rooms: page.rooms.map((room) => ({
+      spaceId: room.spaceId,
+      code: room.code,
+      floor: room.floor,
+      condition: room.condition,
+      updatedAt: room.updatedAt,
+    })),
+    nextCursor: page.nextCursor,
+  });
+}
+
+function reservationBoardJson(page: ReservationBoardPage): JsonValue {
+  return jsonValue({
+    reservations: page.reservations.map((reservation) => ({
+      reservationId: reservation.reservationId,
+      primaryPartyId: reservation.primaryPartyId,
+      confirmationNo: reservation.confirmationNo,
+      status: reservation.status,
+      operationalState: reservation.operationalState,
+      primaryGuestDisplayName: reservation.primaryGuestDisplayName,
+      stayFrom: reservation.stayFrom,
+      stayTo: reservation.stayTo,
+      unitTypeLabel: reservation.unitTypeLabel,
+      sellableUnitLabel: reservation.sellableUnitLabel,
+      ratePlanLabel: reservation.ratePlanLabel,
+      adults: reservation.adults,
+      children: reservation.children,
+      channelCode: reservation.channelCode,
+      currency: reservation.currency,
+      createdAt: reservation.createdAt,
+      arrivalTravel: reservation.arrivalTravel,
+      departureTravel: reservation.departureTravel,
+    })),
+    nextCursor: page.nextCursor,
+  });
+}
+
+interface ChargeDraft {
+  readonly txCode: string;
+  readonly amountMinor: string;
+  readonly quantity?: string;
+  readonly idempotencyKey: string;
+}
+
+interface CorrectionDraft {
+  readonly reversesJournalId: string;
+  readonly reason: string;
+  readonly idempotencyKey: string;
+}
+
+interface FolioStatusDraft {
+  readonly action: "settle" | "close";
+  readonly idempotencyKey: string;
+}
+
+interface ReceivableAccountDraft { readonly receivableAccountId: string; }
+
+interface ReceivableTransferDraft extends ReceivableAccountDraft {
+  readonly reason: string;
+  readonly approvalId?: string;
+}
+
+interface CheckInDraft { readonly reason?: string; }
+
+type PickupTaskTransitionDraft =
+  | Readonly<{
+    action: "assign";
+    expectedTaskStatus: "open";
+    expectedAssigneePartyId: null;
+    staffPartyId: string;
+  }>
+  | Readonly<{
+    action: "start";
+    expectedTaskStatus: "assigned";
+    expectedAssigneePartyId: string;
+  }>
+  | Readonly<{
+    action: "complete";
+    expectedTaskStatus: "in_progress";
+    expectedAssigneePartyId: string;
+  }>;
+
+function parsePickupTaskTransition(
+  action: "assign" | "start" | "complete",
+  body: unknown,
+): PickupTaskTransitionDraft | null {
+  if (!isObject(body)) return null;
+  if (action === "assign") {
+    if (!exactKeys(body, ["expectedTaskStatus", "expectedAssigneePartyId", "staffPartyId"]) ||
+        body.expectedTaskStatus !== "open" || body.expectedAssigneePartyId !== null ||
+        typeof body.staffPartyId !== "string" || !UUID.test(body.staffPartyId)) return null;
+    return Object.freeze({
+      action,
+      expectedTaskStatus: "open",
+      expectedAssigneePartyId: null,
+      staffPartyId: body.staffPartyId,
+    });
+  }
+  if (!exactKeys(body, ["expectedTaskStatus", "expectedAssigneePartyId"]) ||
+      (action === "start" ? body.expectedTaskStatus !== "assigned" : body.expectedTaskStatus !== "in_progress") ||
+      typeof body.expectedAssigneePartyId !== "string" ||
+      !UUID.test(body.expectedAssigneePartyId)) return null;
+  return action === "start"
+    ? Object.freeze({ action, expectedTaskStatus: "assigned", expectedAssigneePartyId: body.expectedAssigneePartyId })
+    : Object.freeze({ action, expectedTaskStatus: "in_progress", expectedAssigneePartyId: body.expectedAssigneePartyId });
+}
+
+interface HousekeepingTransitionDraft {
+  readonly action: HousekeepingTaskAction;
+  readonly expectedTaskStatus: "assigned" | "in_progress" | "done";
+  readonly expectedRoomCondition: "clean" | "dirty" | "pickup" | "inspected";
+  readonly expectedRoomUpdatedAt: string;
+}
+
+interface HousekeepingConditionInitializeDraft {
+  readonly expectedRoomCondition: null;
+  readonly roomCondition: "clean" | "dirty" | "pickup";
+}
+
+function parseHousekeepingConditionInitialize(body: unknown): HousekeepingConditionInitializeDraft | null {
+  return isObject(body) && exactKeys(body, ["expectedRoomCondition", "roomCondition"]) &&
+    body.expectedRoomCondition === null &&
+    (body.roomCondition === "clean" || body.roomCondition === "dirty" || body.roomCondition === "pickup")
+    ? Object.freeze({ expectedRoomCondition: null, roomCondition: body.roomCondition })
+    : null;
+}
+
+interface HousekeepingDiscrepancyReportDraft {
+  readonly spaceId: string;
+  readonly observedPresence: HousekeepingObservedPresence;
+  readonly observedPersons: number | null;
+}
+
+function parseHousekeepingDiscrepancyReport(body: unknown): HousekeepingDiscrepancyReportDraft | null {
+  if (!isObject(body) || !exactKeys(body, ["spaceId", "observedPresence", "observedPersons"]) ||
+      typeof body.spaceId !== "string" || !UUID.test(body.spaceId) ||
+      (body.observedPresence !== "occupied" && body.observedPresence !== "vacant")) return null;
+  if (body.observedPresence === "vacant") {
+    return body.observedPersons === null
+      ? Object.freeze({ spaceId: body.spaceId, observedPresence: body.observedPresence, observedPersons: null })
+      : null;
+  }
+  return typeof body.observedPersons === "number" && Number.isInteger(body.observedPersons) &&
+    body.observedPersons >= 1 && body.observedPersons <= 99
+    ? Object.freeze({ spaceId: body.spaceId, observedPresence: body.observedPresence,
+      observedPersons: body.observedPersons })
+    : null;
+}
+
+function parseVehicleParkingAssignment(body: unknown): { readonly parkingSpaceId: string } | null {
+  if (!isObject(body) || !exactKeys(body, ["parkingSpaceId"]) || !UUID.test(String(body.parkingSpaceId))) {
+    return null;
+  }
+  return Object.freeze({ parkingSpaceId: String(body.parkingSpaceId) });
+}
+
+interface HousekeepingSheetGenerateDraft {
+  readonly sheetDate: string;
+  readonly attendantPartyId: string;
+}
+
+interface ArrivalRoomCleaningCreateDraft {
+  readonly attendantPartyId: string;
+}
+
+function parseArrivalRoomCleaningCreate(body: unknown): ArrivalRoomCleaningCreateDraft | null {
+  return isObject(body) && exactKeys(body, ["attendantPartyId"]) &&
+    typeof body.attendantPartyId === "string" && UUID.test(body.attendantPartyId)
+    ? Object.freeze({ attendantPartyId: body.attendantPartyId })
+    : null;
+}
+
+function parseHousekeepingTransition(body: unknown): HousekeepingTransitionDraft | null {
+  if (!isObject(body) || !exactKeys(body, [
+    "action", "expectedTaskStatus", "expectedRoomCondition", "expectedRoomUpdatedAt",
+  ])) return null;
+  if (body.action !== "start" && body.action !== "complete" && body.action !== "verify") return null;
+  if (body.expectedTaskStatus !== "assigned" && body.expectedTaskStatus !== "in_progress" && body.expectedTaskStatus !== "done") return null;
+  const expectedTaskStatus = body.expectedTaskStatus;
+  const expectedForAction = body.action === "start" ? "assigned" : body.action === "complete" ? "in_progress" : "done";
+  if (expectedTaskStatus !== expectedForAction) return null;
+  if (body.expectedRoomCondition !== "clean" && body.expectedRoomCondition !== "dirty" &&
+      body.expectedRoomCondition !== "pickup" && body.expectedRoomCondition !== "inspected") return null;
+  if (typeof body.expectedRoomUpdatedAt !== "string") return null;
+  const roomUpdatedAt = new Date(body.expectedRoomUpdatedAt);
+  if (!Number.isFinite(roomUpdatedAt.getTime()) || roomUpdatedAt.toISOString() !== body.expectedRoomUpdatedAt) return null;
+  return Object.freeze({
+    action: body.action,
+    expectedTaskStatus,
+    expectedRoomCondition: body.expectedRoomCondition,
+    expectedRoomUpdatedAt: body.expectedRoomUpdatedAt,
+  });
+}
+
+function housekeepingBoardQuery(request: Request): { readonly limit?: number } | null {
+  const query = new URL(request.url).searchParams;
+  if ([...query.keys()].some((key) => key !== "limit") || query.getAll("limit").length > 1) return null;
+  const rawLimit = query.get("limit");
+  if (rawLimit !== null && !/^(?:[1-9]|[1-9][0-9]|1[0-9]{2}|200)$/.test(rawLimit)) return null;
+  return Object.freeze(rawLimit === null ? {} : { limit: Number(rawLimit) });
+}
+
+function housekeepingSheetDateQuery(request: Request): { readonly sheetDate: string } | null {
+  const query = new URL(request.url).searchParams;
+  if ([...query.keys()].some((key) => key !== "sheetDate") || query.getAll("sheetDate").length !== 1) return null;
+  const sheetDate = query.get("sheetDate");
+  return sheetDate !== null && LOCAL_DATE.test(sheetDate) ? Object.freeze({ sheetDate }) : null;
+}
+
+function parseHousekeepingSheetGenerate(body: unknown): HousekeepingSheetGenerateDraft | null {
+  return isObject(body) && exactKeys(body, ["sheetDate", "attendantPartyId"]) &&
+    typeof body.sheetDate === "string" && LOCAL_DATE.test(body.sheetDate) &&
+    typeof body.attendantPartyId === "string" && UUID.test(body.attendantPartyId)
+    ? Object.freeze({ sheetDate: body.sheetDate, attendantPartyId: body.attendantPartyId })
+    : null;
+}
+
+function allowedHousekeepingActions(
+  eligibleAction: HousekeepingTaskAction | null,
+  workGranted: boolean,
+  inspectGranted: boolean,
+): readonly HousekeepingTaskAction[] {
+  if (eligibleAction === "verify") return Object.freeze(inspectGranted ? ["verify"] : []);
+  if (eligibleAction === "start" || eligibleAction === "complete") {
+    return Object.freeze(workGranted ? [eligibleAction] : []);
+  }
+  return Object.freeze([]);
+}
+
+function operatorHousekeepingItem(
+  item: HousekeepingTaskBoardItem,
+  workGranted: boolean,
+  inspectGranted: boolean,
+) {
+  const { assigneePartyId, eligibleAction, ...evidence } = item;
+  return Object.freeze({
+    ...evidence,
+    assigned: assigneePartyId !== null,
+    allowedActions: allowedHousekeepingActions(eligibleAction, workGranted, inspectGranted),
+  });
+}
+
+function housekeepingTaskDetailEligibleAction(task: HousekeepingTaskDetail): HousekeepingTaskAction | null {
+  if (task.taskStatus === "assigned" && task.assigned) return "start";
+  if (task.taskStatus === "in_progress" && (task.roomCondition === "dirty" || task.roomCondition === "pickup")) {
+    return "complete";
+  }
+  if (task.taskStatus === "done" && task.roomCondition === "clean") return "verify";
+  return null;
+}
+
+function operatorHousekeepingTaskDetail(
+  task: HousekeepingTaskDetail,
+  workGranted: boolean,
+  inspectGranted: boolean,
+) {
+  return Object.freeze({
+    taskId: task.taskId,
+    taskStatus: task.taskStatus,
+    spaceId: task.spaceId,
+    spaceCode: task.spaceCode,
+    floor: task.floor,
+    roomCondition: task.roomCondition,
+    roomUpdatedAt: task.roomUpdatedAt,
+    assigned: task.assigned,
+    dueAt: task.dueAt,
+    priority: task.priority,
+    completedAt: task.completedAt,
+    allowedActions: allowedHousekeepingActions(
+      housekeepingTaskDetailEligibleAction(task),
+      workGranted,
+      inspectGranted,
+    ),
+  });
+}
+
+function operatorHousekeepingDiscrepancy(discrepancy: HousekeepingDiscrepancy) {
+  return Object.freeze({
+    spaceId: discrepancy.spaceId,
+    spaceCode: discrepancy.code,
+    floor: discrepancy.floor,
+    kind: discrepancy.kind,
+    reported: discrepancy.reported,
+    systemState: discrepancy.systemState,
+    reportedBy: discrepancy.reportedBy,
+    reportedAt: discrepancy.reportedAt,
+  });
+}
+
+function parseCheckIn(body: unknown): CheckInDraft | null {
+  if (!isObject(body) || !exactKeys(body, [], ["reason"]) ||
+      (body.reason !== undefined && (typeof body.reason !== "string" || body.reason.trim() !== body.reason ||
+        body.reason.length < 1 || body.reason.length > 500 || /[\u0000-\u001f\u007f]/.test(body.reason)))) return null;
+  return Object.freeze(body.reason === undefined ? {} : { reason: body.reason });
+}
+
+function parseReceivableAccount(body: unknown): ReceivableAccountDraft | null {
+  return isObject(body) && exactKeys(body, ["receivableAccountId"]) &&
+    typeof body.receivableAccountId === "string" && UUID.test(body.receivableAccountId)
+    ? Object.freeze({ receivableAccountId: body.receivableAccountId })
+    : null;
+}
+
+function parseReceivableTransfer(body: unknown): ReceivableTransferDraft | null {
+  if (!isObject(body) || !exactKeys(body, ["receivableAccountId", "reason"], ["approvalId"]) ||
+      typeof body.receivableAccountId !== "string" || !UUID.test(body.receivableAccountId) ||
+      typeof body.reason !== "string" || body.reason.trim() !== body.reason ||
+      body.reason.length < 1 || body.reason.length > 500 || /[\u0000-\u001f\u007f]/.test(body.reason) ||
+      (body.approvalId !== undefined && (typeof body.approvalId !== "string" || !UUID.test(body.approvalId)))) return null;
+  return Object.freeze({
+    receivableAccountId: body.receivableAccountId,
+    reason: body.reason,
+    ...(body.approvalId === undefined ? {} : { approvalId: body.approvalId }),
+  });
+}
+
+interface CashierDenominationDraft extends Readonly<Record<string, unknown>> {
+  readonly denominationMinor: string;
+  readonly quantity: string;
+}
+
+function parseCashierDenominations(value: unknown): readonly CashierDenominationDraft[] | null {
+  if (!Array.isArray(value) || value.length < 1 || value.length > 100) return null;
+  const denominations: CashierDenominationDraft[] = [];
+  const seen = new Set<string>();
+  for (const line of value) {
+    if (!isObject(line) || !exactKeys(line, ["denominationMinor", "quantity"]) ||
+        typeof line.denominationMinor !== "string" || !POSITIVE_INT64.test(line.denominationMinor) ||
+        BigInt(line.denominationMinor) > INT64_MAX || typeof line.quantity !== "string" ||
+        !/^(?:0|[1-9][0-9]*)$/.test(line.quantity) || BigInt(line.quantity) > INT64_MAX ||
+        seen.has(line.denominationMinor)) return null;
+    seen.add(line.denominationMinor);
+    denominations.push(Object.freeze({ denominationMinor: line.denominationMinor, quantity: line.quantity }));
+  }
+  return Object.freeze(denominations);
+}
+
+interface CashierOpenDraft {
+  readonly drawerId: string;
+  readonly denominations: readonly CashierDenominationDraft[];
+}
+
+function parseCashierOpen(body: unknown): CashierOpenDraft | null {
+  if (!isObject(body) || !exactKeys(body, ["drawerId", "denominations"]) ||
+      typeof body.drawerId !== "string" || !UUID.test(body.drawerId)) return null;
+  const denominations = parseCashierDenominations(body.denominations);
+  return denominations ? Object.freeze({ drawerId: body.drawerId, denominations }) : null;
+}
+
+interface CashierCountDraft { readonly denominations: readonly CashierDenominationDraft[]; }
+
+function parseCashierCount(body: unknown): CashierCountDraft | null {
+  if (!isObject(body) || !exactKeys(body, ["denominations"])) return null;
+  const denominations = parseCashierDenominations(body.denominations);
+  return denominations ? Object.freeze({ denominations }) : null;
+}
+
+interface CashierCloseDraft {
+  readonly countId: string;
+  readonly reason?: string;
+  readonly approvalId?: string;
+}
+
+function parseCashierApprovalRequest(body: unknown): { readonly countId: string } | null {
+  return isObject(body) && exactKeys(body, ["countId"]) && typeof body.countId === "string" && UUID.test(body.countId)
+    ? Object.freeze({ countId: body.countId })
+    : null;
+}
+
+function parseCashierClose(body: unknown): CashierCloseDraft | null {
+  if (!isObject(body) || !exactKeys(body, ["countId"], ["reason", "approvalId"]) ||
+      typeof body.countId !== "string" || !UUID.test(body.countId) ||
+      (body.reason !== undefined && (typeof body.reason !== "string" || body.reason !== body.reason.trim() ||
+        body.reason.length < 1 || body.reason.length > 500 || /[\u0000-\u001f\u007f]/.test(body.reason))) ||
+      (body.approvalId !== undefined && (typeof body.approvalId !== "string" || !UUID.test(body.approvalId)))) return null;
+  return Object.freeze({ countId: body.countId, ...(body.reason === undefined ? {} : { reason: body.reason }),
+    ...(body.approvalId === undefined ? {} : { approvalId: body.approvalId }) });
+}
+
+function parseFolioStatus(body: unknown): FolioStatusDraft | null {
+  if (!isObject(body) || !exactKeys(body, ["action", "idempotencyKey"]) ||
+      (body.action !== "settle" && body.action !== "close") ||
+      typeof body.idempotencyKey !== "string" || !IDEMPOTENCY_KEY.test(body.idempotencyKey)) return null;
+  return Object.freeze({ action: body.action, idempotencyKey: body.idempotencyKey });
+}
+
+const FOLIO_TRANSFER_FIELDS = ["sourceFolioId", "destinationFolioId", "newWindowName", "groupIds", "reason", "generation", "previewRevision"] as const;
+const FOLIO_TRANSFER_REVISION = /^[A-Za-z0-9_-]{1,512}$/;
+
+interface FolioTransferDraft {
+  readonly sourceFolioId: string;
+  readonly destinationFolioId?: string;
+  readonly newWindowName?: string;
+  readonly groupIds: readonly string[];
+  readonly reason: string;
+  readonly generation: string;
+  readonly previewRevision: string;
+}
+
+function parseFolioTransfer(body: unknown): FolioTransferDraft | null {
+  if (!isObject(body) || !exactKeys(body, [...FOLIO_TRANSFER_FIELDS])) return null;
+  const originId = body[FOLIO_TRANSFER_FIELDS[0]];
+  const destinationId = body[FOLIO_TRANSFER_FIELDS[1]];
+  const destinationName = body[FOLIO_TRANSFER_FIELDS[2]];
+  const groups = body[FOLIO_TRANSFER_FIELDS[3]];
+  const reason = body[FOLIO_TRANSFER_FIELDS[4]];
+  const generation = body[FOLIO_TRANSFER_FIELDS[5]];
+  const revision = body[FOLIO_TRANSFER_FIELDS[6]];
+  if (typeof originId !== "string" || !UUID.test(originId) ||
+      (destinationId !== null && (typeof destinationId !== "string" || !UUID.test(destinationId))) ||
+      (destinationName !== null && (typeof destinationName !== "string" ||
+        destinationName !== destinationName.trim() || destinationName.length < 1 || destinationName.length > 80)) ||
+      (destinationId === null) === (destinationName === null) ||
+      !Array.isArray(groups) || groups.length < 1 || groups.length > 50 ||
+      groups.some((id) => typeof id !== "string" || !UUID.test(id)) || new Set(groups).size !== groups.length ||
+      typeof reason !== "string" || reason !== reason.trim() || reason.length < 1 || reason.length > 500 ||
+      typeof generation !== "string" || !FOLIO_TRANSFER_REVISION.test(generation) ||
+      typeof revision !== "string" || (revision.length > 0 && !FOLIO_TRANSFER_REVISION.test(revision))) return null;
+  return Object.freeze({
+    [FOLIO_TRANSFER_FIELDS[0]]: originId,
+    ...(destinationId === null ? {} : { [FOLIO_TRANSFER_FIELDS[1]]: destinationId }),
+    ...(destinationName === null ? {} : { [FOLIO_TRANSFER_FIELDS[2]]: destinationName }),
+    [FOLIO_TRANSFER_FIELDS[3]]: Object.freeze([...groups] as string[]),
+    [FOLIO_TRANSFER_FIELDS[4]]: reason,
+    [FOLIO_TRANSFER_FIELDS[5]]: generation,
+    [FOLIO_TRANSFER_FIELDS[6]]: revision,
+  }) as unknown as FolioTransferDraft;
+}
+
+function parseCharge(request: Request, body: unknown): ChargeDraft | null {
+  if (!isObject(body) || !exactKeys(body, ["txCode", "amountMinor"], ["quantity"]) ||
+      typeof body.txCode !== "string" || !CHARGE_TX_CODE.test(body.txCode) ||
+      typeof body.amountMinor !== "string" || !POSITIVE_INT64.test(body.amountMinor) ||
+      BigInt(body.amountMinor) > INT64_MAX ||
+      (body.quantity !== undefined &&
+        (typeof body.quantity !== "string" || !CHARGE_QUANTITY.test(body.quantity) ||
+          !/[1-9]/.test(body.quantity)))) return null;
+  const idempotencyKey = request.headers.get("idempotency-key");
+  if (!idempotencyKey || !IDEMPOTENCY_KEY.test(idempotencyKey)) return null;
+  return Object.freeze({
+    txCode: body.txCode,
+    amountMinor: body.amountMinor,
+    ...(body.quantity === undefined ? {} : { quantity: body.quantity }),
+    idempotencyKey,
+  });
+}
+
+function parseCorrection(request: Request, body: unknown): CorrectionDraft | null {
+  if (!isObject(body) || !exactKeys(body, ["reversesJournalId", "reason"]) ||
+      typeof body.reversesJournalId !== "string" || !UUID.test(body.reversesJournalId) ||
+      typeof body.reason !== "string" || body.reason.length < 1 || body.reason.length > 500 ||
+      body.reason.trim() !== body.reason || /[\u0000-\u001f\u007f]/.test(body.reason)) return null;
+  const idempotencyKey = request.headers.get("idempotency-key");
+  if (!idempotencyKey || !IDEMPOTENCY_KEY.test(idempotencyKey)) return null;
+  return Object.freeze({
+    reversesJournalId: body.reversesJournalId,
+    reason: body.reason,
+    idempotencyKey,
+  });
+}
+
+function correlationId(request: Request): string {
+  const candidate = request.headers.get("x-correlation-id");
+  return candidate && UUID.test(candidate) ? candidate : crypto.randomUUID();
+}
+
+function apiResponse(
+  request: Request,
+  body: unknown,
+  status = 200,
+  extraHeaders: HeadersInit = {},
+): Response {
+  const correlation = correlationId(request);
+  return Response.json(body, {
+    status,
+    headers: {
+      "cache-control": "no-store",
+      "x-correlation-id": correlation,
+      ...Object.fromEntries(new Headers(extraHeaders)),
+    },
+  });
+}
+
+function apiError(
+  request: Request,
+  status: number,
+  type: string,
+  title: string,
+  detail: string,
+  evidence: Readonly<Record<string, unknown>> = {},
+  extraHeaders: HeadersInit = {},
+): Response {
+  const correlation = correlationId(request);
+  return Response.json({ type, title, status, detail, ...evidence, correlation_id: correlation }, {
+    status,
+    headers: {
+      "cache-control": "no-store",
+      "x-correlation-id": correlation,
+      ...Object.fromEntries(new Headers(extraHeaders)),
+    },
+  });
+}
+
+function hasAvailabilityScope(context: TenantRequestContext): context is TenantRequestContext & {
+  identity: { actorId: string; scopes: readonly string[] };
+} {
+  return hasScope(context, AVAILABILITY_SCOPE);
+}
+
+function hasScope(context: TenantRequestContext, scope: string): context is TenantRequestContext & {
+  identity: { actorId: string; scopes: readonly string[] };
+} {
+  return typeof context.identity.actorId === "string" && context.identity.scopes?.includes(scope) === true;
+}
+
+function parseInstant(value: unknown): Date | null {
+  if (typeof value !== "string") return null;
+  const match = ISO_INSTANT.exec(value);
+  if (!match) return null;
+  const [, yearText, monthText, dayText, hourText, minuteText,
+    secondText = "00", fractionText = "", rawOffset,
+    offsetSign, offsetHourText = "00", offsetMinuteText = "00"] = match;
+  if (!yearText || !monthText || !dayText || !hourText || !minuteText || !rawOffset) return null;
+  const year = Number(yearText);
+  const month = Number(monthText);
+  const day = Number(dayText);
+  const hour = Number(hourText);
+  const minute = Number(minuteText);
+  const second = Number(secondText);
+  const millisecond = Number(fractionText.padEnd(3, "0") || "0");
+  const offsetHour = Number(offsetHourText);
+  const offsetMinute = Number(offsetMinuteText);
+  if (year < 1 || month < 1 || month > 12 || day < 1 || day > 31 || hour > 23 ||
+      minute > 59 || second > 59 || offsetHour > 14 || offsetMinute > 59 ||
+      (offsetHour === 14 && offsetMinute !== 0)) return null;
+  const parsed = new Date(value);
+  if (!Number.isFinite(parsed.getTime())) return null;
+  const signedOffsetMinutes = rawOffset === "Z"
+    ? 0
+    : (offsetSign === "-" ? -1 : 1) * (offsetHour * 60 + offsetMinute);
+  const local = new Date(parsed.getTime() + signedOffsetMinutes * 60_000);
+  return local.getUTCFullYear() === year && local.getUTCMonth() + 1 === month &&
+      local.getUTCDate() === day && local.getUTCHours() === hour &&
+      local.getUTCMinutes() === minute && local.getUTCSeconds() === second &&
+      local.getUTCMilliseconds() === millisecond
+    ? parsed
+    : null;
+}
+
+function parseLocalDate(value: unknown): string | null {
+  if (typeof value !== "string") return null;
+  const match = LOCAL_DATE.exec(value);
+  if (!match) return null;
+  const [, yearText, monthText, dayText] = match;
+  if (!yearText || !monthText || !dayText) return null;
+  const year = Number(yearText);
+  const month = Number(monthText);
+  const day = Number(dayText);
+  if (year < 1 || month < 1 || month > 12 || day < 1 || day > 31) return null;
+  const date = new Date(0);
+  date.setUTCHours(0, 0, 0, 0);
+  date.setUTCFullYear(year, month - 1, day);
+  return date.getUTCFullYear() === year && date.getUTCMonth() + 1 === month &&
+      date.getUTCDate() === day
+    ? value
+    : null;
+}
+
+function parseSearch(body: unknown): Omit<SearchAvailabilityInput, "propertyNode"> | null {
+  if (!isObject(body) || !exactKeys(body, ["from", "to"], ["partySize", "ratePlanId", "channelCode"])) {
+    return null;
+  }
+  const from = parseInstant(body.from);
+  const to = parseInstant(body.to);
+  if (!from || !to) return null;
+  if (body.partySize !== undefined && typeof body.partySize !== "number") return null;
+  if (body.ratePlanId !== undefined && typeof body.ratePlanId !== "string") return null;
+  if (body.channelCode !== undefined && typeof body.channelCode !== "string") return null;
+  return {
+    from,
+    to,
+    ...(body.partySize === undefined ? {} : { partySize: body.partySize }),
+    ...(body.ratePlanId === undefined ? {} : { ratePlanId: body.ratePlanId }),
+    ...(body.channelCode === undefined ? {} : { channelCode: body.channelCode }),
+  };
+}
+
+const OFFER_COMMERCIAL_FIELDS = Object.freeze([
+  ["company_party_id", "companyPartyId"],
+  ["market_group_code", "marketGroupCode"],
+  ["market_code", "marketCode"],
+  ["source_party_id", "sourcePartyId"],
+  ["source_code", "sourceCode"],
+  ["channel_code", "channelCode"],
+  ["segment_code", "segmentCode"],
+  ["agent_party_id", "agentPartyId"],
+  ["campaign_code", "campaignCode"],
+] as const);
+
+function isCanonicalOfferSearch(body: unknown): boolean {
+  return isObject(body) && [
+    "stay", "party", "unit_types", "rate_plans", "attributes", "channel", "currency",
+    "selected_promotion_codes", "commercial",
+  ].some((key) => Object.hasOwn(body, key));
+}
+
+function parseOfferSearch(body: unknown): Omit<ReservationOfferSearchInput, "propertyNode"> | null {
+  if (!isObject(body) || !exactKeys(body, ["stay", "party", "channel"], [
+    "unit_types", "rate_plans", "attributes", "currency", "selected_promotion_codes", "commercial",
+  ]) || !isObject(body.stay) || !exactKeys(body.stay, ["from", "to"]) ||
+      !isObject(body.party) || !exactKeys(body.party, ["adults", "children"]) ||
+      typeof body.party.adults !== "number" || !Array.isArray(body.party.children) ||
+      typeof body.channel !== "string") return null;
+  const stayStart = parseInstant(body.stay.from);
+  const stayEnd = parseInstant(body.stay.to);
+  if (!stayStart || !stayEnd) return null;
+  const childAges: number[] = [];
+  for (const child of body.party.children) {
+    if (!isObject(child) || !exactKeys(child, ["age"]) || typeof child.age !== "number") return null;
+    childAges.push(child.age);
+  }
+  const stringArray = (value: unknown): readonly string[] | null =>
+    Array.isArray(value) && value.every((item) => typeof item === "string") ? value : null;
+  const unitTypeCodes = body.unit_types === undefined ? undefined : stringArray(body.unit_types);
+  const ratePlanCodes = body.rate_plans === undefined ? undefined : stringArray(body.rate_plans);
+  const selectedPromotionCodes = body.selected_promotion_codes === undefined
+    ? undefined
+    : stringArray(body.selected_promotion_codes);
+  if (unitTypeCodes === null || ratePlanCodes === null || selectedPromotionCodes === null) return null;
+  let attributes: ReservationOfferSearchInput["attributes"];
+  if (body.attributes !== undefined) {
+    if (!isObject(body.attributes) || !exactKeys(body.attributes, ["gender_policy"]) ||
+        (body.attributes.gender_policy !== "any" && body.attributes.gender_policy !== "female" &&
+         body.attributes.gender_policy !== "male")) return null;
+    attributes = { genderPolicy: body.attributes.gender_policy };
+  }
+  let commercial: Record<string, string> | undefined;
+  if (body.commercial !== undefined) {
+    if (!isObject(body.commercial) || !exactKeys(body.commercial, [], OFFER_COMMERCIAL_FIELDS.map(([external]) => external))) {
+      return null;
+    }
+    commercial = {};
+    for (const [external, internal] of OFFER_COMMERCIAL_FIELDS) {
+      const value = body.commercial[external];
+      if (value === undefined) continue;
+      if (typeof value !== "string") return null;
+      commercial[internal] = value;
+    }
+  }
+  if (body.currency !== undefined && typeof body.currency !== "string") return null;
+  return {
+    stayStart,
+    stayEnd,
+    guests: { adults: body.party.adults, childAges },
+    ...(unitTypeCodes === undefined ? {} : { unitTypeCodes }),
+    ...(ratePlanCodes === undefined ? {} : { ratePlanCodes }),
+    ...(attributes === undefined ? {} : { attributes }),
+    channelCode: body.channel,
+    ...(body.currency === undefined ? {} : { currency: body.currency }),
+    ...(selectedPromotionCodes === undefined ? {} : { selectedPromotionCodes }),
+    ...(commercial === undefined ? {} : { commercial }),
+  };
+}
+
+function parseProjectionRebuild(body: unknown): Omit<RebuildAvailabilityProjectionInput, "propertyNode"> | null {
+  if (!isObject(body) || !exactKeys(body, ["fromDate", "toDate"])) return null;
+  const fromDate = parseLocalDate(body.fromDate);
+  const toDate = parseLocalDate(body.toDate);
+  return fromDate && toDate ? { fromDate, toDate } : null;
+}
+
+function parseHold(body: unknown): { sellableUnitId: string; from: Date; to: Date; holderReference: string } | null {
+  if (!isObject(body) || !exactKeys(body, ["sellableUnitId", "from", "to", "holderReference"]) ||
+      typeof body.sellableUnitId !== "string" || !UUID.test(body.sellableUnitId) ||
+      typeof body.holderReference !== "string" || body.holderReference !== body.holderReference.trim() ||
+      !/^[^\u0000-\u001f\u007f]{1,120}$/u.test(body.holderReference)) return null;
+  const from = parseInstant(body.from);
+  const to = parseInstant(body.to);
+  return from && to && from < to ? { sellableUnitId: body.sellableUnitId, from, to, holderReference: body.holderReference } : null;
+}
+
+type ReservationCommitDraft = Readonly<{
+  propertyNode: string;
+  primaryPartyId: string;
+  ratePlanId: string;
+  adults: number;
+  childAges: readonly number[];
+  channelCode: string;
+} & (
+  { holdId: string } |
+  { direct: { sellableUnitId: string; from: Date; to: Date } }
+)>;
+
+function parseReservationCommit(body: unknown): ReservationCommitDraft | null {
+  if (!isObject(body) || !exactKeys(body, [
+    "propertyNode", "primaryPartyId", "ratePlanId", "adults", "childAges", "channelCode",
+  ], ["holdId", "direct"]) ||
+      typeof body.propertyNode !== "string" || !UUID.test(body.propertyNode) ||
+      typeof body.primaryPartyId !== "string" || !UUID.test(body.primaryPartyId) ||
+      typeof body.ratePlanId !== "string" || !UUID.test(body.ratePlanId) ||
+      typeof body.adults !== "number" || !Number.isSafeInteger(body.adults) ||
+      !Array.isArray(body.childAges) || body.childAges.length > 30 ||
+      body.childAges.some((age) => typeof age !== "number" || !Number.isSafeInteger(age)) ||
+      typeof body.channelCode !== "string" ||
+      (body.holdId === undefined) === (body.direct === undefined)) return null;
+  const common = {
+    propertyNode: body.propertyNode,
+    primaryPartyId: body.primaryPartyId,
+    ratePlanId: body.ratePlanId,
+    adults: body.adults,
+    childAges: Object.freeze([...body.childAges] as number[]),
+    channelCode: body.channelCode,
+  };
+  if (body.holdId !== undefined) {
+    return typeof body.holdId === "string" && UUID.test(body.holdId)
+      ? Object.freeze({ ...common, holdId: body.holdId })
+      : null;
+  }
+  if (!isObject(body.direct) || !exactKeys(body.direct, ["sellableUnitId", "from", "to"]) ||
+      typeof body.direct.sellableUnitId !== "string" || !UUID.test(body.direct.sellableUnitId)) return null;
+  const from = parseInstant(body.direct.from);
+  const to = parseInstant(body.direct.to);
+  return from && to && from < to
+    ? Object.freeze({ ...common, direct: Object.freeze({ sellableUnitId: body.direct.sellableUnitId, from, to }) })
+    : null;
+}
+
+function parseReservationGuests(body: unknown): {
+  primarySharePct: string | null;
+  guests: readonly RequestedReservationGuest[];
+} | null {
+  if (!isObject(body) || !exactKeys(body, ["primarySharePct", "guests"]) ||
+      (body.primarySharePct !== null && typeof body.primarySharePct !== "string") ||
+      !Array.isArray(body.guests) || body.guests.length > 99) return null;
+  const guests: RequestedReservationGuest[] = [];
+  for (const guest of body.guests) {
+    if (!isObject(guest) || !exactKeys(guest, ["partyId", "role", "sharePct"]) ||
+        typeof guest.partyId !== "string" || !UUID.test(guest.partyId) ||
+        (guest.role !== "accompanying" && guest.role !== "sharer") ||
+        (guest.sharePct !== null && typeof guest.sharePct !== "string")) return null;
+    guests.push(Object.freeze({
+      partyId: guest.partyId,
+      role: guest.role,
+      sharePct: guest.sharePct,
+    }));
+  }
+  return Object.freeze({
+    primarySharePct: body.primarySharePct,
+    guests: Object.freeze(guests),
+  });
+}
+
+function parseReservationAlert(body: unknown): {
+  code: string | null;
+  message: string;
+  showOn: ReservationAlertShowOn;
+} | null {
+  if (!isObject(body) || !exactKeys(body, ["code", "message", "showOn"]) ||
+      (body.code !== null && typeof body.code !== "string") || typeof body.message !== "string" ||
+      (body.showOn !== "checkin" && body.showOn !== "checkout" && body.showOn !== "always")) return null;
+  return Object.freeze({ code: body.code, message: body.message, showOn: body.showOn });
+}
+
+function emptyObject(body: unknown): boolean {
+  return isObject(body) && exactKeys(body, []);
+}
+
+const RESERVATION_TRAVEL_MODES = Object.freeze([
+  "flight", "train", "bus", "car", "ferry", "other",
+] as const satisfies readonly ReservationTravelMode[]);
+const RESERVATION_TRAVEL_INSTANT = /^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3})(?:\d{3})?Z$/;
+
+function parseReservationTravelText(value: unknown, maximumCodePoints: number): string | null | undefined {
+  if (value === null) return null;
+  if (typeof value !== "string") return undefined;
+  const normalized = value.trim();
+  return normalized.length > 0 && Array.from(normalized).length <= maximumCodePoints
+    ? normalized
+    : undefined;
+}
+
+function parseReservationTravelInstant(value: unknown): string | null | undefined {
+  if (value === null) return null;
+  if (typeof value !== "string") return undefined;
+  const match = RESERVATION_TRAVEL_INSTANT.exec(value);
+  if (!match?.[1]) return undefined;
+  const milliseconds = `${match[1]}Z`;
+  const instant = new Date(milliseconds);
+  return Number.isFinite(instant.getTime()) && instant.toISOString() === milliseconds ? value : undefined;
+}
+
+function parseReservationTravelTuple(value: unknown): ReservationTravelTuple | undefined {
+  if (!isObject(value) || !exactKeys(value, [
+    "mode", "carrier", "serviceNo", "scheduledAt", "pickupRequested",
+  ])) return undefined;
+  const mode = value.mode === null
+    ? null
+    : RESERVATION_TRAVEL_MODES.find((candidate) => candidate === value.mode);
+  const carrier = parseReservationTravelText(value.carrier, 120);
+  const serviceNo = parseReservationTravelText(value.serviceNo, 64);
+  const scheduledAt = parseReservationTravelInstant(value.scheduledAt);
+  if (mode === undefined || carrier === undefined || serviceNo === undefined || scheduledAt === undefined ||
+      typeof value.pickupRequested !== "boolean") return undefined;
+  return Object.freeze({ mode, carrier, serviceNo, scheduledAt, pickupRequested: value.pickupRequested });
+}
+
+function parseReservationTravel(
+  body: unknown,
+  direction: ReservationTravelDirection,
+): Readonly<{ expected: ReservationTravelTuple | null; travel: ReservationTravelTuple }> | null {
+  if (!isObject(body) || !exactKeys(body, ["expected", "travel"])) return null;
+  const expected = body.expected === null ? null : parseReservationTravelTuple(body.expected);
+  const travel = parseReservationTravelTuple(body.travel);
+  if (expected === undefined || !travel ||
+      (direction === "departure" && (travel.pickupRequested || expected?.pickupRequested === true)) ||
+      (travel.mode === null && travel.carrier === null && travel.serviceNo === null &&
+        travel.scheduledAt === null && !travel.pickupRequested)) return null;
+  return Object.freeze({ expected, travel });
+}
+
+function confirmationQuery(request: Request): string | null {
+  const query = new URL(request.url).searchParams;
+  if ([...query.keys()].some((key) => key !== "confirmationNo") ||
+      query.getAll("confirmationNo").length !== 1) return null;
+  const confirmationNo = query.get("confirmationNo");
+  return confirmationNo !== null && /^[\x21-\x7e]{1,120}$/.test(confirmationNo)
+    ? confirmationNo
+    : null;
+}
+
+function reservationBoardQuery(request: Request): {
+  partyId?: string;
+  status?: (typeof RESERVATION_STATUSES)[number];
+  from?: Date;
+  to?: Date;
+  after?: string;
+  limit?: number;
+} | null {
+  const query = new URL(request.url).searchParams;
+  const allowed = ["partyId", "status", "from", "to", "after", "limit"];
+  if ([...query.keys()].some((key) => !allowed.includes(key)) ||
+      allowed.some((key) => query.getAll(key).length > 1)) return null;
+  const rawStatus = query.get("status");
+  const partyId = query.get("partyId");
+  if (partyId !== null && !UUID.test(partyId)) return null;
+  const status = rawStatus === null
+    ? undefined
+    : RESERVATION_STATUSES.find((candidate) => candidate === rawStatus);
+  if (rawStatus !== null && status === undefined) return null;
+  const rawFrom = query.get("from");
+  const rawTo = query.get("to");
+  if ((rawFrom === null) !== (rawTo === null)) return null;
+  const from = rawFrom === null ? undefined : parseInstant(rawFrom);
+  const to = rawTo === null ? undefined : parseInstant(rawTo);
+  if ((rawFrom !== null && !from) || (rawTo !== null && !to) ||
+      (from && to && (from >= to || to.getTime() - from.getTime() > 366 * 86_400_000))) return null;
+  const after = query.get("after");
+  if (after !== null && !/^[A-Za-z0-9_-]{1,512}$/.test(after)) return null;
+  const rawLimit = query.get("limit");
+  if (rawLimit !== null && !/^(?:[1-9]|[1-9][0-9]|100)$/.test(rawLimit)) return null;
+  return Object.freeze({
+    ...(partyId === null ? {} : { partyId }),
+    ...(status === undefined ? {} : { status }),
+    ...(from === undefined || from === null ? {} : { from }),
+    ...(to === undefined || to === null ? {} : { to }),
+    ...(after === null ? {} : { after }),
+    ...(rawLimit === null ? {} : { limit: Number(rawLimit) }),
+  });
+}
+
+function parsePartySearch(body: unknown): { query: string; limit?: number } | null {
+  if (!isObject(body) || !exactKeys(body, ["query"], ["limit"]) ||
+      typeof body.query !== "string" ||
+      (body.limit !== undefined &&
+        (typeof body.limit !== "number" || !Number.isSafeInteger(body.limit) || body.limit < 1 || body.limit > 50))) {
+    return null;
+  }
+  return Object.freeze({ query: body.query, ...(body.limit === undefined ? {} : { limit: body.limit }) });
+}
+
+const PARTY_KINDS: readonly PartyKind[] = ["person", "org"];
+const PARTY_ROLES: readonly PartyRole[] = [
+  "guest", "company", "agent", "source", "vendor", "owner", "staff", "contact",
+];
+const PARTY_CONTACT_KINDS = ["email", "phone", "whatsapp"] as const;
+
+interface PartyCreateDraft {
+  readonly kind: PartyKind;
+  readonly displayName: string;
+  readonly legalName?: string | null;
+  readonly roles: readonly PartyRole[];
+  readonly contacts: readonly PartyContactInput[];
+  readonly acknowledgedDuplicatePartyIds: readonly string[];
+}
+
+function parsePartyCreate(body: unknown): PartyCreateDraft | null {
+  if (!isObject(body) || !exactKeys(body, [
+    "kind", "displayName", "roles", "contacts", "acknowledgedDuplicatePartyIds",
+  ], ["legalName"]) ||
+      typeof body.kind !== "string" || !PARTY_KINDS.includes(body.kind as PartyKind) ||
+      typeof body.displayName !== "string" ||
+      (body.legalName !== undefined && body.legalName !== null && typeof body.legalName !== "string") ||
+      !Array.isArray(body.roles) || body.roles.length < 1 || body.roles.length > PARTY_ROLES.length ||
+      body.roles.some((role) => typeof role !== "string" || !PARTY_ROLES.includes(role as PartyRole)) ||
+      !Array.isArray(body.contacts) || body.contacts.length > 6 ||
+      !Array.isArray(body.acknowledgedDuplicatePartyIds) || body.acknowledgedDuplicatePartyIds.length > 50 ||
+      body.acknowledgedDuplicatePartyIds.some((id) => typeof id !== "string" || !UUID.test(id))) return null;
+  const contacts: PartyContactInput[] = [];
+  for (const contact of body.contacts) {
+    if (!isObject(contact) || !exactKeys(contact, ["kind", "value"], ["isPrimary"]) ||
+        typeof contact.kind !== "string" ||
+        !PARTY_CONTACT_KINDS.includes(contact.kind as typeof PARTY_CONTACT_KINDS[number]) ||
+        typeof contact.value !== "string" ||
+        (contact.isPrimary !== undefined && typeof contact.isPrimary !== "boolean")) return null;
+    contacts.push(Object.freeze({
+      kind: contact.kind as typeof PARTY_CONTACT_KINDS[number],
+      value: contact.value,
+      ...(contact.isPrimary === undefined ? {} : { isPrimary: contact.isPrimary }),
+    }));
+  }
+  return Object.freeze({
+    kind: body.kind as PartyKind,
+    displayName: body.displayName,
+    ...(body.legalName === undefined ? {} : { legalName: body.legalName as string | null }),
+    roles: Object.freeze([...(body.roles as PartyRole[])]),
+    contacts: Object.freeze(contacts),
+    acknowledgedDuplicatePartyIds: Object.freeze([...(body.acknowledgedDuplicatePartyIds as string[])]),
+  });
+}
+
+const RESERVATION_MUTABLE_FIELDS = Object.freeze([
+  "notes", "eta", "etd", "marketCode", "sourceCode", "originCode",
+] as const);
+
+function parseReservationMutation(body: unknown): {
+  expected: ReservationMutableFields;
+  changes: ReservationMutableFields;
+} | null {
+  if (!isObject(body) || !exactKeys(body, ["expected", "changes"]) ||
+      !isObject(body.expected) || !isObject(body.changes)) return null;
+  const expected = body.expected;
+  const changes = body.changes;
+  const allowed = new Set<string>(RESERVATION_MUTABLE_FIELDS);
+  const expectedKeys = Object.keys(expected).sort();
+  const changeKeys = Object.keys(changes).sort();
+  if (expectedKeys.length === 0 || expectedKeys.some((key) => !allowed.has(key)) ||
+      expectedKeys.length !== changeKeys.length || expectedKeys.some((key, index) => key !== changeKeys[index])) return null;
+  if (expectedKeys.some((key) => expected[key] !== null && typeof expected[key] !== "string") ||
+      changeKeys.some((key) => changes[key] !== null && typeof changes[key] !== "string")) return null;
+  return Object.freeze({ expected: Object.freeze({ ...expected }), changes: Object.freeze({ ...changes }) });
+}
+
+function parseReservationCancellation(body: unknown): { reason: string; approvalId?: string } | null {
+  if (!isObject(body) || !exactKeys(body, ["reason"], ["approvalId"]) ||
+      typeof body.reason !== "string" ||
+      (body.approvalId !== undefined && (typeof body.approvalId !== "string" || !UUID.test(body.approvalId)))) return null;
+  return Object.freeze({ reason: body.reason, ...(body.approvalId === undefined ? {} : { approvalId: body.approvalId }) });
+}
+
+function parseExpectedSegmentPeriod(value: unknown): ExpectedSegmentPeriod | null {
+  if (!isObject(value) || !exactKeys(value, ["from", "to"]) ||
+      typeof value.from !== "string" || typeof value.to !== "string") return null;
+  const from = parseInstant(value.from);
+  const to = parseInstant(value.to);
+  return from && to && from < to
+    ? Object.freeze({ from: value.from, to: value.to })
+    : null;
+}
+
+function parseSegmentDeparture(body: unknown): {
+  expectedPeriod: ExpectedSegmentPeriod;
+  newDeparture: string;
+} | null {
+  if (!isObject(body) || !exactKeys(body, ["expectedPeriod", "newDeparture"]) ||
+      typeof body.newDeparture !== "string" || !parseInstant(body.newDeparture)) return null;
+  const expectedPeriod = parseExpectedSegmentPeriod(body.expectedPeriod);
+  return expectedPeriod ? Object.freeze({ expectedPeriod, newDeparture: body.newDeparture }) : null;
+}
+
+function parseSegmentMove(body: unknown): {
+  expectedSellableUnitId: string;
+  expectedPeriod: ExpectedSegmentPeriod;
+  destinationSellableUnitId: string;
+} | null {
+  if (!isObject(body) || !exactKeys(body, [
+    "expectedSellableUnitId", "expectedPeriod", "destinationSellableUnitId",
+  ]) || typeof body.expectedSellableUnitId !== "string" ||
+      !UUID.test(body.expectedSellableUnitId) ||
+      typeof body.destinationSellableUnitId !== "string" ||
+      !UUID.test(body.destinationSellableUnitId)) return null;
+  const expectedPeriod = parseExpectedSegmentPeriod(body.expectedPeriod);
+  return expectedPeriod ? Object.freeze({
+    expectedSellableUnitId: body.expectedSellableUnitId,
+    expectedPeriod,
+    destinationSellableUnitId: body.destinationSellableUnitId,
+  }) : null;
+}
+
+function parseDueInRoomAssignment(body: unknown): {
+  segmentId: string;
+  expectedReservationStatus: "due_in";
+  expectedSegmentStatus: "booked";
+  expectedUnitTypeId: string;
+  expectedSellableUnitId: null;
+  expectedPeriod: ExpectedSegmentPeriod;
+  sellableUnitId: string;
+} | null {
+  if (!isObject(body) || !exactKeys(body, [
+    "segmentId", "expectedReservationStatus", "expectedSegmentStatus", "expectedUnitTypeId",
+    "expectedSellableUnitId", "expectedPeriod", "sellableUnitId",
+  ]) || typeof body.segmentId !== "string" || !UUID.test(body.segmentId) ||
+      body.expectedReservationStatus !== "due_in" || body.expectedSegmentStatus !== "booked" ||
+      typeof body.expectedUnitTypeId !== "string" || !UUID.test(body.expectedUnitTypeId) ||
+      body.expectedSellableUnitId !== null ||
+      typeof body.sellableUnitId !== "string" || !UUID.test(body.sellableUnitId)) return null;
+  const expectedPeriod = parseExpectedSegmentPeriod(body.expectedPeriod);
+  return expectedPeriod ? Object.freeze({
+    segmentId: body.segmentId,
+    expectedReservationStatus: "due_in",
+    expectedSegmentStatus: "booked",
+    expectedUnitTypeId: body.expectedUnitTypeId,
+    expectedSellableUnitId: null,
+    expectedPeriod,
+    sellableUnitId: body.sellableUnitId,
+  }) : null;
+}
+
+function parseOfflineLease(body: unknown): {
+  sellableUnitId: string;
+  from: Date;
+  to: Date;
+  deviceId: string;
+  deviceLabel?: string;
+  leaseHours: number;
+} | null {
+  if (!isObject(body) ||
+      !exactKeys(body, ["sellableUnitId", "from", "to", "deviceId", "leaseHours"], ["deviceLabel"]) ||
+      typeof body.sellableUnitId !== "string" || !UUID.test(body.sellableUnitId) ||
+      typeof body.deviceId !== "string" || !/^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/.test(body.deviceId) ||
+      typeof body.leaseHours !== "number" || !Number.isInteger(body.leaseHours) ||
+      body.leaseHours < 1 || body.leaseHours > 168 ||
+      (body.deviceLabel !== undefined &&
+        (typeof body.deviceLabel !== "string" || body.deviceLabel !== body.deviceLabel.trim() ||
+          !/^[^\u0000-\u001f\u007f]{1,120}$/u.test(body.deviceLabel)))) return null;
+  const from = parseInstant(body.from);
+  const to = parseInstant(body.to);
+  return from && to && from < to ? {
+    sellableUnitId: body.sellableUnitId,
+    from,
+    to,
+    deviceId: body.deviceId,
+    ...(body.deviceLabel === undefined ? {} : { deviceLabel: body.deviceLabel }),
+    leaseHours: body.leaseHours,
+  } : null;
+}
+
+interface PropertyRow {
+  readonly id: string;
+  readonly name: string;
+  readonly timezone: string;
+  readonly currency: string | null;
+}
+
+async function listGrantedProperties(context: TenantRequestContext & {
+  identity: { actorId: string; scopes: readonly string[] };
+}, permissionCode = AVAILABILITY_SCOPE): Promise<PropertyRow[]> {
+  return context.tx<PropertyRow[]>`
+    SELECT DISTINCT target.id, target.name, target.timezone, target.currency
+    FROM user_role
+    JOIN role
+      ON role.id = user_role.role_id
+     AND role.tenant_id = user_role.tenant_id
+    JOIN role_permission
+      ON role_permission.role_id = role.id
+     AND role_permission.permission_code = ${permissionCode}
+    JOIN org_node AS grant_node
+      ON grant_node.id = user_role.scope_node
+     AND grant_node.tenant_id = user_role.tenant_id
+    JOIN org_node AS target
+      ON target.tenant_id = user_role.tenant_id
+     AND target.kind = 'property'
+     AND target.path <@ grant_node.path
+    WHERE user_role.tenant_id = current_setting('app.tenant_id', true)::uuid
+      AND user_role.user_id = ${context.identity.actorId}::uuid
+    ORDER BY target.name, target.id
+  `;
+}
+
+type InventoryOperations = Pick<InventoryService,
+  "createUnitType" | "createSpace" | "createSellableUnit" |
+  "getUnitType" | "listUnitTypes" | "listSpaces" | "listSellableUnits"
+>;
+
+interface BulkRoomDraft {
+  readonly code: string;
+  readonly name?: string;
+  readonly floor?: string;
+}
+
+function parseBulkRooms(body: unknown): { unitTypeId: string; rooms: readonly BulkRoomDraft[] } | null {
+  if (!isObject(body) || !exactKeys(body, ["unitTypeId", "rooms"]) ||
+      typeof body.unitTypeId !== "string" || !UUID.test(body.unitTypeId) ||
+      !Array.isArray(body.rooms) || body.rooms.length < 1 || body.rooms.length > 200) return null;
+  const rooms: BulkRoomDraft[] = [];
+  const codes = new Set<string>();
+  for (const item of body.rooms) {
+    if (!isObject(item) || !exactKeys(item, ["code"], ["name", "floor"]) ||
+        typeof item.code !== "string" ||
+        (item.name !== undefined && typeof item.name !== "string") ||
+        (item.floor !== undefined && typeof item.floor !== "string")) return null;
+    if (item.name !== undefined &&
+        (item.name !== item.name.trim() || item.name.length < 1 || item.name.length > 200)) return null;
+    if (item.floor !== undefined &&
+        (item.floor !== item.floor.trim() || item.floor.length < 1 || item.floor.length > 64)) return null;
+    if (codes.has(item.code)) return null;
+    codes.add(item.code);
+    rooms.push({
+      code: item.code,
+      ...(item.name === undefined ? {} : { name: item.name }),
+      ...(item.floor === undefined ? {} : { floor: item.floor }),
+    });
+  }
+  return { unitTypeId: body.unitTypeId, rooms };
+}
+
+type RestrictionOperations = Pick<RestrictionService, "list" | "createBatch">;
+const RESTRICTION_KINDS: readonly RestrictionKind[] = [
+  "closed", "cta", "ctd", "min_los", "max_los", "min_adv", "max_adv",
+];
+
+function parseRestrictionBatch(body: unknown): readonly RestrictionDraft[] | null {
+  if (!isObject(body) || !exactKeys(body, ["restrictions"]) || !Array.isArray(body.restrictions)) return null;
+  const restrictions: RestrictionDraft[] = [];
+  for (const item of body.restrictions) {
+    if (!isObject(item) || !exactKeys(item, ["kind", "stayStart", "stayEnd"], [
+      "value", "unitTypeId", "ratePlanId", "channelCode",
+    ])) return null;
+    if (typeof item.kind !== "string" || !RESTRICTION_KINDS.includes(item.kind as RestrictionKind) ||
+        typeof item.stayStart !== "string" || typeof item.stayEnd !== "string") return null;
+    if (item.value !== undefined && item.value !== null && typeof item.value !== "number") return null;
+    if (item.unitTypeId !== undefined && item.unitTypeId !== null && typeof item.unitTypeId !== "string") return null;
+    if (item.ratePlanId !== undefined && item.ratePlanId !== null && typeof item.ratePlanId !== "string") return null;
+    if (item.channelCode !== undefined && item.channelCode !== null && typeof item.channelCode !== "string") return null;
+    restrictions.push({
+      kind: item.kind as RestrictionKind,
+      stayStart: item.stayStart,
+      stayEnd: item.stayEnd,
+      ...(item.value === undefined ? {} : { value: item.value as number | null }),
+      ...(item.unitTypeId === undefined ? {} : { unitTypeId: item.unitTypeId as string | null }),
+      ...(item.ratePlanId === undefined ? {} : { ratePlanId: item.ratePlanId as string | null }),
+      ...(item.channelCode === undefined ? {} : { channelCode: item.channelCode as string | null }),
+    });
+  }
+  return restrictions;
+}
+
+type RateOperations = Pick<RateConfigurationService,
+  "listPolicies" | "listRatePlans" | "createPolicy" | "createRatePlan"
+>;
+
+type PricingOperations = Pick<RatePricingService, "create" | "findCurrent" | "supersede">;
+interface RateBuilderOperations {
+  readonly models: Pick<RateModelService, "createDraftVersion" | "listDraftVersions">;
+  readonly targets: Pick<RateTargetService, "createDraftVersion" | "listDraftVersions">;
+  readonly publication: Pick<RatePublicationService,
+    "createDraftVersion" | "simulateDraft" | "requestPublicationApproval" |
+    "listPublicationApprovals" | "decidePublicationApproval" |
+    "publishDraft" | "createUndoDraftVersion" | "listReleaseVersions"
+  >;
+  readonly quote: Pick<RateQuoteService, "resolve">;
+  readonly intent?: Pick<RateIntentService, "interpret">;
+}
+
+type RatePublicationApprovalView = Awaited<ReturnType<RatePublicationService["listPublicationApprovals"]>>["approvals"][number];
+
+const RELEASE_POLICY_FIELDS = Object.freeze([
+  ["cancellation", "cancellationPolicyId"],
+  ["deposit", "depositPolicyId"],
+  ["guarantee", "guaranteePolicyId"],
+  ["no_show", "noShowPolicyId"],
+] as const);
+
+function releasePolicyEvidence(release: RatePlanRelease) {
+  const policy = release.compositionSpec.policy;
+  return Object.freeze(RELEASE_POLICY_FIELDS.flatMap(([kind, field]) => {
+    const policyId = policy[field];
+    return policyId ? [Object.freeze({
+    kind,
+    policyId,
+    evidenceRef: `rate-release:${release.id}:${kind}:${policyId}`,
+    })] : [];
+  }));
+}
+
+function bindRateBuilderPreviewCells(
+  release: RatePlanRelease,
+  previewCells: readonly unknown[],
+): readonly Readonly<Record<string, unknown>>[] | null {
+  if (previewCells.length < 1 || previewCells.length > 500) return null;
+  const policyEvidence = releasePolicyEvidence(release);
+  const bound: Readonly<Record<string, unknown>>[] = [];
+  for (const cell of previewCells) {
+    if (!isObject(cell) || Object.prototype.hasOwnProperty.call(cell, "policyEvidence")) return null;
+    bound.push(Object.freeze({ ...cell, policyEvidence }));
+  }
+  return Object.freeze(bound);
+}
+
+type BlockOperations = Pick<OperationalBlockService, "listActive" | "open" | "close">;
+type PolicyOperations = Pick<InventoryPolicyService, "get" | "setOosSellability">;
+type HoldOperations = Pick<HoldService,
+  "listActive" | "place" | "release" |
+  "listActiveOfflineLeases" | "placeOfflineLease" | "releaseOfflineLease"
+>;
+type ReservationOperations = Pick<ReservationCommitService, "commitHeld" | "commitDirect">;
+type ReservationOfferOperations = Pick<ReservationOfferSearchService, "search">;
+type ReservationGuestOperations = Pick<ReservationGuestService, "findByConfirmation" | "replace">;
+type ReservationAlertOperations = Pick<ReservationAlertService, "create" | "deactivate">;
+type ReservationLifecycleOperations = Pick<ReservationLifecycleService, "findByConfirmation" | "modify" | "cancel" | "reinstate">;
+type ReservationSegmentOperations = Pick<ReservationSegmentService,
+  "findByConfirmation" | "changeDeparture" | "moveRoom"
+> & Partial<Pick<ReservationSegmentService,
+  "findDueInRoomAssignmentCandidates" | "assignDueInRoom"
+>>;
+type ReservationTravelOperations = Pick<ReservationTravelService, "put">;
+type ReservationBoardOperations = Pick<ReservationBoardService, "list">;
+type OperatingPerformanceOperations = Pick<OperatingPerformanceService, "load">;
+type ReservationDetailOperations = Pick<ReservationDetailService, "findById"> &
+  Partial<Pick<ReservationDetailService, "pickupTaskDetail">>;
+type PickupTaskDispatchOperations = Pick<ArrivalPickupTaskDispatchService, "transition">;
+type CheckInOperations = Pick<CheckInService, "getReadiness" | "checkIn">;
+type CheckoutOperations = Pick<CheckoutService, "checkout">;
+type VehicleRegisterOperations = Pick<VehicleRegisterService, "list"> &
+  Partial<Pick<VehicleRegisterService, "get">>;
+type VehicleParkingOperations = Pick<VehicleParkingAssignmentService, "read" | "assign">;
+type BusinessDayCloseWorkbenchLoader = (
+  tx: Tx,
+  input: BusinessDayCloseWorkbenchInput,
+) => Promise<BusinessDayCloseWorkbench>;
+type BusinessDayCloseWorkbenchEntryLoader = (
+  tx: Tx,
+  input: Readonly<{ tenantId: string; propertyNode: string; actorId: string }>,
+) => Promise<Readonly<{ businessDate: string }>>;
+type BusinessDayCarryOperations = Pick<BusinessDayDiscrepancyCarryOperatorService,
+  "requestApproval" | "listApprovals" | "decideApproval" | "carry">;
+type BusinessDaySealOperations = Pick<BusinessDaySealService, "seal">;
+interface CheckoutReadinessOperations {
+  read(input: Readonly<{
+    tenantId: string;
+    propertyNode: string;
+    reservationId: string;
+  }>): Promise<Readonly<{
+    reservationId: string;
+    reservationStatus: string;
+    ready: boolean;
+    blockers: readonly string[];
+    segment: null | Readonly<{ segmentId: string; sellableUnitId: string; periodStart: string; periodEnd: string }>;
+    room: null | Readonly<{ spaceId: string; spaceCode: string }>;
+    occupancy: null | Readonly<{ occupancyId: string; periodStart: string; periodEnd: string }>;
+    folios: readonly Readonly<{
+      folioId: string;
+      folioNo: string | null;
+      windowNo: number;
+      name: string | null;
+      status: "open" | "settled" | "closed";
+      currency: string;
+      balanceMinor: string;
+    }>[];
+  }>>;
+}
+type HousekeepingOperations = Pick<HousekeepingTaskService, "listBoard" | "transition"> &
+  Partial<Pick<HousekeepingTaskService, "listConditions">> &
+  Partial<Pick<HousekeepingTaskService, "get">> &
+  Partial<Readonly<{
+    getInitialConditionCandidate(input: Readonly<{
+      tenantId: string;
+      propertyNode: string;
+      spaceId: string;
+    }>): Promise<Readonly<{
+      spaceId: string;
+      code: string;
+      floor: string | null;
+      roomCondition: null;
+    }>>;
+    initializeCondition(input: Readonly<{
+      tenantId: string;
+      propertyNode: string;
+      spaceId: string;
+      expectedRoomCondition: null;
+      roomCondition: "clean" | "dirty" | "pickup";
+      idempotencyKey: string;
+      envelope: unknown;
+    }>): Promise<Readonly<{
+      spaceId: string;
+      roomCondition: "clean" | "dirty" | "pickup";
+      roomUpdatedAt: string;
+      replayed: boolean;
+    }>>;
+  }>>;
+type HousekeepingSheetOperations = Pick<HousekeepingSheetService, "preview" | "list" | "generate">;
+type ArrivalRoomCleaningOperations = Pick<ArrivalRoomCleaningTaskService, "candidate" | "create">;
+type HousekeepingDiscrepancyOperations = Pick<HousekeepingDiscrepancyService, "listOpen" | "report">;
+type PartyOperations = Pick<PartyProfileService, "search" | "create">;
+type FolioStatementOperations = Pick<FolioStatementService, "get">;
+type ChargeOperations = Pick<ChargeService, "postCharge">;
+type ChargeCorrectionOperations = Pick<ChargeCorrectionService, "reverseCharge">;
+type FolioOperations = Pick<FolioService, "openPrimary" | "openAdditional">;
+type FolioSettlementOperations = Pick<FolioSettlementService, "settle" | "close">;
+type FolioTransferOperations = Pick<FolioTransferService, "preview" | "transfer">;
+type HostedDepositOperations = Pick<HostedDepositService, "create" | "apply" | "statusForOperator" | "workbenchForFolio">;
+type CashierOperations = Pick<CashierService, "list" | "open" | "appendCount" | "close" | "requestOverShortApproval" | "approveOverShort" | "rejectOverShort">;
+type ReceivableOperations = Pick<ReceivableService, "listTargets" | "preview" | "requestOverLimitApproval" | "approveOverLimit" | "rejectOverLimit" | "transfer">;
+
+const MAX_MONEY = 9_223_372_036_854_775_807n;
+
+function parseAmount(value: unknown): bigint | null {
+  if (typeof value !== "string" || !/^(?:0|[1-9]\d*)$/.test(value)) return null;
+  const amount = BigInt(value);
+  return amount <= MAX_MONEY ? amount : null;
+}
+
+function parsePricingValue(value: unknown): RatePricingInput | null {
+  if (!isObject(value) || !exactKeys(value, ["occupancy"], ["extraAdultMinor", "extraChildren"]) ||
+      !Array.isArray(value.occupancy) || value.occupancy.length === 0) return null;
+  const occupancy: Record<string, bigint> = {};
+  for (const tier of value.occupancy) {
+    if (!isObject(tier) || !exactKeys(tier, ["adults", "amountMinor"]) ||
+        !Number.isInteger(tier.adults) || (tier.adults as number) < 1 || (tier.adults as number) > 100 ||
+        occupancy[String(tier.adults)] !== undefined) return null;
+    const amount = parseAmount(tier.amountMinor);
+    if (amount === null) return null;
+    occupancy[String(tier.adults)] = amount;
+  }
+  const extraAdultMinor = value.extraAdultMinor === undefined ? undefined : parseAmount(value.extraAdultMinor);
+  if (extraAdultMinor === null) return null;
+  const rawChildren = value.extraChildren ?? [];
+  if (!Array.isArray(rawChildren)) return null;
+  const extraChildren: Array<{ maxAge: number; amountMinor: bigint }> = [];
+  for (const child of rawChildren) {
+    if (!isObject(child) || !exactKeys(child, ["maxAge", "amountMinor"]) || !Number.isInteger(child.maxAge)) return null;
+    const amountMinor = parseAmount(child.amountMinor);
+    if (amountMinor === null) return null;
+    extraChildren.push({ maxAge: child.maxAge as number, amountMinor });
+  }
+  return { occupancy, ...(extraAdultMinor === undefined ? {} : { extraAdultMinor }),
+    ...(value.extraChildren === undefined ? {} : { extraChildren }) };
+}
+
+function parsePricing(body: unknown): Omit<CreateRatePriceInput, "envelope"> | null {
+  if (!isObject(body) || !exactKeys(body, ["ratePlanId", "unitTypeId", "stayStart", "stayEnd", "pricing"], ["dowMask"]) ||
+      typeof body.ratePlanId !== "string" || typeof body.unitTypeId !== "string" ||
+      typeof body.stayStart !== "string" || typeof body.stayEnd !== "string" ||
+      (body.dowMask !== undefined && !Number.isInteger(body.dowMask))) return null;
+  const pricing = parsePricingValue(body.pricing);
+  if (!pricing) return null;
+  return { ratePlanId: body.ratePlanId, unitTypeId: body.unitTypeId, stayStart: body.stayStart,
+    stayEnd: body.stayEnd, ...(body.dowMask === undefined ? {} : { dowMask: body.dowMask as number }), pricing };
+}
+
+function ratePriceJson(price: Awaited<ReturnType<RatePricingService["findCurrent"]>>): JsonValue {
+  return {
+    id: price.id, tenantId: price.tenantId, propertyNode: price.propertyNode,
+    ratePlanId: price.ratePlanId, unitTypeId: price.unitTypeId,
+    stayStart: price.stayStart, stayEnd: price.stayEnd, dowMask: price.dowMask,
+    currency: price.currency,
+    pricing: {
+      occupancy: Object.fromEntries(Object.entries(price.pricing.occupancy).map(([tier, amount]) => [tier, amount.toString()])),
+      extraAdultMinor: price.pricing.extraAdultMinor?.toString() ?? null,
+      extraChildren: price.pricing.extraChildren.map(({ maxAge, amountMinor }) => ({ maxAge, amountMinor: amountMinor.toString() })),
+    },
+    recordedAt: price.recordedAt.toISOString(), supersededBy: price.supersededBy,
+  };
+}
+
+function canonicalJson(value: JsonValue): JsonValue {
+  if (Array.isArray(value)) return value.map(canonicalJson);
+  if (value !== null && typeof value === "object") {
+    return Object.fromEntries(Object.entries(value).sort(([left], [right]) => left.localeCompare(right))
+      .map(([key, item]) => [key, canonicalJson(item)]));
+  }
+  return value;
+}
+
+function parsePolicy(body: unknown): Omit<CreatePolicyInput, "envelope"> | null {
+  if (!isObject(body) || !exactKeys(body, ["kind", "name", "content"]) ||
+      typeof body.kind !== "string" || !(["cancellation", "deposit", "guarantee", "no_show"] as const)
+        .includes(body.kind as PolicyKind) ||
+      typeof body.name !== "string" || !isObject(body.content)) return null;
+  return { kind: body.kind as PolicyKind, name: body.name, content: body.content };
+}
+
+function parseRatePlan(body: unknown): Omit<CreateRatePlanInput, "envelope"> | null {
+  if (!isObject(body) || !exactKeys(body, ["code", "name", "currency"], [
+    "taxInclusive", "cancellationPolicyId", "guaranteePolicyId", "depositPolicyId", "marketCode", "sourceCode",
+  ]) || typeof body.code !== "string" || typeof body.name !== "string" || typeof body.currency !== "string") return null;
+  if (body.taxInclusive !== undefined && typeof body.taxInclusive !== "boolean") return null;
+  for (const key of ["cancellationPolicyId", "guaranteePolicyId", "depositPolicyId", "marketCode", "sourceCode"] as const) {
+    if (body[key] !== undefined && body[key] !== null && typeof body[key] !== "string") return null;
+  }
+  return {
+    code: body.code,
+    name: body.name,
+    currency: body.currency,
+    ...(body.taxInclusive === undefined ? {} : { taxInclusive: body.taxInclusive }),
+    ...(body.cancellationPolicyId === undefined ? {} : { cancellationPolicyId: body.cancellationPolicyId as string | null }),
+    ...(body.guaranteePolicyId === undefined ? {} : { guaranteePolicyId: body.guaranteePolicyId as string | null }),
+    ...(body.depositPolicyId === undefined ? {} : { depositPolicyId: body.depositPolicyId as string | null }),
+    ...(body.marketCode === undefined ? {} : { marketCode: body.marketCode as string | null }),
+    ...(body.sourceCode === undefined ? {} : { sourceCode: body.sourceCode as string | null }),
+  };
+}
+
+function parseUnitType(body: unknown): Omit<CreateUnitTypeInput, "envelope"> | null {
+  if (!isObject(body) || !exactKeys(body, ["code", "name", "profileKey"], [
+    "baseOccupancy", "maxOccupancy", "attrs", "sortOrder",
+  ])) return null;
+  if (typeof body.code !== "string" || typeof body.name !== "string" || typeof body.profileKey !== "string") return null;
+  if (body.baseOccupancy !== undefined && typeof body.baseOccupancy !== "number") return null;
+  if (body.maxOccupancy !== undefined && typeof body.maxOccupancy !== "number") return null;
+  if (body.sortOrder !== undefined && typeof body.sortOrder !== "number") return null;
+  if (body.attrs !== undefined && !isObject(body.attrs)) return null;
+  return {
+    code: body.code,
+    name: body.name,
+    profileKey: body.profileKey,
+    ...(body.baseOccupancy === undefined ? {} : { baseOccupancy: body.baseOccupancy }),
+    ...(body.maxOccupancy === undefined ? {} : { maxOccupancy: body.maxOccupancy }),
+    ...(body.attrs === undefined ? {} : { attrs: body.attrs }),
+    ...(body.sortOrder === undefined ? {} : { sortOrder: body.sortOrder }),
+  };
+}
+
+function parseSpace(body: unknown): Omit<CreateSpaceInput, "envelope"> | null {
+  if (!isObject(body) || !exactKeys(body, ["code", "profileKey"], [
+    "capacity", "maxOccupancy", "floor", "areaSqm", "genderPolicy", "attrs",
+  ])) return null;
+  if (typeof body.code !== "string" || typeof body.profileKey !== "string") return null;
+  if (body.capacity !== undefined && typeof body.capacity !== "number") return null;
+  if (body.maxOccupancy !== undefined && body.maxOccupancy !== null && typeof body.maxOccupancy !== "number") return null;
+  if (body.floor !== undefined && body.floor !== null && typeof body.floor !== "string") return null;
+  if (body.areaSqm !== undefined && body.areaSqm !== null && typeof body.areaSqm !== "number") return null;
+  if (body.genderPolicy !== undefined && body.genderPolicy !== null &&
+      body.genderPolicy !== "any" && body.genderPolicy !== "female" && body.genderPolicy !== "male") return null;
+  if (body.attrs !== undefined && !isObject(body.attrs)) return null;
+  return {
+    code: body.code,
+    profileKey: body.profileKey,
+    ...(body.capacity === undefined ? {} : { capacity: body.capacity }),
+    ...(body.maxOccupancy === undefined ? {} : { maxOccupancy: body.maxOccupancy }),
+    ...(body.floor === undefined ? {} : { floor: body.floor }),
+    ...(body.areaSqm === undefined ? {} : { areaSqm: body.areaSqm }),
+    ...(body.genderPolicy === undefined ? {} : { genderPolicy: body.genderPolicy }),
+    ...(body.attrs === undefined ? {} : { attrs: body.attrs }),
+  };
+}
+
+function parseSellableUnit(body: unknown): Omit<CreateSellableUnitInput, "envelope"> | null {
+  if (!isObject(body) || !exactKeys(body, ["unitTypeId", "name", "spaces"]) ||
+      typeof body.unitTypeId !== "string" || typeof body.name !== "string" || !Array.isArray(body.spaces)) return null;
+  const spaces: Array<{ spaceId: string; claimMode: "exclusive" | "positional" }> = [];
+  for (const item of body.spaces) {
+    if (!isObject(item) || !exactKeys(item, ["spaceId", "claimMode"]) ||
+        typeof item.spaceId !== "string" || (item.claimMode !== "exclusive" && item.claimMode !== "positional")) return null;
+    spaces.push({ spaceId: item.spaceId, claimMode: item.claimMode });
+  }
+  return { unitTypeId: body.unitTypeId, name: body.name, spaces };
+}
+
+function parseOperationalBlock(body: unknown): { spaceId: string; kind: "ooo" | "oos";
+  from: Date; to: Date; reason: string } | null {
+  if (!isObject(body) || !exactKeys(body, ["spaceId", "kind", "from", "to", "reason"]) ||
+      typeof body.spaceId !== "string" || (body.kind !== "ooo" && body.kind !== "oos") ||
+      typeof body.reason !== "string") return null;
+  const from = parseInstant(body.from);
+  const to = parseInstant(body.to);
+  if (!from || !to) return null;
+  return { spaceId: body.spaceId, kind: body.kind, from, to, reason: body.reason };
+}
+
+function jsonValue(value: unknown): JsonValue {
+  return JSON.parse(JSON.stringify(value)) as JsonValue;
+}
+
+function rateBuilderJsonValue(value: unknown): JsonValue {
+  if (typeof value === "bigint") return value.toString();
+  if (value instanceof Date) return value.toISOString();
+  if (Array.isArray(value)) return value.map(rateBuilderJsonValue);
+  if (value !== null && typeof value === "object") {
+    return Object.fromEntries(Object.entries(value as Record<string, unknown>)
+      .sort(([left], [right]) => left.localeCompare(right))
+      .map(([key, entry]) => [key, rateBuilderJsonValue(entry)])) as JsonValue;
+  }
+  return value as JsonValue;
+}
+
+function reservationOfferHttpResult(result: ReservationOfferSearchResult): JsonValue {
+  return rateBuilderJsonValue({
+    options: result.options.map((offer) => ({
+      option_ref: offer.optionRef,
+      state: offer.state,
+      reason: offer.reason,
+      bookable: offer.bookable,
+      promise: offer.promise,
+      commit_arbitration_required: offer.commitArbitrationRequired,
+      sellable_unit: offer.sellableUnit,
+      unit_type: {
+        id: offer.unitType.id,
+        code: offer.unitType.code,
+        name: offer.unitType.name,
+        profile_key: offer.unitType.profileKey,
+        max_occupancy: offer.unitType.maxOccupancy,
+      },
+      rate_plan: {
+        id: offer.ratePlan.id,
+        code: offer.ratePlan.code,
+        name: offer.ratePlan.name,
+        currency: offer.ratePlan.currency,
+        tax_inclusive: offer.ratePlan.taxInclusive,
+      },
+      release: {
+        id: offer.release.id,
+        version: offer.release.version,
+        content_hash: offer.release.contentHash,
+      },
+      stay: {
+        from: offer.stay.from,
+        to: offer.stay.to,
+        local_from: offer.stay.localFrom,
+        local_to: offer.stay.localTo,
+      },
+      party: { adults: offer.party.adults, child_ages: offer.party.childAges },
+      per_night: offer.perNight.map((night) => ({ date: night.date, amount_minor: night.amountMinor })),
+      total: offer.total === null ? null : {
+        amount_minor: offer.total.amountMinor,
+        currency: offer.total.currency,
+        kind: offer.total.kind,
+      },
+      taxes: offer.taxes.map((tax) => ({
+        night_date: tax.nightDate,
+        jurisdiction_key: tax.jurisdictionKey,
+        evidence_ref: tax.evidenceRef,
+      })),
+      tax_assignment_state: offer.taxAssignmentState,
+      tax_preview: offer.taxPreview,
+      policies: Object.fromEntries(Object.entries(offer.policies).map(([kind, policy]) => [
+        kind,
+        policy === null ? null : { policy_id: policy.policyId, evidence_ref: policy.evidenceRef },
+      ])),
+      package: offer.package,
+      selected_promotion_codes: offer.selectedPromotionCodes,
+      applied_promotion_codes: offer.appliedPromotionCodes,
+      refund_treatment: offer.refundTreatment,
+      restrictions_applied: offer.restrictionsApplied,
+      operational_blocks_applied: offer.operationalBlocksApplied.map((block) => ({
+        id: block.id,
+        space_id: block.spaceId,
+        kind: block.kind,
+        reason: block.reason,
+        blocks: block.blocks,
+      })),
+      available_count: offer.availableCount,
+      evidence: {
+        quote_hash: offer.evidence.quoteHash,
+        availability_ref: offer.evidence.availabilityRef,
+        booking_instant: offer.evidence.bookingInstant,
+      },
+    })),
+    issues: result.issues.map((issue) => ({
+      sellable_unit_id: issue.sellableUnitId,
+      unit_type_code: issue.unitTypeCode,
+      rate_plan_id: issue.ratePlanId,
+      rate_plan_code: issue.ratePlanCode,
+      reason: issue.reason,
+    })),
+    summary: {
+      inventory_options: result.summary.inventoryOptions,
+      candidate_pairs: result.summary.candidatePairs,
+      evaluated_pairs: result.summary.evaluatedPairs,
+      bookable: result.summary.bookable,
+      blocked: result.summary.blocked,
+      unpriced: result.summary.unpriced,
+      conflicted: result.summary.conflicted,
+      publication_unavailable: result.summary.publicationUnavailable,
+      pricing_evidence_unavailable: result.summary.pricingEvidenceUnavailable,
+      work_limit: result.summary.workLimit,
+    },
+  });
+}
+
+function parseRateApprovalPage(request: Request): { after?: string; limit?: number } | null {
+  const query = new URL(request.url).searchParams;
+  const allowed = new Set(["after", "limit"]);
+  if ([...query.keys()].some((key) => !allowed.has(key)) ||
+      [...allowed].some((key) => query.getAll(key).length > 1)) return null;
+  const after = query.get("after");
+  const rawLimit = query.get("limit");
+  if (after !== null && !/^[A-Za-z0-9_-]{1,512}$/.test(after)) return null;
+  if (rawLimit !== null && !/^(?:[1-9]|[1-9][0-9]|100)$/.test(rawLimit)) return null;
+  return {
+    ...(after === null ? {} : { after }),
+    ...(rawLimit === null ? {} : { limit: Number(rawLimit) }),
+  };
+}
+
+function rateApprovalJson(approval: RatePublicationApprovalView, actorId: string): JsonValue {
+  const canDecide = approval.status === "pending" && approval.requestedBy.id !== actorId;
+  const canPublish = approval.status === "approved" && approval.decidedBy?.id === actorId &&
+    approval.releaseStatus === "draft" && approval.releaseIsLatest;
+  return rateBuilderJsonValue({
+    id: approval.id,
+    releaseId: approval.releaseId,
+    releaseVersion: approval.releaseVersion,
+    releaseStatus: approval.releaseStatus,
+    releaseIsLatest: approval.releaseIsLatest,
+    status: approval.status,
+    requestedBy: approval.requestedBy,
+    decidedBy: approval.decidedBy,
+    createdAt: approval.createdAt,
+    decidedAt: approval.decidedAt,
+    canDecide,
+    canPublish,
+  });
+}
+
+function releaseAuthoringCommand(
+  release: RatePlanRelease,
+  modelDrafts: readonly RateModelDraft[],
+  targetDrafts: readonly RateTargetDraft[],
+): CanonicalRateAuthoringCommand {
+  const matchingModels = modelDrafts.filter(({ id, extensionVersion }) =>
+    id === release.modelDraftId && extensionVersion === release.modelDraftVersion
+  );
+  const matchingTargets = targetDrafts.filter(({ id, extensionVersion }) =>
+    id === release.targetDraftId && extensionVersion === release.targetDraftVersion
+  );
+  if (matchingModels.length !== 1 || matchingTargets.length !== 1) {
+    throw new RatePublicationNotFoundError("Stored rate release references were not found exactly once");
+  }
+  const model = matchingModels[0]!;
+  const target = matchingTargets[0]!;
+  const sameScope = model.tenantId === release.tenantId && target.tenantId === release.tenantId &&
+    model.propertyNode === release.propertyNode && target.propertyNode === release.propertyNode &&
+    model.ratePlanId === release.ratePlanId && target.ratePlanId === release.ratePlanId;
+  if (!sameScope || model.authoringMode !== target.authoringMode ||
+      model.modelKey !== release.evaluatorSpec.modelKey) {
+    throw new RatePublicationError("Stored rate release references do not reconstruct one canonical command");
+  }
+  return compileRateAuthoringCommand(rateBuilderJsonValue({
+    authoringMode: model.authoringMode,
+    ratePlanId: release.ratePlanId,
+    model: {
+      key: model.modelKey,
+      version: model.modelVersion,
+      componentModelKeys: model.componentModelKeys,
+    },
+    target: { rules: target.rules },
+    evaluator: release.evaluatorSpec,
+    composition: release.compositionSpec,
+    rmsBinding: release.rmsBinding,
+  }));
+}
+
+function releasesWithAuthoringCommands(
+  releases: readonly RatePlanRelease[],
+  modelDrafts: readonly RateModelDraft[],
+  targetDrafts: readonly RateTargetDraft[],
+) {
+  return Object.freeze(releases.map((release) => Object.freeze({
+    ...release,
+    authoringCommand: releaseAuthoringCommand(release, modelDrafts, targetDrafts),
+  })));
+}
+
+type FiscalSubmissionOperations = Pick<FiscalSubmissionService, "request" | "retry">;
+
+interface FiscalSubmissionOperatorDependencies {
+  readonly submissions: FiscalSubmissionOperations;
+  readonly adapters: FiscalSubmissionAdapterAvailabilityService;
+  readonly receipts?: Pick<FiscalSubmissionReceiptReadService, "read">;
+}
+
+class InvoiceReadPermissionFailure extends Error {
+  constructor() { super("Invoice access is not granted"); }
+}
+
+class InvoiceStaffFailure extends Error {
+  constructor(readonly kind: "invalid" | "conflict" | "stale" | "not_found") { super("Invoice command could not complete"); }
+}
+class InvoiceJurisdictionFailure extends Error {
+  constructor() { super("This invoice workflow is not supported for this property"); }
+}
+
+class FiscalSubmissionOperatorFailure extends Error {
+  constructor() {
+    super("fiscal submission operation is unavailable");
+  }
+}
+
+function fiscalSubmissionJson(receipt: FiscalSubmissionReceipt): JsonValue {
+  return Object.freeze({
+    fiscalSubmission: Object.freeze({
+      submissionId: receipt.submissionId,
+      documentId: receipt.documentId,
+      attemptId: receipt.attemptId,
+      attemptNumber: receipt.attemptNumber,
+      retryCount: receipt.retryCount,
+      status: receipt.status,
+      disposition: receipt.disposition,
+      transitionSeq: receipt.transitionSeq,
+      provider: Object.freeze({
+        key: receipt.providerKey,
+        extensionId: receipt.providerExtensionId,
+        extensionVersion: receipt.providerExtensionVersion,
+      }),
+      // Exact successful JSON is immutable; replay metadata is a response header.
+      replayed: false,
+    }),
+  });
+}
+
+export class OperatorHttpApi {
+  readonly #login: LocalLoginService;
+  readonly #availability: Pick<AvailabilityService, "search">;
+  readonly #inventory?: InventoryOperations;
+  readonly #idempotency: PostgresIdempotency;
+  readonly #propertyProfiles: PropertyIdentityProfileService;
+  readonly #restrictions?: RestrictionOperations;
+  readonly #rates?: RateOperations;
+  readonly #pricing?: PricingOperations;
+  readonly #blocks?: BlockOperations;
+  readonly #policy?: PolicyOperations;
+  readonly #holds?: HoldOperations;
+  readonly #projection?: Pick<AvailabilityProjectionService, "status" | "replaceHorizon">;
+  readonly #runtimeStatus: OperatorRuntimeStatus;
+  readonly #rateBuilder?: RateBuilderOperations;
+  readonly #reservations?: ReservationOperations;
+  readonly #reservationOffers?: ReservationOfferOperations;
+  readonly #reservationGuests?: ReservationGuestOperations;
+  readonly #reservationAlerts?: ReservationAlertOperations;
+  readonly #reservationLifecycle?: ReservationLifecycleOperations;
+  readonly #reservationSegments?: ReservationSegmentOperations;
+  readonly #reservationBoard?: ReservationBoardOperations;
+  readonly #operatingPerformance?: OperatingPerformanceOperations;
+  readonly #reservationDetail?: ReservationDetailOperations;
+  readonly #parties?: PartyOperations;
+  readonly #folioStatements?: FolioStatementOperations;
+  readonly #charges?: ChargeOperations;
+  readonly #chargeCorrections?: ChargeCorrectionOperations;
+  readonly #folios?: FolioOperations;
+  readonly #folioSettlements?: FolioSettlementOperations;
+  readonly #folioTransfers?: FolioTransferOperations;
+  readonly #hostedDeposits?: HostedDepositOperations;
+  readonly #cashiers?: CashierOperations;
+  readonly #receivables?: ReceivableOperations;
+  readonly #checkIns?: CheckInOperations;
+  readonly #checkoutReadiness?: CheckoutReadinessOperations;
+  readonly #checkouts?: CheckoutOperations;
+  readonly #housekeeping?: HousekeepingOperations;
+  readonly #housekeepingSheets?: HousekeepingSheetOperations;
+  readonly #vehicleRegister?: VehicleRegisterOperations;
+  readonly #reservationTravel?: ReservationTravelOperations;
+  readonly #pickupTaskDispatch?: PickupTaskDispatchOperations;
+  readonly #arrivalRoomCleaning?: ArrivalRoomCleaningOperations;
+  readonly #housekeepingDiscrepancies?: HousekeepingDiscrepancyOperations;
+  readonly #vehicleParking?: VehicleParkingOperations;
+  readonly #businessDayCloseWorkbench: BusinessDayCloseWorkbenchLoader;
+  readonly #businessDayCloseWorkbenchEntry: BusinessDayCloseWorkbenchEntryLoader;
+  readonly #businessDayCarry?: BusinessDayCarryOperations;
+  readonly #businessDaySeal?: BusinessDaySealOperations;
+  readonly #ownerTrustExpenses?: Pick<OwnerTrustExpenseWorkbenchService,
+    "listAccounts" | "previewExpense" | "requestApproval" | "listApprovals" | "decideApproval" | "postExpense">;
+  readonly #fiscalSubmissions?: FiscalSubmissionOperatorDependencies;
+  readonly #fiscalReceiptReader: Pick<FiscalSubmissionReceiptReadService, "read">;
+  readonly #departureServices: DepartureServiceCoordinationService;
+  readonly #invoiceReader = new IndiaNativeFiscalDocumentReadService();
+  readonly #invoiceOperatorReader = new IndiaNativeFiscalOperatorReadService();
+
+  constructor(
+    login: LocalLoginService,
+    availability: Pick<AvailabilityService, "search"> = new AvailabilityService(),
+    inventory?: InventoryOperations,
+    idempotency = new PostgresIdempotency(),
+    restrictions?: RestrictionOperations,
+    rates?: RateOperations,
+    pricing?: PricingOperations,
+    blocks?: BlockOperations,
+    policy?: PolicyOperations,
+    holds?: HoldOperations,
+    projection?: Pick<AvailabilityProjectionService, "status" | "replaceHorizon">,
+    runtimeStatus: OperatorRuntimeStatus = DEFAULT_OPERATOR_RUNTIME_STATUS,
+    rateBuilder?: RateBuilderOperations,
+    reservations?: ReservationOperations,
+    reservationOffers?: ReservationOfferOperations,
+    reservationGuests?: ReservationGuestOperations,
+    reservationLifecycle?: ReservationLifecycleOperations,
+    reservationSegments?: ReservationSegmentOperations,
+    parties?: PartyOperations,
+    folioStatements?: FolioStatementOperations,
+    charges?: ChargeOperations,
+    reservationBoard?: ReservationBoardOperations,
+    reservationDetail?: ReservationDetailOperations,
+    folios?: FolioOperations,
+    chargeCorrections?: ChargeCorrectionOperations,
+    folioTransfers?: FolioTransferOperations,
+    hostedDeposits?: HostedDepositOperations,
+    folioSettlements?: FolioSettlementOperations,
+    cashiers?: CashierOperations,
+    receivables?: ReceivableOperations,
+    checkIns?: CheckInOperations,
+    housekeeping?: HousekeepingOperations,
+    housekeepingSheets?: HousekeepingSheetOperations,
+    checkoutReadiness?: CheckoutReadinessOperations,
+    checkouts?: CheckoutOperations,
+    vehicleRegister?: VehicleRegisterOperations,
+    reservationTravel?: ReservationTravelOperations,
+    pickupTaskDispatch?: PickupTaskDispatchOperations,
+    arrivalRoomCleaning?: ArrivalRoomCleaningOperations,
+    housekeepingDiscrepancies?: HousekeepingDiscrepancyOperations,
+    vehicleParking?: VehicleParkingOperations,
+    businessDayCloseWorkbench: BusinessDayCloseWorkbenchLoader = loadBusinessDayCloseWorkbench,
+    businessDayCloseWorkbenchEntry: BusinessDayCloseWorkbenchEntryLoader = loadBusinessDayCloseWorkbenchEntry,
+    businessDayCarry?: BusinessDayCarryOperations,
+    businessDaySeal?: BusinessDaySealOperations,
+    ownerTrustExpenses?: Pick<OwnerTrustExpenseWorkbenchService,
+      "listAccounts" | "previewExpense" | "requestApproval" | "listApprovals" | "decideApproval" | "postExpense">,
+    fiscalSubmissions?: FiscalSubmissionOperatorDependencies,
+    reservationAlerts?: ReservationAlertOperations,
+    operatingPerformance?: OperatingPerformanceOperations,
+  ) {
+    this.#login = login;
+    this.#availability = availability;
+    this.#inventory = inventory;
+    this.#idempotency = idempotency;
+    this.#departureServices = new DepartureServiceCoordinationService(idempotency);
+    this.#propertyProfiles = new PropertyIdentityProfileService(idempotency);
+    this.#restrictions = restrictions;
+    this.#rates = rates;
+    this.#pricing = pricing;
+    this.#blocks = blocks;
+    this.#policy = policy;
+    this.#holds = holds;
+    this.#projection = projection;
+    this.#runtimeStatus = runtimeStatus;
+    this.#rateBuilder = rateBuilder;
+    this.#reservations = reservations;
+    this.#reservationOffers = reservationOffers;
+    this.#reservationGuests = reservationGuests;
+    this.#reservationAlerts = reservationAlerts;
+    this.#operatingPerformance = operatingPerformance;
+    this.#reservationLifecycle = reservationLifecycle;
+    this.#reservationSegments = reservationSegments;
+    this.#parties = parties;
+    this.#folioStatements = folioStatements;
+    this.#charges = charges;
+    this.#reservationBoard = reservationBoard;
+    this.#reservationDetail = reservationDetail;
+    this.#folios = folios;
+    this.#chargeCorrections = chargeCorrections;
+    this.#folioTransfers = folioTransfers;
+    this.#hostedDeposits = hostedDeposits;
+    this.#folioSettlements = folioSettlements;
+    this.#cashiers = cashiers;
+    this.#receivables = receivables;
+    this.#checkIns = checkIns;
+    this.#housekeeping = housekeeping;
+    this.#housekeepingSheets = housekeepingSheets;
+    this.#checkoutReadiness = checkoutReadiness;
+    this.#checkouts = checkouts;
+    this.#vehicleRegister = vehicleRegister;
+    this.#reservationTravel = reservationTravel;
+    this.#pickupTaskDispatch = pickupTaskDispatch;
+    this.#arrivalRoomCleaning = arrivalRoomCleaning;
+    this.#housekeepingDiscrepancies = housekeepingDiscrepancies;
+    this.#vehicleParking = vehicleParking;
+    this.#businessDayCloseWorkbench = businessDayCloseWorkbench;
+    this.#businessDayCloseWorkbenchEntry = businessDayCloseWorkbenchEntry;
+    this.#businessDayCarry = businessDayCarry;
+    this.#businessDaySeal = businessDaySeal;
+    this.#ownerTrustExpenses = ownerTrustExpenses;
+    this.#fiscalSubmissions = fiscalSubmissions;
+    this.#fiscalReceiptReader = fiscalSubmissions?.receipts ?? new FiscalSubmissionReceiptReadService();
+  }
+
+  unavailable(request: Request): Response {
+    return apiError(request, 503, "service/unavailable", "Service unavailable", "Operator service is temporarily unavailable");
+  }
+
+  unauthorized(request: Request): Response {
+    return apiError(request, 401, "auth/unauthorized", "Authentication required", "A valid bearer token is required");
+  }
+
+  failure(request: Request, error: unknown): Response {
+    if (error instanceof DepartureServiceError) {
+      const status = error.kind === "invalid" ? 400 : error.kind === "forbidden" ? 403 : error.kind === "not_found" ? 404 : 409;
+      return apiError(request, status, `departure-services/${error.kind}`, "Departure coordination", error.message);
+    }
+    if (error instanceof PropertyIdentityAuthorizationError) {
+      return apiError(request, 403, "auth/property_forbidden", "Forbidden", "Property identity access is not granted");
+    }
+    if (error instanceof PropertyIdentityValidationError) {
+      return apiError(request, 400, "request/invalid", "Invalid request", "Property identity input is invalid");
+    }
+    if (error instanceof PropertyIdentityConflictError) {
+      return apiError(request, 409, "identity/property_profile_conflict", "Conflict", "Property identity changed; refresh the profile and try again");
+    }
+    if (error instanceof IndiaNativeFiscalCreditNoteAuthorizationError) {
+      return apiError(request, 403, "auth/scope_missing", "Forbidden", "Credit-note access is not granted");
+    }
+    if (error instanceof IndiaNativeFiscalCreditNoteValidationError) {
+      return apiError(request, 400, "request/invalid", "Invalid request", "Credit-note input is invalid");
+    }
+    if (error instanceof IndiaNativeFiscalCreditNoteNotFoundError) {
+      return apiError(request, 404, "fiscal/credit_note_not_found", "Not found", "Credit note or its original invoice is not available");
+    }
+    if (error instanceof IndiaNativeFiscalCreditNoteConflictError) {
+      return apiError(request, 409, "fiscal/credit_note_conflict", "Credit note not issued", "The credit note cannot be issued from the current financial state");
+    }
+    if (error instanceof InvoiceReadPermissionFailure) return apiError(request, 403, "auth/scope_missing", "Forbidden", "Invoice access is not granted");
+    if (error instanceof InvoiceJurisdictionFailure) return apiError(request, 422, "fiscal/unsupported_jurisdiction", "Unsupported fiscal mode", "This invoice workflow is not supported for this property");
+    if (error instanceof InvoiceStaffFailure) {
+      const status = error.kind === "invalid" ? 400 : error.kind === "not_found" ? 404 : 409;
+      return apiError(request, status, "fiscal/invoice_" + error.kind, "Invoice not issued",
+        error.kind === "stale" ? "Invoice details changed. Review the current details before confirming again."
+          : "The invoice request cannot be completed from the current information.");
+    }
+    if (error instanceof FiscalSubmissionOperatorFailure) return this.unavailable(request);
+    if (error instanceof OwnerTrustExpenseWorkbenchValidationError) {
+      return apiError(request, 400, "request/invalid", "Invalid request", "Owner-trust expense input is invalid");
+    }
+    if (error instanceof OwnerTrustExpenseWorkbenchNotFoundError) {
+      return apiError(request, 404, "financials/not_found", "Not found", "The owner-trust expense resource is unavailable");
+    }
+    if (error instanceof OwnerTrustExpenseWorkbenchUnavailableError) {
+      return apiError(request, 409, "financials/conflict", "Conflict", "Owner-trust expense truth changed; refresh and try again");
+    }
+    if (error instanceof BusinessDaySealValidationError) {
+      return apiError(request, 400, "request/invalid", "Invalid request", "Business-day seal input is invalid");
+    }
+    if (error instanceof BusinessDaySealConflictError) {
+      return apiError(request, 409, "financials/conflict", "Conflict", "Business day could not be sealed; refresh and try again");
+    }
+    if (error instanceof BusinessDayCloseWorkbenchValidationError) {
+      return apiError(request, 400, "request/invalid", "Invalid request", "Business-day close workbench input is invalid");
+    }
+    if (error instanceof BusinessDayCloseWorkbenchUnavailableError) {
+      return apiError(request, 404, "financials/not_found", "Not found", "The business-day close workbench is unavailable");
+    }
+    if (error instanceof BusinessDayDiscrepancyCarryOperatorValidationError) {
+      return apiError(request, 400, "request/invalid", "Invalid request", "Business-day discrepancy carry input is invalid");
+    }
+    if (error instanceof BusinessDayDiscrepancyCarryOperatorUnavailableError) {
+      return apiError(request, 404, "financials/not_found", "Not found", "The discrepancy carry approval is unavailable");
+    }
+    if (error instanceof BusinessDayDiscrepancyCarryOperatorConflictError) {
+      return apiError(request, 409, "financials/conflict", "Conflict", "Discrepancy carry truth changed; refresh and try again");
+    }
+    const conditionIngress = /^\/api\/v1\/properties\/[0-9a-f-]+\/housekeeping\/conditions\/[0-9a-f-]+\/(?:candidate|initialize)$/.test(
+      new URL(request.url).pathname,
+    );
+    if (error instanceof HousekeepingDiscrepancyValidationError) {
+      return apiError(request, 400, "request/invalid", "Invalid request", "Room-discrepancy input is invalid");
+    }
+    if (error instanceof HousekeepingDiscrepancyNotFoundError) {
+      return apiError(request, 404, "housekeeping/not_found", "Not found", "The referenced reportable room was not found");
+    }
+    if (error instanceof HousekeepingDiscrepancyConflictError) {
+      return apiError(request, 409, "housekeeping/conflict", "Conflict", "Room discrepancy truth changed; refresh and try again");
+    }
+    if (error instanceof ArrivalPickupTaskDispatchValidationError) {
+      return apiError(request, 400, "request/invalid", "Invalid request", "Arrival pickup task transition input is invalid");
+    }
+    if (error instanceof ArrivalPickupTaskDispatchNotFoundError) {
+      return apiError(request, 404, "reservations/not_found", "Not found", "The referenced arrival pickup task or staff candidate was not found");
+    }
+    if (error instanceof ArrivalPickupTaskDispatchConflictError) {
+      return apiError(request, 409, "reservations/conflict", "Conflict", "Arrival pickup task truth changed; refresh the task and try again");
+    }
+    if (error instanceof ArrivalRoomCleaningValidationError) {
+      return apiError(request, 400, "request/invalid", "Invalid request", "Arrival room cleaning task input is invalid");
+    }
+    if (error instanceof ArrivalRoomCleaningNotFoundError) {
+      return apiError(request, 404, "housekeeping/not_found", "Not found", "The referenced arrival room cleaning candidate or attendant was not found");
+    }
+    if (error instanceof ArrivalRoomCleaningConflictError) {
+      return apiError(request, 409, "housekeeping/conflict", "Conflict", "Arrival room cleaning truth changed; refresh the candidate and try again");
+    }
+    if (error instanceof VehicleRegisterValidationError) {
+      return apiError(request, 400, "request/invalid", "Invalid request", "Vehicle register input is invalid");
+    }
+    if (error instanceof VehicleRegisterNotFoundError) {
+      return apiError(request, 404, "vehicles/not_found", "Not found", "The referenced vehicle was not found");
+    }
+    if (error instanceof VehicleRegisterConflictError) {
+      return apiError(request, 409, "vehicles/conflict", "Vehicle register unavailable", "Stored vehicle associations are inconsistent; no register data was disclosed");
+    }
+    if (error instanceof VehicleParkingValidationError) {
+      return apiError(request, 400, "request/invalid", "Invalid request", "Vehicle parking input is invalid");
+    }
+    if (error instanceof VehicleParkingNotFoundError) {
+      return apiError(request, 404, "vehicles/not_found", "Not found", "The vehicle or parking space is not an exact current assignment target");
+    }
+    if (error instanceof VehicleParkingConflictError) {
+      return apiError(request, 409, "vehicles/conflict", "Parking assignment changed", "Refresh the vehicle and choose a currently available parking space");
+    }
+    if (error instanceof CheckoutValidationError) {
+      return apiError(request, 400, "request/invalid", "Invalid request", "Checkout input is invalid");
+    }
+    if (error instanceof CheckoutNotFoundError) {
+      return apiError(request, 404, "reservations/not_found", "Not found", "The referenced reservation was not found");
+    }
+    if (error instanceof CheckoutConflictError) {
+      return apiError(request, 409, "reservations/conflict", "Checkout blocked", "Checkout conditions changed; refresh departure readiness and resolve every named blocker before trying again", {
+        blockers: error.blockers,
+      });
+    }
+    if (error instanceof CheckoutReadinessValidationError) {
+      return apiError(request, 400, "request/invalid", "Invalid request", "Departure readiness input is invalid");
+    }
+    if (error instanceof CheckoutReadinessNotFoundError) {
+      return apiError(request, 404, "reservations/not_found", "Not found", "The referenced reservation was not found");
+    }
+    if (error instanceof HousekeepingUnsupportedCadenceError) {
+      return apiError(request, 422, "housekeeping/unsupported_cadence", "Unsupported cadence", "One or more eligible rooms use weekly, custom, missing or ambiguous housekeeping cadence. Configure daily or on-departure before generating the sheet");
+    }
+    if (error instanceof HousekeepingSheetValidationError) {
+      return apiError(request, 400, "request/invalid", "Invalid request", "Housekeeping sheet input is invalid");
+    }
+    if (error instanceof HousekeepingSheetNotFoundError) {
+      return apiError(request, 404, "housekeeping/not_found", "Not found", "The referenced property, attendant or housekeeping sheet was not found");
+    }
+    if (error instanceof HousekeepingSheetConflictError) {
+      return apiError(request, 409, "housekeeping/conflict", "Conflict", "Housekeeping sheet truth changed or another attendant already owns this date; refresh before trying again");
+    }
+    if (error instanceof HousekeepingValidationError) {
+      return apiError(request, 400, "request/invalid", "Invalid request", conditionIngress
+        ? "Housekeeping condition input is invalid"
+        : "Housekeeping task input is invalid");
+    }
+    if (error instanceof HousekeepingNotFoundError) {
+      return apiError(request, 404, "housekeeping/not_found", "Not found", conditionIngress
+        ? "The referenced room condition candidate was not found"
+        : "The referenced housekeeping task was not found");
+    }
+    if (error instanceof HousekeepingConflictError) {
+      return apiError(request, 409, "housekeeping/conflict", "Conflict", conditionIngress
+        ? "Room condition truth changed; refresh the candidate and try again"
+        : "Housekeeping task or room condition changed; refresh the board and try again");
+    }
+    if (error instanceof CheckInValidationError) {
+      return apiError(request, 400, "request/invalid", "Invalid request", "Check-in input is invalid");
+    }
+    if (error instanceof CheckInNotFoundError) {
+      return apiError(request, 404, "reservations/not_found", "Not found", "The referenced reservation was not found");
+    }
+    if (error instanceof CheckInConflictError) {
+      return apiError(request, 409, "reservations/conflict", "Conflict", "Check-in readiness changed; reload the reservation and try again");
+    }
+    if (error instanceof CashierValidationError) {
+      return apiError(request, 400, "request/invalid", "Invalid request", "Cashier input is invalid");
+    }
+    if (error instanceof CashierNotFoundError) {
+      return apiError(request, 404, "financials/not_found", "Not found", "The requested cashier session or drawer was not found");
+    }
+    if (error instanceof CashierAuthorizationError) {
+      return apiError(request, 403, "auth/scope_missing", "Forbidden", "Cashier access is not granted");
+    }
+    if (error instanceof CashierConflictError) {
+      return apiError(request, 409, "financials/conflict", "Conflict", "The cashier session conflicts with current financial state");
+    }
+    if (error instanceof ReceivableValidationError) {
+      return apiError(request, 400, "request/invalid", "Invalid request", "Receivable transfer input is invalid");
+    }
+    if (error instanceof ReceivableNotFoundError) {
+      return apiError(request, 404, "financials/not_found", "Not found", "The requested receivable target or folio was not found");
+    }
+    if (error instanceof ReceivableConflictError) {
+      return apiError(request, 409, "financials/conflict", "Conflict", "The receivable transfer conflicts with current financial state");
+    }
+    if (error instanceof FolioValidationError || error instanceof FolioStatementValidationError ||
+        error instanceof ChargeValidationError || error instanceof ChargeCorrectionValidationError ||
+        error instanceof FolioTransferValidationError || error instanceof HostedDepositValidationError ||
+        error instanceof FolioSettlementValidationError) {
+      return apiError(request, 400, "request/invalid", "Invalid request", "Financial input is invalid");
+    }
+    if (error instanceof FolioNotFoundError || error instanceof FolioStatementNotFoundError ||
+        error instanceof ChargeNotFoundError || error instanceof ChargeCorrectionNotFoundError ||
+        error instanceof FolioTransferNotFoundError || error instanceof HostedDepositNotFoundError ||
+        error instanceof FolioSettlementNotFoundError) {
+      return apiError(request, 404, "financials/not_found", "Not found", "The requested folio or charge configuration was not found");
+    }
+    if (error instanceof FolioConflictError) {
+      return apiError(request, 409, "financials/conflict", "Conflict", "The primary folio conflicts with current financial state");
+    }
+    if (error instanceof FolioTransferConflictError) {
+      return apiError(request, 409, "financials/conflict", "Conflict", "The folio transfer conflicts with current financial state");
+    }
+    if (error instanceof FolioSettlementConflictError) {
+      return apiError(request, 409, "financials/conflict", "Conflict", "The folio settlement conflicts with current financial state");
+    }
+    if (error instanceof HostedDepositConflictError) {
+      return apiError(request, 409, "financials/conflict", "Conflict", "The hosted deposit conflicts with current financial state");
+    }
+    if (error instanceof ChargeConflictError) {
+      return apiError(request, 409, "financials/conflict", "Conflict", "The charge conflicts with current financial state");
+    }
+    if (error instanceof ChargeCorrectionConflictError) {
+      return apiError(request, 409, "financials/conflict", "Conflict", "The correction conflicts with current financial state");
+    }
+    if (error instanceof ChargeCorrectionAuthorizationError) {
+      return apiError(request, 403, "auth/scope_missing", "Forbidden", "Financial adjustment access is not granted");
+    }
+    if (error instanceof PartyDuplicateReviewRequiredError) {
+      return apiError(request, 409, "profiles/duplicate_review_required", "Duplicate review required",
+        "Review every current possible duplicate before creating a distinct Party",
+        { candidates: jsonValue(error.candidates) });
+    }
+    if (error instanceof ReservationApprovalRequiredError) {
+      return apiError(request, 409, "reservations/approval_required", "Approval required", "Cancellation requires an approved supervisor waiver");
+    }
+    if (error instanceof ReservationLifecycleConflictError) {
+      return apiError(request, 409, "reservations/lifecycle_conflict", "Conflict", "Reservation lifecycle conflicts with existing state");
+    }
+    if (error instanceof ReservationGuestConflictError) {
+      return apiError(request, 409, "reservations/conflict", "Conflict", "Reservation guest allocation conflicts with existing state");
+    }
+    if (error instanceof ReservationAlertConflictError) {
+      return apiError(request, 409, "reservations/conflict", "Conflict", "Reservation alert conflicts with current recorded truth");
+    }
+    if (error instanceof ReservationTravelConflictError) {
+      return apiError(request, 409, "reservations/conflict", "Conflict", "Reservation travel conflicts with current recorded truth");
+    }
+    if (error instanceof ReservationBoardConflictError || error instanceof ReservationDetailConflictError) {
+      return apiError(request, 409, "reservations/read_conflict", "Conflict", "Stored reservation data is incoherent");
+    }
+    if (error instanceof ReservationConflictError) {
+      return apiError(request, 409, "conflict/occupancy", "Inventory conflict", "Requested inventory is no longer available");
+    }
+    if (error instanceof IdempotencyConflictError || error instanceof InventoryConflictError ||
+        error instanceof OperationalBlockConflictError || error instanceof HoldConflictError) {
+      const type = error instanceof IdempotencyConflictError ? "request/idempotency_conflict" : "inventory/conflict";
+      return apiError(request, 409, type, "Conflict", "The inventory request conflicts with existing state");
+    }
+    if (error instanceof RateConflictError || error instanceof RatePublicationConflictError ||
+        error instanceof RateQuoteConflictError) {
+      return apiError(request, 409, "rates/conflict", "Conflict", "The rate configuration conflicts with existing state");
+    }
+    if (error instanceof IdempotencyValidationError || error instanceof InventoryValidationError) {
+      return apiError(request, 400, "request/invalid", "Invalid request", "Inventory input is invalid");
+    }
+    if (error instanceof PartyProfileValidationError) {
+      return apiError(request, 400, "request/invalid", "Invalid request", "Party profile input is invalid");
+    }
+    if (error instanceof ReservationValidationError || error instanceof ReservationOfferValidationError ||
+        error instanceof ReservationGuestValidationError || error instanceof ReservationLifecycleValidationError ||
+        error instanceof ReservationAlertValidationError ||
+        error instanceof ReservationTravelValidationError ||
+        error instanceof ReservationBoardValidationError || error instanceof ReservationDetailValidationError) {
+      return apiError(request, 400, "request/invalid", "Invalid request", "Reservation input is invalid");
+    }
+    if (error instanceof InventoryNotFoundError) {
+      return apiError(request, 404, "inventory/not_found", "Not found", "Referenced inventory was not found");
+    }
+    if (error instanceof ReservationNotFoundError || error instanceof ReservationGuestNotFoundError ||
+        error instanceof ReservationAlertNotFoundError ||
+        error instanceof ReservationTravelNotFoundError ||
+        error instanceof ReservationLifecycleNotFoundError || error instanceof ReservationDetailNotFoundError) {
+      return apiError(request, 404, "reservations/not_found", "Not found", "Referenced reservation input was not found");
+    }
+    if (error instanceof RateValidationError || error instanceof RateAuthoringError || error instanceof RateIntentError ||
+        (error instanceof RatePublicationError && !(error instanceof RatePublicationNotFoundError)) ||
+        (error instanceof RateQuoteError && !(error instanceof RateQuoteNotFoundError))) {
+      return apiError(request, 400, "request/invalid", "Invalid request", "Rate configuration input is invalid");
+    }
+    if (error instanceof RateNotFoundError || error instanceof RatePublicationNotFoundError ||
+        error instanceof RateQuoteNotFoundError) {
+      return apiError(request, 404, "rates/not_found", "Not found", "Referenced rate configuration was not found");
+    }
+    return this.unavailable(request);
+  }
+
+  async invoiceReadiness(context: TenantRequestContext, propertyNode: string, reservationId: string, folioId: string, body: unknown): Promise<Response> {
+    return this.#invoiceStaff(context, propertyNode, reservationId, folioId, body, false);
+  }
+
+  async fiscalSeriesConfigure(context: TenantRequestContext, propertyNode: string, body: unknown): Promise<Response> {
+    if (!hasScope(context, FISCAL_SERIES_CONFIGURE_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Fiscal-series configuration access is not granted");
+    }
+    const publicInput = fiscalSeriesConfigurationBody(body);
+    if (!publicInput || !UUID.test(propertyNode) || !hasJsonContentType(context.request) || new URL(context.request.url).search !== "") {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Fiscal-series configuration input is invalid");
+    }
+    const grants = await listGrantedProperties(context, FISCAL_SERIES_CONFIGURE_SCOPE);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 403, "auth/property_forbidden", "Forbidden", "Property access is not granted");
+    }
+    const requestId = correlationId(context.request);
+    try {
+      const series = await configureIndiaNativeFiscalSeriesInTransaction(context.tx, {
+        tenantId: context.tenantId,
+        propertyNode,
+        supplierRegistrationId: publicInput.supplierRegistrationId,
+        documentKind: publicInput.documentKind,
+        prefix: publicInput.prefix,
+        envelope: createAuditEnvelope({ actorId: context.identity.actorId, tenantId: context.tenantId,
+          propertyNode, requestId, operation: "document.series.configured" }),
+      });
+      return apiResponse(context.request, { series }, series.replayed ? 200 : 201, { "x-correlation-id": requestId });
+    } catch (error) {
+      const state = invoiceSqlState(error);
+      if (error instanceof IndiaNativeFiscalSeriesAuthorizationError || state === "42501") throw new InvoiceReadPermissionFailure();
+      if (error instanceof IndiaNativeFiscalSeriesValidationError || state === "22023") {
+        return apiError(context.request, 400, "request/invalid", "Invalid request", "Fiscal-series configuration input is invalid");
+      }
+      if (error instanceof IndiaNativeFiscalSeriesConflictError || state === "23505" || state === "40001" || state === "40P01") {
+        return apiError(context.request, 409, "fiscal/series_conflict", "Conflict", "Fiscal-series configuration conflicts with existing state");
+      }
+      if (error instanceof IndiaNativeFiscalSeriesDatabaseError || state === "55000") throw new Error("Fiscal-series configuration is unavailable");
+      throw error;
+    }
+  }
+
+  async fiscalSeriesDiscover(context: TenantRequestContext, propertyNode: string): Promise<Response> {
+    if (!hasScope(context, FISCAL_SERIES_CONFIGURE_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Fiscal-series discovery access is not granted");
+    }
+    const query = new URL(context.request.url).searchParams;
+    const keys = [...query.keys()];
+    if (!UUID.test(propertyNode) || keys.length !== 2 ||
+        keys.filter(key => key === "supplierRegistrationId").length !== 1 ||
+        keys.filter(key => key === "documentKind").length !== 1) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Fiscal-series discovery query is invalid");
+    }
+    const input = snapshotIndiaNativeFiscalSeriesDiscoveryInput({
+      tenantId: context.tenantId,
+      propertyNode,
+      supplierRegistrationId: query.get("supplierRegistrationId"),
+      documentKind: query.get("documentKind"),
+      actorId: context.identity.actorId,
+    });
+    if (!input) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Fiscal-series discovery query is invalid");
+    }
+    const grants = await listGrantedProperties(context, FISCAL_SERIES_CONFIGURE_SCOPE);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 403, "auth/property_forbidden", "Forbidden", "Property access is not granted");
+    }
+    try {
+      const series = await readIndiaNativeFiscalSeriesInTransaction(context.tx, input);
+      return apiResponse(context.request, { series });
+    } catch (error) {
+      if (error instanceof IndiaNativeFiscalSeriesAuthorizationError) {
+        return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Fiscal-series discovery access is not granted");
+      }
+      if (error instanceof IndiaNativeFiscalSeriesValidationError) {
+        return apiError(context.request, 400, "request/invalid", "Invalid request", "Fiscal-series discovery query is invalid");
+      }
+      if (error instanceof IndiaNativeFiscalSeriesDatabaseError) {
+        return apiError(context.request, 503, "service/unavailable", "Service unavailable", "Fiscal-series discovery is temporarily unavailable");
+      }
+      throw error;
+    }
+  }
+
+  async fiscalCreditNoteIssue(context: TenantRequestContext, propertyNode: string, originalDocumentId: string, body: unknown): Promise<Response> {
+    if (!hasScope(context, FISCAL_CREDIT_SCOPES[0]) || !hasScope(context, FISCAL_CREDIT_SCOPES[1])) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Document issue and financial adjustment access are required");
+    }
+    const publicInput = fiscalCreditNoteBody(body);
+    if (!publicInput || !UUID.test(propertyNode) || !UUID.test(originalDocumentId)
+      || !hasJsonContentType(context.request) || new URL(context.request.url).search !== "") {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Credit-note input is invalid");
+    }
+    // Snapshot route/session/public input before a grant query can yield. SQL rechecks
+    // current authority, including post-seal authority, at the financial boundary.
+    const input = snapshotIndiaNativeFiscalCreditNoteIssueInput({
+      tenantId: context.tenantId, propertyNode, actorId: context.identity.actorId,
+      originalDocumentId, reason: publicInput.reason,
+      idempotencyKey: context.request.headers.get("idempotency-key"),
+      envelope: createAuditEnvelope({ actorId: context.identity.actorId, tenantId: context.tenantId,
+        propertyNode, requestId: correlationId(context.request), operation: "document.issued" }),
+    });
+    if (!input) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Credit-note input is invalid");
+    }
+    for (const scope of FISCAL_CREDIT_SCOPES) {
+      const grants = await listGrantedProperties(context, scope);
+      if (!grants.some(({ id }) => id === propertyNode)) {
+        return apiError(context.request, 403, "auth/property_forbidden", "Forbidden", "Property access is not granted");
+      }
+    }
+    // Do not catch database failures inside the tenant transaction: middleware must
+    // roll back every posting/document/outbox effect before failure() maps the error.
+    const result = await issueIndiaNativeFiscalCreditNoteInTransaction(context.tx, input);
+    return fiscalCreditNoteResponse(context.request, result.receiptJson, result.replayed, input.envelope.requestId);
+  }
+
+  async fiscalCreditNoteRead(context: TenantRequestContext, propertyNode: string, creditDocumentId: string): Promise<Response> {
+    if (!hasScope(context, FISCAL_DOCUMENT_READ_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Credit-note access is not granted");
+    }
+    if (!UUID.test(propertyNode) || !UUID.test(creditDocumentId) || new URL(context.request.url).search !== "") {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Credit-note identity is invalid");
+    }
+    const grants = await listGrantedProperties(context, FISCAL_DOCUMENT_READ_SCOPE);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 403, "auth/property_forbidden", "Forbidden", "Property access is not granted");
+    }
+    const result = await readIndiaNativeFiscalCreditNoteInTransaction(context.tx, {
+      tenantId: context.tenantId, propertyNode, actorId: context.identity.actorId, creditDocumentId,
+    });
+    if (result === null) {
+      return apiError(context.request, 404, "fiscal/credit_note_not_found", "Not found", "Credit note or its original invoice is not available");
+    }
+    return fiscalCreditNoteResponse(context.request, result.receiptJson);
+  }
+
+  async fiscalCreditNoteDocument(context: TenantRequestContext, propertyNode: string, creditDocumentId: string): Promise<Response> {
+    if (!hasScope(context, FISCAL_DOCUMENT_READ_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Credit-note access is not granted");
+    }
+    if (!UUID.test(propertyNode) || !UUID.test(creditDocumentId) || new URL(context.request.url).search !== "") {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Credit-note identity is invalid");
+    }
+    const grants = await listGrantedProperties(context, FISCAL_DOCUMENT_READ_SCOPE);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 403, "auth/property_forbidden", "Forbidden", "Property access is not granted");
+    }
+    const result = await readIndiaNativeFiscalCreditNoteDocumentInTransaction(context.tx, {
+      tenantId: context.tenantId, propertyNode, actorId: context.identity.actorId, creditDocumentId,
+    });
+    if (result === null) {
+      return apiError(context.request, 404, "fiscal/credit_note_not_found", "Not found", "Credit note or its original invoice is not available");
+    }
+    return apiResponse(context.request, result);
+  }
+
+  async fiscalCreditNoteDelivery(context: TenantRequestContext, propertyNode: string, creditDocumentId: string): Promise<Response> {
+    if (!hasScope(context, FISCAL_DOCUMENT_READ_SCOPE) || !hasScope(context, FISCAL_SUBMISSION_READ_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Credit delivery access is not granted");
+    }
+    if (!UUID.test(propertyNode) || !UUID.test(creditDocumentId) || new URL(context.request.url).search !== "") {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Credit delivery identity is invalid");
+    }
+    const documentGrants = await listGrantedProperties(context, FISCAL_DOCUMENT_READ_SCOPE);
+    if (!documentGrants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 403, "auth/property_forbidden", "Forbidden", "Property access is not granted");
+    }
+    const submissionGrants = await listGrantedProperties(context, FISCAL_SUBMISSION_READ_SCOPE);
+    if (!submissionGrants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 403, "auth/property_forbidden", "Forbidden", "Property access is not granted");
+    }
+    try {
+      const delivery = await readIndiaNativeCreditDeliveryInTransaction(context.tx, {
+        tenantId: context.tenantId, propertyNode, actorId: context.identity.actorId, creditDocumentId,
+      });
+      if (delivery === null) {
+        return apiError(context.request, 404, "fiscal/credit_delivery_not_found", "Not found", "Credit delivery is not available");
+      }
+      return apiResponse(context.request, { delivery });
+    } catch (error) {
+      if (error instanceof IndiaNativeCreditDeliveryValidationError) {
+        return apiError(context.request, 400, "request/invalid", "Invalid request", "Credit delivery input is invalid");
+      }
+      if (error instanceof IndiaNativeCreditDeliveryAuthorizationError) throw new InvoiceReadPermissionFailure();
+      if (error instanceof IndiaNativeCreditDeliveryDatabaseError) throw new FiscalSubmissionOperatorFailure();
+      throw error;
+    }
+  }
+
+  async fiscalCreditNoteList(context: TenantRequestContext, propertyNode: string): Promise<Response> {
+    if (!hasScope(context, FISCAL_DOCUMENT_READ_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Credit-note access is not granted");
+    }
+    const url = new URL(context.request.url);
+    const query = url.searchParams;
+    const allowed = ["issuedFrom", "issuedBefore", "docNo", "after", "limit"];
+    if (!UUID.test(propertyNode) || [...query.keys()].some((key) => !allowed.includes(key)) ||
+        allowed.some((key) => query.getAll(key).length > 1) ||
+        query.get("issuedFrom") === null || query.get("issuedBefore") === null) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Credit-note list query is invalid");
+    }
+    const rawLimit = query.get("limit");
+    const input = snapshotIndiaNativeFiscalCreditNoteListInput({
+      tenantId: context.tenantId, propertyNode, actorId: context.identity.actorId,
+      issuedFrom: query.get("issuedFrom"), issuedBefore: query.get("issuedBefore"),
+      ...(query.has("docNo") ? { docNo: query.get("docNo") } : {}),
+      ...(query.has("after") ? { after: query.get("after") } : {}),
+      ...(rawLimit !== null ? { limit: /^(?:[1-9]|[1-9][0-9]|100)$/.test(rawLimit) ? Number(rawLimit) : NaN } : {}),
+    });
+    if (!input) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Credit-note list query is invalid");
+    }
+    const grants = await listGrantedProperties(context, FISCAL_DOCUMENT_READ_SCOPE);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 403, "auth/property_forbidden", "Forbidden", "Property access is not granted");
+    }
+    const result: Readonly<IndiaNativeFiscalCreditNoteListResult> =
+      await listIndiaNativeFiscalCreditNotesInTransaction(context.tx, input);
+    return apiResponse(context.request, result);
+  }
+
+  async fiscalCreditNoteDiscover(context: TenantRequestContext, propertyNode: string, originalDocumentId: string): Promise<Response> {
+    if (!hasScope(context, FISCAL_DOCUMENT_READ_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Credit-note access is not granted");
+    }
+    const input = snapshotIndiaNativeFiscalCreditNoteDiscoveryInput({
+      tenantId: context.tenantId, propertyNode, actorId: context.identity.actorId, originalDocumentId,
+    });
+    if (!input || new URL(context.request.url).search !== "") {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Credit-note identity is invalid");
+    }
+    const grants = await listGrantedProperties(context, FISCAL_DOCUMENT_READ_SCOPE);
+    if (!grants.some(({ id }) => id === input.propertyNode)) {
+      return apiError(context.request, 403, "auth/property_forbidden", "Forbidden", "Property access is not granted");
+    }
+    const result = await discoverIndiaNativeFiscalCreditNoteInTransaction(context.tx, input);
+    if (result === null) {
+      return apiError(context.request, 404, "fiscal/credit_note_not_found", "Not found", "Credit note or its original invoice is not available");
+    }
+    return fiscalCreditNoteResponse(context.request, result.receiptJson);
+  }
+
+  async invoiceIssue(context: TenantRequestContext, propertyNode: string, reservationId: string, folioId: string, body: unknown): Promise<Response> {
+    return this.#invoiceStaff(context, propertyNode, reservationId, folioId, body, true);
+  }
+
+  async #invoiceStaff(context: TenantRequestContext, propertyNode: string, reservationId: string, folioId: string, body: unknown, issue: boolean): Promise<Response> {
+    if (!hasScope(context, FISCAL_ISSUE_SCOPES[0]) || !hasScope(context, FISCAL_ISSUE_SCOPES[1])) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Invoice preparation and issue access are required");
+    }
+    const input = invoiceStaffBody(body, issue), key = context.request.headers.get("idempotency-key");
+    if (!input || ![propertyNode, reservationId, folioId].every(value => UUID.test(value))
+      || !hasJsonContentType(context.request) || new URL(context.request.url).search !== ""
+      || (issue && (!key || !IDEMPOTENCY_KEY.test(key)))) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Invoice preparation input is invalid");
+    }
+    for (const scope of FISCAL_ISSUE_SCOPES) {
+      const grants = await listGrantedProperties(context, scope);
+      if (!grants.some(({ id }) => id === propertyNode)) {
+        return apiError(context.request, 403, "auth/property_forbidden", "Forbidden", "Property access is not granted");
+      }
+    }
+    const actorId = context.identity.actorId;
+    if (!issue) {
+      const result = await this.#invoiceOperatorReader.discover(context.tx, {
+        tenantId: context.tenantId, propertyNode, actorId, reservationId, folioId,
+        recipientRegistrationId: input.recipientRegistrationId, calendarEvidence: input.calendarEvidence,
+      });
+      if (!result.ok) {
+        if (result.error.code === "invalid_input") throw new InvoiceStaffFailure("invalid");
+        if (result.error.code === "permission_denied") throw new InvoiceReadPermissionFailure();
+        if (result.error.code === "unsupported_jurisdiction") throw new InvoiceJurisdictionFailure();
+        throw new Error("Invoice preparation is unavailable");
+      }
+      return apiResponse(context.request, { readiness: result.value });
+    }
+    const requestId = correlationId(context.request);
+    try {
+      const invoice = await issueIndiaNativeFiscalInvoiceForOperatorInTransaction(context.tx, {
+        tenantId: context.tenantId, propertyNode, actorId, reservationId, folioId,
+        recipientRegistrationId: input.recipientRegistrationId as string, calendarEvidence: input.calendarEvidence,
+        expectedSelectorHash: input.expectedSelectorHash as string, expectedConfirmationHash: input.expectedConfirmationHash as string,
+        idempotencyKey: key as string,
+        envelope: createAuditEnvelope({ actorId, tenantId: context.tenantId, propertyNode, requestId, operation: "document.issued" }),
+      });
+      return apiResponse(context.request, { invoice }, invoice.replayed ? 200 : 201,
+        { "idempotency-replayed": String(invoice.replayed), "x-correlation-id": requestId });
+    } catch (error) {
+      const state = invoiceSqlState(error);
+      if (error instanceof IndiaNativeFiscalInvoiceStaleEvidenceError || state === "P2081") throw new InvoiceStaffFailure("stale");
+      if (error instanceof IndiaNativeFiscalInvoiceAuthorizationError || state === "42501") throw new InvoiceReadPermissionFailure();
+      if (state === "P2082") throw new InvoiceJurisdictionFailure();
+      if (error instanceof IndiaNativeFiscalInvoiceValidationError || state === "22023") throw new InvoiceStaffFailure("invalid");
+      if (error instanceof IndiaNativeFiscalInvoiceNotFoundError) throw new InvoiceStaffFailure("not_found");
+      if (error instanceof IndiaNativeFiscalInvoiceConflictError || state === "23505" || state === "55000") throw new InvoiceStaffFailure("conflict");
+      throw error;
+    }
+  }
+
+  async invoiceSearch(context: TenantRequestContext, propertyNode: string, body: unknown): Promise<Response> {
+    if (!hasScope(context, FISCAL_DOCUMENT_READ_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Invoice access is not granted");
+    }
+    const input = invoiceSearchBody(body);
+    if (!input || !UUID.test(propertyNode) || !hasJsonContentType(context.request) || new URL(context.request.url).search !== "") {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Invoice search input is invalid");
+    }
+    const grants = await listGrantedProperties(context, FISCAL_DOCUMENT_READ_SCOPE);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 403, "auth/property_forbidden", "Forbidden", "Property access is not granted");
+    }
+    const result = await this.#invoiceReader.list(context.tx, { ...input,
+      tenantId: context.tenantId, propertyNode, actorId: context.identity.actorId });
+    if (!result.ok) {
+      if (result.error.code === "invalid_input") return apiError(context.request, 400, "request/invalid", "Invalid request", "Invoice search input is invalid");
+      if (result.error.code === "permission_denied") throw new InvoiceReadPermissionFailure();
+      if (result.error.code === "unsupported_jurisdiction") throw new InvoiceJurisdictionFailure();
+      throw new Error("Invoice read is unavailable");
+    }
+    return apiResponse(context.request, { invoices: result.value });
+  }
+
+  async invoiceDocument(context: TenantRequestContext, propertyNode: string, documentId: string): Promise<Response> {
+    if (!hasScope(context, FISCAL_DOCUMENT_READ_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Invoice access is not granted");
+    }
+    if (!UUID.test(propertyNode) || !UUID.test(documentId) || new URL(context.request.url).search !== "") {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Invoice identity is invalid");
+    }
+    const grants = await listGrantedProperties(context, FISCAL_DOCUMENT_READ_SCOPE);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 403, "auth/property_forbidden", "Forbidden", "Property access is not granted");
+    }
+    const result = await this.#invoiceReader.read(context.tx, {
+      tenantId: context.tenantId, propertyNode, actorId: context.identity.actorId, documentId });
+    if (!result.ok) {
+      if (result.error.code === "permission_denied") throw new InvoiceReadPermissionFailure();
+      if (result.error.code === "unsupported_jurisdiction") throw new InvoiceJurisdictionFailure();
+      throw new Error("Invoice read is unavailable");
+    }
+    if (result.value === null) return apiError(context.request, 404, "fiscal/invoice_not_found", "Not found", "Invoice is not available");
+    return apiResponse(context.request, { invoice: result.value });
+  }
+
+  async invoiceDelivery(context: TenantRequestContext, propertyNode: string, documentId: string): Promise<Response> {
+    if (!hasScope(context, FISCAL_SUBMISSION_READ_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Fiscal receipt access is not granted");
+    }
+    if (!UUID.test(propertyNode) || !UUID.test(documentId) || new URL(context.request.url).search !== "") {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Invoice identity is invalid");
+    }
+    const grants = await listGrantedProperties(context, FISCAL_SUBMISSION_READ_SCOPE);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 403, "auth/property_forbidden", "Forbidden", "Property access is not granted");
+    }
+    const result = await this.#invoiceOperatorReader.readDelivery(context.tx, {
+      tenantId: context.tenantId, propertyNode, documentId, actorId: context.identity.actorId });
+    if (!result.ok) {
+      if (result.error.code === "permission_denied") throw new InvoiceReadPermissionFailure();
+      if (result.error.code === "unsupported_jurisdiction") throw new InvoiceJurisdictionFailure();
+      throw new FiscalSubmissionOperatorFailure();
+    }
+    if (result.value === null) return apiError(context.request, 404, "fiscal/receipt_not_found", "Not found", "Fiscal receipt is not available");
+    return apiResponse(context.request, { delivery: result.value });
+  }
+
+  async fiscalSubmissionDeliveryReceipt(
+    context: TenantRequestContext,
+    propertyNode: string,
+    submissionId: string,
+  ): Promise<Response> {
+    if (!hasScope(context, FISCAL_SUBMISSION_READ_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Fiscal receipt access is not granted");
+    }
+    if (!UUID.test(propertyNode) || !UUID.test(submissionId) || new URL(context.request.url).search !== "") {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Fiscal receipt input is invalid");
+    }
+    const grants = await listGrantedProperties(context, FISCAL_SUBMISSION_READ_SCOPE);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 403, "auth/property_forbidden", "Forbidden", "Property access is not granted");
+    }
+    const result = await this.#fiscalReceiptReader.read(context.tx, {
+      tenantId: context.tenantId, propertyNode, submissionId, actorId: context.identity.actorId,
+    });
+    if (!result.ok) throw new FiscalSubmissionOperatorFailure();
+    if (result.value === null) {
+      return apiError(context.request, 404, "fiscal/receipt_not_found", "Not found", "Fiscal receipt is not available");
+    }
+    const receipt = snapshotFiscalSubmissionDeliveryReceipt(result.value);
+    if (!receipt || receipt.tenantId !== context.tenantId || receipt.propertyNode !== propertyNode
+      || receipt.submissionId !== submissionId) throw new FiscalSubmissionOperatorFailure();
+    return apiResponse(context.request, { fiscalSubmissionReceipt: receipt as unknown as JsonValue }, 200,
+      { "cache-control": "no-store" });
+  }
+
+  async fiscalProviderOptions(context: TenantRequestContext, propertyNode: string): Promise<Response> {
+    if (!hasScope(context, FISCAL_SUBMISSION_REQUEST_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Fiscal submission request access is not granted");
+    }
+    if (!UUID.test(propertyNode) || new URL(context.request.url).search !== "") {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Fiscal provider request is invalid");
+    }
+    const grants = await listGrantedProperties(context, FISCAL_SUBMISSION_REQUEST_SCOPE);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 403, "auth/property_forbidden", "Forbidden", "Property access is not granted");
+    }
+    const adapters = this.#fiscalSubmissions?.adapters ?? new FiscalSubmissionAdapterAvailabilityService([]);
+    const result = await this.#invoiceOperatorReader.providers(context.tx, {
+      tenantId: context.tenantId, propertyNode, actorId: context.identity.actorId,
+    }, adapters);
+    if (!result.ok) {
+      if (result.error.code === "permission_denied") throw new InvoiceReadPermissionFailure();
+      if (result.error.code === "unsupported_jurisdiction") throw new InvoiceJurisdictionFailure();
+      throw new FiscalSubmissionOperatorFailure();
+    }
+    return apiResponse(context.request, { providers: result.value as unknown as JsonValue }, 200, { "cache-control": "no-store" });
+  }
+
+  async requestFiscalSubmission(
+    context: TenantRequestContext,
+    propertyNode: string,
+    body: unknown,
+  ): Promise<Response> {
+    if (!hasScope(context, FISCAL_SUBMISSION_REQUEST_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Fiscal submission request access is not granted");
+    }
+    const input = fiscalSubmissionBody(body, "request");
+    const idempotencyKey = context.request.headers.get("idempotency-key") ?? "";
+    if (!input || !UUID.test(propertyNode) || !IDEMPOTENCY_KEY.test(idempotencyKey)
+        || !hasJsonContentType(context.request) || new URL(context.request.url).search !== "") {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Fiscal submission request input is invalid");
+    }
+    const grants = await listGrantedProperties(context, FISCAL_SUBMISSION_REQUEST_SCOPE);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 403, "auth/property_forbidden", "Forbidden", "Property access is not granted");
+    }
+    const dependencies = this.#fiscalSubmissions;
+    const adapter = dependencies?.adapters.find(input.providerExtensionId);
+    if (!dependencies || !adapter) throw new FiscalSubmissionOperatorFailure();
+    const requestId = correlationId(context.request);
+    const result = await dependencies.submissions.request(context.tx, {
+      tenantId: context.tenantId,
+      propertyNode,
+      documentId: input.documentId,
+      providerExtensionId: input.providerExtensionId,
+      actorId: context.identity.actorId,
+      idempotencyKey,
+      requestId,
+    });
+    if (!result.ok) throw new FiscalSubmissionOperatorFailure();
+    const receipt = snapshotFiscalSubmissionReceipt(result.value);
+    if (!receipt || receipt.tenantId !== context.tenantId || receipt.propertyNode !== propertyNode
+        || receipt.documentId !== input.documentId || receipt.providerExtensionId !== adapter.providerExtensionId
+        || receipt.providerKey !== adapter.providerKey
+        || receipt.providerExtensionVersion !== adapter.providerExtensionVersion) {
+      throw new FiscalSubmissionOperatorFailure();
+    }
+    return apiResponse(context.request, fiscalSubmissionJson(receipt), 201, {
+      "idempotency-replayed": String(receipt.replayed),
+      "x-correlation-id": requestId,
+    });
+  }
+
+  async retryFiscalSubmission(
+    context: TenantRequestContext,
+    propertyNode: string,
+    submissionId: string,
+    body: unknown,
+  ): Promise<Response> {
+    if (!hasScope(context, FISCAL_SUBMISSION_RETRY_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Fiscal submission retry access is not granted");
+    }
+    const input = fiscalSubmissionBody(body, "retry");
+    const idempotencyKey = context.request.headers.get("idempotency-key") ?? "";
+    if (!input || !UUID.test(propertyNode) || !UUID.test(submissionId) || !IDEMPOTENCY_KEY.test(idempotencyKey)
+        || !hasJsonContentType(context.request) || new URL(context.request.url).search !== "") {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Fiscal submission retry input is invalid");
+    }
+    const grants = await listGrantedProperties(context, FISCAL_SUBMISSION_RETRY_SCOPE);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 403, "auth/property_forbidden", "Forbidden", "Property access is not granted");
+    }
+    const dependencies = this.#fiscalSubmissions;
+    const adapter = dependencies?.adapters.find(input.providerExtensionId);
+    if (!dependencies || !adapter) throw new FiscalSubmissionOperatorFailure();
+    const requestId = correlationId(context.request);
+    const result = await dependencies.submissions.retry(context.tx, {
+      tenantId: context.tenantId,
+      submissionId,
+      actorId: context.identity.actorId,
+      idempotencyKey,
+      requestId,
+    });
+    if (!result.ok) throw new FiscalSubmissionOperatorFailure();
+    const receipt = snapshotFiscalSubmissionReceipt(result.value);
+    if (!receipt || receipt.tenantId !== context.tenantId || receipt.propertyNode !== propertyNode
+        || receipt.submissionId !== submissionId || receipt.providerExtensionId !== adapter.providerExtensionId
+        || receipt.providerKey !== adapter.providerKey
+        || receipt.providerExtensionVersion !== adapter.providerExtensionVersion) {
+      throw new FiscalSubmissionOperatorFailure();
+    }
+    return apiResponse(context.request, fiscalSubmissionJson(receipt), 201, {
+      "idempotency-replayed": String(receipt.replayed),
+      "x-correlation-id": requestId,
+    });
+  }
+
+  async login(request: Request, body: unknown, sourceKey = "unknown"): Promise<Response> {
+    const hasValidShape = isObject(body) && exactKeys(body, ["tenant", "email", "password"]);
+    const input = hasValidShape
+      ? body as unknown as LocalLoginInput
+      : { tenant: "", email: "", password: "" };
+    try {
+      const result = await this.#login.authenticate(input, sourceKey);
+      if (!hasValidShape || !result) {
+        return apiError(request, 401, "auth/invalid_credentials", "Authentication failed", "Invalid credentials");
+      }
+      return apiResponse(request, result);
+    } catch (error) {
+      if (error instanceof LocalLoginLimitedError) {
+        return apiError(
+          request,
+          429,
+          "auth/temporarily_limited",
+          "Authentication temporarily limited",
+          "Try again later",
+          {},
+          { "retry-after": String(error.retryAfterSeconds) },
+        );
+      }
+      return apiError(request, 503, "service/unavailable", "Service unavailable", "Authentication is temporarily unavailable");
+    }
+  }
+
+  async publicReadOnlyDemoLogin(request: Request, body: unknown, sourceKey = "unknown"): Promise<Response> {
+    const hasValidShape = isObject(body) && exactKeys(body, ["tenant", "email", "password"]);
+    if (!hasValidShape) return apiError(request, 401, "auth/invalid_credentials", "Authentication failed", "Invalid credentials");
+    try {
+      const result = await this.#login.authenticatePublicReadOnlyDemo(body as unknown as LocalLoginInput, sourceKey);
+      if (!result) return apiError(request, 401, "auth/invalid_credentials", "Authentication failed", "Invalid credentials");
+      return apiResponse(request, result);
+    } catch (error) {
+      if (error instanceof LocalLoginLimitedError) {
+        return apiError(request, 429, "auth/temporarily_limited", "Authentication temporarily limited", "Try again later", {}, { "retry-after": String(error.retryAfterSeconds) });
+      }
+      return apiError(request, 503, "service/unavailable", "Service unavailable", "Authentication is temporarily unavailable");
+    }
+  }
+
+  async properties(context: TenantRequestContext): Promise<Response> {
+    if (!hasAvailabilityScope(context)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Availability access is not granted");
+    }
+    try {
+      return apiResponse(context.request, { properties: await listGrantedProperties(context) });
+    } catch {
+      return apiError(context.request, 503, "service/unavailable", "Service unavailable", "Property access is temporarily unavailable");
+    }
+  }
+
+  async propertyProfile(context: TenantRequestContext, propertyNode: string): Promise<Response> {
+    if (!hasScope(context, PROPERTY_PROFILE_READ_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Property identity access is not granted");
+    }
+    if (!UUID.test(propertyNode)) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Property identifier is invalid");
+    }
+    const property = await this.#propertyProfiles.get(context.tx, {
+      tenantId: context.tenantId,
+      propertyNode,
+      actorId: context.identity.actorId,
+    });
+    return apiResponse(context.request, { property });
+  }
+
+  async renamePropertyProfile(
+    context: TenantRequestContext,
+    propertyNode: string,
+    body: unknown,
+  ): Promise<Response> {
+    if (!hasScope(context, PROPERTY_PROFILE_WRITE_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Property identity change is not granted");
+    }
+    if (!UUID.test(propertyNode)) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Property identifier is invalid");
+    }
+    const input = propertyIdentityRenameBody(body);
+    const idempotencyKey = context.request.headers.get("idempotency-key");
+    if (!input || !idempotencyKey) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Property identity input is invalid");
+    }
+    const requestId = correlationId(context.request);
+    const result = await this.#propertyProfiles.rename(context.tx, {
+      ...input,
+      idempotencyKey,
+      envelope: createAuditEnvelope({
+        actorId: context.identity.actorId,
+        tenantId: context.tenantId,
+        propertyNode,
+        requestId,
+        operation: "property.identity.changed",
+      }),
+    });
+    return apiResponse(context.request, result, 200, {
+      "idempotency-replayed": String(result.replayed),
+      "x-correlation-id": requestId,
+    });
+  }
+
+  async systemStatus(context: TenantRequestContext, propertyNode: string): Promise<Response> {
+    if (!hasAvailabilityScope(context)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Project status access is not granted");
+    }
+    if (!UUID.test(propertyNode)) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Property identifier is invalid");
+    }
+    const grants = await listGrantedProperties(context);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 403, "auth/property_forbidden", "Forbidden", "Property access is not granted");
+    }
+    const rows = await context.tx<Array<{
+      checked_at: Date;
+      database_name: string;
+      tenant_context: boolean;
+    }>>`
+      SELECT
+        transaction_timestamp() AS checked_at,
+        current_database() AS database_name,
+        current_setting('app.tenant_id', true) = ${context.tenantId} AS tenant_context
+    `;
+    const database = rows[0];
+    if (!database) throw new Error("PostgreSQL status probe returned no row");
+    return apiResponse(context.request, {
+      snapshot: PROJECT_BUILD_SNAPSHOT,
+      live: {
+        app: {
+          state: "operational",
+          checkedAt: new Date().toISOString(),
+          processStartedAt: this.#runtimeStatus.processStartedAt,
+          build: this.#runtimeStatus.build,
+        },
+        database: {
+          state: "operational",
+          checkedAt: database.checked_at.toISOString(),
+          tenantContext: database.tenant_context,
+          database: database.database_name,
+        },
+        workers: {
+          holdExpiry: this.#runtimeStatus.holdExpiryWorkerEnabled ? "configured" : "disabled",
+          availabilityProjection: this.#runtimeStatus.availabilityProjectionWorkerEnabled ? "configured" : "disabled",
+          arrivalPickupTask: this.#runtimeStatus.pickupTaskWorkerEnabled ? "configured" : "disabled",
+          reservationArrivalRoll: this.#runtimeStatus.reservationArrivalRollWorkerEnabled ? "configured" : "disabled",
+          reservationDepartureRoll: this.#runtimeStatus.reservationDepartureRollWorkerEnabled ? "configured" : "disabled",
+          businessDayRoll: this.#runtimeStatus.businessDayRollWorkerEnabled ? "configured" : "disabled",
+          fiscalSubmissionDelivery: this.#runtimeStatus.fiscalSubmissionDeliveryWorkerState ?? "disabled",
+        },
+        valkey: {
+          state: "not_connected",
+          detail: "Valkey is present in local Compose but is not an application dependency yet.",
+        },
+        ci: {
+          state: "not_connected",
+          detail: "External CI is not queried by the local runtime; use the linked GitHub pull request evidence.",
+        },
+      },
+    });
+  }
+
+  async businessDayCloseWorkbench(
+    context: TenantRequestContext,
+    propertyNode: string,
+    businessDate: string,
+  ): Promise<Response> {
+    if (!hasScope(context, BUSINESS_DAY_READ_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Business-day close access is not granted");
+    }
+    if (new URL(context.request.url).search !== "" || !UUID.test(propertyNode) || !LOCAL_DATE.test(businessDate) ||
+        new Date(`${businessDate}T00:00:00.000Z`).toISOString().slice(0, 10) !== businessDate) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Property or business date is invalid");
+    }
+    const grants = await listGrantedProperties(context, BUSINESS_DAY_READ_SCOPE);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 403, "auth/property_forbidden", "Forbidden", "Property access is not granted");
+    }
+    const result = await this.#businessDayCloseWorkbench(context.tx, {
+      tenantId: context.tenantId,
+      propertyNode,
+      businessDate,
+      actorId: context.identity.actorId,
+    });
+    return apiResponse(context.request, canonicalJson(jsonValue(result)), 200, {
+      "x-correlation-id": correlationId(context.request),
+    });
+  }
+
+  async businessDayCloseWorkbenchEntry(
+    context: TenantRequestContext,
+    propertyNode: string,
+  ): Promise<Response> {
+    if (!hasScope(context, BUSINESS_DAY_READ_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Business-day close access is not granted");
+    }
+    if (new URL(context.request.url).search !== "" || !UUID.test(propertyNode)) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Property identifier is invalid");
+    }
+    const result = await this.#businessDayCloseWorkbenchEntry(context.tx, {
+      tenantId: context.tenantId,
+      propertyNode,
+      actorId: context.identity.actorId,
+    });
+    return apiResponse(context.request, canonicalJson(result), 200, {
+      "x-correlation-id": correlationId(context.request),
+    });
+  }
+
+  async sealBusinessDay(
+    context: TenantRequestContext,
+    propertyNode: string,
+    businessDate: string,
+    body: unknown,
+  ): Promise<Response> {
+    const actorId = context.identity.actorId;
+    if (!actorId) return this.unauthorized(context.request);
+    if (!hasScope(context, BUSINESS_DAY_SEAL_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Business-day seal access is not granted");
+    }
+    const requestBytes = await context.request.clone().arrayBuffer();
+    const idempotencyKey = context.request.headers.get("idempotency-key") ?? "";
+    const parsedBusinessDate = new Date(`${businessDate}T00:00:00.000Z`);
+    if (body !== undefined || requestBytes.byteLength !== 0 || new URL(context.request.url).search !== "" ||
+        !UUID.test(propertyNode) || !LOCAL_DATE.test(businessDate) ||
+        !Number.isFinite(parsedBusinessDate.valueOf()) ||
+        parsedBusinessDate.toISOString().slice(0, 10) !== businessDate ||
+        !IDEMPOTENCY_KEY.test(idempotencyKey)) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Business-day seal request is invalid");
+    }
+    const grants = await listGrantedProperties(context, BUSINESS_DAY_SEAL_SCOPE);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 403, "auth/property_forbidden", "Forbidden", "Property access is not granted");
+    }
+    if (!this.#businessDaySeal) return this.unavailable(context.request);
+    const requestId = correlationId(context.request);
+    const result = await this.#businessDaySeal.seal(context.tx, {
+      tenantId: context.tenantId,
+      propertyNode,
+      businessDate,
+      actorId,
+      idempotencyKey,
+      envelope: createAuditEnvelope({ actorId, tenantId: context.tenantId, propertyNode, requestId,
+        operation: "business_day.sealed" }),
+    });
+    return apiResponse(context.request, canonicalJson({
+      propertyNode: result.propertyNode,
+      businessDate: result.businessDate,
+      previousState: result.previousState,
+      state: result.state,
+      sealedAt: result.sealedAt,
+      replayed: result.replayed,
+    }), 200, { "x-correlation-id": requestId, "idempotency-replayed": String(result.replayed) });
+  }
+
+  private async requireOwnerTrustGrant(
+    context: TenantRequestContext,
+    propertyNode: string,
+    scope: typeof OWNER_TRUST_POST_SCOPE | typeof OWNER_TRUST_APPROVE_SCOPE,
+  ): Promise<Response | null> {
+    if (!context.identity.actorId) return this.unauthorized(context.request);
+    if (!hasScope(context, scope)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Owner-trust expense access is not granted");
+    }
+    if (!UUID.test(propertyNode)) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Property identifier is invalid");
+    }
+    const grants = await listGrantedProperties(context, scope);
+    return grants.some(({ id }) => id === propertyNode) ? null :
+      apiError(context.request, 403, "auth/property_forbidden", "Forbidden", "Property access is not granted");
+  }
+
+  async ownerTrustAccounts(context: TenantRequestContext, propertyNode: string): Promise<Response> {
+    const denied = await this.requireOwnerTrustGrant(context, propertyNode, OWNER_TRUST_POST_SCOPE);
+    if (denied) return denied;
+    const actorId = context.identity.actorId; if (!actorId) return this.unauthorized(context.request);
+    const query = ownerTrustPageQuery(context.request);
+    if (!query) return apiError(context.request, 400, "request/invalid", "Invalid request", "Owner-trust account query is invalid");
+    if (!this.#ownerTrustExpenses) return this.unavailable(context.request);
+    const accounts = await this.#ownerTrustExpenses.listAccounts(context.tx, {
+      tenantId: context.tenantId, propertyNode, actorId,
+    });
+    const offset = query.after ? Number.parseInt(query.after, 10) : 0;
+    if (!Number.isSafeInteger(offset) || offset < 0 || (query.after !== undefined && String(offset) !== query.after)) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Owner-trust account query is invalid");
+    }
+    const limit = query.limit ?? 50; const page = accounts.slice(offset, offset + limit);
+    return apiResponse(context.request, canonicalJson({ accounts: page.map((account) => ({
+      accountReference: account.accountReference, accountLabel: account.accountLabel, ownerLabel: account.ownerLabel,
+      currency: account.currency, availableBalanceMinor: account.availableBalanceMinor, canPost: account.canPost,
+    })), nextCursor: offset + page.length < accounts.length ? String(offset + page.length) : null }), 200,
+    { "x-correlation-id": correlationId(context.request) });
+  }
+
+  async previewOwnerTrustExpense(context: TenantRequestContext, propertyNode: string, accountId: string, body: unknown): Promise<Response> {
+    const denied = await this.requireOwnerTrustGrant(context, propertyNode, OWNER_TRUST_POST_SCOPE); if (denied) return denied;
+    const actorId = context.identity.actorId; if (!actorId) return this.unauthorized(context.request);
+    const input = ownerTrustExpenseBody(body);
+    if (!input || !UUID.test(accountId) || new URL(context.request.url).search !== "")
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Owner-trust expense preview input is invalid");
+    if (!this.#ownerTrustExpenses) return this.unavailable(context.request);
+    const result = await this.#ownerTrustExpenses.previewExpense(context.tx, { tenantId: context.tenantId, propertyNode,
+      actorId, trustAccountId: accountId, amountMinor: input.amountMinor, reason: input.reason });
+    return apiResponse(context.request, canonicalJson({ accountReference: result.accountReference, accountLabel: result.accountLabel,
+      ownerLabel: result.ownerLabel, currency: result.currency, amountMinor: result.amountMinor,
+      availableBalanceMinor: result.availableBalanceMinor, projectedBalanceMinor: result.projectedBalanceMinor,
+      approvalRequired: result.approvalRequired }), 200, { "x-correlation-id": correlationId(context.request) });
+  }
+
+  async requestOwnerTrustExpenseApproval(context: TenantRequestContext, propertyNode: string, accountId: string, body: unknown): Promise<Response> {
+    const denied = await this.requireOwnerTrustGrant(context, propertyNode, OWNER_TRUST_POST_SCOPE); if (denied) return denied;
+    const actorId = context.identity.actorId; if (!actorId) return this.unauthorized(context.request);
+    const input = ownerTrustExpenseBody(body); const key = context.request.headers.get("idempotency-key") ?? "";
+    if (!input || !UUID.test(accountId) || new URL(context.request.url).search !== "" || !IDEMPOTENCY_KEY.test(key))
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Owner-trust approval request input is invalid");
+    if (!this.#ownerTrustExpenses) return this.unavailable(context.request); const requestId = correlationId(context.request);
+    const result = await this.#ownerTrustExpenses.requestApproval(context.tx, { tenantId: context.tenantId, propertyNode,
+      actorId, trustAccountId: accountId, amountMinor: input.amountMinor, reason: input.reason,
+      idempotencyKey: key, envelope: createAuditEnvelope({ actorId, tenantId: context.tenantId,
+        propertyNode, requestId, operation: "approval.requested" }) });
+    return apiResponse(context.request, canonicalJson({ approvalId: result.approvalId, accountReference: result.accountReference,
+      currency: result.currency, amountMinor: result.amountMinor, projectedBalanceMinor: result.projectedBalanceMinor,
+      status: result.status, requestedAt: result.requestedAt, replayed: result.replayed }), result.replayed ? 200 : 201,
+    { "x-correlation-id": requestId, "idempotency-replayed": String(result.replayed) });
+  }
+
+  async ownerTrustExpenseApprovals(context: TenantRequestContext, propertyNode: string): Promise<Response> {
+    const actorId = context.identity.actorId; if (!actorId) return this.unauthorized(context.request);
+    const canCheck = hasScope(context, OWNER_TRUST_APPROVE_SCOPE); const canMake = hasScope(context, OWNER_TRUST_POST_SCOPE);
+    if (!canCheck && !canMake) return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Owner-trust expense access is not granted");
+    if (!UUID.test(propertyNode)) return apiError(context.request, 400, "request/invalid", "Invalid request", "Property identifier is invalid");
+    let propertyGranted = false;
+    if (hasScope(context, OWNER_TRUST_APPROVE_SCOPE)) propertyGranted = (await listGrantedProperties(context, OWNER_TRUST_APPROVE_SCOPE)).some(({ id }) => id === propertyNode);
+    if (!propertyGranted && hasScope(context, OWNER_TRUST_POST_SCOPE)) propertyGranted = (await listGrantedProperties(context, OWNER_TRUST_POST_SCOPE)).some(({ id }) => id === propertyNode);
+    if (!propertyGranted)
+      return apiError(context.request, 403, "auth/property_forbidden", "Forbidden", "Property access is not granted");
+    const query = ownerTrustPageQuery(context.request);
+    if (!query) return apiError(context.request, 400, "request/invalid", "Invalid request", "Owner-trust approval query is invalid");
+    if (!this.#ownerTrustExpenses) return this.unavailable(context.request);
+    const approvals = await this.#ownerTrustExpenses.listApprovals(context.tx, { tenantId: context.tenantId, propertyNode,
+      actorId });
+    const offset = query.after ? Number.parseInt(query.after, 10) : 0;
+    if (!Number.isSafeInteger(offset) || offset < 0 || (query.after !== undefined && String(offset) !== query.after))
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Owner-trust approval query is invalid");
+    const limit = query.limit ?? 50; const page = approvals.slice(offset, offset + limit);
+    return apiResponse(context.request, canonicalJson({ approvals: page.map((approval) => ({ ...approval })),
+      nextCursor: offset + page.length < approvals.length ? String(offset + page.length) : null }), 200,
+    { "x-correlation-id": correlationId(context.request) });
+  }
+
+  async decideOwnerTrustExpenseApproval(context: TenantRequestContext, propertyNode: string, approvalId: string, body: unknown,
+    decision: "approved" | "rejected"): Promise<Response> {
+    const denied = await this.requireOwnerTrustGrant(context, propertyNode, OWNER_TRUST_APPROVE_SCOPE); if (denied) return denied;
+    const actorId = context.identity.actorId; if (!actorId) return this.unauthorized(context.request);
+    const bytes = await context.request.clone().arrayBuffer(); const key = context.request.headers.get("idempotency-key") ?? "";
+    if (body !== undefined || bytes.byteLength !== 0 || new URL(context.request.url).search !== "" || !UUID.test(approvalId) ||
+        !IDEMPOTENCY_KEY.test(key)) return apiError(context.request, 400, "request/invalid", "Invalid request", "Owner-trust approval decision input is invalid");
+    if (!this.#ownerTrustExpenses) return this.unavailable(context.request); const requestId = correlationId(context.request);
+    const result = await this.#ownerTrustExpenses.decideApproval(context.tx, { tenantId: context.tenantId, propertyNode,
+      approvalId, decision, idempotencyKey: key, envelope: createAuditEnvelope({ actorId,
+        tenantId: context.tenantId, propertyNode, requestId, operation: "approval.decided" }) });
+    return apiResponse(context.request, canonicalJson({ approvalId: result.approvalId, status: result.status,
+      decidedAt: result.decidedAt, replayed: result.replayed }), 200,
+    { "x-correlation-id": requestId, "idempotency-replayed": String(result.replayed) });
+  }
+
+  async postOwnerTrustExpense(context: TenantRequestContext, propertyNode: string, accountId: string, body: unknown): Promise<Response> {
+    const denied = await this.requireOwnerTrustGrant(context, propertyNode, OWNER_TRUST_POST_SCOPE); if (denied) return denied;
+    const actorId = context.identity.actorId; if (!actorId) return this.unauthorized(context.request);
+    const input = ownerTrustExpenseBody(body, true); const key = context.request.headers.get("idempotency-key") ?? "";
+    if (!input || !UUID.test(accountId) || new URL(context.request.url).search !== "" || !IDEMPOTENCY_KEY.test(key))
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Owner-trust expense posting input is invalid");
+    if (!this.#ownerTrustExpenses) return this.unavailable(context.request); const requestId = correlationId(context.request);
+    const result = await this.#ownerTrustExpenses.postExpense(context.tx, { tenantId: context.tenantId, propertyNode,
+      trustAccountId: accountId, amountMinor: input.amountMinor, reason: input.reason,
+      ...(input.approvalRequestId === undefined ? {} : { approvalId: input.approvalRequestId }), idempotencyKey: key,
+      envelope: createAuditEnvelope({ actorId, tenantId: context.tenantId, propertyNode,
+        requestId, operation: "journal.posted" }) });
+    return apiResponse(context.request, canonicalJson({ journalId: result.journalId, propertyNode: result.propertyNode,
+      businessDate: result.businessDate, currency: result.currency, amountMinor: result.amountMinor,
+      availableBalanceMinor: result.availableBeforeMinor, projectedBalanceMinor: result.projectedAvailableMinor,
+      approvalId: result.approvalRequestId, replayed: result.replayed }), result.replayed ? 200 : 201,
+    { "x-correlation-id": requestId, "idempotency-replayed": String(result.replayed) });
+  }
+
+  private async requireCarryGrant(context: TenantRequestContext, propertyNode: string, scope: string): Promise<Response | null> {
+    if (!hasScope(context, scope)) return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Discrepancy carry access is not granted");
+    if (!UUID.test(propertyNode)) return apiError(context.request, 400, "request/invalid", "Invalid request", "Property identifier is invalid");
+    const grants = await listGrantedProperties(context, scope);
+    return grants.some(({ id }) => id === propertyNode) ? null :
+      apiError(context.request, 403, "auth/property_forbidden", "Forbidden", "Property access is not granted");
+  }
+
+  async requestBusinessDayCarryApproval(context: TenantRequestContext, propertyNode: string, businessDate: string, discrepancyId: string, body: unknown): Promise<Response> {
+    const denied = await this.requireCarryGrant(context, propertyNode, BUSINESS_DAY_CARRY_SCOPE);
+    if (denied) return denied;
+    const idempotencyKey = context.request.headers.get("idempotency-key") ?? "";
+    if (new URL(context.request.url).search !== "" || !LOCAL_DATE.test(businessDate) || !UUID.test(discrepancyId) ||
+        !isObject(body) || !exactKeys(body, ["reason"]) || typeof body.reason !== "string")
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Discrepancy carry approval input is invalid");
+    if (!this.#businessDayCarry) return this.unavailable(context.request);
+    const requestId = correlationId(context.request); const actorId = context.identity.actorId;
+    if (!actorId) return this.unauthorized(context.request); const reason = body.reason;
+    const result = await this.#businessDayCarry.requestApproval(context.tx, { tenantId: context.tenantId, propertyNode,
+      sourceBusinessDate: businessDate, discrepancyId, reason, idempotencyKey,
+      envelope: createAuditEnvelope({ actorId, tenantId: context.tenantId, propertyNode, requestId, operation: "approval.requested" }) });
+    return apiResponse(context.request, canonicalJson({ approvalId: result.approvalId, createdAt: result.createdAt, replayed: result.replayed }), 201, { "x-correlation-id": requestId,
+      "idempotency-replayed": String(result.replayed) });
+  }
+
+  async businessDayCarryApprovalInbox(context: TenantRequestContext, propertyNode: string): Promise<Response> {
+    if (!this.#businessDayCarry) return this.unavailable(context.request);
+    if (!hasScope(context, BUSINESS_DAY_CARRY_SCOPE) && !hasScope(context, BUSINESS_DAY_CARRY_APPROVE_SCOPE))
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Discrepancy carry access is not granted");
+    if (!UUID.test(propertyNode)) return apiError(context.request, 400, "request/invalid", "Invalid request", "Property identifier is invalid");
+    const url = new URL(context.request.url); const keys = [...url.searchParams.keys()];
+    if (keys.some((key) => key !== "after" && key !== "limit") || url.searchParams.getAll("after").length > 1 || url.searchParams.getAll("limit").length > 1)
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Approval inbox query is invalid");
+    const scope = hasScope(context, BUSINESS_DAY_CARRY_APPROVE_SCOPE) ? BUSINESS_DAY_CARRY_APPROVE_SCOPE : BUSINESS_DAY_CARRY_SCOPE;
+    const denied = await this.requireCarryGrant(context, propertyNode, scope); if (denied) return denied;
+    const after = url.searchParams.get("after") ?? undefined; const rawLimit = url.searchParams.get("limit");
+    const result = await this.#businessDayCarry.listApprovals(context.tx, { tenantId: context.tenantId, propertyNode,
+      actorId: context.identity.actorId, ...(after ? { after } : {}), ...(rawLimit !== null ? { limit: Number(rawLimit) } : {}) });
+    return apiResponse(context.request, canonicalJson(jsonValue(result)), 200, { "x-correlation-id": correlationId(context.request) });
+  }
+
+  async decideBusinessDayCarryApproval(context: TenantRequestContext, propertyNode: string, approvalId: string, body: unknown, decision: "approved" | "rejected"): Promise<Response> {
+    const denied = await this.requireCarryGrant(context, propertyNode, BUSINESS_DAY_CARRY_APPROVE_SCOPE); if (denied) return denied;
+    const key = context.request.headers.get("idempotency-key") ?? "";
+    if (new URL(context.request.url).search !== "" || !UUID.test(approvalId) || !isObject(body) || !exactKeys(body, []))
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Approval decision input is invalid");
+    if (!this.#businessDayCarry) return this.unavailable(context.request); const requestId = correlationId(context.request); const actorId = context.identity.actorId;
+    if (!actorId) return this.unauthorized(context.request);
+    const result = await this.#businessDayCarry.decideApproval(context.tx, { tenantId: context.tenantId, propertyNode, approvalId, decision,
+      idempotencyKey: key, envelope: createAuditEnvelope({ actorId, tenantId: context.tenantId, propertyNode, requestId, operation: "approval.decided" }) });
+    return apiResponse(context.request, canonicalJson(jsonValue(result)), 200, { "x-correlation-id": requestId, "idempotency-replayed": String(result.replayed) });
+  }
+
+  async carryApprovedBusinessDayDiscrepancy(context: TenantRequestContext, propertyNode: string, approvalId: string, body: unknown): Promise<Response> {
+    const denied = await this.requireCarryGrant(context, propertyNode, BUSINESS_DAY_CARRY_SCOPE); if (denied) return denied;
+    const key = context.request.headers.get("idempotency-key") ?? "";
+    if (new URL(context.request.url).search !== "" || !UUID.test(approvalId) || !isObject(body) || !exactKeys(body, []))
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Approved carry input is invalid");
+    if (!this.#businessDayCarry) return this.unavailable(context.request); const requestId = correlationId(context.request); const actorId = context.identity.actorId;
+    if (!actorId) return this.unauthorized(context.request);
+    const result = await this.#businessDayCarry.carry(context.tx, { tenantId: context.tenantId, propertyNode, approvalId,
+      idempotencyKey: key, envelope: createAuditEnvelope({ actorId, tenantId: context.tenantId, propertyNode, requestId, operation: "discrepancy.carried" }) });
+    return apiResponse(context.request, canonicalJson({ carryId: result.carryId, sourceDiscrepancyId: result.sourceDiscrepancyId,
+      targetDiscrepancyId: result.targetDiscrepancyId, propertyNode: result.propertyNode, sourceBusinessDate: result.sourceBusinessDate,
+      targetBusinessDate: result.targetBusinessDate, resolution: result.resolution, replayed: result.replayed }), 200, { "x-correlation-id": requestId,
+      "idempotency-replayed": String(result.replayed) });
+  }
+
+  async cashierSessions(
+    context: TenantRequestContext,
+    propertyNode: string,
+  ): Promise<Response> {
+    if (!hasScope(context, CASHIER_READ_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Cashier read access is not granted");
+    }
+    if (!UUID.test(propertyNode)) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Property identifier is invalid");
+    }
+    const grants = await listGrantedProperties(context, CASHIER_READ_SCOPE);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 403, "auth/property_forbidden", "Forbidden", "Property access is not granted");
+    }
+    if (!this.#cashiers) return this.unavailable(context.request);
+    const supervised = hasScope(context, CASHIER_SUPERVISE_SCOPE) &&
+      (await listGrantedProperties(context, CASHIER_SUPERVISE_SCOPE)).some(({ id }) => id === propertyNode);
+    const canOperate = hasScope(context, CASHIER_OPERATE_SCOPE) &&
+      (await listGrantedProperties(context, CASHIER_OPERATE_SCOPE)).some(({ id }) => id === propertyNode);
+    const drawers = await this.#cashiers.list({
+      tenantId: context.tenantId,
+      propertyNode,
+      actorId: context.identity.actorId,
+      supervised,
+    });
+    return apiResponse(context.request, canonicalJson(jsonValue({ drawers: drawers.map((drawer) => ({
+      ...drawer,
+      id: drawer.drawerId,
+      canOpen: canOperate,
+      canCount: canOperate,
+      canClose: canOperate || supervised,
+      supervised,
+    })) })));
+  }
+
+  async openCashierSession(
+    context: TenantRequestContext,
+    propertyNode: string,
+    body: unknown,
+  ): Promise<Response> {
+    const input = parseCashierOpen(body);
+    const idempotencyKey = context.request.headers.get("idempotency-key");
+    if (!input || !UUID.test(propertyNode) || !idempotencyKey || !IDEMPOTENCY_KEY.test(idempotencyKey)) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Cashier opening input is invalid");
+    }
+    if (!hasScope(context, CASHIER_OPERATE_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Cashier operation access is not granted");
+    }
+    const grants = await listGrantedProperties(context, CASHIER_OPERATE_SCOPE);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 403, "auth/property_forbidden", "Forbidden", "Property access is not granted");
+    }
+    if (!this.#cashiers) return this.unavailable(context.request);
+    const requestId = correlationId(context.request);
+    const result = await this.#cashiers.open({
+      tenantId: context.tenantId, drawerId: input.drawerId, denominations: input.denominations, idempotencyKey,
+      envelope: createAuditEnvelope({ actorId: context.identity.actorId, tenantId: context.tenantId, propertyNode, requestId, operation: "cashier.opened" }),
+    });
+    return apiResponse(context.request, canonicalJson(jsonValue(result)), result.replayed ? 200 : 201, {
+      "idempotency-replayed": String(result.replayed), "x-correlation-id": requestId,
+    });
+  }
+
+  async appendCashierCount(
+    context: TenantRequestContext,
+    propertyNode: string,
+    sessionId: string,
+    body: unknown,
+  ): Promise<Response> {
+    const input = parseCashierCount(body);
+    const idempotencyKey = context.request.headers.get("idempotency-key");
+    if (!input || !UUID.test(propertyNode) || !UUID.test(sessionId) || !idempotencyKey || !IDEMPOTENCY_KEY.test(idempotencyKey)) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Cashier count input is invalid");
+    }
+    if (!hasScope(context, CASHIER_OPERATE_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Cashier operation access is not granted");
+    }
+    const grants = await listGrantedProperties(context, CASHIER_OPERATE_SCOPE);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 403, "auth/property_forbidden", "Forbidden", "Property access is not granted");
+    }
+    if (!this.#cashiers) return this.unavailable(context.request);
+    const requestId = correlationId(context.request);
+    const result = await this.#cashiers.appendCount({
+      tenantId: context.tenantId, sessionId, denominations: input.denominations, idempotencyKey,
+      envelope: createAuditEnvelope({ actorId: context.identity.actorId, tenantId: context.tenantId, propertyNode, requestId, operation: "cashier.counted" }),
+    });
+    return apiResponse(context.request, canonicalJson(jsonValue(result)), result.replayed ? 200 : 201, {
+      "idempotency-replayed": String(result.replayed), "x-correlation-id": requestId,
+    });
+  }
+
+  async requestCashierOverShortApproval(
+    context: TenantRequestContext,
+    propertyNode: string,
+    sessionId: string,
+    body: unknown,
+    supervised = false,
+  ): Promise<Response> {
+    const input = parseCashierApprovalRequest(body);
+    const idempotencyKey = context.request.headers.get("idempotency-key");
+    if (!input || !UUID.test(propertyNode) || !UUID.test(sessionId) || !idempotencyKey || !IDEMPOTENCY_KEY.test(idempotencyKey)) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Cashier approval input is invalid");
+    }
+    const scope = supervised ? CASHIER_SUPERVISE_SCOPE : CASHIER_OPERATE_SCOPE;
+    if (!hasScope(context, scope)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", supervised ? "Cashier supervision access is not granted" : "Cashier operation access is not granted");
+    }
+    const grants = await listGrantedProperties(context, scope);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 403, "auth/property_forbidden", "Forbidden", "Property access is not granted");
+    }
+    if (!this.#cashiers) return this.unavailable(context.request);
+    const requestId = correlationId(context.request);
+    const result = await this.#cashiers.requestOverShortApproval({
+      tenantId: context.tenantId, sessionId, countId: input.countId, supervised, idempotencyKey,
+      envelope: createAuditEnvelope({ actorId: context.identity.actorId, tenantId: context.tenantId, propertyNode, requestId, operation: "approval.requested" }),
+    });
+    return apiResponse(context.request, canonicalJson(jsonValue(result)), result.replayed ? 200 : 201, {
+      "idempotency-replayed": String(result.replayed), "x-correlation-id": requestId,
+    });
+  }
+
+  async approveCashierOverShort(
+    context: TenantRequestContext,
+    propertyNode: string,
+    sessionId: string,
+    approvalId: string,
+    body: unknown,
+  ): Promise<Response> {
+    return this.decideCashierOverShort(context, propertyNode, sessionId, approvalId, body, "approve");
+  }
+
+  async rejectCashierOverShort(
+    context: TenantRequestContext,
+    propertyNode: string,
+    sessionId: string,
+    approvalId: string,
+    body: unknown,
+  ): Promise<Response> {
+    return this.decideCashierOverShort(context, propertyNode, sessionId, approvalId, body, "reject");
+  }
+
+  async decideCashierOverShort(
+    context: TenantRequestContext,
+    propertyNode: string,
+    sessionId: string,
+    approvalId: string,
+    body: unknown,
+    decision: "approve" | "reject",
+  ): Promise<Response> {
+    const idempotencyKey = context.request.headers.get("idempotency-key");
+    if (!isObject(body) || !exactKeys(body, []) || !UUID.test(propertyNode) || !UUID.test(sessionId) || !UUID.test(approvalId) ||
+        !idempotencyKey || !IDEMPOTENCY_KEY.test(idempotencyKey)) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Cashier approval input is invalid");
+    }
+    if (!hasScope(context, CASHIER_SUPERVISE_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Cashier supervision access is not granted");
+    }
+    const grants = await listGrantedProperties(context, CASHIER_SUPERVISE_SCOPE);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 403, "auth/property_forbidden", "Forbidden", "Property access is not granted");
+    }
+    if (!this.#cashiers) return this.unavailable(context.request);
+    const requestId = correlationId(context.request);
+    const result = await (decision === "approve" ? this.#cashiers.approveOverShort({
+      tenantId: context.tenantId, sessionId, approvalId, idempotencyKey,
+      envelope: createAuditEnvelope({ actorId: context.identity.actorId, tenantId: context.tenantId, propertyNode, requestId, operation: "approval.decided" }),
+    }) : this.#cashiers.rejectOverShort({
+      tenantId: context.tenantId, sessionId, approvalId, idempotencyKey,
+      envelope: createAuditEnvelope({ actorId: context.identity.actorId, tenantId: context.tenantId, propertyNode, requestId, operation: "approval.decided" }),
+    }));
+    return apiResponse(context.request, canonicalJson(jsonValue(result)), 200, {
+      "idempotency-replayed": String(result.replayed), "x-correlation-id": requestId,
+    });
+  }
+
+  async closeCashierSession(
+    context: TenantRequestContext,
+    propertyNode: string,
+    sessionId: string,
+    body: unknown,
+    supervised = false,
+  ): Promise<Response> {
+    const input = parseCashierClose(body);
+    const idempotencyKey = context.request.headers.get("idempotency-key");
+    if (!input || !UUID.test(propertyNode) || !UUID.test(sessionId) || !idempotencyKey || !IDEMPOTENCY_KEY.test(idempotencyKey)) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Cashier close input is invalid");
+    }
+    const scope = supervised ? CASHIER_SUPERVISE_SCOPE : CASHIER_OPERATE_SCOPE;
+    if (!hasScope(context, scope)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", supervised ? "Cashier supervision access is not granted" : "Cashier operation access is not granted");
+    }
+    const grants = await listGrantedProperties(context, scope);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 403, "auth/property_forbidden", "Forbidden", "Property access is not granted");
+    }
+    if (!this.#cashiers) return this.unavailable(context.request);
+    const requestId = correlationId(context.request);
+    const result = await this.#cashiers.close({
+      tenantId: context.tenantId, sessionId, countId: input.countId, ...(input.reason === undefined ? {} : { reason: input.reason }),
+      ...(input.approvalId === undefined ? {} : { approvalId: input.approvalId }), supervised, idempotencyKey,
+      envelope: createAuditEnvelope({ actorId: context.identity.actorId, tenantId: context.tenantId, propertyNode, requestId, operation: "cashier.closed" }),
+    });
+    return apiResponse(context.request, canonicalJson(jsonValue(result)), result.replayed ? 200 : 201, {
+      "idempotency-replayed": String(result.replayed), "x-correlation-id": requestId,
+    });
+  }
+
+  async receivableTransferTargets(
+    context: TenantRequestContext,
+    propertyNode: string,
+  ): Promise<Response> {
+    if (!UUID.test(propertyNode)) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Property identifier is invalid");
+    }
+    if (!hasScope(context, RECEIVABLE_READ_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Receivable read access is not granted");
+    }
+    const grants = await listGrantedProperties(context, RECEIVABLE_READ_SCOPE);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 403, "auth/property_forbidden", "Forbidden", "Property access is not granted");
+    }
+    if (!this.#receivables) return this.unavailable(context.request);
+    const targets = await this.#receivables.listTargets({ tenantId: context.tenantId, propertyNode });
+    return apiResponse(context.request, canonicalJson(jsonValue({ targets })));
+  }
+
+  async previewReceivableTransfer(
+    context: TenantRequestContext,
+    propertyNode: string,
+    folioId: string,
+    body: unknown,
+  ): Promise<Response> {
+    const input = parseReceivableAccount(body);
+    if (!input || !UUID.test(propertyNode) || !UUID.test(folioId)) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Receivable preview input is invalid");
+    }
+    if (!hasScope(context, RECEIVABLE_READ_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Receivable read access is not granted");
+    }
+    const grants = await listGrantedProperties(context, RECEIVABLE_READ_SCOPE);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 403, "auth/property_forbidden", "Forbidden", "Property access is not granted");
+    }
+    if (!this.#receivables) return this.unavailable(context.request);
+    const result = await this.#receivables.preview({
+      tenantId: context.tenantId, propertyNode, folioId, receivableAccountId: input.receivableAccountId,
+    });
+    return apiResponse(context.request, canonicalJson(jsonValue(result)));
+  }
+
+  async requestReceivableOverLimitApproval(
+    context: TenantRequestContext,
+    propertyNode: string,
+    folioId: string,
+    body: unknown,
+  ): Promise<Response> {
+    const input = parseReceivableAccount(body);
+    const idempotencyKey = context.request.headers.get("idempotency-key");
+    if (!input || !UUID.test(propertyNode) || !UUID.test(folioId) || !idempotencyKey || !IDEMPOTENCY_KEY.test(idempotencyKey)) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Receivable approval input is invalid");
+    }
+    if (!hasScope(context, RECEIVABLE_TRANSFER_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Receivable transfer access is not granted");
+    }
+    const grants = await listGrantedProperties(context, RECEIVABLE_TRANSFER_SCOPE);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 403, "auth/property_forbidden", "Forbidden", "Property access is not granted");
+    }
+    if (!this.#receivables) return this.unavailable(context.request);
+    const requestId = correlationId(context.request);
+    const result = await this.#receivables.requestOverLimitApproval({
+      tenantId: context.tenantId, folioId, receivableAccountId: input.receivableAccountId, idempotencyKey,
+      envelope: createAuditEnvelope({ actorId: context.identity.actorId, tenantId: context.tenantId,
+        propertyNode, requestId, operation: "approval.requested" }),
+    });
+    return apiResponse(context.request, canonicalJson(jsonValue(result)), result.replayed ? 200 : 201, {
+      "idempotency-replayed": String(result.replayed), "x-correlation-id": requestId,
+    });
+  }
+
+  async decideReceivableOverLimitApproval(
+    context: TenantRequestContext,
+    propertyNode: string,
+    folioId: string,
+    approvalId: string,
+    body: unknown,
+    decision: "approve" | "reject",
+  ): Promise<Response> {
+    const idempotencyKey = context.request.headers.get("idempotency-key");
+    if (!isObject(body) || !exactKeys(body, []) || !UUID.test(propertyNode) || !UUID.test(folioId) ||
+        !UUID.test(approvalId) || !idempotencyKey || !IDEMPOTENCY_KEY.test(idempotencyKey)) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Receivable approval decision input is invalid");
+    }
+    if (!hasScope(context, RECEIVABLE_APPROVE_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Receivable approval access is not granted");
+    }
+    const grants = await listGrantedProperties(context, RECEIVABLE_APPROVE_SCOPE);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 403, "auth/property_forbidden", "Forbidden", "Property access is not granted");
+    }
+    if (!this.#receivables) return this.unavailable(context.request);
+    const requestId = correlationId(context.request);
+    const input = {
+      tenantId: context.tenantId, folioId, approvalId, idempotencyKey,
+      envelope: createAuditEnvelope({ actorId: context.identity.actorId, tenantId: context.tenantId,
+        propertyNode, requestId, operation: "approval.decided" }),
+    };
+    const result = decision === "approve"
+      ? await this.#receivables.approveOverLimit(input)
+      : await this.#receivables.rejectOverLimit(input);
+    return apiResponse(context.request, canonicalJson(jsonValue(result)), 200, {
+      "idempotency-replayed": String(result.replayed), "x-correlation-id": requestId,
+    });
+  }
+
+  async transferReceivableBalance(
+    context: TenantRequestContext,
+    propertyNode: string,
+    folioId: string,
+    body: unknown,
+  ): Promise<Response> {
+    const input = parseReceivableTransfer(body);
+    const idempotencyKey = context.request.headers.get("idempotency-key");
+    if (!input || !UUID.test(propertyNode) || !UUID.test(folioId) || !idempotencyKey || !IDEMPOTENCY_KEY.test(idempotencyKey)) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Receivable transfer input is invalid");
+    }
+    if (!hasScope(context, RECEIVABLE_TRANSFER_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Receivable transfer access is not granted");
+    }
+    const grants = await listGrantedProperties(context, RECEIVABLE_TRANSFER_SCOPE);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 403, "auth/property_forbidden", "Forbidden", "Property access is not granted");
+    }
+    if (!this.#receivables) return this.unavailable(context.request);
+    const requestId = correlationId(context.request);
+    const result = await this.#receivables.transfer({
+      tenantId: context.tenantId, folioId, receivableAccountId: input.receivableAccountId,
+      approvalId: input.approvalId, reason: input.reason, idempotencyKey,
+      envelope: createAuditEnvelope({ actorId: context.identity.actorId, tenantId: context.tenantId,
+        propertyNode, requestId, operation: "journal.posted" }),
+    });
+    return apiResponse(context.request, canonicalJson(jsonValue(result)), result.replayed ? 200 : 201, {
+      "idempotency-replayed": String(result.replayed), "x-correlation-id": requestId,
+    });
+  }
+
+  async folioStatement(
+    context: TenantRequestContext,
+    propertyNode: string,
+    reference: string,
+  ): Promise<Response> {
+    if (!hasScope(context, FOLIO_READ_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Folio statement access is not granted");
+    }
+    if (!UUID.test(propertyNode)) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Property identifier is invalid");
+    }
+    if (!UUID.test(reference) && !FOLIO_REFERENCE.test(reference)) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Folio reference is invalid");
+    }
+    const grants = await listGrantedProperties(context, FOLIO_READ_SCOPE);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 403, "auth/property_forbidden", "Forbidden", "Property access is not granted");
+    }
+    const query = statementQuery(context.request);
+    if (!query) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Folio statement query is invalid");
+    }
+    if (!this.#folioStatements) return this.unavailable(context.request);
+    const adjustmentWriteGranted = hasScope(context, ADJUSTMENT_WRITE_SCOPE) &&
+      (await listGrantedProperties(context, ADJUSTMENT_WRITE_SCOPE)).some(({ id }) => id === propertyNode);
+    const postSealGranted = adjustmentWriteGranted && hasScope(context, ADJUSTMENT_POST_SEAL_SCOPE) &&
+      (await listGrantedProperties(context, ADJUSTMENT_POST_SEAL_SCOPE)).some(({ id }) => id === propertyNode);
+    const statement = await this.#folioStatements.get(context.tx, {
+      tenantId: context.tenantId,
+      propertyNode,
+      reference,
+      ...query,
+      canCorrectCharge: adjustmentWriteGranted,
+      canPostSealAdjustment: postSealGranted,
+    });
+    return apiResponse(context.request, canonicalJson(jsonValue(statement)));
+  }
+
+  async openPrimaryFolio(
+    context: TenantRequestContext,
+    propertyNode: string,
+    reservationId: string,
+    body: unknown,
+  ): Promise<Response> {
+    if (!hasScope(context, FOLIO_OPEN_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Primary folio creation is not granted");
+    }
+    if (!UUID.test(propertyNode) || !UUID.test(reservationId) || !isObject(body) || !exactKeys(body, [])) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Primary folio input is invalid");
+    }
+    const idempotencyKey = context.request.headers.get("idempotency-key");
+    if (!idempotencyKey || !IDEMPOTENCY_KEY.test(idempotencyKey)) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Primary folio input is invalid");
+    }
+    const grants = await listGrantedProperties(context, FOLIO_OPEN_SCOPE);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 403, "auth/property_forbidden", "Forbidden", "Property access is not granted");
+    }
+    if (!this.#folios) return this.unavailable(context.request);
+    const requestId = correlationId(context.request);
+    const result = await this.#folios.openPrimary(context.tx, {
+      tenantId: context.tenantId,
+      reservationId,
+      idempotencyKey,
+      envelope: createAuditEnvelope({
+        actorId: context.identity.actorId,
+        tenantId: context.tenantId,
+        propertyNode,
+        requestId,
+        operation: "folio.opened",
+      }),
+    });
+    const response = {
+      folioId: result.folioId,
+      reservationId: result.reservationId,
+      folioNo: result.folioNo,
+      windowNo: result.windowNo,
+      changed: result.changed,
+      replayed: false,
+    };
+    return apiResponse(context.request, canonicalJson(jsonValue(response)), result.changed ? 201 : 200, {
+      "idempotency-replayed": String(result.replayed),
+      "x-correlation-id": requestId,
+    });
+  }
+
+  async configureNonFiscalFolioSeries(
+    context: TenantRequestContext,
+    propertyNode: string,
+    body: unknown,
+  ): Promise<Response> {
+    if (!hasScope(context, FOLIO_SERIES_CONFIGURE_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Folio-series configuration is not granted");
+    }
+    if (!UUID.test(propertyNode) || !isObject(body) || !exactKeys(body, ["prefix"]) ||
+        typeof body.prefix !== "string" || !/^[A-Za-z0-9/-]{1,24}$/.test(body.prefix) ||
+        !hasJsonContentType(context.request) || new URL(context.request.url).search !== "") {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Folio-series configuration input is invalid");
+    }
+    const idempotencyKey = context.request.headers.get("idempotency-key");
+    if (!idempotencyKey || !IDEMPOTENCY_KEY.test(idempotencyKey)) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Folio-series configuration input is invalid");
+    }
+    const grants = await listGrantedProperties(context, FOLIO_SERIES_CONFIGURE_SCOPE);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 403, "auth/property_forbidden", "Forbidden", "Property access is not granted");
+    }
+    const requestId = correlationId(context.request);
+    try {
+      const result = await new NonFiscalFolioSeriesConfigurationService(this.#idempotency).configure(context.tx, {
+        tenantId: context.tenantId,
+        propertyNode,
+        prefix: body.prefix,
+        idempotencyKey,
+        envelope: createAuditEnvelope({
+          actorId: context.identity.actorId,
+          tenantId: context.tenantId,
+          propertyNode,
+          requestId,
+          operation: "folio.series.configured",
+        }),
+      });
+      const response = {
+        seriesId: result.seriesId,
+        tenantId: result.tenantId,
+        propertyNode: result.propertyNode,
+        kind: result.kind,
+        prefix: result.prefix,
+        fiscal: result.fiscal,
+        nextNo: result.nextNo,
+        created: result.created,
+      };
+      return apiResponse(context.request, canonicalJson(jsonValue(response)), result.status, {
+        "idempotency-replayed": String(result.replayed),
+        "x-correlation-id": requestId,
+      });
+    } catch (error) {
+      const state = invoiceSqlState(error);
+      if (state === "42501") {
+        return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Folio-series configuration is not granted");
+      }
+      if (error instanceof NonFiscalFolioSeriesValidationError || error instanceof IdempotencyValidationError || state === "22023") {
+        return apiError(context.request, 400, "request/invalid", "Invalid request", "Folio-series configuration input is invalid");
+      }
+      if (error instanceof NonFiscalFolioSeriesConflictError || error instanceof IdempotencyConflictError ||
+          state === "23505" || state === "40001" || state === "40P01") {
+        return apiError(context.request, 409, "financials/folio_series_conflict", "Conflict", "Folio-series configuration conflicts with existing state");
+      }
+      if (error instanceof NonFiscalFolioSeriesUnavailableError || state === "55000") {
+        return apiError(context.request, 503, "service/unavailable", "Service unavailable", "Folio-series configuration is temporarily unavailable");
+      }
+      throw error;
+    }
+  }
+
+  async openAdditionalFolio(
+    context: TenantRequestContext,
+    propertyNode: string,
+    reservationId: string,
+    body: unknown,
+  ): Promise<Response> {
+    if (!hasScope(context, FOLIO_OPEN_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Folio window creation is not granted");
+    }
+    if (!UUID.test(propertyNode) || !UUID.test(reservationId) || !isObject(body) ||
+        !exactKeys(body, ["sourceFolioId", "name"]) || typeof body.sourceFolioId !== "string" ||
+        !UUID.test(body.sourceFolioId) || typeof body.name !== "string" || body.name !== body.name.trim() ||
+        body.name.length < 1 || body.name.length > 80) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Additional folio input is invalid");
+    }
+    const idempotencyKey = context.request.headers.get("idempotency-key");
+    if (!idempotencyKey || !IDEMPOTENCY_KEY.test(idempotencyKey)) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Additional folio input is invalid");
+    }
+    const grants = await listGrantedProperties(context, FOLIO_OPEN_SCOPE);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 403, "auth/property_forbidden", "Forbidden", "Property access is not granted");
+    }
+    if (!this.#folios) return this.unavailable(context.request);
+    const requestId = correlationId(context.request);
+    const result = await this.#folios.openAdditional(context.tx, {
+      tenantId: context.tenantId,
+      reservationId,
+      sourceFolioId: body.sourceFolioId,
+      name: body.name,
+      idempotencyKey,
+      envelope: createAuditEnvelope({ actorId: context.identity.actorId, tenantId: context.tenantId,
+        propertyNode, requestId, operation: "folio.opened" }),
+    });
+    return apiResponse(context.request, canonicalJson(jsonValue(result)), 201, {
+      "idempotency-replayed": String(result.replayed), "x-correlation-id": requestId,
+    });
+  }
+
+  async previewFolioTransfer(
+    context: TenantRequestContext,
+    propertyNode: string,
+    folioId: string,
+    body: unknown,
+  ): Promise<Response> {
+    if (!hasScope(context, FOLIO_TRANSFER_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Folio transfer access is not granted");
+    }
+    if (!UUID.test(propertyNode) || !UUID.test(folioId)) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Property or folio identifier is invalid");
+    }
+    const input = parseFolioTransfer(body);
+    if (!input || input.sourceFolioId !== folioId) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Folio transfer input is invalid");
+    }
+    const grants = await listGrantedProperties(context, FOLIO_TRANSFER_SCOPE);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 403, "auth/property_forbidden", "Forbidden", "Property access is not granted");
+    }
+    if (!this.#folioTransfers) return this.unavailable(context.request);
+    const requestId = correlationId(context.request);
+    const result = await this.#folioTransfers.preview(context.tx, {
+      tenantId: context.tenantId, ...input, idempotencyKey: `folio-transfer-preview:${requestId}`,
+      envelope: createAuditEnvelope({ actorId: context.identity.actorId, tenantId: context.tenantId,
+        propertyNode, requestId, operation: "journal.posted" }),
+    });
+    return apiResponse(context.request, canonicalJson(jsonValue(result)));
+  }
+
+  async transferFolioGroups(
+    context: TenantRequestContext,
+    propertyNode: string,
+    folioId: string,
+    body: unknown,
+  ): Promise<Response> {
+    if (!hasScope(context, FOLIO_TRANSFER_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Folio transfer access is not granted");
+    }
+    if (!UUID.test(propertyNode) || !UUID.test(folioId)) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Property or folio identifier is invalid");
+    }
+    const input = parseFolioTransfer(body);
+    const idempotencyKey = context.request.headers.get("idempotency-key");
+    if (!input || input.sourceFolioId !== folioId || input.previewRevision.length === 0 ||
+        !idempotencyKey || !IDEMPOTENCY_KEY.test(idempotencyKey)) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Folio transfer input is invalid");
+    }
+    const grants = await listGrantedProperties(context, FOLIO_TRANSFER_SCOPE);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 403, "auth/property_forbidden", "Forbidden", "Property access is not granted");
+    }
+    if (!this.#folioTransfers) return this.unavailable(context.request);
+    const requestId = correlationId(context.request);
+    const result = await this.#folioTransfers.transfer(context.tx, {
+      tenantId: context.tenantId, ...input, idempotencyKey,
+      envelope: createAuditEnvelope({ actorId: context.identity.actorId, tenantId: context.tenantId,
+        propertyNode, requestId, operation: "journal.posted" }),
+    });
+    return apiResponse(context.request, canonicalJson(jsonValue(result)), 201, {
+      "idempotency-replayed": String(result.replayed), "x-correlation-id": requestId,
+    });
+  }
+
+  async createHostedDeposit(
+    context: TenantRequestContext,
+    propertyNode: string,
+    folioId: string,
+    body: unknown,
+  ): Promise<Response> {
+    if (!hasScope(context, PAYMENT_WRITE_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Payment creation is not granted");
+    }
+    if (!UUID.test(propertyNode) || !UUID.test(folioId) || !isObject(body) ||
+        !exactKeys(body, ["instrumentId", "amountMinor"]) || typeof body.instrumentId !== "string" ||
+        !UUID.test(body.instrumentId) || typeof body.amountMinor !== "string" ||
+        !POSITIVE_INT64.test(body.amountMinor) || BigInt(body.amountMinor) > INT64_MAX) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Hosted deposit input is invalid");
+    }
+    const idempotencyKey = context.request.headers.get("idempotency-key");
+    if (!idempotencyKey || !IDEMPOTENCY_KEY.test(idempotencyKey)) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Hosted deposit input is invalid");
+    }
+    const grants = await listGrantedProperties(context, PAYMENT_WRITE_SCOPE);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 403, "auth/property_forbidden", "Forbidden", "Property access is not granted");
+    }
+    if (!this.#hostedDeposits) return this.unavailable(context.request);
+    const requestId = correlationId(context.request);
+    const result = await this.#hostedDeposits.create({ tenantId: context.tenantId, folioId,
+      instrumentId: body.instrumentId, amountMinor: body.amountMinor, idempotencyKey,
+      envelope: createAuditEnvelope({ actorId: context.identity.actorId, tenantId: context.tenantId,
+        propertyNode, requestId, operation: "deposit.requested" }) });
+    return apiResponse(context.request, canonicalJson(jsonValue(result)), 201, { "x-correlation-id": requestId });
+  }
+
+  async applyHostedDeposit(
+    context: TenantRequestContext,
+    propertyNode: string,
+    requestIdValue: string,
+    body: unknown,
+  ): Promise<Response> {
+    if (!hasScope(context, DEPOSIT_APPLY_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Deposit application is not granted");
+    }
+    if (!UUID.test(propertyNode) || !UUID.test(requestIdValue) || !isObject(body) ||
+        !exactKeys(body, ["amountMinor"]) || typeof body.amountMinor !== "string" ||
+        !POSITIVE_INT64.test(body.amountMinor) || BigInt(body.amountMinor) > INT64_MAX) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Deposit application input is invalid");
+    }
+    const idempotencyKey = context.request.headers.get("idempotency-key");
+    if (!idempotencyKey || !IDEMPOTENCY_KEY.test(idempotencyKey)) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Deposit application input is invalid");
+    }
+    const grants = await listGrantedProperties(context, DEPOSIT_APPLY_SCOPE);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 403, "auth/property_forbidden", "Forbidden", "Property access is not granted");
+    }
+    if (!this.#hostedDeposits) return this.unavailable(context.request);
+    const correlation = correlationId(context.request);
+    const result = await this.#hostedDeposits.apply({ tenantId: context.tenantId,
+      hostedRequestId: requestIdValue, amountMinor: body.amountMinor, idempotencyKey,
+      envelope: createAuditEnvelope({ actorId: context.identity.actorId, tenantId: context.tenantId,
+        propertyNode, requestId: correlation, operation: "deposit.applied" }) });
+    return apiResponse(context.request, canonicalJson(jsonValue(result)), result.replayed ? 200 : 201,
+      { "idempotency-replayed": String(result.replayed), "x-correlation-id": correlation });
+  }
+
+  async hostedDepositReadAuthority(context: TenantRequestContext, propertyNode: string): Promise<Response> {
+    if (!hasScope(context, PAYMENT_READ_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Payment access is not granted");
+    }
+    const grants = await listGrantedProperties(context, PAYMENT_READ_SCOPE);
+    if (!UUID.test(propertyNode) || !grants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 403, "auth/property_forbidden", "Forbidden", "Property access is not granted");
+    }
+    return apiResponse(context.request, { authorized: true });
+  }
+
+  async hostedDepositStatus(
+    context: TenantRequestContext,
+    propertyNode: string,
+    requestIdValue: string,
+  ): Promise<Response> {
+    if (!hasScope(context, PAYMENT_READ_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Payment access is not granted");
+    }
+    if (!UUID.test(propertyNode) || !UUID.test(requestIdValue)) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Hosted deposit identity is invalid");
+    }
+    const grants = await listGrantedProperties(context, PAYMENT_READ_SCOPE);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 403, "auth/property_forbidden", "Forbidden", "Property access is not granted");
+    }
+    if (!this.#hostedDeposits) return this.unavailable(context.request);
+    const result = await this.#hostedDeposits.statusForOperator(context.tenantId, requestIdValue);
+    if (result.propertyNode !== propertyNode) {
+      return apiError(context.request, 404, "resource/not_found", "Not found", "Hosted deposit was not found");
+    }
+    return apiResponse(context.request, canonicalJson(jsonValue(result)));
+  }
+
+  async hostedDepositWorkbench(
+    context: TenantRequestContext,
+    propertyNode: string,
+    folioId: string,
+  ): Promise<Response> {
+    if (!hasScope(context, PAYMENT_READ_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Payment access is not granted");
+    }
+    if (!UUID.test(propertyNode) || !UUID.test(folioId) || new URL(context.request.url).search !== "") {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Hosted deposit workbench identity is invalid");
+    }
+    const grants = await listGrantedProperties(context, PAYMENT_READ_SCOPE);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 403, "auth/property_forbidden", "Forbidden", "Property access is not granted");
+    }
+    if (!this.#hostedDeposits) return this.unavailable(context.request);
+    const result = await this.#hostedDeposits.workbenchForFolio({
+      tenantId: context.tenantId,
+      propertyNode,
+      folioId,
+    });
+    return apiResponse(context.request, canonicalJson(jsonValue(result)));
+  }
+
+  async postFolioCharge(
+    context: TenantRequestContext,
+    propertyNode: string,
+    folioId: string,
+    body: unknown,
+  ): Promise<Response> {
+    if (!hasScope(context, CHARGE_WRITE_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Folio charge posting is not granted");
+    }
+    if (!UUID.test(propertyNode) || !UUID.test(folioId)) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Property or folio identifier is invalid");
+    }
+    const grants = await listGrantedProperties(context, CHARGE_WRITE_SCOPE);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 403, "auth/property_forbidden", "Forbidden", "Property access is not granted");
+    }
+    const input = parseCharge(context.request, body);
+    if (!input) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Folio charge input is invalid");
+    }
+    if (!this.#charges) return this.unavailable(context.request);
+    const requestId = correlationId(context.request);
+    const result = await this.#charges.postCharge(context.tx, {
+      tenantId: context.tenantId,
+      folioId,
+      txCode: input.txCode,
+      amountMinor: input.amountMinor,
+      ...(input.quantity === undefined ? {} : { quantity: input.quantity }),
+      idempotencyKey: input.idempotencyKey,
+      envelope: createAuditEnvelope({
+        actorId: context.identity.actorId,
+        tenantId: context.tenantId,
+        propertyNode,
+        requestId,
+        operation: "journal.posted",
+      }),
+    });
+    return apiResponse(context.request, canonicalJson(jsonValue(result)), 201, {
+      "idempotency-replayed": String(result.replayed),
+      "x-correlation-id": requestId,
+    });
+  }
+
+  async transitionFolioStatus(
+    context: TenantRequestContext,
+    propertyNode: string,
+    folioId: string,
+    body: unknown,
+  ): Promise<Response> {
+    const input = parseFolioStatus(body);
+    if (!input || !UUID.test(propertyNode) || !UUID.test(folioId)) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Folio settlement input is invalid");
+    }
+    const scope = input.action === "settle" ? FOLIO_SETTLE_SCOPE : FOLIO_CLOSE_SCOPE;
+    if (!hasScope(context, scope)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Folio settlement access is not granted");
+    }
+    const grants = await listGrantedProperties(context, scope);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 403, "auth/property_forbidden", "Forbidden", "Property access is not granted");
+    }
+    if (!this.#folioSettlements) return this.unavailable(context.request);
+    const requestId = correlationId(context.request);
+    const command = {
+      tenantId: context.tenantId,
+      folioId,
+      idempotencyKey: input.idempotencyKey,
+      envelope: createAuditEnvelope({
+        actorId: context.identity.actorId,
+        tenantId: context.tenantId,
+        propertyNode,
+        requestId,
+        operation: input.action === "settle" ? "folio.settled" : "folio.closed",
+      }),
+    } as const;
+    const result = input.action === "settle"
+      ? await this.#folioSettlements.settle(command)
+      : await this.#folioSettlements.close(command);
+    return apiResponse(context.request, canonicalJson(jsonValue(result)), 200, {
+      "idempotency-replayed": String(result.replayed),
+      "x-correlation-id": requestId,
+    });
+  }
+
+  async correctFolioCharge(
+    context: TenantRequestContext,
+    propertyNode: string,
+    folioId: string,
+    body: unknown,
+  ): Promise<Response> {
+    if (!hasScope(context, ADJUSTMENT_WRITE_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Financial adjustment access is not granted");
+    }
+    if (!UUID.test(propertyNode) || !UUID.test(folioId)) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Property or folio identifier is invalid");
+    }
+    const grants = await listGrantedProperties(context, ADJUSTMENT_WRITE_SCOPE);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 403, "auth/property_forbidden", "Forbidden", "Property access is not granted");
+    }
+    const input = parseCorrection(context.request, body);
+    if (!input) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Folio correction input is invalid");
+    }
+    if (!this.#chargeCorrections) return this.unavailable(context.request);
+    const postSealAuthorized = hasScope(context, ADJUSTMENT_POST_SEAL_SCOPE) &&
+      (await listGrantedProperties(context, ADJUSTMENT_POST_SEAL_SCOPE)).some(({ id }) => id === propertyNode);
+    const requestId = correlationId(context.request);
+    const result = await this.#chargeCorrections.reverseCharge(context.tx, {
+      tenantId: context.tenantId,
+      folioId,
+      reversesJournalId: input.reversesJournalId,
+      reason: input.reason,
+      postSealAuthorized,
+      idempotencyKey: input.idempotencyKey,
+      envelope: createAuditEnvelope({
+        actorId: context.identity.actorId,
+        tenantId: context.tenantId,
+        propertyNode,
+        requestId,
+        operation: "journal.posted",
+      }),
+    });
+    return apiResponse(context.request, canonicalJson(jsonValue(result)), 201, {
+      "idempotency-replayed": String(result.replayed),
+      "x-correlation-id": requestId,
+    });
+  }
+
+  async search(context: TenantRequestContext, propertyNode: string, body: unknown): Promise<Response> {
+    if (!hasAvailabilityScope(context)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Availability access is not granted");
+    }
+    if (!UUID.test(propertyNode)) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Property identifier is invalid");
+    }
+    const canonical = isCanonicalOfferSearch(body);
+    const offerInput = canonical ? parseOfferSearch(body) : null;
+    const legacyInput = canonical ? null : parseSearch(body);
+    if ((canonical && !offerInput) || (!canonical && !legacyInput)) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Availability search input is invalid");
+    }
+
+    try {
+      const grants = await listGrantedProperties(context);
+      if (!grants.some(({ id }) => id === propertyNode)) {
+        return apiError(context.request, 403, "auth/property_forbidden", "Forbidden", "Property access is not granted");
+      }
+      if (canonical) {
+        if (!offerInput) {
+          return apiError(context.request, 400, "request/invalid", "Invalid request", "Availability search input is invalid");
+        }
+        if (!this.#reservationOffers) return this.unavailable(context.request);
+        const result = await this.#reservationOffers.search(context.tx, { propertyNode, ...offerInput });
+        return apiResponse(context.request, reservationOfferHttpResult(result));
+      }
+      if (!legacyInput) {
+        return apiError(context.request, 400, "request/invalid", "Invalid request", "Availability search input is invalid");
+      }
+      const options = await this.#availability.search(context.tx, { propertyNode, ...legacyInput });
+      return apiResponse(context.request, { options });
+    } catch (error) {
+      if (error instanceof InventoryValidationError || error instanceof ReservationOfferValidationError ||
+          error instanceof ReservationOfferSearchTooBroadError) {
+        return apiError(context.request, 400, "request/invalid", "Invalid request", "Availability search input is invalid");
+      }
+      if (error instanceof RateEvaluationError &&
+          error.message === "booking window must be 0 to 730 property-local days") {
+        return apiError(
+          context.request,
+          400,
+          "request/booking_window",
+          "Stay dates unavailable",
+          "Choose stay dates within the next 730 property-local days",
+        );
+      }
+      return apiError(context.request, 503, "service/unavailable", "Service unavailable", "Availability is temporarily unavailable");
+    }
+  }
+
+  async inventory(context: TenantRequestContext, propertyNode: string): Promise<Response> {
+    if (!hasScope(context, CONFIGURATION_READ_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Inventory configuration access is not granted");
+    }
+    if (!UUID.test(propertyNode)) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Property identifier is invalid");
+    }
+    if (!this.#inventory) return this.unavailable(context.request);
+    try {
+      const grants = await listGrantedProperties(context, CONFIGURATION_READ_SCOPE);
+      if (!grants.some(({ id }) => id === propertyNode)) {
+        return apiError(context.request, 403, "auth/property_forbidden", "Forbidden", "Property access is not granted");
+      }
+      const [unitTypes, spaces, sellableUnits] = await Promise.all([
+        this.#inventory.listUnitTypes(context.tx, propertyNode),
+        this.#inventory.listSpaces(context.tx, propertyNode),
+        this.#inventory.listSellableUnits(context.tx, propertyNode),
+      ]);
+      return apiResponse(context.request, { unitTypes, spaces, sellableUnits });
+    } catch (error) {
+      if (error instanceof InventoryValidationError) {
+        return apiError(context.request, 400, "request/invalid", "Invalid request", "Inventory request is invalid");
+      }
+      return apiError(context.request, 503, "service/unavailable", "Service unavailable", "Inventory is temporarily unavailable");
+    }
+  }
+
+  async availabilityProjection(context: TenantRequestContext, propertyNode: string): Promise<Response> {
+    if (!hasScope(context, CONFIGURATION_READ_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Inventory configuration access is not granted");
+    }
+    if (!UUID.test(propertyNode)) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Property identifier is invalid");
+    }
+    if (!this.#projection) return this.unavailable(context.request);
+    const grants = await listGrantedProperties(context, CONFIGURATION_READ_SCOPE);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 403, "auth/property_forbidden", "Forbidden", "Property access is not granted");
+    }
+    return apiResponse(context.request, await this.#projection.status(context.tx, propertyNode));
+  }
+
+  async rebuildAvailabilityProjection(
+    context: TenantRequestContext,
+    propertyNode: string,
+    body: unknown,
+  ): Promise<Response> {
+    const input = parseProjectionRebuild(body);
+    if (!input) return apiError(context.request, 400, "request/invalid", "Invalid request", "Projection range is invalid");
+    if (!hasScope(context, CONFIGURATION_WRITE_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Inventory configuration changes are not granted");
+    }
+    if (!UUID.test(propertyNode)) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Property identifier is invalid");
+    }
+    if (!this.#projection) return this.unavailable(context.request);
+    const grants = await listGrantedProperties(context, CONFIGURATION_WRITE_SCOPE);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 403, "auth/property_forbidden", "Forbidden", "Property access is not granted");
+    }
+    const requestId = correlationId(context.request);
+    const outcome = await this.#idempotency.execute(context.tx, {
+      tenantId: context.tenantId,
+      operation: "operator.inventory.projection.rebuild",
+      key: context.request.headers.get("idempotency-key") ?? "",
+      request: { actorId: context.identity.actorId, propertyNode, body },
+    }, async (tx) => {
+      await this.#projection!.replaceHorizon(tx, { propertyNode, ...input });
+      return { status: 200, body: jsonValue(await this.#projection!.status(tx, propertyNode)) };
+    });
+    return apiResponse(context.request, canonicalJson(outcome.body), outcome.status, {
+      "idempotency-replayed": String(outcome.replayed),
+      "x-correlation-id": requestId,
+    });
+  }
+
+  async createUnitType(context: TenantRequestContext, propertyNode: string, body: unknown): Promise<Response> {
+    const input = parseUnitType(body);
+    if (!input) return apiError(context.request, 400, "request/invalid", "Invalid request", "Unit type input is invalid");
+    return this.#create(context, propertyNode, body, "operator.inventory.unit_type.create", "unit_type.created",
+      (tx, envelope) => this.#inventory!.createUnitType(tx, { ...input, envelope }));
+  }
+
+  async createSpace(context: TenantRequestContext, propertyNode: string, body: unknown): Promise<Response> {
+    const input = parseSpace(body);
+    if (!input) return apiError(context.request, 400, "request/invalid", "Invalid request", "Space input is invalid");
+    return this.#create(context, propertyNode, body, "operator.inventory.space.create", "space.created",
+      (tx, envelope) => this.#inventory!.createSpace(tx, { ...input, envelope }));
+  }
+
+  async createSellableUnit(context: TenantRequestContext, propertyNode: string, body: unknown): Promise<Response> {
+    const input = parseSellableUnit(body);
+    if (!input) return apiError(context.request, 400, "request/invalid", "Invalid request", "Sellable unit input is invalid");
+    return this.#create(context, propertyNode, body, "operator.inventory.sellable_unit.create", "sellable_unit.created",
+      (tx, envelope) => this.#inventory!.createSellableUnit(tx, { ...input, envelope }));
+  }
+
+  async createBulkRooms(context: TenantRequestContext, propertyNode: string, body: unknown): Promise<Response> {
+    const input = parseBulkRooms(body);
+    if (!input) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Bulk room input is invalid");
+    }
+    if (!hasScope(context, CONFIGURATION_WRITE_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Inventory configuration changes are not granted");
+    }
+    if (!UUID.test(propertyNode)) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Property identifier is invalid");
+    }
+    if (!this.#inventory) return this.unavailable(context.request);
+    const grants = await listGrantedProperties(context, CONFIGURATION_WRITE_SCOPE);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 403, "auth/property_forbidden", "Forbidden", "Property access is not granted");
+    }
+    const requestId = correlationId(context.request);
+    const outcome = await this.#idempotency.execute(context.tx, {
+      tenantId: context.tenantId,
+      operation: "operator.inventory.rooms.bulk",
+      key: context.request.headers.get("idempotency-key") ?? "",
+      request: { actorId: context.identity.actorId, propertyNode, body },
+    }, async (tx) => {
+      const unitType = await this.#inventory!.getUnitType(tx, propertyNode, input.unitTypeId);
+      if (unitType.profileKey !== "hotel") {
+        throw new InventoryValidationError("Bulk room creation requires a hotel room type");
+      }
+      const rooms = [];
+      for (const room of input.rooms) {
+        const space = await this.#inventory!.createSpace(tx, {
+          code: room.code,
+          profileKey: unitType.profileKey,
+          capacity: 1,
+          maxOccupancy: unitType.maxOccupancy,
+          ...(room.floor === undefined ? {} : { floor: room.floor }),
+          envelope: createAuditEnvelope({
+            actorId: context.identity.actorId,
+            tenantId: context.tenantId,
+            propertyNode,
+            requestId,
+            operation: "space.created",
+          }),
+        });
+        const sellableUnit = await this.#inventory!.createSellableUnit(tx, {
+          unitTypeId: unitType.id,
+          name: room.name ?? `Room ${room.code}`,
+          spaces: [{ spaceId: space.id, claimMode: "exclusive" }],
+          envelope: createAuditEnvelope({
+            actorId: context.identity.actorId,
+            tenantId: context.tenantId,
+            propertyNode,
+            requestId,
+            operation: "sellable_unit.created",
+          }),
+        });
+        rooms.push({ space, sellableUnit });
+      }
+      return { status: 201, body: { rooms: jsonValue(rooms) } };
+    });
+    return apiResponse(context.request, canonicalJson(outcome.body), outcome.status, {
+      "idempotency-replayed": String(outcome.replayed),
+      "x-correlation-id": requestId,
+    });
+  }
+
+  async operationalBlocks(context: TenantRequestContext, propertyNode: string): Promise<Response> {
+    if (!hasScope(context, BLOCK_READ_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Operational-block access is not granted");
+    }
+    if (!UUID.test(propertyNode)) return apiError(context.request, 400, "request/invalid", "Invalid request", "Property identifier is invalid");
+    if (!this.#blocks) return this.unavailable(context.request);
+    const grants = await listGrantedProperties(context, BLOCK_READ_SCOPE);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 403, "auth/property_forbidden", "Forbidden", "Property access is not granted");
+    }
+    return apiResponse(context.request, { operationalBlocks: jsonValue(await this.#blocks.listActive(context.tx, propertyNode)) });
+  }
+
+  async openOperationalBlock(context: TenantRequestContext, propertyNode: string, body: unknown): Promise<Response> {
+    const input = parseOperationalBlock(body);
+    if (!input) return apiError(context.request, 400, "request/invalid", "Invalid request", "Operational-block input is invalid");
+    if (!hasScope(context, BLOCK_WRITE_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Operational-block changes are not granted");
+    }
+    if (!UUID.test(propertyNode) || !UUID.test(input.spaceId)) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Property or space identifier is invalid");
+    }
+    if (!this.#blocks) return this.unavailable(context.request);
+    const grants = await listGrantedProperties(context, BLOCK_WRITE_SCOPE);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 403, "auth/property_forbidden", "Forbidden", "Property access is not granted");
+    }
+    const requestId = correlationId(context.request);
+    const outcome = await this.#idempotency.execute(context.tx, {
+      tenantId: context.tenantId, operation: "operator.inventory.blocks.open",
+      key: context.request.headers.get("idempotency-key") ?? "",
+      request: { actorId: context.identity.actorId, propertyNode, body },
+    }, async (tx) => ({ status: 201, body: { operationalBlock: jsonValue(await this.#blocks!.open(tx, {
+      ...input, envelope: createAuditEnvelope({ actorId: context.identity.actorId, tenantId: context.tenantId,
+        propertyNode, requestId, operation: "ooo.opened" }),
+    })) } }));
+    return apiResponse(context.request, canonicalJson(outcome.body), outcome.status, {
+      "idempotency-replayed": String(outcome.replayed), "x-correlation-id": requestId,
+    });
+  }
+
+  async closeOperationalBlock(context: TenantRequestContext, propertyNode: string, blockId: string, body: unknown): Promise<Response> {
+    if (!isObject(body) || !exactKeys(body, [])) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Operational-block close input must be empty");
+    }
+    if (!hasScope(context, BLOCK_WRITE_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Operational-block changes are not granted");
+    }
+    if (!UUID.test(propertyNode) || !UUID.test(blockId)) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Property or block identifier is invalid");
+    }
+    if (!this.#blocks) return this.unavailable(context.request);
+    const grants = await listGrantedProperties(context, BLOCK_WRITE_SCOPE);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 403, "auth/property_forbidden", "Forbidden", "Property access is not granted");
+    }
+    const requestId = correlationId(context.request);
+    const outcome = await this.#idempotency.execute(context.tx, {
+      tenantId: context.tenantId, operation: "operator.inventory.blocks.close",
+      key: context.request.headers.get("idempotency-key") ?? "",
+      request: { actorId: context.identity.actorId, propertyNode, blockId, body },
+    }, async (tx) => ({ status: 200, body: { operationalBlock: jsonValue(await this.#blocks!.close(tx, {
+      blockId, envelope: createAuditEnvelope({ actorId: context.identity.actorId, tenantId: context.tenantId,
+        propertyNode, requestId, operation: "ooo.closed" }),
+    })) } }));
+    return apiResponse(context.request, canonicalJson(outcome.body), outcome.status, {
+      "idempotency-replayed": String(outcome.replayed), "x-correlation-id": requestId,
+    });
+  }
+
+  async inventoryPolicy(context: TenantRequestContext, propertyNode: string): Promise<Response> {
+    if (!hasScope(context, POLICY_READ_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Inventory-policy access is not granted");
+    }
+    if (!UUID.test(propertyNode)) return apiError(context.request, 400, "request/invalid", "Invalid request", "Property identifier is invalid");
+    if (!this.#policy) return this.unavailable(context.request);
+    const grants = await listGrantedProperties(context, POLICY_READ_SCOPE);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 403, "auth/property_forbidden", "Forbidden", "Property access is not granted");
+    }
+    return apiResponse(context.request, { inventoryPolicy: await this.#policy.get(context.tx, propertyNode) });
+  }
+
+  async activeHolds(context: TenantRequestContext, propertyNode: string): Promise<Response> {
+    if (!hasScope(context, HOLD_READ_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Cart-hold access is not granted");
+    }
+    if (!UUID.test(propertyNode)) return apiError(context.request, 400, "request/invalid", "Invalid request", "Property identifier is invalid");
+    if (!this.#holds) return this.unavailable(context.request);
+    const grants = await listGrantedProperties(context, HOLD_READ_SCOPE);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 403, "auth/property_forbidden", "Forbidden", "Property access is not granted");
+    }
+    return apiResponse(context.request, { holds: jsonValue(await this.#holds.listActive(context.tx, propertyNode)) });
+  }
+
+  async placeHold(context: TenantRequestContext, propertyNode: string, body: unknown): Promise<Response> {
+    const input = parseHold(body);
+    if (!input) return apiError(context.request, 400, "request/invalid", "Invalid request", "Cart-hold input is invalid");
+    if (!hasScope(context, HOLD_WRITE_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Cart-hold changes are not granted");
+    }
+    if (!UUID.test(propertyNode)) return apiError(context.request, 400, "request/invalid", "Invalid request", "Property identifier is invalid");
+    if (!this.#holds) return this.unavailable(context.request);
+    const grants = await listGrantedProperties(context, HOLD_WRITE_SCOPE);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 403, "auth/property_forbidden", "Forbidden", "Property access is not granted");
+    }
+    const requestId = correlationId(context.request);
+    const outcome = await this.#idempotency.execute(context.tx, {
+      tenantId: context.tenantId, operation: "operator.inventory.holds.place",
+      key: context.request.headers.get("idempotency-key") ?? "",
+      request: { actorId: context.identity.actorId, propertyNode, body },
+    }, async (tx) => ({ status: 201, body: { hold: jsonValue(await this.#holds!.place(tx, {
+      sellableUnitId: input.sellableUnitId, from: input.from, to: input.to, ttlSeconds: 600,
+      holder: { reference: input.holderReference },
+      envelope: createAuditEnvelope({ actorId: context.identity.actorId, tenantId: context.tenantId,
+        propertyNode, requestId, operation: "hold.created" }),
+    })) } }));
+    return apiResponse(context.request, canonicalJson(outcome.body), outcome.status, {
+      "idempotency-replayed": String(outcome.replayed), "x-correlation-id": requestId,
+    });
+  }
+
+  async commitReservation(context: TenantRequestContext, body: unknown): Promise<Response> {
+    const input = parseReservationCommit(body);
+    if (!input) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Reservation commit input is invalid");
+    }
+    if (!hasScope(context, RESERVATION_WRITE_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Reservation creation is not granted");
+    }
+    if (!this.#reservations) return this.unavailable(context.request);
+    const grants = await listGrantedProperties(context, RESERVATION_WRITE_SCOPE);
+    if (!grants.some(({ id }) => id === input.propertyNode)) {
+      return apiError(context.request, 403, "auth/property_forbidden", "Forbidden", "Property access is not granted");
+    }
+    const requestId = correlationId(context.request);
+    const common = {
+      primaryPartyId: input.primaryPartyId,
+      ratePlanId: input.ratePlanId,
+      adults: input.adults,
+      childAges: input.childAges,
+      channelCode: input.channelCode,
+      idempotencyKey: context.request.headers.get("idempotency-key") ?? "",
+      envelope: createAuditEnvelope({
+        actorId: context.identity.actorId,
+        tenantId: context.tenantId,
+        propertyNode: input.propertyNode,
+        requestId,
+        operation: "reservation.confirmed",
+      }),
+    };
+    const result = "holdId" in input
+      ? await this.#reservations.commitHeld(context.tx, { ...common, holdId: input.holdId })
+      : await this.#reservations.commitDirect(context.tx, { ...common, ...input.direct });
+    const { replayed, ...reservation } = result;
+    return apiResponse(context.request, canonicalJson({ reservation: jsonValue(reservation) }), 201, {
+      "idempotency-replayed": String(replayed),
+      "x-correlation-id": requestId,
+    });
+  }
+
+  async partyProfiles(context: TenantRequestContext, propertyNode: string, body: unknown): Promise<Response> {
+    if (!UUID.test(propertyNode)) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Property identifier is invalid");
+    }
+    const input = parsePartySearch(body);
+    if (!input) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Party search query is invalid");
+    }
+    if (!hasScope(context, PARTY_READ_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Party profile access is not granted");
+    }
+    if (!this.#parties) return this.unavailable(context.request);
+    const grants = await listGrantedProperties(context, PARTY_READ_SCOPE);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 403, "auth/property_forbidden", "Forbidden", "Property access is not granted");
+    }
+    const profiles = await this.#parties.search(context.tx, {
+      tenantId: context.tenantId,
+      query: input.query,
+      ...(input.limit === undefined ? {} : { limit: input.limit }),
+    });
+    return apiResponse(context.request, canonicalJson({ profiles: jsonValue(profiles) }));
+  }
+
+  async createPartyProfile(
+    context: TenantRequestContext,
+    propertyNode: string,
+    body: unknown,
+  ): Promise<Response> {
+    if (!UUID.test(propertyNode)) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Property identifier is invalid");
+    }
+    const input = parsePartyCreate(body);
+    if (!input) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Party profile input is invalid");
+    }
+    if (!hasScope(context, PARTY_WRITE_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Party profile creation is not granted");
+    }
+    if (!this.#parties) return this.unavailable(context.request);
+    const grants = await listGrantedProperties(context, PARTY_WRITE_SCOPE);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 403, "auth/property_forbidden", "Forbidden", "Property access is not granted");
+    }
+    const requestId = correlationId(context.request);
+    const outcome = await this.#parties.create(context.tx, {
+      ...input,
+      idempotencyKey: context.request.headers.get("idempotency-key") ?? "",
+      envelope: createAuditEnvelope({
+        actorId: context.identity.actorId,
+        tenantId: context.tenantId,
+        propertyNode,
+        requestId,
+        operation: "party.created",
+      }),
+    });
+    return apiResponse(context.request, canonicalJson({ party: jsonValue(outcome.party) }), 201, {
+      "idempotency-replayed": String(outcome.replayed),
+      "x-correlation-id": requestId,
+    });
+  }
+
+  async reservationGuests(context: TenantRequestContext, propertyNode: string): Promise<Response> {
+    if (!UUID.test(propertyNode)) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Property identifier is invalid");
+    }
+    const confirmationNo = confirmationQuery(context.request);
+    if (!confirmationNo) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Confirmation query is invalid");
+    }
+    if (!hasScope(context, RESERVATION_GUEST_READ_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Reservation guest access is not granted");
+    }
+    if (!this.#reservationGuests) return this.unavailable(context.request);
+    const grants = await listGrantedProperties(context, RESERVATION_GUEST_READ_SCOPE);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 403, "auth/property_forbidden", "Forbidden", "Property access is not granted");
+    }
+    const reservation = await this.#reservationGuests.findByConfirmation(context.tx, {
+      tenantId: context.tenantId,
+      propertyNode,
+      confirmationNo,
+    });
+    return apiResponse(context.request, canonicalJson({ reservation: jsonValue(reservation) }));
+  }
+
+  async replaceReservationGuests(
+    context: TenantRequestContext,
+    propertyNode: string,
+    reservationId: string,
+    body: unknown,
+  ): Promise<Response> {
+    if (!UUID.test(propertyNode) || !UUID.test(reservationId)) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Property or reservation identifier is invalid");
+    }
+    const input = parseReservationGuests(body);
+    if (!input) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Reservation guest input is invalid");
+    }
+    if (!hasScope(context, RESERVATION_GUEST_WRITE_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Reservation guest changes are not granted");
+    }
+    if (!this.#reservationGuests) return this.unavailable(context.request);
+    const grants = await listGrantedProperties(context, RESERVATION_GUEST_WRITE_SCOPE);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 403, "auth/property_forbidden", "Forbidden", "Property access is not granted");
+    }
+    const requestId = correlationId(context.request);
+    const result = await this.#reservationGuests.replace(context.tx, {
+      reservationId,
+      primarySharePct: input.primarySharePct,
+      guests: input.guests,
+      idempotencyKey: context.request.headers.get("idempotency-key") ?? "",
+      envelope: createAuditEnvelope({
+        actorId: context.identity.actorId,
+        tenantId: context.tenantId,
+        propertyNode,
+        requestId,
+        operation: "reservation.modified",
+      }),
+    });
+    const { replayed, ...reservation } = result;
+    return apiResponse(context.request, canonicalJson({ reservation: jsonValue(reservation) }), 200, {
+      "idempotency-replayed": String(replayed),
+      "x-correlation-id": requestId,
+    });
+  }
+
+  async createReservationAlert(
+    context: TenantRequestContext,
+    propertyNode: string,
+    reservationId: string,
+    body: unknown,
+  ): Promise<Response> {
+    const input = parseReservationAlert(body);
+    const idempotencyKey = context.request.headers.get("idempotency-key");
+    if (!UUID.test(propertyNode) || !UUID.test(reservationId) || !input || !idempotencyKey ||
+        !IDEMPOTENCY_KEY.test(idempotencyKey) || new URL(context.request.url).search.length > 0) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Reservation alert input is invalid");
+    }
+    if (!hasScope(context, RESERVATION_LIFECYCLE_WRITE_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Reservation alert changes are not granted");
+    }
+    const grants = await listGrantedProperties(context, RESERVATION_LIFECYCLE_WRITE_SCOPE);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 404, "reservations/not_found", "Not found", "The referenced reservation was not found");
+    }
+    if (!this.#reservationAlerts) return this.unavailable(context.request);
+    const requestId = correlationId(context.request);
+    const result = await this.#reservationAlerts.create(context.tx, {
+      reservationId,
+      code: input.code,
+      message: input.message,
+      showOn: input.showOn,
+      idempotencyKey,
+      envelope: createAuditEnvelope({
+        actorId: context.identity.actorId,
+        tenantId: context.tenantId,
+        propertyNode,
+        requestId,
+        operation: "reservation.modified",
+      }),
+    });
+    return apiResponse(context.request, canonicalJson({
+      alert: jsonValue(result.alert), changed: result.changed, replayed: result.replayed,
+    }), 200, {
+      "idempotency-replayed": String(result.replayed),
+      "x-correlation-id": requestId,
+    });
+  }
+
+  async deactivateReservationAlert(
+    context: TenantRequestContext,
+    propertyNode: string,
+    reservationId: string,
+    alertId: string,
+    body: unknown,
+  ): Promise<Response> {
+    const idempotencyKey = context.request.headers.get("idempotency-key");
+    if (!UUID.test(propertyNode) || !UUID.test(reservationId) || !UUID.test(alertId) || !emptyObject(body) ||
+        !idempotencyKey || !IDEMPOTENCY_KEY.test(idempotencyKey) || new URL(context.request.url).search.length > 0) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Reservation alert input is invalid");
+    }
+    if (!hasScope(context, RESERVATION_LIFECYCLE_WRITE_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Reservation alert changes are not granted");
+    }
+    const grants = await listGrantedProperties(context, RESERVATION_LIFECYCLE_WRITE_SCOPE);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 404, "reservations/not_found", "Not found", "The referenced reservation was not found");
+    }
+    if (!this.#reservationAlerts) return this.unavailable(context.request);
+    const requestId = correlationId(context.request);
+    const result = await this.#reservationAlerts.deactivate(context.tx, {
+      reservationId,
+      alertId,
+      idempotencyKey,
+      envelope: createAuditEnvelope({
+        actorId: context.identity.actorId,
+        tenantId: context.tenantId,
+        propertyNode,
+        requestId,
+        operation: "reservation.modified",
+      }),
+    });
+    return apiResponse(context.request, canonicalJson({
+      alert: jsonValue(result.alert), changed: result.changed, replayed: result.replayed,
+    }), 200, {
+      "idempotency-replayed": String(result.replayed),
+      "x-correlation-id": requestId,
+    });
+  }
+
+  async putReservationTravel(
+    context: TenantRequestContext,
+    propertyNode: string,
+    reservationId: string,
+    directionValue: string,
+    body: unknown,
+  ): Promise<Response> {
+    const direction = directionValue === "arrival" || directionValue === "departure"
+      ? directionValue
+      : null;
+    const input = direction ? parseReservationTravel(body, direction) : null;
+    const idempotencyKey = context.request.headers.get("idempotency-key");
+    if (!UUID.test(propertyNode) || !UUID.test(reservationId) || !direction || !input ||
+        !idempotencyKey || !IDEMPOTENCY_KEY.test(idempotencyKey) ||
+        new URL(context.request.url).search.length > 0) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Reservation travel input is invalid");
+    }
+    if (!hasScope(context, RESERVATION_LIFECYCLE_WRITE_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Reservation travel changes are not granted");
+    }
+    const grants = await listGrantedProperties(context, RESERVATION_LIFECYCLE_WRITE_SCOPE);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 404, "reservations/not_found", "Not found", "The referenced reservation was not found");
+    }
+    if (!this.#reservationTravel) return this.unavailable(context.request);
+    const requestId = correlationId(context.request);
+    const result = await this.#reservationTravel.put(context.tx, {
+      reservationId,
+      direction,
+      expected: input.expected,
+      travel: input.travel,
+      idempotencyKey,
+      envelope: createAuditEnvelope({
+        actorId: context.identity.actorId,
+        tenantId: context.tenantId,
+        propertyNode,
+        requestId,
+        operation: "reservation.modified",
+      }),
+    });
+    return apiResponse(context.request, canonicalJson({
+      travel: jsonValue({
+        reservationId: result.reservationId,
+        status: result.status,
+        direction: result.direction,
+        travel: result.travel,
+        changed: result.changed,
+      }),
+    }), 200, {
+      "idempotency-replayed": String(result.replayed),
+      "x-correlation-id": requestId,
+    });
+  }
+
+  async operatingPerformance(context: TenantRequestContext, propertyNode: string): Promise<Response> {
+    if (!UUID.test(propertyNode) || new URL(context.request.url).search.length > 0) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Performance scope is invalid");
+    }
+    if (!hasScope(context, RESERVATION_LIFECYCLE_READ_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Operating performance access is not granted");
+    }
+    if (!this.#operatingPerformance) return this.unavailable(context.request);
+    const grants = await listGrantedProperties(context, RESERVATION_LIFECYCLE_READ_SCOPE);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 403, "auth/property_forbidden", "Forbidden", "Property access is not granted");
+    }
+    const performance = await this.#operatingPerformance.load(context.tx, { tenantId: context.tenantId, propertyNode });
+    return apiResponse(context.request, canonicalJson(jsonValue(performance)));
+  }
+
+  async reservationBoard(context: TenantRequestContext, propertyNode: string): Promise<Response> {
+    if (!UUID.test(propertyNode)) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Property identifier is invalid");
+    }
+    const query = reservationBoardQuery(context.request);
+    if (!query) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Reservation board query is invalid");
+    }
+    if (!hasScope(context, RESERVATION_LIFECYCLE_READ_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Reservation access is not granted");
+    }
+    if (!this.#reservationBoard) return this.unavailable(context.request);
+    const grants = await listGrantedProperties(context, RESERVATION_LIFECYCLE_READ_SCOPE);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 403, "auth/property_forbidden", "Forbidden", "Property access is not granted");
+    }
+    const page = await this.#reservationBoard.list(context.tx, {
+      tenantId: context.tenantId,
+      propertyNode,
+      ...query,
+    });
+    return apiResponse(context.request, canonicalJson(reservationBoardJson(page)));
+  }
+
+  async checkInReadiness(
+    context: TenantRequestContext,
+    propertyNode: string,
+    reservationId: string,
+  ): Promise<Response> {
+    // Bound by createApp at the exact `check-in/readiness` route; never cache this mutable readiness result.
+    if (!UUID.test(propertyNode) || !UUID.test(reservationId) || new URL(context.request.url).search.length > 0) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Check-in readiness input is invalid");
+    }
+    if (!hasScope(context, CHECKIN_READ_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Check-in readiness access is not granted");
+    }
+    const grants = await listGrantedProperties(context, CHECKIN_READ_SCOPE);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 404, "reservations/not_found", "Not found", "The referenced reservation was not found");
+    }
+    if (!this.#checkIns) return this.unavailable(context.request);
+    const overrideGranted = hasScope(context, CHECKIN_DIRTY_ROOM_OVERRIDE_SCOPE) &&
+      (await listGrantedProperties(context, CHECKIN_DIRTY_ROOM_OVERRIDE_SCOPE)).some(({ id }) => id === propertyNode);
+    const readiness = await this.#checkIns.getReadiness({
+      tenantId: context.tenantId,
+      propertyNode,
+      reservationId,
+      dirtyRoomOverrideAuthorized: overrideGranted,
+    });
+    return apiResponse(context.request, canonicalJson(jsonValue(readiness)));
+  }
+
+  async commitCheckIn(
+    context: TenantRequestContext,
+    propertyNode: string,
+    reservationId: string,
+    body: unknown,
+  ): Promise<Response> {
+    const input = parseCheckIn(body);
+    const idempotencyKey = context.request.headers.get("idempotency-key");
+    if (!UUID.test(propertyNode) || !UUID.test(reservationId) || !input ||
+        !idempotencyKey || !IDEMPOTENCY_KEY.test(idempotencyKey)) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Check-in input is invalid");
+    }
+    if (!hasScope(context, CHECKIN_COMMIT_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Check-in is not granted");
+    }
+    const grants = await listGrantedProperties(context, CHECKIN_COMMIT_SCOPE);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 404, "reservations/not_found", "Not found", "The referenced reservation was not found");
+    }
+    if (!this.#checkIns) return this.unavailable(context.request);
+    const overrideGranted = hasScope(context, CHECKIN_DIRTY_ROOM_OVERRIDE_SCOPE) &&
+      (await listGrantedProperties(context, CHECKIN_DIRTY_ROOM_OVERRIDE_SCOPE)).some(({ id }) => id === propertyNode);
+    const requestId = correlationId(context.request);
+    const result = await this.#checkIns.checkIn({
+      tenantId: context.tenantId,
+      propertyNode,
+      reservationId,
+      idempotencyKey,
+      dirtyRoomOverrideAuthorized: overrideGranted,
+      ...(input.reason === undefined ? {} : { dirtyRoomOverrideReason: input.reason }),
+      envelope: createAuditEnvelope({
+        actorId: context.identity.actorId,
+        tenantId: context.tenantId,
+        propertyNode,
+        requestId,
+        operation: "reservation.checked_in",
+      }),
+    });
+    return apiResponse(context.request, canonicalJson(jsonValue(result)), 200, {
+      "idempotency-replayed": String(result.replayed),
+      "x-correlation-id": requestId,
+    });
+  }
+
+  async departureServices(context: TenantRequestContext, propertyNode: string, reservationId: string | null): Promise<Response> {
+    if (!UUID.test(propertyNode) || (reservationId !== null && !UUID.test(reservationId)) || new URL(context.request.url).search.length > 0) {
+      return apiError(context.request,400,"request/invalid","Invalid request","Departure service query is invalid");
+    }
+    const scope = "stay-operations.departure-services:read";
+    if (!hasScope(context,scope)) return apiError(context.request,403,"auth/scope_missing","Forbidden","Departure service access is not granted");
+    const grants = await listGrantedProperties(context,scope);
+    if (!grants.some(({id}) => id===propertyNode)) return apiError(context.request,404,"reservations/not_found","Not found","Reservation is unavailable");
+    if (!context.identity.actorId) return this.unauthorized(context.request);
+    const result = await this.#departureServices.list(context.tx,{
+      tenantId:context.tenantId,propertyNode,actorId:context.identity.actorId,
+    },reservationId);
+    return apiResponse(context.request,canonicalJson(jsonValue(result)));
+  }
+
+  async commandDepartureService(context: TenantRequestContext,propertyNode: string,reservationId: string | null,
+    requestId: string | null,action: string,body: unknown): Promise<Response> {
+    const key=context.request.headers.get("idempotency-key");
+    if (!UUID.test(propertyNode) || (reservationId!==null && !UUID.test(reservationId)) || (requestId!==null && !UUID.test(requestId)) ||
+      (reservationId===null && (requestId===null || action==="propose")) ||
+      !key || !IDEMPOTENCY_KEY.test(key) || new URL(context.request.url).search.length>0 ||
+      (action!=="propose" && !DEPARTURE_SERVICE_ACTIONS.includes(action as DepartureServiceAction))) {
+      return apiError(context.request,400,"request/invalid","Invalid request","Departure service command is invalid");
+    }
+    const permission=action==="propose" ? (normalizeDepartureServiceProposal(body).serviceKind==="escalation" ? "escalate" : "request")
+      : action==="confirm" ? "confirm" : action==="withdraw" ? "request" : action==="assign" ? "dispatch" : "work";
+    const scope=`stay-operations.departure-services:${permission}`;
+    if (!hasScope(context,scope)) return apiError(context.request,403,"auth/scope_missing","Forbidden","Departure service access is not granted");
+    const grants=await listGrantedProperties(context,scope);
+    if (!grants.some(({id}) => id===propertyNode)) return apiError(context.request,404,"reservations/not_found","Not found","Reservation is unavailable");
+    if (!context.identity.actorId) return this.unauthorized(context.request);
+    if (reservationId===null) {
+      const linked=await context.tx<{reservation_id:string}[]>`SELECT reservation_id FROM public.departure_service_request
+        WHERE tenant_id=${context.tenantId}::uuid AND property_node=${propertyNode}::uuid AND id=${requestId}::uuid`;
+      if (!linked[0]) return apiError(context.request,404,"departure-services/not_found","Not found","Departure service is unavailable");
+      reservationId=linked[0].reservation_id;
+    }
+    const requestCorrelation=correlationId(context.request);
+    const result=await this.#departureServices.command(context.tx,{
+      tenantId:context.tenantId,propertyNode,actorId:context.identity.actorId,
+    },reservationId,requestId,action as "propose" | DepartureServiceAction,body,key,requestCorrelation);
+    return apiResponse(context.request,canonicalJson(jsonValue(result)),action==="propose" ? 201 : 200,{
+      "idempotency-replayed":String(result.replayed),"x-correlation-id":requestCorrelation,
+    });
+  }
+
+  async checkoutReadiness(
+    context: TenantRequestContext,
+    propertyNode: string,
+    reservationId: string,
+  ): Promise<Response> {
+    if (!UUID.test(propertyNode) || !UUID.test(reservationId) || new URL(context.request.url).search.length > 0) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Departure checkout-readiness input is invalid");
+    }
+    if (!hasScope(context, CHECKOUT_READINESS_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Departure readiness access is not granted");
+    }
+    const grants = await listGrantedProperties(context, CHECKOUT_READINESS_SCOPE);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 404, "reservations/not_found", "Not found", "The referenced reservation was not found");
+    }
+    if (!this.#checkoutReadiness) return this.unavailable(context.request);
+    const readiness = await this.#checkoutReadiness.read({
+      tenantId: context.tenantId,
+      propertyNode,
+      reservationId,
+    });
+    return apiResponse(context.request, canonicalJson(jsonValue(readiness)));
+  }
+
+  async commitCheckout(
+    context: TenantRequestContext,
+    propertyNode: string,
+    reservationId: string,
+    body: unknown,
+  ): Promise<Response> {
+    const idempotencyKey = context.request.headers.get("idempotency-key");
+    if (!UUID.test(propertyNode) || !UUID.test(reservationId) || new URL(context.request.url).search.length > 0 ||
+        !isObject(body) || !exactKeys(body, []) || !idempotencyKey || !IDEMPOTENCY_KEY.test(idempotencyKey)) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Checkout input is invalid");
+    }
+    if (!hasScope(context, CHECKOUT_COMMIT_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Checkout is not granted");
+    }
+    const grants = await listGrantedProperties(context, CHECKOUT_COMMIT_SCOPE);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 404, "reservations/not_found", "Not found", "The referenced reservation was not found");
+    }
+    if (!this.#checkouts) return this.unavailable(context.request);
+    const requestId = correlationId(context.request);
+    const result = await this.#checkouts.checkout({
+      tenantId: context.tenantId,
+      propertyNode,
+      reservationId,
+      idempotencyKey,
+      envelope: createAuditEnvelope({
+        actorId: context.identity.actorId,
+        tenantId: context.tenantId,
+        propertyNode,
+        requestId,
+        operation: "reservation.checked_out",
+      }),
+    });
+    return apiResponse(context.request, canonicalJson(jsonValue(result)), 200, {
+      "idempotency-replayed": String(result.replayed),
+      "x-correlation-id": requestId,
+    });
+  }
+
+  async vehicleRegister(
+    context: TenantRequestContext,
+    propertyNode: string,
+  ): Promise<Response> {
+    const query = vehicleRegisterQuery(context.request);
+    if (!UUID.test(propertyNode) || !query) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Vehicle register input is invalid");
+    }
+    if (!hasScope(context, VEHICLE_REGISTER_READ_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Vehicle register access is not granted");
+    }
+    const grants = await listGrantedProperties(context, VEHICLE_REGISTER_READ_SCOPE);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 404, "vehicles/not_found", "Not found", "The referenced vehicle register was not found");
+    }
+    if (!this.#vehicleRegister) return this.unavailable(context.request);
+    const page = await this.#vehicleRegister.list({
+      tenantId: context.tenantId,
+      propertyNode,
+      ...query,
+    });
+    return apiResponse(context.request, canonicalJson(vehicleRegisterJson(page)));
+  }
+
+  async vehicleRegisterDetail(
+    context: TenantRequestContext,
+    propertyNode: string,
+    vehicleId: string,
+  ): Promise<Response> {
+    const query = new URL(context.request.url).searchParams;
+    if (!UUID.test(propertyNode) || !UUID.test(vehicleId) || [...query.keys()].length > 0) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Vehicle detail input is invalid");
+    }
+    if (!hasScope(context, VEHICLE_REGISTER_READ_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Vehicle register access is not granted");
+    }
+    const grants = await listGrantedProperties(context, VEHICLE_REGISTER_READ_SCOPE);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 404, "vehicles/not_found", "Not found", "The referenced vehicle was not found");
+    }
+    if (!this.#vehicleRegister?.get) return this.unavailable(context.request);
+    const vehicle = await this.#vehicleRegister.get({
+      tenantId: context.tenantId,
+      propertyNode,
+      vehicleId,
+    });
+    return apiResponse(context.request, canonicalJson({ vehicle: vehicleRegisterRowJson(vehicle) }));
+  }
+
+  async vehicleParking(
+    context: TenantRequestContext,
+    propertyNode: string,
+    vehicleId: string,
+  ): Promise<Response> {
+    if (!UUID.test(propertyNode) || !UUID.test(vehicleId) || new URL(context.request.url).search.length > 0) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Vehicle parking input is invalid");
+    }
+    if (!hasScope(context, VEHICLE_PARK_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Vehicle parking assignment is not granted");
+    }
+    const grants = await listGrantedProperties(context, VEHICLE_PARK_SCOPE);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 404, "vehicles/not_found", "Not found", "The referenced vehicle was not found");
+    }
+    if (!this.#vehicleParking) return this.unavailable(context.request);
+    const snapshot = await this.#vehicleParking.read({
+      tenantId: context.tenantId,
+      propertyNode,
+      vehicleId,
+    });
+    return apiResponse(context.request, canonicalJson(jsonValue({ snapshot })));
+  }
+
+  async vehicleParkingAssign(
+    context: TenantRequestContext,
+    propertyNode: string,
+    vehicleId: string,
+    body: unknown,
+  ): Promise<Response> {
+    const input = parseVehicleParkingAssignment(body);
+    const idempotencyKey = context.request.headers.get("idempotency-key");
+    if (!UUID.test(propertyNode) || !UUID.test(vehicleId) || !input ||
+        !idempotencyKey || !IDEMPOTENCY_KEY.test(idempotencyKey) ||
+        new URL(context.request.url).search.length > 0) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Vehicle parking input is invalid");
+    }
+    if (!hasScope(context, VEHICLE_PARK_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Vehicle parking assignment is not granted");
+    }
+    const grants = await listGrantedProperties(context, VEHICLE_PARK_SCOPE);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 404, "vehicles/not_found", "Not found", "The referenced vehicle was not found");
+    }
+    if (!this.#vehicleParking) return this.unavailable(context.request);
+    const requestId = correlationId(context.request);
+    const result = await this.#vehicleParking.assign({
+      tenantId: context.tenantId,
+      propertyNode,
+      vehicleId,
+      parkingSpaceId: input.parkingSpaceId,
+      idempotencyKey,
+      envelope: createAuditEnvelope({
+        actorId: context.identity.actorId,
+        tenantId: context.tenantId,
+        propertyNode,
+        requestId,
+        operation: "occupancy.recorded",
+      }),
+    });
+    return apiResponse(context.request, canonicalJson(jsonValue(result)), result.created ? 201 : 200, {
+      "idempotency-replayed": String(result.replayed),
+      "x-correlation-id": requestId,
+    });
+  }
+
+  async housekeepingBoard(
+    context: TenantRequestContext,
+    propertyNode: string,
+  ): Promise<Response> {
+    const query = housekeepingBoardQuery(context.request);
+    if (!UUID.test(propertyNode) || !query) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Housekeeping board input is invalid");
+    }
+    if (!hasScope(context, HOUSEKEEPING_READ_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Housekeeping board access is not granted");
+    }
+    const readGrants = await listGrantedProperties(context, HOUSEKEEPING_READ_SCOPE);
+    if (!readGrants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 404, "housekeeping/not_found", "Not found", "The referenced housekeeping board was not found");
+    }
+    if (!this.#housekeeping) return this.unavailable(context.request);
+    const [workGrants, inspectGrants] = await Promise.all([
+      hasScope(context, HOUSEKEEPING_WORK_SCOPE)
+        ? listGrantedProperties(context, HOUSEKEEPING_WORK_SCOPE) : Promise.resolve([]),
+      hasScope(context, HOUSEKEEPING_INSPECT_SCOPE)
+        ? listGrantedProperties(context, HOUSEKEEPING_INSPECT_SCOPE) : Promise.resolve([]),
+    ]);
+    const workGranted = workGrants.some(({ id }) => id === propertyNode);
+    const inspectGranted = inspectGrants.some(({ id }) => id === propertyNode);
+    const board = await this.#housekeeping.listBoard({
+      tenantId: context.tenantId,
+      propertyNode,
+      ...query,
+    });
+    return apiResponse(context.request, canonicalJson(jsonValue({
+      tasks: board.map((item) => operatorHousekeepingItem(item, workGranted, inspectGranted)),
+    })));
+  }
+
+  async housekeepingTaskDetail(
+    context: TenantRequestContext,
+    propertyNode: string,
+    taskId: string,
+  ): Promise<Response> {
+    const query = new URL(context.request.url).searchParams;
+    if (!UUID.test(propertyNode) || !UUID.test(taskId) || [...query.keys()].length > 0) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Housekeeping task detail input is invalid");
+    }
+    if (!hasScope(context, HOUSEKEEPING_READ_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Housekeeping task access is not granted");
+    }
+    const grants = await listGrantedProperties(context, HOUSEKEEPING_READ_SCOPE);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 404, "housekeeping/not_found", "Not found", "The referenced housekeeping task was not found");
+    }
+    if (!this.#housekeeping?.get) return this.unavailable(context.request);
+    const [workGrants, inspectGrants] = await Promise.all([
+      hasScope(context, HOUSEKEEPING_WORK_SCOPE)
+        ? listGrantedProperties(context, HOUSEKEEPING_WORK_SCOPE) : Promise.resolve([]),
+      hasScope(context, HOUSEKEEPING_INSPECT_SCOPE)
+        ? listGrantedProperties(context, HOUSEKEEPING_INSPECT_SCOPE) : Promise.resolve([]),
+    ]);
+    const workGranted = workGrants.some(({ id }) => id === propertyNode);
+    const inspectGranted = inspectGrants.some(({ id }) => id === propertyNode);
+    const task = await this.#housekeeping.get({
+      tenantId: context.tenantId,
+      propertyNode,
+      taskId,
+    });
+    return apiResponse(context.request, canonicalJson(jsonValue({
+      task: operatorHousekeepingTaskDetail(task, workGranted, inspectGranted),
+    })));
+  }
+
+  async housekeepingConditions(
+    context: TenantRequestContext,
+    propertyNode: string,
+  ): Promise<Response> {
+    const query = housekeepingConditionQuery(context.request);
+    if (!UUID.test(propertyNode) || !query) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Room-condition input is invalid");
+    }
+    if (!hasScope(context, HOUSEKEEPING_READ_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Room-condition access is not granted");
+    }
+    const grants = await listGrantedProperties(context, HOUSEKEEPING_READ_SCOPE);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 404, "housekeeping/not_found", "Not found", "The referenced room conditions were not found");
+    }
+    if (!this.#housekeeping?.listConditions) return this.unavailable(context.request);
+    const page = await this.#housekeeping.listConditions({
+      tenantId: context.tenantId,
+      propertyNode,
+      ...query,
+    });
+    return apiResponse(context.request, canonicalJson(housekeepingConditionJson(page)));
+  }
+
+  async housekeepingDiscrepancies(
+    context: TenantRequestContext,
+    propertyNode: string,
+  ): Promise<Response> {
+    if (!UUID.test(propertyNode) || new URL(context.request.url).search.length > 0) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Room-discrepancy read input is invalid");
+    }
+    if (!hasScope(context, HOUSEKEEPING_DISCREPANCY_READ_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Room-discrepancy read access is not granted");
+    }
+    const grants = await listGrantedProperties(context, HOUSEKEEPING_DISCREPANCY_READ_SCOPE);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 404, "housekeeping/not_found", "Not found", "The referenced room discrepancies were not found");
+    }
+    if (!this.#housekeepingDiscrepancies) return this.unavailable(context.request);
+    const discrepancies = await this.#housekeepingDiscrepancies.listOpen({
+      tenantId: context.tenantId,
+      propertyNode,
+    });
+    return apiResponse(context.request, canonicalJson(jsonValue({
+      discrepancies: discrepancies.map(operatorHousekeepingDiscrepancy),
+    })));
+  }
+
+  async reportHousekeepingDiscrepancy(
+    context: TenantRequestContext,
+    propertyNode: string,
+    body: unknown,
+  ): Promise<Response> {
+    const input = parseHousekeepingDiscrepancyReport(body);
+    const idempotencyKey = context.request.headers.get("idempotency-key");
+    if (!UUID.test(propertyNode) || !input || !idempotencyKey || !IDEMPOTENCY_KEY.test(idempotencyKey) ||
+        new URL(context.request.url).search.length > 0) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Room-discrepancy report input is invalid");
+    }
+    if (!hasScope(context, HOUSEKEEPING_DISCREPANCY_REPORT_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Room-discrepancy reporting is not granted");
+    }
+    const grants = await listGrantedProperties(context, HOUSEKEEPING_DISCREPANCY_REPORT_SCOPE);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 404, "housekeeping/not_found", "Not found", "The referenced reportable room was not found");
+    }
+    if (!this.#housekeepingDiscrepancies) return this.unavailable(context.request);
+    const requestId = correlationId(context.request);
+    const result = await this.#housekeepingDiscrepancies.report({
+      tenantId: context.tenantId,
+      propertyNode,
+      ...input,
+      idempotencyKey,
+      envelope: createAuditEnvelope({
+        actorId: context.identity.actorId,
+        tenantId: context.tenantId,
+        propertyNode,
+        requestId,
+        operation: "discrepancy.reported",
+      }),
+    });
+    return apiResponse(context.request, canonicalJson(jsonValue({
+      discrepancy: result.discrepancy === null ? null : operatorHousekeepingDiscrepancy(result.discrepancy),
+      created: result.created,
+      replayed: result.replayed,
+    })), 201, {
+      "idempotency-replayed": String(result.replayed),
+      "x-correlation-id": requestId,
+    });
+  }
+
+  async housekeepingInitialConditionCandidate(
+    context: TenantRequestContext,
+    propertyNode: string,
+    spaceId: string,
+  ): Promise<Response> {
+    if (!UUID.test(propertyNode) || !UUID.test(spaceId) || new URL(context.request.url).search.length > 0) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Housekeeping condition candidate input is invalid");
+    }
+    if (!hasScope(context, HOUSEKEEPING_READ_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Housekeeping condition candidate access is not granted");
+    }
+    const readGrants = await listGrantedProperties(context, HOUSEKEEPING_READ_SCOPE);
+    if (!readGrants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 404, "housekeeping/not_found", "Not found", "The referenced room condition candidate was not found");
+    }
+    if (!this.#housekeeping?.getInitialConditionCandidate) return this.unavailable(context.request);
+    const initializeGrants = hasScope(context, HOUSEKEEPING_CONDITION_INITIALIZE_SCOPE)
+      ? await listGrantedProperties(context, HOUSEKEEPING_CONDITION_INITIALIZE_SCOPE)
+      : [];
+    const candidate = await this.#housekeeping.getInitialConditionCandidate({
+      tenantId: context.tenantId,
+      propertyNode,
+      spaceId,
+    });
+    return apiResponse(context.request, canonicalJson(jsonValue({
+      candidate: {
+        ...candidate,
+        allowedInitialConditions: initializeGrants.some(({ id }) => id === propertyNode)
+          ? ["clean", "dirty", "pickup"] : [],
+      },
+    })));
+  }
+
+  async initializeHousekeepingCondition(
+    context: TenantRequestContext,
+    propertyNode: string,
+    spaceId: string,
+    body: unknown,
+  ): Promise<Response> {
+    const input = parseHousekeepingConditionInitialize(body);
+    const idempotencyKey = context.request.headers.get("idempotency-key");
+    if (!UUID.test(propertyNode) || !UUID.test(spaceId) || !input ||
+        !idempotencyKey || !IDEMPOTENCY_KEY.test(idempotencyKey) ||
+        new URL(context.request.url).search.length > 0) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Housekeeping condition initialization input is invalid");
+    }
+    if (!hasScope(context, HOUSEKEEPING_CONDITION_INITIALIZE_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Housekeeping condition initialization is not granted");
+    }
+    const grants = await listGrantedProperties(context, HOUSEKEEPING_CONDITION_INITIALIZE_SCOPE);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 404, "housekeeping/not_found", "Not found", "The referenced room condition candidate was not found");
+    }
+    if (!this.#housekeeping?.initializeCondition) return this.unavailable(context.request);
+    const requestId = correlationId(context.request);
+    const result = await this.#housekeeping.initializeCondition({
+      tenantId: context.tenantId,
+      propertyNode,
+      spaceId,
+      ...input,
+      idempotencyKey,
+      envelope: createAuditEnvelope({
+        actorId: context.identity.actorId,
+        tenantId: context.tenantId,
+        propertyNode,
+        requestId,
+        operation: "unit.condition_changed",
+      }),
+    });
+    return apiResponse(context.request, canonicalJson(jsonValue({
+      replayed: result.replayed,
+      roomCondition: result.roomCondition,
+      spaceId: result.spaceId,
+      updatedAt: result.roomUpdatedAt,
+    })), 201, {
+      "idempotency-replayed": String(result.replayed),
+      "x-correlation-id": requestId,
+    });
+  }
+
+  async arrivalRoomCleaningCandidate(
+    context: TenantRequestContext,
+    propertyNode: string,
+    reservationId: string,
+  ): Promise<Response> {
+    if (!UUID.test(propertyNode) || !UUID.test(reservationId) ||
+        new URL(context.request.url).search.length > 0) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Arrival room cleaning candidate input is invalid");
+    }
+    if (!hasScope(context, HOUSEKEEPING_ARRIVAL_TASK_READ_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Arrival room cleaning candidate access is not granted");
+    }
+    const readGrants = await listGrantedProperties(context, HOUSEKEEPING_ARRIVAL_TASK_READ_SCOPE);
+    if (!readGrants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 404, "housekeeping/not_found", "Not found", "The referenced arrival room cleaning candidate was not found");
+    }
+    if (!this.#arrivalRoomCleaning) return this.unavailable(context.request);
+    const createGrants = hasScope(context, HOUSEKEEPING_ARRIVAL_TASK_CREATE_SCOPE)
+      ? await listGrantedProperties(context, HOUSEKEEPING_ARRIVAL_TASK_CREATE_SCOPE)
+      : [];
+    const candidate = await this.#arrivalRoomCleaning.candidate({
+      tenantId: context.tenantId,
+      propertyNode,
+      reservationId,
+      actorId: context.identity.actorId,
+    });
+    return apiResponse(context.request, canonicalJson(jsonValue({
+      candidate,
+      canCreate: candidate.existingTaskId === null &&
+        createGrants.some(({ id }) => id === propertyNode),
+    })));
+  }
+
+  async createArrivalRoomCleaningTask(
+    context: TenantRequestContext,
+    propertyNode: string,
+    reservationId: string,
+    body: unknown,
+  ): Promise<Response> {
+    const input = parseArrivalRoomCleaningCreate(body);
+    const idempotencyKey = context.request.headers.get("idempotency-key");
+    if (!UUID.test(propertyNode) || !UUID.test(reservationId) || !input ||
+        !idempotencyKey || !IDEMPOTENCY_KEY.test(idempotencyKey) ||
+        new URL(context.request.url).search.length > 0) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Arrival room cleaning task input is invalid");
+    }
+    if (!hasScope(context, HOUSEKEEPING_ARRIVAL_TASK_CREATE_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Arrival room cleaning task creation is not granted");
+    }
+    const grants = await listGrantedProperties(context, HOUSEKEEPING_ARRIVAL_TASK_CREATE_SCOPE);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 404, "housekeeping/not_found", "Not found", "The referenced arrival room cleaning candidate was not found");
+    }
+    if (!this.#arrivalRoomCleaning) return this.unavailable(context.request);
+    const requestId = correlationId(context.request);
+    const result = await this.#arrivalRoomCleaning.create({
+      tenantId: context.tenantId,
+      propertyNode,
+      reservationId,
+      ...input,
+      idempotencyKey,
+      envelope: createAuditEnvelope({
+        actorId: context.identity.actorId,
+        tenantId: context.tenantId,
+        propertyNode,
+        requestId,
+        operation: "task.created",
+      }),
+    });
+    return apiResponse(context.request, canonicalJson(jsonValue(result)), result.created ? 201 : 200, {
+      "idempotency-replayed": String(result.replayed),
+      "x-correlation-id": requestId,
+    });
+  }
+
+  async previewHousekeepingSheet(
+    context: TenantRequestContext,
+    propertyNode: string,
+  ): Promise<Response> {
+    const query = housekeepingSheetDateQuery(context.request);
+    if (!UUID.test(propertyNode) || !query) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Housekeeping sheet date is invalid");
+    }
+    if (!hasScope(context, HOUSEKEEPING_SHEET_READ_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Housekeeping sheet preview access is not granted");
+    }
+    const readGrants = await listGrantedProperties(context, HOUSEKEEPING_SHEET_READ_SCOPE);
+    if (!readGrants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 404, "housekeeping/not_found", "Not found", "The referenced housekeeping sheet preview was not found");
+    }
+    if (!this.#housekeepingSheets) return this.unavailable(context.request);
+    const generateGrants = hasScope(context, HOUSEKEEPING_SHEET_GENERATE_SCOPE)
+      ? await listGrantedProperties(context, HOUSEKEEPING_SHEET_GENERATE_SCOPE)
+      : [];
+    const rooms = await this.#housekeepingSheets.preview({
+      tenantId: context.tenantId,
+      propertyNode,
+      sheetDate: query.sheetDate,
+      limit: 200,
+    });
+    return apiResponse(context.request, canonicalJson(jsonValue({
+      sheetDate: query.sheetDate,
+      rooms,
+      canGenerate: generateGrants.some(({ id }) => id === propertyNode),
+    })));
+  }
+
+  async listHousekeepingSheets(
+    context: TenantRequestContext,
+    propertyNode: string,
+  ): Promise<Response> {
+    const query = housekeepingSheetDateQuery(context.request);
+    if (!UUID.test(propertyNode) || !query) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Housekeeping sheet date is invalid");
+    }
+    if (!hasScope(context, HOUSEKEEPING_SHEET_READ_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Housekeeping sheet access is not granted");
+    }
+    const grants = await listGrantedProperties(context, HOUSEKEEPING_SHEET_READ_SCOPE);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 404, "housekeeping/not_found", "Not found", "The referenced housekeeping sheet was not found");
+    }
+    if (!this.#housekeepingSheets) return this.unavailable(context.request);
+    const sheets = await this.#housekeepingSheets.list({
+      tenantId: context.tenantId,
+      propertyNode,
+      sheetDate: query.sheetDate,
+      limit: 200,
+    });
+    return apiResponse(context.request, canonicalJson(jsonValue({ sheetDate: query.sheetDate, sheets })));
+  }
+
+  async generateHousekeepingSheet(
+    context: TenantRequestContext,
+    propertyNode: string,
+    body: unknown,
+  ): Promise<Response> {
+    const input = parseHousekeepingSheetGenerate(body);
+    const idempotencyKey = context.request.headers.get("idempotency-key");
+    if (!UUID.test(propertyNode) || !input || new URL(context.request.url).search.length > 0 ||
+        !idempotencyKey || !IDEMPOTENCY_KEY.test(idempotencyKey)) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Housekeeping sheet generation input is invalid");
+    }
+    if (!hasScope(context, HOUSEKEEPING_SHEET_GENERATE_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Housekeeping sheet generation is not granted");
+    }
+    const grants = await listGrantedProperties(context, HOUSEKEEPING_SHEET_GENERATE_SCOPE);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 404, "housekeeping/not_found", "Not found", "The referenced housekeeping sheet was not found");
+    }
+    if (!this.#housekeepingSheets) return this.unavailable(context.request);
+    const requestId = correlationId(context.request);
+    const result = await this.#housekeepingSheets.generate({
+      tenantId: context.tenantId,
+      propertyNode,
+      ...input,
+      idempotencyKey,
+      envelope: createAuditEnvelope({
+        actorId: context.identity.actorId,
+        tenantId: context.tenantId,
+        propertyNode,
+        requestId,
+        operation: "task.created",
+      }),
+    });
+    return apiResponse(context.request, canonicalJson(jsonValue(result)), 200, {
+      "idempotency-replayed": String((result as { readonly replayed?: boolean }).replayed === true),
+      "x-correlation-id": requestId,
+    });
+  }
+
+  async transitionHousekeepingTask(
+    context: TenantRequestContext,
+    propertyNode: string,
+    taskId: string,
+    body: unknown,
+  ): Promise<Response> {
+    const input = parseHousekeepingTransition(body);
+    const idempotencyKey = context.request.headers.get("idempotency-key");
+    if (!UUID.test(propertyNode) || !UUID.test(taskId) || !input ||
+        !idempotencyKey || !IDEMPOTENCY_KEY.test(idempotencyKey) || new URL(context.request.url).search.length > 0) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Housekeeping task input is invalid");
+    }
+    const requiredScope = input.action === "verify" ? HOUSEKEEPING_INSPECT_SCOPE : HOUSEKEEPING_WORK_SCOPE;
+    if (!hasScope(context, requiredScope)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Housekeeping task action is not granted");
+    }
+    const grants = await listGrantedProperties(context, requiredScope);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 404, "housekeeping/not_found", "Not found", "The referenced housekeeping task was not found");
+    }
+    if (!this.#housekeeping) return this.unavailable(context.request);
+    const requestId = correlationId(context.request);
+    const result = await this.#housekeeping.transition({
+      tenantId: context.tenantId,
+      propertyNode,
+      taskId,
+      ...input,
+      idempotencyKey,
+      envelope: createAuditEnvelope({
+        actorId: context.identity.actorId,
+        tenantId: context.tenantId,
+        propertyNode,
+        requestId,
+        operation: "task.status_changed",
+      }),
+    });
+    const { eligibleAction, ...evidence } = result;
+    return apiResponse(context.request, canonicalJson(jsonValue({
+      ...evidence,
+      allowedActions: allowedHousekeepingActions(
+        eligibleAction,
+        requiredScope === HOUSEKEEPING_WORK_SCOPE,
+        requiredScope === HOUSEKEEPING_INSPECT_SCOPE,
+      ),
+    })), 200, {
+      "idempotency-replayed": String(result.replayed),
+      "x-correlation-id": requestId,
+    });
+  }
+
+  async reservationDetail(
+    context: TenantRequestContext,
+    propertyNode: string,
+    reservationId: string,
+  ): Promise<Response> {
+    if (!UUID.test(propertyNode) || !UUID.test(reservationId)) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Property or reservation identifier is invalid");
+    }
+    const query = new URL(context.request.url).searchParams;
+    if ([...query.keys()].length > 0) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Reservation detail query must be empty");
+    }
+    if (!hasScope(context, RESERVATION_LIFECYCLE_READ_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Reservation access is not granted");
+    }
+    if (!this.#reservationDetail) return this.unavailable(context.request);
+    const grants = await listGrantedProperties(context, RESERVATION_LIFECYCLE_READ_SCOPE);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 404, "reservations/not_found", "Not found", "Referenced reservation input was not found");
+    }
+    const hasLifecycleWriteScope = hasScope(context, RESERVATION_LIFECYCLE_WRITE_SCOPE);
+    const lifecycleWriteGrants = hasLifecycleWriteScope
+      ? await listGrantedProperties(context, RESERVATION_LIFECYCLE_WRITE_SCOPE)
+      : [];
+    const canWriteLifecycleHere = hasLifecycleWriteScope &&
+      lifecycleWriteGrants.some(({ id }) => id === propertyNode);
+    const canManageAlerts = this.#reservationAlerts !== undefined && canWriteLifecycleHere;
+    const reservation = await this.#reservationDetail.findById(context.tx, {
+      tenantId: context.tenantId,
+      propertyNode,
+      reservationId,
+    });
+    const hasFolioOpenScope = hasScope(context, FOLIO_OPEN_SCOPE);
+    const folioOpenGrants = hasFolioOpenScope
+      ? await listGrantedProperties(context, FOLIO_OPEN_SCOPE)
+      : [];
+    const canOpenPrimaryFolio = hasFolioOpenScope &&
+      folioOpenGrants.some(({ id }) => id === propertyNode) &&
+      reservation.folios.length === 0 &&
+      (reservation.status === "reserved" || reservation.status === "due_in" ||
+        reservation.status === "in_house" || reservation.status === "due_out");
+    const actions = Object.freeze({
+      canModify: canWriteLifecycleHere &&
+        (reservation.status === "reserved" || reservation.status === "due_in" ||
+          reservation.status === "in_house" || reservation.status === "due_out"),
+      canCancel: canWriteLifecycleHere &&
+        (reservation.status === "reserved" || reservation.status === "due_in"),
+      canReinstate: canWriteLifecycleHere &&
+        (reservation.status === "cancelled" || reservation.status === "no_show"),
+      canOpenPrimaryFolio,
+      canManageAlerts,
+    });
+    return apiResponse(context.request, canonicalJson({ reservation: jsonValue(reservation), actions }));
+  }
+
+  async reservationPickupTaskDetail(
+    context: TenantRequestContext,
+    propertyNode: string,
+    reservationId: string,
+    taskId: string,
+  ): Promise<Response> {
+    if (!UUID.test(propertyNode) || !UUID.test(reservationId) || !UUID.test(taskId)) {
+      return apiError(
+        context.request,
+        400,
+        "request/invalid",
+        "Invalid request",
+        "Property, reservation or task identifier is invalid",
+      );
+    }
+    const query = new URL(context.request.url).searchParams;
+    if ([...query.keys()].length > 0) {
+      return apiError(
+        context.request,
+        400,
+        "request/invalid",
+        "Invalid request",
+        "Arrival pickup task detail query must be empty",
+      );
+    }
+    if (!hasScope(context, RESERVATION_LIFECYCLE_READ_SCOPE)) {
+      return apiError(
+        context.request,
+        403,
+        "auth/scope_missing",
+        "Forbidden",
+        "Reservation access is not granted",
+      );
+    }
+    if (!this.#reservationDetail?.pickupTaskDetail) return this.unavailable(context.request);
+    const grants = await listGrantedProperties(context, RESERVATION_LIFECYCLE_READ_SCOPE);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(
+        context.request,
+        404,
+        "reservations/not_found",
+        "Not found",
+        "Referenced reservation input was not found",
+      );
+    }
+    const task = await this.#reservationDetail.pickupTaskDetail(context.tx, {
+      tenantId: context.tenantId,
+      propertyNode,
+      reservationId,
+      taskId,
+    });
+    return apiResponse(context.request, canonicalJson({ pickupTask: jsonValue(task) }));
+  }
+
+  async transitionReservationPickupTask(
+    context: TenantRequestContext,
+    propertyNode: string,
+    reservationId: string,
+    taskId: string,
+    action: "assign" | "start" | "complete",
+    body: unknown,
+  ): Promise<Response> {
+    const input = parsePickupTaskTransition(action, body);
+    const idempotencyKey = context.request.headers.get("idempotency-key");
+    if (!UUID.test(propertyNode) || !UUID.test(reservationId) || !UUID.test(taskId) || !input ||
+        !idempotencyKey || !IDEMPOTENCY_KEY.test(idempotencyKey) ||
+        new URL(context.request.url).search.length > 0) {
+      return apiError(
+        context.request,
+        400,
+        "request/invalid",
+        "Invalid request",
+        "Arrival pickup task transition input is invalid",
+      );
+    }
+    const requiredScope = action === "assign" ? PICKUP_TASK_DISPATCH_SCOPE : PICKUP_TASK_WORK_SCOPE;
+    if (!hasScope(context, requiredScope)) {
+      return apiError(
+        context.request,
+        403,
+        "auth/scope_missing",
+        "Forbidden",
+        "Arrival pickup task transition access is not granted",
+      );
+    }
+    if (!this.#pickupTaskDispatch) return this.unavailable(context.request);
+    const grants = await listGrantedProperties(context, requiredScope);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(
+        context.request,
+        404,
+        "reservations/not_found",
+        "Not found",
+        "The referenced arrival pickup task was not found",
+      );
+    }
+    const requestId = correlationId(context.request);
+    const result = await this.#pickupTaskDispatch.transition({
+      tenantId: context.tenantId,
+      propertyNode,
+      reservationId,
+      taskId,
+      ...input,
+      idempotencyKey,
+      envelope: createAuditEnvelope({
+        actorId: context.identity.actorId,
+        tenantId: context.tenantId,
+        propertyNode,
+        requestId,
+        operation: "task.status_changed",
+      }),
+    });
+    return apiResponse(context.request, canonicalJson({
+      taskId: result.taskId,
+      reservationId: result.reservationId,
+      taskStatus: result.taskStatus,
+      assigneePartyId: result.assigneePartyId,
+      completedAt: result.completedAt,
+      eligibleAction: result.eligibleAction,
+      replayed: result.replayed,
+    }), 200, {
+      "idempotency-replayed": String(result.replayed),
+      "x-correlation-id": requestId,
+    });
+  }
+
+  async reservationLifecycle(context: TenantRequestContext, propertyNode: string): Promise<Response> {
+    if (!UUID.test(propertyNode)) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Property identifier is invalid");
+    }
+    const confirmationNo = confirmationQuery(context.request);
+    if (!confirmationNo) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Confirmation query is invalid");
+    }
+    if (!hasScope(context, RESERVATION_LIFECYCLE_READ_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Reservation lifecycle access is not granted");
+    }
+    if (!this.#reservationLifecycle) return this.unavailable(context.request);
+    const grants = await listGrantedProperties(context, RESERVATION_LIFECYCLE_READ_SCOPE);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 403, "auth/property_forbidden", "Forbidden", "Property access is not granted");
+    }
+    const reservation = await this.#reservationLifecycle.findByConfirmation(context.tx, {
+      tenantId: context.tenantId,
+      propertyNode,
+      confirmationNo,
+    });
+    return apiResponse(context.request, canonicalJson({ reservation: jsonValue(reservation) }));
+  }
+
+  async modifyReservation(context: TenantRequestContext, propertyNode: string, reservationId: string, body: unknown): Promise<Response> {
+    const input = parseReservationMutation(body);
+    return this.runReservationLifecycleMutation(context, propertyNode, reservationId, input, "reservation.modified", async (service, envelope) =>
+      service.modify(context.tx, {
+        reservationId, expected: input!.expected, changes: input!.changes,
+        idempotencyKey: context.request.headers.get("idempotency-key") ?? "", envelope,
+      })
+    );
+  }
+
+  async reservationSegments(context: TenantRequestContext, propertyNode: string): Promise<Response> {
+    if (!UUID.test(propertyNode)) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Property identifier is invalid");
+    }
+    const confirmationNo = confirmationQuery(context.request);
+    if (!confirmationNo) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Confirmation query is invalid");
+    }
+    if (!hasScope(context, RESERVATION_SEGMENT_READ_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Reservation segment access is not granted");
+    }
+    if (!this.#reservationSegments) return this.unavailable(context.request);
+    const grants = await listGrantedProperties(context, RESERVATION_SEGMENT_READ_SCOPE);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 403, "auth/property_forbidden", "Forbidden", "Property access is not granted");
+    }
+    const reservation = await this.#reservationSegments.findByConfirmation(context.tx, {
+      tenantId: context.tenantId,
+      propertyNode,
+      confirmationNo,
+    });
+    return apiResponse(context.request, canonicalJson({ reservation: jsonValue(reservation) }));
+  }
+
+  async dueInRoomAssignmentCandidates(
+    context: TenantRequestContext,
+    propertyNode: string,
+    reservationId: string,
+  ): Promise<Response> {
+    if (!UUID.test(propertyNode) || !UUID.test(reservationId) ||
+        new URL(context.request.url).search.length > 0) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Due-in room assignment input is invalid");
+    }
+    if (!hasScope(context, RESERVATION_SEGMENT_READ_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Reservation segment access is not granted");
+    }
+    const grants = await listGrantedProperties(context, RESERVATION_SEGMENT_READ_SCOPE);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 404, "reservations/not_found", "Not found", "The referenced due-in room assignment was not found");
+    }
+    if (!this.#reservationSegments?.findDueInRoomAssignmentCandidates) return this.unavailable(context.request);
+    const result = await this.#reservationSegments.findDueInRoomAssignmentCandidates(context.tx, {
+      tenantId: context.tenantId,
+      propertyNode,
+      reservationId,
+    });
+    return apiResponse(context.request, canonicalJson(jsonValue({ candidates: result.candidates })));
+  }
+
+  async assignDueInRoom(
+    context: TenantRequestContext,
+    propertyNode: string,
+    reservationId: string,
+    body: unknown,
+  ): Promise<Response> {
+    const input = parseDueInRoomAssignment(body);
+    const idempotencyKey = context.request.headers.get("idempotency-key");
+    if (!UUID.test(propertyNode) || !UUID.test(reservationId) || !input ||
+        !idempotencyKey || !IDEMPOTENCY_KEY.test(idempotencyKey) ||
+        new URL(context.request.url).search.length > 0) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Due-in room assignment input is invalid");
+    }
+    if (!hasScope(context, RESERVATION_SEGMENT_WRITE_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Due-in room assignment is not granted");
+    }
+    const grants = await listGrantedProperties(context, RESERVATION_SEGMENT_WRITE_SCOPE);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 404, "reservations/not_found", "Not found", "The referenced due-in room assignment was not found");
+    }
+    if (!this.#reservationSegments?.assignDueInRoom) return this.unavailable(context.request);
+    const requestId = correlationId(context.request);
+    const result = await this.#reservationSegments.assignDueInRoom(context.tx, {
+      reservationId,
+      ...input,
+      idempotencyKey,
+      envelope: createAuditEnvelope({
+        actorId: context.identity.actorId,
+        tenantId: context.tenantId,
+        propertyNode,
+        requestId,
+        operation: "reservation.modified",
+      }),
+    });
+    const { replayed, ...assignment } = result;
+    return apiResponse(context.request, canonicalJson({ assignment: jsonValue(assignment) }), 200, {
+      "idempotency-replayed": String(replayed),
+      "x-correlation-id": requestId,
+    });
+  }
+
+  async changeReservationDeparture(
+    context: TenantRequestContext,
+    propertyNode: string,
+    reservationId: string,
+    segmentId: string,
+    body: unknown,
+  ): Promise<Response> {
+    const input = parseSegmentDeparture(body);
+    return this.runReservationSegmentMutation(
+      context, propertyNode, reservationId, segmentId, input, "reservation.modified",
+      (service, envelope) => service.changeDeparture(context.tx, {
+        reservationId,
+        segmentId,
+        expectedPeriod: input!.expectedPeriod,
+        newDeparture: input!.newDeparture,
+        idempotencyKey: context.request.headers.get("idempotency-key") ?? "",
+        envelope,
+      }),
+    );
+  }
+
+  async moveReservationRoom(
+    context: TenantRequestContext,
+    propertyNode: string,
+    reservationId: string,
+    segmentId: string,
+    body: unknown,
+  ): Promise<Response> {
+    const input = parseSegmentMove(body);
+    return this.runReservationSegmentMutation(
+      context, propertyNode, reservationId, segmentId, input, "segment.moved",
+      (service, envelope) => service.moveRoom(context.tx, {
+        reservationId,
+        segmentId,
+        expectedSellableUnitId: input!.expectedSellableUnitId,
+        expectedPeriod: input!.expectedPeriod,
+        destinationSellableUnitId: input!.destinationSellableUnitId,
+        idempotencyKey: context.request.headers.get("idempotency-key") ?? "",
+        envelope,
+      }),
+    );
+  }
+
+  private async runReservationSegmentMutation(
+    context: TenantRequestContext,
+    propertyNode: string,
+    reservationId: string,
+    segmentId: string,
+    input: object | null,
+    operation: "reservation.modified" | "segment.moved",
+    execute: (service: ReservationSegmentOperations, envelope: ReturnType<typeof createAuditEnvelope>) => Promise<unknown>,
+  ): Promise<Response> {
+    if (!UUID.test(propertyNode) || !UUID.test(reservationId) || !UUID.test(segmentId) || !input) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Reservation segment input is invalid");
+    }
+    if (!hasScope(context, RESERVATION_SEGMENT_WRITE_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Reservation segment changes are not granted");
+    }
+    if (!this.#reservationSegments) return this.unavailable(context.request);
+    const grants = await listGrantedProperties(context, RESERVATION_SEGMENT_WRITE_SCOPE);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 403, "auth/property_forbidden", "Forbidden", "Property access is not granted");
+    }
+    const requestId = correlationId(context.request);
+    const result = await execute(this.#reservationSegments, createAuditEnvelope({
+      actorId: context.identity.actorId,
+      tenantId: context.tenantId,
+      propertyNode,
+      requestId,
+      operation,
+    })) as Record<string, unknown>;
+    const { replayed, ...segment } = result;
+    return apiResponse(context.request, canonicalJson({ segment: jsonValue(segment) }), 200, {
+      "idempotency-replayed": String(replayed),
+      "x-correlation-id": requestId,
+    });
+  }
+
+  async cancelReservation(context: TenantRequestContext, propertyNode: string, reservationId: string, body: unknown): Promise<Response> {
+    const input = parseReservationCancellation(body);
+    return this.runReservationLifecycleMutation(context, propertyNode, reservationId, input, "reservation.cancelled", async (service, envelope) =>
+      service.cancel(context.tx, {
+        reservationId, reason: input!.reason, ...(input!.approvalId === undefined ? {} : { approvalId: input!.approvalId }),
+        idempotencyKey: context.request.headers.get("idempotency-key") ?? "", envelope,
+      })
+    );
+  }
+
+  async reinstateReservation(context: TenantRequestContext, propertyNode: string, reservationId: string, body: unknown): Promise<Response> {
+    const input = isObject(body) && exactKeys(body, []) ? Object.freeze({}) : null;
+    return this.runReservationLifecycleMutation(context, propertyNode, reservationId, input, "reservation.reinstated", async (service, envelope) =>
+      service.reinstate(context.tx, {
+        reservationId, idempotencyKey: context.request.headers.get("idempotency-key") ?? "", envelope,
+      })
+    );
+  }
+
+  private async runReservationLifecycleMutation(
+    context: TenantRequestContext,
+    propertyNode: string,
+    reservationId: string,
+    input: object | null,
+    operation: "reservation.modified" | "reservation.cancelled" | "reservation.reinstated",
+    execute: (service: ReservationLifecycleOperations, envelope: ReturnType<typeof createAuditEnvelope>) => Promise<unknown>,
+  ): Promise<Response> {
+    if (!UUID.test(propertyNode) || !UUID.test(reservationId) || !input) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Reservation lifecycle input is invalid");
+    }
+    if (!hasScope(context, RESERVATION_LIFECYCLE_WRITE_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Reservation lifecycle changes are not granted");
+    }
+    if (!this.#reservationLifecycle) return this.unavailable(context.request);
+    const grants = await listGrantedProperties(context, RESERVATION_LIFECYCLE_WRITE_SCOPE);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 403, "auth/property_forbidden", "Forbidden", "Property access is not granted");
+    }
+    const requestId = correlationId(context.request);
+    const result = await execute(this.#reservationLifecycle, createAuditEnvelope({
+      actorId: context.identity.actorId, tenantId: context.tenantId, propertyNode, requestId, operation,
+    })) as Record<string, unknown>;
+    const { replayed, ...reservation } = result;
+    return apiResponse(context.request, canonicalJson({ reservation: jsonValue(reservation) }), 200, {
+      "idempotency-replayed": String(replayed), "x-correlation-id": requestId,
+    });
+  }
+
+  async releaseHold(context: TenantRequestContext, propertyNode: string, holdId: string, body: unknown): Promise<Response> {
+    if (!isObject(body) || !exactKeys(body, [])) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Cart-hold release input must be empty");
+    }
+    if (!hasScope(context, HOLD_WRITE_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Cart-hold changes are not granted");
+    }
+    if (!UUID.test(propertyNode) || !UUID.test(holdId)) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Property or hold identifier is invalid");
+    }
+    if (!this.#holds) return this.unavailable(context.request);
+    const grants = await listGrantedProperties(context, HOLD_WRITE_SCOPE);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 403, "auth/property_forbidden", "Forbidden", "Property access is not granted");
+    }
+    const requestId = correlationId(context.request);
+    const outcome = await this.#idempotency.execute(context.tx, {
+      tenantId: context.tenantId, operation: "operator.inventory.holds.release",
+      key: context.request.headers.get("idempotency-key") ?? "",
+      request: { actorId: context.identity.actorId, propertyNode, holdId, body },
+    }, async (tx) => ({ status: 200, body: { hold: jsonValue(await this.#holds!.release(tx, {
+      holdId, envelope: createAuditEnvelope({ actorId: context.identity.actorId, tenantId: context.tenantId,
+        propertyNode, requestId, operation: "hold.released" }),
+    })) } }));
+    return apiResponse(context.request, canonicalJson(outcome.body), outcome.status, {
+      "idempotency-replayed": String(outcome.replayed), "x-correlation-id": requestId,
+    });
+  }
+
+  async activeOfflineLeases(context: TenantRequestContext, propertyNode: string): Promise<Response> {
+    if (!hasScope(context, OFFLINE_LEASE_READ_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Offline-capacity access is not granted");
+    }
+    if (!UUID.test(propertyNode)) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Property identifier is invalid");
+    }
+    if (!this.#holds) return this.unavailable(context.request);
+    const grants = await listGrantedProperties(context, OFFLINE_LEASE_READ_SCOPE);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 403, "auth/property_forbidden", "Forbidden", "Property access is not granted");
+    }
+    return apiResponse(context.request, {
+      offlineLeases: jsonValue(await this.#holds.listActiveOfflineLeases(context.tx, propertyNode)),
+    });
+  }
+
+  async placeOfflineLease(context: TenantRequestContext, propertyNode: string, body: unknown): Promise<Response> {
+    const input = parseOfflineLease(body);
+    if (!input) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Offline-capacity input is invalid");
+    }
+    if (!hasScope(context, OFFLINE_LEASE_WRITE_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Offline-capacity changes are not granted");
+    }
+    if (!UUID.test(propertyNode)) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Property identifier is invalid");
+    }
+    if (!this.#holds) return this.unavailable(context.request);
+    const grants = await listGrantedProperties(context, OFFLINE_LEASE_WRITE_SCOPE);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 403, "auth/property_forbidden", "Forbidden", "Property access is not granted");
+    }
+    const requestId = correlationId(context.request);
+    const outcome = await this.#idempotency.execute(context.tx, {
+      tenantId: context.tenantId,
+      operation: "operator.inventory.offline_leases.place",
+      key: context.request.headers.get("idempotency-key") ?? "",
+      request: { actorId: context.identity.actorId, propertyNode, body },
+    }, async (tx) => {
+      const options = await this.#availability.search(tx, {
+        propertyNode,
+        from: input.from,
+        to: input.to,
+        partySize: 1,
+      });
+      const exact = options.find(({ sellableUnitId }) => sellableUnitId === input.sellableUnitId);
+      if (!exact?.bookable) {
+        throw new HoldConflictError("Requested offline capacity is not currently bookable");
+      }
+      return {
+        status: 201,
+        body: { offlineLease: jsonValue(await this.#holds!.placeOfflineLease(tx, {
+        sellableUnitId: input.sellableUnitId,
+        from: input.from,
+        to: input.to,
+        ttlSeconds: input.leaseHours * 3_600,
+        deviceId: input.deviceId,
+        ...(input.deviceLabel === undefined ? {} : { deviceLabel: input.deviceLabel }),
+        envelope: createAuditEnvelope({
+          actorId: context.identity.actorId,
+          tenantId: context.tenantId,
+          propertyNode,
+          requestId,
+          operation: "hold.created",
+        }),
+        })) },
+      };
+    });
+    return apiResponse(context.request, canonicalJson(outcome.body), outcome.status, {
+      "idempotency-replayed": String(outcome.replayed),
+      "x-correlation-id": requestId,
+    });
+  }
+
+  async releaseOfflineLease(
+    context: TenantRequestContext,
+    propertyNode: string,
+    leaseId: string,
+    body: unknown,
+  ): Promise<Response> {
+    if (!isObject(body) || !exactKeys(body, [])) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Offline-capacity release input must be empty");
+    }
+    if (!hasScope(context, OFFLINE_LEASE_WRITE_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Offline-capacity changes are not granted");
+    }
+    if (!UUID.test(propertyNode) || !UUID.test(leaseId)) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Property or lease identifier is invalid");
+    }
+    if (!this.#holds) return this.unavailable(context.request);
+    const grants = await listGrantedProperties(context, OFFLINE_LEASE_WRITE_SCOPE);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 403, "auth/property_forbidden", "Forbidden", "Property access is not granted");
+    }
+    const requestId = correlationId(context.request);
+    const outcome = await this.#idempotency.execute(context.tx, {
+      tenantId: context.tenantId,
+      operation: "operator.inventory.offline_leases.release",
+      key: context.request.headers.get("idempotency-key") ?? "",
+      request: { actorId: context.identity.actorId, propertyNode, leaseId, body },
+    }, async (tx) => ({
+      status: 200,
+      body: { offlineLease: jsonValue(await this.#holds!.releaseOfflineLease(tx, {
+        holdId: leaseId,
+        envelope: createAuditEnvelope({
+          actorId: context.identity.actorId,
+          tenantId: context.tenantId,
+          propertyNode,
+          requestId,
+          operation: "hold.released",
+        }),
+      })) },
+    }));
+    return apiResponse(context.request, canonicalJson(outcome.body), outcome.status, {
+      "idempotency-replayed": String(outcome.replayed),
+      "x-correlation-id": requestId,
+    });
+  }
+
+  async setOosSellability(context: TenantRequestContext, propertyNode: string, body: unknown): Promise<Response> {
+    if (!isObject(body) || !exactKeys(body, ["oosSellability"]) ||
+        (body.oosSellability !== "blocked" && body.oosSellability !== "allowed")) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "OOS sellability input is invalid");
+    }
+    if (!hasScope(context, POLICY_WRITE_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Inventory-policy changes are not granted");
+    }
+    if (!UUID.test(propertyNode)) return apiError(context.request, 400, "request/invalid", "Invalid request", "Property identifier is invalid");
+    if (!this.#policy) return this.unavailable(context.request);
+    const grants = await listGrantedProperties(context, POLICY_WRITE_SCOPE);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 403, "auth/property_forbidden", "Forbidden", "Property access is not granted");
+    }
+    const requestId = correlationId(context.request);
+    const outcome = await this.#idempotency.execute(context.tx, {
+      tenantId: context.tenantId, operation: "operator.inventory.policy.oos_sellability",
+      key: context.request.headers.get("idempotency-key") ?? "",
+      request: { actorId: context.identity.actorId, propertyNode, body },
+    }, async (tx) => ({ status: 200, body: { inventoryPolicy: jsonValue(await this.#policy!.setOosSellability(tx, {
+      value: body.oosSellability as "blocked" | "allowed",
+      envelope: createAuditEnvelope({ actorId: context.identity.actorId, tenantId: context.tenantId,
+        propertyNode, requestId, operation: "inventory.policy.changed" }),
+    })) } }));
+    return apiResponse(context.request, canonicalJson(outcome.body), outcome.status, {
+      "idempotency-replayed": String(outcome.replayed), "x-correlation-id": requestId,
+    });
+  }
+
+  async restrictions(context: TenantRequestContext, propertyNode: string): Promise<Response> {
+    if (!hasScope(context, RESTRICTION_READ_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Restriction access is not granted");
+    }
+    if (!UUID.test(propertyNode)) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Property identifier is invalid");
+    }
+    if (!this.#restrictions) return this.unavailable(context.request);
+    try {
+      const grants = await listGrantedProperties(context, RESTRICTION_READ_SCOPE);
+      if (!grants.some(({ id }) => id === propertyNode)) {
+        return apiError(context.request, 403, "auth/property_forbidden", "Forbidden", "Property access is not granted");
+      }
+      return apiResponse(context.request, { restrictions: await this.#restrictions.list(context.tx, propertyNode) });
+    } catch (error) {
+      if (error instanceof InventoryValidationError) {
+        return apiError(context.request, 400, "request/invalid", "Invalid request", "Restriction request is invalid");
+      }
+      return apiError(context.request, 503, "service/unavailable", "Service unavailable", "Restrictions are temporarily unavailable");
+    }
+  }
+
+  async createRestrictions(context: TenantRequestContext, propertyNode: string, body: unknown): Promise<Response> {
+    const restrictions = parseRestrictionBatch(body);
+    if (!restrictions) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Restriction input is invalid");
+    }
+    if (!hasScope(context, RESTRICTION_WRITE_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Restriction changes are not granted");
+    }
+    if (!UUID.test(propertyNode)) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Property identifier is invalid");
+    }
+    if (!this.#restrictions) return this.unavailable(context.request);
+    const grants = await listGrantedProperties(context, RESTRICTION_WRITE_SCOPE);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 403, "auth/property_forbidden", "Forbidden", "Property access is not granted");
+    }
+    const requestId = correlationId(context.request);
+    const outcome = await this.#idempotency.execute(context.tx, {
+      tenantId: context.tenantId,
+      operation: "operator.inventory.restriction.create",
+      key: context.request.headers.get("idempotency-key") ?? "",
+      request: { actorId: context.identity.actorId, propertyNode, body },
+    }, async (tx) => ({
+      status: 201,
+      body: { restrictions: jsonValue(await this.#restrictions!.createBatch(tx, {
+        restrictions,
+        envelope: createAuditEnvelope({
+          actorId: context.identity.actorId,
+          tenantId: context.tenantId,
+          propertyNode,
+          requestId,
+          operation: "restriction.created",
+        }),
+      })) },
+    }));
+    return apiResponse(context.request, outcome.body, outcome.status, {
+      "idempotency-replayed": String(outcome.replayed),
+      "x-correlation-id": requestId,
+    });
+  }
+
+  async rateConfiguration(context: TenantRequestContext, propertyNode: string): Promise<Response> {
+    if (!hasScope(context, RATE_READ_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Rate configuration access is not granted");
+    }
+    if (!UUID.test(propertyNode)) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Property identifier is invalid");
+    }
+    if (!this.#rates) return this.unavailable(context.request);
+    const grants = await listGrantedProperties(context, RATE_READ_SCOPE);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 403, "auth/property_forbidden", "Forbidden", "Property access is not granted");
+    }
+    const [policies, ratePlans] = await Promise.all([
+      this.#rates.listPolicies(context.tx),
+      this.#rates.listRatePlans(context.tx, propertyNode),
+    ]);
+    return apiResponse(context.request, { policies, ratePlans });
+  }
+
+  async createPolicy(context: TenantRequestContext, propertyNode: string, body: unknown): Promise<Response> {
+    const input = parsePolicy(body);
+    if (!input) return apiError(context.request, 400, "request/invalid", "Invalid request", "Policy input is invalid");
+    return this.#createRate(context, propertyNode, body, "operator.rates.policy.create", "policy.created",
+      async (tx, envelope) => ({ policy: jsonValue(await this.#rates!.createPolicy(tx, { ...input, envelope })) }));
+  }
+
+  async createRatePlan(context: TenantRequestContext, propertyNode: string, body: unknown): Promise<Response> {
+    const input = parseRatePlan(body);
+    if (!input) return apiError(context.request, 400, "request/invalid", "Invalid request", "Rate plan input is invalid");
+    return this.#createRate(context, propertyNode, body, "operator.rates.rate_plan.create", "rate_plan.created",
+      async (tx, envelope) => ({ ratePlan: jsonValue(await this.#rates!.createRatePlan(tx, { ...input, envelope })) }));
+  }
+
+  async rateBuilder(context: TenantRequestContext, propertyNode: string, ratePlanId: string): Promise<Response> {
+    if (!hasScope(context, RATE_READ_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Rate configuration access is not granted");
+    }
+    if (!UUID.test(propertyNode) || !UUID.test(ratePlanId)) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Property or rate-plan identifier is invalid");
+    }
+    if (!this.#rateBuilder) return this.unavailable(context.request);
+    const grants = await listGrantedProperties(context, RATE_READ_SCOPE);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 403, "auth/property_forbidden", "Forbidden", "Property access is not granted");
+    }
+    const [modelDrafts, targetDrafts, releases] = await Promise.all([
+      this.#rateBuilder.models.listDraftVersions(context.tx, propertyNode, ratePlanId),
+      this.#rateBuilder.targets.listDraftVersions(context.tx, propertyNode, ratePlanId),
+      this.#rateBuilder.publication.listReleaseVersions(context.tx, propertyNode, ratePlanId),
+    ]);
+    return apiResponse(context.request, rateBuilderJsonValue({
+      catalogue: RATE_MODEL_CATALOGUE,
+      modelDrafts,
+      targetDrafts,
+      releases: releasesWithAuthoringCommands(releases, modelDrafts, targetDrafts),
+    }));
+  }
+
+  async createRateBuilderDraft(
+    context: TenantRequestContext,
+    propertyNode: string,
+    ratePlanId: string,
+    body: unknown,
+  ): Promise<Response> {
+    if (!hasScope(context, RATE_WRITE_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Rate configuration changes are not granted");
+    }
+    if (!UUID.test(propertyNode) || !UUID.test(ratePlanId)) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Property or rate-plan identifier is invalid");
+    }
+    if (!this.#rateBuilder) return this.unavailable(context.request);
+    const grants = await listGrantedProperties(context, RATE_WRITE_SCOPE);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 403, "auth/property_forbidden", "Forbidden", "Property access is not granted");
+    }
+    const command = compileRateAuthoringCommand(body);
+    if (command.ratePlanId !== ratePlanId) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Rate-plan route and command do not match");
+    }
+    const requestId = correlationId(context.request);
+    const outcome = await this.#idempotency.execute(context.tx, {
+      tenantId: context.tenantId,
+      operation: "operator.rates.release.draft",
+      key: context.request.headers.get("idempotency-key") ?? "",
+      request: { actorId: context.identity.actorId, propertyNode, ratePlanId, body },
+    }, async (tx) => {
+      const modelDraft = await this.#rateBuilder!.models.createDraftVersion(tx, {
+        ratePlanId: command.ratePlanId,
+        modelKey: command.model.key,
+        modelVersion: command.model.version,
+        authoringMode: command.authoringMode,
+        componentModelKeys: command.model.componentModelKeys,
+        envelope: createAuditEnvelope({ actorId: context.identity.actorId, tenantId: context.tenantId,
+          propertyNode, requestId, operation: "rate_plan_model.drafted" }),
+      });
+      const targetDraft = await this.#rateBuilder!.targets.createDraftVersion(tx, {
+        ratePlanId: command.ratePlanId,
+        authoringMode: command.authoringMode,
+        rules: command.target.rules,
+        envelope: createAuditEnvelope({ actorId: context.identity.actorId, tenantId: context.tenantId,
+          propertyNode, requestId, operation: "rate_plan_target.drafted" }),
+      });
+      const release = await this.#rateBuilder!.publication.createDraftVersion(tx, {
+        ratePlanId: command.ratePlanId,
+        modelDraftVersion: modelDraft.extensionVersion,
+        targetDraftVersion: targetDraft.extensionVersion,
+        evaluatorSpec: command.evaluator,
+        compositionSpec: command.composition,
+        rmsBinding: command.rmsBinding,
+        envelope: createAuditEnvelope({ actorId: context.identity.actorId, tenantId: context.tenantId,
+          propertyNode, requestId, operation: "rate_plan_release.drafted" }),
+      });
+      return { status: 201, body: rateBuilderJsonValue({ modelDraft, targetDraft, release }) };
+    });
+    return apiResponse(context.request, outcome.body, outcome.status, {
+      "idempotency-replayed": String(outcome.replayed),
+      "x-correlation-id": requestId,
+    });
+  }
+
+  async interpretRateBuilderIntent(
+    context: TenantRequestContext,
+    propertyNode: string,
+    ratePlanId: string,
+    body: unknown,
+  ): Promise<Response> {
+    if (!hasScope(context, RATE_READ_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Rate configuration access is not granted");
+    }
+    if (!UUID.test(propertyNode) || !UUID.test(ratePlanId)) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Property or rate-plan identifier is invalid");
+    }
+    if (!isObject(body) || !exactKeys(body, ["intent", "currentCommand"]) || typeof body.intent !== "string") {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Rate intent input is invalid");
+    }
+    if (!this.#rateBuilder?.intent) return this.unavailable(context.request);
+    const grants = await listGrantedProperties(context, RATE_READ_SCOPE);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 403, "auth/property_forbidden", "Forbidden", "Property access is not granted");
+    }
+    let current;
+    try {
+      current = compileRateAuthoringCommand(body.currentCommand);
+    } catch {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Rate intent input is invalid");
+    }
+    if (current.ratePlanId !== ratePlanId) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Rate-plan route and command do not match");
+    }
+    try {
+      await this.#rateBuilder.models.listDraftVersions(context.tx, propertyNode, ratePlanId);
+      const interpretation = await this.#rateBuilder.intent.interpret({
+        intent: body.intent,
+        currentCommand: body.currentCommand,
+      });
+      return apiResponse(context.request, rateBuilderJsonValue({ interpretation }));
+    } catch (error) {
+      if (error instanceof RateIntentError || error instanceof RateAuthoringError) {
+        return apiError(context.request, 400, "request/invalid", "Invalid request", "Rate intent input is invalid");
+      }
+      throw error;
+    }
+  }
+
+  async resolveRateBuilderQuote(
+    context: TenantRequestContext,
+    propertyNode: string,
+    ratePlanId: string,
+    body: unknown,
+  ): Promise<Response> {
+    if (!isObject(body) || !exactKeys(body, [
+      "sellableUnitId", "stayStart", "stayEnd", "guests", "selectedPromotionCodes", "commercial", "channelCode",
+    ]) || typeof body.sellableUnitId !== "string" || !UUID.test(body.sellableUnitId) ||
+      !isObject(body.guests) || !exactKeys(body.guests, ["adults", "childAges"]) ||
+      typeof body.guests.adults !== "number" || !Array.isArray(body.guests.childAges) ||
+      !Array.isArray(body.selectedPromotionCodes) || !isObject(body.commercial) ||
+      typeof body.channelCode !== "string") {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Rate quote input is invalid");
+    }
+    const stayStart = parseInstant(body.stayStart);
+    const stayEnd = parseInstant(body.stayEnd);
+    if (!stayStart || !stayEnd || stayStart >= stayEnd || !UUID.test(propertyNode) || !UUID.test(ratePlanId)) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Rate quote scope or stay is invalid");
+    }
+    if (!hasScope(context, RATE_READ_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Rate configuration access is not granted");
+    }
+    if (!this.#rateBuilder) return this.unavailable(context.request);
+    const grants = await listGrantedProperties(context, RATE_READ_SCOPE);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 403, "auth/property_forbidden", "Forbidden", "Property access is not granted");
+    }
+    const quote = await this.#rateBuilder.quote.resolve(context.tx, {
+      propertyNode,
+      ratePlanId,
+      sellableUnitId: body.sellableUnitId,
+      stayStart,
+      stayEnd,
+      guests: { adults: body.guests.adults, childAges: body.guests.childAges as number[] },
+      selectedPromotionCodes: body.selectedPromotionCodes as string[],
+      commercial: body.commercial,
+      channelCode: body.channelCode,
+    });
+    return apiResponse(context.request, rateBuilderJsonValue({ quote }));
+  }
+
+  async simulateRateBuilderDraft(
+    context: TenantRequestContext,
+    propertyNode: string,
+    ratePlanId: string,
+    releaseId: string,
+    body: unknown,
+  ): Promise<Response> {
+    if (!isObject(body) || !exactKeys(body, ["previewCells"]) || !Array.isArray(body.previewCells)) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Rate preview input is invalid");
+    }
+    const authorized = await this.#requireRateBuilder(context, propertyNode, ratePlanId, releaseId, RATE_READ_SCOPE);
+    if (authorized instanceof Response) return authorized;
+    const previewCells = bindRateBuilderPreviewCells(authorized.release, body.previewCells);
+    if (!previewCells) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Rate preview cells are invalid or contain caller policy evidence");
+    }
+    const simulation = await this.#rateBuilder!.publication.simulateDraft(context.tx, {
+      releaseId,
+      previewCells,
+    });
+    return apiResponse(context.request, rateBuilderJsonValue({ simulation }));
+  }
+
+  async requestRateBuilderApproval(
+    context: TenantRequestContext,
+    propertyNode: string,
+    ratePlanId: string,
+    releaseId: string,
+    body: unknown,
+  ): Promise<Response> {
+    if (!isObject(body) || !exactKeys(body, ["previewCells"]) || !Array.isArray(body.previewCells)) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Rate approval input is invalid");
+    }
+    const authorized = await this.#requireRateBuilder(context, propertyNode, ratePlanId, releaseId, RATE_WRITE_SCOPE);
+    if (authorized instanceof Response) return authorized;
+    const previewCells = bindRateBuilderPreviewCells(authorized.release, body.previewCells);
+    if (!previewCells) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Rate approval cells are invalid or contain caller policy evidence");
+    }
+    return this.#runRateBuilderWrite(context, authorized.actorId, propertyNode, { ratePlanId, releaseId, body }, "operator.rates.release.approval_request", async (tx, requestId) =>
+      this.#rateBuilder!.publication.requestPublicationApproval(tx, {
+        releaseId,
+        previewCells,
+        requestedBy: authorized.actorId,
+        envelope: createAuditEnvelope({ actorId: authorized.actorId, tenantId: context.tenantId,
+          propertyNode, requestId, operation: "rate_plan_release.approval_requested" }),
+      })
+    );
+  }
+
+  async rateBuilderApprovals(
+    context: TenantRequestContext,
+    propertyNode: string,
+    ratePlanId: string,
+  ): Promise<Response> {
+    if (!hasScope(context, RATE_WRITE_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Rate configuration changes are not granted");
+    }
+    if (!UUID.test(propertyNode) || !UUID.test(ratePlanId)) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Property or rate-plan identifier is invalid");
+    }
+    const pageInput = parseRateApprovalPage(context.request);
+    if (!pageInput) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Approval page query is invalid");
+    }
+    if (!this.#rateBuilder) return this.unavailable(context.request);
+    const grants = await listGrantedProperties(context, RATE_WRITE_SCOPE);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 403, "auth/property_forbidden", "Forbidden", "Property access is not granted");
+    }
+    const page = await this.#rateBuilder.publication.listPublicationApprovals(context.tx, {
+      propertyNode,
+      ratePlanId,
+      ...pageInput,
+    });
+    return apiResponse(context.request, {
+      approvals: page.approvals.map((approval) => rateApprovalJson(approval, context.identity.actorId)),
+      nextCursor: page.nextCursor,
+    });
+  }
+
+  async decideRateBuilderApproval(
+    context: TenantRequestContext,
+    propertyNode: string,
+    ratePlanId: string,
+    approvalId: string,
+    body: unknown,
+  ): Promise<Response> {
+    if (!isObject(body) || !exactKeys(body, ["decision"]) ||
+        (body.decision !== "approved" && body.decision !== "rejected")) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Approval decision input is invalid");
+    }
+    if (!hasScope(context, RATE_WRITE_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Rate configuration changes are not granted");
+    }
+    if (!UUID.test(propertyNode) || !UUID.test(ratePlanId) || !UUID.test(approvalId)) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Property, rate-plan or approval identifier is invalid");
+    }
+    if (!this.#rateBuilder) return this.unavailable(context.request);
+    const grants = await listGrantedProperties(context, RATE_WRITE_SCOPE);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 403, "auth/property_forbidden", "Forbidden", "Property access is not granted");
+    }
+    const actorId = context.identity.actorId;
+    return this.#runRateBuilderWrite(
+      context,
+      actorId,
+      propertyNode,
+      { ratePlanId, approvalId, body },
+      "operator.rates.release.approval_decision",
+      async (tx, requestId) => ({ approval: rateApprovalJson(
+        await this.#rateBuilder!.publication.decidePublicationApproval(tx, {
+          propertyNode,
+          ratePlanId,
+          approvalId,
+          decision: body.decision as "approved" | "rejected",
+          decidedBy: actorId,
+          envelope: createAuditEnvelope({ actorId, tenantId: context.tenantId,
+            propertyNode, requestId, operation: "rate_plan_release.approval_decided" }),
+        }),
+        actorId,
+      ) }),
+      200,
+    );
+  }
+
+  async publishRateBuilderDraft(
+    context: TenantRequestContext,
+    propertyNode: string,
+    ratePlanId: string,
+    releaseId: string,
+    body: unknown,
+  ): Promise<Response> {
+    if (!isObject(body) || !exactKeys(body, ["approvalId", "previewCells"]) ||
+        typeof body.approvalId !== "string" || !UUID.test(body.approvalId) || !Array.isArray(body.previewCells)) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Rate publication input is invalid");
+    }
+    const authorized = await this.#requireRateBuilder(context, propertyNode, ratePlanId, releaseId, RATE_WRITE_SCOPE);
+    if (authorized instanceof Response) return authorized;
+    const previewCells = bindRateBuilderPreviewCells(authorized.release, body.previewCells);
+    if (!previewCells) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Rate publication cells are invalid or contain caller policy evidence");
+    }
+    return this.#runRateBuilderWrite(context, authorized.actorId, propertyNode, { ratePlanId, releaseId, body }, "operator.rates.release.publish", async (tx, requestId) =>
+      this.#rateBuilder!.publication.publishDraft(tx, {
+        releaseId,
+        approvalId: body.approvalId as string,
+        previewCells,
+        envelope: createAuditEnvelope({ actorId: authorized.actorId, tenantId: context.tenantId,
+          propertyNode, requestId, operation: "rate_plan_release.published" }),
+      })
+    );
+  }
+
+  async createRateBuilderUndo(
+    context: TenantRequestContext,
+    propertyNode: string,
+    ratePlanId: string,
+    sourceReleaseId: string,
+    body: unknown,
+  ): Promise<Response> {
+    if (!isObject(body) || !exactKeys(body, [])) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Rate undo input must be empty");
+    }
+    const authorized = await this.#requireRateBuilder(context, propertyNode, ratePlanId, sourceReleaseId, RATE_WRITE_SCOPE);
+    if (authorized instanceof Response) return authorized;
+    return this.#runRateBuilderWrite(context, authorized.actorId, propertyNode, { ratePlanId, sourceReleaseId, body }, "operator.rates.release.undo", async (tx, requestId) =>
+      this.#rateBuilder!.publication.createUndoDraftVersion(tx, {
+        sourceReleaseId,
+        envelope: createAuditEnvelope({ actorId: authorized.actorId, tenantId: context.tenantId,
+          propertyNode, requestId, operation: "rate_plan_release.undo_drafted" }),
+      })
+    );
+  }
+
+  async #requireRateBuilder(
+    context: TenantRequestContext,
+    propertyNode: string,
+    ratePlanId: string,
+    releaseId: string,
+    scope: typeof RATE_READ_SCOPE | typeof RATE_WRITE_SCOPE,
+  ): Promise<Readonly<{ actorId: string; release: RatePlanRelease }> | Response> {
+    if (!hasScope(context, scope)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Rate configuration access is not granted");
+    }
+    if (!UUID.test(propertyNode) || !UUID.test(ratePlanId) || !UUID.test(releaseId)) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Property, rate-plan or release identifier is invalid");
+    }
+    if (!this.#rateBuilder) return this.unavailable(context.request);
+    const grants = await listGrantedProperties(context, scope);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 403, "auth/property_forbidden", "Forbidden", "Property access is not granted");
+    }
+    const releases = await this.#rateBuilder.publication.listReleaseVersions(context.tx, propertyNode, ratePlanId);
+    const release = releases.find(({ id }) => id === releaseId);
+    if (!release) {
+      return apiError(context.request, 404, "rates/not_found", "Not found", "Referenced rate release was not found");
+    }
+    return Object.freeze({ actorId: context.identity.actorId, release });
+  }
+
+  async #runRateBuilderWrite(
+    context: TenantRequestContext,
+    actorId: string,
+    propertyNode: string,
+    requestBody: unknown,
+    operation: string,
+    command: (tx: Tx, requestId: string, actorId: string) => Promise<unknown>,
+    successStatus = 201,
+  ): Promise<Response> {
+    const requestId = correlationId(context.request);
+    const outcome = await this.#idempotency.execute(context.tx, {
+      tenantId: context.tenantId,
+      operation,
+      key: context.request.headers.get("idempotency-key") ?? "",
+      request: { actorId: context.identity.actorId, propertyNode, body: requestBody },
+    }, async (tx) => ({ status: successStatus, body: rateBuilderJsonValue(await command(tx, requestId, actorId)) }));
+    return apiResponse(context.request, outcome.body, outcome.status, {
+      "idempotency-replayed": String(outcome.replayed),
+      "x-correlation-id": requestId,
+    });
+  }
+
+  async currentRatePrice(context: TenantRequestContext, propertyNode: string): Promise<Response> {
+    if (!hasScope(context, PRICING_READ_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Rate pricing access is not granted");
+    }
+    if (!UUID.test(propertyNode)) return apiError(context.request, 400, "request/invalid", "Invalid request", "Property identifier is invalid");
+    if (!this.#pricing) return this.unavailable(context.request);
+    const grants = await listGrantedProperties(context, PRICING_READ_SCOPE);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 403, "auth/property_forbidden", "Forbidden", "Property access is not granted");
+    }
+    const query = new URL(context.request.url).searchParams;
+    const price = await this.#pricing.findCurrent(context.tx, {
+      propertyNode,
+      ratePlanId: query.get("ratePlanId") ?? "",
+      unitTypeId: query.get("unitTypeId") ?? "",
+      stayDate: query.get("stayDate") ?? "",
+    });
+    return apiResponse(context.request, { ratePrice: ratePriceJson(price) });
+  }
+
+  async createRatePrice(context: TenantRequestContext, propertyNode: string, body: unknown): Promise<Response> {
+    const input = parsePricing(body);
+    if (!input) return apiError(context.request, 400, "request/invalid", "Invalid request", "Rate pricing input is invalid");
+    if (!hasScope(context, PRICING_WRITE_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Rate pricing changes are not granted");
+    }
+    if (!UUID.test(propertyNode)) return apiError(context.request, 400, "request/invalid", "Invalid request", "Property identifier is invalid");
+    if (!this.#pricing) return this.unavailable(context.request);
+    const grants = await listGrantedProperties(context, PRICING_WRITE_SCOPE);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 403, "auth/property_forbidden", "Forbidden", "Property access is not granted");
+    }
+    const requestId = correlationId(context.request);
+    const outcome = await this.#idempotency.execute(context.tx, {
+      tenantId: context.tenantId,
+      operation: "operator.rates.price.create",
+      key: context.request.headers.get("idempotency-key") ?? "",
+      request: { actorId: context.identity.actorId, propertyNode, body },
+    }, async (tx) => ({
+      status: 201,
+      body: { ratePrice: ratePriceJson(await this.#pricing!.create(tx, {
+        ...input,
+        envelope: createAuditEnvelope({ actorId: context.identity.actorId, tenantId: context.tenantId,
+          propertyNode, requestId, operation: "rate_price.created" }),
+      })) },
+    }));
+    return apiResponse(context.request, canonicalJson(outcome.body), outcome.status, {
+      "idempotency-replayed": String(outcome.replayed), "x-correlation-id": requestId,
+    });
+  }
+
+  async supersedeRatePrice(context: TenantRequestContext, propertyNode: string, ratePriceId: string, body: unknown): Promise<Response> {
+    if (!isObject(body) || !exactKeys(body, ["pricing"])) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Rate correction input is invalid");
+    }
+    const correctedPricing = parsePricingValue(body.pricing);
+    if (!correctedPricing) return apiError(context.request, 400, "request/invalid", "Invalid request", "Rate correction input is invalid");
+    if (!hasScope(context, PRICING_WRITE_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Rate pricing changes are not granted");
+    }
+    if (!UUID.test(propertyNode) || !UUID.test(ratePriceId)) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Property or rate-price identifier is invalid");
+    }
+    if (!this.#pricing) return this.unavailable(context.request);
+    const grants = await listGrantedProperties(context, PRICING_WRITE_SCOPE);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 403, "auth/property_forbidden", "Forbidden", "Property access is not granted");
+    }
+    const requestId = correlationId(context.request);
+    const outcome = await this.#idempotency.execute(context.tx, {
+      tenantId: context.tenantId, operation: "operator.rates.price.supersede",
+      key: context.request.headers.get("idempotency-key") ?? "",
+      request: { actorId: context.identity.actorId, propertyNode, ratePriceId, body },
+    }, async (tx) => ({ status: 201, body: {
+      ratePrice: ratePriceJson(await this.#pricing!.supersede(tx, {
+        ratePriceId, pricing: correctedPricing,
+        envelope: createAuditEnvelope({ actorId: context.identity.actorId, tenantId: context.tenantId,
+          propertyNode, requestId, operation: "rate_price.superseded" }),
+      })),
+    } }));
+    return apiResponse(context.request, canonicalJson(outcome.body), outcome.status, {
+      "idempotency-replayed": String(outcome.replayed), "x-correlation-id": requestId,
+    });
+  }
+
+  async #createRate(
+    context: TenantRequestContext,
+    propertyNode: string,
+    requestBody: unknown,
+    idempotencyOperation: string,
+    auditOperation: "policy.created" | "rate_plan.created",
+    command: (tx: Tx, envelope: ReturnType<typeof createAuditEnvelope>) => Promise<JsonValue>,
+  ): Promise<Response> {
+    if (!hasScope(context, RATE_WRITE_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Rate configuration changes are not granted");
+    }
+    if (!UUID.test(propertyNode)) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Property identifier is invalid");
+    }
+    if (!this.#rates) return this.unavailable(context.request);
+    const grants = await listGrantedProperties(context, RATE_WRITE_SCOPE);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 403, "auth/property_forbidden", "Forbidden", "Property access is not granted");
+    }
+    const requestId = correlationId(context.request);
+    const outcome = await this.#idempotency.execute(context.tx, {
+      tenantId: context.tenantId,
+      operation: idempotencyOperation,
+      key: context.request.headers.get("idempotency-key") ?? "",
+      request: { actorId: context.identity.actorId, propertyNode, body: requestBody },
+    }, async (tx) => ({
+      status: 201,
+      body: await command(tx, createAuditEnvelope({
+        actorId: context.identity.actorId,
+        tenantId: context.tenantId,
+        propertyNode,
+        requestId,
+        operation: auditOperation,
+      })),
+    }));
+    return apiResponse(context.request, outcome.body, outcome.status, {
+      "idempotency-replayed": String(outcome.replayed),
+      "x-correlation-id": requestId,
+    });
+  }
+
+  async #create(
+    context: TenantRequestContext,
+    propertyNode: string,
+    requestBody: unknown,
+    idempotencyOperation: string,
+    auditOperation: string,
+    command: (tx: Tx, envelope: ReturnType<typeof createAuditEnvelope>) => Promise<unknown>,
+  ): Promise<Response> {
+    if (!hasScope(context, CONFIGURATION_WRITE_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Inventory configuration changes are not granted");
+    }
+    if (!UUID.test(propertyNode)) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Property identifier is invalid");
+    }
+    if (!this.#inventory) return this.unavailable(context.request);
+    const grants = await listGrantedProperties(context, CONFIGURATION_WRITE_SCOPE);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 403, "auth/property_forbidden", "Forbidden", "Property access is not granted");
+    }
+    const requestId = correlationId(context.request);
+    const outcome = await this.#idempotency.execute(context.tx, {
+      tenantId: context.tenantId,
+      operation: idempotencyOperation,
+      key: context.request.headers.get("idempotency-key") ?? "",
+      request: { actorId: context.identity.actorId, propertyNode, body: requestBody },
+    }, async (tx) => ({
+      status: 201,
+      body: jsonValue(await command(tx, createAuditEnvelope({
+        actorId: context.identity.actorId,
+        tenantId: context.tenantId,
+        propertyNode,
+        requestId,
+        operation: auditOperation,
+      }))),
+    }));
+    return apiResponse(context.request, outcome.body, outcome.status, {
+      "idempotency-replayed": String(outcome.replayed),
+      "x-correlation-id": requestId,
+    });
+  }
+}
+
+const ASSET_URLS = {
+  html: new URL("./operator/index.html", import.meta.url),
+  css: new URL("./operator/operator.css", import.meta.url),
+  js: new URL("./operator/operator.js", import.meta.url),
+  interfacesCss: new URL("./operator/operator-interfaces.css", import.meta.url),
+  interfacesJs: new URL("./operator/operator-interfaces.js", import.meta.url),
+  layoutsJs: new URL("./operator/operator-layouts.js", import.meta.url),
+  invoiceJs: new URL("./operator/invoices.js", import.meta.url),
+  invoicePrintJs: new URL("./operator/invoice-print.js", import.meta.url),
+  invoiceQrJs: new URL("./operator/vendor/qrcodegen-v1.8.0-es6.js", import.meta.url),
+  depositCss: new URL("./operator/operator-deposits.css", import.meta.url),
+  depositJs: new URL("./operator/operator-deposits.js", import.meta.url),
+  urbanistFont: new URL("./operator/vendor/urbanist-v1.330/Urbanist[ital,wght].woff2", import.meta.url),
+  phosphorNav: new URL("./operator/vendor/phosphor-core-2.1.1/phosphor-nav-regular.svg", import.meta.url),
+} as const;
+
+export interface OperatorLocalReviewCredentials {
+  readonly tenant: string;
+  readonly email: string;
+  readonly password: string;
+}
+
+function assetResponse(url: URL, contentType: string): Response {
+  return new Response(Bun.file(url), {
+    headers: { "cache-control": "no-cache", "content-type": contentType },
+  });
+}
+
+function escapeHtmlAttribute(value: string): string {
+  return value
+    .replaceAll("&", "&amp;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;");
+}
+
+function isLoopbackRequest(request: Request): boolean {
+  let hostname: string;
+  try { hostname = new URL(request.url).hostname; } catch { return false; }
+  return new Set(["127.0.0.1", "localhost", "[::1]", "::1"]).has(hostname);
+}
+
+function localReviewHtml(credentials: OperatorLocalReviewCredentials): Response {
+  let html = readFileSync(fileURLToPath(ASSET_URLS.html), "utf8");
+  const automaticDemoLogin = Bun.env.YELLOW_PUBLIC_DEMO_AUTOMATIC_LOGIN === "1";
+  const form = '<form class="card login-card" id="login-form">';
+  if (html.split(form).length !== 2) throw new Error("operator sign-in form contract changed");
+  html = html.replace(form, '<form class="card login-card" id="login-form" autocomplete="off">');
+  const fields = [
+    ['<input name="tenant" autocomplete="organization" required maxlength="63" placeholder="yellow-demo">', credentials.tenant],
+    ['<input name="email" type="email" autocomplete="username" required maxlength="254" placeholder="operator@yellow.local">', credentials.email],
+    ['<input name="password" type="password" autocomplete="current-password" required maxlength="1024">', credentials.password],
+  ] as const;
+  if (!automaticDemoLogin) {
+    for (const [input, value] of fields) {
+      if (html.split(input).length !== 2) throw new Error("operator sign-in field contract changed");
+      const escaped = escapeHtmlAttribute(value);
+      html = html.replace(input, `${input.slice(0, -1).replace(/ autocomplete="[^"]+"/, ' autocomplete="off"')} data-local-default="${escaped}" value="${escaped}">`);
+    }
+  }
+  const head = "</head>";
+  if (html.split(head).length !== 2) throw new Error("operator document head contract changed");
+  const automaticLogin = automaticDemoLogin
+    ? '<script src="/assets/operator-public-demo.js" defer></script>\n'
+    : "";
+  if (automaticLogin) {
+    const openingHead = "<head>";
+    if (html.split(openingHead).length !== 2) throw new Error("operator document opening-head contract changed");
+    html = html.replace(openingHead, `${openingHead}\n${automaticLogin}`);
+  }
+  html = html.replace(head, '<script src="/assets/operator-local-prefill.js" defer></script>\n</head>');
+  return new Response(html, {
+    headers: { "cache-control": "no-store", "content-type": "text/html; charset=utf-8" },
+  });
+}
+
+export const operatorAssets = Object.freeze({
+  html(credentials?: OperatorLocalReviewCredentials, request?: Request): Response {
+    // A temporary, synthetic-only public demonstration can opt into automatic local-review
+    // entry. Production and every normal deployment retain the loopback-only constraint.
+    return credentials && request && (isLoopbackRequest(request) || Bun.env.YELLOW_PUBLIC_DEMO_AUTOMATIC_LOGIN === "1")
+      ? localReviewHtml(credentials)
+      : assetResponse(ASSET_URLS.html, "text/html; charset=utf-8");
+  },
+  css(): Response { return assetResponse(ASSET_URLS.css, "text/css; charset=utf-8"); },
+  js(): Response { return assetResponse(ASSET_URLS.js, "text/javascript; charset=utf-8"); },
+  interfacesCss(): Response { return assetResponse(ASSET_URLS.interfacesCss, "text/css; charset=utf-8"); },
+  interfacesJs(): Response { return assetResponse(ASSET_URLS.interfacesJs, "text/javascript; charset=utf-8"); },
+  layoutsJs(): Response { return assetResponse(ASSET_URLS.layoutsJs, "text/javascript; charset=utf-8"); },
+  invoiceJs(): Response { return assetResponse(ASSET_URLS.invoiceJs, "text/javascript; charset=utf-8"); },
+  invoicePrintJs(): Response { return assetResponse(ASSET_URLS.invoicePrintJs, "text/javascript; charset=utf-8"); },
+  invoiceQrJs(): Response { return assetResponse(ASSET_URLS.invoiceQrJs, "text/javascript; charset=utf-8"); },
+  depositCss(): Response { return assetResponse(ASSET_URLS.depositCss, "text/css; charset=utf-8"); },
+  depositJs(): Response { return assetResponse(ASSET_URLS.depositJs, "text/javascript; charset=utf-8"); },
+  urbanistFont(): Response { return assetResponse(ASSET_URLS.urbanistFont, "font/woff2"); },
+  phosphorNav(): Response { return assetResponse(ASSET_URLS.phosphorNav, "image/svg+xml"); },
+  localPrefillJs(): Response {
+    return new Response("(()=>{const f=document.querySelector('#login-form[autocomplete=off]'),v=new Map;if(!f)return;for(const e of f.elements)if(e instanceof HTMLInputElement&&e.dataset.localDefault){v.set(e,e.dataset.localDefault);delete e.dataset.localDefault}const r=(o=false)=>{for(const[e,s]of v)if(o||!e.value)e.value=s},h=e=>{r(true);e.preventDefault()},w=()=>r();r(true);addEventListener('pageshow',w);addEventListener('focus',w);document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')r()});f.addEventListener('yellow:restore-local-login-defaults',h);setTimeout(w,0);requestAnimationFrame(()=>requestAnimationFrame(w))})()", {
+      headers: { "cache-control": "no-store", "content-type": "text/javascript; charset=utf-8" },
+    });
+  },
+  publicDemoJs(): Response {
+    return new Response('(()=>{document.documentElement.dataset.yellowAutomaticDemoLogin="1";const form=document.querySelector("#login-form");if(!form)return;form.setAttribute("aria-label","Opening the shared Yellow demo");for(const child of form.children)if(child.id!=="login-message")child.hidden=true;const message=document.querySelector("#login-message");if(message)message.textContent="Opening the shared Yellow demo…"})()', {
+      headers: { "cache-control": "no-store", "content-type": "text/javascript; charset=utf-8" },
+    });
+  },
+});

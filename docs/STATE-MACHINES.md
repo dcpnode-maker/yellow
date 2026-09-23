@@ -8,11 +8,11 @@ Transition tables are exhaustive — anything not listed is rejected with `inval
 | From | To | Guard | Emits |
 |---|---|---|---|
 | quote | reserved | availability confirmed via choke-point write of holds→segments; payment/guarantee per policy | reservation.confirmed |
-| reserved | due_in | business_date == arrival date (roll job) | reservation.due_in |
+| reserved | due_in | bounded roll: the transaction-stable PostgreSQL calendar date in the stored property timezone equals the latest current `booked` segment's local arrival date; that segment remains `booked` | reservation.due_in |
 | reserved/due_in | cancelled | within policy or override(approval); releases occupancy | reservation.cancelled |
-| due_in | in_house | check-in: id verified per statutory need; folio window ≥1 open; unit assigned & condition ∈ {clean,inspected} or `checkin.dirty_room` permission; keys optional | reservation.checked_in |
+| due_in | in_house | exactly one current booked segment is assigned to exactly one active physical room; primary folio window 1 and guest account are open; `unit_condition` is clean/inspected, or dirty/pickup has same-property `stay-operations.checkin:dirty-room-override` plus reason; when property config selects an effective active tenant statutory adapter declaring identity evidence, every reservation Party has a recorded identity document | reservation.checked_in |
 | due_in | no_show | day-roll for the arrival date; guarantee policy drives no-show journal | reservation.no_show |
-| in_house | due_out | business_date == departure date | reservation.due_out |
+| in_house | due_out | bounded roll: the transaction-stable PostgreSQL calendar date in the stored property timezone equals the latest current `in_house` segment's local departure date; that segment remains `in_house` | reservation.due_out |
 | in_house/due_out | checked_out | ALL folio windows settled (balance 0) or transfer-to-AR with permission; occupancy period trimmed to now | reservation.checked_out |
 | cancelled/no_show | reserved | reinstate: availability re-check passes | reservation.reinstated |
 
@@ -20,12 +20,90 @@ Segment moves: never edit `period`/unit on a live segment for a room move — cl
 segment (`departed`, trim period) and open the next `seq` (new occupancy via choke).
 Extensions/shortenings on the SAME unit: release + re-record inside one transaction.
 
-## 2. Folio (`folio.status`) — open → settled (balance 0, no future automations) → closed
-(after doc issued; reopening forbidden — corrections post to a new folio window).
+Order 232 makes only the `reserved -> due_in` row executable through a bounded server
+worker. It locks and revalidates the coherent parent/latest-segment shape, changes only
+the parent status, and commits one `reservation.due_in` fact, outbox row and durable
+idempotency result atomically. Exact reruns and contenders converge to one effect;
+future, past, foreign, incoherent and non-reserved truth are no-ops, while evidence
+failure rolls the whole attempt back. The date is
+`(transaction_timestamp() AT TIME ZONE property.timezone)::date`, not an open
+`business_day`, caller/browser date or process clock. There is no catch-up, repair,
+no-show, check-in, due-out or operator command in this transition.
 
-## 3. Business day — open → **sealed** via `seal_business_day()`.
+Order 233 makes only the `in_house -> due_out` row executable through the mirrored
+bounded worker. It locks and revalidates the coherent parent/latest-segment shape,
+changes only the parent, and commits one `reservation.due_out` fact, outbox row and
+durable idempotency result atomically. The latest segment and its occupancy remain
+unchanged `in_house`; checkout stays a separate explicit command. The same
+transaction-stable property-local calendar date owns admission and evidence, with no
+`business_day`, caller clock, catch-up, financial or room-state inference.
+
+Order 200 makes the `due_in -> in_house` row executable through a server-owned
+readiness snapshot and an actor-bound idempotent command. The reservation and exact
+active segment change together; fact and outbox share that transaction. Readiness is
+re-read under lock at commit, so browser booleans and stale previews have no authority.
+The transition does not alter occupancy, folio/account state, money, keys, business
+day or statutory-submission state. Check-out and every other Phase-6 transition remain
+outside this active slice.
+
+Order 231's due-in room assignment is not a reservation or segment status transition.
+It admits only one `due_in` reservation whose one latest `booked` segment has null
+assignment and zero segment occupancy. One deliberate command revalidates a
+server-admitted same-type physical-room candidate, records occupancy through the
+existing choke point and changes only that segment's `sellable_unit_id` from null to
+the selected value in the same transaction as existing minimized evidence. Existing
+assignments cannot use this path; room moves still close/trim and append a segment.
+Assignment preserves `due_in`/`booked`, does not infer room condition or readiness and
+never invokes the separate `due_in -> in_house` check-in command.
+
+### Reservation alerts (`alert.active`, Order463)
+
+An alert is an annotation, not a reservation lifecycle. The existing boolean
+permits create→active and active→inactive through same-property authorized
+commands; inactive→inactive is a no-op. No deletion, edit or reactivation is
+admitted. A terminal reservation may retain operational annotations without
+changing its status. Each actual change emits minimized reservation.modified
+evidence in the same transaction. Implementation and isolated database proof are
+accepted; serving-runtime integration remains pending under Order460.
+
+## 2. Folio (`folio.status`) — open → settled → closed
+
+| From | To | Exact guard/effect |
+|---|---|---|
+| open | settled | property-owned guest account is open; canonical locked `folio_balance` is exactly 0; one guarded PostgreSQL transition plus `folio.settled` fact/outbox evidence |
+| settled | closed | the same account/property relationship remains canonical and open; locked balance is still exactly 0; one guarded transition plus `folio.closed` fact/outbox evidence |
+
+Every folio window transitions independently. There is no reopen, force or non-zero
+path. Settlement/closure creates no balancing journal and changes no journal or posting
+line. It does not close the account or reservation and does not imply payment/provider
+settlement, checkout, invoice/document issue, fiscalization, tax or business-day close.
+Later corrections post through a separately governed open window; immutable history is
+never edited.
+
+### 2a. India accommodation final valuation — absent → generation 0 → generation N
+
+Order350 has no mutable status transition. The first governed fiscal-finalization
+request appends generation zero as either `ordinary_final` or
+`manual_valuation_required`. A correction locks the unique current head and appends
+exactly one successor generation referencing it; predecessors are never updated.
+Manual-required evidence cannot authorize tax calculation or document issue. Every
+generation atomically appends its source/night/allocation evidence, one fact and one
+recorded event.
+
+## 3. Business day — open → **sealed**.
+
+The application transition is the bounded audited Order356 command. One active,
+authenticated, same-tenant actor whose property-scoped role grants
+`business_day.seal` may seal directly; there is no maker/checker transition. The
+command accepts the exact existing backlog day only, locks the complete mutable
+authorization/readiness source set and exact day, reruns the full Order349/352/355
+predicate at PostgreSQL transaction time, then performs the sole one-way latch through
+`seal_business_day_audited`. A prior read snapshot, caller clock, payload or readiness
+claim cannot authorize the transition. Missing, already-sealed, unauthorized,
+ambiguous, stale or unknown state conflicts and writes nothing. The legacy
+`seal_business_day()` remains deployment-owner-only and is not application authority.
 **Roll ≠ seal.** The day ROLLS automatically: a scheduler opens the next business_day
-row at the property-local cutoff and emits `day.rolled` — it never waits for the prior
+row at the property-local cutoff and emits `business_day.opened` — it never waits for the prior
 day's seal. Operations always target the current OPEN day; multiple unsealed days may
 coexist (surfaced as a close-backlog alert, never an operational block).
 SEAL is the asynchronous financial finalisation. Pre-seal validation checklist
@@ -36,9 +114,98 @@ to the open day via approval_request (emits `discrepancy.carried`) so a seal is 
 hostage to absent staff. Post-seal: only adjustment/correction journals (DB-enforced).
 Emits business_day.sealed.
 
+Order 349 makes the pre-seal checklist executable as a read-only snapshot only. It
+binds an exact open backlog day and reports typed operational blockers, strict
+sub-five-minute exact-target outbox lag, and unknown/fail-closed interface work where
+the present schema cannot safely attribute an exact business date. It performs no
+transition and cannot be reused as seal authorization; carry and seal remain separate
+commands that must revalidate current PostgreSQL truth.
+
+Order 355 extends only that read snapshot's discrepancy attribution. A carried
+target blocks its exact target day through one canonical typed
+`discrepancy.carried` event plus one immutable source-to-target carry link whose
+state/request hashes recompute exactly. It does not block the source day. Ordinary
+report and governed-carry creation lineages are mutually exclusive; absent,
+duplicate, mixed or mismatched typed evidence remains unknown/fail-closed, and event
+payload JSON has no authority. No transition or seal authority is added.
+
+Order 356 consumes that exact predicate without changing its meaning. A winning
+transition atomically records the database-authored seal, one immutable minimized
+fact and one canonical `business_day.sealed` event. Exact idempotent replay has no
+second state transition or evidence; divergent reuse and every later/different-key
+attempt conflict. There is no sealed → open edge, auto-seal, batch-seal or catch-up
+edge, and this bounded command does not itself complete Phase 5.
+
+### 3a. Cashier session — open → closed
+
+Opening binds one property drawer, one custodian and the current property-local open
+business day to an immutable denomination count. One open session per drawer and one
+per tenant user are hard constraints. An open session may append immutable blind
+recounts; no count or line may be edited or removed.
+
+Close selects one submitted count and derives `over_short = counted - expected` in
+PostgreSQL. Zero closes directly. Non-zero close requires a reason and an approved
+different-user, one-use request bound to the exact server totals. Supervisor close of
+an abandoned session additionally requires a distinct closer, a fresh closer-owned
+count and a reason. Closed is terminal: no reopen, mutation or silent balancing entry.
+Emits `cashier.opened`, `cashier.counted` and `cashier.closed`.
+
+### 3b. Direct-billing receivable transfer — preview → approved where required → posted
+
+Preview is read-only and derives the exact current positive guest-folio balance,
+receivable exposure, credit limit and projected exposure. Within-limit preview may
+post directly. Over-limit preview requires a pending request, then a different-user
+approval; rejection is terminal under the existing approval state machine.
+
+Posting re-locks and revalidates every bound value, consumes at most one approval and
+creates one balanced immutable transfer journal. The command has no mutable transfer
+head or reopen transition: replay returns the original effect and changed/stale input
+conflicts. The guest folio becomes zero but remains open until the separate settlement
+state machine runs. Emits `receivable.transferred`.
+
 ## 4. Task — open → assigned → in_progress → done → verified (HK inspection) ;
-any → cancelled. HK: verifying a `housekeeping` task sets `unit_condition`
-dirty→clean→inspected. Emits task.status_changed (+ unit.condition_changed).
+any → cancelled.
+
+Order 201 executes only the existing adjacent housekeeping subset: start is
+`assigned -> in_progress` and preserves authoritative room condition; complete is
+`in_progress -> done`, requires dirty/pickup and atomically changes it to clean;
+verify is `done -> verified`, requires clean and atomically changes it to inspected.
+Each action binds expected task status, room condition and condition `updated_at`.
+Open/assignment, cancellation, reopen and non-housekeeping task transitions remain
+non-executable in this slice. Emits `task.status_changed` and, only where the room
+condition changes, `unit.condition_changed`.
+
+Order 227 admits one absence-only initialization before this condition-transition
+machine has a current row. An active exact-property room with no `unit_condition` may
+be initialized deliberately to `clean`, `dirty` or `pickup`; `inspected` is forbidden
+because it remains evidence of the `done -> verified` transition. Parent-room locking
+serializes contenders and an existing condition is a stale conflict, never an update
+or upsert. This initialization creates no task state and emits only
+`unit.condition_changed` with `previous_condition: null`.
+
+Order 213 may create one `open` `guest_request` task as a create-only effect of
+current arrival pickup intent. It does not execute an `open -> assigned` or any other
+task transition. The task stays governed by this canonical machine; assignment,
+cancellation and transport-specific completion remain later commands.
+
+Order 228 executes only the arrival-pickup subset for the exact currently linked
+canonical Order213 task: assign is `open -> assigned` and requires one active
+same-tenant staff Party; start is `assigned -> in_progress`; complete is
+`in_progress -> done` and records the server completion instant. Every action binds
+expected status and nullable assignee evidence. Reassignment, cancel, reopen, verify,
+non-adjacent and non-pickup task transitions remain non-executable. Each changed
+transition emits `task.status_changed` and changes no travel, reservation, occupancy,
+vehicle, parking, room-condition, financial, day or statutory state.
+
+Order 229 is a create-only entry into the existing machine at `assigned`. For one
+coherent dirty/pickup due-in room and one selected active same-tenant staff Party, it
+may insert exactly one `housekeeping`/`space` task already assigned to that Party. If
+one assigned or in-progress exact-room housekeeping task exists, the command returns
+it without a transition or event. Multiple actionable tasks fail closed; open, done,
+verified, cancelled and unrelated tasks are neither adopted nor mutated. Later
+`assigned -> in_progress -> done -> verified` work remains owned by Order 201. Creation
+emits `task.created` only and changes no room condition, reservation, check-in,
+occupancy, financial, day or statutory state.
 
 ## 5. Block (`reservation_group`, kind=block) — statuses come from `block_status_def`
 (tenant config); the ONLY semantic the engine reads is `deducts`. Transitions between
@@ -50,9 +217,184 @@ with `group_id` (consumes allotment before house inventory when `deducts`).
 expired (sweep) | released. Offline lease pool: client keeps N active `offline_lease`
 holds while online; offline walk-ins may consume ONLY those (v2 §5.1).
 
-## 7. Payment — auth → incremental_auth* → capture | void ; capture → refund*.
-Every phase change lands a `payment` row + journal on success (card_clearing legs).
+## 7. Payment — auth → incremental_auth* → one capture | void ; capture → refund*.
+Every command appends a prepared attempt and a provider result. Failed attempts do not
+advance state; an indeterminate result blocks every later phase except reconciliation.
+Auth, increment and void never create journals. The single successful capture may be
+partial, terminates unused authority, cannot exceed the locked positive folio balance,
+and posts guest `-amount` / governed clearing `+amount`. Each partial refund is bounded
+by the captured remainder, posts the exact opposite signs, and links to the capture
+payment and journal without using correction-only `journal.reverses`. Void is terminal.
+
+### 7a. Hosted deposit request and application
+
+`ready → capture_pending → captured | failed`; `ready | capture_pending → expired`,
+and regeneration changes the prior active generation to `revoked`. A browser return
+never transitions the request: only the signed provider receipt reconciled through the
+payment state machine can establish captured/failed truth. Late approved truth may
+replace an informational timeout because provider reconciliation remains authoritative.
+
+Application is not a hosted-request state transition. Each application appends one
+immutable record and balanced journal while `sum(applications) ≤ captured amount` and
+the locked folio balance remains positive. Concurrent losers conflict; no application
+is allowed for ready, pending, failed, expired, revoked or foreign capture state.
 
 ## 8. Document (fiscal) — draft → issued (number+hash assigned, series advanced,
-prev_hash chained) → cleared|rejected (fiscal_submission) ; issued→void only where
-jurisdiction permits, else credit-note document. Emits document.issued / .cleared.
+prev_hash chained); the separate fiscal_submission head reaches accepted, rejected or
+error without changing that issued document. Issued→void is permitted only where the
+jurisdiction allows it; otherwise correction is a credit-note document. Emits
+document.issued / .cleared where the jurisdiction contract defines clearance.
+
+### Order446 native full credit — implementation contract, not released
+
+An issued invoice stays **issued and unchanged**. A distinct full-credit operation
+creates a new issued C-series `credit_note` and inverse correction journal in one
+transaction, with an immutable reference to the original invoice. No intermediate
+pending credit binding is updated to complete; preallocated identities and deferred
+artifact checks require the final complete graph at commit. One original permits
+at most one full credit. Same-key replay returns its original receipt with current
+authority checks and no new number/posting/event. Different payload or conflicting
+second credit fails; failed transactions consume no number. Current open-day and
+authorized post-seal rules apply. This is not an issued→void transition, refund,
+partial/debit correction or provider delivery transition.
+
+### Order440 delivery head (durable source, not document mutation)
+
+Issued native documents and their number/content/chain remain immutable. The separate
+`fiscal_submission` status records delivery, with protected append-only transition and
+receipt history. Q199's private draft is integrated by canonical78 and Q205's
+immutable-command correction79, merged through PR87. Q204's supervised discovery is
+merged as migration80 without adding a delivery status or mutating any issued
+document. Q207's private candidate81 adds authenticated signed-receipt retention and
+governed reads. No external provider account or transport is activated.
+
+| Current head | Event | Next head / permitted work |
+|---|---|---|
+| absent | authorized request for eligible issued document | pending / send |
+| pending | runtime claims new attempt | submitted / transport outside the transaction |
+| submitted | pending, timeout or duplicate response | submitted / lookup only |
+| submitted | expired claim | new lookup claim for the same attempt; never a new send |
+| submitted | source-bound signed acceptance or authenticated definitive rejection | terminal accepted or rejected / no work; rejection has no IRN |
+| submitted | authenticated lookup returns provider status `CNL` | terminal error / none / `provider_cancelled`; no discovery or retry |
+| submitted | verified known-not-sent | error / explicit authorized retry eligible |
+| error, known-not-sent | authorized retry, fewer than3 retries | pending / new unique attempt; prior history retained |
+| terminal | identical current or pre81 legacy receipt replay | same immutable terminal state, no duplicate effects |
+| any | stale attempt/token, conflicting receipt, foreign binding | reject without changing the head |
+
+The private generic reducer also models clearance for future adapters; the admitted
+durable India foundation permits reporting only. A lease is15–300 seconds (worker
+default60), and at most3 explicit known-not-sent retries follow the first attempt.
+These are bounded implementation controls, not statutory eligibility policies.
+Pending/submitted/rejected/error remain audited business-day seal blockers unchanged.
+No transition edits an issued document, balances a second ledger, reuses an invoice
+number or interprets a local success receipt as authenticated government acceptance.
+
+Candidate81 stores the versioned terminal envelope in the existing immutable terminal
+head response. Canonical padded base64 preserves the exact raw authenticated response
+and decrypted data bytes; explicit hashes bind those bytes. Accepted receipts retain
+the exact signed invoice and signed QR, and `qr_payload` equals that signed QR. History,
+fact and outbox retain transition identity/hashes rather than copying the sensitive
+receipt bodies. Newly terminal India rows must satisfy the complete envelope; unchanged
+legacy terminal rows and exact replay remain supported.
+
+The candidate GET read is not a state transition. It rechecks the signed session,
+active tenant/user, property containment and the currently unassigned
+`tax-fiscal.submissions:read` permission on every call. Missing and inaccessible rows
+share the same non-disclosing result. The response exposes a bounded pending,
+legacy-hash-only, rejected, provider-cancelled or accepted-signed view and never raw or
+decrypted provider bytes, request wire, claim tokens, credentials or provider messages.
+
+The complete generated-key protocol journey has exercised these transitions through
+the real adapter and worker into actual PostgreSQL81 and the signed-session GET,
+including response-loss lookup by a fresh process, definitive rejection, CNL and
+signed-source mismatch. This proves the synthetic protocol/state integration without a
+stubbed verified outcome; it does not prove authentic external-provider sandbox
+acceptance or activate any runtime.
+
+Q204 discovery and claim share the same database-clock eligibility. A submitted
+head with an unreconciled expired claim is due for lookup; a reconciled pending,
+timeout or duplicate result is due15 seconds after claim_expires_at. Neither path
+creates another send. Inactive tenants, legacy/terminal heads and explicit-retry
+heads are excluded; active tenant is checked again while claiming.
+
+The runtime has a separate process state: `disabled → running → disabled` on
+cooperative shutdown, or `running → failed` on fatal discovery/repository failure.
+An unavailable/busy adapter is an idle delivery result, not fiscal acceptance or
+failure. The exact adapter lane is reserved before claim. Abort after transport
+begins reconciles unknown delivery; late promise settlement releases quarantine
+but cannot change the durable result. These process states do not replace the
+persisted delivery head or establish government authority.
+
+## 9. Approval (`approval_request.status`) — added by D-93 (Question 011)
+
+```
+pending ──approve──▶ approved   (terminal)
+pending ──reject───▶ rejected   (terminal)
+pending ──expire───▶ expired    (terminal)
+```
+
+Exhaustive. All three terminal states are final: no reopen, no transition out of a
+terminal state, no `pending → pending`. Reversing a decision creates a **new**
+`approval_request` against the same `(subject_type, subject_id)`.
+
+`expire` is **system-driven** and carries no `decided_by`; `approve` and `reject` require
+one, and `requested_by <> decided_by` is enforced at the primitive — a requester may never
+approve their own request.
+
+**Storage:** mutable head row + append-only `fact_log` history. `approval_request` is
+deliberately absent from the baseline's R4 insert-only list, and D-05's insert-only rule
+scopes to financials, rates, occupancy and config — not to this table.
+
+**Concurrency:** the decision is a guarded update,
+`UPDATE approval_request SET status=$2, decided_by=$3, decided_at=now() WHERE id=$1 AND status='pending'`.
+Two simultaneous decisions cannot both win; a zero-row update is a conflict and is
+reported as one, never retried into success.
+
+Emits `approval.requested` on creation and `approval.decided` on any terminal transition,
+through the `EventBus` port, in the same transaction as the state change.
+
+## 10. Discrepancy — unresolved creation only (Order 235)
+
+Order 235 adds no discrepancy transition. It may create one unresolved row for one
+exact active physical room only when an explicit observation differs from coherent
+server-derived current stay/occupancy truth. Its immutable classification at creation
+is `sleep`, `skip` or `person`, encoded by canonical reported/system tokens.
+
+Matching truth is a no-op. While an unresolved row exists, exact evidence is replayed
+and different evidence conflicts; neither path changes the row. Resolution,
+carry-forward, queue linkage, message/alert creation, update and deletion remain
+outside this slice. Therefore no `unresolved -> resolved` transition is executable by
+Order 235 even though the baseline retains `resolved_at` and `resolution` for a later
+governed workflow.
+
+## 11. Vehicle parking — unassigned to assigned only (Order 236)
+
+```
+unassigned --assign one admitted parking space--> assigned
+assigned --canonical segment checkout/release--> unassigned
+```
+
+Order 236 exposes only that create transition for one onsite reservation-linked
+vehicle with one coherent current in-house segment. PostgreSQL creates the exclusive
+parking occupancy claim before atomically binding `vehicle.parking_space`. Exact
+same-target replay returns the existing assignment; another target or incoherent
+truth conflicts without a state change. The second transition is not a parking
+command: existing segment checkout validates and releases the claim and clears its
+pointer atomically. Replacement, manual release, reassignment,
+entry/exit, staff/visitor parking and history are outside this state machine.
+
+## Order593 — departure service proposals and work
+
+Proposal: `pending -> confirmed | withdrawn`; pending expiry is derived from its server
+expiry instant and forbids confirmation, but permits explicit withdrawal. Confirm creates
+one canonical `guest_request` task in `open`. Task execution is exclusively
+`open -> assigned -> in_progress -> done`, with server version CAS on the linked request.
+There is no cancel/reopen/replace/reassign transition in this slice.
+
+Minibar and room-inspection completion records `clear`, `finding_reported` or
+`unable_to_complete`. Done means the worker recorded the outcome, including inability;
+it never means charge authorization, liability, incident resolution or room readiness.
+Luggage and escalation completion record no physical-room outcome. Escalation is its own
+pending/confirmed request and role-queue task; it never changes parent task status.
+Confirmed work remains executable after checkout. No new proposal/confirmation may
+cross checkout or stale segment/room/departure truth. Requests do not block checkout.

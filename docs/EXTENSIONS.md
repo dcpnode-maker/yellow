@@ -1,12 +1,55 @@
 # EXTENSIONS.md — Extension Registry content schemas
 
-Everything configurable lives in `extension` rows, validated against the JSON Schema
-registered in `extension_type.content_schema`. **One lifecycle for all config** (draft →
-active → retired, bitemporal via fact_log). Adding a vertical, a tax regime, a policy
-kind, or a statutory country is DATA, not code — unless it needs an adapter (Tier C).
+**Status and precedence:** this file defines configuration schemas and documented
+instances; it is not a catalogue of every currently installed row. `PROJECT.md`,
+applied migrations, `scripts/seed.ts` and executable tests govern implementation.
+The [feature register](FEATURE-REGISTER.md) records current requirements, while a
+specified regional or workspace preference is not registered or live until its own
+bounded implementation and proof exist.
 
-Schemas below are the launch set. Claude Code: when implementing, load these into
-`extension_type` in the Phase-1 seed migration, exactly as written.
+Extensible configuration types and instances live in `extension` rows, validated
+against the JSON Schema registered in `extension_type.json_schema`. **One lifecycle for
+extension config** (draft → active → retired, bitemporal via fact_log). Adding a
+vertical, a tax regime, a policy kind, or a statutory country is DATA, not code — unless
+it needs an adapter (Tier C).
+
+Core property runtime choices that are attributes of the property itself remain in the
+typed `org_node.config` envelope and are changed only through audited domain commands;
+they are not plugin instances. Inventory currently defines
+`inventory.oos_sellability` as `blocked | allowed`, defaulting to `blocked` when absent.
+
+Hotel, hostel, serviced-apartment and STR behavior begins with the shared
+`vertical_profile`, but profile choice does not require identical staff workspaces.
+The [staff journeys](design/STAFF-JOURNEYS.md) describe the desired experience split.
+Locale, direction, density and lightweight regional presentation preferences belong
+in a future typed property configuration envelope described by the
+[regional-pack proposal](architecture/REGIONAL-PACKS.md); they do not create another
+bounded context, duplicate tax/statutory rules or authorize an extension row today.
+Voice and RMS adapters likewise consume authorized configuration and ordinary domain
+contracts; configuration never gives a model arbitrary SQL, pricing, financial or
+fiscal authority. See the [voice/RMS proposal](architecture/VOICE-RMS-PLAN.md).
+
+Rate authoring uses three related tenant extensions. `rate_plan_model` records the selected guided,
+expert or AI-authored model family; `rate_plan_target` records physical and commercial applicability;
+and `rate_plan_release` is the only atomic activation unit. Its strict content binds the exact model
+and target draft ids/versions, the canonical evaluator and composition ASTs, and an optional
+`undo_of_version`. Its required `rms_binding` is nullable; the reserved strict object contains only
+adapter key/version, maximum recommendation age and `local_evaluator` outage fallback. Order 069
+accepts only null, while Order 070 owns every proof required before the object form can be used.
+Bigint minor units inside the ASTs are JSON encoded as exact tagged decimal objects. No release
+instance is seeded: hotels create tenant drafts, simulate them, obtain approval and publish a latest
+version through the rates context.
+
+`rate_plan_release` lifecycle status is operational metadata (`draft → active → retired`); its
+content is immutable. Reverting means copying a prior active or retired snapshot into a newer draft
+that follows the same approval path. The release does not own availability, restrictions, OOO/OOS,
+tax, fiscal or journal truth, so hotel-selectable pricing cannot disable those controls.
+
+Schemas below define the launch set. The implemented seed catalogue lives in
+`scripts/seed.ts` and is checked by executable extension/seed tests; later migrations
+append governed history without rewriting the immutable baseline. Do not infer that a
+schema shown here is installed in a particular database without running the current
+seed/migration proof.
 
 ---
 
@@ -31,7 +74,7 @@ Schemas below are the launch set. Claude Code: when implementing, load these int
   } }
 ```
 
-Launch instances (seed these four):
+Documented launch instances (the executable seed owns their installed form):
 
 ```json
 { "key":"hotel", "content": { "terminology":{"space":"Room","unit_type":"Room Type"},
@@ -103,7 +146,98 @@ Launch instances (seed these four):
   } }
 ```
 
-India GST launch instance (CBIC 15/2025 slabs, slab on transaction value per night):
+Order 237 evaluates this content as a pure positive-charge rule value. For that
+evaluator, `price_display` and `rounding` must be supplied explicitly; the schema's
+rounding default is an authoring hint, not a hidden runtime default. Rates must be
+finite, non-negative and exactly convertible to integer basis points. Money and
+intermediate values are exact bounded `bigint` minor units; JavaScript-number money is
+never admitted.
+
+The four modes have these exact v1 meanings:
+
+- `percent` applies one configured basis-point rate to each matching attributable
+  component;
+- `fixed_per_night` and `fixed_per_person_night` multiply `amount_minor` only by the
+  caller's explicit non-negative integer quantity;
+- `slab_percent` is whole-band, not progressive: each explicit room-night component
+  selects the first ordered inclusive `upto_minor`, with exactly one final null band.
+  Stay-average selection is forbidden.
+
+`applies_to` matches only explicit revenue-group values. `compound_on` may name only
+earlier unique tax codes and is rejected when missing, duplicated, forward, self or
+cyclic. Positive half-up rounding is the engine convention: `line` rounds each
+attributable component, while `document` sums exact rational components and rounds
+once per tax code without allocating residual minor units to lines. Inclusive display
+extracts tax from the supplied gross; exclusive display adds tax to the supplied base.
+This convention is calculation behavior, not jurisdiction certification.
+
+Room-night evaluation retains ordered per-night components, including mixed slab
+rates. Line-rounded compounding consumes those already-rounded earlier components.
+Document-rounded compounding is rejected because v1 has no authorized allocation of a
+rounded document tax back to attributable lines. Collection sizes and rational
+representation complexity are bounded and hostile oversized values fail closed.
+
+The evaluator does not read extensions or assignments, infer guest categories/dates,
+or decide precedence against `rate_plan.tax_inclusive`. Negative corrections,
+person-category rules, document residual allocation, progressive slabs and India
+CGST/SGST/IGST place-of-supply decomposition require later versioned contracts.
+Aggregate `GST_ROOM` output is not a legally final invoice and authorizes no posting,
+document number/hash or fiscal submission.
+
+Order 238 resolves the content supplied to that evaluator without making extension
+configuration caller-selectable. Inside a tenant transaction, an exact active
+same-tenant property and already-derived property-local business date select zero or
+one containing `tax_assignment` using PostgreSQL `[)` `daterange` semantics. Zero is
+explicitly unassigned and overlap fails closed. The assigned key must match exactly
+one active visible `tax_jurisdiction` returned by the established
+platform-global-plus-tenant runtime adapter. Zero or multiple active matches fail;
+tenant ownership and row order provide no preference.
+
+The resolver returns deeply frozen exact assignment bounds, extension id/owner/key/
+version, exact database-derived effective lower/upper UTC instants (null for an
+unbounded end), recursively canonical copied content, a SHA-256 content hash and
+deterministic evidence references. The narrow runtime-only projection is called only
+after exact visible-row selection, and its identity must still match. The bounds enter
+the jurisdiction evidence reference but do not authorize date-to-instant conversion
+or temporal containment. Resolution writes no extension or
+assignment, emits no event and grants only input authority for the pure evaluator,
+not posting, document issue or fiscal submission authority.
+
+Order 239 is the first bounded quote consumer of that resolved content. Every ordered
+property-local night must resolve, and every night must bind the same exact extension
+id, owner, key, version and content hash. Unassigned, partially assigned or mixed
+stays return explicit preview-unavailable evidence with no partial tax total; the
+runtime does not average nights, split versions or invent document rounding.
+
+Evaluation is restricted to an exact room-only quote of at most 366 nights with no
+package evidence/allocation, included or extra amount, applied promotion or discount,
+and pre-tax subtotal equal to room total. One `room_revenue` line carries ordered
+nightly `bigint` amounts, exact length of stay and exact party person-nights. The
+exact active same-tenant/property rate-plan `tax_inclusive` truth must agree with
+`price_display`; neither overrides the other and mismatch fails closed.
+
+The quote retains per-night assignment evidence, exact extension
+id/version/content/hash evidence and the complete evaluator result, all bound into
+`quoteHash`; HTTP money remains canonical decimal strings. This use grants no
+extension write, price mutation, booking commit, folio/posting/journal/tax-detail,
+document/provider/fiscal, fact or event authority and adds no endpoint.
+
+Folio tax preview is explicitly deferred because current folio truth lacks canonical
+revenue-group, service-night, person-night, quote-lineage, correction and transfer
+attribution. Those inputs must not be inferred from USALI labels or descriptive
+quantity. Order 301 adds one applicability predicate: canonical half-open UTC
+`[effectiveFrom,effectiveTo)` must contain the entire property-day
+`[businessDayFromInstant,businessDayToInstant)`. Null edges are unbounded and equal
+edges pass; partial, overlap-only, start-only, disjoint, or malformed/non-increasing
+intervals fail closed. Unassigned results skip extension-period reads. The India 2026
+fixture lower instant is explicitly `2025-12-31T18:30:00Z` (Kolkata midnight).
+Database-derived instants only: no clock, JavaScript conversion, implicit timezone,
+or fixed 24-hour arithmetic. Section 14, working-day rules, rate changes, and old/new
+extension pairing remain outside this contract.
+
+India GST accommodation launch instance (CBIC Notification 15/2025-Central Tax
+(Rate), effective 22 September 2025, read with Notification 04/2022-Central Tax
+(Rate); slab on transaction value per accommodation unit per day):
 
 ```json
 { "key":"in-gst-lodging", "content": { "country":"IN",
@@ -111,15 +245,42 @@ India GST launch instance (CBIC 15/2025 slabs, slab on transaction value per nig
   "taxes":[{ "code":"GST_ROOM", "name":"GST on accommodation", "mode":"slab_percent",
     "slab_basis":"transaction_value", "applies_to":["room_revenue"],
     "slabs":[
-      {"upto_minor":100000,  "rate":0,    "itc_eligible":false},
       {"upto_minor":750000,  "rate":0.05, "itc_eligible":false},
       {"upto_minor":null,    "rate":0.18, "itc_eligible":true}] },
    { "code":"GST_FNB", "name":"GST on F&B (restaurant in hotel)", "mode":"percent",
      "rate":0.05, "applies_to":["fnb_revenue"] }] } }
 ```
 
+For one accommodation unit per day, Notification 15/2025 supersedes the historical
+Order298 launch-rate description: value at or below 750000 minor INR is taxed at 5%
+without input-tax credit, and value above INR 7,500 is taxed at 18% with input-tax
+credit. Notification 04/2022 removed the earlier below-INR-1,000 exemption, and
+Notification 15/2025 does not restore it, so this launch fixture contains no nil
+accommodation band. The unrelated 5% `GST_FNB` restaurant example remains unchanged.
+
 KSA and AE launch instances: flat `percent` VAT 0.15 / 0.05 on all revenue groups,
 `price_display":"tax_inclusive"`.
+
+Order275's admitted India IRP seller-details projection does not add an extension
+schema or read mutable extension content. It accepts only the exact frozen Order272
+supplier-registration result already bound to the jurisdiction extension
+id/nullable-owner/key/version/content hash, and projects the notified IRP 1.1
+`SellerDtls` fields without fallback. Registration/evidence lineage and the payload
+hash remain outside the transmitted JSON. Buyer, place-of-supply, tax decomposition,
+items, values, documents and submission/provider routing remain separate future
+authority. The pure projection and its executable proof are independently Tier-3
+approved under D-719 with no finding.
+
+Order278's specified India IRP buyer-details candidate likewise adds no extension
+schema and reads no extension content. It accepts only the exact approved, deeply
+frozen Order276 registered-recipient candidate evidence and projects fixed-order
+`BuyerDtls` fields `Gstin`, `LglNm`, nullable-omitted `TrdNm`, `Addr1`, `Loc`, numeric
+`Pin` and `Stcd`. Exact Party, registration and evidence-hash lineage stays outside
+the transmitted JSON; canonical bytes and SHA-256 are deterministic. `Pos` remains a
+separate notified field and is neither included nor inferred. This candidate does not
+designate the legal invoice/folio-window buyer and grants no full payload, tax,
+document, database, API, HTTP or UI authority. Fresh independent Tier-3 execution
+approves exact Order278 under D-728 with no finding.
 
 ---
 
@@ -213,6 +374,42 @@ Launch instances:
 UAE note: PINT AE must flow through an Accredited Service Provider — in-house clearance
 is not a legal option there. `provider_key` `ae-asp:<vendor>` is chosen at onboarding.
 
+### Q207 protected India IRP registration candidate
+
+The examples above describe extension intent; they are not live credentials or proof
+that an adapter is installed. Candidate Q207 does not read secrets from extension JSON,
+HTTP bodies or environment-variable values. Its only environment selector is
+`YELLOW_INDIA_IRP_PROVIDERS_FILE`. When absent, loading returns the same deeply frozen
+empty registry and the fiscal worker remains independently default-off.
+
+When explicitly configured, that value is an absolute local path of at most4096
+characters to a strict version1 manifest, at most4MiB, with at most16 exact
+registration entries. Each entry binds provider extension UUID/version and the fixed
+ClearIRP protocol configuration to
+a separate absolute credentials-file path. Each credentials file is at most16KiB and
+contains exactly `clientId`, `clientSecret`, `userName`, `password` and `gstin`.
+`protocolConfigurationJson` is itself the strict adapter JSON string with exactly
+`protocolProfile`, `providerKey`, `environment`, `apiBaseUrl`,
+`encryptionSpkiDerBase64`, `issuer`, `profileVersion`, `trustBundleJson`,
+`sekEncoding`, `tokenExpiryUtcOffsetMinutes`, `definitiveRejectionCodes`,
+`duplicateCodes` and `notFoundCodes`; endpoints, issuers, keys, code sets and token
+offsets have no defaults.
+Manifest and secret files are snapshotted from one opened handle, must be bounded
+regular files rather than directories or symbolic links, and loading makes no network
+request. Any malformed entry, duplicate registry identity or file failure rejects the
+whole load; no partial registry is returned.
+
+On POSIX, credential files must be owned by the runtime identity and inaccessible to
+group/other users. Those permission bits do not prove a Windows ACL: Windows deployment
+must separately restrict both manifest and credential paths to the runtime account.
+The loader reports this platform limitation rather than claiming ACL validation it
+cannot perform. The resulting immutable registration list is the single identity
+source for both HTTP adapter availability and supervised workers. No configuration,
+credential file, provider account, local runtime or transport is activated merely by
+this candidate contract. Generated-key tests have exercised the complete fixed
+protocol and protected loader without a network account; authentic provider sandbox
+onboarding remains a distinct unfinished activation gate.
+
 ---
 
 ## 6. `automation_action` — the action vocabulary (CONTRACTS §6 AST targets)
@@ -247,6 +444,96 @@ actions by registering rows + one handler module.
 
 ---
 
+## 7. `rate_model` — registered pricing-model catalogue
+
+`rate_model` is platform-global product configuration. It tells guided, expert and future AI
+authoring which model families exist; it does not calculate or publish a price.
+
+```json
+{ "$id":"pms:rate_model:1", "type":"object",
+  "required":["version","label","description","capabilities"],
+  "additionalProperties":false,
+  "properties":{
+    "version":{"type":"integer","minimum":1},
+    "label":{"type":"string"},
+    "description":{"type":"string"},
+    "capabilities":{"type":"array","items":{"type":"string"}}
+  } }
+```
+
+Launch keys are exact: `simple-fixed`, `calendar`, `bar-ladder`, `derived`,
+`room-matrix`, `occupancy-los`, `contract-negotiated`, `package`, `rms-api-managed`
+and `expert-composition`. Catalogue entries are active platform rows at version 1. Adding a key
+does not add an evaluator; executable behavior remains a separately reviewed rates-context change.
+
+---
+
+## 8. `rate_plan_model` — immutable tenant draft selection
+
+This tenant extension attaches a versioned, non-monetary model choice to an existing active
+`rate_plan`. The key is always server-derived as `rate-plan:<rate-plan-uuid>`.
+
+```json
+{ "$id":"pms:rate_plan_model:1", "type":"object",
+  "required":["property_node","rate_plan_id","model_key","model_version",
+    "authoring_mode","component_model_keys"],
+  "additionalProperties":false,
+  "properties":{
+    "property_node":{"type":"string","pattern":"^[0-9a-f-]{36}$"},
+    "rate_plan_id":{"type":"string","pattern":"^[0-9a-f-]{36}$"},
+    "model_key":{"enum":["simple-fixed","calendar","bar-ladder","derived",
+      "room-matrix","occupancy-los","contract-negotiated","package",
+      "rms-api-managed","expert-composition"]},
+    "model_version":{"type":"integer","minimum":1},
+    "authoring_mode":{"enum":["guided","expert","ai"]},
+    "component_model_keys":{"type":"array","items":{"type":"string"}}
+  } }
+```
+
+Order 065 creates only `draft` rows and one fact per version. It stores no amount, percentage,
+date rule, target or formula. Expert composition is a bounded list of registered non-expert keys.
+Activation, approval, publication and undo use later orders and the existing
+`extension.activated` event.
+
+---
+
+## 9. `rate_plan_target` — immutable applicability and commercial targeting
+
+This tenant extension records who and what an existing active rate plan is intended for. It is a
+draft input to later simulation and publication; it does not itself change a price or sellability.
+
+```json
+{
+  "$id": "pms:rate_plan_target:1",
+  "property_node": "uuid",
+  "rate_plan_id": "uuid",
+  "authoring_mode": "guided | expert | ai",
+  "rules": [{
+    "key": "stable-rule-key",
+    "effect": "include | exclude",
+    "priority": 0,
+    "physical": { "kind": "property | class | unit_type | sellable" },
+    "commercial": {}
+  }]
+}
+```
+
+Physical scope is exact: sellable beats unit type, which beats a hotel-defined class snapshot,
+which beats property. A class contains a canonical hotel code and a sorted immutable list of exact
+property-owned unit-type ids; changing membership requires a new draft version. Commercial fields
+are conjunctive and may target company, market group, market, source, channel, segment, agent and
+campaign. Company, agent and source ids are active tenant party roles. The remaining codes are
+bounded case-sensitive hotel vocabulary until a later publish/distribution boundary validates any
+external mapping.
+
+Within one physical rank, more constrained commercial fields win, followed by one uniquely higher
+explicit priority. Equal top rank/count/priority is returned as a conflict, never resolved by row,
+array, JSON-key or rule-key order. Broad `include` plus a narrower `exclude` gives explicit
+inheritance and exceptions. Creation is insert-only, audited, emits no event and stores no price,
+date condition, policy formula or publish state.
+
+---
+
 ## Tier map (recap)
 
 - **Tier A** — most countries: tax_jurisdiction row only, or nothing. No code.
@@ -254,3 +541,19 @@ actions by registering rows + one handler module.
 - **Tier C** — clearance/registration mandates needing code: ZATCA, India IRP,
   UAE ASP, Alloggiati/SIBA/Form-C/eVisitor. Each is one adapter module conforming to
   the FiscalDocumentProvider / StatutoryAdapter port. Never touch the core.
+
+## Order305 fresh-bootstrap accommodation history
+
+Fresh bootstrap owns one deterministic global `in-gst-lodging` history. Version 1 is
+retired for `[2022-07-17T18:30:00.000000Z,2025-09-21T18:30:00.000000Z)`: its
+`GST_ROOM` bands are 12% with ITC through INR 7,500 and 18% with ITC above that
+threshold. Version 2 is active for `[2025-09-21T18:30:00.000000Z,infinity)`: its
+bands are 5% without ITC through INR 7,500 and 18% with ITC above it. Both retain
+the tax-exclusive, document-rounded, transaction-value and `room_revenue` rules;
+the 5% `GST_FNB` example is unchanged.
+
+The seed inserts both rows as one transaction, records deterministic audit facts,
+returns `already exact` on byte-equivalent replay, and rejects any identity,
+period, content or status collision without repair. Existing installed databases
+are not rewritten. The runtime catalogue may expose both rows, while the existing
+active-only tax resolver selects version 2 only.

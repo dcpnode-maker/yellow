@@ -1,0 +1,1382 @@
+import { types as utilTypes } from "node:util";
+
+import {
+  IndiaFinalComponentTaxFiscalSourceService,
+  IndiaNativeFiscalAccountingEventHandler,
+  type IndiaFinalComponentTaxNativeFiscalSourceResult,
+  type IndiaNativeFiscalAccountingEventInput,
+  type IndiaNativeFiscalAccountingEventResult,
+} from "../financials";
+import {
+  type AuditEnvelope,
+  type JsonValue,
+  type Tx,
+} from "../../kernel";
+import {
+  IndiaIrpAccommodationFiscalActionReadinessService,
+  type IndiaIrpAccommodationFiscalActionReadinessInput,
+  type IndiaIrpAccommodationFiscalActionReadinessResult,
+} from "./india-irp-accommodation-fiscal-action-readiness";
+import {
+  IndiaIrpAccommodationSourceService,
+  type IndiaIrpAccommodationSourceResult,
+} from "./india-irp-accommodation-source";
+import {
+  assembleIndiaNativeFiscalSource,
+  type IndiaNativeFiscalSourceInput,
+  type IndiaNativeFiscalSourceResult,
+} from "./india-native-fiscal-source";
+
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+const HASH = /^[0-9a-f]{64}$/;
+const KEY = /^[\x21-\x7e]{8,200}$/;
+const DATE = /^\d{4}-\d{2}-\d{2}$/;
+const PREFIX = /^[A-Za-z0-9/-]+$/;
+const AUTHORITY = /^[A-Z][A-Z0-9_.:-]{2,127}$/;
+const OPERATION = "document.issued";
+const SERIES_OPERATION = "document.series.configured";
+const BLOCKED_STATE = "blocked_pending_fiscal_document_origin_policy";
+const BLOCKERS = [
+  "FISCAL_DOCUMENT_ORIGIN_UNSELECTED",
+  "LEGAL_DOCUMENT_NUMBER_FORMAT_UNCONFIGURED",
+  "DOCUMENT_SERIES_UNBOUND",
+] as const;
+
+type PlainRecord = Record<string, unknown>;
+type InvoiceKind = "invoice";
+type SeriesKind = "invoice" | "credit_note" | "debit_note";
+
+export interface IndiaNativeFiscalSeriesConfigurationInput {
+  readonly tenantId: string;
+  readonly propertyNode: string;
+  readonly supplierRegistrationId: string;
+  readonly documentKind: SeriesKind;
+  readonly prefix: string;
+  readonly envelope: AuditEnvelope;
+}
+
+export interface IndiaNativeFiscalSeriesConfigurationResult {
+  readonly seriesId: string;
+  readonly tenantId: string;
+  readonly propertyNode: string;
+  readonly supplierRegistrationId: string;
+  readonly documentKind: SeriesKind;
+  readonly prefix: string;
+  readonly financialYearStart: string;
+  readonly nextNo: string;
+  readonly replayed: boolean;
+}
+
+export interface IndiaNativeFiscalInvoiceIssueInput extends IndiaIrpAccommodationFiscalActionReadinessInput {
+  readonly actorId: string;
+  readonly idempotencyKey: string;
+  readonly envelope: AuditEnvelope;
+}
+
+export interface IndiaNativeFiscalInvoiceCalendarEvidence {
+  readonly authorityId: string;
+  readonly sourceDigestSha256: string;
+  readonly throughDate: string;
+  readonly days: readonly Readonly<{
+    readonly date: string;
+    readonly state: "working" | "non_working";
+  }>[];
+}
+
+export interface IndiaNativeFiscalInvoiceIssueNativeInput {
+  readonly tenantId: string;
+  readonly propertyNode: string;
+  readonly actorId: string;
+  readonly reservationId: string;
+  readonly folioId: string;
+  readonly valuationId: string;
+  readonly serviceProvisionSnapshotId: string;
+  readonly paymentReceiptSnapshotId: string;
+  readonly ordinaryRegimeEvidenceId: string;
+  readonly supplierServiceLocationId: string;
+  readonly supplierRegistrationStatusId: string;
+  readonly supplierSezStatusId: string;
+  readonly recipientRegistrationId: string;
+  readonly recipientSezStatusId: string;
+  readonly classificationId: string;
+  readonly calendarEvidence: IndiaNativeFiscalInvoiceCalendarEvidence | null;
+  readonly idempotencyKey: string;
+  readonly envelope: AuditEnvelope;
+}
+
+export interface IndiaNativeFiscalInvoiceIssueNativeConfirmedInput
+  extends IndiaNativeFiscalInvoiceIssueNativeInput {
+  readonly expectedSelectorHash: string;
+  readonly expectedConfirmationHash: string;
+}
+
+/** Public staff-command input. Internal financial/statutory selectors are resolved
+ * and authenticated by prepare_india_native_fiscal_invoice_v4, never by the caller. */
+export interface IndiaNativeFiscalInvoiceOperatorIssueInput {
+  readonly tenantId: string;
+  readonly propertyNode: string;
+  readonly actorId: string;
+  readonly reservationId: string;
+  readonly folioId: string;
+  readonly recipientRegistrationId: string;
+  readonly calendarEvidence: IndiaNativeFiscalInvoiceCalendarEvidence | null;
+  readonly idempotencyKey: string;
+  readonly envelope: AuditEnvelope;
+  readonly expectedSelectorHash: string;
+  readonly expectedConfirmationHash: string;
+}
+
+export type IndiaNativeFiscalPreparedSourceInput = Omit<IndiaNativeFiscalSourceInput, "financialSource">;
+
+export interface IndiaNativeFiscalAccountingHandlerPort {
+  handle(tx: Tx, input: IndiaNativeFiscalAccountingEventInput): Promise<IndiaNativeFiscalAccountingEventResult>;
+}
+
+export interface IndiaNativeFiscalSourceReaderPort {
+  resolveNative(
+    tx: Tx,
+    input: Readonly<{
+      tenantId: string;
+      propertyNode: string;
+      reservationId: string;
+      folioId: string;
+      postingBindingId: string;
+    }>,
+  ): Promise<IndiaFinalComponentTaxNativeFiscalSourceResult>;
+}
+
+export type IndiaNativeFiscalInvoiceReceipt = Readonly<Record<string, JsonValue>> & {
+  readonly documentId: string;
+  readonly documentKind: InvoiceKind;
+  readonly seriesId: string;
+  readonly docNo: string;
+  readonly propertyNode: string;
+  readonly reservationId: string;
+  readonly folioId: string;
+  readonly supplierRegistrationId: string;
+  readonly recipientRegistrationId: string;
+  readonly financialYearStart: string;
+  readonly currency: "INR";
+  readonly status: "issued";
+  readonly businessDate: string;
+  readonly issuedAt: string;
+  readonly prevHash: string | null;
+  readonly sha256: string;
+  readonly sourceEvidenceHash: string;
+  readonly preDocumentEvidenceHash: string;
+  readonly readinessEvidenceHash: string;
+  readonly replayed: boolean;
+}
+
+interface CommitRow {
+  readonly document_id: string;
+  readonly document_kind: string;
+  readonly series_id: string;
+  readonly doc_no: string;
+  readonly property_node: string;
+  readonly reservation_id: string;
+  readonly folio_id: string;
+  readonly supplier_registration_id: string;
+  readonly recipient_registration_id: string;
+  readonly financial_year_start: string;
+  readonly currency: string;
+  readonly status: string;
+  readonly business_date: string;
+  readonly issued_at: Date | string;
+  readonly prev_hash: string | null;
+  readonly sha256: string;
+  readonly source_evidence_hash: string;
+  readonly pre_document_evidence_hash: string;
+  readonly readiness_evidence_hash: string;
+  readonly created: boolean;
+}
+
+interface SeriesRow {
+  readonly series_id: string;
+  readonly tenant_id: string;
+  readonly property_node: string;
+  readonly supplier_registration_id: string;
+  readonly document_kind: string;
+  readonly prefix: string;
+  readonly financial_year_start: string;
+  readonly next_no: string | number | bigint;
+  /** Returned atomically by create_india_native_fiscal_series: true only for a new row. */
+  readonly created: boolean;
+}
+
+interface NativePrepareRow {
+  readonly native_timing_id: unknown;
+  readonly request_event_id: unknown;
+  readonly posting_binding_id: unknown;
+  readonly prepared_source_json: unknown;
+  readonly completed_receipt: unknown;
+}
+
+interface NativePrepareV4Row extends NativePrepareRow {
+  readonly internal_selectors: unknown;
+}
+
+const NATIVE_INPUT_KEYS = [
+  "tenantId", "propertyNode", "actorId", "reservationId", "folioId", "valuationId",
+  "serviceProvisionSnapshotId", "paymentReceiptSnapshotId", "ordinaryRegimeEvidenceId",
+  "supplierServiceLocationId", "supplierRegistrationStatusId", "supplierSezStatusId",
+  "recipientRegistrationId", "recipientSezStatusId", "classificationId", "calendarEvidence",
+  "idempotencyKey", "envelope",
+] as const;
+const CONFIRMED_NATIVE_INPUT_KEYS = [
+  ...NATIVE_INPUT_KEYS, "expectedSelectorHash", "expectedConfirmationHash",
+] as const;
+const OPERATOR_ISSUE_INPUT_KEYS = [
+  "tenantId", "propertyNode", "actorId", "reservationId", "folioId",
+  "recipientRegistrationId", "calendarEvidence", "idempotencyKey", "envelope",
+  "expectedSelectorHash", "expectedConfirmationHash",
+] as const;
+const INTERNAL_SELECTOR_KEYS = [
+  "valuationId", "serviceProvisionSnapshotId", "paymentReceiptSnapshotId",
+  "ordinaryRegimeEvidenceId", "supplierServiceLocationId", "supplierRegistrationStatusId",
+  "supplierSezStatusId", "recipientRegistrationId", "recipientSezStatusId", "classificationId",
+] as const;
+const ENVELOPE_KEYS = ["actorId", "tenantId", "propertyNode", "requestId", "operation"] as const;
+const CALENDAR_KEYS = ["authorityId", "sourceDigestSha256", "throughDate", "days"] as const;
+const CALENDAR_DAY_KEYS = ["date", "state"] as const;
+const PREPARE_ROW_KEYS = [
+  "native_timing_id", "request_event_id", "posting_binding_id", "prepared_source_json",
+  "completed_receipt",
+] as const;
+const PREPARE_V4_ROW_KEYS = [...PREPARE_ROW_KEYS, "internal_selectors"] as const;
+const PREPARED_SOURCE_KEYS = [
+  "tenantId", "legalBuyerPartyId", "sellerRegistration", "recipientRegistration",
+  "placeOfSupply", "classification", "supplyNatureAtTimeOfSupplyInput",
+  "supplyNatureAtTimeOfSupplyResult",
+] as const;
+const COMMIT_ROW_KEYS = [
+  "document_id", "document_kind", "series_id", "doc_no", "property_node", "reservation_id",
+  "folio_id", "supplier_registration_id", "recipient_registration_id", "financial_year_start",
+  "currency", "status", "business_date", "issued_at", "prev_hash", "sha256",
+  "source_evidence_hash", "pre_document_evidence_hash", "readiness_evidence_hash", "created",
+] as const;
+
+export class IndiaNativeFiscalInvoiceValidationError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "IndiaNativeFiscalInvoiceValidationError";
+  }
+}
+export class IndiaNativeFiscalInvoiceNotFoundError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "IndiaNativeFiscalInvoiceNotFoundError";
+  }
+}
+export class IndiaNativeFiscalInvoiceConflictError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "IndiaNativeFiscalInvoiceConflictError";
+  }
+}
+export class IndiaNativeFiscalInvoiceAuthorizationError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "IndiaNativeFiscalInvoiceAuthorizationError";
+  }
+}
+export class IndiaNativeFiscalInvoiceStaleEvidenceError extends Error {
+  constructor() {
+    super("India native fiscal confirmation evidence is stale");
+    this.name = "IndiaNativeFiscalInvoiceStaleEvidenceError";
+  }
+}
+
+export class IndiaNativeFiscalSeriesValidationError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "IndiaNativeFiscalSeriesValidationError";
+  }
+}
+export class IndiaNativeFiscalSeriesNotFoundError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "IndiaNativeFiscalSeriesNotFoundError";
+  }
+}
+export class IndiaNativeFiscalSeriesConflictError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "IndiaNativeFiscalSeriesConflictError";
+  }
+}
+export class IndiaNativeFiscalSeriesAuthorizationError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "IndiaNativeFiscalSeriesAuthorizationError";
+  }
+}
+export class IndiaNativeFiscalSeriesDatabaseError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "IndiaNativeFiscalSeriesDatabaseError";
+  }
+}
+
+function plain(value: unknown, subject: string): asserts value is PlainRecord {
+  if (typeof value !== "object" || value === null || Array.isArray(value) ||
+      utilTypes.isProxy(value) || (Object.getPrototypeOf(value) !== Object.prototype &&
+        Object.getPrototypeOf(value) !== null) || Object.getOwnPropertySymbols(value).length !== 0) {
+    throw new IndiaNativeFiscalInvoiceValidationError(`${subject} must be a plain object`);
+  }
+}
+
+function exact(value: PlainRecord, allowed: readonly string[], subject: string): void {
+  const names = Object.getOwnPropertyNames(value);
+  const extras = names.filter((name) => !allowed.includes(name));
+  if (extras.length > 0) throw new IndiaNativeFiscalInvoiceValidationError(
+    `${subject} contains unsupported fields: ${extras.sort().join(", ")}`,
+  );
+}
+
+function ownDataRecordSnapshot(
+  value: unknown,
+  expected: readonly string[],
+  subject: string,
+): Readonly<PlainRecord> {
+  if (typeof value !== "object" || value === null || utilTypes.isProxy(value) || Array.isArray(value)) {
+    throw new IndiaNativeFiscalInvoiceValidationError(`${subject} must be an own-data plain object`);
+  }
+  const prototype = Object.getPrototypeOf(value);
+  if ((prototype !== Object.prototype && prototype !== null) || Object.getOwnPropertySymbols(value).length !== 0) {
+    throw new IndiaNativeFiscalInvoiceValidationError(`${subject} must be an own-data plain object`);
+  }
+  const descriptors = Object.getOwnPropertyDescriptors(value);
+  const names = Object.getOwnPropertyNames(descriptors);
+  const unsupported = names.filter((name) => !expected.includes(name));
+  const missing = expected.filter((name) => !Object.hasOwn(descriptors, name));
+  if (unsupported.length !== 0 || missing.length !== 0) {
+    throw new IndiaNativeFiscalInvoiceValidationError(`${subject} has an invalid field set`);
+  }
+  const snapshot: PlainRecord = Object.create(null) as PlainRecord;
+  for (const name of expected) {
+    const descriptor = descriptors[name];
+    if (!descriptor || !("value" in descriptor) || descriptor.enumerable !== true) {
+      throw new IndiaNativeFiscalInvoiceValidationError(`${subject}.${name} must be an own data property`);
+    }
+    snapshot[name] = descriptor.value;
+  }
+  return Object.freeze(snapshot);
+}
+
+function ownDataArraySnapshot(
+  value: unknown,
+  subject: string,
+  minimum: number,
+  maximum: number,
+): readonly unknown[] {
+  if (typeof value !== "object" || value === null || utilTypes.isProxy(value) || !Array.isArray(value) ||
+      Object.getPrototypeOf(value) !== Array.prototype || Object.getOwnPropertySymbols(value).length !== 0) {
+    throw new IndiaNativeFiscalInvoiceValidationError(`${subject} must be an own-data array`);
+  }
+  const lengthDescriptor = Object.getOwnPropertyDescriptor(value, "length");
+  const length = lengthDescriptor && "value" in lengthDescriptor ? lengthDescriptor.value : undefined;
+  if (!Number.isSafeInteger(length) || length < minimum || length > maximum) {
+    throw new IndiaNativeFiscalInvoiceValidationError(`${subject} must contain ${minimum} to ${maximum} entries`);
+  }
+  const descriptors = Object.getOwnPropertyDescriptors(value);
+  const names = Object.getOwnPropertyNames(descriptors);
+  if (names.length !== length + 1 || names.some((name) => name !== "length" &&
+      (!/^(0|[1-9][0-9]*)$/.test(name) || Number(name) >= length))) {
+    throw new IndiaNativeFiscalInvoiceValidationError(`${subject} must be dense and contain no named properties`);
+  }
+  const snapshot: unknown[] = [];
+  for (let index = 0; index < length; index += 1) {
+    const descriptor = descriptors[String(index)];
+    if (!descriptor || !("value" in descriptor) || descriptor.enumerable !== true) {
+      throw new IndiaNativeFiscalInvoiceValidationError(`${subject}[${index}] must be an own data property`);
+    }
+    snapshot.push(descriptor.value);
+  }
+  return Object.freeze(snapshot);
+}
+
+function uuid(value: unknown, subject: string): string {
+  if (typeof value !== "string" || !UUID.test(value)) {
+    throw new IndiaNativeFiscalInvoiceValidationError(`${subject} must be a lowercase UUID`);
+  }
+  return value;
+}
+
+function hash(value: unknown, subject: string): string {
+  if (typeof value !== "string" || !HASH.test(value)) {
+    throw new IndiaNativeFiscalInvoiceConflictError(`${subject} must be a lowercase SHA-256 hash`);
+  }
+  return value;
+}
+
+function storedUuid(value: unknown, subject: string): string {
+  if (typeof value !== "string" || !UUID.test(value)) {
+    throw new IndiaNativeFiscalInvoiceConflictError(`PostgreSQL returned an invalid ${subject}`);
+  }
+  return value;
+}
+
+function visibleKey(value: unknown, subject: string): string {
+  if (typeof value !== "string" || !KEY.test(value)) {
+    throw new IndiaNativeFiscalInvoiceValidationError(`${subject} must contain 8 to 200 visible ASCII characters`);
+  }
+  return value;
+}
+
+function postgresArray(values: readonly (string | number | bigint | boolean | null)[]): string {
+  return `{${values.map((value) => value === null
+    ? "NULL"
+    : `"${String(value).replaceAll("\\", "\\\\").replaceAll('"', '\\"')}"`).join(",")}}`;
+}
+
+function date(value: unknown, subject: string): string {
+  if (typeof value !== "string" || !DATE.test(value)) {
+    throw new IndiaNativeFiscalInvoiceValidationError(`${subject} must be YYYY-MM-DD`);
+  }
+  const parsed = new Date(`${value}T00:00:00Z`);
+  if (!Number.isFinite(parsed.getTime()) || parsed.toISOString().slice(0, 10) !== value) {
+    throw new IndiaNativeFiscalInvoiceValidationError(`${subject} is not a calendar date`);
+  }
+  return value;
+}
+
+function seriesRecordSnapshot(value: unknown, expected: readonly string[], subject: string): Readonly<PlainRecord> {
+  try {
+    if (typeof value !== "object" || value === null || Array.isArray(value) || utilTypes.isProxy(value)) throw new Error();
+    const prototype = Object.getPrototypeOf(value);
+    if (prototype !== Object.prototype && prototype !== null) throw new Error();
+    if (Object.getOwnPropertySymbols(value).length !== 0) throw new Error();
+    const descriptors = Object.getOwnPropertyDescriptors(value);
+    const names = Object.getOwnPropertyNames(descriptors);
+    if (names.length !== expected.length || names.some((name) => !expected.includes(name))) throw new Error();
+    const snapshot: PlainRecord = Object.create(null) as PlainRecord;
+    for (const name of expected) {
+      const descriptor = descriptors[name];
+      if (!descriptor || !("value" in descriptor) || descriptor.enumerable !== true) throw new Error();
+      snapshot[name] = descriptor.value;
+    }
+    return Object.freeze(snapshot);
+  } catch {
+    throw new IndiaNativeFiscalSeriesValidationError(`${subject} must be an own-data plain object`);
+  }
+}
+
+const SERIES_RESULT_METADATA = new Set([
+  "count", "columns", "columnTypes", "command", "lastInsertRowid", "affectedRows",
+]);
+
+function isSeriesResultArrayPrototype(value: unknown): boolean {
+  const prototype = Object.getPrototypeOf(value);
+  if (prototype === Array.prototype) return true;
+  if (prototype === null || utilTypes.isProxy(prototype) ||
+      Object.getPrototypeOf(prototype) !== Array.prototype ||
+      Object.getOwnPropertySymbols(prototype).length !== 0) return false;
+  const descriptors = Object.getOwnPropertyDescriptors(prototype);
+  const names = Object.getOwnPropertyNames(descriptors);
+  if (names.length !== 1 || names[0] !== "constructor") return false;
+  const constructorDescriptor = descriptors["constructor"];
+  return !!constructorDescriptor && "value" in constructorDescriptor &&
+    typeof constructorDescriptor.value === "function" && constructorDescriptor.enumerable === false;
+}
+
+function seriesRowsSnapshot(value: unknown, expected: readonly string[], subject: string): Readonly<PlainRecord> {
+  try {
+    if (typeof value !== "object" || value === null || !Array.isArray(value) || utilTypes.isProxy(value) ||
+        !isSeriesResultArrayPrototype(value) || Object.getOwnPropertySymbols(value).length !== 0) throw new Error();
+    const descriptors = Object.getOwnPropertyDescriptors(value);
+    const names = Object.getOwnPropertyNames(descriptors);
+    if (!names.includes("length") || !names.includes("0") || names.some(name =>
+      name !== "length" && name !== "0" && !SERIES_RESULT_METADATA.has(name))) throw new Error();
+    const lengthDescriptor = Object.getOwnPropertyDescriptor(value, "length");
+    const first = descriptors["0"];
+    if (!lengthDescriptor || !("value" in lengthDescriptor) || lengthDescriptor.value !== 1 ||
+        !first || !("value" in first) || first.enumerable !== true) throw new Error();
+    for (const name of names) {
+      if (name === "length" || name === "0") continue;
+      const descriptor = descriptors[name];
+      if (!descriptor || !("value" in descriptor)) throw new Error();
+    }
+    return seriesRecordSnapshot(first.value, expected, subject);
+  } catch {
+    throw new IndiaNativeFiscalSeriesDatabaseError(`${subject} returned an invalid row container`);
+  }
+}
+
+function seriesUuid(value: unknown, subject: string): string {
+  if (typeof value !== "string" || !UUID.test(value)) throw new IndiaNativeFiscalSeriesValidationError(`${subject} must be a lowercase UUID`);
+  return value;
+}
+
+function seriesAuditEnvelope(value: unknown, tenantId: string, propertyNode: string): AuditEnvelope {
+  const envelope = seriesRecordSnapshot(value, ["actorId", "tenantId", "propertyNode", "requestId", "operation"], "envelope");
+  const actorId = seriesUuid(envelope.actorId, "envelope.actorId");
+  const envelopeTenantId = seriesUuid(envelope.tenantId, "envelope.tenantId");
+  const envelopePropertyNode = seriesUuid(envelope.propertyNode, "envelope.propertyNode");
+  const requestId = seriesUuid(envelope.requestId, "envelope.requestId");
+  if (envelopeTenantId !== tenantId || envelopePropertyNode !== propertyNode || envelope.operation !== SERIES_OPERATION) {
+    throw new IndiaNativeFiscalSeriesValidationError("audit envelope is not bound to the command");
+  }
+  return Object.freeze({ actorId, tenantId: envelopeTenantId, propertyNode: envelopePropertyNode, requestId, operation: SERIES_OPERATION });
+}
+
+function auditEnvelope(value: unknown, tenantId: string, propertyNode: string, operation: string): AuditEnvelope {
+  plain(value, "envelope");
+  const envelope = value as Partial<AuditEnvelope>;
+  const actorId = uuid(envelope.actorId, "envelope.actorId");
+  const envelopeTenantId = uuid(envelope.tenantId, "envelope.tenantId");
+  const envelopePropertyNode = uuid(envelope.propertyNode, "envelope.propertyNode");
+  const requestId = uuid(envelope.requestId, "envelope.requestId");
+  if (envelopeTenantId !== tenantId || envelopePropertyNode !== propertyNode || envelope.operation !== operation) {
+    throw new IndiaNativeFiscalInvoiceValidationError("audit envelope is not bound to the command");
+  }
+  return Object.freeze({ actorId, tenantId: envelopeTenantId, propertyNode: envelopePropertyNode, requestId, operation });
+}
+
+function normalizeSeries(rawInput: unknown): IndiaNativeFiscalSeriesConfigurationInput {
+  const input = seriesRecordSnapshot(rawInput, ["tenantId", "propertyNode", "supplierRegistrationId", "documentKind", "prefix", "envelope"], "series configuration input");
+  const tenantId = seriesUuid(input.tenantId, "tenantId");
+  const propertyNode = seriesUuid(input.propertyNode, "propertyNode");
+  const supplierRegistrationId = seriesUuid(input.supplierRegistrationId, "supplierRegistrationId");
+  if (input.documentKind !== "invoice" && input.documentKind !== "credit_note" && input.documentKind !== "debit_note") {
+    throw new IndiaNativeFiscalSeriesValidationError("documentKind is not a supported fiscal series kind");
+  }
+  if (typeof input.prefix !== "string" || input.prefix.trim() !== input.prefix ||
+      input.prefix.length < 1 || input.prefix.length > 12 || !PREFIX.test(input.prefix)) {
+    throw new IndiaNativeFiscalSeriesValidationError("prefix must be 1 to 12 ASCII letters, digits, slash or hyphen");
+  }
+  const envelope = seriesAuditEnvelope(input.envelope, tenantId, propertyNode);
+  return Object.freeze({ tenantId, propertyNode, supplierRegistrationId, documentKind: input.documentKind, prefix: input.prefix, envelope });
+}
+
+export function snapshotIndiaNativeFiscalSeriesConfigurationInput(
+  value: unknown,
+): Readonly<IndiaNativeFiscalSeriesConfigurationInput> | null {
+  try {
+    return normalizeSeries(value);
+  } catch (error) {
+    if (error instanceof IndiaNativeFiscalSeriesValidationError) return null;
+    return null;
+  }
+}
+
+function normalizeInvoice(input: IndiaNativeFiscalInvoiceIssueInput): IndiaNativeFiscalInvoiceIssueInput {
+  plain(input, "native invoice input");
+  exact(input, [
+    "tenantId", "propertyNode", "reservationId", "folioId", "journalId", "recipientPartyId",
+    "recipientRegistrationId", "classificationId", "supplyNatureAtTimeOfSupplyInput",
+    "supplyNatureAtTimeOfSupplyResult", "actorId", "idempotencyKey", "envelope",
+  ], "native invoice input");
+  const tenantId = uuid(input.tenantId, "tenantId");
+  const propertyNode = uuid(input.propertyNode, "propertyNode");
+  const actorId = uuid(input.actorId, "actorId");
+  const envelope = auditEnvelope(input.envelope, tenantId, propertyNode, OPERATION);
+  if (envelope.actorId !== actorId) throw new IndiaNativeFiscalInvoiceValidationError("actorId must match envelope.actorId");
+  const idempotencyKey = visibleKey(input.idempotencyKey, "idempotencyKey");
+  return Object.freeze({ ...input, tenantId, propertyNode, actorId, idempotencyKey, envelope });
+}
+
+function normalizeNativeCalendar(value: unknown): IndiaNativeFiscalInvoiceCalendarEvidence | null {
+  if (value === null) return null;
+  plain(value, "calendarEvidence");
+  exact(value, CALENDAR_KEYS, "calendarEvidence");
+  if (typeof value.authorityId !== "string" || !AUTHORITY.test(value.authorityId)) {
+    throw new IndiaNativeFiscalInvoiceValidationError("calendarEvidence.authorityId is invalid");
+  }
+  if (typeof value.sourceDigestSha256 !== "string" || !HASH.test(value.sourceDigestSha256)) {
+    throw new IndiaNativeFiscalInvoiceValidationError("calendarEvidence.sourceDigestSha256 is invalid");
+  }
+  const throughDate = date(value.throughDate, "calendarEvidence.throughDate");
+  if (!Array.isArray(value.days) || value.days.length < 4 || value.days.length > 366) {
+    throw new IndiaNativeFiscalInvoiceValidationError("calendarEvidence.days must contain 4 to 366 dates");
+  }
+  const calendarDays = value.days;
+  const days = calendarDays.map((raw, index) => {
+    plain(raw, `calendarEvidence.days[${index}]`);
+    exact(raw, CALENDAR_DAY_KEYS, `calendarEvidence.days[${index}]`);
+    const day = date(raw.date, `calendarEvidence.days[${index}].date`);
+    if (raw.state !== "working" && raw.state !== "non_working") {
+      throw new IndiaNativeFiscalInvoiceValidationError(`calendarEvidence.days[${index}].state is invalid`);
+    }
+    if (index > 0) {
+      const prior = (calendarDays[index - 1] as PlainRecord).date;
+      const expected = new Date(`${String(prior)}T00:00:00Z`);
+      expected.setUTCDate(expected.getUTCDate() + 1);
+      if (expected.toISOString().slice(0, 10) !== day) {
+        throw new IndiaNativeFiscalInvoiceValidationError("calendarEvidence.days must be dense and ordered");
+      }
+    }
+    return Object.freeze({ date: day, state: raw.state });
+  });
+  if (days.at(-1)?.date !== throughDate) {
+    throw new IndiaNativeFiscalInvoiceValidationError("calendarEvidence.throughDate must equal the last governed day");
+  }
+  return Object.freeze({
+    authorityId: value.authorityId,
+    sourceDigestSha256: value.sourceDigestSha256,
+    throughDate,
+    days: Object.freeze(days),
+  });
+}
+
+/** Detached, accessor-free calendar validation shared by operator readiness and issue. */
+export function snapshotIndiaNativeFiscalInvoiceCalendarEvidence(
+  value: unknown,
+): IndiaNativeFiscalInvoiceCalendarEvidence | null {
+  if (value === null) return null;
+  const calendar = ownDataRecordSnapshot(value, CALENDAR_KEYS, "calendarEvidence");
+  const rawDays = ownDataArraySnapshot(calendar.days, "calendarEvidence.days", 4, 366);
+  const days = rawDays.map((day, index) => ownDataRecordSnapshot(
+    day,
+    CALENDAR_DAY_KEYS,
+    `calendarEvidence.days[${index}]`,
+  ));
+  const snapshot = Object.freeze({
+    authorityId: calendar.authorityId,
+    sourceDigestSha256: calendar.sourceDigestSha256,
+    throughDate: calendar.throughDate,
+    days: Object.freeze(days),
+  });
+  return normalizeNativeCalendar(snapshot);
+}
+
+function normalizeNativeInvoice(
+  input: IndiaNativeFiscalInvoiceIssueNativeInput,
+): IndiaNativeFiscalInvoiceIssueNativeInput {
+  plain(input, "native current-transaction invoice input");
+  exact(input, NATIVE_INPUT_KEYS, "native current-transaction invoice input");
+  const tenantId = uuid(input.tenantId, "tenantId");
+  const propertyNode = uuid(input.propertyNode, "propertyNode");
+  const actorId = uuid(input.actorId, "actorId");
+  plain(input.envelope, "envelope");
+  exact(input.envelope, ["actorId", "tenantId", "propertyNode", "requestId", "operation"], "envelope");
+  const envelope = auditEnvelope(input.envelope, tenantId, propertyNode, OPERATION);
+  if (envelope.actorId !== actorId) {
+    throw new IndiaNativeFiscalInvoiceValidationError("actorId must match envelope.actorId");
+  }
+  const identities = {
+    reservationId: uuid(input.reservationId, "reservationId"),
+    folioId: uuid(input.folioId, "folioId"),
+    valuationId: uuid(input.valuationId, "valuationId"),
+    serviceProvisionSnapshotId: uuid(input.serviceProvisionSnapshotId, "serviceProvisionSnapshotId"),
+    paymentReceiptSnapshotId: uuid(input.paymentReceiptSnapshotId, "paymentReceiptSnapshotId"),
+    ordinaryRegimeEvidenceId: uuid(input.ordinaryRegimeEvidenceId, "ordinaryRegimeEvidenceId"),
+    supplierServiceLocationId: uuid(input.supplierServiceLocationId, "supplierServiceLocationId"),
+    supplierRegistrationStatusId: uuid(input.supplierRegistrationStatusId, "supplierRegistrationStatusId"),
+    supplierSezStatusId: uuid(input.supplierSezStatusId, "supplierSezStatusId"),
+    recipientRegistrationId: uuid(input.recipientRegistrationId, "recipientRegistrationId"),
+    recipientSezStatusId: uuid(input.recipientSezStatusId, "recipientSezStatusId"),
+    classificationId: uuid(input.classificationId, "classificationId"),
+  };
+  return Object.freeze({
+    tenantId,
+    propertyNode,
+    actorId,
+    ...identities,
+    calendarEvidence: normalizeNativeCalendar(input.calendarEvidence),
+    idempotencyKey: visibleKey(input.idempotencyKey, "idempotencyKey"),
+    envelope,
+  });
+}
+
+function confirmedInputSnapshot(value: unknown): IndiaNativeFiscalInvoiceIssueNativeConfirmedInput {
+  const input = ownDataRecordSnapshot(value, CONFIRMED_NATIVE_INPUT_KEYS, "confirmed native invoice input");
+  const envelope = ownDataRecordSnapshot(input.envelope, ENVELOPE_KEYS, "envelope");
+  const calendarEvidence = snapshotIndiaNativeFiscalInvoiceCalendarEvidence(input.calendarEvidence);
+  return Object.freeze({
+    tenantId: input.tenantId,
+    propertyNode: input.propertyNode,
+    actorId: input.actorId,
+    reservationId: input.reservationId,
+    folioId: input.folioId,
+    valuationId: input.valuationId,
+    serviceProvisionSnapshotId: input.serviceProvisionSnapshotId,
+    paymentReceiptSnapshotId: input.paymentReceiptSnapshotId,
+    ordinaryRegimeEvidenceId: input.ordinaryRegimeEvidenceId,
+    supplierServiceLocationId: input.supplierServiceLocationId,
+    supplierRegistrationStatusId: input.supplierRegistrationStatusId,
+    supplierSezStatusId: input.supplierSezStatusId,
+    recipientRegistrationId: input.recipientRegistrationId,
+    recipientSezStatusId: input.recipientSezStatusId,
+    classificationId: input.classificationId,
+    calendarEvidence,
+    idempotencyKey: input.idempotencyKey,
+    envelope: envelope as unknown as AuditEnvelope,
+    expectedSelectorHash: input.expectedSelectorHash as string,
+    expectedConfirmationHash: input.expectedConfirmationHash as string,
+  } as IndiaNativeFiscalInvoiceIssueNativeConfirmedInput);
+}
+
+function normalizeOperatorIssueInput(value: unknown): IndiaNativeFiscalInvoiceOperatorIssueInput {
+  const input = ownDataRecordSnapshot(value, OPERATOR_ISSUE_INPUT_KEYS, "operator native invoice input");
+  const envelopeSnapshot = ownDataRecordSnapshot(input.envelope, ENVELOPE_KEYS, "envelope");
+  const tenantId = uuid(input.tenantId, "tenantId");
+  const propertyNode = uuid(input.propertyNode, "propertyNode");
+  const actorId = uuid(input.actorId, "actorId");
+  const reservationId = uuid(input.reservationId, "reservationId");
+  const folioId = uuid(input.folioId, "folioId");
+  const recipientRegistrationId = uuid(input.recipientRegistrationId, "recipientRegistrationId");
+  const envelope = auditEnvelope(envelopeSnapshot, tenantId, propertyNode, OPERATION);
+  if (envelope.actorId !== actorId) {
+    throw new IndiaNativeFiscalInvoiceValidationError("actorId must match envelope.actorId");
+  }
+  if (typeof input.expectedSelectorHash !== "string" || !HASH.test(input.expectedSelectorHash)
+      || typeof input.expectedConfirmationHash !== "string" || !HASH.test(input.expectedConfirmationHash)) {
+    throw new IndiaNativeFiscalInvoiceValidationError(
+      "operator native invoice hashes must be lowercase SHA-256 values",
+    );
+  }
+  return Object.freeze({ tenantId, propertyNode, actorId, reservationId, folioId,
+    recipientRegistrationId,
+    calendarEvidence: snapshotIndiaNativeFiscalInvoiceCalendarEvidence(input.calendarEvidence),
+    idempotencyKey: visibleKey(input.idempotencyKey, "idempotencyKey"), envelope,
+    expectedSelectorHash: input.expectedSelectorHash,
+    expectedConfirmationHash: input.expectedConfirmationHash });
+}
+
+function normalizeNativeConfirmedInvoice(
+  rawInput: IndiaNativeFiscalInvoiceIssueNativeConfirmedInput,
+): IndiaNativeFiscalInvoiceIssueNativeConfirmedInput {
+  const snapshot = confirmedInputSnapshot(rawInput);
+  const nativeSnapshot: PlainRecord = Object.create(null) as PlainRecord;
+  for (const name of NATIVE_INPUT_KEYS) nativeSnapshot[name] = snapshot[name];
+  const input = normalizeNativeInvoice(Object.freeze(nativeSnapshot) as unknown as IndiaNativeFiscalInvoiceIssueNativeInput);
+  if (typeof snapshot.expectedSelectorHash !== "string" || !HASH.test(snapshot.expectedSelectorHash) ||
+      typeof snapshot.expectedConfirmationHash !== "string" || !HASH.test(snapshot.expectedConfirmationHash)) {
+    throw new IndiaNativeFiscalInvoiceValidationError(
+      "confirmed native invoice hashes must be lowercase SHA-256 values",
+    );
+  }
+  return Object.freeze({
+    ...input,
+    expectedSelectorHash: snapshot.expectedSelectorHash,
+    expectedConfirmationHash: snapshot.expectedConfirmationHash,
+  });
+}
+
+function hasDatabaseState(error: unknown, expected: string): boolean {
+  if (typeof error !== "object" || error === null || utilTypes.isProxy(error)) return false;
+  for (const key of ["errno", "sqlState", "code"] as const) {
+    const descriptor = Object.getOwnPropertyDescriptor(error, key);
+    if (descriptor && "value" in descriptor && descriptor.value === expected) return true;
+  }
+  return false;
+}
+
+function operatorPreparation(
+  value: unknown,
+  input: IndiaNativeFiscalInvoiceOperatorIssueInput,
+): Readonly<{ row: NativePrepareRow; nativeInput: IndiaNativeFiscalInvoiceIssueNativeConfirmedInput }> {
+  try {
+    if (typeof value !== "object" || value === null || utilTypes.isProxy(value) || !Array.isArray(value)) {
+      throw new Error("rows");
+    }
+    const lengthDescriptor = Object.getOwnPropertyDescriptor(value, "length");
+    const cellDescriptor = Object.getOwnPropertyDescriptor(value, "0");
+    if (!lengthDescriptor || !("value" in lengthDescriptor) || lengthDescriptor.value !== 1
+        || !cellDescriptor || !("value" in cellDescriptor)) throw new Error("rows");
+    const row = ownDataRecordSnapshot(cellDescriptor.value, PREPARE_V4_ROW_KEYS, "operator preparation row");
+    const selectors = ownDataRecordSnapshot(row.internal_selectors, INTERNAL_SELECTOR_KEYS, "internal selectors");
+    const identities = Object.freeze({
+      valuationId: storedUuid(selectors.valuationId, "valuation selector"),
+      serviceProvisionSnapshotId: storedUuid(selectors.serviceProvisionSnapshotId, "service provision selector"),
+      paymentReceiptSnapshotId: storedUuid(selectors.paymentReceiptSnapshotId, "payment receipt selector"),
+      ordinaryRegimeEvidenceId: storedUuid(selectors.ordinaryRegimeEvidenceId, "ordinary regime selector"),
+      supplierServiceLocationId: storedUuid(selectors.supplierServiceLocationId, "supplier service location selector"),
+      supplierRegistrationStatusId: storedUuid(selectors.supplierRegistrationStatusId, "supplier registration selector"),
+      supplierSezStatusId: storedUuid(selectors.supplierSezStatusId, "supplier SEZ selector"),
+      recipientRegistrationId: storedUuid(selectors.recipientRegistrationId, "recipient registration selector"),
+      recipientSezStatusId: storedUuid(selectors.recipientSezStatusId, "recipient SEZ selector"),
+      classificationId: storedUuid(selectors.classificationId, "classification selector"),
+    });
+    if (identities.recipientRegistrationId !== input.recipientRegistrationId) throw new Error("recipient");
+    const nativeInput = Object.freeze({
+      tenantId: input.tenantId, propertyNode: input.propertyNode, actorId: input.actorId,
+      reservationId: input.reservationId, folioId: input.folioId, ...identities,
+      calendarEvidence: input.calendarEvidence, idempotencyKey: input.idempotencyKey,
+      envelope: input.envelope, expectedSelectorHash: input.expectedSelectorHash,
+      expectedConfirmationHash: input.expectedConfirmationHash,
+    });
+    return Object.freeze({
+      row: Object.freeze({ native_timing_id: row.native_timing_id,
+        request_event_id: row.request_event_id, posting_binding_id: row.posting_binding_id,
+        prepared_source_json: row.prepared_source_json, completed_receipt: row.completed_receipt }),
+      nativeInput,
+    });
+  } catch {
+    throw new IndiaNativeFiscalInvoiceConflictError(
+      "native operator preparation returned invalid internal selectors",
+    );
+  }
+}
+
+function recursivelyFreeze<T>(value: T, seen = new Set<object>()): T {
+  if (value !== null && typeof value === "object" && !seen.has(value)) {
+    seen.add(value);
+    for (const child of Object.values(value as Record<string, unknown>)) recursivelyFreeze(child, seen);
+    Object.freeze(value);
+  }
+  return value;
+}
+
+function preparedSource(value: unknown): IndiaNativeFiscalPreparedSourceInput {
+  if (typeof value !== "string") {
+    throw new IndiaNativeFiscalInvoiceConflictError("native preparation did not return canonical source JSON");
+  }
+  let parsed: unknown;
+  try { parsed = JSON.parse(value); } catch {
+    throw new IndiaNativeFiscalInvoiceConflictError("native preparation returned malformed source JSON");
+  }
+  if (JSON.stringify(parsed) !== value) {
+    throw new IndiaNativeFiscalInvoiceConflictError("native preparation source JSON is not canonical");
+  }
+  try {
+    plain(parsed, "prepared native source");
+    exact(parsed, PREPARED_SOURCE_KEYS, "prepared native source");
+  } catch {
+    throw new IndiaNativeFiscalInvoiceConflictError("native preparation source JSON shape is inconsistent");
+  }
+  if (JSON.stringify(Object.keys(parsed)) !== JSON.stringify(PREPARED_SOURCE_KEYS)) {
+    throw new IndiaNativeFiscalInvoiceConflictError("native preparation source JSON key order is not canonical");
+  }
+  return recursivelyFreeze(parsed as unknown as IndiaNativeFiscalPreparedSourceInput);
+}
+
+function exactCommitRow(value: unknown, replay: boolean): CommitRow {
+  if (typeof value !== "object" || value === null || Array.isArray(value) || utilTypes.isProxy(value) ||
+      Object.getOwnPropertySymbols(value).length !== 0) {
+    throw new IndiaNativeFiscalInvoiceConflictError("native invoice receipt is malformed");
+  }
+  const names = Object.keys(value).sort();
+  const expected = [...COMMIT_ROW_KEYS].sort();
+  if (names.length !== expected.length || names.some((name, index) => name !== expected[index]) ||
+      typeof (value as PlainRecord).created !== "boolean" ||
+      (replay && (value as PlainRecord).created !== false)) {
+    throw new IndiaNativeFiscalInvoiceConflictError("native invoice receipt shape is inconsistent");
+  }
+  return value as unknown as CommitRow;
+}
+
+function asDate(value: Date | string): string {
+  const result = value instanceof Date ? value.toISOString() : value;
+  if (typeof result !== "string" || !result.includes("T")) {
+    throw new IndiaNativeFiscalInvoiceConflictError("PostgreSQL returned an invalid issued-at timestamp");
+  }
+  return result;
+}
+
+const SERIES_RESULT_KEYS = ["series_id", "tenant_id", "property_node", "supplier_registration_id", "document_kind", "prefix", "financial_year_start", "next_no", "created"] as const;
+
+function seriesSqlState(error: unknown): string | null {
+  if (typeof error !== "object" || error === null || utilTypes.isProxy(error)) return null;
+  for (const key of ["errno", "sqlState", "code"]) {
+    const descriptor = Object.getOwnPropertyDescriptor(error, key);
+    if (descriptor && "value" in descriptor && typeof descriptor.value === "string" && /^[A-Z0-9]{5}$/.test(descriptor.value)) return descriptor.value;
+  }
+  return null;
+}
+
+function asSeriesResult(row: unknown, input: IndiaNativeFiscalSeriesConfigurationInput, replayed: boolean): IndiaNativeFiscalSeriesConfigurationResult {
+  let value: Readonly<PlainRecord>;
+  try {
+    value = seriesRecordSnapshot(row, SERIES_RESULT_KEYS, "fiscal series result");
+  } catch {
+    throw new IndiaNativeFiscalSeriesDatabaseError("PostgreSQL returned an incoherent fiscal series");
+  }
+  const financialYearStart = value.financial_year_start;
+  const nextNo = value.next_no;
+  let validFinancialYearStart = false;
+  if (typeof financialYearStart === "string" && DATE.test(financialYearStart) && financialYearStart.slice(5) === "04-01") {
+    try { validFinancialYearStart = deriveIndiaFinancialYearStart(financialYearStart) === financialYearStart; } catch { /* malformed driver date */ }
+  }
+  if (typeof value.created !== "boolean" || typeof value.series_id !== "string" || !UUID.test(value.series_id) ||
+      value.tenant_id !== input.tenantId || value.property_node !== input.propertyNode ||
+      value.supplier_registration_id !== input.supplierRegistrationId || value.document_kind !== input.documentKind ||
+      value.prefix !== input.prefix || !validFinancialYearStart) {
+    throw new IndiaNativeFiscalSeriesDatabaseError("PostgreSQL returned an incoherent fiscal series");
+  }
+  let next: bigint;
+  try {
+    if (typeof nextNo === "bigint") next = nextNo;
+    else if (typeof nextNo === "string" && /^(?:0|[1-9][0-9]*)$/.test(nextNo)) next = BigInt(nextNo);
+    else if (typeof nextNo === "number" && Number.isSafeInteger(nextNo)) next = BigInt(nextNo);
+    else throw new Error();
+  } catch {
+    throw new IndiaNativeFiscalSeriesDatabaseError("fiscal series counter is invalid");
+  }
+  if (next < 1n || next > 9223372036854775807n) throw new IndiaNativeFiscalSeriesDatabaseError("fiscal series counter is invalid");
+  return Object.freeze({ seriesId: value.series_id, tenantId: value.tenant_id as string, propertyNode: value.property_node as string,
+    supplierRegistrationId: value.supplier_registration_id as string, documentKind: input.documentKind, prefix: value.prefix as string,
+    financialYearStart: financialYearStart as string, nextNo: next.toString(), replayed });
+}
+
+type ReceiptSelectors = Readonly<{
+  propertyNode: string;
+  reservationId: string;
+  folioId: string;
+}>;
+
+function receipt(row: CommitRow, input: ReceiptSelectors, replayed: boolean): IndiaNativeFiscalInvoiceReceipt {
+  if (!UUID.test(row.document_id) || row.document_kind !== "invoice" || !UUID.test(row.series_id) ||
+      !row.doc_no || row.property_node !== input.propertyNode || row.reservation_id !== input.reservationId ||
+      row.folio_id !== input.folioId || !UUID.test(row.supplier_registration_id) ||
+      row.supplier_registration_id === row.recipient_registration_id || !UUID.test(row.recipient_registration_id) ||
+      !DATE.test(row.financial_year_start) || row.financial_year_start.slice(5) !== "04-01" || row.currency !== "INR" ||
+      row.status !== "issued" || !DATE.test(row.business_date) || !HASH.test(row.sha256) ||
+      !HASH.test(row.source_evidence_hash) || !HASH.test(row.pre_document_evidence_hash) ||
+      !HASH.test(row.readiness_evidence_hash) || (row.prev_hash !== null && !HASH.test(row.prev_hash))) {
+    throw new IndiaNativeFiscalInvoiceConflictError("PostgreSQL returned an incoherent issued invoice receipt");
+  }
+  return Object.freeze({ documentId: row.document_id, documentKind: "invoice", seriesId: row.series_id, docNo: row.doc_no,
+    propertyNode: row.property_node, reservationId: row.reservation_id, folioId: row.folio_id,
+    supplierRegistrationId: row.supplier_registration_id, recipientRegistrationId: row.recipient_registration_id,
+    financialYearStart: row.financial_year_start, currency: "INR", status: "issued", businessDate: row.business_date,
+    issuedAt: asDate(row.issued_at), prevHash: row.prev_hash, sha256: row.sha256,
+    sourceEvidenceHash: row.source_evidence_hash, preDocumentEvidenceHash: row.pre_document_evidence_hash,
+    readinessEvidenceHash: row.readiness_evidence_hash, replayed });
+}
+
+function readinessInput(input: IndiaNativeFiscalInvoiceIssueInput): IndiaIrpAccommodationFiscalActionReadinessInput {
+  const { actorId: _actorId, idempotencyKey: _idempotencyKey, envelope: _envelope, ...selectors } = input;
+  return Object.freeze(selectors);
+}
+
+function expectedReadiness(readiness: IndiaIrpAccommodationFiscalActionReadinessResult): void {
+  if (readiness.state !== BLOCKED_STATE || readiness.submissionReady !== false || readiness.permittedActions.length !== 0 ||
+      JSON.stringify(readiness.blockers) !== JSON.stringify(BLOCKERS)) {
+    throw new IndiaNativeFiscalInvoiceConflictError("Order429 readiness is not the exact approved blocked result");
+  }
+  hash(readiness.sourceEvidenceHash, "Order429 source evidence hash");
+  hash(readiness.preDocumentEvidenceHash, "Order426 pre-document evidence hash");
+  hash(readiness.evidenceHash, "Order429 readiness evidence hash");
+  const preDocument = readiness.preDocumentEvidence;
+  let sections: unknown;
+  try {
+    sections = JSON.parse(preDocument.sectionsJson);
+  } catch {
+    throw new IndiaNativeFiscalInvoiceConflictError("Order426 pre-document JSON is not canonical");
+  }
+  if (typeof sections !== "object" || sections === null || Array.isArray(sections) ||
+      JSON.stringify(Object.keys(sections)) !== JSON.stringify(["Version", "TranDtls", "SellerDtls", "BuyerDtls", "ItemList", "ValDtls"]) ||
+      JSON.stringify(sections) !== preDocument.sectionsJson ||
+      JSON.stringify(sections) !== JSON.stringify(preDocument.sections)) {
+    throw new IndiaNativeFiscalInvoiceConflictError("Order426 pre-document sections are not the genuine fixed composition");
+  }
+}
+
+function bindNativeSource(
+  input: IndiaNativeFiscalInvoiceIssueNativeInput,
+  sourceInput: IndiaNativeFiscalSourceInput,
+  source: IndiaNativeFiscalSourceResult,
+): void {
+  const financial = source.financialSource;
+  const atTime = source.supplyNatureAtTimeOfSupply;
+  const supplyInput = sourceInput.supplyNatureAtTimeOfSupplyInput.supplyNature;
+  const timing = sourceInput.supplyNatureAtTimeOfSupplyInput
+    .supplierRegistrationAtTimeOfSupply.timeOfSupply.nativeTiming;
+  if (sourceInput.tenantId !== input.tenantId ||
+      financial.propertyNode !== input.propertyNode || financial.reservationId !== input.reservationId ||
+      financial.folioId !== input.folioId || financial.valuationId !== input.valuationId ||
+      atTime.supplierServiceLocationId !== input.supplierServiceLocationId ||
+      atTime.supplierGstRegistrationStatusId !== input.supplierRegistrationStatusId ||
+      atTime.recipientRegistrationId !== input.recipientRegistrationId ||
+      atTime.recipientSezStatusId !== input.recipientSezStatusId ||
+      source.classification.classificationId !== input.classificationId ||
+      supplyInput.supplier.status.id !== input.supplierSezStatusId ||
+      timing.serviceProvisionSnapshotId !== input.serviceProvisionSnapshotId ||
+      timing.paymentReceiptSnapshotId !== input.paymentReceiptSnapshotId ||
+      timing.ordinaryRegimeEvidenceId !== input.ordinaryRegimeEvidenceId) {
+    throw new IndiaNativeFiscalInvoiceConflictError(
+      "prepared native fiscal source does not bind the exact issue selectors",
+    );
+  }
+}
+
+function hashPreimage(value: Readonly<Record<string, unknown>>, tenantId: string, field: string): string {
+  const { [field]: _ignored, ...body } = value;
+  return JSON.stringify({ tenantId, ...body });
+}
+
+type CommitPayloadInput = Pick<
+  IndiaNativeFiscalInvoiceIssueNativeInput,
+  "tenantId" | "recipientRegistrationId"
+>;
+
+function commitPayload(
+  input: CommitPayloadInput,
+  readiness: IndiaIrpAccommodationFiscalActionReadinessResult,
+  source: IndiaIrpAccommodationSourceResult,
+): JsonValue {
+  // The DB capability derives the legal document body and all financial values. This
+  // payload carries only the exact frozen Order429 state/evidence. Typed selectors
+  // are separate SQL arguments; legal date, number, tax and hash-chain authority
+  // remain in SQL.
+  return Object.freeze({
+    readinessState: readiness.state,
+    submissionReady: readiness.submissionReady,
+    permittedActions: readiness.permittedActions,
+    blockers: readiness.blockers,
+    recipientRegistrationId: input.recipientRegistrationId,
+    sourceEvidenceHash: readiness.sourceEvidenceHash,
+    preDocumentEvidenceHash: readiness.preDocumentEvidenceHash,
+    readinessEvidenceHash: readiness.evidenceHash,
+    preDocumentJson: readiness.preDocumentEvidence.sectionsJson,
+    sourceEvidencePreimage: hashPreimage(source as unknown as Readonly<Record<string, unknown>>, input.tenantId, "evidenceHash"),
+    preDocumentEvidencePreimage: hashPreimage(
+      readiness.preDocumentEvidence as unknown as Readonly<Record<string, unknown>>,
+      input.tenantId,
+      "evidenceHash",
+    ),
+    readinessEvidencePreimage: hashPreimage(
+      readiness as unknown as Readonly<Record<string, unknown>>,
+      input.tenantId,
+      "evidenceHash",
+    ),
+  });
+}
+
+export function deriveIndiaFinancialYearStart(value: string): string {
+  date(value, "issue date");
+  const year = Number(value.slice(0, 4)) - (value.slice(5, 10) < "04-01" ? 1 : 0);
+  return `${year.toString().padStart(4, "0")}-04-01`;
+}
+
+export function validateIndiaNativeFiscalPrefix(prefix: string, financialYearStart: string): string {
+  date(financialYearStart, "financialYearStart");
+  if (financialYearStart.slice(5) !== "04-01" || prefix.length < 1 || prefix.length > 12 || !PREFIX.test(prefix)) {
+    throw new IndiaNativeFiscalSeriesValidationError("prefix or financial year is invalid");
+  }
+  // A legal reference consists of prefix + a positive decimal serial and must be
+  // no longer than the Rule-46 sixteen-character ceiling.
+  if (prefix.length + 1 > 16) throw new IndiaNativeFiscalSeriesValidationError("prefix leaves no room for a legal serial");
+  return prefix;
+}
+
+export class IndiaNativeFiscalSeriesConfigurationService {
+  async configure(tx: Tx, rawInput: unknown): Promise<IndiaNativeFiscalSeriesConfigurationResult> {
+    if (typeof tx !== "function") throw new IndiaNativeFiscalSeriesValidationError("tenant transaction is unavailable");
+    const input = normalizeSeries(rawInput);
+    validateIndiaNativeFiscalPrefix(input.prefix, "2026-04-01");
+    let context: Readonly<PlainRecord>;
+    try {
+      context = seriesRowsSnapshot(await tx<Array<{ tenant_id: string | null; current_user: string; current_role: string }>>`
+      SELECT NULLIF(current_setting('app.tenant_id', true), '') AS tenant_id,
+             current_user::text, current_setting('role', true)::text AS current_role
+    `, ["tenant_id", "current_user", "current_role"], "fiscal series authority context");
+    } catch (error) {
+      if (error instanceof IndiaNativeFiscalSeriesDatabaseError) throw error;
+      throw error;
+    }
+    if (!context || context.tenant_id !== input.tenantId || context.current_user !== "app_role" || context.current_role !== "app_role") {
+      throw new IndiaNativeFiscalSeriesAuthorizationError("native fiscal series requires the governed tenant app role");
+    }
+    try {
+      const rows = await tx<SeriesRow[]>`
+         SELECT series_id, tenant_id, property_node, supplier_registration_id,
+                document_kind, prefix, financial_year_start::text, next_no, created
+        FROM public.create_india_native_fiscal_series(
+          ${input.tenantId}::uuid, ${input.propertyNode}::uuid,
+          ${input.supplierRegistrationId}::uuid, ${input.documentKind},
+          ${input.prefix}, ${input.envelope.actorId}::uuid
+        )
+      `;
+      const row = seriesRowsSnapshot(rows, SERIES_RESULT_KEYS, "fiscal series result");
+      return asSeriesResult(row, input, row.created !== true);
+    } catch (error) {
+      if (error instanceof IndiaNativeFiscalSeriesDatabaseError || error instanceof IndiaNativeFiscalSeriesConflictError || error instanceof IndiaNativeFiscalSeriesAuthorizationError) throw error;
+      const state = seriesSqlState(error);
+      if (state === "42501") throw new IndiaNativeFiscalSeriesAuthorizationError("native fiscal series authority was denied");
+      if (state === "23505" || state === "40001" || state === "40P01") {
+        throw new IndiaNativeFiscalSeriesConflictError("India native fiscal series is already bound or changed concurrently");
+      }
+      if (state === "55000") throw new IndiaNativeFiscalSeriesDatabaseError("native fiscal series capability is unavailable");
+      throw error;
+    }
+  }
+}
+
+export interface IndiaNativeFiscalInvoiceServiceOptions {
+  readonly readiness?: IndiaIrpAccommodationFiscalActionReadinessService;
+  readonly source?: IndiaIrpAccommodationSourceService;
+  readonly nativeAccounting?: IndiaNativeFiscalAccountingHandlerPort;
+  readonly nativeFinancialSource?: IndiaNativeFiscalSourceReaderPort;
+}
+
+export class IndiaNativeFiscalInvoiceIssuanceService {
+  readonly #readiness: IndiaIrpAccommodationFiscalActionReadinessService;
+  readonly #source: IndiaIrpAccommodationSourceService;
+  readonly #nativeAccounting: IndiaNativeFiscalAccountingHandlerPort;
+  readonly #nativeFinancialSource: IndiaNativeFiscalSourceReaderPort;
+
+  constructor(options: IndiaNativeFiscalInvoiceServiceOptions = {}) {
+    this.#readiness = options.readiness ?? new IndiaIrpAccommodationFiscalActionReadinessService();
+    this.#source = options.source ?? new IndiaIrpAccommodationSourceService();
+    this.#nativeAccounting = options.nativeAccounting ?? new IndiaNativeFiscalAccountingEventHandler();
+    this.#nativeFinancialSource = options.nativeFinancialSource ?? new IndiaFinalComponentTaxFiscalSourceService();
+  }
+
+  snapshotNativeConfirmedInput(
+    rawInput: IndiaNativeFiscalInvoiceIssueNativeConfirmedInput,
+  ): IndiaNativeFiscalInvoiceIssueNativeConfirmedInput {
+    return normalizeNativeConfirmedInvoice(rawInput);
+  }
+
+  snapshotOperatorIssueInput(
+    rawInput: IndiaNativeFiscalInvoiceOperatorIssueInput,
+  ): IndiaNativeFiscalInvoiceOperatorIssueInput {
+    return normalizeOperatorIssueInput(rawInput);
+  }
+
+  async issue(tx: Tx, rawInput: IndiaNativeFiscalInvoiceIssueInput): Promise<IndiaNativeFiscalInvoiceReceipt> {
+    if (typeof tx !== "function") throw new IndiaNativeFiscalInvoiceValidationError("tenant transaction is unavailable");
+    const input = normalizeInvoice(rawInput);
+    const context = (await tx<Array<{ tenant_id: string | null; current_user: string; current_role: string }>>`
+      SELECT NULLIF(current_setting('app.tenant_id', true), '') AS tenant_id,
+             current_user::text, current_setting('role', true)::text AS current_role
+    `)[0];
+    if (!context || context.tenant_id !== input.tenantId || context.current_user !== "app_role" || context.current_role !== "app_role") {
+      throw new IndiaNativeFiscalInvoiceAuthorizationError("native fiscal issue requires the governed tenant app role");
+    }
+    const selectors = readinessInput(input);
+    const readiness = await this.#readiness.resolve(tx, selectors);
+    expectedReadiness(readiness);
+    const source = await this.#source.resolve(tx, selectors);
+    if (source.evidenceHash !== readiness.sourceEvidenceHash) {
+      throw new IndiaNativeFiscalInvoiceConflictError("Order413 source changed during native fiscal issuance");
+    }
+    const payload = commitPayload(input, readiness, source);
+    const rows = await tx<CommitRow[]>`
+        SELECT document_id, document_kind, series_id, doc_no, property_node,
+               reservation_id, folio_id, supplier_registration_id,
+               recipient_registration_id, financial_year_start::text, currency::text,
+               status, business_date::text, issued_at, prev_hash, sha256,
+               source_evidence_hash, pre_document_evidence_hash,
+               readiness_evidence_hash, created
+        FROM public.commit_india_native_fiscal_invoice(
+          ${input.tenantId}::uuid, ${input.propertyNode}::uuid, ${input.actorId}::uuid,
+          ${input.reservationId}::uuid, ${input.folioId}::uuid, ${input.journalId}::uuid,
+          ${input.idempotencyKey}, ${JSON.stringify(payload)}::text::jsonb,
+          ${input.envelope.requestId}::uuid
+        )
+      `;
+    const row = rows[0];
+    if (!row) throw new IndiaNativeFiscalInvoiceConflictError("PostgreSQL did not return the issued invoice receipt");
+    return receipt(row, input, row.created !== true);
+  }
+
+  async issueNative(
+    tx: Tx,
+    rawInput: IndiaNativeFiscalInvoiceIssueNativeInput,
+  ): Promise<IndiaNativeFiscalInvoiceReceipt> {
+    if (typeof tx !== "function") {
+      throw new IndiaNativeFiscalInvoiceValidationError("tenant transaction is unavailable");
+    }
+    const input = normalizeNativeInvoice(rawInput);
+    const calendar = input.calendarEvidence;
+    const calendarDates = postgresArray(calendar?.days.map((day) => day.date) ?? []);
+    const calendarStates = postgresArray(calendar?.days.map((day) => day.state) ?? []);
+    const rows = await tx<NativePrepareRow[]>`
+      SELECT native_timing_id::text, request_event_id::text, posting_binding_id::text,
+             prepared_source_json, completed_receipt
+        FROM public.prepare_india_native_fiscal_invoice_v2(
+          ${input.tenantId}::uuid, ${input.propertyNode}::uuid, ${input.actorId}::uuid,
+          ${input.reservationId}::uuid, ${input.folioId}::uuid, ${input.valuationId}::uuid,
+          ${input.serviceProvisionSnapshotId}::uuid, ${input.paymentReceiptSnapshotId}::uuid,
+          ${input.ordinaryRegimeEvidenceId}::uuid, ${input.supplierServiceLocationId}::uuid,
+          ${input.supplierRegistrationStatusId}::uuid, ${input.supplierSezStatusId}::uuid,
+          ${input.recipientRegistrationId}::uuid, ${input.recipientSezStatusId}::uuid,
+          ${input.classificationId}::uuid, ${calendar?.authorityId ?? null},
+          ${calendar?.sourceDigestSha256 ?? null}, ${calendar?.throughDate ?? null}::date,
+          ${calendarDates}::date[], ${calendarStates}::text[], ${input.idempotencyKey},
+          ${input.envelope.requestId}::uuid
+        )
+    `;
+    return this.#completeNativeIssue(tx, input, rows);
+  }
+
+  async issueNativeConfirmed(
+    tx: Tx,
+    rawInput: IndiaNativeFiscalInvoiceIssueNativeConfirmedInput,
+  ): Promise<IndiaNativeFiscalInvoiceReceipt> {
+    if (typeof tx !== "function") {
+      throw new IndiaNativeFiscalInvoiceValidationError("tenant transaction is unavailable");
+    }
+    const input = this.snapshotNativeConfirmedInput(rawInput);
+    const calendar = input.calendarEvidence;
+    const calendarDates = postgresArray(calendar?.days.map((day) => day.date) ?? []);
+    const calendarStates = postgresArray(calendar?.days.map((day) => day.state) ?? []);
+    let rows: NativePrepareRow[];
+    try {
+      rows = await tx<NativePrepareRow[]>`
+        SELECT native_timing_id::text, request_event_id::text, posting_binding_id::text,
+               prepared_source_json, completed_receipt
+          FROM public.prepare_india_native_fiscal_invoice_v3(
+            ${input.tenantId}::uuid, ${input.propertyNode}::uuid, ${input.actorId}::uuid,
+            ${input.reservationId}::uuid, ${input.folioId}::uuid, ${input.valuationId}::uuid,
+            ${input.serviceProvisionSnapshotId}::uuid, ${input.paymentReceiptSnapshotId}::uuid,
+            ${input.ordinaryRegimeEvidenceId}::uuid, ${input.supplierServiceLocationId}::uuid,
+            ${input.supplierRegistrationStatusId}::uuid, ${input.supplierSezStatusId}::uuid,
+            ${input.recipientRegistrationId}::uuid, ${input.recipientSezStatusId}::uuid,
+            ${input.classificationId}::uuid, ${calendar?.authorityId ?? null},
+            ${calendar?.sourceDigestSha256 ?? null}, ${calendar?.throughDate ?? null}::date,
+            ${calendarDates}::date[], ${calendarStates}::text[], ${input.idempotencyKey},
+            ${input.envelope.requestId}::uuid, ${input.expectedSelectorHash},
+            ${input.expectedConfirmationHash}
+          )
+      `;
+    } catch (error) {
+      if (hasDatabaseState(error, "P2081")) {
+        throw new IndiaNativeFiscalInvoiceStaleEvidenceError();
+      }
+      throw error;
+    }
+    return this.#completeNativeIssue(tx, input, rows);
+  }
+
+  async issueNativeForOperator(
+    tx: Tx,
+    rawInput: IndiaNativeFiscalInvoiceOperatorIssueInput,
+  ): Promise<IndiaNativeFiscalInvoiceReceipt> {
+    if (typeof tx !== "function") {
+      throw new IndiaNativeFiscalInvoiceValidationError("tenant transaction is unavailable");
+    }
+    const input = this.snapshotOperatorIssueInput(rawInput);
+    const calendar = input.calendarEvidence;
+    const calendarDates = postgresArray(calendar?.days.map((day) => day.date) ?? []);
+    const calendarStates = postgresArray(calendar?.days.map((day) => day.state) ?? []);
+    let rows: NativePrepareV4Row[];
+    try {
+      rows = await tx<NativePrepareV4Row[]>`
+        SELECT native_timing_id::text, request_event_id::text, posting_binding_id::text,
+               prepared_source_json, completed_receipt, internal_selectors
+          FROM public.prepare_india_native_fiscal_invoice_v4(
+            ${input.tenantId}::uuid, ${input.propertyNode}::uuid, ${input.actorId}::uuid,
+            ${input.reservationId}::uuid, ${input.folioId}::uuid,
+            ${input.recipientRegistrationId}::uuid, ${calendar?.authorityId ?? null},
+            ${calendar?.sourceDigestSha256 ?? null}, ${calendar?.throughDate ?? null}::date,
+            ${calendarDates}::date[], ${calendarStates}::text[], ${input.idempotencyKey},
+            ${input.envelope.requestId}::uuid, ${input.expectedSelectorHash},
+            ${input.expectedConfirmationHash}
+          )
+      `;
+    } catch (error) {
+      if (hasDatabaseState(error, "P2081")) throw new IndiaNativeFiscalInvoiceStaleEvidenceError();
+      throw error;
+    }
+    const preparation = operatorPreparation(rows, input);
+    return this.#completeNativeIssue(tx, preparation.nativeInput, [preparation.row]);
+  }
+
+  async #completeNativeIssue(
+    tx: Tx,
+    input: IndiaNativeFiscalInvoiceIssueNativeInput,
+    rows: NativePrepareRow[],
+  ): Promise<IndiaNativeFiscalInvoiceReceipt> {
+    if (rows.length !== 1 || !rows[0]) {
+      throw new IndiaNativeFiscalInvoiceConflictError("native invoice preparation returned ambiguous evidence");
+    }
+    const rowRecord = rows[0] as unknown as PlainRecord;
+    const names = Object.keys(rowRecord).sort();
+    const expected = [...PREPARE_ROW_KEYS].sort();
+    if (names.length !== expected.length || names.some((name, index) => name !== expected[index])) {
+      throw new IndiaNativeFiscalInvoiceConflictError("native invoice preparation shape is inconsistent");
+    }
+    const nativeTimingId = storedUuid(rows[0].native_timing_id, "native timing id");
+    const requestEventId = storedUuid(rows[0].request_event_id, "request event id");
+    const postingBindingId = storedUuid(rows[0].posting_binding_id, "posting binding id");
+
+    if (rows[0].completed_receipt !== null) {
+      if (rows[0].prepared_source_json !== null) {
+        throw new IndiaNativeFiscalInvoiceConflictError("completed native replay returned fresh source evidence");
+      }
+      const replay = receipt(exactCommitRow(rows[0].completed_receipt, true), input, true);
+      if (replay.recipientRegistrationId !== input.recipientRegistrationId) {
+        throw new IndiaNativeFiscalInvoiceConflictError("completed native replay is not bound to the request");
+      }
+      return replay;
+    }
+
+    const prepared = preparedSource(rows[0].prepared_source_json);
+    const accounting = await this.#nativeAccounting.handle(tx, Object.freeze({
+      tenantId: input.tenantId,
+      eventId: requestEventId,
+    }));
+    if (accounting.nativeTimingId !== nativeTimingId || accounting.postingBindingId !== postingBindingId) {
+      throw new IndiaNativeFiscalInvoiceConflictError("native accounting did not bind the prepared transaction");
+    }
+    const financialSource = await this.#nativeFinancialSource.resolveNative(tx, Object.freeze({
+      tenantId: input.tenantId,
+      propertyNode: input.propertyNode,
+      reservationId: input.reservationId,
+      folioId: input.folioId,
+      postingBindingId,
+    }));
+    if (financialSource.nativeTimingId !== nativeTimingId ||
+        financialSource.postingBindingId !== postingBindingId ||
+        accounting.taxId !== financialSource.taxId || accounting.valuationId !== financialSource.valuationId ||
+        accounting.applicabilityId !== financialSource.applicabilityId ||
+        accounting.reservationId !== financialSource.reservationId || accounting.folioId !== financialSource.folioId ||
+        accounting.journalId !== financialSource.journalId || accounting.currency !== financialSource.currency ||
+        accounting.businessDate !== financialSource.businessDate ||
+        accounting.evidenceHash !== financialSource.accountingEvidenceHash) {
+      throw new IndiaNativeFiscalInvoiceConflictError("native accounting result changed before fiscal source resolution");
+    }
+    const sourceInput = recursivelyFreeze({
+      tenantId: prepared.tenantId,
+      financialSource,
+      legalBuyerPartyId: prepared.legalBuyerPartyId,
+      sellerRegistration: prepared.sellerRegistration,
+      recipientRegistration: prepared.recipientRegistration,
+      placeOfSupply: prepared.placeOfSupply,
+      classification: prepared.classification,
+      supplyNatureAtTimeOfSupplyInput: prepared.supplyNatureAtTimeOfSupplyInput,
+      supplyNatureAtTimeOfSupplyResult: prepared.supplyNatureAtTimeOfSupplyResult,
+    } satisfies IndiaNativeFiscalSourceInput);
+    const source = assembleIndiaNativeFiscalSource(sourceInput);
+    bindNativeSource(input, sourceInput, source);
+    const readiness = await this.#readiness.resolveNative(tx, sourceInput);
+    expectedReadiness(readiness);
+    if (readiness.sourceEvidenceHash !== source.evidenceHash) {
+      throw new IndiaNativeFiscalInvoiceConflictError("Order413 source changed during native fiscal issuance");
+    }
+    const payload = commitPayload(input, readiness, source);
+    const committed = await tx<CommitRow[]>`
+      SELECT document_id, document_kind, series_id, doc_no, property_node,
+             reservation_id, folio_id, supplier_registration_id,
+             recipient_registration_id, financial_year_start::text, currency::text,
+             status, business_date::text, issued_at, prev_hash, sha256,
+             source_evidence_hash, pre_document_evidence_hash,
+             readiness_evidence_hash, created
+        FROM public.commit_india_native_fiscal_invoice_v2(
+          ${input.tenantId}::uuid, ${input.propertyNode}::uuid, ${input.actorId}::uuid,
+          ${nativeTimingId}::uuid, ${input.idempotencyKey},
+          ${JSON.stringify(payload)}::text::jsonb, ${input.envelope.requestId}::uuid
+        )
+    `;
+    if (committed.length !== 1 || !committed[0]) {
+      throw new IndiaNativeFiscalInvoiceConflictError("PostgreSQL did not return the native issued invoice receipt");
+    }
+    const commitRow = exactCommitRow(committed[0], false);
+    const result = receipt(commitRow, input, commitRow.created !== true);
+    if (result.supplierRegistrationId !== source.sellerRegistration.registrationId ||
+        result.recipientRegistrationId !== source.recipientRegistration.registrationId ||
+        result.documentId !== sourceInput.supplyNatureAtTimeOfSupplyInput
+          .supplierRegistrationAtTimeOfSupply.timeOfSupply.nativeTiming.prospectiveDocumentId ||
+        result.businessDate !== financialSource.businessDate ||
+        result.sourceEvidenceHash !== source.evidenceHash ||
+        result.preDocumentEvidenceHash !== readiness.preDocumentEvidenceHash ||
+        result.readinessEvidenceHash !== readiness.evidenceHash) {
+      throw new IndiaNativeFiscalInvoiceConflictError("native issued invoice receipt is not bound to prepared evidence");
+    }
+    return result;
+  }
+}
+
+/** Stable context-level name for callers that do not need to distinguish the
+ * issuance operation from the fiscal-invoice aggregate. */
+export class IndiaNativeFiscalInvoiceService extends IndiaNativeFiscalInvoiceIssuanceService {}
+
+export const createIndiaNativeFiscalSeries = (tx: Tx, input: IndiaNativeFiscalSeriesConfigurationInput) =>
+  new IndiaNativeFiscalSeriesConfigurationService().configure(tx, input);
+
+export const configureIndiaNativeFiscalSeries = createIndiaNativeFiscalSeries;

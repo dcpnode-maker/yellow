@@ -1,9 +1,0 @@
-{
-  "max_attempts": 3,
-  "max_output_tokens": 4096,
-  "routes": [
-    {"provider": "openrouter", "model": "cohere/north-mini-code:free"},
-    {"provider": "openrouter", "model": "nvidia/nemotron-3-ultra-550b-a55b:free"},
-    {"provider": "openrouter", "model": "openrouter/free"}
-  ]
-}

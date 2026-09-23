@@ -1,12 +1,110 @@
 import { Elysia } from "elysia";
+import { isIP } from "node:net";
 
 import { SECURITY_HEADERS } from "./http/security-headers";
+import { ExtensionHttpApi } from "./http/extensions";
+import { operatorAssets, type OperatorHttpApi, type OperatorLocalReviewCredentials } from "./http/operator";
+import { hostedDepositAssets, type HostedDepositProviderHttpApi } from "./http/provider";
+import { OverwatchRequestError, OverwatchService } from "./overwatch";
+import {
+  type BuildInfo,
+  Database,
+  UNKNOWN_BUILD_INFO,
+  type ExtensionRegistry,
+  failClosedTenantResolver,
+  TenantContextMiddleware,
+  type TenantResolver,
+} from "./kernel";
 
-export function createApp() {
-  return new Elysia()
+const unavailablePool = Object.freeze({
+  async reserve(): Promise<never> {
+    throw new Error("Database is not configured");
+  },
+});
+
+interface LoginPeerAddress {
+  readonly address: string;
+  readonly family: "IPv4" | "IPv6";
+}
+
+export function localLoginSourceKey(peer: LoginPeerAddress | null | undefined): string {
+  if (!peer || typeof peer.address !== "string") return "unknown";
+  const version = isIP(peer.address);
+  if ((peer.family === "IPv4" && version !== 4) || (peer.family === "IPv6" && version !== 6)) {
+    return "unknown";
+  }
+  return `${peer.family.toLowerCase()}:${peer.address.toLowerCase()}`;
+}
+
+function publicDemoSourceKey(request: Request, peer: LoginPeerAddress | null | undefined): string {
+  const cloudflareAddress = request.headers.get("cf-connecting-ip")?.trim();
+  if (cloudflareAddress && isIP(cloudflareAddress) !== 0) return `cf:${cloudflareAddress.toLowerCase()}`;
+  return localLoginSourceKey(peer);
+}
+
+export interface AppOptions {
+  readonly buildInfo?: BuildInfo;
+  readonly readinessProbe?: () => Promise<void>;
+  readonly readinessTarget?: "yellow_runtime_database" | "synthetic_provider";
+  readonly database?: Database;
+  readonly tenantResolver?: TenantResolver;
+  readonly extensionRegistry?: ExtensionRegistry;
+  readonly operatorApi?: OperatorHttpApi;
+  readonly operatorLocalReviewCredentials?: OperatorLocalReviewCredentials;
+  readonly hostedDepositRoutes?: HostedDepositProviderHttpApi;
+  readonly hostedDepositSurface?: "guest" | "provider" | "all";
+  /** Legacy transport option retained while `/api/v1/jarvis:ask` remains compatible. */
+  readonly jarvis?: OverwatchService;
+  /** The public demo can progressively adopt the mobile-first React shell. */
+  readonly publicOperatorSurface?: "legacy" | "yellow-next";
+}
+
+const YELLOW_NEXT_ROOT = new URL("../public/yellow-next/", import.meta.url);
+const YELLOW_NEXT_ASSET = /^[A-Za-z0-9][A-Za-z0-9._-]*$/;
+
+async function yellowNextHtml(): Promise<Response> {
+  const file = Bun.file(new URL("index.html", YELLOW_NEXT_ROOT));
+  if (!(await file.exists())) {
+    return new Response("Yellow interface is unavailable", { status: 503 });
+  }
+  return new Response(file, {
+    headers: {
+      "content-type": "text/html; charset=utf-8",
+      "cache-control": "no-store",
+    },
+  });
+}
+
+async function yellowNextAsset(asset: string): Promise<Response> {
+  if (!YELLOW_NEXT_ASSET.test(asset)) return new Response("Not found", { status: 404 });
+  const file = Bun.file(new URL(`assets/${asset}`, YELLOW_NEXT_ROOT));
+  if (!(await file.exists())) return new Response("Not found", { status: 404 });
+  const contentType = asset.endsWith(".css")
+    ? "text/css; charset=utf-8"
+    : asset.endsWith(".js")
+      ? "text/javascript; charset=utf-8"
+      : "application/octet-stream";
+  return new Response(file, {
+    headers: { "content-type": contentType, "cache-control": "public, max-age=31536000, immutable" },
+  });
+}
+
+export function createApp(options: AppOptions = {}) {
+  const tenantContext = new TenantContextMiddleware(
+    options.tenantResolver ?? failClosedTenantResolver,
+    options.database ?? new Database(unavailablePool),
+  );
+  const providerCsp = options.hostedDepositRoutes?.providerContentSecurityPolicy();
+  const buildInfo = options.buildInfo ?? UNKNOWN_BUILD_INFO;
+
+  const app = new Elysia()
+    .decorate("tenantContext", tenantContext)
     .onAfterHandle(({ set }) => {
       for (const [name, value] of Object.entries(SECURITY_HEADERS)) {
         set.headers[name] = value;
+      }
+      if (Bun.env.YELLOW_PUBLIC_DEMO_AUTOMATIC_LOGIN === "1") {
+        set.headers["permissions-policy"] = "camera=(), geolocation=(), microphone=(self), payment=(), usb=()";
       }
     })
     .onError(({ set }) => {
@@ -14,7 +112,718 @@ export function createApp() {
         set.headers[name] = value;
       }
     })
-    .get("/health", () => ({ status: "ok" as const }));
+    .get("/health", () => ({ status: "ok" as const }))
+    .get("/ready", async ({ set }) => {
+      set.headers["Cache-Control"] = "no-store";
+      if (buildInfo.revision === null) {
+        set.status = 503;
+        return {
+          status: "not_ready" as const,
+          reason: "build_revision_unavailable" as const,
+          build: buildInfo,
+        };
+      }
+      if (!options.readinessProbe || !options.readinessTarget) {
+        set.status = 503;
+        return {
+          status: "not_ready" as const,
+          reason: "runtime_not_configured" as const,
+          build: buildInfo,
+        };
+      }
+      try {
+        await options.readinessProbe();
+        return {
+          status: "ready" as const,
+          target: options.readinessTarget,
+          build: buildInfo,
+        };
+      } catch {
+        set.status = 503;
+        return {
+          status: "not_ready" as const,
+          reason: "runtime_dependency_unavailable" as const,
+          target: options.readinessTarget,
+          build: buildInfo,
+        };
+      }
+    });
+
+  if (options.extensionRegistry) {
+    const extensions = new ExtensionHttpApi(options.extensionRegistry);
+    app
+      .post("/api/extension-types", ({ request, body, tenantContext }) =>
+      tenantContext.handle(request, (context) => extensions.registerType(context, body))
+      )
+      .post("/api/extensions", ({ request, body, tenantContext }) =>
+      tenantContext.handle(request, (context) => extensions.createInstance(context, body))
+      )
+      .get("/api/extensions", ({ request, tenantContext }) =>
+      tenantContext.handle(request, (context) => extensions.listInstances(context))
+      );
+  }
+
+  if (options.operatorApi) {
+    const operator = options.operatorApi;
+    const publicOperatorHtml = (request: Request) =>
+      options.publicOperatorSurface === "yellow-next"
+        ? yellowNextHtml()
+        : operatorAssets.html(options.operatorLocalReviewCredentials, request);
+    const withOperatorTenant = async (
+      request: Request,
+      handler: Parameters<TenantContextMiddleware["handle"]>[1],
+    ): Promise<Response> => {
+      try {
+        const response = await tenantContext.handle(request, handler) as Response;
+        return response.status === 401 ? operator.unauthorized(request) : response;
+      } catch (error) {
+        return operator.failure(request, error);
+      }
+    };
+    app
+      .get("/", ({ request }) => publicOperatorHtml(request))
+      .get("/p/:property/availability", ({ request }) => operatorAssets.html(options.operatorLocalReviewCredentials, request))
+      .get("/p/:property/today", ({ request }) => publicOperatorHtml(request))
+      .get("/p/:property/inventory", ({ request }) => operatorAssets.html(options.operatorLocalReviewCredentials, request))
+      .get("/p/:property/restrictions", ({ request }) => operatorAssets.html(options.operatorLocalReviewCredentials, request))
+      .get("/p/:property/rates", ({ request }) => operatorAssets.html(options.operatorLocalReviewCredentials, request))
+      .get("/p/:property/operations", ({ request }) => operatorAssets.html(options.operatorLocalReviewCredentials, request))
+      .get("/p/:property/housekeeping", ({ request }) => publicOperatorHtml(request))
+      .get("/p/:property/housekeeping/tasks/:task", ({ request }) => operatorAssets.html(options.operatorLocalReviewCredentials, request))
+      .get("/p/:property/vehicles", ({ request }) => operatorAssets.html(options.operatorLocalReviewCredentials, request))
+      .get("/p/:property/vehicles/:vehicle", ({ request }) => operatorAssets.html(options.operatorLocalReviewCredentials, request))
+      .get("/p/:property/reservations", ({ request }) => publicOperatorHtml(request))
+      .get("/p/:property/guests", ({ request }) => publicOperatorHtml(request))
+      .get("/p/:property/res/:reservation", ({ request }) => publicOperatorHtml(request))
+      .get("/p/:property/folios", ({ request }) => operatorAssets.html(options.operatorLocalReviewCredentials, request))
+      .get("/p/:property/invoices", ({ request }) => operatorAssets.html(options.operatorLocalReviewCredentials, request))
+      .get("/p/:property/invoices/new/:reservation/:folio", ({ request }) => operatorAssets.html(options.operatorLocalReviewCredentials, request))
+      .get("/p/:property/invoices/:document", ({ request }) => operatorAssets.html(options.operatorLocalReviewCredentials, request))
+      .get("/p/:property/folio/:folio", ({ request }) => operatorAssets.html(options.operatorLocalReviewCredentials, request))
+      .get("/p/:property/cashiers", ({ request }) => operatorAssets.html(options.operatorLocalReviewCredentials, request))
+      .get("/p/:property/day-close", ({ request }) => operatorAssets.html(options.operatorLocalReviewCredentials, request))
+      .get("/p/:property/trust", ({ request }) => operatorAssets.html(options.operatorLocalReviewCredentials, request))
+      .get("/p/:property/status", ({ request }) => operatorAssets.html(options.operatorLocalReviewCredentials, request))
+      .get("/assets/operator.css", () => operatorAssets.css())
+      .get("/assets/operator.js", () => operatorAssets.js())
+      .get("/assets/operator-interfaces.css", () => operatorAssets.interfacesCss())
+      .get("/assets/operator-interfaces.js", () => operatorAssets.interfacesJs())
+      .get("/assets/operator-layouts.js", () => operatorAssets.layoutsJs())
+      .get("/assets/operator-invoices.js", () => operatorAssets.invoiceJs())
+      .get("/assets/operator-invoice-print.js", () => operatorAssets.invoicePrintJs())
+      .get("/assets/vendor/qrcodegen-v1.8.0-es6.js", () => operatorAssets.invoiceQrJs())
+      .get("/assets/operator-deposits.css", () => operatorAssets.depositCss())
+      .get("/assets/operator-deposits.js", () => operatorAssets.depositJs())
+      .get("/static/fonts/urbanist-v1.330.woff2", () => operatorAssets.urbanistFont())
+      .get("/static/icons/phosphor-nav-2.1.1.svg", () => operatorAssets.phosphorNav())
+      .get("/assets/operator-local-prefill.js", () => operatorAssets.localPrefillJs())
+      .get("/assets/operator-public-demo.js", () => operatorAssets.publicDemoJs())
+      .get("/yellow-next/assets/:asset", ({ params }) => yellowNextAsset(params.asset))
+      .post("/api/v1/auth/demo:enter", ({ request, server }) => {
+        const credentials = options.operatorLocalReviewCredentials;
+        if (Bun.env.YELLOW_PUBLIC_DEMO_AUTOMATIC_LOGIN !== "1" || !credentials) {
+          return new Response("Not found", { status: 404 });
+        }
+        // The browser never receives or submits the process-scoped synthetic-demo
+        // credentials.  This route is enabled only for the isolated demo process.
+        return operator.publicReadOnlyDemoLogin(request, credentials, publicDemoSourceKey(request, server?.requestIP(request)));
+      })
+      .post("/api/v1/auth/local:login", ({ request, body, server }) =>
+        operator.login(request, body, localLoginSourceKey(server?.requestIP(request)))
+      )
+      .post("/api/v1/jarvis:ask", ({ request, body, server }) =>
+        options.jarvis
+          ? withOperatorTenant(request, async () => {
+            try {
+              const sourceKey = Bun.env.YELLOW_PUBLIC_DEMO_AUTOMATIC_LOGIN === "1"
+                ? publicDemoSourceKey(request, server?.requestIP(request))
+                : localLoginSourceKey(server?.requestIP(request));
+              return new Response(JSON.stringify(await options.jarvis!.respond(body, sourceKey)), {
+                headers: { "content-type": "application/json; charset=utf-8", "cache-control": "no-store" },
+              });
+            } catch (error) {
+              if (error instanceof OverwatchRequestError) {
+                return new Response(JSON.stringify({ type: "about:blank", title: error.status === 429 ? "Too many requests" : "Private data blocked", status: error.status, detail: error.message }), {
+                  status: error.status, headers: { "content-type": "application/problem+json", "cache-control": "no-store" },
+                });
+              }
+              throw error;
+            }
+          })
+          : new Response("Overwatch is unavailable", { status: 503 })
+      )
+      .get("/api/v1/me/properties", ({ request, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.properties(context))
+      )
+      .get("/api/v1/properties/:property/profile", ({ request, params, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.propertyProfile(context, params.property))
+      )
+      .post("/api/v1/properties/:property/profile/name", ({ request, params, body, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.renamePropertyProfile(context, params.property, body))
+      )
+      .get("/api/operator/properties/:propertyNode/receivable-transfers/targets", ({ request, params, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.receivableTransferTargets(context, params.propertyNode))
+      )
+      .post("/api/operator/properties/:propertyNode/folios/:folioId/receivable-transfers:preview", ({ request, params, body, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.previewReceivableTransfer(
+          context, params.propertyNode, params.folioId, body,
+        ))
+      )
+      .post("/api/operator/properties/:propertyNode/folios/:folioId/receivable-transfers/approvals", ({ request, params, body, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.requestReceivableOverLimitApproval(
+          context, params.propertyNode, params.folioId, body,
+        ))
+      )
+      .post("/api/operator/properties/:propertyNode/folios/:folioId/receivable-transfers/approvals/:approvalId/approve", ({ request, params, body, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.decideReceivableOverLimitApproval(
+          context, params.propertyNode, params.folioId, params.approvalId, body, "approve",
+        ))
+      )
+      .post("/api/operator/properties/:propertyNode/folios/:folioId/receivable-transfers/approvals/:approvalId/reject", ({ request, params, body, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.decideReceivableOverLimitApproval(
+          context, params.propertyNode, params.folioId, params.approvalId, body, "reject",
+        ))
+      )
+      .post("/api/operator/properties/:propertyNode/folios/:folioId/receivable-transfers", ({ request, params, body, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.transferReceivableBalance(
+          context, params.propertyNode, params.folioId, body,
+        ))
+      )
+      .get("/api/v1/properties/:property/system-status", ({ request, params, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.systemStatus(context, params.property))
+      )
+      .get("/api/v1/properties/:property/fiscal-submissions/:submission/receipt", ({ request, params, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.fiscalSubmissionDeliveryReceipt(
+          context, params.property, params.submission,
+        ))
+      )
+      .get("/api/v1/properties/:property/invoices/:document/receipt", ({ request, params }) =>
+        withOperatorTenant(request, (context) => operator.invoiceDelivery(context, params.property, params.document))
+      )
+      .post("/api/v1/properties/:property/invoices/search", ({ request, params, body }) =>
+        withOperatorTenant(request, (context) => operator.invoiceSearch(context, params.property, body))
+      )
+      .post("/api/v1/properties/:property/invoices/:originalDocument/credit-notes", ({ request, params, body }) =>
+        withOperatorTenant(request, (context) => operator.fiscalCreditNoteIssue(context, params.property, params.originalDocument, body))
+      )
+      .post("/api/v1/properties/:property/fiscal-series", ({ request, params, body }) =>
+        withOperatorTenant(request, (context) => operator.fiscalSeriesConfigure(context, params.property, body))
+      )
+      .get("/api/v1/properties/:property/fiscal-series", ({ request, params }) =>
+        withOperatorTenant(request, (context) => operator.fiscalSeriesDiscover(context, params.property))
+      )
+      .get("/api/v1/properties/:property/invoices/:document/credit-notes", ({ request, params }) =>
+        withOperatorTenant(request, (context) => operator.fiscalCreditNoteDiscover(context, params.property, params.document))
+      )
+      .get("/api/v1/properties/:property/credit-notes", ({ request, params }) =>
+        withOperatorTenant(request, (context) => operator.fiscalCreditNoteList(context, params.property))
+      )
+      .get("/api/v1/properties/:property/credit-notes/:creditDocument", ({ request, params }) =>
+        withOperatorTenant(request, (context) => operator.fiscalCreditNoteRead(context, params.property, params.creditDocument))
+      )
+      .get("/api/v1/properties/:property/credit-notes/:creditDocument/document", ({ request, params }) =>
+        withOperatorTenant(request, (context) => operator.fiscalCreditNoteDocument(context, params.property, params.creditDocument))
+      )
+      .get("/api/v1/properties/:property/credit-notes/:creditDocument/delivery", ({ request, params }) =>
+        withOperatorTenant(request, (context) => operator.fiscalCreditNoteDelivery(context, params.property, params.creditDocument))
+      )
+      .post("/api/v1/properties/:property/reservations/:reservation/folios/:folio/invoice-readiness", ({ request, params, body }) =>
+        withOperatorTenant(request, (context) => operator.invoiceReadiness(context, params.property, params.reservation, params.folio, body))
+      )
+      .post("/api/v1/properties/:property/reservations/:reservation/folios/:folio/invoice-issue", ({ request, params, body }) =>
+        withOperatorTenant(request, (context) => operator.invoiceIssue(context, params.property, params.reservation, params.folio, body))
+      )
+      .get("/api/v1/properties/:property/invoices/:document", ({ request, params }) =>
+        withOperatorTenant(request, (context) => operator.invoiceDocument(context, params.property, params.document))
+      )
+      .get("/api/v1/properties/:property/fiscal-provider-options", ({ request, params }) =>
+        withOperatorTenant(request, (context) => operator.fiscalProviderOptions(context, params.property))
+      )
+      .post("/api/v1/properties/:property/fiscal-submissions", ({ request, params, body, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.requestFiscalSubmission(context, params.property, body))
+      )
+      .post("/api/v1/properties/:property/fiscal-submissions/:submission/retry", ({ request, params, body, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.retryFiscalSubmission(
+          context, params.property, params.submission, body,
+        ))
+      )
+      .get("/api/v1/properties/:property/business-days/close-workbench", ({ request, params, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.businessDayCloseWorkbenchEntry(context, params.property))
+      )
+      .get("/api/v1/properties/:property/trust/accounts", ({ request, params, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.ownerTrustAccounts(context, params.property)))
+      .post("/api/v1/properties/:property/trust/accounts/:accountId/preview", ({ request, params, body, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.previewOwnerTrustExpense(context, params.property, params.accountId, body)))
+      .post("/api/v1/properties/:property/trust/accounts/:accountId/approval-requests", ({ request, params, body, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.requestOwnerTrustExpenseApproval(context, params.property, params.accountId, body)))
+      .get("/api/v1/properties/:property/trust/approval-requests", ({ request, params, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.ownerTrustExpenseApprovals(context, params.property)))
+      .post("/api/v1/properties/:property/trust/approval-requests/:approvalId/approve", ({ request, params, body, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.decideOwnerTrustExpenseApproval(context, params.property, params.approvalId, body, "approved")), { parse: "none" })
+      .post("/api/v1/properties/:property/trust/approval-requests/:approvalId/reject", ({ request, params, body, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.decideOwnerTrustExpenseApproval(context, params.property, params.approvalId, body, "rejected")), { parse: "none" })
+      .post("/api/v1/properties/:property/trust/accounts/:accountId/expenses", ({ request, params, body, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.postOwnerTrustExpense(context, params.property, params.accountId, body)))
+      .get("/api/v1/properties/:property/business-days/:businessDate/close-workbench", ({ request, params, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.businessDayCloseWorkbench(
+          context, params.property, params.businessDate,
+        ))
+      )
+      .post("/api/v1/properties/:property/business-days/:businessDate/seal", ({ request, params, body, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.sealBusinessDay(
+          context, params.property, params.businessDate, body,
+        )), { parse: "none" })
+      .post("/api/v1/properties/:property/business-days/:businessDate/close-workbench/carry-candidates/:discrepancyId/approvals", ({ request, params, body, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.requestBusinessDayCarryApproval(context, params.property, params.businessDate, params.discrepancyId, body)))
+      .get("/api/v1/properties/:property/business-days/close-workbench/carry-approvals", ({ request, params, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.businessDayCarryApprovalInbox(context, params.property)))
+      .post("/api/v1/properties/:property/business-days/close-workbench/carry-approvals/:approvalId/approve", ({ request, params, body, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.decideBusinessDayCarryApproval(context, params.property, params.approvalId, body, "approved")))
+      .post("/api/v1/properties/:property/business-days/close-workbench/carry-approvals/:approvalId/reject", ({ request, params, body, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.decideBusinessDayCarryApproval(context, params.property, params.approvalId, body, "rejected")))
+      .post("/api/v1/properties/:property/business-days/close-workbench/carry-approvals/:approvalId/carry", ({ request, params, body, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.carryApprovedBusinessDayDiscrepancy(context, params.property, params.approvalId, body)))
+      .get("/api/v1/properties/:property/cashier-sessions", ({ request, params, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.cashierSessions(context, params.property))
+      )
+      .post("/api/v1/properties/:property/cashier-sessions", ({ request, params, body, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.openCashierSession(context, params.property, body))
+      )
+      .post("/api/v1/properties/:property/cashier-sessions/:sessionId/counts", ({ request, params, body, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.appendCashierCount(context, params.property, params.sessionId, body))
+      )
+      .post("/api/v1/properties/:property/cashier-sessions/:sessionId/approvals", ({ request, params, body, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.requestCashierOverShortApproval(context, params.property, params.sessionId, body))
+      )
+      .post("/api/v1/properties/:property/cashier-sessions/:sessionId/supervised-approvals", ({ request, params, body, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.requestCashierOverShortApproval(context, params.property, params.sessionId, body, true))
+      )
+      .post("/api/v1/properties/:property/cashier-sessions/:sessionId/approvals/:approvalId/approve", ({ request, params, body, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.approveCashierOverShort(context, params.property, params.sessionId, params.approvalId, body))
+      )
+      .post("/api/v1/properties/:property/cashier-sessions/:sessionId/approvals/:approvalId/reject", ({ request, params, body, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.rejectCashierOverShort(context, params.property, params.sessionId, params.approvalId, body))
+      )
+      .post("/api/v1/properties/:property/cashier-sessions/:sessionId/close", ({ request, params, body, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.closeCashierSession(context, params.property, params.sessionId, body))
+      )
+      .post("/api/v1/properties/:property/cashier-sessions/:sessionId/supervised-close", ({ request, params, body, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.closeCashierSession(context, params.property, params.sessionId, body, true))
+      )
+      .get("/api/v1/properties/:property/folios/:reference/statement", ({ request, params, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.folioStatement(
+          context, params.property, params.reference,
+        ))
+      )
+      .post("/api/v1/properties/:property/folio-series", ({ request, params, body, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.configureNonFiscalFolioSeries(
+          context, params.property, body,
+        ))
+      )
+      .post("/api/v1/properties/:property/reservations/:reservation/primary-folio", ({ request, params, body, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.openPrimaryFolio(
+          context, params.property, params.reservation, body,
+        ))
+      )
+      .post("/api/v1/properties/:property/reservations/:reservation/folios", ({ request, params, body, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.openAdditionalFolio(
+          context, params.property, params.reservation, body,
+        ))
+      )
+      .post("/api/v1/properties/:property/folios/:folioId/charges", ({ request, params, body, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.postFolioCharge(
+          context, params.property, params.folioId, body,
+        ))
+      )
+      .post("/api/v1/properties/:property/folios/:folioId/status", ({ request, params, body, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.transitionFolioStatus(
+          context, params.property, params.folioId, body,
+        ))
+      )
+      .post("/api/v1/properties/:property/folios/:folioId/adjustments", ({ request, params, body, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.correctFolioCharge(
+          context, params.property, params.folioId, body,
+        ))
+      )
+      .post("/api/v1/properties/:property/folios/:folioId/transfers:preview", ({ request, params, body, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.previewFolioTransfer(
+          context, params.property, params.folioId, body,
+        ))
+      )
+      .post("/api/v1/properties/:property/folios/:folioId/transfers", ({ request, params, body, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.transferFolioGroups(
+          context, params.property, params.folioId, body,
+        ))
+      )
+      .get("/api/v1/properties/:property/payments/authority", ({ request, params, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.hostedDepositReadAuthority(context, params.property))
+      )
+      .post("/api/v1/properties/:property/folios/:folioId/hosted-deposits", ({ request, params, body, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.createHostedDeposit(
+          context, params.property, params.folioId, body,
+        ))
+      )
+      .get("/api/v1/properties/:property/folios/:reference/hosted-deposits", ({ request, params, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.hostedDepositWorkbench(
+          context, params.property, params.reference,
+        ))
+      )
+      .post("/api/v1/properties/:property/hosted-deposits/:requestId/applications", ({ request, params, body, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.applyHostedDeposit(
+          context, params.property, params.requestId, body,
+        ))
+      )
+      .get("/api/v1/properties/:property/hosted-deposits/:requestId", ({ request, params, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.hostedDepositStatus(
+          context, params.property, params.requestId,
+        ))
+      )
+      .post("/api/v1/properties/:property/availability:search", ({ request, params, body, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.search(context, params.property, body))
+      )
+      .get("/api/v1/properties/:property/inventory", ({ request, params, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.inventory(context, params.property))
+      )
+      .get("/api/v1/properties/:property/availability-projection", ({ request, params, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.availabilityProjection(context, params.property))
+      )
+      .post("/api/v1/properties/:property/availability-projection:rebuild", ({ request, params, body, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.rebuildAvailabilityProjection(context, params.property, body))
+      )
+      .get("/api/v1/properties/:property/restrictions", ({ request, params, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.restrictions(context, params.property))
+      )
+      .post("/api/v1/properties/:property/restrictions", ({ request, params, body, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.createRestrictions(context, params.property, body))
+      )
+      .get("/api/v1/properties/:property/rate-configuration", ({ request, params, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.rateConfiguration(context, params.property))
+      )
+      .post("/api/v1/properties/:property/rate-configuration/policies", ({ request, params, body, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.createPolicy(context, params.property, body))
+      )
+      .post("/api/v1/properties/:property/rate-configuration/rate-plans", ({ request, params, body, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.createRatePlan(context, params.property, body))
+      )
+      .get("/api/v1/properties/:property/rate-prices/current", ({ request, params, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.currentRatePrice(context, params.property))
+      )
+      .post("/api/v1/properties/:property/rate-prices", ({ request, params, body, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.createRatePrice(context, params.property, body))
+      )
+      .post("/api/v1/properties/:property/rate-prices/:ratePriceId/supersede", ({ request, params, body, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.supersedeRatePrice(context, params.property, params.ratePriceId, body))
+      )
+      .get("/api/v1/properties/:property/rate-builder/:ratePlanId", ({ request, params, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.rateBuilder(context, params.property, params.ratePlanId))
+      )
+      .get("/api/v1/properties/:property/rate-builder/:ratePlanId/approvals", ({ request, params, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.rateBuilderApprovals(context, params.property, params.ratePlanId))
+      )
+      .post("/api/v1/properties/:property/rate-builder/:ratePlanId/approvals/:approvalId/decision", ({ request, params, body, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.decideRateBuilderApproval(
+          context, params.property, params.ratePlanId, params.approvalId, body,
+        ))
+      )
+      .post("/api/v1/properties/:property/rate-builder/:ratePlanId/releases", ({ request, params, body, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.createRateBuilderDraft(context, params.property, params.ratePlanId, body))
+      )
+      .post("/api/v1/properties/:property/rate-builder/:ratePlanId/intents:interpret", ({ request, params, body, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.interpretRateBuilderIntent(context, params.property, params.ratePlanId, body))
+      )
+      .post("/api/v1/properties/:property/rate-builder/:ratePlanId/quotes:resolve", ({ request, params, body, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.resolveRateBuilderQuote(context, params.property, params.ratePlanId, body))
+      )
+      .post("/api/v1/properties/:property/rate-builder/:ratePlanId/releases/:releaseId/simulate", ({ request, params, body, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.simulateRateBuilderDraft(context, params.property, params.ratePlanId, params.releaseId, body))
+      )
+      .post("/api/v1/properties/:property/rate-builder/:ratePlanId/releases/:releaseId/approval-request", ({ request, params, body, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.requestRateBuilderApproval(context, params.property, params.ratePlanId, params.releaseId, body))
+      )
+      .post("/api/v1/properties/:property/rate-builder/:ratePlanId/releases/:releaseId/publish", ({ request, params, body, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.publishRateBuilderDraft(context, params.property, params.ratePlanId, params.releaseId, body))
+      )
+      .post("/api/v1/properties/:property/rate-builder/:ratePlanId/releases/:releaseId/undo", ({ request, params, body, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.createRateBuilderUndo(context, params.property, params.ratePlanId, params.releaseId, body))
+      )
+      .get("/api/v1/properties/:property/operational-blocks", ({ request, params, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.operationalBlocks(context, params.property))
+      )
+      .post("/api/v1/properties/:property/operational-blocks", ({ request, params, body, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.openOperationalBlock(context, params.property, body))
+      )
+      .post("/api/v1/properties/:property/operational-blocks/:blockId/close", ({ request, params, body, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.closeOperationalBlock(context, params.property, params.blockId, body))
+      )
+      .get("/api/v1/properties/:property/inventory-policy", ({ request, params, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.inventoryPolicy(context, params.property))
+      )
+      .post("/api/v1/properties/:property/inventory-policy/oos-sellability", ({ request, params, body, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.setOosSellability(context, params.property, body))
+      )
+      .get("/api/v1/properties/:property/holds", ({ request, params, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.activeHolds(context, params.property))
+      )
+      .post("/api/v1/properties/:property/holds", ({ request, params, body, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.placeHold(context, params.property, body))
+      )
+      .post("/api/v1/properties/:property/holds/:holdId/release", ({ request, params, body, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.releaseHold(context, params.property, params.holdId, body))
+      )
+      .post("/api/v1/reservations:commit", ({ request, body, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.commitReservation(context, body))
+      )
+      .post("/api/v1/properties/:property/parties:search", ({ request, params, body, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.partyProfiles(context, params.property, body))
+      )
+      .post("/api/v1/properties/:property/parties", ({ request, params, body, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.createPartyProfile(context, params.property, body))
+      )
+      .get("/api/v1/properties/:property/reservation-guests", ({ request, params, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.reservationGuests(context, params.property))
+      )
+      .get("/api/v1/properties/:property/reservations", ({ request, params, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.reservationLifecycle(context, params.property))
+      )
+      .get("/api/v1/properties/:property/reservation-board", ({ request, params, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.reservationBoard(context, params.property))
+      )
+      .get("/api/v1/properties/:property/operating-performance", ({ request, params, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.operatingPerformance(context, params.property))
+      )
+      .get("/api/v1/properties/:property/reservations/:reservation", ({ request, params, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.reservationDetail(
+          context, params.property, params.reservation,
+        ))
+      )
+      .get("/api/v1/properties/:property/reservations/:reservation/arrival-pickup-task/:task", ({ request, params, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.reservationPickupTaskDetail(
+          context, params.property, params.reservation, params.task,
+        ))
+      )
+      .post("/api/v1/properties/:property/reservations/:reservation/arrival-pickup-task/:task/assign", ({ request, params, body, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.transitionReservationPickupTask(
+          context, params.property, params.reservation, params.task, "assign", body,
+        ))
+      )
+      .post("/api/v1/properties/:property/reservations/:reservation/arrival-pickup-task/:task/start", ({ request, params, body, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.transitionReservationPickupTask(
+          context, params.property, params.reservation, params.task, "start", body,
+        ))
+      )
+      .post("/api/v1/properties/:property/reservations/:reservation/arrival-pickup-task/:task/complete", ({ request, params, body, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.transitionReservationPickupTask(
+          context, params.property, params.reservation, params.task, "complete", body,
+        ))
+      )
+      .get("/api/v1/properties/:property/reservations/:reservation/arrival-room-cleaning-task/candidate", ({ request, params, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.arrivalRoomCleaningCandidate(
+          context, params.property, params.reservation,
+        ))
+      )
+      .post("/api/v1/properties/:property/reservations/:reservation/arrival-room-cleaning-task", ({ request, params, body, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.createArrivalRoomCleaningTask(
+          context, params.property, params.reservation, body,
+        ))
+      )
+      .get("/api/v1/properties/:property/reservations/:reservation/due-in-room-assignment/candidates", ({ request, params, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.dueInRoomAssignmentCandidates(
+          context, params.property, params.reservation,
+        ))
+      )
+      .post("/api/v1/properties/:property/reservations/:reservation/due-in-room-assignment", ({ request, params, body, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.assignDueInRoom(
+          context, params.property, params.reservation, body,
+        ))
+      )
+      .get("/api/v1/properties/:property/reservations/:reservation/check-in/readiness", ({ request, params, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.checkInReadiness(
+          context, params.property, params.reservation,
+        ))
+      )
+      .post("/api/v1/properties/:property/reservations/:reservation/check-in", ({ request, params, body, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.commitCheckIn(
+          context, params.property, params.reservation, body,
+        ))
+      )
+      .get("/api/v1/properties/:property/departure-services", ({request,params}) =>
+        withOperatorTenant(request,(context) => operator.departureServices(context,params.property,null))
+      )
+      .post("/api/v1/properties/:property/departure-services/:serviceRequest/:action", ({request,params,body}) =>
+        withOperatorTenant(request,(context) => operator.commandDepartureService(context,params.property,null,params.serviceRequest,params.action,body))
+      )
+      .get("/api/v1/properties/:property/reservations/:reservation/departure-services", ({request,params}) =>
+        withOperatorTenant(request,(context) => operator.departureServices(context,params.property,params.reservation))
+      )
+      .post("/api/v1/properties/:property/reservations/:reservation/departure-services/proposals", ({request,params,body}) =>
+        withOperatorTenant(request,(context) => operator.commandDepartureService(context,params.property,params.reservation,null,"propose",body))
+      )
+      .post("/api/v1/properties/:property/reservations/:reservation/departure-services/:serviceRequest/:action", ({request,params,body}) =>
+        withOperatorTenant(request,(context) => operator.commandDepartureService(context,params.property,params.reservation,params.serviceRequest,params.action,body))
+      )
+      .get("/api/v1/properties/:property/reservations/:reservation/checkout-readiness", ({ request, params, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.checkoutReadiness(
+          context, params.property, params.reservation,
+        ))
+      )
+      .post("/api/v1/properties/:property/reservations/:reservation/checkout", ({ request, params, body, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.commitCheckout(
+          context, params.property, params.reservation, body,
+        ))
+      )
+      .get("/api/v1/properties/:property/vehicles", ({ request, params, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.vehicleRegister(context, params.property))
+      )
+      .get("/api/v1/properties/:property/vehicles/:vehicle", ({ request, params, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.vehicleRegisterDetail(
+          context, params.property, params.vehicle,
+        ))
+      )
+      .get("/api/v1/properties/:property/vehicles/:vehicle/parking", ({ request, params, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.vehicleParking(
+          context, params.property, params.vehicle,
+        ))
+      )
+      .post("/api/v1/properties/:property/vehicles/:vehicle/parking", ({ request, params, body, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.vehicleParkingAssign(
+          context, params.property, params.vehicle, body,
+        ))
+      )
+      .get("/api/v1/properties/:property/housekeeping/tasks", ({ request, params, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.housekeepingBoard(context, params.property))
+      )
+      .get("/api/v1/properties/:property/housekeeping/tasks/:task", ({ request, params, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.housekeepingTaskDetail(
+          context, params.property, params.task,
+        ))
+      )
+      .get("/api/v1/properties/:property/housekeeping/conditions", ({ request, params, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.housekeepingConditions(context, params.property))
+      )
+      .get("/api/v1/properties/:property/housekeeping/discrepancies", ({ request, params, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.housekeepingDiscrepancies(context, params.property))
+      )
+      .post("/api/v1/properties/:property/housekeeping/discrepancies", ({ request, params, body, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.reportHousekeepingDiscrepancy(
+          context, params.property, body,
+        ))
+      )
+      .get("/api/v1/properties/:property/housekeeping/conditions/:space/candidate", ({ request, params, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.housekeepingInitialConditionCandidate(
+          context, params.property, params.space,
+        ))
+      )
+      .post("/api/v1/properties/:property/housekeeping/conditions/:space/initialize", ({ request, params, body, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.initializeHousekeepingCondition(
+          context, params.property, params.space, body,
+        ))
+      )
+      .get("/api/v1/properties/:property/housekeeping/sheets/preview", ({ request, params, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.previewHousekeepingSheet(context, params.property))
+      )
+      .get("/api/v1/properties/:property/housekeeping/sheets", ({ request, params, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.listHousekeepingSheets(context, params.property))
+      )
+      .post("/api/v1/properties/:property/housekeeping/sheets/generate", ({ request, params, body, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.generateHousekeepingSheet(context, params.property, body))
+      )
+      .post("/api/v1/properties/:property/housekeeping/tasks/:task/transition", ({ request, params, body, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.transitionHousekeepingTask(
+          context, params.property, params.task, body,
+        ))
+      )
+      .get("/api/v1/properties/:property/reservation-segments", ({ request, params, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.reservationSegments(context, params.property))
+      )
+      .put("/api/v1/properties/:property/reservations/:reservation/guests", ({ request, params, body, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.replaceReservationGuests(
+          context, params.property, params.reservation, body,
+        ))
+      )
+      .post("/api/v1/properties/:property/reservations/:reservation/alerts", ({ request, params, body, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.createReservationAlert(
+          context, params.property, params.reservation, body,
+        ))
+      )
+      .post("/api/v1/properties/:property/reservations/:reservation/alerts/:alert/deactivate", ({ request, params, body, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.deactivateReservationAlert(
+          context, params.property, params.reservation, params.alert, body,
+        ))
+      )
+      .put("/api/v1/properties/:property/reservations/:reservation/travel/:direction", ({ request, params, body, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.putReservationTravel(
+          context, params.property, params.reservation, params.direction, body,
+        ))
+      )
+      .patch("/api/v1/properties/:property/reservations/:reservation", ({ request, params, body, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.modifyReservation(context, params.property, params.reservation, body))
+      )
+      .post("/api/v1/properties/:property/reservations/:reservation/cancel", ({ request, params, body, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.cancelReservation(context, params.property, params.reservation, body))
+      )
+      .post("/api/v1/properties/:property/reservations/:reservation/reinstate", ({ request, params, body, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.reinstateReservation(context, params.property, params.reservation, body))
+      )
+      .patch("/api/v1/properties/:property/reservations/:reservation/segments/:segment/departure", ({ request, params, body, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.changeReservationDeparture(
+          context, params.property, params.reservation, params.segment, body,
+        ))
+      )
+      .post("/api/v1/properties/:property/reservations/:reservation/segments/:segment/move", ({ request, params, body, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.moveReservationRoom(
+          context, params.property, params.reservation, params.segment, body,
+        ))
+      )
+      .get("/api/v1/properties/:property/offline-leases", ({ request, params, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.activeOfflineLeases(context, params.property))
+      )
+      .post("/api/v1/properties/:property/offline-leases", ({ request, params, body, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.placeOfflineLease(context, params.property, body))
+      )
+      .post("/api/v1/properties/:property/offline-leases/:leaseId/release", ({ request, params, body, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.releaseOfflineLease(context, params.property, params.leaseId, body))
+      )
+      .post("/api/v1/properties/:property/inventory/unit-types", ({ request, params, body, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.createUnitType(context, params.property, body))
+      )
+      .post("/api/v1/properties/:property/inventory/spaces", ({ request, params, body, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.createSpace(context, params.property, body))
+      )
+      .post("/api/v1/properties/:property/inventory/sellable-units", ({ request, params, body, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.createSellableUnit(context, params.property, body))
+      )
+      .post("/api/v1/properties/:property/inventory/rooms:bulk", ({ request, params, body, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.createBulkRooms(context, params.property, body))
+      );
+  }
+
+  if (options.hostedDepositRoutes) {
+    const provider = options.hostedDepositRoutes;
+    const surface = options.hostedDepositSurface ?? "all";
+    if (surface === "guest" || surface === "all") app
+      .get("/pay/:bearer", () => hostedDepositAssets.guestHtml())
+      .get("/pay/:bearer/return", () => hostedDepositAssets.guestHtml())
+      .get("/pay-return/:correlation", () => hostedDepositAssets.guestHtml())
+      .get("/assets/guest.css", () => hostedDepositAssets.guestCss())
+      .get("/assets/guest.js", () => hostedDepositAssets.guestJs())
+      .get("/api/public/hosted-deposits/:bearer", ({ request, params }) => provider.guestStatus(request, params.bearer))
+      .get("/api/public/hosted-deposit-returns/:correlation", ({ request, params }) =>
+        provider.guestStatusByCorrelation(request, params.correlation))
+      .post("/pay/:bearer/continue", ({ request, params }) => provider.continue(request, params.bearer))
+      .post("/api/v1/provider/local-deposit/callback", ({ request }) => provider.callback(request), { parse: "none" });
+    if (surface === "provider" || surface === "all") app
+      .get("/provider/pay", () => hostedDepositAssets.providerHtml(providerCsp))
+      .get("/assets/provider.css", () => hostedDepositAssets.providerCss())
+      .get("/assets/provider.js", () => hostedDepositAssets.providerJs())
+      .get("/api/provider/local-deposit/handoff", ({ request }) =>
+        provider.providerHandoff(new URL(request.url).searchParams.get("handoff") ?? ""))
+      .post("/api/provider/local-deposit/outcome", ({ body }) => {
+        const value = typeof body === "object" && body !== null && !Array.isArray(body) ? body as Record<string, unknown> : {};
+        return provider.providerOutcome(typeof value.handoff === "string" ? value.handoff : "", value.outcome);
+      });
+  }
+
+  return app;
 }
 
 export const app = createApp();

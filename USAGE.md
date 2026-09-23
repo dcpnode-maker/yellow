@@ -1,125 +1,130 @@
-# USAGE.md — how to use Yellow
+# Using and developing Yellow
 
-**Yellow** is the codename for this project: a multi-tenant hospitality ERP built as a
-modular monolith on TypeScript/Bun/Elysia over PostgreSQL 16. It is deliberately
-isolated by its Compose project, databases, and configurable host ports (defaults:
-app 3000, PostgreSQL 5442, Valkey 6389).
+Yellow is an actively built multi-tenant hotel/STR ERP: TypeScript/Bun/Elysia over
+PostgreSQL 16 in a modular monolith. Read [PROJECT.md](PROJECT.md) first and navigate
+with [the project map](docs/PROJECT-MAP.md). Setup guidance:
+[START-HERE.md](START-HERE.md) / [Windows](START-HERE-WINDOWS.md).
+Read [PROJECT-STATUS](docs/PROJECT-STATUS.md) for the one current task and the exact
+distinction between candidate, merged, local and cloud state.
 
----
+This checkout is already initialized. Install its pinned dependencies with
+`bun install --frozen-lockfile`; do not run `bun init` or recreate
+`package.json`/`bun.lock`.
+For the exact 80/81/125/127 meanings, use [SCHEMA-GUIDE](docs/SCHEMA-GUIDE.md).
 
-## 1. First run (once, ~10 minutes)
+## Current build versus the app you are running
+
+**Recorded checkpoint: 2026-09-05.** There are 18 phases, numbered 0–17:
+
+- Phases 0–3, 5 and 6: independently reviewed.
+- Phase 4: built; final integration/review outstanding.
+- Phase 7: active. Orders438/439 consolidated the operational app; Order434's
+  independently approved native fiscal source merged through PR83. Provider and
+  operator completion remain separately scoped work.
+- Phases 8–17: planned. Founder priority is 11 → 13 → 17, subject to dependencies.
+
+Follow [BUILD-PLAN](BUILD-PLAN.md) and [roadmap](handoff/ROADMAP.md) for later changes.
+“Built,” “reviewed,” “integrated” and “running locally” are separate states. The
+consolidated baseline has a green five-job CI receipt in run `33986577250` and
+independent approval in Reviews438/439. That receipt applies only to the
+exact SHA tested by the run; every later revision needs its own result. Use the exact
+checked-out revision and current release evidence rather than an old branch or PR
+description.
+
+The [feature register](docs/FEATURE-REGISTER.md) records the expanded ecosystem,
+staff/STR journeys, regions, voice, RMS and channels. A specification is not completed
+functionality merely because its document exists.
+
+## Daily development loop
+
+1. Inspect the existing branch, commit and dirty files; preserve work.
+2. Read PROJECT, the role adapter, recent decisions and the scoped order.
+3. Run `./state.sh` in the supported Unix environment or `./state.ps1` natively on
+   Windows. Both read the active task and phase from PROJECT-STATUS and keep legacy
+   unclosed markers separate as historical record counts.
+4. Implement with tests. Delegate bounded non-conflicting work to suitable models;
+   one coordinator owns integration and the dependency sequence.
+5. Execute proportionate checks and required database/referee gates. Record skips
+   as skips. Obtain independent executed proof for high-risk changes.
+6. Commit only scoped files, push the actual branch and record the actual CI result.
+   Integration is independent; do not self-merge.
+7. Update living documentation and status evidence. Refresh the retained local app
+   only through its authorized runtime workflow and verify the serving revision.
+
+Routine source checks, with dependencies already installed:
 
 ```bash
-unzip yellow.zip && cd yellow
-./setup.sh
+git status --short --branch
+bun run typecheck
+bun run boundaries
+bun run license-check
+git diff --check
 ```
 
-What it does: checks prerequisites → starts PostgreSQL and Valkey → runs the
-production migration and deterministic demo seed on `yellow_dev` → recreates
-`yellow_test` through the same runner → loads only the two-tenant fixture → runs the
-invariant battery. Full setup also verifies exact application health.
+Choose tests from the order. Do not create infrastructure merely to edit prose.
+On the current Windows workstation, avoid WSL/Bun execution while its dump recurrence
+is unresolved; use native tools for supported source checks and recorded environments
+for database proof.
 
-You are ready when you see `RESULT: 11 passed, 0 failed`. If you don't, stop and fix
-that first — those eleven tests are the floor the whole system stands on.
+## Runtime and synthetic data
 
-`--db-only` runs the database path without starting/verifying the app. Setup never
-creates external accounts or repositories.
-
-## 2. Daily loop
+The retained app is one loopback endpoint on port 3000. Use the one launcher described
+in [RELEASE](docs/RELEASE.md) and [LOCAL-REVIEW](docs/LOCAL-REVIEW.md):
 
 ```bash
-cd yellow
-./state.sh                         # ground truth: phase, decisions, open work
-docker compose up -d               # if not already running
-claude                             # open Claude Code here
+./scripts/local-review.sh start
+./scripts/local-review.sh status
+./scripts/local-review.sh stop
 ```
 
-In Claude Code, first session of the day:
+It refuses a dirty checkout, applies the migration-77 / 127-public-table catalogue,
+runs the 11/11 referee, loads the canonical synthetic seeds, builds the exact revision
+and proves login plus `/ready`. The readiness receipt must contain the same 40-character
+Git SHA and expected migration frontier 77. `stop` preserves the PostgreSQL volume.
+The 127 tables are 126 migration-declared application tables plus the runner ledger.
+Main `443e3826` integrates that reviewed frontier through PR83; all five jobs passed
+in CI33993977811 at exact source `92346674`. Earlier main `5879e2b7` had 75 migrations
+and 125 tables. Updating Git does not itself refresh a running database.
 
-```
-/mcp                               → postgres, github, context7 all "connected"
-```
+The underlying `setup.sh --db-only` and `setup.ps1 -DbOnly` paths mutate development
+state and recreate disposable `yellow_test`; they are database proof workflows, not
+an alternative manual app launch. Never target data to preserve. Credentials stay in
+protected ignored local files. Local prefill uses the real synthetic account and is
+never a production credential publication mechanism.
 
-Then work one phase at a time:
+Project status separates recorded delivery evidence from live service checks.
+Database health does not establish feature completion. The status model does not
+automatically fetch GitHub or rebuild the running app. Fully clickable order1-onward
+history remains a requirement until its UI proof exists (YF-021).
 
-```
-Read PROJECT.md, then your role adapter and BUILD-PLAN.md. Run state.sh and work only
-from the current reviewed order.
-```
+## Troubleshooting without losing work
 
-A phase can run for hours largely unattended — writing code, running tests, fixing
-failures. Check in, answer questions, let it work.
-
-## 3. The rules that keep it coherent
-
-- **Run `./state.sh` first.** Every agent, every session — it prints identical
-  ground truth so nobody starts from a stale picture.
-- **`PROJECT.md` is the constitution.** `CLAUDE.md` and `AGENTS.md` are thin
-  adapters that add only a role. If they ever disagree, PROJECT.md wins.
-- **One phase per session.** If a session spans phases, stop and re-scope.
-- **Green before moving on.** A phase is done when its Definition of Done passes in
-  CI — not when the code "looks right."
-- **Log decisions.** Anything decided goes in `DECISIONS.log`, one line, with the
-  alternative rejected. This is what stops the same question being re-litigated at
-  your expense in session 60.
-- **Model routing** (in `CLAUDE.md`): Fable 5 for schema, ledger, occupancy, fiscal,
-  RLS, and phase gates · Opus 5 for everything else · Sonnet 5 for scaffolding, tests
-  from specs, and docs. Switch with `/model`. If a cheap session hits an invariant
-  question, it stops, escalates to Fable, decides, logs, and returns.
-- **Never edit `migrations/0001_init.sql`.** Schema changes are new numbered
-  migrations. The file is the validated baseline.
-
-## 4. When something breaks
-
-| Symptom | Do this |
+| Symptom | Check first |
 |---|---|
-| Tests fail after a change | `./setup.sh --db-only` — rebuilds and re-runs. If still red, the change broke an invariant; that's the test doing its job. |
-| Port already in use | Set `YELLOW_APP_PORT`, `YELLOW_POSTGRES_PORT`, and `YELLOW_VALKEY_PORT`; do not edit Compose or stop another worktree. |
-| `/mcp` shows postgres disconnected | Containers down (`docker compose up -d`) or DSN mismatch with `docker-compose.yml`. |
-| `/mcp` shows github disconnected | `GITHUB_TOKEN` not exported in the shell that launched Claude Code. |
-| Claude Code writes code against an outdated API | Ask it to check Context7 — that's exactly what that server is for. |
-| Something is deeply wrong | Paste the error and logs into Claude Code. It has your shell, your files, and the database. Reading logs is its strongest work. |
+| Remote documentation differs from the checkout | Compare exact Git revisions and current release evidence; do not infer state from a stale browser tab or branch name. |
+| Local app differs from source | Serving process/image commit, migration ledger and runtime receipt. A push does not update a local process. |
+| Invalid local login | Approved synthetic account and protected prefill configuration agree; do not expose secrets or bypass authentication. |
+| Port already in use | Identify the owner and reuse the retained runtime or its approved restart procedure. |
+| Database tests skipped | The required environment was not exercised. Record the gap and execute the scoped proof in its approved environment. |
+| Schema count differs from an old guide | Use the read-only queries and count definitions in [SCHEMA-GUIDE](docs/SCHEMA-GUIDE.md), then compare exact source revision and migration ledger. Never delete schema or weaken checks to match another frontier. |
+| Drive fills or files lock | Exact owners, dumps and caches; preserve Git history, active work, dependencies and live disks. |
+| Vendor API/model unavailable | Defined provider boundary and supported fallback; external access/spending still needs authority. |
 
-## 5. Where everything lives
+## Durable handoff to any developer or AI
 
-```
-yellow/
-├── CLAUDE.md              constitution + model policy — read every session
-├── BUILD-PLAN.md          13 phases, each with a Definition of Done
-├── DECISIONS.log          43 locked decisions; append forever
-├── setup.sh               one-command setup / --db-only rebuild
-├── docker-compose.yml     app/PostgreSQL/Valkey, isolated by Compose project
-├── .mcp.json              postgres + github + context7
-├── .claude/skills/        three Yellow-specific skills, shared via git
-├── migrations/0001_init.sql   the validated schema (80 tables) — never edit
-├── docs/                  CONTRACTS · STATE-MACHINES · EVENTS · EXTENSIONS
-│                          UI-SPEC · SECURITY · DEPENDENCIES · TOOLING
-│                          PACKAGE-AND-COST.html · mockups/ui-v1.html
-├── tests/                 invariant battery, QA suite, seed fixture
-└── prototype/             the stress test that found the double-sell
-```
+Give the next maintainer a source commit plus PROJECT, project map, feature register,
+current phase/order, contracts and proof. Read decisions before re-deciding a topic.
+Historical orders and reviews are evidence, not files to rewrite as if a new design
+existed when an earlier proof ran.
 
-## 6. Optional: a Claude Project for strategy chats
+The original [UI specification](docs/UI-SPEC.md), [domain model](docs/DOMAIN-MODEL-V1.md),
+[AI architecture](docs/AI-ARCHITECTURE.md) and [extensions](docs/EXTENSIONS.md) connect
+current design to existing responsibilities. Keep one requirement index and link it;
+do not paste every chat or duplicate all requirements in every source file. Never
+export guest data, secrets, local authority, model weights or live disks into Git or
+an external AI conversation.
 
-Local Claude Code builds; the claude.ai Project is where you think. To set it up:
-Projects → Create project → name it **Yellow** → upload `CLAUDE.md`,
-`BUILD-PLAN.md`, `DECISIONS.log`, and the `docs/*.md` files as project knowledge →
-custom instructions:
-
-> This project builds Yellow, a multi-tenant hospitality ERP. CLAUDE.md and
-> DECISIONS.log govern; never contradict a locked decision without flagging it
-> explicitly. Prefer verification by execution over assertion.
-
-Re-upload `DECISIONS.log` whenever it grows meaningfully — that keeps strategy chats
-in sync with what the build has actually settled.
-
-## 7. What isn't done yet
-
-Application code — all of it. Phases 0–12 derive it from these specs. Also yours to
-start now, because they run on calendar time rather than build time: Booking.com and
-Expedia partner certification, ZATCA sandbox onboarding, India IRP access, and a UAE
-ASP vendor. Those gate Phases 8, 9, and 12.
-
----
-
-**Next command:** `./setup.sh`, then `./state.sh` and the current reviewed order.
+Use [AGENTS.md](AGENTS.md), [workflow](docs/WORKFLOW.md) and [roster](handoff/ROSTER.md)
+for ownership/model routing. Codex owns and coordinates implementation; qualified
+internal non-implementers execute high-risk review. Use faster models for suitable
+bounded work and the strongest available reasoning for foundations.

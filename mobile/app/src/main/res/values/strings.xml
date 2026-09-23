@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Yellow Demo</string>
+    <string name="demo_banner">DEMO DELIVERY SHELL · Connected web content</string>
+    <string name="configure_title">Yellow mobile shell is not configured</string>
+    <string name="configure_body">Build with an approved HTTPS address using -PYELLOW_PUBLIC_URL=https://your-host.example/</string>
+</resources>
+

@@ -1,45 +1,51 @@
 # ROSTER.md — who's on the team and who reviews what
 
-Adding an AI agent should be a **config entry, not a redesign**. This file is that
-config. Every agent reads `PROJECT.md` (canonical); this file says what each one is
-for and what its approval is worth.
+Codex owns development and coordination. Internal models are assigned bounded roles,
+not competing ownership. Every worker reads `PROJECT.md` and `docs/PROJECT-STATUS.md`;
+this file says what an assignment may approve.
 
 ## Current roster
 
-**Effective 2026-08-23 (D-91):** Codex is primary implementation and coordination
-owner, not a Tier-1-only builder. Claude is an on-request reviewer, not the default
-architect. Full context: `handoff/CODEX-HANDOFF.md`.
-
-| Agent | Adapter file | Role | May approve | Cost posture |
+| Assignment | Adapter file | Role | May approve | Cost posture |
 |---|---|---|---|---|
-| **OpenAI Codex** | `AGENTS.md` | Primary implementation & coordination owner — writes/revises orders, implements, arranges independent review for high-risk work, closes routine work alone | Owner for all tiers; Tier 2/3 still needs an independent reviewer that did not implement the change | Free/cheap — do volume here |
-| **Claude Fable 5** | `CLAUDE.md` | On-request reviewer only, invoked by the founder | Tier 1 · 2 · 3, only when invoked | Expensive — judgement only, on demand |
-| **Claude Opus 5** | `CLAUDE.md` | Implementation, adapters, refactors, if invoked | Tier 1, if invoked | Not the default builder any more |
-| **Claude Sonnet 5** | `CLAUDE.md` | Scaffolding, tests-from-spec, docs, log triage, if invoked | — | Cheapest Claude |
-| *(open slot)* | `<VENDOR>.md` | Independent reviewer for Tier 2/3 work — any agent that did not implement the change | Tier 2 · 3 | — |
+| **Codex coordinator** | `AGENTS.md` | Sole implementation, coordination and release owner | Routine work; high-risk only when not its implementer | Default owner |
+| **Internal builder** | `AGENTS.md` or thin optional adapter | Bounded implementation, test, documentation or research lane | Its routine lane only | Match capability to scope |
+| **Internal independent reviewer** | `AGENTS.md` or thin optional adapter | Non-implementer review and personal proof execution | Tier 1–3 for the assigned review | Strongest needed for risk |
+
+## RMS algorithm research model — founder assignment, 2026-09-06
+
+Use **GPT-6 Astra with Ultra reasoning** (`gpt-6-astra`, `ultra`) for finding,
+designing and challenging RMS algorithms, including demand forecasting, price
+response, contribution/displacement optimization and channel-visibility evidence.
+[Order 441](orders/441-astra-ultra-rms-algorithm-research.md) bounds the first research
+lane. The coordinator retains implementation ownership; routine scaffolding and
+reproducible implementation may use cheaper workers suited to the task.
+
+This assigns the development/research model, not the production pricing runtime.
+Prefer measurable low-cost algorithms and deterministic guarded execution in the
+app. Proposed inventions must outperform declared baselines on appropriate evidence;
+neither model capability nor research completion establishes revenue uplift. Preserve
+Phase 14 ownership and the founder's dependency-gated 11 → 13 → 17 priorities.
 
 ## Review tiers — how much scrutiny a change needs
 
 Tier is a property of the **change**, not of who wrote it.
 
 **Tier 1 — routine.** Handlers, adapters, docs, tests, refactors inside one context.
-→ One architect-role agent approves. Battery green.
+→ Codex completes after the relevant battery is green.
 
 **Tier 2 — invariant-adjacent.** New context surface, new event, new state
 transition, projection logic, anything touching money display or tax computation.
-→ Architect-role approval + a test that would fail if the invariant broke.
+→ Independent non-implementing review when the change enters D-91's high-risk list,
+otherwise routine executable verification.
 
 **Tier 3 — foundational.** Migrations, occupancy claim logic, journal/posting,
 fiscal chains, RLS, tenant scoping, document numbering.
-→ **One independent reviewing agent — any agent that did not implement the change** —
-+ an executable proof that the **reviewer runs themselves** — a test that fails before
-the change and passes after, or a battery run on the branch. A pasted result from the
-implementer is not proof. Decision appended to `DECISIONS.log` by the deciding
-reviewer or by Codex, as applicable. **Amended by D-84 (2026-08-15)** from the original
-two-different-vendor requirement to one architect-role (Claude) reviewer, and
-**amended again by D-91 (2026-08-23)** to drop the requirement that the reviewer be
-Claude specifically — the reviewer-executed, non-waivable proof rule from D-84 is
-unchanged and still governs every Tier-3 approval.
+→ **One independent agent that did not implement the change** + an executable proof that the **reviewer
+runs themselves** — a test that fails before the change and passes after, or a battery
+run on the branch. A pasted result from the builder is not proof. Decision appended to
+`DECISIONS.log` when a durable decision is required. **Amended by D-84 (2026-08-15)** from the
+original two-different-vendor requirement.
 
 ### Why Tier 3 requires reviewer-executed proof
 
@@ -61,23 +67,22 @@ positions in writing (Question 008 did exactly this, and D-72 corrected the arch
 own D-69), and every Tier-3 claim must be reproduced from a command, not asserted.
 Recorded so the residual risk is a known cost, not an oversight.
 
-## Adding a new agent (the whole procedure)
+## Assigning an internal worker
 
-1. Create `<VENDOR>.md` at repo root — whatever filename that tool auto-loads.
-   Contents: **a pointer to `PROJECT.md` plus its role. Nothing else.** Never copy
-   the invariants; copies drift.
-2. Add a row above: role, approval tier, cost posture.
-3. Mirror MCP config into that tool's dialect if it supports MCP (`.mcp.json` for
-   Claude Code, `.codex/config.toml` for Codex — same three servers).
-4. Pick a commit prefix — `[claude]`, `[codex]`, `[gemini]`, … — and add it here.
-5. First session: run `./state.sh`, read `PROJECT.md`, then a Tier-1 order as a
-   shakedown before anything foundational.
-6. Append one line to `DECISIONS.log` recording the addition and the role.
+1. Codex assigns a bounded order/lane, exact files and required proof.
+2. The worker reads PROJECT, PROJECT-STATUS, the adapter and current order, then runs
+   `./state.sh`.
+3. Parallel builders receive non-overlapping files. One coordinator integrates the
+   result and checks the combined diff.
+4. A reviewer must not have implemented the surface it reviews and must personally
+   execute the registered proof.
+5. Add a new adapter or tool only through a scoped decision when it provides a real
+   capability; never duplicate the constitution.
 
 ## Rules that apply to every agent, forever
 
 - **Nobody merges their own work.** The builder and the approver are never the same
-  agent, regardless of vendor.
+  assignment, regardless of the internal model selected.
 - **`DECISIONS.log` is shared and append-only.** Union-merged in `.gitattributes` so
   parallel appends never conflict. Grep before deciding.
 - **Commit prefixes are mandatory** — `git log --grep="\[codex\]"` must remain able
