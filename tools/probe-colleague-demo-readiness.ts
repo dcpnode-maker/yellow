@@ -114,7 +114,7 @@ async function main() {
       typeof contributionTotal.roomRevenueMinor === "string" &&
       contributionGroups.length > 0 &&
       contributionSegments.length > 0 &&
-      contributionSources.length > 0 &&
+      contributionSources.length >= 2 &&
       hasMappedMsg &&
       hasMappedMs &&
       hasMappedSource,

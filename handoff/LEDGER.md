@@ -1697,3 +1697,11 @@ appears here; dispatch/execution remain unverified.
 - Added a reproducible synthetic public-demo taxonomy fixture for Locanda. The live stats projection is currently aggregated as `ALL/ALL/ALL`, so the contribution proof honestly reports one mapped "All current business" hierarchy while reservation movement rows continue to prove detailed OTA/direct commercial codes separately.
 - Rebuilt/restarted the public demo and extended colleague readiness to fail if the server-owned contribution hierarchy disappears.
 - Proof: `powershell -NoProfile -ExecutionPolicy Bypass -File .\tools\promote-public-demo.ps1 -SkipTests`; `powershell -NoProfile -ExecutionPolicy Bypass -File .\tools\provision-public-commercial-taxonomy.ps1`; `bun tools\probe-colleague-demo-readiness.ts`; `bun test tests\order641-commercial-contribution-read-model.test.ts`; `bun run typecheck`; `bun tools\probe-mobile-public-demo.ts`; `bun tools\probe-public-demo-performance.ts`.
+
+# 2026-09-23 — Order 642 public detailed commercial stats projection
+
+- Added a reproducible public-demo stats fixture that rewrites only Locanda's current property-local business-date `stats_daily` rows from existing reservation/segment facts, preserving total rooms available, rooms sold and room revenue.
+- Expanded the public commercial taxonomy fixture from an aggregate fallback to real demo mappings for OTA retail, retail direct, Booking.com, Airbnb, Website, MICE and Social groups.
+- Tightened the colleague-readiness probe so the server-owned contribution hierarchy must prove multiple source lines. Live proof now shows 2 market groups, 2 market segments, 3 sources, 14 room nights, 20 available rooms and SAR 1,001,280 room revenue.
+- No schema, migration, occupancy write, journal/posting write or external-provider call was added.
+- Proof: `powershell -NoProfile -ExecutionPolicy Bypass -File .\tools\provision-public-commercial-taxonomy.ps1`; `powershell -NoProfile -ExecutionPolicy Bypass -File .\tools\provision-public-detailed-commercial-stats.ps1`; `bun tools\probe-colleague-demo-readiness.ts`; `bun tools\probe-mobile-public-demo.ts`; `bun tools\probe-public-demo-performance.ts`; `bun test tests\order642-public-detailed-commercial-stats.test.ts tests\order641-commercial-contribution-read-model.test.ts tests\order621-colleague-demo-readiness-probe.test.ts`; `bun run typecheck`.
