@@ -1566,3 +1566,5 @@ appears here; dispatch/execution remain unverified.
 - 2026-09-23: Order 618 repeatable public demo promotion script added and verified; script builds Yellow Next, mirrors frontend public assets into Docker public assets, rebuilds app, and verifies local/public health. Review recorded in handoff/reviews/618-repeatable-public-demo-promotion.md.
 
 - 2026-09-23: Order 619 added public demo speed probe; focused test passed and public shell/health/bundle budgets were within threshold.
+
+- 2026-09-23: Order 620 added Today colleague demo path; focused tests, typecheck, build, public promotion and speed probe passed.

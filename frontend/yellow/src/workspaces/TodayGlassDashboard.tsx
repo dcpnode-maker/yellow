@@ -9,6 +9,14 @@ type MovementSignal = Readonly<{
   onOpen: () => void;
 }>;
 
+type DemoStep = Readonly<{
+  label: string;
+  title: string;
+  purpose: string;
+  status: string;
+  onOpen: () => void;
+}>;
+
 type TodayGlassDashboardProps = Readonly<{
   greeting: string;
   propertyName: string;
@@ -22,6 +30,7 @@ type TodayGlassDashboardProps = Readonly<{
   occupancyVariance?: ReactNode;
   revenueVariance?: ReactNode;
   movements: readonly [MovementSignal, MovementSignal, MovementSignal];
+  demoSteps: readonly DemoStep[];
   onOpenPerformance: () => void;
 }>;
 
@@ -48,6 +57,7 @@ export function TodayGlassDashboard({
   occupancyVariance,
   revenueVariance,
   movements,
+  demoSteps,
   onOpenPerformance,
 }: TodayGlassDashboardProps) {
   const [movementIndex, setMovementIndex] = useState(0);
@@ -153,6 +163,24 @@ export function TodayGlassDashboard({
           })}
         </div>
       </div>
+
+      <section className="today-demo-path" aria-labelledby="today-demo-path-title">
+        <div className="today-demo-path-head">
+          <span>COLLEAGUE DEMO PATH</span>
+          <h2 id="today-demo-path-title">Review the implemented PMS flow in order</h2>
+          <p>Each card opens a governed workspace or assistant journey. Dashboard cards navigate only.</p>
+        </div>
+        <div className="today-demo-path-grid">
+          {demoSteps.map((step, index) => (
+            <button type="button" key={step.label} onClick={step.onOpen} aria-label={`Open demo step ${index + 1}: ${step.title}`}>
+              <small>{String(index + 1).padStart(2, "0")} · {step.label}</small>
+              <strong>{step.title}</strong>
+              <span>{step.purpose}</span>
+              <em>{step.status}</em>
+            </button>
+          ))}
+        </div>
+      </section>
       <p className="today-glass-note">Live hotel data · select a signal for its complete operational view.</p>
     </section>
   );

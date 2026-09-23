@@ -9492,6 +9492,15 @@ export function App() {
                 { label: "Departures", value: dueOutQuery.data?.reservations?.length ?? null, loading: dueOutQuery.isLoading, unavailable: dueOutQuery.isError, glyph: "↗", onOpen: () => openOperationalTable("due_out") },
                 { label: "In house", value: inHouseCount, loading: inHouseQuery.isLoading, unavailable: inHouseQuery.isError, glyph: "⌂", onOpen: () => openOperationalTable("in_house") },
               ]}
+              demoSteps={[
+                { label: "Today", title: "Operating pulse", purpose: "Occupancy, revenue and movements from live property reads.", status: "Read-only", onOpen: () => workflow("today") },
+                { label: "Reservations", title: "Board & stay detail", purpose: "Search, open stays, edit lifecycle and guest allocation.", status: "Implemented", onOpen: () => workflow("reservations") },
+                { label: "Arrivals", title: "Guided check-in", purpose: "Open readiness, room assignment and folio preparation with confirmation gates.", status: "Confirmation-gated", onOpen: () => openOperationalTable("due_in") },
+                { label: "Cashier", title: "Folio & posting desk", purpose: "Search guests, open statements, deposits, transfers and governed posting.", status: "Confirmation-gated", onOpen: billingDesk },
+                { label: "Departures", title: "Guided checkout", purpose: "Open due-outs, service coordination and server-owned departure readiness.", status: "Confirmation-gated", onOpen: () => openOperationalTable("due_out") },
+                { label: "Rooms", title: "Housekeeping & operations", purpose: "Room condition, service requests and operational source evidence.", status: "Role-aware", onOpen: () => workflow("operations") },
+                { label: "Overwatch", title: "Multilingual AI assistant", purpose: "Ask Yellow in Indian English/Hindi with explicit confirmation before actions.", status: "Docked assistant", onOpen: () => setAssistantOpen(true) },
+              ]}
               onOpenPerformance={() => setPerformanceDetailRequestKey((key) => key + 1)}
             />
           </motion.div>
