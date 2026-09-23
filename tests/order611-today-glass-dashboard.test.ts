@@ -9,9 +9,11 @@ const css = readFileSync(resolve(root, "frontend/yellow/src/styles.css"), "utf8"
 test("Today first screen exposes useful PMS stats before dense drilldowns", () => {
   expect(today).toContain("PMS command centre");
   expect(today).toContain("Front desk, cashier and rooms in one live view");
-  for (const label of ["Occupancy", "Room nights", "Available", "Revenue"]) {
+  for (const label of ["Occupancy", "Room nights", "Available", "Revenue", "ADR", "RevPAR"]) {
     expect(today).toContain(label);
   }
+  expect(today).toContain("Business mix by market and source");
+  expect(today).toContain("Market · source · channel");
   expect(today).toContain("No write action runs from this screen.");
   expect(today).toContain("onOpenPerformance");
 });

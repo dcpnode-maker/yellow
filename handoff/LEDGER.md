@@ -1628,3 +1628,9 @@ appears here; dispatch/execution remain unverified.
 - Extended colleague readiness to verify current board rows carry channel, market and source contribution evidence.
 - Promoted the public demo app and applied the synthetic commercial coding fixture.
 - Proof: `bun test tests/order632-reservation-board-commercial-codes.test.ts`; `bun run typecheck`; `powershell -NoProfile -ExecutionPolicy Bypass -File .\tools\provision-public-commercial-codes.ps1`; `powershell -NoProfile -ExecutionPolicy Bypass -File .\tools\promote-public-demo.ps1 -SkipTests`; `bun tools/probe-colleague-demo-readiness.ts`; `bun tools/probe-mobile-public-demo.ts`; `bun tools/probe-public-demo-performance.ts`.
+
+# 2026-09-23 — Order 633 Today business mix surface
+
+- Added a read-only Business Mix strip to the mounted Today glass dashboard, summarizing current movement rows by market, source and channel.
+- Promoted the public demo app so the live link reflects the Business Mix surface.
+- Proof: `bun test tests/order633-today-business-mix.test.ts tests/order611-today-glass-dashboard.test.ts`; `bun run typecheck`; `powershell -NoProfile -ExecutionPolicy Bypass -File .\tools\promote-public-demo.ps1 -SkipTests`; `bun tools/probe-colleague-demo-readiness.ts`; `bun tools/probe-mobile-public-demo.ts`; `bun tools/probe-public-demo-performance.ts`.

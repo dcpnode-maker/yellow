@@ -7232,6 +7232,24 @@ export function App() {
     : inHouseCount !== null && configuredRooms && configuredRooms > 0
       ? Math.round((inHouseCount / configuredRooms) * 100)
       : null;
+  const businessMix = useMemo(() => {
+    const counts = new Map<string, { label: string; source: string; stays: number }>();
+    for (const stay of [
+      ...(dueInQuery.data?.reservations ?? []),
+      ...(dueOutQuery.data?.reservations ?? []),
+      ...(inHouseQuery.data?.reservations ?? []),
+    ]) {
+      const market = stay.marketCode?.trim() || "UNMAPPED";
+      const source = stay.sourceCode?.trim() || stay.channelCode?.trim() || "UNKNOWN";
+      const channel = stay.channelCode?.trim() || "no channel";
+      const key = `${market}|${source}|${channel}`;
+      const current = counts.get(key) ?? { label: market, source: `${source} · ${channel}`, stays: 0 };
+      counts.set(key, { ...current, stays: current.stays + 1 });
+    }
+    return [...counts.values()]
+      .sort((left, right) => right.stays - left.stays || left.label.localeCompare(right.label) || left.source.localeCompare(right.source))
+      .slice(0, 3);
+  }, [dueInQuery.data?.reservations, dueOutQuery.data?.reservations, inHouseQuery.data?.reservations]);
   const localGreeting = propertyLocalGreeting(new Date(), selected?.timezone ?? "UTC");
   useEffect(() => {
     rememberOverwatch({ open: assistant, language, turns, reservationQuery: reservationQueryContext ?? undefined });
@@ -9494,6 +9512,7 @@ export function App() {
                 { label: "Departures", value: dueOutQuery.data?.reservations?.length ?? null, loading: dueOutQuery.isLoading, unavailable: dueOutQuery.isError, glyph: "↗", onOpen: () => openOperationalTable("due_out") },
                 { label: "In house", value: inHouseCount, loading: inHouseQuery.isLoading, unavailable: inHouseQuery.isError, glyph: "⌂", onOpen: () => openOperationalTable("in_house") },
               ]}
+              businessMix={businessMix}
               demoSteps={[
                 { label: "Today", title: "Operating pulse", purpose: "Occupancy, revenue and movements from live property reads.", status: "Read-only", onOpen: () => workflow("today") },
                 { label: "Reservations", title: "Board & stay detail", purpose: "Search, open stays, edit lifecycle and guest allocation.", status: "Implemented", onOpen: () => workflow("reservations") },

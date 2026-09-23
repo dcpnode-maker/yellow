@@ -17,6 +17,12 @@ type DemoStep = Readonly<{
   onOpen: () => void;
 }>;
 
+type BusinessMixSignal = Readonly<{
+  label: string;
+  source: string;
+  stays: number;
+}>;
+
 type TodayGlassDashboardProps = Readonly<{
   greeting: string;
   propertyName: string;
@@ -32,6 +38,7 @@ type TodayGlassDashboardProps = Readonly<{
   occupancyVariance?: ReactNode;
   revenueVariance?: ReactNode;
   movements: readonly [MovementSignal, MovementSignal, MovementSignal];
+  businessMix: readonly BusinessMixSignal[];
   demoSteps: readonly DemoStep[];
   onOpenPerformance: () => void;
 }>;
@@ -61,6 +68,7 @@ export function TodayGlassDashboard({
   occupancyVariance,
   revenueVariance,
   movements,
+  businessMix,
   demoSteps,
   onOpenPerformance,
 }: TodayGlassDashboardProps) {
@@ -141,6 +149,20 @@ export function TodayGlassDashboard({
           </button>
         </div>
       </div>
+
+      <section className="today-business-mix" aria-label="Business mix by market and source">
+        <div>
+          <span>BUSINESS MIX</span>
+          <strong>Market · source · channel</strong>
+        </div>
+        {businessMix.length ? <ul>{businessMix.map((item) => (
+          <li key={`${item.label}-${item.source}`}>
+            <span>{item.label}</span>
+            <strong>{item.stays}</strong>
+            <small>{item.source}</small>
+          </li>
+        ))}</ul> : <p>No coded movement rows yet.</p>}
+      </section>
 
       <div className="today-glass-movement-wrap">
         <span className="today-glass-ribbon-label">Guest movement</span>
