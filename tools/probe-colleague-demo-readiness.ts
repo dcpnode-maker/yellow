@@ -187,6 +187,20 @@ async function main() {
     evidence: `navigation=${overwatch.navigation ?? "missing"}, focus=${overwatch.focus ?? "missing"}, requiresConfirmation=${overwatch.requiresConfirmation ?? "missing"}`,
   });
 
+  const hindiOverwatch = asRecord(await requestJson("/api/v1/jarvis:ask", {
+    method: "POST",
+    token,
+    body: { message: "आरक्षण रद्द करें", history: [] },
+  }));
+  checks.push({
+    name: "Overwatch Hindi confirmation-gated cancellation",
+    ok: typeof hindiOverwatch.answer === "string" &&
+      hindiOverwatch.navigation === "reservations" &&
+      hindiOverwatch.reservationOperation === "cancel" &&
+      hindiOverwatch.requiresConfirmation === true,
+    evidence: `navigation=${hindiOverwatch.navigation ?? "missing"}, operation=${hindiOverwatch.reservationOperation ?? "missing"}, requiresConfirmation=${hindiOverwatch.requiresConfirmation ?? "missing"}`,
+  });
+
   console.table(checks.map((check) => ({ check: check.name, ok: check.ok, evidence: check.evidence })));
   const failed = checks.filter((check) => !check.ok);
   if (failed.length > 0) {

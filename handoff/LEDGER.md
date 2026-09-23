@@ -1599,3 +1599,8 @@ appears here; dispatch/execution remain unverified.
 
 - Extended the colleague-readiness probe to verify group-block rooming-list reservation links and require picked-up room-nights to equal rooming-list picked-up nights.
 - Proof: `bun test tests/order625-group-block-provisioning.test.ts`; `bun tools/probe-colleague-demo-readiness.ts`.
+
+# 2026-09-23 — Order 628 multilingual Overwatch readiness proof
+
+- Extended the public colleague-readiness probe to verify Hindi operational cancellation intent routes to Reservations, detects the cancel operation and remains confirmation-gated.
+- Proof: `bun test tests/order628-multilingual-overwatch-readiness.test.ts`; `bun tools/probe-colleague-demo-readiness.ts`.
