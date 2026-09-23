@@ -25,6 +25,8 @@ type TodayGlassDashboardProps = Readonly<{
   roomNights: number | null;
   roomsAvailable: number | null;
   roomRevenue: string | null;
+  adr: string | null;
+  revpar: string | null;
   performanceLoading: boolean;
   performanceUnavailable: boolean;
   occupancyVariance?: ReactNode;
@@ -52,6 +54,8 @@ export function TodayGlassDashboard({
   roomNights,
   roomsAvailable,
   roomRevenue,
+  adr,
+  revpar,
   performanceLoading,
   performanceUnavailable,
   occupancyVariance,
@@ -70,11 +74,15 @@ export function TodayGlassDashboard({
   const available = metricValue(roomsAvailable, performanceLoading, performanceUnavailable);
   const performanceState = performanceLoading || performanceUnavailable || occupancyPercent === null;
   const revenue = metricValue(roomRevenue, performanceLoading, performanceUnavailable);
+  const averageDailyRate = metricValue(adr, performanceLoading, performanceUnavailable);
+  const revenuePerAvailableRoom = metricValue(revpar, performanceLoading, performanceUnavailable);
   const usefulStats = [
     { label: "Occupancy", value: occupancy, helper: "current house fill", action: onOpenPerformance },
     { label: "Room nights", value: sold, helper: "sold today", action: onOpenPerformance },
     { label: "Available", value: available, helper: "rooms left", action: onOpenPerformance },
     { label: "Revenue", value: revenue, helper: "room revenue", action: onOpenPerformance },
+    { label: "ADR", value: averageDailyRate, helper: "avg daily rate", action: onOpenPerformance },
+    { label: "RevPAR", value: revenuePerAvailableRoom, helper: "revenue / available room", action: onOpenPerformance },
   ] as const;
 
   return (
@@ -128,7 +136,7 @@ export function TodayGlassDashboard({
           >
             <span>Room revenue</span>
             <strong className={performanceState ? "is-state" : undefined}>{revenue}</strong>
-            <small>Property-local actual</small>
+            <small>ADR {averageDailyRate} · RevPAR {revenuePerAvailableRoom}</small>
             {revenueVariance}
           </button>
         </div>

@@ -1614,3 +1614,9 @@ appears here; dispatch/execution remain unverified.
 
 - Extended the public colleague-readiness probe to verify guest profile search and linked stay-history retrieval for the synthetic colleague demo.
 - Proof: `bun test tests/order630-guest-profile-history-readiness-proof.test.ts`; `bun tools/probe-colleague-demo-readiness.ts`.
+
+# 2026-09-23 — Order 631 Today glass ADR and RevPAR
+
+- Added ADR and RevPAR to the mounted Today glass dashboard using the existing server-owned operating-performance payload.
+- Promoted the public demo app so the live link reflects the new first-screen metrics.
+- Proof: `bun test tests/order631-today-glass-adr-revpar.test.ts`; `bun run typecheck`; `powershell -NoProfile -ExecutionPolicy Bypass -File .\tools\promote-public-demo.ps1 -SkipTests`; `bun tools/probe-colleague-demo-readiness.ts`; `bun tools/probe-mobile-public-demo.ts`; `bun tools/probe-public-demo-performance.ts`.

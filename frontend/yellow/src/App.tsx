@@ -9483,6 +9483,8 @@ export function App() {
               roomNights={performanceQuery.data?.today.roomNights ?? null}
               roomsAvailable={performanceQuery.data?.today.roomsAvailable ?? configuredRooms ?? null}
               roomRevenue={performanceQuery.data ? money(performanceQuery.data.today.roomRevenueMinor, performanceQuery.data.property.currency) : null}
+              adr={performanceQuery.data ? money(performanceQuery.data.today.adrMinor, performanceQuery.data.property.currency) : null}
+              revpar={performanceQuery.data ? money(performanceQuery.data.today.revparMinor, performanceQuery.data.property.currency) : null}
               performanceLoading={performanceQuery.isLoading}
               performanceUnavailable={performanceQuery.isError}
               occupancyVariance={performanceQuery.data ? <VarianceBadge actual={performanceQuery.data.today.occupancyBasisPoints} baseline={performanceQuery.data.todayComparison.lastYear.occupancyBasisPoints} /> : null}
