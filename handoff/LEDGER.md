@@ -1568,3 +1568,5 @@ appears here; dispatch/execution remain unverified.
 - 2026-09-23: Order 619 added public demo speed probe; focused test passed and public shell/health/bundle budgets were within threshold.
 
 - 2026-09-23: Order 620 added Today colleague demo path; focused tests, typecheck, build, public promotion and speed probe passed.
+
+- 2026-09-23: Order 621 added the colleague demo readiness probe; focused test, live public probe and typecheck passed.

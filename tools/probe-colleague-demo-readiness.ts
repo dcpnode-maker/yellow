@@ -1,0 +1,178 @@
+type Check = Readonly<{
+  name: string;
+  ok: boolean;
+  evidence: string;
+}>;
+
+type RequestOptions = Readonly<{
+  method?: "GET" | "POST";
+  body?: unknown;
+  token?: string;
+}>;
+
+const baseUrl = (process.env.YELLOW_PUBLIC_DEMO_URL ?? "https://lying-jones-terminal-church.trycloudflare.com").replace(/\/+$/u, "");
+const preferredPropertyId = process.env.YELLOW_DEMO_PROPERTY_ID ?? "6081b544-22a1-534f-a86d-bb1ae0519e14";
+
+function asRecord(value: unknown): Record<string, unknown> {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+  return value as Record<string, unknown>;
+}
+
+function asArray(value: unknown): readonly unknown[] {
+  return Array.isArray(value) ? value : [];
+}
+
+async function requestJson<T>(path: string, options: RequestOptions = {}): Promise<T> {
+  const headers = new Headers();
+  headers.set("accept", "application/json");
+  if (options.body !== undefined) headers.set("content-type", "application/json");
+  if (options.token) headers.set("authorization", `Bearer ${options.token}`);
+  const response = await fetch(`${baseUrl}${path}`, {
+    method: options.method ?? "GET",
+    headers,
+    body: options.body === undefined ? undefined : JSON.stringify(options.body),
+  });
+  const text = await response.text();
+  if (!response.ok) {
+    throw new Error(`${path} returned HTTP ${response.status}: ${text.slice(0, 240)}`);
+  }
+  return (text.length ? JSON.parse(text) : null) as T;
+}
+
+async function demoToken(): Promise<string> {
+  const body = asRecord(await requestJson("/api/v1/auth/demo:enter", { method: "POST" }));
+  const token = body.accessToken;
+  if (typeof token !== "string" || token.length < 20) {
+    throw new Error("Synthetic demo login did not return an access token.");
+  }
+  return token;
+}
+
+async function lane(propertyId: string, status: "due_in" | "due_out" | "in_house", token: string): Promise<readonly Record<string, unknown>[]> {
+  const body = asRecord(await requestJson(`/api/v1/properties/${encodeURIComponent(propertyId)}/reservation-board?${new URLSearchParams({ status, limit: "100" })}`, { token }));
+  return asArray(body.reservations).map(asRecord);
+}
+
+function firstId(rows: readonly Record<string, unknown>[]): string {
+  const id = rows.find((row) => typeof row.reservationId === "string")?.reservationId;
+  if (!id) throw new Error("No reservation id was available for the readiness proof.");
+  return id;
+}
+
+async function firstOpenFolioId(
+  propertyId: string,
+  token: string,
+  rows: readonly Record<string, unknown>[],
+): Promise<string | null> {
+  for (const row of rows) {
+    if (typeof row.reservationId !== "string") continue;
+    const detail = asRecord(await requestJson(`/api/v1/properties/${encodeURIComponent(propertyId)}/reservations/${encodeURIComponent(row.reservationId)}`, { token }));
+    const reservation = asRecord(detail.reservation);
+    const folio = asArray(reservation.folios)
+      .map(asRecord)
+      .find((item) => item.status === "open" && typeof item.folioId === "string");
+    if (typeof folio?.folioId === "string") return folio.folioId;
+  }
+  return null;
+}
+
+async function main() {
+  const token = await demoToken();
+  const propertiesBody = asRecord(await requestJson("/api/v1/me/properties", { token }));
+  const properties = asArray(propertiesBody.properties).map(asRecord);
+  const property = properties.find((item) => item.id === preferredPropertyId) ?? properties[0];
+  const propertyId = typeof property?.id === "string" ? property.id : "";
+  if (!propertyId) throw new Error("No demo property was returned.");
+
+  const checks: Check[] = [];
+  checks.push({
+    name: "property selection",
+    ok: Boolean(propertyId),
+    evidence: `${property.name ?? propertyId}`,
+  });
+
+  const performance = asRecord(await requestJson(`/api/v1/properties/${encodeURIComponent(propertyId)}/operating-performance`, { token }));
+  const today = asRecord(performance.today);
+  checks.push({
+    name: "today operating performance",
+    ok: typeof today.roomNights === "number" && typeof today.roomsAvailable === "number" && typeof today.roomRevenueMinor === "string",
+    evidence: `roomNights=${today.roomNights ?? "missing"}, roomsAvailable=${today.roomsAvailable ?? "missing"}, revenue=${today.roomRevenueMinor ?? "missing"}`,
+  });
+
+  const arrivals = await lane(propertyId, "due_in", token);
+  const departures = await lane(propertyId, "due_out", token);
+  const inHouse = await lane(propertyId, "in_house", token);
+  checks.push({ name: "arrival lane", ok: arrivals.length > 0, evidence: `${arrivals.length} due-in reservation(s)` });
+  checks.push({ name: "departure lane", ok: departures.length > 0, evidence: `${departures.length} due-out reservation(s)` });
+  checks.push({ name: "in-house lane", ok: inHouse.length > 0, evidence: `${inHouse.length} in-house reservation(s)` });
+
+  const arrivalId = firstId(arrivals);
+  const departureId = firstId(departures);
+  const inHouseId = firstId(inHouse);
+  const arrivalDetail = asRecord(await requestJson(`/api/v1/properties/${encodeURIComponent(propertyId)}/reservations/${encodeURIComponent(arrivalId)}`, { token }));
+  const arrivalReservation = asRecord(arrivalDetail.reservation);
+  checks.push({
+    name: "reservation detail",
+    ok: arrivalReservation.reservationId === arrivalId && typeof arrivalReservation.confirmationNo === "string",
+    evidence: `${arrivalReservation.confirmationNo ?? arrivalId}`,
+  });
+
+  const arrivalReadiness = asRecord(await requestJson(`/api/v1/properties/${encodeURIComponent(propertyId)}/reservations/${encodeURIComponent(arrivalId)}/check-in/readiness`, { token }));
+  checks.push({
+    name: "arrival readiness",
+    ok: typeof arrivalReadiness.canCheckIn === "boolean" && Array.isArray(arrivalReadiness.blockers),
+    evidence: `canCheckIn=${arrivalReadiness.canCheckIn}, blockers=${asArray(arrivalReadiness.blockers).length}`,
+  });
+
+  const checkoutReadiness = asRecord(await requestJson(`/api/v1/properties/${encodeURIComponent(propertyId)}/reservations/${encodeURIComponent(departureId)}/checkout-readiness`, { token }));
+  checks.push({
+    name: "checkout readiness",
+    ok: typeof checkoutReadiness.ready === "boolean" && Array.isArray(checkoutReadiness.blockers),
+    evidence: `ready=${checkoutReadiness.ready}, blockers=${asArray(checkoutReadiness.blockers).length}`,
+  });
+
+  const housekeepingConditions = asRecord(await requestJson(`/api/v1/properties/${encodeURIComponent(propertyId)}/housekeeping/conditions?limit=100`, { token }));
+  const rooms = asArray(housekeepingConditions.rooms);
+  checks.push({ name: "housekeeping conditions", ok: rooms.length > 0, evidence: `${rooms.length} room condition record(s)` });
+
+  const cashier = asRecord(await requestJson(`/api/v1/properties/${encodeURIComponent(propertyId)}/cashier-sessions`, { token }));
+  checks.push({
+    name: "cashier session surface",
+    ok: Object.keys(cashier).length > 0,
+    evidence: Object.keys(cashier).sort().slice(0, 8).join(", "),
+  });
+
+  const folioId = await firstOpenFolioId(propertyId, token, [...departures, ...inHouse]);
+  if (typeof folioId !== "string") {
+    checks.push({ name: "folio statement", ok: false, evidence: "no due-out or in-house reservation exposes an open primary folio" });
+  } else {
+    const statement = asRecord(await requestJson(`/api/v1/properties/${encodeURIComponent(propertyId)}/folios/${encodeURIComponent(folioId)}/statement`, { token }));
+    const statementRows = asArray(statement.rows);
+    const chargeOptions = asArray(statement.chargeOptions);
+    const chargeAvailability = asRecord(statement.chargeAvailability);
+    checks.push({
+      name: "folio statement",
+      ok: Object.keys(asRecord(statement.folio)).length > 0 && statementRows.length > 0 && chargeOptions.length > 0 && chargeAvailability.allowed === true,
+      evidence: `${statementRows.length} row(s), ${chargeOptions.length} posting option(s), postingAllowed=${chargeAvailability.allowed ?? "missing"}`,
+    });
+  }
+
+  const overwatch = asRecord(await requestJson("/api/v1/jarvis:ask", {
+    method: "POST",
+    token,
+    body: { message: "Overwatch, prepare check in for today's arrivals", history: [] },
+  }));
+  checks.push({
+    name: "Overwatch confirmation-gated assistant",
+    ok: typeof overwatch.answer === "string" && overwatch.navigation === "today" && overwatch.focus === "due_in" && overwatch.requiresConfirmation === true,
+    evidence: `navigation=${overwatch.navigation ?? "missing"}, focus=${overwatch.focus ?? "missing"}, requiresConfirmation=${overwatch.requiresConfirmation ?? "missing"}`,
+  });
+
+  console.table(checks.map((check) => ({ check: check.name, ok: check.ok, evidence: check.evidence })));
+  const failed = checks.filter((check) => !check.ok);
+  if (failed.length > 0) {
+    throw new Error(`Colleague demo readiness failed: ${failed.map((check) => check.name).join(", ")}`);
+  }
+}
+
+await main();
