@@ -34,6 +34,8 @@ export interface ReservationBoardRow {
   readonly adults: number;
   readonly children: number;
   readonly channelCode: string;
+  readonly marketCode: string | null;
+  readonly sourceCode: string | null;
   readonly currency: string;
   readonly createdAt: string;
   readonly arrivalTravel: ReservationBoardArrivalTravel | null;
@@ -85,6 +87,8 @@ interface BoardSqlRow {
   readonly adults: number;
   readonly children: number;
   readonly channel_code: string;
+  readonly market_code: string | null;
+  readonly source_code: string | null;
   readonly currency: string;
   readonly created_at: string;
   readonly arrival_direction: string | null;
@@ -325,7 +329,7 @@ export class ReservationBoardService {
       ), page_reservations AS MATERIALIZED (
         SELECT reservation.id, reservation.confirmation_no, reservation.status,
                reservation.primary_party, reservation.channel_code, reservation.currency,
-               reservation.created_at
+               reservation.market_code, reservation.source_code, reservation.created_at
         FROM reservation
         JOIN property_context ON property_context.id = reservation.property_node
         WHERE reservation.tenant_id = ${page.tenantId}::uuid
@@ -433,7 +437,7 @@ export class ReservationBoardService {
              summary.stay_from, summary.stay_to, unit_type.name AS unit_type_label,
              sellable_unit.name AS sellable_unit_label, rate_plan.name AS rate_plan_label,
              coalesce(summary.adults, 0)::int AS adults, coalesce(summary.children, 0)::int AS children,
-             page.channel_code, page.currency,
+             page.channel_code, page.market_code, page.source_code, page.currency,
              to_char(page.created_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"') AS created_at,
              arrival_travel.direction AS arrival_direction,
              arrival_travel.mode AS arrival_mode,
@@ -503,6 +507,8 @@ export class ReservationBoardService {
         adults: row.adults,
         children: row.children,
         channelCode: row.channel_code,
+        marketCode: row.market_code,
+        sourceCode: row.source_code,
         currency: row.currency,
         createdAt: storedInstant(row.created_at, "creation time"),
         arrivalTravel: arrivalTravel(row),

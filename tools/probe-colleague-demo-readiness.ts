@@ -105,6 +105,15 @@ async function main() {
   checks.push({ name: "arrival lane", ok: arrivals.length > 0, evidence: `${arrivals.length} due-in reservation(s)` });
   checks.push({ name: "departure lane", ok: departures.length > 0, evidence: `${departures.length} due-out reservation(s)` });
   checks.push({ name: "in-house lane", ok: inHouse.length > 0, evidence: `${inHouse.length} in-house reservation(s)` });
+  const commercialRows = [...arrivals, ...departures, ...inHouse];
+  const channels = new Set(commercialRows.map((row) => row.channelCode).filter((value): value is string => typeof value === "string" && value.length > 0));
+  const markets = new Set(commercialRows.map((row) => row.marketCode).filter((value): value is string => typeof value === "string" && value.length > 0));
+  const sources = new Set(commercialRows.map((row) => row.sourceCode).filter((value): value is string => typeof value === "string" && value.length > 0));
+  checks.push({
+    name: "reservation commercial contribution fields",
+    ok: commercialRows.length > 0 && channels.size > 0 && markets.size > 0 && sources.size > 0,
+    evidence: `channels=${[...channels].sort().join("/") || "missing"}, markets=${[...markets].sort().join("/") || "missing"}, sources=${[...sources].sort().join("/") || "missing"}`,
+  });
 
   const guestSearch = asRecord(await requestJson(`/api/v1/properties/${encodeURIComponent(propertyId)}/parties:search`, {
     method: "POST",

@@ -1620,3 +1620,11 @@ appears here; dispatch/execution remain unverified.
 - Added ADR and RevPAR to the mounted Today glass dashboard using the existing server-owned operating-performance payload.
 - Promoted the public demo app so the live link reflects the new first-screen metrics.
 - Proof: `bun test tests/order631-today-glass-adr-revpar.test.ts`; `bun run typecheck`; `powershell -NoProfile -ExecutionPolicy Bypass -File .\tools\promote-public-demo.ps1 -SkipTests`; `bun tools/probe-colleague-demo-readiness.ts`; `bun tools/probe-mobile-public-demo.ts`; `bun tools/probe-public-demo-performance.ts`.
+
+# 2026-09-23 — Order 632 reservation-board commercial codes
+
+- Added market/source codes to reservation-board rows so the public demo can build business-contribution views without per-reservation detail calls.
+- Added an idempotent synthetic public-demo coding script for Locanda reservation market/source values by channel and group fixture.
+- Extended colleague readiness to verify current board rows carry channel, market and source contribution evidence.
+- Promoted the public demo app and applied the synthetic commercial coding fixture.
+- Proof: `bun test tests/order632-reservation-board-commercial-codes.test.ts`; `bun run typecheck`; `powershell -NoProfile -ExecutionPolicy Bypass -File .\tools\provision-public-commercial-codes.ps1`; `powershell -NoProfile -ExecutionPolicy Bypass -File .\tools\promote-public-demo.ps1 -SkipTests`; `bun tools/probe-colleague-demo-readiness.ts`; `bun tools/probe-mobile-public-demo.ts`; `bun tools/probe-public-demo-performance.ts`.

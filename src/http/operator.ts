@@ -717,6 +717,8 @@ function reservationBoardJson(page: ReservationBoardPage): JsonValue {
       adults: reservation.adults,
       children: reservation.children,
       channelCode: reservation.channelCode,
+      marketCode: reservation.marketCode,
+      sourceCode: reservation.sourceCode,
       currency: reservation.currency,
       createdAt: reservation.createdAt,
       arrivalTravel: reservation.arrivalTravel,
