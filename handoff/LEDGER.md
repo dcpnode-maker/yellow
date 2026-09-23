@@ -1634,3 +1634,10 @@ appears here; dispatch/execution remain unverified.
 - Added a read-only Business Mix strip to the mounted Today glass dashboard, summarizing current movement rows by market, source and channel.
 - Promoted the public demo app so the live link reflects the Business Mix surface.
 - Proof: `bun test tests/order633-today-business-mix.test.ts tests/order611-today-glass-dashboard.test.ts`; `bun run typecheck`; `powershell -NoProfile -ExecutionPolicy Bypass -File .\tools\promote-public-demo.ps1 -SkipTests`; `bun tools/probe-colleague-demo-readiness.ts`; `bun tools/probe-mobile-public-demo.ts`; `bun tools/probe-public-demo-performance.ts`.
+
+# 2026-09-23 — Order 634 ready check-in demo fixture
+
+- Added an idempotent public-demo fixture script that opens the synthetic arrival's primary folio through the API and marks only room 114 inspected in `unit_condition`; it does not touch occupancy, journals, postings or reservation status.
+- Extended the colleague-readiness probe to require one ready arrival and one blocked arrival guardrail, so the PMS demo proves both the happy path and operational blockers.
+- During governed task exercise, found a separate housekeeping transition precision defect: API DTOs expose millisecond `roomUpdatedAt` while PostgreSQL stores microseconds, so exact transition evidence can reject a freshly-read task. Deferred the function repair out of this bounded fixture order.
+- Proof: `powershell -NoProfile -ExecutionPolicy Bypass -File .\tools\provision-public-ready-checkin-fixture.ps1`; `bun tools/probe-colleague-demo-readiness.ts`; `bun tools/probe-mobile-public-demo.ts`; `bun tools/probe-public-demo-performance.ts`; `bun run typecheck`.

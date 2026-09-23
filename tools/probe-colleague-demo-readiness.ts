@@ -184,6 +184,38 @@ async function main() {
     evidence: `canCheckIn=${arrivalReadiness.canCheckIn}, blockers=${asArray(arrivalReadiness.blockers).length}`,
   });
 
+  let readyArrivalEvidence = "no due-in reservation is ready for check-in";
+  let blockedArrivalEvidence = "no due-in reservation exposes blockers";
+  let readyArrivalOk = false;
+  let blockedArrivalOk = false;
+  for (const row of arrivals) {
+    if (typeof row.reservationId !== "string") continue;
+    const readiness = asRecord(await requestJson(`/api/v1/properties/${encodeURIComponent(propertyId)}/reservations/${encodeURIComponent(row.reservationId)}/check-in/readiness`, { token }));
+    const blockers = asArray(readiness.blockers);
+    const confirmationNo = typeof row.confirmationNo === "string" ? row.confirmationNo : row.reservationId;
+    if (readiness.canCheckIn === true && blockers.length === 0 &&
+        typeof readiness.assignedSpaceId === "string" &&
+        typeof readiness.segmentId === "string" &&
+        typeof readiness.primaryFolioId === "string") {
+      readyArrivalOk = true;
+      readyArrivalEvidence = `${confirmationNo}, roomCondition=${readiness.roomCondition ?? "missing"}, folio=${readiness.primaryFolioId}`;
+    }
+    if (readiness.canCheckIn === false && blockers.length > 0) {
+      blockedArrivalOk = true;
+      blockedArrivalEvidence = `${confirmationNo}, blockers=${blockers.join("/")}`;
+    }
+  }
+  checks.push({
+    name: "ready check-in fixture",
+    ok: readyArrivalOk,
+    evidence: readyArrivalEvidence,
+  });
+  checks.push({
+    name: "blocked check-in guardrail",
+    ok: blockedArrivalOk,
+    evidence: blockedArrivalEvidence,
+  });
+
   const checkoutReadiness = asRecord(await requestJson(`/api/v1/properties/${encodeURIComponent(propertyId)}/reservations/${encodeURIComponent(departureId)}/checkout-readiness`, { token }));
   checks.push({
     name: "checkout readiness",
