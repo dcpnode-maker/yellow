@@ -106,6 +106,38 @@ async function main() {
   checks.push({ name: "departure lane", ok: departures.length > 0, evidence: `${departures.length} due-out reservation(s)` });
   checks.push({ name: "in-house lane", ok: inHouse.length > 0, evidence: `${inHouse.length} in-house reservation(s)` });
 
+  const guestSearch = asRecord(await requestJson(`/api/v1/properties/${encodeURIComponent(propertyId)}/parties:search`, {
+    method: "POST",
+    token,
+    body: { query: "Sara Al Harbi", limit: 10 },
+  }));
+  const guestProfiles = asArray(guestSearch.profiles).map(asRecord);
+  let guestHistoryEvidence = "no matching profile with reservation history";
+  let guestHistoryReady = false;
+  for (const profile of guestProfiles) {
+    if (typeof profile.partyId !== "string" || typeof profile.displayName !== "string") continue;
+    const history = asRecord(await requestJson(
+      `/api/v1/properties/${encodeURIComponent(propertyId)}/reservation-board?${new URLSearchParams({ partyId: profile.partyId, limit: "20" })}`,
+      { token },
+    ));
+    const stays = asArray(history.reservations).map(asRecord);
+    const linkedStay = stays.find((stay) =>
+      typeof stay.reservationId === "string" &&
+      typeof stay.confirmationNo === "string" &&
+      stay.primaryGuestDisplayName === profile.displayName,
+    );
+    if (linkedStay) {
+      guestHistoryReady = true;
+      guestHistoryEvidence = `${profile.displayName}, stays=${stays.length}, latest=${linkedStay.confirmationNo}`;
+      break;
+    }
+  }
+  checks.push({
+    name: "guest profile stay history",
+    ok: guestHistoryReady,
+    evidence: guestHistoryEvidence,
+  });
+
   const groupBlocks = asRecord(await requestJson(`/api/v1/properties/${encodeURIComponent(propertyId)}/group-blocks`, { token }));
   const groups = asArray(groupBlocks.groups).map(asRecord);
   const blockedRooms = groups.reduce((sum, group) => sum + (typeof group.blockedRooms === "number" ? group.blockedRooms : 0), 0);
