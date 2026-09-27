@@ -18,6 +18,8 @@ class PreflightTest(unittest.TestCase):
         self.assertEqual(result["schema"], "yellow-gpu-preflight-v1")
         self.assertEqual(result["model_gguf_gb"], 16.5)
         self.assertIsInstance(result["download_space_ok"], bool)
+        self.assertGreater(result["disk_total_gb"], 0)
+        self.assertGreaterEqual(result["disk_used_gb"], 0)
         self.assertEqual(set(result["commands"]), {"cmake", "c++", "nvcc", "llama-cli", "llama-server"})
         self.assertEqual(set(result["packages"]), {"torch", "huggingface_hub", "llama_cpp"})
 
