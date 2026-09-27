@@ -207,6 +207,57 @@ class ContinuityBridgeTest(unittest.TestCase):
                                   self.controller_module, self.continuity)
         self.assertEqual(self.controller.status(self.manifest["id"])["state"], "leased")
 
+    def test_temporary_dirty_source_during_context_read_never_reaches_provider(self) -> None:
+        self.submit_ready_lease()
+        original_context_for = self.continuity.context_for
+        marker = "SYNTHETIC_EPHEMERAL_PRIVATE_MARKER"
+        captured: list[str] = []
+
+        def racing_context_for(root, task):
+            path = self.repo / "input.txt"
+            original = path.read_bytes()
+            try:
+                path.write_text(marker + "\n", encoding="utf-8")
+                return original_context_for(root, task)
+            finally:
+                path.write_bytes(original)
+
+        def capture_provider(route, messages, max_tokens):
+            captured.append(json.dumps(messages, ensure_ascii=False))
+            return json.dumps({"summary": "Safe proposal", "files": {"answer.txt": "safe"},
+                               "remaining": []}), {}
+
+        with patch.dict(os.environ, {"OPENROUTER_API_KEY": "mock-account-key"}), \
+             patch.object(self.continuity, "context_for", side_effect=racing_context_for), \
+             patch.object(self.continuity, "call_model", side_effect=capture_provider):
+            result = adapter.run_claim(self.repo, "local-worker", self.config,
+                                       self.controller_module, self.continuity)
+        self.assertEqual(result["status"], "completed")
+        self.assertEqual(len(captured), 1)
+        self.assertNotIn(marker, captured[0])
+        self.assertIn("Synthetic public fixture", captured[0])
+
+    def test_saved_message_suffix_cannot_reach_provider(self) -> None:
+        self.submit_ready_lease()
+        task = adapter.validate_task(self.repo, self.manifest,
+                                     self.controller_module, self.continuity)
+        messages, hashes = self.continuity.context_for(self.repo, task)
+        cfg = json.loads(self.config.read_text(encoding="utf-8"))
+        fingerprint = self.continuity.digest(json.dumps([task, hashes, cfg], sort_keys=True))
+        directory = self.continuity.private_directory(self.repo, task["id"])
+        (directory / "state.json").write_text(json.dumps({
+            "fingerprint": fingerprint,
+            "messages": [*messages, {"role": "user", "content": "SYNTHETIC_SAVED_SUFFIX_MARKER"}],
+            "attempts": [],
+            "status": "prepared",
+        }), encoding="utf-8")
+        with patch.dict(os.environ, {"OPENROUTER_API_KEY": "mock-account-key"}), \
+             patch.object(self.continuity, "call_model", side_effect=AssertionError("Provider called")):
+            result = adapter.run_claim(self.repo, "local-worker", self.config,
+                                       self.controller_module, self.continuity)
+        self.assertEqual(result["status"], "proposal_not_accepted")
+        self.assertEqual(self.controller.status(self.manifest["id"])["state"], "leased")
+
 
 if __name__ == "__main__":
     unittest.main()

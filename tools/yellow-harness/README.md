@@ -99,7 +99,8 @@ python tools/yellow-harness/continuity-bridge/adapter.py --repo . --manifest C:\
 
 Live work is a separate explicit action. The worker must already be registered
 with the controller for the `code` capability **only**. All context files must
-have exactly the bytes in the approved base commit; a dirty tracked file is
+have exactly the bytes in the approved base commit; the provider prompt is
+constructed from Git blobs at that commit, and a dirty tracked file is
 rejected before a provider can receive it. Set `OPENROUTER_API_KEY`, configure an official OpenRouter
 free route in `tools/build-continuity/routes.json`, and check the current route
 price through the existing continuity zero-price guard. Then:
@@ -113,6 +114,10 @@ lease only when continuity reports `proposed` and the proposal contains the exac
 declared output set. Provider errors, truncation, invalid JSON and out-of-scope
 outputs remain uncompleted; lease and continuity attempt receipts are retained
 for audit. CLI output omits lease tokens, keys, prompts and proposal source.
+The bridge can retry routes within one uninterrupted invocation, but it will
+not send a persisted multi-message retry history from an earlier process. If
+an invalid response was saved before interruption, review the receipt and
+issue a new task ID rather than reusing the old prompt history.
 
 No live provider call or account validation is part of Order 685 acceptance.
 Real account access, live model quality and current cost remain unverified.

@@ -1,6 +1,7 @@
 # Order 685 — Yellow harness to bounded model-router adapter
 
-Status: IMPLEMENTATION IN PROGRESS. Branch: `phase-0/yellow-harness-controller`.
+Status: MOCKED ACCEPTANCE AND INDEPENDENT REVIEW COMPLETE; LIVE PROVIDER UNTESTED.
+Branch: `phase-0/yellow-harness-controller`.
 
 ## Intent
 

@@ -21,6 +21,8 @@ YELLOW_HARNESS = HERE.parent
 REPO_DEFAULT = HERE.parents[2]
 CONTINUITY_FILE = REPO_DEFAULT / "tools" / "build-continuity" / "continuity.py"
 CONTINUITY_CONFIG = CONTINUITY_FILE.with_name("routes.json")
+RETRY_PROMPT = ("Previous proposal was not accepted. Return the exact required "
+                "JSON schema and output paths.")
 
 
 class BridgeError(ValueError):
@@ -72,6 +74,45 @@ def assert_pinned_context(repo: Path, task: dict[str, Any], continuity_module: A
             raise BridgeError("Context is not present in the pinned commit") from exc
         if path.read_bytes() != committed:
             raise BridgeError(f"Working-tree context differs from the pinned commit: {name}")
+
+
+def pinned_context_for(repo: Path, task: dict[str, Any], continuity_module: Any,
+                       validate_context: Callable) -> tuple[list[dict], dict]:
+    """Build the provider prompt from committed blobs, never working-tree text.
+
+    Reuse continuity's structural validation, but discard its working-tree
+    message. The live one-shot adapter temporarily supplies this function to
+    continuity.run_task, so both initial context and its final hash check use
+    the same approved commit. It cannot carry a briefly dirtied file to a model.
+    """
+    validate_context(repo, task)
+    names = dict.fromkeys([
+        *continuity_module.CANONICAL,
+        task["order"],
+        *task["inputs"],
+        *task["outputs"],
+    ])
+    files: dict[str, str] = {}
+    hashes: dict[str, str | None] = {}
+    for name in names:
+        path = continuity_module.safe_path(repo, name)
+        if not path.exists() and name in task["outputs"]:
+            hashes[name] = None
+            continue
+        try:
+            committed = subprocess.check_output(
+                ["git", "-C", str(repo), "show", f"{task['base_sha']}:{name}"],
+                stderr=subprocess.DEVNULL,
+            ).decode("utf-8")
+        except (subprocess.CalledProcessError, UnicodeDecodeError) as exc:
+            raise BridgeError("Pinned context is unavailable as UTF-8 text") from exc
+        files[name] = committed
+        hashes[name] = continuity_module.digest(committed)
+    prompt = json.dumps({"task": task, "source": files}, ensure_ascii=False)
+    if len(prompt) > continuity_module.MAX_CONTEXT:
+        raise BridgeError("Pinned context exceeds worker budget")
+    return ([{"role": "system", "content": continuity_module.SYSTEM},
+             {"role": "user", "content": prompt}], hashes)
 
 
 def validate_task(repo: Path, manifest: Any, controller_module: Any,
@@ -169,14 +210,32 @@ def run_claim(repo: Path, worker_id: str, config: Path, controller_module: Any,
             raise BridgeError("Lease validation failed")
         task_path = _write_private_task(repo, continuity_module, task)
         if runner is None:
+            original_context_for = continuity_module.context_for
+            next_messages: list[dict] | None = None
             def checked_caller(route: dict, messages: list, max_tokens: int):
+                nonlocal next_messages
                 assert_pinned_context(repo, task, continuity_module)
-                return continuity_module.call_model(route, messages, max_tokens)
-            directory, state = continuity_module.run_task(
-                repo, task_path, config, caller=checked_caller
+                expected, _ = pinned_context_for(
+                    repo, task, continuity_module, original_context_for
+                )
+                if messages != (expected if next_messages is None else next_messages):
+                    raise BridgeError("Saved provider context differs from the pinned commit")
+                answer, usage = continuity_module.call_model(route, messages, max_tokens)
+                next_messages = [*messages, {"role": "assistant", "content": answer},
+                                 {"role": "user", "content": RETRY_PROMPT}]
+                return answer, usage
+            continuity_module.context_for = lambda root, manifest: pinned_context_for(
+                root, manifest, continuity_module, original_context_for
             )
+            try:
+                directory, state = continuity_module.run_task(
+                    repo, task_path, config, caller=checked_caller
+                )
+            finally:
+                continuity_module.context_for = original_context_for
         else:
             directory, state = runner(repo, task_path, config)
+        assert_pinned_context(repo, task, continuity_module)
         if not isinstance(state, dict) or state.get("status") != "proposed":
             return {"mode": "live", "status": "proposal_not_accepted", "task_id": task["id"]}
         proposal_path = continuity_module.plain(Path(directory) / "proposal.json")
