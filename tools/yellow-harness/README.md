@@ -4,6 +4,7 @@ This is an internal development tool, not the Yellow PMS runtime. It currently
 provides a small, non-resident Python/SQLite job coordinator. It does **not** call a
 model, start Kaggle, listen on a network port, execute worker commands, edit
 source, open a PR or deploy the app. Those are separate, gated integrations.
+There is no desktop/chat interface yet; Codex or an operator invokes this CLI.
 
 The controller uses Python's standard library and keeps its SQLite state in the
 current worktree's private Git metadata, not on the tracked source tree. It exits
@@ -80,5 +81,36 @@ or durable cloud backup. Back it up separately if this worktree will be removed.
 4. Choose one agent loop and one inference/router adapter by measured performance;
    see [upstream evaluation](UPSTREAM.md). Do not install every framework.
 
-The existing `tools/build-continuity/` proposal router remains separate and
-unchanged. This foundation can eventually provide its durable task envelope.
+## Bounded continuity bridge (Order 685)
+
+`continuity-bridge/adapter.py` is a one-shot local adapter to the existing
+`tools/build-continuity/continuity.py` proposal worker. It does not install a
+framework, start a resident process, expose a listener, edit source, or launch a
+Kaggle session. The worker's durable receipts stay under private Git metadata.
+
+The default mode is an offline preview. It validates the coordinator manifest,
+exact base SHA, public-source classification, order/input paths, continuity
+context and declared outputs without claiming a lease, initializing controller
+SQLite, printing source/prompt contents, or calling a provider:
+
+```powershell
+python tools/yellow-harness/continuity-bridge/adapter.py --repo . --manifest C:\path\to\task.json
+```
+
+Live work is a separate explicit action. The worker must already be registered
+with the controller; set `OPENROUTER_API_KEY`, configure an official OpenRouter
+free route in `tools/build-continuity/routes.json`, and check the current route
+price through the existing continuity zero-price guard. Then:
+
+```powershell
+python tools/yellow-harness/continuity-bridge/adapter.py --repo . --worker-id local-worker --live
+```
+
+Live mode claims at most one approved `public_source` task. It completes that
+lease only when continuity reports `proposed` and the proposal contains the exact
+declared output set. Provider errors, truncation, invalid JSON and out-of-scope
+outputs remain uncompleted; lease and continuity attempt receipts are retained
+for audit. CLI output omits lease tokens, keys, prompts and proposal source.
+
+No live provider call or account validation is part of Order 685 acceptance.
+Real account access, live model quality and current cost remain unverified.
