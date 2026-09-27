@@ -1,5 +1,13 @@
 # Astra 6 Ultra review brief: personal Yellow app-builder harness
 
+This GitHub handoff branch is a sanitized snapshot of Orders 681–686 and their
+new harness files, rebased for review onto the current public `origin/main`.
+It deliberately excludes older local-only Git history and the pre-existing
+`tools/build-continuity/` implementation. The full working copy for local
+adapter tests is
+`C:\Users\astha\.codex\worktrees\yellow-harness-controller\yellow`.
+Do not infer that the public handoff branch alone can run the bridge end to end.
+
 ## Founder intent — the target, not current status
 
 Build a personal, Windows-first harness with a Codex-class chat and project UI.
