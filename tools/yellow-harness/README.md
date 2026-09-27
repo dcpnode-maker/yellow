@@ -98,7 +98,9 @@ python tools/yellow-harness/continuity-bridge/adapter.py --repo . --manifest C:\
 ```
 
 Live work is a separate explicit action. The worker must already be registered
-with the controller; set `OPENROUTER_API_KEY`, configure an official OpenRouter
+with the controller for the `code` capability **only**. All context files must
+have exactly the bytes in the approved base commit; a dirty tracked file is
+rejected before a provider can receive it. Set `OPENROUTER_API_KEY`, configure an official OpenRouter
 free route in `tools/build-continuity/routes.json`, and check the current route
 price through the existing continuity zero-price guard. Then:
 

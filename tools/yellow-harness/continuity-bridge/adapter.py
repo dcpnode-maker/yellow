@@ -11,6 +11,7 @@ import importlib.util
 import json
 import os
 from pathlib import Path
+import subprocess
 import sys
 from typing import Any, Callable
 
@@ -42,6 +43,37 @@ def load_components():
     return controller, continuity
 
 
+def assert_pinned_context(repo: Path, task: dict[str, Any], continuity_module: Any) -> None:
+    """Refuse working-tree bytes that differ from the approved base commit.
+
+    The continuity worker reads tracked files from the working tree. Tracked
+    alone is not enough: an uncommitted secret could otherwise enter a prompt.
+    Check every file the worker includes, both before building context and
+    immediately before each provider call.
+    """
+    names = dict.fromkeys([
+        *continuity_module.CANONICAL,
+        task["order"],
+        *task["inputs"],
+        *task["outputs"],
+    ])
+    for name in names:
+        path = continuity_module.safe_path(repo, name)
+        if not path.exists() and name in task["outputs"]:
+            continue
+        if not path.is_file():
+            raise BridgeError("Required committed context file is missing")
+        try:
+            committed = subprocess.check_output(
+                ["git", "-C", str(repo), "show", f"{task['base_sha']}:{name}"],
+                stderr=subprocess.DEVNULL,
+            )
+        except subprocess.CalledProcessError as exc:
+            raise BridgeError("Context is not present in the pinned commit") from exc
+        if path.read_bytes() != committed:
+            raise BridgeError(f"Working-tree context differs from the pinned commit: {name}")
+
+
 def validate_task(repo: Path, manifest: Any, controller_module: Any,
                   continuity_module: Any) -> dict[str, Any]:
     """Revalidate the controller manifest, then map only the continuity fields."""
@@ -63,6 +95,7 @@ def validate_task(repo: Path, manifest: Any, controller_module: Any,
             "outputs": accepted["outputs"],
             "goal": accepted["goal"],
         }
+        assert_pinned_context(repo, mapped, continuity_module)
         # context_for is the upstream worker's authoritative input/path/base check.
         continuity_module.context_for(repo, mapped)
     except Exception as exc:
@@ -110,6 +143,15 @@ def run_claim(repo: Path, worker_id: str, config: Path, controller_module: Any,
         raise BridgeError("Live mode requires a configured official OpenRouter free route") from exc
 
     controller = controller_module.Controller(repo)
+    # The controller claims the first task matching *any* registered capability.
+    # A dedicated code-only worker prevents a browser or other task being leased
+    # and stranded before the bridge can reject it.
+    with controller._session() as db:
+        worker = db.execute(
+            "SELECT capabilities,enabled FROM workers WHERE id=?", (worker_id,)
+        ).fetchone()
+    if worker is None or worker["enabled"] != 1 or json.loads(worker["capabilities"]) != ["code"]:
+        raise BridgeError("Live mode requires a dedicated code-only worker")
     try:
         # A bounded free-model fallback can take longer than the controller's
         # five-minute default lease; this remains below its one-hour maximum.
@@ -126,8 +168,15 @@ def run_claim(repo: Path, worker_id: str, config: Path, controller_module: Any,
         if not isinstance(token, str) or not token:
             raise BridgeError("Lease validation failed")
         task_path = _write_private_task(repo, continuity_module, task)
-        invoke = runner or continuity_module.run_task
-        directory, state = invoke(repo, task_path, config)
+        if runner is None:
+            def checked_caller(route: dict, messages: list, max_tokens: int):
+                assert_pinned_context(repo, task, continuity_module)
+                return continuity_module.call_model(route, messages, max_tokens)
+            directory, state = continuity_module.run_task(
+                repo, task_path, config, caller=checked_caller
+            )
+        else:
+            directory, state = runner(repo, task_path, config)
         if not isinstance(state, dict) or state.get("status") != "proposed":
             return {"mode": "live", "status": "proposal_not_accepted", "task_id": task["id"]}
         proposal_path = continuity_module.plain(Path(directory) / "proposal.json")

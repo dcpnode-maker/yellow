@@ -31,14 +31,15 @@ class ContinuityBridgeTest(unittest.TestCase):
         self.addCleanup(self.temp.cleanup)
         self.repo = Path(self.temp.name) / "repo"
         self.repo.mkdir()
-        git(self.repo, "init")
+        git(self.repo, "init", "-q")
+        git(self.repo, "config", "core.autocrlf", "false")
         git(self.repo, "config", "user.email", "test@example.invalid")
         git(self.repo, "config", "user.name", "Yellow test")
         for name in ("PROJECT.md", "AGENTS.md", "docs/CODEX.md",
                      "handoff/orders/685-test.md", "input.txt"):
             path = self.repo / name
             path.parent.mkdir(parents=True, exist_ok=True)
-            path.write_text("Synthetic public fixture\n", encoding="utf-8")
+            path.write_bytes(b"Synthetic public fixture\n")
         git(self.repo, "add", ".")
         git(self.repo, "commit", "-m", "fixture")
         self.head = git(self.repo, "rev-parse", "HEAD")
@@ -158,6 +159,53 @@ class ContinuityBridgeTest(unittest.TestCase):
         with self.assertRaises(adapter.BridgeError):
             adapter.preview(self.repo, self.manifest,
                             self.controller_module, self.continuity)
+
+    def test_dirty_tracked_input_cannot_enter_preview_or_provider(self) -> None:
+        (self.repo / "input.txt").write_text(
+            "SYNTHETIC_UNCOMMITTED_PRIVATE_MARKER\n", encoding="utf-8"
+        )
+        with self.assertRaises(adapter.BridgeError):
+            adapter.preview(self.repo, self.manifest,
+                            self.controller_module, self.continuity)
+        self.controller.register_worker("local-worker", ["code"])
+        self.controller.submit(self.manifest, now=10)
+        self.controller.approve(self.manifest["id"], now=11)
+        with patch.dict(os.environ, {"OPENROUTER_API_KEY": "mock-account-key"}), \
+             patch.object(self.continuity, "call_model", side_effect=AssertionError("Provider called")):
+            with self.assertRaises(adapter.BridgeError):
+                adapter.run_claim(self.repo, "local-worker", self.config,
+                                  self.controller_module, self.continuity)
+        self.assertEqual(self.controller.status(self.manifest["id"])["state"], "leased")
+
+    def test_multi_capability_worker_cannot_claim_non_code_task(self) -> None:
+        self.manifest["capability"] = "browser"
+        self.controller.register_worker("mixed-worker", ["code", "browser"])
+        self.controller.submit(self.manifest, now=10)
+        self.controller.approve(self.manifest["id"], now=11)
+        with patch.dict(os.environ, {"OPENROUTER_API_KEY": "mock-account-key"}):
+            with self.assertRaises(adapter.BridgeError):
+                adapter.run_claim(self.repo, "mixed-worker", self.config,
+                                  self.controller_module, self.continuity,
+                                  runner=lambda *args: self.fail("Provider path called"))
+        self.assertEqual(self.controller.status(self.manifest["id"])["state"], "ready")
+
+    def test_dirty_source_between_context_and_provider_is_rejected(self) -> None:
+        self.controller.register_worker("local-worker", ["code"])
+        self.controller.submit(self.manifest, now=10)
+        self.controller.approve(self.manifest["id"], now=11)
+
+        def simulate_provider_dispatch(root, task_path, config, caller):
+            (self.repo / "input.txt").write_text("SYNTHETIC_CHANGED_AFTER_CLAIM\n", encoding="utf-8")
+            caller({"provider": "openrouter", "model": "qwen/qwen3-coder:free"}, [], 512)
+            self.fail("Dirty source was dispatched")
+
+        with patch.dict(os.environ, {"OPENROUTER_API_KEY": "mock-account-key"}), \
+             patch.object(self.continuity, "run_task", side_effect=simulate_provider_dispatch), \
+             patch.object(self.continuity, "call_model", side_effect=AssertionError("Provider called")):
+            with self.assertRaises(adapter.BridgeError):
+                adapter.run_claim(self.repo, "local-worker", self.config,
+                                  self.controller_module, self.continuity)
+        self.assertEqual(self.controller.status(self.manifest["id"])["state"], "leased")
 
 
 if __name__ == "__main__":
