@@ -328,7 +328,21 @@ afterAll(async () => {
 
 describe("Order 069 launch release schema", () => {
   test("P1: release schema is registered without a seeded active instance", () => {
-    expect(LAUNCH_EXTENSION_TYPES).toHaveLength(10);
+    const identities = LAUNCH_EXTENSION_TYPES.map(({ type, jsonSchema }) => ({ type, schemaId: jsonSchema.$id }));
+    expect(identities).toEqual([
+      { type: "market_compset", schemaId: "yellow/market_compset/v1" },
+      { type: "vertical_profile", schemaId: "pms:vertical_profile:1" },
+      { type: "tax_jurisdiction", schemaId: "pms:tax_jurisdiction:1" },
+      { type: "policy", schemaId: "pms:policy:1" },
+      { type: "statutory_adapter", schemaId: "pms:statutory_adapter:1" },
+      { type: "fiscal_provider", schemaId: "pms:fiscal_provider:1" },
+      { type: "automation_action", schemaId: "pms:automation_action:1" },
+      { type: "rate_model", schemaId: "pms:rate_model:1" },
+      { type: "rate_plan_model", schemaId: "pms:rate_plan_model:1" },
+      { type: "rate_plan_target", schemaId: "pms:rate_plan_target:1" },
+      { type: "rate_plan_release", schemaId: "pms:rate_plan_release:1" },
+    ]);
+    expect(new Set(identities.map(({ type }) => type)).size).toBe(11);
     const releaseType = LAUNCH_EXTENSION_TYPES.filter(({ type }) => type === "rate_plan_release");
     expect(releaseType).toHaveLength(1);
   });

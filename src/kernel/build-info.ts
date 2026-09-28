@@ -1,7 +1,7 @@
 import type { ReservedSQL, SQL } from "bun";
 
 const GIT_SHA = /^[0-9a-f]{40}$/;
-export const CURRENT_MIGRATION_FRONTIER = 91 as const;
+export const CURRENT_MIGRATION_FRONTIER = 92 as const;
 
 // PostgreSQL16's normalized form of0087's Unicode-aware, nonblank reason CHECK.
 // Keep invisible Unicode separators escaped in source so reviews remain legible.

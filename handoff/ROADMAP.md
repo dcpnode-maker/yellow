@@ -4,7 +4,27 @@
 
 **Current coordination:** Codex under PROJECT and the applicable agent adapter.
 
-**Latest integration:** PR90 is independently merged as4ba1d6f after complete CI,
+**Current coordination — 13 September 2026:** the recovered founder handoff makes
+[Order472](orders/472-overture-gods-eye-market-discovery-integration.md) the next
+bounded delivery: Overture/God's Eye discovery, confirmed compset and useful map.
+Reuse existing market-planning code. The
+[receiving record](../docs/research/OVERTURE-GODS-EYE-RECEIVING-20260913.md)
+contains scope, licensing, evidence limits and acceptance; this is Phase14
+discovery preparation, not full RMS completion. Preserve frozen471 and resume
+fiscal work afterward, with all18 phases and11→13→17 priorities retained.
+
+The D1489 backend checkpoint is independently executed:113 focused tests,
+11 actual PostgreSQL cases, immutable property compsets and managed HTTP guards.
+The one isolated native proof target is frontier92; the serving app remains91.
+Next exact source scope connects the catalog/API to the operator journey, without
+automatic permission grants, another theme, a new stack or an unproved local cutover.
+
+[PROJECT-STATUS](../docs/PROJECT-STATUS.md) is current. Published633 and serving41415
+are different versions; failed current CI prevents newer source delivery.
+Use critical-model planning plus bounded faster workers; do not add another
+stack, archive copy, per-control order or unchanged CI retry as a speed strategy.
+
+**Historical integration:** PR90 is independently merged as4ba1d6f after complete CI,
 actual ARM64 source binding and fresh post-merge80 schema/seed/referee11/11.
 Question207 provider/signed-receipt/authorized-read development now passes independent
 actual81 durability13/0 (one upgrade-only skip), synthetic cryptographic journey4/0,

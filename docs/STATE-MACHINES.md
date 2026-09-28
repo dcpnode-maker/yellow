@@ -382,3 +382,27 @@ truth conflicts without a state change. The second transition is not a parking
 command: existing segment checkout validates and releases the claim and clears its
 pointer atomically. Replacement, manual release, reassignment,
 entry/exit, staff/visitor parking and history are outside this state machine.
+
+## 12. Property competitor-set configuration (Order472)
+
+Admitted implementation contract; actual PostgreSQL acceptance and live mounting
+are tracked in `PROJECT-STATUS.md`, not implied by this lifecycle specification.
+The existing extension status is used; no new table or status is introduced.
+
+| From | To | Guard | Evidence / event |
+|---|---|---|---|
+| absent | draft, then active in one transaction | active actor with current property write grant; explicit confirmed own identity and comparator references from the server-admitted catalog; expected active version is null | creation and activation facts; `extension.activated` |
+| active version N | retired N and new active version M | same authorization and catalog guards; expected version equals N under the extension-version lock; M is the next immutable version | retirement, creation and activation facts; one `extension.activated` for M |
+| active | unchanged, exact prior receipt | current authority rechecked before actor/property/command-bound idempotent replay | no duplicate fact, version or event |
+
+An empty comparator list explicitly clears membership while retaining confirmed
+own-property identity in the replacement version. It is not deletion. There is no
+content update, standalone retirement, retired-to-active reactivation or generic
+extension-route override. Stale expected versions, multiple active versions,
+malformed persisted evidence or invalid/duplicate/own-property references reject
+the command. Failure in facts, outbox or idempotency rolls back all changes.
+
+Confirmation records the operator's selection of external evidence. It does not
+verify a physical property, create hotel inventory, collect rates or authorize
+automatic price publication. The confirmed set will feed the existing planner
+through a separately accepted integration step.

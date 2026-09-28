@@ -2,6 +2,8 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { createHash } from "node:crypto";
 import {
   chmodSync,
+  existsSync,
+  lstatSync,
   mkdtempSync,
   mkdirSync,
   readFileSync,
@@ -412,7 +414,11 @@ describe("Order RMS-20260908 offline PriceLabs importer", () => {
       const nativePwsh = join(process.env.USERPROFILE!, ".cache", "codex-runtimes",
         "codex-primary-runtime", "dependencies", "native", "powershell", "pwsh.exe");
       const parent = "D:/Yellow/temp/order462-acl-tests";
-      mkdirSync(parent, { recursive: true });
+      // This approved shared root may already be readonly on Windows. Do not
+      // recreate it or change its ACL: only the random fixture belongs to us.
+      if (!existsSync(parent)) mkdirSync(parent, { recursive: true });
+      const parentStat = lstatSync(parent);
+      expect(parentStat.isDirectory() && !parentStat.isSymbolicLink()).toBe(true);
       const root = mkdtempSync(join(parent, "full-import-"));
       temporaryRoots.push(root);
       const fixture = createFixture(root);
@@ -420,7 +426,7 @@ describe("Order RMS-20260908 offline PriceLabs importer", () => {
 $ErrorActionPreference='Stop'
 $sid=[Security.Principal.WindowsIdentity]::GetCurrent().User
 $system=[Security.Principal.SecurityIdentifier]::new('S-1-5-18')
-foreach($path in @($env:YELLOW_ORDER462_PARENT,$env:YELLOW_ORDER462_ROOT,$env:YELLOW_ORDER462_ARCHIVE)){
+foreach($path in @($env:YELLOW_ORDER462_ROOT,$env:YELLOW_ORDER462_ARCHIVE)){
  $acl=[Security.AccessControl.DirectorySecurity]::new()
  $acl.SetAccessRuleProtection($true,$false)
  $acl.SetOwner($sid)
@@ -433,8 +439,8 @@ foreach($path in @($env:YELLOW_ORDER462_PARENT,$env:YELLOW_ORDER462_ROOT,$env:YE
 `;
       const protectedResult = Bun.spawnSync([nativePwsh, "-NoProfile", "-NonInteractive",
         "-EncodedCommand", Buffer.from(protect, "utf16le").toString("base64")], {
-        env: { ...process.env, YELLOW_ORDER462_PARENT: parent,
-          YELLOW_ORDER462_ROOT: root, YELLOW_ORDER462_ARCHIVE: fixture.archive },
+        env: { ...process.env, YELLOW_ORDER462_ROOT: root,
+          YELLOW_ORDER462_ARCHIVE: fixture.archive },
         stdout: "pipe", stderr: "pipe", timeout: 15000,
       });
       expect(protectedResult.exitCode, protectedResult.stderr.toString()).toBe(0);

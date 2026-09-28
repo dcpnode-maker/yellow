@@ -605,6 +605,26 @@ function cachedValidation(
   return observationFromAdapter(adapterShape, context, route, now, maxSourceAgeMs, cacheTtlMs);
 }
 
+function staleCachedRetention(retained: MarketRetainedObservation): MarketRetainedObservation {
+  return freeze({ observation: retained.observation, actionable: false,
+    reason: retained.observation.outcome === "unavailable" ? "stale-collection" : retained.reason });
+}
+
+function sameObservation(left: MarketShoppingObservation, right: MarketShoppingObservation): boolean {
+  if (left.outcome !== right.outcome || left.collectedAt !== right.collectedAt
+      || left.routeId !== right.routeId || left.method !== right.method || left.upstream !== right.upstream
+      || marketShoppingContextKey(left.context) !== marketShoppingContextKey(right.context)
+      || left.sourceTimestamp.raw !== right.sourceTimestamp.raw
+      || left.sourceTimestamp.basis !== right.sourceTimestamp.basis) return false;
+  if (left.outcome === "available" && right.outcome === "available") {
+    return left.total.amountMinor === right.total.amountMinor && left.total.currency === right.total.currency
+      && left.total.basis === right.total.basis
+      && left.total.mandatoryChargesIncluded === right.total.mandatoryChargesIncluded;
+  }
+  return left.outcome === "unavailable" && right.outcome === "unavailable"
+    && left.sourceReason === right.sourceReason;
+}
+
 function itemResult(
   requestIds: readonly string[],
   context: MarketShoppingContext,
@@ -693,6 +713,7 @@ export class MarketShoppingRunner {
     try {
       const results = await Promise.all([...grouped].map(async ([key, group]) => {
       const cached = this.#cache.get(key);
+      let expiredCached: MarketRetainedObservation | null = null;
       if (cached) {
         const checked = cachedValidation(cached, group.context, this.#now(), this.#maxSourceAgeMs, this.#cacheTtlMs);
         if (checked?.satisfiesCollection) {
@@ -701,7 +722,8 @@ export class MarketShoppingRunner {
           return itemResult(group.requestIds, group.context, status, true, checked.retained.observation,
             [checked.retained], []);
         }
-        this.#cache.delete(key);
+        if (!checked) this.#cache.delete(key);
+        else expiredCached = staleCachedRetention(checked.retained);
       }
       let shared = this.#inFlight.get(key);
       if (!shared) {
@@ -710,6 +732,17 @@ export class MarketShoppingRunner {
         void shared.finally(() => { if (this.#inFlight.get(key) === shared) this.#inFlight.delete(key); }).catch(() => {});
       }
       const collected = await shared;
+      if (expiredCached && collected.status === "failed") {
+        return itemResult(group.requestIds, group.context, "non-actionable", false,
+          expiredCached.observation, [...collected.retainedObservations, expiredCached], collected.attempts);
+      }
+      if (expiredCached && collected.status === "non-actionable") {
+        const retained = collected.retainedObservations.some(({ observation }) =>
+          sameObservation(observation, expiredCached.observation))
+          ? collected.retainedObservations : [...collected.retainedObservations, expiredCached];
+        return itemResult(group.requestIds, group.context, collected.status, false,
+          collected.observation, retained, collected.attempts);
+      }
       return itemResult(group.requestIds, group.context, collected.status, false,
         collected.observation, collected.retainedObservations, collected.attempts);
       }));
@@ -941,4 +974,3 @@ export class MarketShoppingRunner {
     }
   }
 }
-

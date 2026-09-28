@@ -114,15 +114,17 @@ test("Order458: interface switching is session-local while every explicit route 
     ["orbit", "Orbit · Command centre"], ["atlas", "Atlas · Portfolio studio"],
     ["focus", "Focus · Task companion"], ["index", "Index · Planning desk"],
   ]) expect(html).toContain(`<option value="${value}">${label}</option>`);
-  expect(html.match(/class="domain-tab(?: is-active)?"/g)).toHaveLength(15);
+  expect(html.match(/class="domain-tab(?: is-active)?"/g)).toHaveLength(16);
   expect(html).toContain('id="nav-market-map" type="button" data-view="market-map" aria-controls="market-map-view"');
   expect(html).toContain('id="nav-invoices" type="button" data-view="invoices" aria-controls="invoices-view"');
+  expect(html).toContain('id="nav-market" type="button" data-view="market" aria-controls="market-view"');
+  expect(html).toContain('<section id="market-view" hidden aria-labelledby="market-title">');
 
   const property = "00000000-0000-0000-0000-000000000316";
   const app = createApp({ operatorApi: new OperatorHttpApi({} as never) });
   for (const view of [
     "today", "availability", "reservations", "folios", "invoices", "cashiers", "housekeeping", "vehicles",
-    "operations", "inventory", "restrictions", "rates", "market-map", "status",
+    "operations", "inventory", "restrictions", "rates", "market-map", "market", "status",
   ]) {
     const response = await app.handle(new Request(`http://yellow.test/p/${property}/${view}`));
     expect(response.status).toBe(200);
@@ -132,5 +134,6 @@ test("Order458: interface switching is session-local while every explicit route 
   expect(script).toContain('location.pathname.endsWith("/today") ? "today"');
   expect(script).toContain('location.pathname.endsWith("/cashiers") ? "cashiers"');
   expect(script).toContain('(invoiceNavigationRoute() !== null) ? "invoices"');
+  expect(script).toContain('location.pathname.endsWith("/market") ? "market"');
   expect(script).toContain('location.pathname.endsWith("/status") ? "status"');
 });

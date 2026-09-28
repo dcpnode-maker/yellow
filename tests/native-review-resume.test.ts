@@ -6,7 +6,13 @@ import { join, resolve } from "node:path";
 
 const repositoryRoot = resolve(import.meta.dir, "..");
 const helperPath = join(repositoryRoot, "scripts", "resume-merged-native-review.ps1");
+const requireNativeResumeProof = process.env.YELLOW_REQUIRE_NATIVE_REVIEW_RESUME === "1";
+const nativeTest = process.platform === "win32" ? test : test.skip;
 let fixtureRoot = "";
+
+if (requireNativeResumeProof && process.platform !== "win32") {
+  throw new Error("YELLOW_REQUIRE_NATIVE_REVIEW_RESUME requires Windows");
+}
 
 function resolvePowerShell() {
   const bundled = process.env.USERPROFILE === undefined ? undefined : join(
@@ -26,11 +32,13 @@ function runPowerShell(scriptPath: string) {
   });
 }
 
-beforeAll(async () => { fixtureRoot = await mkdtemp(join(tmpdir(), "yellow-native-resume-")); });
-afterAll(async () => { if (fixtureRoot !== "") await rm(fixtureRoot, { recursive: true, force: true }); });
+if (process.platform === "win32") {
+  beforeAll(async () => { fixtureRoot = await mkdtemp(join(tmpdir(), "yellow-native-resume-")); });
+  afterAll(async () => { if (fixtureRoot !== "") await rm(fixtureRoot, { recursive: true, force: true }); });
+}
 
 describe("Order442/Q200 native reboot resume", () => {
-  test("PowerShell parses and its command AST keeps resumption non-destructive", async () => {
+  nativeTest("PowerShell parses and its command AST keeps resumption non-destructive", async () => {
     const probe = join(fixtureRoot, "ast-proof.ps1");
     await writeFile(probe, String.raw`
 $ErrorActionPreference = 'Stop'
@@ -90,7 +98,7 @@ if ($source -match 'WriteAllText\(\$initialReceiptPath') { throw 'initial receip
     expect(result.exitCode, result.stderr.toString()).toBe(0);
   });
 
-  test("listener refusal is executable and does not terminate the supplied owner", async () => {
+  nativeTest("listener refusal is executable and does not terminate the supplied owner", async () => {
     const probe = join(fixtureRoot, "listener-proof.ps1");
     await writeFile(probe, String.raw`
 $ErrorActionPreference = 'Stop'
@@ -111,7 +119,7 @@ if (-not $refused -or $owner.OwningProcess -ne 6396) { throw 'existing listener 
     expect(result.exitCode, result.stderr.toString()).toBe(0);
   });
 
-  test("postmaster identity accepts only fixed-width ready padding and rejects every changed binding", async () => {
+  nativeTest("postmaster identity accepts only fixed-width ready padding and rejects every changed binding", async () => {
     const probe = join(fixtureRoot, "postmaster-pid-proof.ps1");
     await writeFile(probe, String.raw`
 $ErrorActionPreference = 'Stop'
@@ -143,7 +151,7 @@ foreach ($changed in @(
     expect(result.exitCode, result.stderr.toString()).toBe(0);
   });
 
-  test("JSON timestamps normalize identically and child ownership never trusts an arbitrary status PID", async () => {
+  nativeTest("JSON timestamps normalize identically and child ownership never trusts an arbitrary status PID", async () => {
     const probe = join(fixtureRoot, "supervisor-child-proof.ps1");
     await writeFile(probe, String.raw`
 $ErrorActionPreference = 'Stop'
@@ -190,7 +198,7 @@ if (-not $duplicateRejected) { throw 'ambiguous child identities were accepted' 
     expect(result.exitCode, result.stderr.toString()).toBe(0);
   });
 
-  test("inherited runtime overrides are absent only during child creation and parent values are restored", async () => {
+  nativeTest("inherited runtime overrides are absent only during child creation and parent values are restored", async () => {
     const probe = join(fixtureRoot, "environment-proof.ps1");
     await writeFile(probe, String.raw`
 $ErrorActionPreference = 'Stop'
@@ -244,7 +252,7 @@ try {
     expect(result.exitCode, result.stderr.toString()).toBe(0);
   });
 
-  test("full archive-to-extracted-tree proof detects nested mutation and extra files", async () => {
+  nativeTest("full archive-to-extracted-tree proof detects nested mutation and extra files", async () => {
     const probe = join(fixtureRoot, "source-proof.ps1");
     await writeFile(probe, String.raw`
 $ErrorActionPreference = 'Stop'
@@ -288,7 +296,7 @@ if (-not $wrongHashRejected) { throw 'wrong archive hash was accepted' }
     expect(result.exitCode, result.stderr.toString()).toBe(0);
   });
 
-  test("pins exact source, database frontier, dependency, ACL, and bounded artifact identities", async () => {
+  nativeTest("pins exact source, database frontier, dependency, ACL, and bounded artifact identities", async () => {
     const source = await Bun.file(helperPath).text();
     expect(source).toContain("b5ef70842b658183f7b5b4c650c8e78c7a0b513d");
     expect(source).toContain("F923DDAD39171E449A3712725A3C43358E7916B6B80E4BA056FC4E2ED0268087");

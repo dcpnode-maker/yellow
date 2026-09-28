@@ -8,6 +8,7 @@ import {
 const TYPE_REGISTER_SCOPE = "identity.extension-type:register";
 const INSTANCE_WRITE_SCOPE = "identity.extension:write";
 const INSTANCE_READ_SCOPE = "identity.extension:read";
+const MANAGED_EXTENSION_TYPE = "market_compset";
 
 function isObject(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -34,6 +35,10 @@ function errorResponse(error: unknown): Response {
   return Response.json({ error: message }, { status });
 }
 
+function isManagedType(value: unknown): boolean {
+  return value === MANAGED_EXTENSION_TYPE;
+}
+
 export class ExtensionHttpApi {
   readonly #registry: ExtensionRegistry;
 
@@ -47,6 +52,7 @@ export class ExtensionHttpApi {
     }
     try {
       if (!isObject(body) || !isObject(body.jsonSchema)) throw new Error("jsonSchema is required");
+      if (isManagedType(body.type)) return Response.json({ error: "managed_type" }, { status: 403 });
       const result = await this.#registry.registerType({
         type: requiredString(body, "type"),
         jsonSchema: body.jsonSchema,
@@ -70,6 +76,7 @@ export class ExtensionHttpApi {
     }
     try {
       if (!isObject(body) || !isObject(body.content)) throw new Error("content is required");
+      if (isManagedType(body.type)) return Response.json({ error: "managed_type" }, { status: 403 });
       const status = body.status;
       if (status !== undefined && status !== "draft" && status !== "active" && status !== "retired") {
         throw new Error("status must be draft, active, or retired");
@@ -97,6 +104,7 @@ export class ExtensionHttpApi {
     if (!authorized(context, INSTANCE_READ_SCOPE)) {
       return Response.json({ error: "forbidden" }, { status: 403 });
     }
-    return Response.json({ extensions: await this.#registry.listVisible(context.tenantId) });
+    const extensions = await this.#registry.listVisible(context.tenantId);
+    return Response.json({ extensions: extensions.filter((extension) => extension.type !== MANAGED_EXTENSION_TYPE) });
   }
 }

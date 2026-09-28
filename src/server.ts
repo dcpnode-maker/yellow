@@ -43,6 +43,7 @@ import type { OperatorRuntimeStatus } from "./project-status";
 import { ServerLifecycle, installServerLifecycleSignals } from "./runtime/server-lifecycle";
 import { PlaceCatalog } from "./contexts/distribution";
 import { MarketMapHttpApi } from "./http/market-map";
+import { assertMarketWorkbenchReadiness, composeMarketWorkbench, loadMarketWorkbenchConfiguration } from "./runtime/market-workbench";
 import { PostgresDueArrivalScopeSource } from "./workers/postgres-due-arrival-scopes";
 import { PostgresDueDepartureScopeSource } from "./workers/postgres-due-departure-scopes";
 import { PostgresDueHoldScopeSource } from "./workers/postgres-due-hold-scopes";
@@ -60,6 +61,9 @@ const reservationArrivalRollEnabled = workbenchEnabled && Bun.env.YELLOW_RESERVA
 const reservationDepartureRollEnabled = workbenchEnabled && Bun.env.YELLOW_RESERVATION_DEPARTURE_ROLL_WORKER === "1";
 const businessDayRollEnabled = workbenchEnabled && Bun.env.YELLOW_BUSINESS_DAY_ROLL_WORKER === "1";
 const fiscalSubmissionDeliveryEnabled = workbenchEnabled && Bun.env.YELLOW_FISCAL_SUBMISSION_WORKER === "1";
+// Explicit native evidence admission precedes ALL pools, workers and listening.
+// Disabled is inert; enabled failures are static and never substitute an empty catalog.
+const marketWorkbenchConfiguration = await loadMarketWorkbenchConfiguration(Bun.env);
 // Construct one protected, immutable provider snapshot before database pools or
 // intake exist. A configured adapter is not permission to enable its worker.
 const providerConfiguration = await loadIndiaIrpAdapterRegistrationsFromEnvironment(Bun.env);
@@ -165,6 +169,12 @@ function runtimeApp() {
   let fiscalDeliveryRuntime: FiscalSubmissionDeliveryRuntime | undefined;
   const readinessProbe = async (): Promise<void> => {
     await assertRuntimeReleaseReadiness(readinessPool);
+    if (marketWorkbenchConfiguration.enabled) {
+      await readinessPool.begin("read only", async tx => {
+        await tx.unsafe("SET LOCAL ROLE app_role");
+        await assertMarketWorkbenchReadiness(tx);
+      });
+    }
     if (fiscalSubmissionDeliveryEnabled && fiscalDeliveryRuntime?.state !== "running") {
       throw new Error("fiscal submission delivery runtime is unavailable");
     }
@@ -397,6 +407,7 @@ function runtimeApp() {
     database,
     tenantResolver: new BearerTenantResolver(tokens),
     marketMapApi: new MarketMapHttpApi(placeCatalog),
+    marketApi: composeMarketWorkbench(marketWorkbenchConfiguration, { registry, events, idempotency: new PostgresIdempotency() }),
     operatorApi: new OperatorHttpApi(login, availability, inventory, new PostgresIdempotency(), restrictions, rates, pricing, blocks, policy, holds, projection, runtimeStatus, rateBuilder, reservations, reservationOffers, reservationGuests, reservationLifecycle, reservationSegments, parties, folioStatements, charges, new ReservationBoardService(), new ReservationDetailService(), folios, chargeCorrections, folioTransfers, hostedRuntime?.hostedDeposits, folioSettlements, cashiers, receivables, checkIns, housekeeping, housekeepingSheets, checkoutReadiness, checkouts, vehicleRegister, reservationTravel, pickupTaskDispatch, arrivalRoomCleaning, housekeepingDiscrepancies, vehicleParking, undefined, undefined, businessDayCarry, businessDaySeal, ownerTrustExpenses, {
       submissions: fiscalSubmissions,
       adapters: fiscalSubmissionAdapters,

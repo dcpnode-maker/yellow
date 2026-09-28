@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { Database } from "bun:sqlite";
-import { chmodSync, copyFileSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { chmodSync, copyFileSync, existsSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 
@@ -12,6 +12,7 @@ import {
 } from "../src/contexts/distribution/place-catalog";
 
 const repository = resolve(import.meta.dir, "..");
+const python = process.platform === "win32" ? "python" : "python3";
 const temporary = mkdtempSync(join(tmpdir(), "yellow-place-catalog-"));
 const sourcePath = join(temporary, "places.ndjson");
 const catalogPath = join(temporary, "places.sqlite");
@@ -46,7 +47,7 @@ beforeAll(() => {
   ];
   writeFileSync(sourcePath, `${records.map((record) => JSON.stringify(record)).join("\n")}\n`);
   const result = Bun.spawnSync([
-    "python3", join(repository, "scripts/research/build-place-catalog.py"), sourcePath, "--output", catalogPath,
+    python, join(repository, "scripts/research/build-place-catalog.py"), sourcePath, "--output", catalogPath,
   ], { cwd: repository, stdout: "pipe", stderr: "pipe" });
   if (result.exitCode !== 0) throw new Error(result.stderr.toString());
   catalog = new PlaceCatalog({ path: catalogPath });
@@ -54,7 +55,7 @@ beforeAll(() => {
 
 afterAll(() => {
   catalog?.close();
-  chmodSync(catalogPath, 0o644);
+  if (existsSync(catalogPath)) chmodSync(catalogPath, 0o644);
   rmSync(temporary, { recursive: true, force: true });
 });
 
@@ -239,7 +240,7 @@ describe("Order RMS-PLACES-001 immutable public place catalog", () => {
       ["unicode-width", "\ufeffＡＢＣ\u00a0Hotel\ufeff", "\ufeffＡＢＣ"],
     ] as const;
     writeFileSync(unicodeSource, cases.map(([id, name]) => JSON.stringify(place(id, name, 55.2, 25.2))).join("\n") + "\n");
-    const built = Bun.spawnSync(["python3", join(repository, "scripts/research/build-place-catalog.py"), unicodeSource, "--output", unicodePath], { stdout: "pipe", stderr: "pipe" });
+    const built = Bun.spawnSync([python, join(repository, "scripts/research/build-place-catalog.py"), unicodeSource, "--output", unicodePath], { stdout: "pipe", stderr: "pipe" });
     expect(built.exitCode).toBe(0);
     const opened = new PlaceCatalog({ path: unicodePath });
     try {

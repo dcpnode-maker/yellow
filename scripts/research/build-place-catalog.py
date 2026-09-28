@@ -917,23 +917,32 @@ def build_catalog(
         connection.execute("PRAGMA optimize")
         connection.close()
         connection = None
-        os.chmod(temporary_name, 0o444)
-        with open(temporary_name, "rb") as completed:
+        # Windows FlushFileBuffers needs a writable handle. Flush the complete
+        # file before making it readonly and atomically publishing its name.
+        with open(temporary_name, "r+b") as completed:
             os.fsync(completed.fileno())
-        # link() is an atomic create-if-absent on the same filesystem. Unlike
-        # replace()/rename(), it cannot overwrite a catalog created during this build.
-        os.link(temporary_name, output)
-        os.unlink(temporary_name)
-        directory = os.open(output.parent, os.O_RDONLY)
-        try:
-            os.fsync(directory)
-        finally:
-            os.close(directory)
+        os.chmod(temporary_name, 0o444)
+        if os.name == "nt":
+            # Windows rename is atomic and refuses an existing destination. It
+            # also preserves readonly attributes without unlinking a readonly
+            # hardlink, which Windows rejects. Never use overwriting replace().
+            os.rename(temporary_name, output)
+        else:
+            # Unix rename can overwrite; hardlink publication is create-if-absent.
+            os.link(temporary_name, output)
+            os.unlink(temporary_name)
+            directory = os.open(output.parent, os.O_RDONLY)
+            try:
+                os.fsync(directory)
+            finally:
+                os.close(directory)
         return receipt
     except Exception:
         if connection is not None:
             connection.close()
         try:
+            if os.name == "nt" and os.path.exists(temporary_name):
+                os.chmod(temporary_name, 0o600)
             os.unlink(temporary_name)
         except FileNotFoundError:
             pass

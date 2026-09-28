@@ -359,6 +359,206 @@ describe("RMS market shopping foundation", () => {
     expect(calls).toBe(6);
   });
 
+  test("an expired valid observation remains an explicitly stale fallback after failed refreshes", async () => {
+    const value = context();
+    const key = marketShoppingContextKey(value);
+    const originalCollectedAt = "2026-09-08T11:59:00.000Z";
+    const originalSourceTimestamp = { raw: "2026-09-08T11:58:00.000Z", basis: "utc-instant" as const };
+    let now = NOW;
+    let mode: "fresh" | "fail" | "replace" = "fresh";
+    let calls = 0;
+    let failureGate: Promise<void> | null = null;
+    let releaseFailure!: () => void;
+    let markFailureStarted!: () => void;
+    const failureStarted = new Promise<void>((resolve) => { markFailureStarted = resolve; });
+    const service = runner([route("api", "ota", async ({ context: current }) => {
+      calls += 1;
+      if (mode === "fail") {
+        markFailureStarted();
+        await failureGate;
+        return { outcome: "failure", kind: "network" };
+      }
+      if (mode === "replace") {
+        return available(current, {
+          collectedAt: new Date(now - 60_000).toISOString(),
+          sourceTimestamp: { raw: new Date(now - 120_000).toISOString(), basis: "utc-instant" },
+        });
+      }
+      return available(current, { collectedAt: originalCollectedAt, sourceTimestamp: originalSourceTimestamp });
+    })], [limits("ota", { maxRequestsPerRun: 1, maxConcurrency: 1 })], { now: () => now });
+
+    const initial = await service.run([{ id: "initial", context: value }]);
+    expect(initial.results[0]?.status).toBe("actionable");
+    expect(service.cacheSnapshot().get(key)?.collectedAt).toBe(originalCollectedAt);
+
+    now += 2 * 3_600_000;
+    mode = "fail";
+    failureGate = new Promise<void>((resolve) => { releaseFailure = resolve; });
+    const firstRefresh = service.run([{ id: "refresh-one", context: value }]);
+    await failureStarted;
+    const overlappingRefresh = service.run([{ id: "refresh-two", context: value }]);
+    expect(calls).toBe(2);
+    releaseFailure();
+    failureGate = null;
+    const [first, second] = await Promise.all([firstRefresh, overlappingRefresh]);
+    for (const result of [first, second]) {
+      const item = result.results[0];
+      expect(item?.status).toBe("non-actionable");
+      expect(item?.cacheHit).toBe(false);
+      expect(item?.observation?.context).toEqual(value);
+      expect(item?.observation?.collectedAt).toBe(originalCollectedAt);
+      expect(item?.observation?.sourceTimestamp).toEqual(originalSourceTimestamp);
+      expect(item?.observation?.routeId).toBe("api");
+      expect(item?.observation?.method).toBe("official-api");
+      expect(item?.observation?.upstream).toBe("ota");
+      expect(item?.retainedObservations).toHaveLength(1);
+      expect(item?.retainedObservations[0]?.actionable).toBe(false);
+      expect(item?.retainedObservations[0]?.reason).toBe("stale-collection");
+      expect(item?.attempts.map(({ reason }) => reason)).toEqual(["network"]);
+      expect(result.upstreams.ota?.requestsUsed).toBe(1);
+    }
+    expect(service.cacheSnapshot().get(key)?.collectedAt).toBe(originalCollectedAt);
+
+    const repeated = await service.run([{ id: "refresh-three", context: value }]);
+    expect(calls).toBe(3);
+    expect(repeated.results[0]?.status).toBe("non-actionable");
+    expect(repeated.results[0]?.observation?.collectedAt).toBe(originalCollectedAt);
+    expect(repeated.results[0]?.retainedObservations[0]?.reason).toBe("stale-collection");
+    expect(service.cacheSnapshot().get(key)?.collectedAt).toBe(originalCollectedAt);
+
+    mode = "replace";
+    const replacement = await service.run([{ id: "replacement", context: value }]);
+    expect(calls).toBe(4);
+    expect(replacement.results[0]?.status).toBe("actionable");
+    expect(replacement.results[0]?.cacheHit).toBe(false);
+    expect(replacement.results[0]?.observation?.collectedAt).not.toBe(originalCollectedAt);
+    expect(service.cacheSnapshot().get(key)?.collectedAt).toBe(replacement.results[0]?.observation?.collectedAt);
+  });
+
+  test("expired cached unavailability is stale rather than current, while invalid cache is discarded", async () => {
+    const value = context();
+    const key = marketShoppingContextKey(value);
+    let now = NOW;
+    let fail = false;
+    const service = runner([route("api", "ota", async ({ context: current }) => {
+      if (fail) return { outcome: "failure", kind: "network" };
+      return {
+        outcome: "unavailable", context: current, collectedAt: "2026-09-08T11:59:00.000Z",
+        sourceTimestamp: { raw: null, basis: "unknown" }, sourceReason: "source returned no offer",
+      };
+    })], [limits("ota")], { now: () => now });
+    const initial = await service.run([{ id: "initial", context: value }]);
+    expect(initial.results[0]?.status).toBe("unavailable");
+    now += 2 * 3_600_000;
+    fail = true;
+    const stale = await service.run([{ id: "expired", context: value }]);
+    expect(stale.results[0]?.status).toBe("non-actionable");
+    expect(stale.results[0]?.cacheHit).toBe(false);
+    expect(stale.results[0]?.observation?.outcome).toBe("unavailable");
+    expect(stale.results[0]?.retainedObservations[0]?.reason).toBe("stale-collection");
+    expect(stale.results[0]?.attempts.map(({ reason }) => reason)).toEqual(["network"]);
+    expect(service.cacheSnapshot().get(key)?.collectedAt).toBe("2026-09-08T11:59:00.000Z");
+
+    const wrongContext = context({ tenantId: "tenant-b" });
+    const crossContext: MarketShoppingObservation = {
+      ...available(wrongContext), routeId: "cache", method: "archive", upstream: "archive",
+    };
+    const invalidCurrency: MarketShoppingObservation = {
+      ...available(value, { total: { amountMinor: "100", currency: "EUR", basis: "entire-stay",
+        mandatoryChargesIncluded: true } }), routeId: "cache", method: "archive", upstream: "archive",
+    };
+    let reads = 0;
+    const rejectingRoute = route("reject", "reject", async () => {
+      reads += 1;
+      return { outcome: "failure", kind: "network" };
+    });
+    const crossContextService = runner([rejectingRoute], [limits("reject")], {
+      initialCache: new Map([[key, crossContext]]),
+    });
+    expect(crossContextService.cacheSnapshot().size).toBe(0);
+    const crossContextResult = await crossContextService.run([{ id: "cross-context", context: value }]);
+    expect(crossContextResult.results[0]?.status).toBe("failed");
+    expect(crossContextResult.results[0]?.observation).toBeNull();
+
+    const invalidCurrencyService = runner([rejectingRoute], [limits("reject")], {
+      initialCache: new Map([[key, invalidCurrency]]),
+    });
+    const invalidCurrencyResult = await invalidCurrencyService.run([{ id: "invalid-currency", context: value }]);
+    expect(invalidCurrencyResult.results[0]?.status).toBe("failed");
+    expect(invalidCurrencyResult.results[0]?.observation).toBeNull();
+    expect(invalidCurrencyService.cacheSnapshot().size).toBe(0);
+    expect(reads).toBe(2);
+  });
+
+  test("cached available observations retain their original source-age reason when collection is still fresh", async () => {
+    const staleSource = context({ membership: "stale-source-cache" });
+    const unknownSource = context({ membership: "unknown-source-cache" });
+    const staleCollectedAt = "2026-09-08T11:59:00.000Z";
+    const staleSourceTimestamp = { raw: "2026-09-08T09:00:00.000Z", basis: "utc-instant" as const };
+    const unknownCollectedAt = "2026-09-08T11:58:00.000Z";
+    const unknownSourceTimestamp = { raw: null, basis: "unknown" as const };
+    const cachedStale: MarketShoppingObservation = {
+      ...available(staleSource, { collectedAt: staleCollectedAt, sourceTimestamp: staleSourceTimestamp }),
+      routeId: "cache", method: "archive", upstream: "archive",
+    };
+    const cachedUnknown: MarketShoppingObservation = {
+      ...available(unknownSource, { collectedAt: unknownCollectedAt, sourceTimestamp: unknownSourceTimestamp }),
+      routeId: "cache", method: "archive", upstream: "archive",
+    };
+    const service = runner([route("api", "ota", async () => ({ outcome: "failure", kind: "network" }))],
+      [limits("ota")], { initialCache: new Map([
+        [marketShoppingContextKey(staleSource), cachedStale],
+        [marketShoppingContextKey(unknownSource), cachedUnknown],
+      ]) });
+    const result = await service.run([
+      { id: "stale-source", context: staleSource },
+      { id: "unknown-source", context: unknownSource },
+    ]);
+    expect(result.results.map(({ status }) => status)).toEqual(["non-actionable", "non-actionable"]);
+    expect(result.results.map(({ retainedObservations }) => retainedObservations[0]?.reason))
+      .toEqual(["stale-source", "unknown-source-age"]);
+    expect(result.results.map(({ observation }) => observation?.collectedAt))
+      .toEqual([staleCollectedAt, unknownCollectedAt]);
+    expect(result.results.map(({ observation }) => observation?.sourceTimestamp))
+      .toEqual([staleSourceTimestamp, unknownSourceTimestamp]);
+    expect(service.cacheSnapshot().get(marketShoppingContextKey(staleSource))?.collectedAt).toBe(staleCollectedAt);
+    expect(service.cacheSnapshot().get(marketShoppingContextKey(unknownSource))?.collectedAt).toBe(unknownCollectedAt);
+  });
+
+  test("a new non-actionable observation remains primary and appends a distinct cached fallback once", async () => {
+    const value = context();
+    const oldCollectedAt = new Date(NOW - 2 * 3_600_000).toISOString();
+    const oldSourceTimestamp = { raw: new Date(NOW - 2 * 3_600_000 - 60_000).toISOString(),
+      basis: "utc-instant" as const };
+    const cached: MarketShoppingObservation = {
+      ...available(value, { collectedAt: oldCollectedAt, sourceTimestamp: oldSourceTimestamp }),
+      routeId: "cache", method: "archive", upstream: "archive",
+    };
+    const key = marketShoppingContextKey(value);
+    const service = runner([route("new", "ota", async ({ context: current }) => available(current, {
+      collectedAt: "2026-09-08T11:59:00.000Z",
+      sourceTimestamp: { raw: null, basis: "unknown" },
+    }))], [limits("ota")], { initialCache: new Map([[key, cached]]) });
+    const result = await service.run([{ id: "new-observation", context: value }]);
+    const item = result.results[0];
+    expect(item?.status).toBe("non-actionable");
+    expect(item?.cacheHit).toBe(false);
+    expect(item?.observation?.routeId).toBe("new");
+    expect(item?.observation?.collectedAt).toBe("2026-09-08T11:59:00.000Z");
+    expect(item?.retainedObservations.map(({ reason }) => reason))
+      .toEqual(["unknown-source-age", "stale-collection"]);
+    expect(item?.retainedObservations[1]?.observation.collectedAt).toBe(oldCollectedAt);
+    expect(service.cacheSnapshot().get(key)?.collectedAt).toBe(oldCollectedAt);
+
+    const duplicateService = runner([route("cache", "archive", async ({ context: current }) => available(current, {
+      collectedAt: oldCollectedAt, sourceTimestamp: oldSourceTimestamp,
+    }), { method: "archive" })], [limits("archive")], { initialCache: new Map([[key, cached]]) });
+    const duplicate = await duplicateService.run([{ id: "same-observation", context: value }]);
+    expect(duplicate.results[0]?.status).toBe("non-actionable");
+    expect(duplicate.results[0]?.retainedObservations).toHaveLength(1);
+    expect(duplicate.results[0]?.retainedObservations[0]?.reason).toBe("stale-collection");
+  });
+
   test("wrong-context cache entries, cross-currency prices and booked-occupancy claims cannot satisfy a request", async () => {
     const wanted = context();
     const wrong = context({ tenantId: "tenant-b" });
@@ -418,6 +618,38 @@ describe("RMS market shopping foundation", () => {
     expect(JSON.stringify(result)).not.toContain("occupancyPercent");
   });
 
+  test("expired fallback entries remain subject to deterministic bounded cache eviction", async () => {
+    const expired = context({ membership: "expired" });
+    const middle = context({ membership: "middle" });
+    const newest = context({ membership: "newest" });
+    const expiredKey = marketShoppingContextKey(expired);
+    const oldCollectedAt = new Date(NOW - 2 * 3_600_000).toISOString();
+    const cachedExpired: MarketShoppingObservation = {
+      ...available(expired, { collectedAt: oldCollectedAt,
+        sourceTimestamp: { raw: new Date(NOW - 2 * 3_600_000 - 60_000).toISOString(), basis: "utc-instant" } }),
+      routeId: "cache", method: "archive", upstream: "archive",
+    };
+    const service = runner([route("api", "ota", async ({ context: current }) => {
+      if (current.membership === "expired") return { outcome: "failure", kind: "network" };
+      return available(current, {
+        collectedAt: new Date(NOW - 60_000).toISOString(),
+        sourceTimestamp: { raw: new Date(NOW - 120_000).toISOString(), basis: "utc-instant" },
+      });
+    })], [limits("ota")], { maxCacheEntries: 2,
+      initialCache: new Map([[expiredKey, cachedExpired]]) });
+
+    const retained = await service.run([{ id: "expired", context: expired }]);
+    expect(retained.results[0]?.status).toBe("non-actionable");
+    expect(service.cacheSnapshot().has(expiredKey)).toBe(true);
+    await service.run([{ id: "middle", context: middle }]);
+    await service.run([{ id: "newest", context: newest }]);
+    const cache = service.cacheSnapshot();
+    expect(cache.size).toBe(2);
+    expect(cache.has(expiredKey)).toBe(false);
+    expect(cache.has(marketShoppingContextKey(middle))).toBe(true);
+    expect(cache.has(marketShoppingContextKey(newest))).toBe(true);
+  });
+
   test("cache is bounded and exact-context observations remain isolated", async () => {
     const service = runner([route("api", "ota", async ({ context: value }) => available(value))],
       [limits("ota")], { maxCacheEntries: 2 });
@@ -460,4 +692,3 @@ describe("RMS market shopping foundation", () => {
     expect(() => quoteMarketShoppingCost("9223372036854775807", "USD")).toThrow("quotedMinor exceeds");
   });
 });
-

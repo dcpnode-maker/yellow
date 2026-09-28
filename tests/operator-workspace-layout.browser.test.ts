@@ -3,6 +3,20 @@ import { existsSync } from "node:fs";
 import { mkdir, mkdtemp, rm } from "node:fs/promises";
 import { resolve } from "node:path";
 import { tmpdir } from "node:os";
+import {
+  pollWorkspaceStage,
+  preserveWorkspaceFailure,
+  readWorkspaceResponseBody,
+  reapWorkspaceChild,
+  settleWorkspacePending,
+  withinWorkspaceBudget,
+  workspaceDeadline,
+  workspaceRemaining,
+  workspaceReservedWorkDeadline,
+  workspaceSubdeadline,
+  WorkspaceLifecycleError,
+  type WorkspaceDeadline,
+} from "./helpers/workspace-browser-lifecycle";
 
 const repository = resolve(import.meta.dir, "..");
 const browser = [process.env.PROGRAMFILES && resolve(process.env.PROGRAMFILES, "Google/Chrome/Application/chrome.exe"),
@@ -12,6 +26,27 @@ const id = (value: number) => `00000000-0000-4000-8000-${String(value).padStart(
 const route = `/p/${id(2)}/invoices`;
 const interfaceChoices = ["ledger", "aura", "relay", "journey", "orbit", "atlas", "focus", "index"] as const;
 const workspaceGroups = ["front-desk", "finance", "operations", "revenue", "system"] as const;
+const expectedNavigation = [
+  ["nav-today", "Today", "#ph-calendar-check", "front-desk"],
+  ["nav-availability", "Availability", "#ph-chart-bar", "front-desk"],
+  ["nav-reservations", "Reservations", "#ph-calendar-dots", "front-desk"],
+  ["nav-folios", "Folios", "#ph-notebook", "finance"],
+  ["nav-invoices", "Invoices", "#ph-invoice", "finance"],
+  ["nav-cashiers", "Cashiers", "#ph-cash-register", "finance"],
+  ["nav-day-close", "Day close", "#ph-calendar-x", "finance"],
+  ["nav-trust", "Owner trust", "#ph-hand-coins", "finance"],
+  ["nav-operations", "Room outages", "#ph-bed", "operations"],
+  ["nav-housekeeping", "Housekeeping", "#ph-broom", "operations"],
+  ["nav-vehicles", "Vehicle register", "#ph-car", "operations"],
+  ["nav-inventory", "Inventory setup", "#ph-package", "revenue"],
+  ["nav-restrictions", "Restrictions", "#ph-prohibit", "revenue"],
+  ["nav-rates", "Rates", "#ph-tag", "revenue"],
+  ["nav-market-map", "Market map", "#ph-chart-bar", "revenue"],
+  ["nav-market", "Market evidence", "#ph-chart-line-up", "revenue"],
+  ["nav-status", "Project status", "#ph-chart-line-up", "system"],
+] as const;
+const navigationIdentity = (icon: { id: string; label: string; href: string; group: string }) =>
+  [icon.id, icon.label, icon.href, icon.group];
 const prototypeNumbers = { ledger: "03", aura: "04", relay: "05", journey: "06", orbit: "07", atlas: "08", focus: "09", index: "10" } as const;
 
 // An explicitly synthetic HTTP fixture exercises the real authenticated shell,
@@ -51,15 +86,45 @@ function todayRowForWindow(status: keyof typeof todayRows, requestUrl: URL) {
 }
 
 type CdpSend = <Result>(method: string, params?: Record<string, unknown>) => Promise<Result>;
+const WORKSPACE_LIFECYCLE_MS = 119_000;
+const WORKSPACE_STARTUP_MS = 20_000;
+const WORKSPACE_COMMAND_MS = 5_000;
+const WORKSPACE_PROOF_MS = 6_000;
+const WORKSPACE_CLEANUP_MS = 3_000;
+const DEVTOOLS_TARGET_MAX_BYTES = 16_384;
 
 function transientPortRead(error: unknown): boolean {
   return typeof error === "object" && error !== null &&
     ["EBUSY", "ENOENT"].includes(String((error as { code?: unknown }).code));
 }
 
+async function readBoundedDevToolsTarget(
+  response: Response,
+  deadline: WorkspaceDeadline,
+): Promise<{ webSocketDebuggerUrl?: string }> {
+  const body = await readWorkspaceResponseBody(
+    response,
+    deadline,
+    "DevTools target response body",
+    DEVTOOLS_TARGET_MAX_BYTES,
+  );
+  let parsed: unknown;
+  try { parsed = JSON.parse(new TextDecoder().decode(body)); }
+  catch { throw new Error("DevTools target response is not JSON metadata"); }
+  if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
+    throw new Error("DevTools target response is not an object");
+  }
+  const endpoint = (parsed as { webSocketDebuggerUrl?: unknown }).webSocketDebuggerUrl;
+  if (endpoint !== undefined && typeof endpoint !== "string") {
+    throw new Error("DevTools target response has an invalid debugger endpoint");
+  }
+  return { webSocketDebuggerUrl: endpoint };
+}
+
 async function withOwnedCdp<Result>(
   profile: string,
-  run: (send: CdpSend, runtimeErrors: string[]) => Promise<Result>,
+  lifecycleEnd: WorkspaceDeadline,
+  run: (send: CdpSend, runtimeErrors: string[], deadline: WorkspaceDeadline) => Promise<Result>,
 ): Promise<Result> {
   if (!browser) throw new Error("Chrome or Chromium is required for the actual workspace layout proof");
   const chrome = Bun.spawn([
@@ -68,37 +133,67 @@ async function withOwnedCdp<Result>(
     "--remote-debugging-port=0", `--user-data-dir=${profile}`, "about:blank",
   ], { stdout: "ignore", stderr: "ignore" });
   let socket: WebSocket | null = null;
+  const deadline = workspaceReservedWorkDeadline(lifecycleEnd, WORKSPACE_CLEANUP_MS);
+  let primaryFailure: unknown;
+  const pending = new Map<number, {
+    resolve: (value: unknown) => void;
+    reject: (reason: Error) => void;
+    timer: ReturnType<typeof setTimeout>;
+  }>();
   try {
     const portFile = resolve(profile, "DevToolsActivePort");
-    let port = "";
-    for (let attempt = 0; attempt < 800; attempt += 1) {
-      try {
-        if (existsSync(portFile)) port = (await Bun.file(portFile).text()).split(/\r?\n/, 1)[0] ?? "";
-      } catch (error) {
-        if (!transientPortRead(error)) throw error;
-      }
-      if (port || chrome.exitCode !== null) break;
-      await Bun.sleep(25);
-    }
+    const port = await pollWorkspaceStage({
+      deadline: workspaceSubdeadline(deadline, WORKSPACE_STARTUP_MS),
+      stage: "DevTools port",
+      probe: async () => {
+        try {
+          if (existsSync(portFile)) {
+            const value = (await Bun.file(portFile).text()).split(/\r?\n/, 1)[0] ?? "";
+            if (value) return value;
+          }
+        } catch (error) {
+          if (!transientPortRead(error)) throw error;
+        }
+        if (chrome.exitCode !== null) throw new Error(`Chromium exited before DevTools startup (${chrome.exitCode})`);
+        return null;
+      },
+      describe: value => value ? "DevTools port received" : `DevToolsActivePort absent; exit ${chrome.exitCode ?? "running"}`,
+      sleep: Bun.sleep,
+      intervalMs: 25,
+    });
     if (!port) throw new Error(`Chromium did not expose a DevTools port (exit ${chrome.exitCode ?? "unknown"})`);
-    const targetResponse = await fetch(`http://127.0.0.1:${port}/json/new?${encodeURIComponent("about:blank")}`, { method: "PUT" });
+    const targetUrl = `http://127.0.0.1:${port}/json/new?${encodeURIComponent("about:blank")}`;
+    const targetController = new AbortController();
+    const targetResponse = await withinWorkspaceBudget(
+      workspaceSubdeadline(deadline, WORKSPACE_COMMAND_MS),
+      "DevTools target creation fetch",
+      () => fetch(targetUrl, { method: "PUT", signal: targetController.signal }),
+      "waiting for local DevTools target creation",
+      () => targetController.abort(),
+    );
     if (!targetResponse.ok) throw new Error(`Chromium target creation failed (${targetResponse.status})`);
-    const target = await targetResponse.json() as { webSocketDebuggerUrl?: string };
+    const target = await readBoundedDevToolsTarget(
+      targetResponse,
+      workspaceSubdeadline(deadline, WORKSPACE_COMMAND_MS),
+    );
     if (!target.webSocketDebuggerUrl) throw new Error("Chromium target has no debugger endpoint");
     socket = new WebSocket(target.webSocketDebuggerUrl);
     let commandId = 0;
     const runtimeErrors: string[] = [];
-    const pending = new Map<number, {
-      resolve: (value: unknown) => void;
-      reject: (reason: Error) => void;
-      timer: ReturnType<typeof setTimeout>;
-    }>();
-    await new Promise<void>((resolveOpen, rejectOpen) => {
-      const timer = setTimeout(() => rejectOpen(new Error("Chromium debugger socket did not open")), 5_000);
-      socket?.addEventListener("open", () => { clearTimeout(timer); resolveOpen(); }, { once: true });
-      socket?.addEventListener("error", () => { clearTimeout(timer); rejectOpen(new Error("Chromium debugger socket failed")); }, { once: true });
-    });
-    socket.addEventListener("message", event => {
+    const ownedSocket = socket;
+    await withinWorkspaceBudget(
+      workspaceSubdeadline(deadline, WORKSPACE_COMMAND_MS),
+      "DevTools debugger socket open",
+      () => new Promise<void>((resolveOpen, rejectOpen) => {
+        ownedSocket.addEventListener("open", () => resolveOpen(), { once: true });
+        ownedSocket.addEventListener("error", () => rejectOpen(new Error("Chromium debugger socket failed")), { once: true });
+        ownedSocket.addEventListener("close", () => rejectOpen(new Error("Chromium debugger socket closed before opening")), { once: true });
+      }),
+      "waiting for debugger socket",
+      () => ownedSocket.close(),
+    );
+    ownedSocket.addEventListener("close", () => settleWorkspacePending(pending, "Chromium debugger socket closed with a command pending"));
+    ownedSocket.addEventListener("message", event => {
       const message = JSON.parse(String(event.data)) as {
         id?: number; result?: unknown; error?: { message?: string }; method?: string;
         params?: { type?: string; args?: Array<{ value?: unknown; description?: string }>; exceptionDetails?: { text?: string; exception?: { description?: string } } };
@@ -120,26 +215,52 @@ async function withOwnedCdp<Result>(
     const send: CdpSend = <CommandResult>(method: string, params: Record<string, unknown> = {}) => new Promise<CommandResult>((resolveCommand, rejectCommand) => {
       commandId += 1;
       const id = commandId;
+      const commandBudget = Math.min(WORKSPACE_COMMAND_MS, workspaceRemaining(deadline));
+      if (commandBudget === 0) {
+        rejectCommand(new WorkspaceLifecycleError(
+          `DevTools command ${method}`,
+          0,
+          "workspace work lifecycle expired before command dispatch",
+        ));
+        return;
+      }
       const timer = setTimeout(() => {
         pending.delete(id);
-        rejectCommand(new Error(`Chromium command timed out: ${method}`));
-      }, 5_000);
+        rejectCommand(new WorkspaceLifecycleError(
+          `DevTools command ${method}`,
+          commandBudget,
+          "command response did not arrive before the remaining work budget",
+        ));
+      }, commandBudget);
       pending.set(id, { resolve: value => resolveCommand(value as CommandResult), reject: rejectCommand, timer });
-      socket?.send(JSON.stringify({ id, method, params }));
+      if (ownedSocket.readyState !== WebSocket.OPEN) {
+        clearTimeout(timer); pending.delete(id);
+        rejectCommand(new Error("Chromium debugger socket is not open"));
+        return;
+      }
+      try { ownedSocket.send(JSON.stringify({ id, method, params })); }
+      catch (error) {
+        clearTimeout(timer); pending.delete(id);
+        rejectCommand(error instanceof Error ? error : new Error("Chromium debugger command send failed"));
+      }
     });
     try {
-      return await run(send, runtimeErrors);
+      return await run(send, runtimeErrors, deadline);
     } finally {
-      for (const command of pending.values()) {
-        clearTimeout(command.timer);
-        command.reject(new Error("Chromium debugger closed with a command pending"));
-      }
-      pending.clear();
+      settleWorkspacePending(pending, "Chromium debugger closed with a command pending");
     }
+  } catch (error) {
+    primaryFailure = error;
+    throw error;
   } finally {
     socket?.close();
-    if (chrome.exitCode === null) chrome.kill();
-    await chrome.exited;
+    let cleanupFailure: unknown;
+    try { await reapWorkspaceChild(chrome, workspaceSubdeadline(lifecycleEnd, WORKSPACE_CLEANUP_MS)); }
+    catch (error) { cleanupFailure = error; }
+    if (cleanupFailure !== undefined) {
+      if (primaryFailure !== undefined) preserveWorkspaceFailure(primaryFailure, cleanupFailure);
+      throw cleanupFailure;
+    }
   }
 }
 
@@ -235,7 +356,7 @@ function driver(skin: string, fontExpected: boolean): string {
         const icon=button.querySelector('svg'),use=icon.querySelector('use'),box=icon.getBoundingClientRect(),shape=icon.getBBox(),style=getComputedStyle(icon),buttonStyle=getComputedStyle(button),foreground=rgba(style.color),background=backdrop(button);
         const backgroundChain=[];for(let node=button;node;node=node.parentElement)backgroundChain.push({tag:node.tagName,id:node.id,
           classes:node.className,background:getComputedStyle(node).backgroundColor});
-        iconProof.push({id:button.id,label:button.querySelector('span')?.textContent?.trim(),href:use?.getAttribute('href'),target:button.getBoundingClientRect().height,
+        iconProof.push({id:button.id,label:button.querySelector('span')?.textContent?.trim(),href:use?.getAttribute('href'),group:group.dataset.workspaceGroup,target:button.getBoundingClientRect().height,
           box:[box.width,box.height],shape:[shape.width,shape.height],fill:style.fill,color:style.color,background:background.slice(0,3).map(value=>Math.round(value)),
           buttonColor:buttonStyle.color,buttonBackground:buttonStyle.backgroundColor,borderColor:buttonStyle.borderColor,
           backgroundChain,classes:button.className,active:button.classList.contains('is-active'),focusVisible:button.matches(':focus-visible'),
@@ -391,28 +512,49 @@ function driver(skin: string, fontExpected: boolean): string {
   </script>`;
 }
 
-async function closeGalleryWithEscape(send: CdpSend): Promise<void> {
-  let ready = false;
-  for (let attempt = 0; attempt < 300; attempt += 1) {
-    const evaluation = await send<{ result?: { value?: { ready: boolean; proof: string } } }>("Runtime.evaluate", {
-      expression: "({ready:document.body?.dataset.galleryEscapeReady === '1',proof:document.querySelector('#layout-proof')?.textContent || ''})",
-      returnByValue: true,
-    });
-    ready = evaluation.result?.value?.ready === true;
-    if (ready) break;
-    if (evaluation.result?.value?.proof) {
-      const proof = JSON.parse(evaluation.result.value.proof) as { error?: string };
-      if (proof.error) throw new Error(`Layout driver failed before Escape: ${proof.error}`);
-    }
-    await Bun.sleep(20);
-  }
-  if (!ready) throw new Error("Interface gallery did not become ready for native Escape proof");
+async function closeGalleryWithEscape(send: CdpSend, deadline: WorkspaceDeadline): Promise<void> {
+  await pollWorkspaceStage({
+    deadline: workspaceSubdeadline(deadline, WORKSPACE_PROOF_MS),
+    stage: "interface gallery native Escape readiness",
+    probe: async () => {
+      const evaluation = await send<{ result?: { value?: { ready: boolean; proof: string } } }>("Runtime.evaluate", {
+        expression: "({ready:document.body?.dataset.galleryEscapeReady === '1',proof:document.querySelector('#layout-proof')?.textContent || ''})",
+        returnByValue: true,
+      });
+      const value = evaluation.result?.value;
+      if (value?.proof) {
+        const proof = JSON.parse(value.proof) as { error?: string };
+        if (proof.error) throw new Error(`Layout driver failed before Escape: ${proof.error}`);
+      }
+      return value?.ready === true ? true : null;
+    },
+    describe: value => value ? "gallery accepts native Escape" : "waiting for gallery Escape readiness",
+    sleep: Bun.sleep,
+  });
   await send("Input.dispatchKeyEvent", { type: "keyDown", key: "Escape", code: "Escape", windowsVirtualKeyCode: 27 });
   await send("Input.dispatchKeyEvent", { type: "keyUp", key: "Escape", code: "Escape", windowsVirtualKeyCode: 27 });
 }
 
+async function readLayoutProof(send: CdpSend, deadline: WorkspaceDeadline, label: string): Promise<string> {
+  return pollWorkspaceStage({
+    deadline: workspaceSubdeadline(deadline, WORKSPACE_PROOF_MS),
+    stage: label,
+    probe: async () => {
+      const evaluation = await send<{ result?: { value?: string } }>("Runtime.evaluate", {
+        expression: "document.querySelector('#layout-proof')?.textContent || ''",
+        returnByValue: true,
+      });
+      const value = evaluation.result?.value ?? "";
+      return value || null;
+    },
+    describe: value => value === null ? "layout proof is empty" : "layout proof received",
+    sleep: Bun.sleep,
+  });
+}
+
 test("Order459 eight compositions retain loaded records, drafts and grouped accessible navigation", async () => {
   if (!browser) throw new Error("Chrome or Chromium is required for the actual workspace layout proof");
+  const lifecycleEnd = workspaceDeadline(WORKSPACE_LIFECYCLE_MS);
   const html = await Bun.file(resolve(repository, "src/http/operator/index.html")).text();
   let requestedSkin = "ledger";
   let fontExpected = true;
@@ -456,12 +598,13 @@ test("Order459 eight compositions retain loaded records, drafts and grouped acce
     return new Response("not found", { status: 404 });
   } });
   const temporary = await mkdtemp(resolve(tmpdir(), "yellow-order459-compositions-"));
+  let primaryFailure: unknown;
   try {
     const captures = process.env.YELLOW_INTERFACE_SCREENSHOTS;
     if (captures) await mkdir(captures, { recursive: true });
     const cases = [[1440,900,"ledger"],[1024,768,"orbit"],[375,844,"index"]] as const;
     const url = `http://127.0.0.1:${server.port}${route}`;
-    await withOwnedCdp(resolve(temporary, "chrome"), async (send, runtimeErrors) => {
+    await withOwnedCdp(resolve(temporary, "chrome"), lifecycleEnd, async (send, runtimeErrors, lifecycle) => {
       await send("Page.enable");
       await send("Runtime.enable");
       await send("Network.enable");
@@ -477,18 +620,8 @@ test("Order459 eight compositions retain loaded records, drafts and grouped acce
         });
         runtimeErrors.length = 0;
         await send("Page.navigate", { url });
-        await closeGalleryWithEscape(send);
-        let encoded = "";
-        for (let attempt = 0; attempt < 300; attempt += 1) {
-          const evaluation = await send<{ result?: { value?: string } }>("Runtime.evaluate", {
-            expression: "document.querySelector('#layout-proof')?.textContent || ''",
-            returnByValue: true,
-          });
-          encoded = evaluation.result?.value ?? "";
-          if (encoded) break;
-          await Bun.sleep(20);
-        }
-        if (!encoded) throw new Error(`No layout proof ${width}/${skin}`);
+        await closeGalleryWithEscape(send, lifecycle);
+        const encoded = await readLayoutProof(send, lifecycle, `layout proof ${width}/${skin}`);
         const proof = JSON.parse(encoded);
         if(captures){
           await Bun.write(resolve(captures, `${width}-${height}-${skin}-proof.json`), JSON.stringify(proof, null, 2));
@@ -511,13 +644,10 @@ test("Order459 eight compositions retain loaded records, drafts and grouped acce
         expect(proof.resources).toContain("/static/fonts/urbanist-v1.330.woff2");
         expect(proof.resources).toContain("/assets/operator-layouts.js");
         expect(proof.resources).not.toContain("/static/icons/phosphor-nav-2.1.1.svg");
-        expect(proof.iconProof).toHaveLength(16);
-        const originalIcons = proof.iconProof.filter((icon: { id: string }) => icon.id !== "nav-market-map");
-        expect(originalIcons).toHaveLength(15);
-        expect(new Set(originalIcons.map((icon: { href: string }) => icon.href)).size).toBe(15);
-        const marketIcons = proof.iconProof.filter((icon: { id: string }) => icon.id === "nav-market-map");
-        expect(marketIcons).toHaveLength(1);
-        expect(marketIcons[0]).toMatchObject({ id: "nav-market-map", label: "Market map", href: "#ph-chart-bar" });
+        expect(proof.iconProof).toHaveLength(17);
+        expect(proof.iconProof.map(navigationIdentity)).toEqual(expectedNavigation);
+        // Market evidence and Project status intentionally share chart-line-up.
+        expect(new Set(proof.iconProof.map((icon: { href: string }) => icon.href)).size).toBe(15);
         for (const icon of proof.iconProof) {
           expect(icon.href).toMatch(/^#ph-[a-z-]+$/);
           expect(icon.label.length).toBeGreaterThan(0);
@@ -547,8 +677,8 @@ test("Order459 eight compositions retain loaded records, drafts and grouped acce
           explicitReduced:{choiceTransition:"0s",miniatureTransition:"0s",miniatureTransform:"none"}});
         expect(proof.audit).toEqual({closedInitially:true,tag:"DETAILS",label:"Document history & verification",
           documentHash:true,sourceHash:true,reservation:true,folio:true,identityOutsideAudit:true,date:"2044-09-06"});
-        expect(proof.groups).toEqual({keys:workspaceGroups,counts:[3,5,3,4,1],
-          summaries:["Front desk3","Finance5","Property3","Rates & inventory4","System1"],
+        expect(proof.groups).toEqual({keys:workspaceGroups,counts:[3,5,3,5,1],
+          summaries:["Front desk3","Finance5","Property3","Rates & inventory5","System1"],
           financeOpen:true,current:["finance"],active:["invoices"],outerTag:"DETAILS",outerOpen:width>1020,
           currentLabel:"Invoices",legacyRemoved:true});
         if(width>1020){
@@ -725,25 +855,16 @@ test("Order459 eight compositions retain loaded records, drafts and grouped acce
       ] });
       runtimeErrors.length = 0;
       await send("Page.navigate", { url });
-      await closeGalleryWithEscape(send);
-      let forcedEncoded = "";
-      for (let attempt = 0; attempt < 300; attempt += 1) {
-        const evaluation = await send<{ result?: { value?: string } }>("Runtime.evaluate", {
-          expression: "document.querySelector('#layout-proof')?.textContent || ''",
-          returnByValue: true,
-        });
-        forcedEncoded = evaluation.result?.value ?? "";
-        if (forcedEncoded) break;
-        await Bun.sleep(20);
-      }
-      if (!forcedEncoded) throw new Error("No forced-colours layout proof 375/relay");
+      await closeGalleryWithEscape(send, lifecycle);
+      const forcedEncoded = await readLayoutProof(send, lifecycle, "forced-colours layout proof 390/relay");
       const forcedProof = JSON.parse(forcedEncoded);
       expect(runtimeErrors).toEqual([]);
       expect(forcedProof).toMatchObject({ width: 390, height: 844, reducedMotion: true, forcedColors: true, legacy: false });
       expect(forcedProof.font).toMatchObject({ expected: true, loaded: true, loadError: null, readable: true });
       expect(forcedProof.font.family).toMatch(/^Urbanist/);
       expect(forcedProof.resourceOrigins).toEqual([`http://127.0.0.1:${server.port}`]);
-      expect(forcedProof.iconProof).toHaveLength(16);
+      expect(forcedProof.iconProof).toHaveLength(17);
+      expect(forcedProof.iconProof.map(navigationIdentity)).toEqual(expectedNavigation);
       expect(forcedProof.iconProof.every((icon: { visible: boolean; focus: boolean; target: number; shape: [number, number]; fill: string; color: string; contrast: number }) =>
         icon.visible && icon.focus && icon.target >= 44 && icon.shape[0] > 0 && icon.shape[1] > 0 && icon.fill === icon.color && icon.contrast >= 3)).toBe(true);
       expect(forcedProof.afterCalls).toBe(forcedProof.before.calls);
@@ -753,7 +874,7 @@ test("Order459 eight compositions retain loaded records, drafts and grouped acce
       expect(forcedProof.samples.every((sample: { overflow: boolean; sameMount: boolean; sameDetail: boolean }) =>
         !sample.overflow && sample.sameMount && sample.sameDetail)).toBe(true);
       expect(forcedProof.todaySamples.every((sample: { overflow: boolean; rows: number }) => !sample.overflow && sample.rows === 3)).toBe(true);
-      expect(forcedProof.groups).toMatchObject({ keys: workspaceGroups, counts: [3,5,3,4,1], legacyRemoved: true });
+      expect(forcedProof.groups).toMatchObject({ keys: workspaceGroups, counts: [3,5,3,5,1], legacyRemoved: true });
       if (captures) {
         await send("Runtime.evaluate", {
           expression: "new Promise(resolve=>{const picker=document.querySelector('#workspace-skin-select');picker.value='relay';picker.dispatchEvent(new Event('change',{bubbles:true}));scrollTo(0,0);requestAnimationFrame(()=>requestAnimationFrame(resolve))})",
@@ -775,18 +896,8 @@ test("Order459 eight compositions retain loaded records, drafts and grouped acce
       ] });
       runtimeErrors.length = 0;
       await send("Page.navigate", { url: `${url}?font-fallback=1` });
-      await closeGalleryWithEscape(send);
-      let fallbackEncoded = "";
-      for (let attempt = 0; attempt < 300; attempt += 1) {
-        const evaluation = await send<{ result?: { value?: string } }>("Runtime.evaluate", {
-          expression: "document.querySelector('#layout-proof')?.textContent || ''",
-          returnByValue: true,
-        });
-        fallbackEncoded = evaluation.result?.value ?? "";
-        if (fallbackEncoded) break;
-        await Bun.sleep(20);
-      }
-      if (!fallbackEncoded) throw new Error("No blocked-font fallback proof 390/ledger");
+      await closeGalleryWithEscape(send, lifecycle);
+      const fallbackEncoded = await readLayoutProof(send, lifecycle, "blocked-font fallback layout proof 390/ledger");
       const fallbackProof = JSON.parse(fallbackEncoded);
       expect(fallbackProof.error).toBeUndefined();
       expect(runtimeErrors).toEqual([]);
@@ -820,12 +931,13 @@ test("Order459 eight compositions retain loaded records, drafts and grouped acce
       expect(fallbackFonts.fonts.length).toBeGreaterThan(0);
       expect(fallbackFonts.fonts.every(font => !font.isCustomFont && font.glyphCount > 0)).toBe(true);
       expect(fallbackFonts.fonts.every(font => font.familyName !== "Urbanist")).toBe(true);
-      expect(fallbackProof.iconProof).toHaveLength(16);
+      expect(fallbackProof.iconProof).toHaveLength(17);
+      expect(fallbackProof.iconProof.map(navigationIdentity)).toEqual(expectedNavigation);
       expect(fallbackProof.iconProof.every((icon: { visible: boolean; target: number; shape: [number, number]; contrast: number }) =>
         icon.visible && icon.target >= 44 && icon.shape[0] > 0 && icon.shape[1] > 0 && icon.contrast >= 3)).toBe(true);
       expect(fallbackProof.afterCalls).toBe(fallbackProof.before.calls);
       expect(fallbackProof.audit).toMatchObject({ documentHash: true, sourceHash: true, identityOutsideAudit: true });
-      expect(fallbackProof.groups).toMatchObject({ keys: workspaceGroups, counts: [3,5,3,4,1], legacyRemoved: true });
+      expect(fallbackProof.groups).toMatchObject({ keys: workspaceGroups, counts: [3,5,3,5,1], legacyRemoved: true });
     });
     expect(apiRequests.every(request => request.method === "GET" || request.path.endsWith("/invoices/search"))).toBe(true);
     const todayRequests = apiRequests.filter(request => request.path.includes("/reservation-board?"));
@@ -842,5 +954,25 @@ test("Order459 eight compositions retain loaded records, drafts and grouped acce
       if(fixture.status==='due_out')expect(stayFrom<from&&stayTo>=from&&stayTo<to,`${fixture.status} fixture matches window`).toBe(true);
       if(fixture.status==='in_house')expect(stayFrom<from&&stayTo>to,`${fixture.status} fixture spans window`).toBe(true);
     }
-  } finally { server.stop(true); await rm(temporary,{recursive:true,force:true}); }
+  } catch (error) {
+    primaryFailure = error;
+    throw error;
+  } finally {
+    let cleanupFailure: unknown;
+    try {
+      server.stop(true);
+      await withinWorkspaceBudget(
+        workspaceSubdeadline(lifecycleEnd, WORKSPACE_CLEANUP_MS),
+        "owned workspace profile cleanup",
+        () => rm(temporary, { recursive: true, force: true }),
+        "removing only the test-created workspace browser profile",
+      );
+    } catch (error) {
+      cleanupFailure = error;
+    }
+    if (cleanupFailure !== undefined) {
+      if (primaryFailure !== undefined) preserveWorkspaceFailure(primaryFailure, cleanupFailure);
+      throw cleanupFailure;
+    }
+  }
 }, 120_000);

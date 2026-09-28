@@ -872,3 +872,94 @@ app17936/supervisor17096, retainedPG13580/55503, frontier91. Saved-login, invoic
 reads, exact invoice/print assets, native identities and honest fiscal blocker pass.
 Stage17732 is stopped. No reseed/migration/newDB/provider/mainmerge/phase closure.
 Current detail is Q258/Review460 and Order466 q258-r2-promotion-proof evidence.
+
+### Q270 — release-proof efficiency preparation
+
+Q270 explicitly admits the narrow CI/test/provenance fixture repair and root
+release-checklist paths listed there. Preserve existing safety assertions and
+time limits while moving Windows-native execution to its required Windows lane
+and removing P3's avoidable Git process through a verified immutable P0 fixture.
+No live action or publication is authorized by that source scope.
+The current release checklist is handoff/reviews/460-release-checklist-20260913.md.
+Accepted Order472 mixed-file changes require an isolated exact source manifest;
+paused445 and frozen471 remain preserved, not silently included.
+
+Q271 adds only the two named private pure source-projection/test files, with
+bounded ownership of the four mixed app/operator inputs. No working-file or
+Git mutation and no candidate materialization follows from this preparation.
+The final isolated candidate remains a separately scoped, proved release.
+
+Q272 admits the exact five current-source status/snapshot files, tests-first,
+to represent accepted472 and frozen471 without claiming live delivery or phase
+completion. Only Phase14 changes planned -> active; all18 phases retained.
+No local state-script execution or live action follows from this metadata scope.
+
+Q272 further enumerates the fourteen current-schema compatibility files and
+eight isolated market CI/test-environment files under disjoint named ownership.
+This is source-only alignment to92 and required real CI market coverage, without
+weakening native55503 authority, historical prefixes or Q270 Windows proof.
+The exact fixed ephemeral CI database is remote-run only; no local/live DB action
+or publication is admitted by this extension. Independent proof remains required.
+
+Q273 admits exactly the two inert existing-artifact candidate helper/test files
+and root manifest/records. Reuse the exact verified28.7MB source artifact and
+dependency junction; no new worktree, private index/object or dependency tree.
+Only HEAD633 plus individually accepted/pinned changes, with one explicit market
+addendum projection in addition to Q271's four mixed sources. Artifact write and
+restoration require the separate root admission after independent helper proof.
+
+Root's private Q273 action/receipt record is
+`.yellow/evidence/order460/order472-candidate-actions.md`, excluded from the
+candidate source fingerprint. It records the exact manifest hash and separately
+admitted Prepare/Restore footprints without mutating frozen release inputs.
+This is record scope only, not permission to execute an unproved helper.
+
+Q274 admits the two exact inert selective-publication helper/test files, seven
+root governance receipt exceptions and named private publication records listed
+there. It replaces stale publisher reuse with minimal native Git operations and
+one standard temporary index, preserving all working residuals and outside staged
+entries. No actual Yellow Git/network mutation follows until independent proof
+and a separate exact root action admission. No extra checkout/object store.
+
+Q275 admits only the ten named current-navigation/catalogue compatibility tests
+and root coordination records after exact da744f1 CI failures. Preserve every
+previous destination/safety assertion while adding the accepted market contract.
+No product/DB/runtime/deadline change; fresh successor CI remains mandatory.
+Publication uses native scoped whole-file Git after complete preservation checks;
+Q274's consumed mixed-file publisher is not replayed.
+
+Q276 admits five named inert native92 capture/verifier/metadata proof files only,
+under disjoint worker ownership, while exact feff6dc8 release CI runs. No actual
+DB/process/authority/Git operation follows from this preparation. Root personally
+inspects and proves; existing consumed helpers, source and live91 remain unchanged.
+
+Q277 admits the one exact current-schema fiscal-series test-oracle file and root
+coordination records after real feff CI failure91expected/92actual. Preserve the
+historical native89 mode and every existing safety/SQL/assertion/deadline. Broader
+read-only audit precedes successor publication; no silent edit outside the question.
+
+Q278 admits the three named browser-test/supervision files and two source-status
+files, plus root records, after actual dd38 CI timeout. Preserve all journey
+assertions and the120-second outer bound; no retry, skip or product change.
+Independent exclusive proof and exact-source CI remain distinct. No live action.
+
+Q279 admits exactly three ignored registry-isolation/proof source files for an
+eventual tiny owned schema in the existing synthetic DB. No production helper
+change and no actual connection/DDL/DML follows until separately admitted.
+
+Q278 final native proof is root-accepted14/2explicitDBskips/0fail1374, including
+all1148 actual browser assertions. Its explicit16-path publication extension now
+admits one exact-preserved native whole-file commit/nonforce push and fresh CI.
+Q279 remains independent source-only proof preparation, not a release prerequisite
+for publishing the browser repair. No local migration/restart or phase closure.
+
+Q280 admits the exact current471/472 expectations in project-status.test.ts and
+minimal safe native-supervisor startup observations in its two named source/test
+files. Actual049a4de CI failures, source-only bounds and ownership are in Q280.
+No timeout increase/retry or live action; native state-script ban remains.
+
+## Q280 frozen repair accepted
+
+Root independently inspected frozen supervisor 85611ad04ef07f7fea29f62658e84c7557e3f3e918c7be28569ef44452b7ae6e and native test 61f6b2548695085e75541cb551da041103b812401872af460e7a54d23860c20b; personally executed gated native suite: 21 pass, 0 fail, 42 assertions in 38.39s. Worker: 21/0/42 in 38.03s. Strict types and 202 boundaries pass. Root current-status proofs: exact pure test 1/0/75; adjacent consumers 8 pass, 2 explicit DB skips, 0 fail, 268 assertions. No local state scripts.
+
+Q280 admits one preserved 15-path successor publication and fresh CI, not local promotion. Reuse exact-Git artifact tooling through a separately scoped minimal rebind; do not replay consumed overlay/recovery wrappers or create duplicate dependencies.

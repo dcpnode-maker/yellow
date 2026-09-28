@@ -1,11 +1,14 @@
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { SQL } from "bun";
+import { resolve } from "node:path";
 
 const DATABASE_URL = process.env.YELLOW_REFEREE_TYPED_PARENT_URL;
 const REQUIRE_DATABASE = process.env.YELLOW_REQUIRE_REFEREE_TYPED_PARENT === "1";
 const P0_SHA = "97209531aaa7babaa5f6f3013b3e9b2c633d5284";
 const OLD_REFEREE_SHA256 = "3228279bd99a8f9b6af99748f31d4d4b482a8e627e16d92644d9d859ad8befa1";
 const BASELINE_SHA256 = "fe2a9fc949c6bacded3f8d3fc4d14fc596a83ebde9aeb043eb10845f07b30923";
+const P0_FIXTURE_PATH = resolve(import.meta.dir, "fixtures", "order130", "referee-p0.txt");
+const P0_FIXTURE_BYTES = 12_469;
 const T_A = "00000000-0000-0000-0000-000000000001";
 const T_B = "00000000-0000-0000-0000-000000000002";
 const PROPERTY = "00000000-0000-0000-0000-000000000012";
@@ -38,22 +41,6 @@ function sqlState(error: unknown): string | undefined {
   if (typeof candidate.errno === "string") return candidate.errno;
   if (typeof candidate.code === "string") return candidate.code;
   return undefined;
-}
-
-async function gitBlob(ref: string, path: string): Promise<string> {
-  const child = Bun.spawn(["git", "show", `${ref}:${path}`], {
-    cwd: process.cwd(),
-    stdin: "ignore",
-    stdout: "pipe",
-    stderr: "pipe",
-  });
-  const [stdout, stderr, exitCode] = await Promise.all([
-    new Response(child.stdout).text(),
-    new Response(child.stderr).text(),
-    child.exited,
-  ]);
-  if (exitCode !== 0) throw new Error(`git show ${ref}:${path} failed: ${stderr.trim()}`);
-  return stdout.replaceAll("\r\n", "\n");
 }
 
 function maskSpan(source: string, start: string, end: string, label: string): string {
@@ -304,8 +291,12 @@ afterAll(async () => {
 describe("Order 130 protected referee provenance", () => {
   test("P3: only preregistered referee regions differ from the exact P0 parent", async () => {
     expect(await sha256("migrations/0001_init.sql")).toBe(BASELINE_SHA256);
-    const oldSource = await gitBlob(P0_SHA, "tests/run_invariants.py");
-    expect(new Bun.CryptoHasher("sha256").update(oldSource).digest("hex")).toBe(OLD_REFEREE_SHA256);
+    const fixtureBytes = new Uint8Array(await Bun.file(P0_FIXTURE_PATH).arrayBuffer());
+    expect(fixtureBytes.byteLength).toBe(P0_FIXTURE_BYTES);
+    expect(new Bun.CryptoHasher("sha256").update(fixtureBytes).digest("hex")).toBe(OLD_REFEREE_SHA256);
+    const oldSource = new TextDecoder("utf-8", { fatal: true }).decode(fixtureBytes);
+    expect(oldSource.includes("\r")).toBeFalse();
+    expect(P0_SHA).toBe("97209531aaa7babaa5f6f3013b3e9b2c633d5284");
     const currentSource = (await Bun.file("tests/run_invariants.py").text()).replaceAll("\r\n", "\n");
     expect(maskAllowedRefereeRegions(currentSource)).toBe(maskAllowedRefereeRegions(oldSource));
     assertRaceContract(currentSource);

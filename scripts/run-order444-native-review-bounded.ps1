@@ -25,9 +25,14 @@ $productionSystemCriticalFreeBytes = 512MB
 $productionPollMilliseconds = 5000
 $retainedLogFilesPerStream = 3
 $statusByteLimit = 32768
+$startupObservationByteLimit = 4096
+$startupWatch = [Diagnostics.Stopwatch]::StartNew()
+$startupObservationPath = $null
+$startupStages = [Collections.Generic.List[Collections.IDictionary]]::new()
 
-$pumpType = 'Yellow.Order444.BoundedStreamPump' -as [type]
-if ($null -eq $pumpType) {
+function Initialize-BoundedStreamPump {
+    $pumpType = 'Yellow.Order444.BoundedStreamPump' -as [type]
+    if ($null -ne $pumpType) { return }
     Add-Type -TypeDefinition @'
 using System;
 using System.IO;
@@ -97,6 +102,8 @@ namespace Yellow.Order444
 }
 '@
 }
+
+if (-not $TestMode) { Initialize-BoundedStreamPump }
 
 function Get-Order444RuntimePaths([string]$Revision) {
     if ($Revision -cnotmatch '^[0-9a-f]{40}$') { throw 'Candidate revision must be exact lowercase40 hex' }
@@ -220,6 +227,22 @@ function Write-Status([Collections.IDictionary]$Status,[string]$Path) {
     [IO.File]::Move($temporary,$Path,$true)
 }
 
+function Write-SyntheticStartupStage([string]$Stage) {
+    if ($null -eq $script:startupObservationPath) { return }
+    if ($Stage -notin @('test_root_ready','stream_pump_initialized','child_started','child_identity_bound','stream_pumps_started','child_exit_observed','stream_drain_settled')) {
+        throw 'Synthetic startup stage is invalid'
+    }
+    $elapsed = [int]$script:startupWatch.ElapsedMilliseconds
+    if ($elapsed -lt 0) { throw 'Synthetic startup stage elapsed time is invalid' }
+    $script:startupStages.Add([ordered]@{stage=$Stage;elapsedMilliseconds=$elapsed})
+    $observation = [ordered]@{schema='yellow-order444-native-startup/v1';stages=@($script:startupStages)}
+    $json = $observation | ConvertTo-Json -Depth 4 -Compress
+    if ([Text.Encoding]::UTF8.GetByteCount($json) -gt $startupObservationByteLimit) { throw 'Synthetic startup observation exceeded fixed byte bound' }
+    $temporary = "$script:startupObservationPath.tmp"
+    [IO.File]::WriteAllText($temporary,$json,[Text.UTF8Encoding]::new($false))
+    [IO.File]::Move($temporary,$script:startupObservationPath,$true)
+}
+
 function Stop-OwnedChild([Diagnostics.Process]$OwnedProcess) {
     if ($null -ne $OwnedProcess -and -not $OwnedProcess.HasExited) {
         $OwnedProcess.Kill($false)
@@ -238,6 +261,10 @@ if ($TestMode) {
     if ($childItem.PSIsContainer -or ($childItem.Attributes -band [IO.FileAttributes]::ReparsePoint)) { throw 'Test child must be a regular file' }
     if (Test-Path -LiteralPath $resolvedTestRoot) { throw 'TestRoot must be absent' }
     [IO.Directory]::CreateDirectory($resolvedTestRoot) | Out-Null
+    $script:startupObservationPath = Join-Path $resolvedTestRoot 'supervisor.3000.startup.json'
+    Write-SyntheticStartupStage 'test_root_ready'
+    Initialize-BoundedStreamPump
+    Write-SyntheticStartupStage 'stream_pump_initialized'
     $runtimeRoot = $resolvedTestRoot
     $childExecutable = [Diagnostics.Process]::GetCurrentProcess().MainModule.FileName
     $workingDirectory = $runtimeRoot
@@ -318,13 +345,16 @@ try {
         $info = New-SanitizedStartInfo $childExecutable $workingDirectory $arguments $runtimeEnvironment
         $child = [Diagnostics.Process]::new();$child.StartInfo=$info
         if (-not $child.Start()) { throw 'Exact child process did not start' }
+        Write-SyntheticStartupStage 'child_started'
         $childRecord=$null
         foreach($attempt in 1..20){$childRecord=Get-CimInstance Win32_Process -Filter "ProcessId = $($child.Id)";if($null-ne$childRecord-and$null-ne$childRecord.CreationDate){break};Start-Sleep -Milliseconds 25}
         if($null-eq$childRecord-or$null-eq$childRecord.CreationDate){throw 'Exact child process start identity is unavailable'}
         $status.childPid=$child.Id;$status.childStartedUtc=$childRecord.CreationDate.ToUniversalTime().ToString('o');$status.launchCount=1;$status.reason='running'
         Write-Status $status $statusPath
+        Write-SyntheticStartupStage 'child_identity_bound'
         $stdoutTask = [Yellow.Order444.BoundedStreamPump]::PumpAsync($child.StandardOutput.BaseStream,$runtimeRoot,$Port,'stdout',$perFileByteLimit,$retainedLogFilesPerStream,$cancellation.Token)
         $stderrTask = [Yellow.Order444.BoundedStreamPump]::PumpAsync($child.StandardError.BaseStream,$runtimeRoot,$Port,'stderr',$perFileByteLimit,$retainedLogFilesPerStream,$cancellation.Token)
+        Write-SyntheticStartupStage 'stream_pumps_started'
         $watch=[Diagnostics.Stopwatch]::StartNew()
         while (-not $child.WaitForExit($pollMilliseconds)) {
             if($stdoutTask.IsFaulted-or$stderrTask.IsFaulted){
@@ -340,6 +370,7 @@ try {
             }
         }
         if ($status.reason -ceq 'running') { $status.reason='child_exit';$status.childExitCode=$child.ExitCode;$exitCode=$child.ExitCode }
+        Write-SyntheticStartupStage 'child_exit_observed'
     }
 } catch {
     $status.reason='supervisor_failure';$status.failureType=$_.Exception.GetType().FullName;$exitCode=22
@@ -358,6 +389,7 @@ try {
     if (-not $streamsSettled) {
         $status.failureType='stream_cleanup_unproven';$status.reason='supervisor_failure';$exitCode=22
     }
+    Write-SyntheticStartupStage 'stream_drain_settled'
     $status.supervisorExitCode=$exitCode;$status.stoppedUtc=[DateTime]::UtcNow.ToString('o')
     try { Write-Status $status $statusPath } catch { $exitCode=22 }
     $cancellation.Dispose();if($null-ne$child){$child.Dispose()}

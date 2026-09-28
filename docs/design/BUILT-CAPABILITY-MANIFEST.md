@@ -1,5 +1,64 @@
 # Built operator capability inventory — Order444
 
+## Current-source addendum — 13 September 2026, Order472/Q268
+
+Market evidence now adds an opt-in real street map, keyboard/click inspection,
+selectable table attributes, full retained record facts and complete bounded
+planner detail. Map points cannot select or confirm competitors. The locally
+vendored renderer is isolated behind an exact frame policy, has no pre-activation
+tile traffic, and preserves table access offline. Root independently executed
+the three browser journeys plus related source/security tests:139pass,20explicit
+environment-gated skips,0fail,1777assertions; types202boundaries/diff pass.
+The69-assertion real-map journey intercepts all external tiles and verifies
+500-record coverage/omission, privacy, protocol, layout and lifecycle behavior.
+This is source acceptance only: the sole3000 app still serves41415/frontier91.
+No live delivery, price collection/publication or phase closure is claimed.
+[Review472](../../handoff/reviews/472-market-discovery-intake.md) holds exact proof.
+
+## Historical source addendum — 13 September 2026, Order472/Q267
+
+Market evidence now offers explainable URL/ID/name/coordinate suggestions without
+automatic selection, immutable historical saved evidence, independent market-only
+property navigation with50-row pagination, and a read-only planner preview from
+an explicit1–200 subset of the saved competitor set. The preview includes guest
+ages, stay lengths, source selection, market/language and horizon; it uses current
+server-owned property metadata and rejects stale versions. It performs no rate
+collection, scheduling or price publication.
+
+Root personally executed153pass/0fail/1641 assertions across19 related files,
+including20 actual PostgreSQL cases,9 native filesystem cases and2 actual-shell
+browser journeys with82 assertions using synthetic HTTP. Types and202 boundaries
+pass. Exact proof and discovered/repaired defects are in
+[Review472](../../handoff/reviews/472-market-discovery-intake.md).
+
+This is source acceptance only, not a new visual-design approval or live delivery.
+The requested real2D street map/selectable attributes remain; the existing display
+is a source-point plot. Fresh readiness still identifies the sole3000 runtime as
+41415/frontier91, not this frontier92 source. The dated Q266 inventory below is
+historical; its identity/navigation/planner gaps are now addressed by Q267.
+
+## Current-source addendum — 13 September 2026, Order472/Q266
+
+The source now adds `/p/:property/market` and a lazy Market evidence destination
+under Rates & inventory. The existing theme and shell remain. The workspace
+offers bounded source-point plotting, filtered25-row pagination, visible source
+dates/provenance/coverage, explicit own-record/comparator selection, review and
+authorized confirmation. It is not street imagery, verified hotel identity,
+current rate shopping, automatic pricing or a new visual-design acceptance.
+
+Root independently executed the real-shell browser proof with synthetic HTTP:
+38 assertions covering explicit confirmation, exact ambiguous retries, conflicts,
+revocation, failed-refresh gates, delayed-property isolation, UTF-8 request bounds
+and375px containment. Final related aggregate136pass/0fail/1311, types and202 import
+boundaries pass. Full details and frozen hashes are in
+[Review472](../../handoff/reviews/472-market-discovery-intake.md).
+
+This adds source capability, not delivery to the single app. The serving runtime
+remains41415/frontier91; source frontier92 and explicit market startup/readiness are
+not promoted. URL/ID identity suggestions, market-only property discovery and the
+existing planner connection remain. See [current status](../PROJECT-STATUS.md);
+the older dated inventories below remain historical receipts.
+
 ## Current-source addendum — 9 September 2026
 
 The dated inventory below is historical, not the latest release receipt. Accepted

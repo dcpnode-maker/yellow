@@ -156,6 +156,35 @@ class PlaceCatalogImportTest(unittest.TestCase):
         self.assertIn("refusing to overwrite", second.stderr)
         self.assertEqual(hashlib.sha256(output.read_bytes()).hexdigest(), before)
 
+    def test_completed_output_is_readonly_and_has_no_publication_temporary(self):
+        source = self.write_ndjson("complete.ndjson", [record("complete")])
+        output = self.root / "complete.sqlite"
+        receipt = BUILDER_MODULE.build_catalog([str(source)], output, None, 16)
+        self.assertEqual(receipt["counts"]["places_inserted"], 1)
+        self.assertEqual(output.stat().st_mode & 0o222, 0)
+        self.assertEqual(list(self.root.glob(".complete.sqlite.*.tmp")), [])
+        connection = sqlite3.connect(output)
+        try:
+            self.assertEqual(connection.execute("PRAGMA quick_check").fetchone(), ("ok",))
+        finally:
+            connection.close()
+
+    def test_late_output_collision_preserves_the_other_file_and_cleans_only_our_temp(self):
+        source = self.write_ndjson("race.ndjson", [record("race")])
+        output = self.root / "race.sqlite"
+        operation = "rename" if os.name == "nt" else "link"
+        publish = getattr(BUILDER_MODULE.os, operation)
+
+        def collide(temporary, destination):
+            Path(destination).write_bytes(b"synthetic-other-winner")
+            return publish(temporary, destination)
+
+        with mock.patch.object(BUILDER_MODULE.os, operation, side_effect=collide):
+            with self.assertRaises(FileExistsError):
+                BUILDER_MODULE.build_catalog([str(source)], output, None, 16)
+        self.assertEqual(output.read_bytes(), b"synthetic-other-winner")
+        self.assertEqual(list(self.root.glob(".race.sqlite.*.tmp")), [])
+
     def test_imports_overture_shaped_parquet_in_bounded_batches(self):
         source = self.root / "places.parquet"
         values = []

@@ -1,518 +1,223 @@
+/** Independent Q268 proof: real shell/frame/Leaflet, synthetic API and intercepted tiles only. */
 import { expect, test } from "bun:test";
-import { existsSync, readFileSync } from "node:fs";
-import { mkdir, mkdtemp, rm } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import { resolve } from "node:path";
-import { createHash } from "node:crypto";
-import { inflateSync } from "node:zlib";
-import { runInNewContext } from "node:vm";
-import { startMarketMapBrowserFixture } from "../scripts/research/verify-market-map-browser";
+import { createApp } from "../src/app";
+import type { MarketHttpApi } from "../src/http/market";
+import type { OperatorHttpApi } from "../src/http/operator";
+import { browser, browserControls, withBrowser } from "./helpers/market-browser";
 
-const root = new URL("..", import.meta.url);
-const moduleSource = readFileSync(new URL("../src/http/operator/operator-market-map.js", import.meta.url), "utf8");
-const propertyA = "00000000-0000-4000-8000-000000000001";
-const propertyB = "00000000-0000-4000-8000-000000000002";
-const gersId = "00000000-0000-4000-8000-000000000099";
-const browser = [process.env.PROGRAMFILES && resolve(process.env.PROGRAMFILES, "Google/Chrome/Application/chrome.exe"),
-  process.env["PROGRAMFILES(X86)"] && resolve(process.env["PROGRAMFILES(X86)"], "Microsoft/Edge/Application/msedge.exe"),
-  Bun.which("chromium"), Bun.which("chromium-browser"), Bun.which("google-chrome")].find((path): path is string => Boolean(path && existsSync(path)));
-const requireBrowserProof = process.env.YELLOW_REQUIRE_MARKET_MAP_BROWSER === "1";
-
-type Handler = (event: { preventDefault?: () => void; type?: string; detail?: unknown }) => unknown;
-class Element {
-  children: Element[] = [];
-  listeners = new Map<string, Handler>();
-  className = ""; textContent = ""; value = ""; hidden = false; disabled = false; href = ""; rel = ""; target = ""; download = "";
-  attributes = new Map<string, string>(); dataset: Record<string, string> = {}; classList = { toggle() {} };
-  constructor(readonly tag: string) {}
-  append(...items: Element[]) { this.children.push(...items); }
-  replaceChildren(...items: Element[]) { this.children = items; }
-  addEventListener(type: string, handler: Handler) { this.listeners.set(type, handler); }
-  setAttribute(name: string, value: string) { this.attributes.set(name, value); }
-  getAttribute(name: string) { return this.attributes.get(name) ?? null; }
-  click() { this.listeners.get("click")?.({}); }
-}
-function descendants(node: Element): Element[] { return node.children.flatMap(child => [child, ...descendants(child)]); }
-function byText(node: Element, text: string) { return descendants(node).find(item => item.textContent === text)!; }
-function nthText(node: Element, text: string, index: number) { return descendants(node).filter(item => item.textContent === text)[index]!; }
-function place(id: string, name: string, latitude = 25, longitude = 55) {
-  return { id, name, latitude, longitude, category: "hotel", status: "open", address: null, country: "AE", websites: [], brand: null, confidence: null, sources: [] };
-}
-function deferred<T>() { let resolve!: (value: T) => void; let reject!: (reason?: unknown) => void; return { promise: new Promise<T>((ok, fail) => { resolve = ok; reject = fail; }), resolve, reject }; }
-
-function fixture(options: { map?: { getBounds(): { getWest(): number; getEast(): number; getSouth(): number; getNorth(): number }; getCenter(): { lng: number; lat: number } } } = {}) {
-  const nodes = new Map<string, Element>();
-  for (const id of ["market-map-view", "market-map-canvas", "market-map-search-form", "market-map-query", "market-map-visible-search", "market-map-radius", "market-map-radius-search", "market-map-toggle-globe", "market-map-status", "market-map-release", "market-map-count", "market-map-place-list", "market-map-subject", "market-map-compset", "market-map-selection-status", "market-map-export", "property-select"]) nodes.set(`#${id}`, new Element("div"));
-  const view = nodes.get("#market-map-view")!; view.hidden = false;
-  const property = nodes.get("#property-select")!; property.value = propertyA;
-  const radius = nodes.get("#market-map-radius")!; radius.value = "5";
-  const requests: Array<{ path: string; options: { method?: string; body?: string }; response: ReturnType<typeof deferred<unknown>> }> = [];
-  const windowListeners = new Map<string, Handler>();
-  let downloads = 0;
-  const window = {
-    addEventListener(type: string, handler: Handler) { windowListeners.set(type, handler); },
-    dispatchEvent(event: { type: string; detail?: unknown }) {
-      if (event.type === "yellow:operator-request") {
-        const detail = event.detail as { path: string; options: { method?: string; body?: string }; resolve: (value: unknown) => void; reject: (reason?: unknown) => void };
-        const response = deferred<unknown>(); requests.push({ path: detail.path, options: detail.options, response }); response.promise.then(detail.resolve, detail.reject);
-      } else windowListeners.get(event.type)?.(event);
-      return true;
-    },
-    setTimeout(handler: () => void) { handler(); return 1; }, clearTimeout() {},
-  };
-  const document = {
-    querySelector(selector: string) { return nodes.get(selector) ?? null; },
-    createElement(tag: string) { return new Element(tag); },
-    head: new Element("head"),
-  };
-  class CustomEvent { constructor(readonly type: string, readonly init: { detail: unknown }) {} get detail() { return this.init.detail; } }
-  class MutationObserver { constructor(_callback: () => void) {} observe() {} }
-  const source = options.map ? moduleSource.replace("let map = null;", "let map = injectedMap;") : moduleSource;
-  runInNewContext(source, {
-    document, window, CustomEvent, MutationObserver, queueMicrotask() {}, URLSearchParams,
-    URL: { createObjectURL() { downloads++; return "blob:test"; }, revokeObjectURL() {} }, Blob, Map, Set, Number, Math, Object, Array, String, RegExp, Error, injectedMap: options.map,
-  });
-  const fire = (node: Element, type: string) => node.listeners.get(type)!({ preventDefault() {} });
-  const respond = async (index: number, value: unknown) => { requests[index]!.response.resolve(value); await Promise.resolve(); await Promise.resolve(); };
-  return { nodes, requests, fire, respond, property, get downloads() { return downloads; }, signedOut: () => windowListeners.get("yellow:operator-signed-out")!({}) };
+const propertyA = "00000000-0000-4000-8000-000000000472";
+const propertyB = "00000000-0000-4000-8000-000000000473";
+const frame = 'document.querySelector("[data-testid=market-map-frame]")';
+const doc = frame + "?.contentDocument";
+const win = frame + "?.contentWindow";
+const pointPaths = doc + '?.querySelectorAll("[data-point-id]")';
+function discovery(count: number, polar: boolean) {
+  return { discovery: { snapshots: [{ logicalId: "riyadh", sha256: "a".repeat(64),
+    capturedAt: "2026-09-13T08:03:04.630Z",
+    region: { minimumLatitude: 24, maximumLatitude: 90, minimumLongitude: 46, maximumLongitude: 47 },
+    completeness: { scope: "publisher-range-extract-all-places", status: "complete", sourceRows: count, returnedRecords: count, rejectedRows: 0 },
+    records: Array.from({ length: count }, (_, n) => ({
+      provenance: { source: "Overture", release: "2026-08-19.0", schema: "places/place", recordId: "source-" + n, attribution: "Synthetic source attribution" },
+      name: n === 0 ? 'Hotel <img src=x onerror="globalThis.injected=true">' : "Hotel source " + n,
+      coordinates: { latitude: polar && n === count - 1 ? 89 : 24.7071 + n * .00004, longitude: 46.6761 + n * .00004 },
+      address: "Synthetic street " + n, operatingStatus: "unknown", websites: ["https://example.test/hotel-" + n], categories: ["hotel"],
+    })),
+  }] } };
 }
 
-async function search(f: ReturnType<typeof fixture>, value: string, response: unknown) {
-  const query = f.nodes.get("#market-map-query")!; query.value = value;
-  f.fire(f.nodes.get("#market-map-search-form")!, "submit");
-  await f.respond(f.requests.length - 1, response);
-}
-
-test("market map module retains selected records across successive searches", async () => {
-  const f = fixture();
-  const subject = place("subject", "Own hotel"); const competitor = place("competitor", "Comparable hotel");
-  await search(f, "marina", { places: [subject, competitor], release: "2026-08-19.0", schemaVersion: "v1" });
-  f.fire(byText(f.nodes.get("#market-map-place-list")!, "Mark own"), "click");
-  f.fire(nthText(f.nodes.get("#market-map-place-list")!, "Add comp", 1), "click");
-  expect(descendants(f.nodes.get("#market-map-compset")!).some(item => item.textContent === "Comparable hotel")).toBe(true);
-  await search(f, "airport", { places: [place("nearby", "Nearby hotel")], release: "2026-08-19.0", schemaVersion: "v1" });
-  expect(f.nodes.get("#market-map-subject")!.textContent).toContain("Own hotel");
-  expect(f.nodes.get("#market-map-compset")!.textContent).toBe("");
-  expect(descendants(f.nodes.get("#market-map-compset")!).some(item => item.textContent === "Comparable hotel")).toBe(true);
-  expect(f.nodes.get("#market-map-export")!.disabled).toBe(false);
-});
-
-test("property change clears retained selection", async () => {
-  const f = fixture();
-  await search(f, "marina", { places: [place("subject", "Own"), place("competitor", "Comp")], release: "r", schemaVersion: "v1" });
-  f.fire(byText(f.nodes.get("#market-map-place-list")!, "Mark own"), "click");
-  f.fire(nthText(f.nodes.get("#market-map-place-list")!, "Add comp", 1), "click");
-  f.property.value = propertyB; f.fire(f.property, "change");
-  expect(f.nodes.get("#market-map-subject")!.textContent).toBe("No subject selected.");
-  expect(f.nodes.get("#market-map-export")!.disabled).toBe(true);
-});
-
-test("late search and export responses cannot render or download after context changes", async () => {
-  const f = fixture();
-  const query = f.nodes.get("#market-map-query")!; query.value = "marina"; f.fire(f.nodes.get("#market-map-search-form")!, "submit");
-  f.property.value = propertyB; f.fire(f.property, "change"); await f.respond(0, { places: [place("late", "Late hotel")], release: "r", schemaVersion: "v1" });
-  expect(descendants(f.nodes.get("#market-map-place-list")!).some(item => item.textContent === "Late hotel")).toBe(false);
-  f.property.value = propertyA; f.fire(f.property, "change");
-  await search(f, "marina", { places: [place("subject", "Own"), place("competitor", "Comp")], release: "r", schemaVersion: "v1" });
-  f.fire(byText(f.nodes.get("#market-map-place-list")!, "Mark own"), "click"); f.fire(nthText(f.nodes.get("#market-map-place-list")!, "Add comp", 1), "click");
-  f.fire(f.nodes.get("#market-map-export")!, "click"); const exportIndex = f.requests.length - 1;
-  f.property.value = propertyB; f.fire(f.property, "change"); await f.respond(exportIndex, { status: "requires-provider-mapping" });
-  expect(f.downloads).toBe(0);
-});
-
-test("GERS-prefixed and UUID inputs use the id search contract", async () => {
-  const f = fixture();
-  await search(f, `gers: ${gersId}`, { places: [], release: "r", schemaVersion: "v1" });
-  expect(f.requests[0]!.path).toContain(`mode=id&id=${gersId}`);
-  await search(f, gersId, { places: [], release: "r", schemaVersion: "v1" });
-  expect(f.requests[1]!.path).toContain(`mode=id&id=${gersId}`);
-});
-
-test("visible and radius searches preserve narrow antimeridian bounds", async () => {
-  const antimeridianBounds = [
-    { west: 179, east: 181, expectedWest: "179", expectedEast: "-179" },
-    { west: 179, east: -179, expectedWest: "179", expectedEast: "-179" },
-    { west: -181, east: -179, expectedWest: "179", expectedEast: "-179" },
-    { west: 179, east: 180, expectedWest: "179", expectedEast: "180" },
-    { west: 180, east: 181, expectedWest: "180", expectedEast: "-179" },
-  ];
-  for (const bounds of antimeridianBounds) {
-    const f = fixture({ map: {
-      getBounds: () => ({ getWest: () => bounds.west, getEast: () => bounds.east, getSouth: () => 10, getNorth: () => 12 }),
-      getCenter: () => ({ lng: 180, lat: 11 }),
-    } });
-    f.fire(f.nodes.get("#market-map-visible-search")!, "click");
-    const query = new URL(f.requests[0]!.path, "http://yellow.test").searchParams;
-    expect(query.get("west")).toBe(bounds.expectedWest);
-    expect(query.get("east")).toBe(bounds.expectedEast);
-  }
-  const f = fixture({ map: {
-    getBounds: () => ({ getWest: () => 179, getEast: () => 181, getSouth: () => 10, getNorth: () => 12 }),
-    getCenter: () => ({ lng: 180, lat: 11 }),
+(browser ? test : test.skip)("Q268 real Leaflet stays opt-in, bounded, inspect-only, isolated and disposable", async () => {
+  const shell = createApp({ operatorApi: {} as OperatorHttpApi, marketApi: {} as MarketHttpApi });
+  let count = 3, polar = false, revoked = false, confirmationCalls = 0;
+  const assets: string[] = [], responseHeaders = new Map<string, Headers>();
+  const server = Bun.serve({ hostname: "127.0.0.1", port: 0, async fetch(request) {
+    const path = new URL(request.url).pathname;
+    if (path === "/api/v1/auth/local:login") return Response.json({ accessToken: "synthetic-q268-token", user: { id: propertyA, displayName: "Synthetic operator" } });
+    if (path.startsWith("/api/v1/")) {
+      if (request.headers.get("authorization") !== "Bearer synthetic-q268-token") return Response.json({ detail: "Unauthorized fixture" }, { status: 401 });
+      if (path === "/api/v1/me/properties") return Response.json({ properties: [
+        { id: propertyA, name: "Synthetic A", timezone: "Asia/Riyadh" }, { id: propertyB, name: "Synthetic B", timezone: "Asia/Dubai" },
+      ] });
+      if (path === "/api/v1/me/market-properties") return Response.json({ marketProperties: { properties: [
+        { id: propertyA, name: "Synthetic A", timezone: "Asia/Riyadh", currency: "SAR" },
+        { id: propertyB, name: "Synthetic B", timezone: "Asia/Dubai", currency: "AED" },
+      ], nextCursor: null } });
+      if (path.endsWith("/market/discovery")) return revoked ? Response.json({ detail: "Revoked fixture" }, { status: 403 }) : Response.json(discovery(count, polar));
+      if (path.endsWith("/market/compset")) return Response.json({ compset: null });
+      if (path.endsWith("/market/compset/confirm")) { confirmationCalls++; return Response.json({ detail: "Unknown fixture" }, { status: 503 }); }
+      return Response.json({ detail: "Unexpected fixture API" }, { status: 404 });
+    }
+    if (path.startsWith("/assets/market-map/")) assets.push(path);
+    const response = await shell.handle(request);
+    responseHeaders.set(path, response.headers);
+    return response;
   } });
-  f.fire(f.nodes.get("#market-map-visible-search")!, "click");
-  await f.respond(0, { places: [], release: "r", schemaVersion: "v1" });
-  f.fire(f.nodes.get("#market-map-radius-search")!, "click");
-  const query = new URL(f.requests[1]!.path, "http://yellow.test").searchParams;
-  expect(Number(query.get("west"))).toBeGreaterThan(179);
-  expect(Number(query.get("east"))).toBeLessThan(-179);
-});
-
-test("visible search rejects non-finite, zero-span, and oversized bounds", () => {
-  const cases = [
-    { getWest: () => Number.NaN, getEast: () => 1, getSouth: () => 10, getNorth: () => 11 },
-    { getWest: () => 10, getEast: () => 10, getSouth: () => 10, getNorth: () => 11 },
-    { getWest: () => 180, getEast: () => -180, getSouth: () => 10, getNorth: () => 11 },
-    { getWest: () => -180, getEast: () => 180, getSouth: () => 10, getNorth: () => 11 },
-    { getWest: () => 10, getEast: () => 16, getSouth: () => 10, getNorth: () => 11 },
-  ];
-  for (const bounds of cases) {
-    const f = fixture({ map: { getBounds: () => bounds, getCenter: () => ({ lng: 10, lat: 10 }) } });
-    f.fire(f.nodes.get("#market-map-visible-search")!, "click");
-    expect(f.requests).toHaveLength(0);
-    expect(f.nodes.get("#market-map-status")!.textContent).toBe("Zoom closer: visible-area searches are limited to a 5° span.");
-  }
-});
-
-test("market map browser surface has a usable list fallback and phone layout", async () => {
-  const [html, css] = await Promise.all([
-    Bun.file(new URL("src/http/operator/index.html", root)).text(),
-    Bun.file(new URL("src/http/operator/operator-market-map.css", root)).text(),
-  ]);
-  expect(html).toContain("Select your property and comparable candidates for mapping review.");
-  expect(css).toContain("@media (max-width:640px)");
-  expect(css).toContain("@media (forced-colors:active)");
-});
-
-type CdpSend = <Result>(method: string, params?: Record<string, unknown>) => Promise<Result>;
-type Screenshot = { png: Uint8Array; sha256: string; pixels: { width: number; height: number; colours: number } };
-
-function browserUnavailable(error: unknown): boolean {
-  return typeof error === "object" && error !== null && ["EBUSY", "ENOENT"].includes(String((error as { code?: unknown }).code));
-}
-
-async function withChromium<Result>(profile: string, run: (send: CdpSend, runtimeErrors: string[]) => Promise<Result>): Promise<Result> {
-  if (!browser) throw new Error("Chrome or Chromium is required when YELLOW_REQUIRE_MARKET_MAP_BROWSER=1");
-  const chrome = Bun.spawn([browser, "--headless=new", "--no-sandbox", "--disable-dev-shm-usage", "--no-first-run", "--no-default-browser-check",
-    "--use-angle=swiftshader", "--remote-debugging-address=127.0.0.1", "--remote-debugging-port=0", `--user-data-dir=${profile}`, "about:blank"],
-  { stdout: "ignore", stderr: "pipe" });
-  const stderrReader = chrome.stderr.getReader();
-  const stderrChunks: Uint8Array[] = [];
-  let stderrBytes = 0;
-  const drainStderr = (async () => {
-    try {
-      while (true) {
-        const { done, value } = await stderrReader.read();
-        if (done) break;
-        const bounded = value.subarray(0, Math.max(0, 16_384 - stderrBytes));
-        if (bounded.byteLength) { stderrChunks.push(bounded.slice()); stderrBytes += bounded.byteLength; }
-      }
-    } catch { /* Cleanup can cancel the disposable browser's pipe. */ }
-  })();
-  let socket: WebSocket | null = null;
   try {
-    const portFile = resolve(profile, "DevToolsActivePort");
-    let port = "";
-    const startupDeadline = performance.now() + 20_000;
-    while (performance.now() < startupDeadline) {
-      try { if (existsSync(portFile)) port = (await Bun.file(portFile).text()).split(/\r?\n/, 1)[0] ?? ""; }
-      catch (error) { if (!browserUnavailable(error)) throw error; }
-      if (port || chrome.exitCode !== null) break;
-      await Bun.sleep(25);
-    }
-    if (!port) throw new Error(`Chromium did not expose a DevTools port within 20 seconds (exit ${chrome.exitCode ?? "unknown"}); ${Buffer.concat(stderrChunks).toString("utf8").slice(0, 4_000)}`);
-    const created = await fetch(`http://127.0.0.1:${port}/json/new?${encodeURIComponent("about:blank")}`, { method: "PUT" });
-    if (!created.ok) throw new Error(`Chromium target creation failed (${created.status})`);
-    const target = await created.json() as { webSocketDebuggerUrl?: string };
-    if (!target.webSocketDebuggerUrl) throw new Error("Chromium target has no debugger endpoint");
-    socket = new WebSocket(target.webSocketDebuggerUrl);
-    const runtimeErrors: string[] = [];
-    const pending = new Map<number, { resolve: (value: unknown) => void; reject: (error: Error) => void; timer: ReturnType<typeof setTimeout> }>();
-    let commandId = 0;
-    await new Promise<void>((resolveOpen, rejectOpen) => {
-      const timer = setTimeout(() => rejectOpen(new Error("Chromium debugger socket did not open")), 5_000);
-      socket?.addEventListener("open", () => { clearTimeout(timer); resolveOpen(); }, { once: true });
-      socket?.addEventListener("error", () => { clearTimeout(timer); rejectOpen(new Error("Chromium debugger socket failed")); }, { once: true });
-    });
-    socket.addEventListener("message", event => {
-      const message = JSON.parse(String(event.data)) as { id?: number; result?: unknown; error?: { message?: string }; method?: string;
-        params?: { type?: string; args?: Array<{ value?: unknown; description?: string }>; exceptionDetails?: { text?: string; exception?: { description?: string } } } };
-      if (message.method === "Runtime.exceptionThrown") runtimeErrors.push(message.params?.exceptionDetails?.exception?.description ?? message.params?.exceptionDetails?.text ?? "Runtime exception");
-      if (message.method === "Runtime.consoleAPICalled" && ["error", "assert"].includes(message.params?.type ?? "")) runtimeErrors.push((message.params?.args ?? []).map(argument => String(argument.value ?? argument.description ?? "")).join(" "));
-      if (!message.id) return;
-      const command = pending.get(message.id); if (!command) return;
-      pending.delete(message.id); clearTimeout(command.timer);
-      if (message.error) command.reject(new Error(message.error.message ?? "Chromium command failed")); else command.resolve(message.result);
-    });
-    const send: CdpSend = <CommandResult>(method: string, params: Record<string, unknown> = {}) => new Promise<CommandResult>((resolveCommand, rejectCommand) => {
-      const id = ++commandId;
-      const timer = setTimeout(() => { pending.delete(id); rejectCommand(new Error(`Chromium command timed out: ${method}`)); }, 8_000);
-      pending.set(id, { resolve: value => resolveCommand(value as CommandResult), reject: rejectCommand, timer });
-      socket?.send(JSON.stringify({ id, method, params }));
-    });
-    try { return await run(send, runtimeErrors); }
-    finally { for (const command of pending.values()) { clearTimeout(command.timer); command.reject(new Error("Chromium debugger closed with a command pending")); } }
-  } finally {
-    socket?.close();
-    if (chrome.exitCode === null) chrome.kill();
-    await chrome.exited;
-    await stderrReader.cancel().catch(() => {});
-    await drainStderr;
-  }
-}
-
-async function waitFor(send: CdpSend, expression: string, label: string): Promise<unknown> {
-  for (let attempt = 0; attempt < 300; attempt += 1) {
-    const result = await send<{ result?: { value?: unknown } }>("Runtime.evaluate", { expression, awaitPromise: true, returnByValue: true });
-    if (result.result?.value) return result.result.value;
-    await Bun.sleep(25);
-  }
-  throw new Error(`Timed out waiting for ${label}`);
-}
-
-function pngPixels(png: Uint8Array): { width: number; height: number; colours: number } {
-  const view = new DataView(png.buffer, png.byteOffset, png.byteLength);
-  if (String.fromCharCode(...png.slice(1, 4)) !== "PNG") throw new Error("Chromium did not return a PNG screenshot");
-  let offset = 8; let width = 0; let height = 0; let channels = 0; const compressed: Uint8Array[] = [];
-  while (offset + 12 <= png.length) {
-    const length = view.getUint32(offset); const name = String.fromCharCode(...png.slice(offset + 4, offset + 8));
-    const body = png.slice(offset + 8, offset + 8 + length); offset += length + 12;
-    if (name === "IHDR") { width = new DataView(body.buffer, body.byteOffset, body.byteLength).getUint32(0); height = new DataView(body.buffer, body.byteOffset, body.byteLength).getUint32(4); const depth = body[8] ?? -1; const kind = body[9] ?? -1; if (body.length < 13 || depth !== 8 || ![2, 6].includes(kind) || body[12] !== 0) throw new Error("Unsupported Chromium screenshot PNG layout"); channels = kind === 6 ? 4 : 3; }
-    if (name === "IDAT") compressed.push(body);
-    if (name === "IEND") break;
-  }
-  if (!width || !height || !channels) throw new Error("Chromium screenshot PNG has no raster header");
-  const total = compressed.reduce((size, item) => size + item.length, 0); const packed = new Uint8Array(total); let cursor = 0;
-  for (const item of compressed) { packed.set(item, cursor); cursor += item.length; }
-  const raw = inflateSync(packed); const stride = width * channels; const previous = new Uint8Array(stride); const row = new Uint8Array(stride); const colours = new Set<string>(); let input = 0;
-  for (let y = 0; y < height; y += 1) {
-    const filter = raw[input++]!;
-    if (filter > 4) throw new Error(`Unsupported PNG filter ${filter}`);
-    for (let x = 0; x < stride; x += 1) {
-      const source = raw[input++]!; const left = x >= channels ? row[x - channels]! : 0; const above = previous[x]!; const upperLeft = x >= channels ? previous[x - channels]! : 0;
-      row[x] = filter === 0 ? source : filter === 1 ? (source + left) & 255 : filter === 2 ? (source + above) & 255 : filter === 3 ? (source + Math.floor((left + above) / 2)) & 255 : (() => { const base = left + above - upperLeft; const pa = Math.abs(base - left); const pb = Math.abs(base - above); const pc = Math.abs(base - upperLeft); return (source + (pa <= pb && pa <= pc ? left : pb <= pc ? above : upperLeft)) & 255; })();
-    }
-    for (let x = 0; x < stride; x += channels * 8) colours.add(Array.from(row.slice(x, x + channels)).join(","));
-    previous.set(row);
-  }
-  return { width, height, colours: colours.size };
-}
-
-async function mapClip(send: CdpSend): Promise<{ x: number; y: number; width: number; height: number }> {
-  const result = await send<{ result?: { value?: { x: number; y: number; width: number; height: number } } }>("Runtime.evaluate", {
-    expression: "new Promise(resolve=>{const canvas=document.querySelector('#market-map-canvas .maplibregl-canvas');if(!canvas)return resolve(null);canvas.scrollIntoView({block:'center',inline:'nearest'});requestAnimationFrame(()=>requestAnimationFrame(()=>{const r=canvas.getBoundingClientRect();resolve({x:r.left+scrollX,y:r.top+scrollY,width:r.width,height:r.height})}))})",
-    awaitPromise: true, returnByValue: true,
-  });
-  const clip = result.result?.value;
-  if (!clip || clip.width < 100 || clip.height < 100) throw new Error("No complete rendered MapLibre canvas");
-  return clip;
-}
-
-async function captureMap(send: CdpSend, name: string, directory: string | undefined): Promise<Screenshot> {
-  const clip = await mapClip(send);
-  const result = await send<{ data?: string }>("Page.captureScreenshot", { format: "png", fromSurface: true, captureBeyondViewport: true, clip: { ...clip, scale: 1 } });
-  if (!result.data) throw new Error(`No map screenshot for ${name}`);
-  const png = Buffer.from(result.data, "base64"); const evidence = { png, sha256: createHash("sha256").update(png).digest("hex"), pixels: pngPixels(png) };
-  if (Math.abs(evidence.pixels.width - Math.round(clip.width)) > 1 || Math.abs(evidence.pixels.height - Math.round(clip.height)) > 1) throw new Error(`Map screenshot did not contain the complete canvas for ${name}`);
-  if (directory) await Bun.write(resolve(directory, name), png);
-  return evidence;
-}
-
-async function stableMap(send: CdpSend, name: string, directory: string | undefined, expectedHash?: string): Promise<Screenshot> {
-  let previous: Screenshot | undefined;
-  const deadline = performance.now() + 3_000;
-  while (performance.now() < deadline) {
-    const current = await captureMap(send, name, undefined);
-    if (previous?.sha256 === current.sha256 && (!expectedHash || current.sha256 === expectedHash)) {
-      if (directory) await Bun.write(resolve(directory, name), current.png);
-      return current;
-    }
-    previous = current;
-    await Bun.sleep(25);
-  }
-  throw new Error(`Map raster did not stabilize within 3 seconds for ${name}${expectedHash ? " at the expected projection hash" : ""}`);
-}
-
-async function emitMapPreview(send: CdpSend, name: string): Promise<void> {
-  if (!/^[a-z0-9-]+\.png$/.test(name)) throw new Error(`Unsafe market-map preview name: ${name}`);
-  const clip = await mapClip(send);
-  for (const scale of [0.5, 0.25]) {
-    const result = await send<{ data?: string }>("Page.captureScreenshot", { format: "png", fromSurface: true, captureBeyondViewport: true, clip: { ...clip, scale } });
-    if (!result.data) continue;
-    const png = Buffer.from(result.data, "base64");
-    if (png.byteLength <= 150 * 1024) { console.log(`YELLOW_MAP_PREVIEW name=${name} data=${png.toString("base64")}`); return; }
-  }
-  throw new Error(`Market-map preview ${name} exceeded the 150KiB cap`);
-}
-
-async function emitViewportPreview(send: CdpSend, name: string): Promise<void> {
-  const size = await send<{ result?: { value?: { width: number; height: number } } }>("Runtime.evaluate", { expression: "({width:innerWidth,height:innerHeight})", returnByValue: true });
-  const viewport = size.result?.value; if (!viewport || !/^[a-z0-9-]+\.png$/.test(name)) return;
-  for (const scale of [0.25, 0.125]) {
-    const result = await send<{ data?: string }>("Page.captureScreenshot", { format: "png", fromSurface: true, clip: { x: 0, y: 0, width: viewport.width, height: viewport.height, scale } });
-    if (!result.data) continue;
-    const png = Buffer.from(result.data, "base64");
-    if (png.byteLength <= 150 * 1024) { console.log(`YELLOW_MAP_PREVIEW name=${name} data=${png.toString("base64")}`); return; }
-  }
-}
-
-async function press(send: CdpSend, selector: string): Promise<void> {
-  const focused = await send<{ result?: { value?: boolean } }>("Runtime.evaluate", { expression: `(()=>{const node=document.querySelector(${JSON.stringify(selector)});if(!node)return false;node.focus();return document.activeElement===node})()`, returnByValue: true });
-  if (!focused.result?.value) throw new Error(`Cannot focus ${selector} for keyboard proof`);
-  await send("Input.dispatchKeyEvent", { type: "keyDown", key: " ", code: "Space", windowsVirtualKeyCode: 32, text: " ", unmodifiedText: " " });
-  await send("Input.dispatchKeyEvent", { type: "keyUp", key: " ", code: "Space", windowsVirtualKeyCode: 32 });
-}
-
-const marketMapBrowserTest = requireBrowserProof ? test : test.skip;
-marketMapBrowserTest("required Chromium market map proof renders lazy flat and globe views with safe fallback", async () => {
-  const captures = process.env.YELLOW_MARKET_MAP_PROOF_DIR;
-  const proof: Record<string, unknown> = { status: "started", required: true };
-  if (captures) await mkdir(captures, { recursive: true });
-  const writeProof = async () => { if (captures) await Bun.write(resolve(captures, "market-map-proof.json"), JSON.stringify(proof, null, 2)); };
-  const reportProof = () => console.log(`YELLOW_MAP_PROOF ${JSON.stringify(proof)}`);
-  await writeProof();
-  if (!browser) {
-    proof.status = "failed"; proof.failure = { stage: "locate-chromium", message: "Chrome or Chromium is required when YELLOW_REQUIRE_MARKET_MAP_BROWSER=1" };
-    await writeProof();
-    reportProof();
-    throw new Error("Chrome or Chromium is required when YELLOW_REQUIRE_MARKET_MAP_BROWSER=1");
-  }
-  const fixture = startMarketMapBrowserFixture(); const failedFixture = startMarketMapBrowserFixture({ failMap: true });
-  const temporary = await mkdtemp(resolve(tmpdir(), "yellow-market-map-browser-"));
-  let previewCount = 0;
-  const preview = async (send: CdpSend, name: string) => { if (previewCount < 3) { await emitMapPreview(send, name); previewCount += 1; } };
-  try {
-    await withChromium(resolve(temporary, "profile"), async (send, runtimeErrors) => {
-      let stage = "enable-browser";
+    await withBrowser(async (send, errors, onEvent) => {
+      const { value, until, click, fill } = browserControls(send);
+      const origin = "http://127.0.0.1:" + server.port;
+      const tiles: Array<{ url: string; headers: Record<string, string> }> = [], unexpected: string[] = [], interceptionErrors: string[] = [];
+      const pending = new Set<Promise<unknown>>();
+      let failTiles = false;
+      // Install interception before the first navigation. Never permit an external test request.
+      const unsubscribe = onEvent(event => {
+        if (event.method !== "Fetch.requestPaused") return;
+        const p = event.params as { requestId: string; request: { url: string; headers: Record<string, string> } };
+        const url = new URL(p.request.url);
+        let task: Promise<unknown>;
+        if (url.origin === origin) task = send("Fetch.continueRequest", { requestId: p.requestId });
+        else if (url.origin === "https://tile.openstreetmap.org") {
+          tiles.push({ url: url.href, headers: p.request.headers });
+          task = failTiles ? send("Fetch.failRequest", { requestId: p.requestId, errorReason: "InternetDisconnected" })
+            : send("Fetch.fulfillRequest", { requestId: p.requestId, responseCode: 200,
+              responseHeaders: [{ name: "Content-Type", value: "image/png" }, { name: "Cache-Control", value: "public, max-age=3600" }],
+              body: "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+a/YQAAAAASUVORK5CYII=" });
+        } else {
+          unexpected.push(url.href);
+          task = send("Fetch.failRequest", { requestId: p.requestId, errorReason: "BlockedByClient" });
+        }
+        const owned = task.catch(error => { interceptionErrors.push(String(error)); });
+        pending.add(owned); void owned.finally(() => pending.delete(owned));
+      });
       try {
-      await send("Page.enable"); await send("Runtime.enable"); await send("Network.enable");
-      Object.assign(proof, { fixture: fixture.server.url, propertyA: fixture.propertyA, propertyB: fixture.propertyB });
-      stage = "desktop-lazy-load";
-      await send("Emulation.setDeviceMetricsOverride", { width: 1280, height: 900, deviceScaleFactor: 1, mobile: false, screenWidth: 1280, screenHeight: 900 });
-      await send("Page.navigate", { url: fixture.server.url });
-      await waitFor(send, "document.readyState === 'complete' && document.querySelector('#market-map-view')?.hidden === true", "hidden map workspace");
-      const lazy = await send<{ result?: { value?: { engine: boolean; land: boolean } } }>("Runtime.evaluate", { expression: "(()=>{const names=performance.getEntriesByType('resource').map(entry=>entry.name);return{engine:names.some(name=>name.includes('maplibre-gl.mjs')),land:names.some(name=>name.includes('ne_110m_land.geojson'))}})()", returnByValue: true });
-      expect(lazy.result?.value).toEqual({ engine: false, land: false });
-      const webgl = await send<{ result?: { value?: boolean } }>("Runtime.evaluate", { expression: "(()=>{const canvas=document.createElement('canvas');const context=canvas.getContext('webgl2');const supported=Boolean(context);context?.getExtension('WEBGL_lose_context')?.loseContext();return supported})()", returnByValue: true });
-      proof.webgl2 = webgl.result?.value;
-      expect(webgl.result?.value).toBe(true);
-      await send("Runtime.evaluate", { expression: "document.querySelector('#open-map').click()" });
-      await waitFor(send, "Boolean(document.querySelector('#market-map-canvas .maplibregl-canvas')) && document.querySelector('#market-map-toggle-globe')?.hidden === false", "loaded MapLibre engine");
-      const placeholder = await send<{ result?: { value?: boolean } }>("Runtime.evaluate", { expression: "document.querySelector('#market-map-canvas > p') !== null", returnByValue: true });
-      expect(placeholder.result?.value).toBe(false);
-      stage = "world-projection-pixels";
-      const worldFlat = await stableMap(send, "market-map-world-flat.png", captures);
-      await preview(send, "market-map-world-flat.png");
-      const noMarkers = await send<{ result?: { value?: number } }>("Runtime.evaluate", { expression: "document.querySelectorAll('.market-map-marker').length", returnByValue: true });
-      expect(noMarkers.result?.value).toBe(0); expect(worldFlat.pixels.colours).toBeGreaterThan(5);
-      await press(send, "#market-map-toggle-globe");
-      await waitFor(send, "document.querySelector('#market-map-toggle-globe')?.getAttribute('aria-pressed') === 'true'", "world globe projection");
-      const worldGlobe = await stableMap(send, "market-map-world-globe.png", captures);
-      await preview(send, "market-map-world-globe.png");
-      const globeMarkers = await send<{ result?: { value?: number } }>("Runtime.evaluate", { expression: "document.querySelectorAll('.market-map-marker').length", returnByValue: true });
-      expect(globeMarkers.result?.value).toBe(0); expect(worldGlobe.pixels.colours).toBeGreaterThan(5); expect(worldGlobe.sha256).not.toBe(worldFlat.sha256);
-      await press(send, "#market-map-toggle-globe");
-      await waitFor(send, "document.querySelector('#market-map-toggle-globe')?.getAttribute('aria-pressed') === 'false'", "restored flat projection");
-      const worldFlatRestored = await stableMap(send, "market-map-world-flat-restored.png", captures, worldFlat.sha256);
-      expect(worldFlatRestored.pixels.colours).toBeGreaterThan(5); expect(worldFlatRestored.sha256).toBe(worldFlat.sha256);
-      stage = "desktop-catalog-and-selection";
-      const beforeImmediateSubmit = fixture.requests.filter(request => request.path.includes("/market-map/places")).length;
-      await send("Runtime.evaluate", { expression: "(()=>{const input=document.querySelector('#market-map-query');input.value='hotel';input.dispatchEvent(new Event('input',{bubbles:true}));document.querySelector('#market-map-search-form').requestSubmit()})()" });
-      await waitFor(send, "document.querySelectorAll('#market-map-place-list .market-map-place').length === 3", "catalog list");
-      await Bun.sleep(500);
-      expect(fixture.requests.filter(request => request.path.includes("/market-map/places")).length).toBe(beforeImmediateSubmit + 1);
-      const desktop = await send<{ result?: { value?: { canvas: { x: number; y: number; width: number; height: number; right: number; bottom: number }; list: { x: number; width: number; y: number }; stage: { x: number; y: number; width: number; right: number; bottom: number } } } }>("Runtime.evaluate", { expression: "(()=>{const rect=node=>{const r=node.getBoundingClientRect();return{x:r.x,y:r.y,width:r.width,height:r.height,right:r.right,bottom:r.bottom}};return{canvas:rect(document.querySelector('#market-map-canvas')),list:rect(document.querySelector('#market-map-place-list')),stage:rect(document.querySelector('.market-map-stage'))}})()", returnByValue: true });
-      expect(desktop.result?.value?.canvas.width).toBeGreaterThan(500); expect(desktop.result?.value?.stage.right).toBeLessThan(desktop.result?.value?.list.x ?? Number.POSITIVE_INFINITY);
-      expect(desktop.result?.value?.canvas.x).toBeGreaterThanOrEqual(desktop.result?.value?.stage.x ?? Number.POSITIVE_INFINITY); expect(desktop.result?.value?.canvas.y).toBeGreaterThanOrEqual(desktop.result?.value?.stage.y ?? Number.POSITIVE_INFINITY); expect(desktop.result?.value?.canvas.right).toBeLessThanOrEqual(desktop.result?.value?.stage.right ?? 0); expect(desktop.result?.value?.canvas.bottom).toBeLessThanOrEqual(desktop.result?.value?.stage.bottom ?? 0);
-      await press(send, "#market-map-place-list button[aria-pressed='false']");
-      await press(send, "#market-map-place-list button:not([disabled]) + button:not([disabled])");
-      await waitFor(send, "document.querySelector('#market-map-export')?.disabled === false", "keyboard research selection");
-      const selected = await send<{ result?: { value?: { subject: string; comps: number; exportEnabled: boolean } } }>("Runtime.evaluate", { expression: "({subject:document.querySelector('#market-map-subject').textContent,comps:document.querySelectorAll('#market-map-compset .market-map-chip').length,exportEnabled:!document.querySelector('#market-map-export').disabled})", returnByValue: true });
-      expect(selected.result?.value).toMatchObject({ subject: "Synthetic Marina Hotel is marked as your property.", comps: 1, exportEnabled: true });
-      const dubai = await captureMap(send, "market-map-desktop-dubai-selection.png", captures);
-      expect(dubai.pixels.colours).toBeGreaterThan(5);
-      await press(send, "#market-map-export");
-      await waitFor(send, "document.querySelector('#market-map-selection-status')?.textContent.includes('downloaded')", "research export");
-      await send("Runtime.evaluate", { expression: `(()=>{const property=document.querySelector('#property-select');property.value=${JSON.stringify(fixture.propertyB)};property.dispatchEvent(new Event('change',{bubbles:true}))})()` });
-      const reset = await send<{ result?: { value?: { subject: string; exportDisabled: boolean; comps: number } } }>("Runtime.evaluate", { expression: "({subject:document.querySelector('#market-map-subject').textContent,exportDisabled:document.querySelector('#market-map-export').disabled,comps:document.querySelectorAll('#market-map-compset .market-map-chip').length})", returnByValue: true });
-      expect(reset.result?.value).toEqual({ subject: "No subject selected.", exportDisabled: true, comps: 0 });
-      stage = "phone-geometry-and-pixels";
-      await send("Emulation.setDeviceMetricsOverride", { width: 390, height: 844, deviceScaleFactor: 1, mobile: true, screenWidth: 390, screenHeight: 844 });
-      await send("Page.navigate", { url: fixture.server.url });
-      await waitFor(send, "document.readyState === 'complete' && document.querySelector('#market-map-view')?.hidden === true", "phone hidden workspace");
-      await send("Runtime.evaluate", { expression: "document.querySelector('#open-map').click()" });
-      await waitFor(send, "Boolean(document.querySelector('#market-map-canvas .maplibregl-canvas')) && document.querySelector('#market-map-toggle-globe')?.hidden === false", "phone MapLibre engine");
-      await send("Runtime.evaluate", { expression: "(()=>{const input=document.querySelector('#market-map-query');input.value='hotel';document.querySelector('#market-map-search-form').requestSubmit()})()" });
-      await waitFor(send, "document.querySelectorAll('#market-map-place-list .market-map-place').length === 3", "phone catalog list");
-      const phone = await send<{ result?: { value?: { canvas: { width: number; right: number; bottom: number }; list: { y: number } } } }>("Runtime.evaluate", { expression: "(()=>{const rect=node=>{const r=node.getBoundingClientRect();return{width:r.width,right:r.right,bottom:r.bottom,y:r.y}};return{canvas:rect(document.querySelector('#market-map-canvas')),list:rect(document.querySelector('#market-map-place-list'))}})()", returnByValue: true });
-      expect(phone.result?.value?.canvas.width).toBeGreaterThan(300); expect(phone.result?.value?.canvas.right).toBeLessThanOrEqual(391); expect(phone.result?.value?.list.y).toBeGreaterThan(phone.result?.value?.canvas.bottom ?? 0);
-      const phoneFlat = await stableMap(send, "market-map-phone-flat.png", captures); expect(phoneFlat.pixels.colours).toBeGreaterThan(5);
-      await preview(send, "market-map-phone-flat.png");
-      const origins = await send<{ result?: { value?: string[] } }>("Runtime.evaluate", { expression: "Array.from(new Set(performance.getEntriesByType('resource').map(entry=>new URL(entry.name).origin))).sort()", returnByValue: true });
-      expect(origins.result?.value).toEqual([new URL(fixture.server.url).origin]);
-      expect(runtimeErrors).toEqual([]);
-      stage = "missing-engine-list-fallback";
-      await send("Page.navigate", { url: failedFixture.server.url });
-      await waitFor(send, "document.readyState === 'complete' && document.querySelector('#market-map-view')?.hidden === true", "fallback hidden workspace");
-      await send("Runtime.evaluate", { expression: "document.querySelector('#open-map').click()" });
-      await waitFor(send, "document.querySelector('#market-map-canvas')?.textContent.includes('Map rendering is unavailable')", "missing engine fallback");
-      const fallback = await send<{ result?: { value?: { status: string; canvas: string } } }>("Runtime.evaluate", { expression: "({status:document.querySelector('#market-map-status').textContent,canvas:document.querySelector('#market-map-canvas').textContent})", returnByValue: true });
-      expect(fallback.result?.value).toMatchObject({ status: "Map runtime unavailable; the catalog list and research selection remain available." });
-      expect(fallback.result?.value?.canvas).toContain("Map rendering is unavailable in this browser");
-      const engineRequests = failedFixture.requests.filter(request => request.path.endsWith("/maplibre-gl.mjs")).length;
-      await send("Runtime.evaluate", { expression: "(()=>{const input=document.querySelector('#market-map-query');input.value='hotel';document.querySelector('#market-map-search-form').requestSubmit()})()" });
-      await waitFor(send, "document.querySelectorAll('#market-map-place-list .market-map-place').length === 3", "fallback catalog list");
-      await press(send, "#market-map-place-list button[aria-pressed='false']");
-      await press(send, "#market-map-place-list button:not([disabled]) + button:not([disabled])");
-      await waitFor(send, "document.querySelector('#market-map-export')?.disabled === false", "fallback keyboard selection");
-      await press(send, "#market-map-export");
-      await waitFor(send, "document.querySelector('#market-map-selection-status')?.textContent.includes('downloaded')", "fallback research export");
-      await press(send, "#proof-sign-out");
-      const signedOut = await send<{ result?: { value?: { subject: string; exportDisabled: boolean; list: number } } }>("Runtime.evaluate", { expression: "({subject:document.querySelector('#market-map-subject').textContent,exportDisabled:document.querySelector('#market-map-export').disabled,list:document.querySelectorAll('#market-map-place-list .market-map-place').length})", returnByValue: true });
-      expect(signedOut.result?.value).toEqual({ subject: "No subject selected.", exportDisabled: true, list: 0 });
-      expect(failedFixture.requests.filter(request => request.path.endsWith("/maplibre-gl.mjs")).length).toBe(engineRequests);
-      expect(fixture.requests.every(request => request.status < 400)).toBe(true);
-      expect(fixture.requests.some(request => request.path.includes("/market-map/places") && request.status === 200)).toBe(true);
-      expect(fixture.requests.some(request => request.path.includes("/market-map/selection") && request.status === 200)).toBe(true);
-      expect(failedFixture.requests.some(request => request.path.endsWith("/maplibre-gl.mjs") && request.status === 503)).toBe(true);
-      expect(failedFixture.requests.some(request => request.path.includes("/market-map/places") && request.status === 200)).toBe(true);
-      expect(failedFixture.requests.some(request => request.path.includes("/market-map/selection") && request.status === 200)).toBe(true);
-      Object.assign(proof, { status: "passed", lazy: lazy.result?.value, desktop: desktop.result?.value, world: { flat: { sha256: worldFlat.sha256, ...worldFlat.pixels }, globe: { sha256: worldGlobe.sha256, ...worldGlobe.pixels }, restoredFlat: { sha256: worldFlatRestored.sha256, ...worldFlatRestored.pixels } }, dubai: { sha256: dubai.sha256, ...dubai.pixels }, phone: { geometry: phone.result?.value, flat: { sha256: phoneFlat.sha256, ...phoneFlat.pixels } }, requests: fixture.requests, fallbackRequests: failedFixture.requests });
-      await writeProof();
-      reportProof();
-      } catch (error) {
-        proof.status = "failed"; proof.failure = { stage, message: error instanceof Error ? error.message : String(error) };
-        try {
-          const dom = await send<{ result?: { value?: { status: string | null; canvas: string | null; children: string[]; resources: string[] } } }>("Runtime.evaluate", {
-            expression: "(()=>{const canvas=document.querySelector('#market-map-canvas');return{status:document.querySelector('#market-map-status')?.textContent||null,canvas:canvas?.textContent||null,children:Array.from(canvas?.children||[]).map(node=>node.tagName),resources:performance.getEntriesByType('resource').map(entry=>{const url=new URL(entry.name);return url.pathname+url.search}).slice(-60)}})()",
-            returnByValue: true,
-          });
-          proof.diagnostics = { runtimeErrors: runtimeErrors.slice(-20), fixtureRequests: fixture.requests.slice(-100), failedFixtureRequests: failedFixture.requests.slice(-100), dom: dom.result?.value ?? null };
-        } catch (diagnosticError) {
-          proof.diagnostics = { runtimeErrors: runtimeErrors.slice(-20), fixtureRequests: fixture.requests.slice(-100), failedFixtureRequests: failedFixture.requests.slice(-100), collectionError: diagnosticError instanceof Error ? diagnosticError.message : String(diagnosticError) };
+        await send("Fetch.enable", { patterns: [{ urlPattern: "*" }] });
+        await send("Page.addScriptToEvaluateOnNewDocument", { source:
+          'globalThis.__mapMessages=[]; addEventListener("message", e=>{if(e.data?.type?.startsWith("yellow-market-map-")) globalThis.__mapMessages.push(e.data);});' });
+        await send("Emulation.setDeviceMetricsOverride", { width: 1280, height: 900, deviceScaleFactor: 1, mobile: false });
+        await send("Emulation.setEmulatedMedia", { features: [{ name: "prefers-reduced-motion", value: "reduce" }] });
+        await send("Page.navigate", { url: origin + "/p/" + propertyA + "/market" });
+        await until('document.querySelector("#login-form button[type=submit]")?.disabled === false', "login loaded");
+        await value('{const f=document.querySelector("#login-form");f.elements.tenant.value="synthetic";f.elements.email.value="operator@example.test";f.elements.password.value="synthetic";f.requestSubmit();}');
+        const ready = () => until('document.querySelector(".market-workspace")?.dataset.marketState === "ready"', "market ready");
+        const mapReady = (points: number) => until(pointPaths + "?.length === " + points, "real Leaflet markers");
+        await ready();
+        expect(assets).toHaveLength(0); expect(tiles).toHaveLength(0);
+        expect(await value<boolean>(frame + " === null")).toBe(true);
+        expect(await value<string>('document.querySelector("[data-testid=market-map-disclosure]").textContent')).toContain("IP address");
+        await click("[data-testid=market-map-enable]"); await mapReady(3);
+        await until(doc + '?.querySelector(".leaflet-tile-loaded") !== null', "intercepted image rendered");
+        expect(new Set(assets)).toEqual(new Set(["frame.html", "frame.js", "frame.css", "leaflet.js", "leaflet.css"].map(x => "/assets/market-map/" + x)));
+        expect(await value<string>(win + ".L.version")).toBe("1.9.4");
+        expect(tiles.length).toBeGreaterThan(0);
+        for (const tile of tiles) {
+          expect(tile.url).toMatch(/^https:\/\/tile\.openstreetmap\.org\/\d+\/\d+\/\d+\.png$/u);
+          expect(Object.keys(tile.headers).map(x => x.toLowerCase())).not.toContain("authorization");
+          expect(tile.headers.Referer ?? tile.headers.referer).toBe(origin + "/");
         }
-        if (captures) {
-          try {
-            const diagnostic = await send<{ data?: string }>("Page.captureScreenshot", { format: "png", fromSurface: true, captureBeyondViewport: false });
-            if (diagnostic.data) await Bun.write(resolve(captures, "market-map-failure.png"), Buffer.from(diagnostic.data, "base64"));
-            if (previewCount < 3) { await emitViewportPreview(send, "market-map-failure.png"); previewCount += 1; }
-          } catch { /* Preserve the original proof failure when Chromium cannot capture a diagnostic. */ }
-        }
-        await writeProof();
-        reportProof();
-        throw error;
+        expect(responseHeaders.get("/p/" + propertyA + "/market")?.get("content-security-policy")).not.toContain("openstreetmap");
+        expect(responseHeaders.get("/assets/market-map/frame.html")?.get("content-security-policy")).toContain("img-src 'self' data: https://tile.openstreetmap.org");
+        expect(responseHeaders.get("/assets/market-map/frame.html")?.get("x-frame-options")).toBe("SAMEORIGIN");
+        expect(await value<boolean>(doc + '.querySelector("a[href*=copyright]") !== null')).toBe(true);
+        expect(await value<boolean>(doc + '.querySelector("img[src=x]") === null && !globalThis.injected')).toBe(true);
+        const data = await value<{ nonce: string; revision: number; points: Array<{ id: string; role: string }> }>(win + ".__mapMessages.findLast(m=>m.type==='yellow-market-map-data')");
+        expect(data.points).toHaveLength(3);
+        expect(JSON.stringify(data)).not.toContain(propertyA); expect(JSON.stringify(data)).not.toContain("source-0");
+        expect(data.points.every(p => p.role === "candidate")).toBe(true);
+        for (const mutation of [
+          { origin: "https://wrong.example", source: "window", data: { ...data, revision: 2, points: [] } },
+          { origin, source: win, data: { ...data, revision: 2, points: [] } },
+          { origin, source: "window", data: { ...data, nonce: propertyB, revision: 2, points: [] } },
+          { origin, source: "window", data: { ...data, points: [] } },
+        ]) await value(win + '.dispatchEvent(new MessageEvent("message",{origin:' + JSON.stringify(mutation.origin)
+          + ',source:' + mutation.source + ',data:' + JSON.stringify(mutation.data) + '}))');
+        expect(await value<number>(pointPaths + '.length')).toBe(3);
+        await value(doc + '.querySelector("[data-point-id]").dispatchEvent(new KeyboardEvent("keydown",{key:"Enter",bubbles:true}))');
+        await until('document.querySelector("[data-testid=market-record-inspector]").textContent.includes("source-0")', "keyboard marker inspection").catch(async error => {
+          throw new Error("Map inspection diagnostic: " + JSON.stringify(await value(
+            '({inspector:document.querySelector("[data-testid=market-record-inspector]").textContent,messages:globalThis.__mapMessages,labels:[...' + pointPaths + '].map(p=>p.getAttribute("aria-label"))})')), { cause: error });
+        });
+        expect(await value<boolean>('document.querySelector("#market-inspector-title") === document.activeElement')).toBe(true);
+        expect(await value<boolean>('document.querySelector(".market-workspace__row input[name=market-own]").checked')).toBe(false);
+        expect(confirmationCalls).toBe(0);
+        expect(await value<string>('document.querySelector(".market-workspace__row").textContent')).not.toContain("Synthetic street 0");
+        for (const attribute of ["address", "categories", "websites"]) await click("[data-testid=market-attribute-" + attribute + "]");
+        expect(await value<string>('document.querySelector(".market-workspace__row").textContent')).toContain("Synthetic street 0");
+        expect(await value<string>('document.querySelector(".market-workspace__row").textContent')).toContain("hotel");
+        expect(await value<string>('document.querySelector(".market-workspace__row").textContent')).toContain("https://example.test/hotel-0");
+        expect(await value<string>('document.querySelector("[data-testid=market-record-inspector] a").href')).toBe("https://example.test/hotel-0");
+        const inspectorBefore = await value<string>('document.querySelector("[data-testid=market-record-inspector]").textContent');
+        const forged = { type: "yellow-market-map-inspect", version: 1, nonce: data.nonce, revision: data.revision, id: data.points[1]!.id };
+        for (const variant of [
+          { origin: "https://wrong.example", source: win, data: forged },
+          { origin, source: "window", data: forged },
+          { origin, source: win, data: { ...forged, nonce: propertyB } },
+          { origin, source: win, data: { ...forged, revision: 0 } },
+          { origin, source: win, data: { ...forged, id: "unknown" } },
+        ]) await value('window.dispatchEvent(new MessageEvent("message",{origin:' + JSON.stringify(variant.origin) + ",source:" + variant.source + ",data:" + JSON.stringify(variant.data) + "}))");
+        expect(await value<string>('document.querySelector("[data-testid=market-record-inspector]").textContent')).toBe(inspectorBefore);
+        // A real SVG click still inspects the next record, without selecting it.
+        await value(pointPaths + '[1].dispatchEvent(new MouseEvent("click",{bubbles:true}))');
+        await until('document.querySelector("[data-testid=market-record-inspector]").textContent.includes("source-1")', "click marker inspection");
+        await value(doc + '.querySelector(".leaflet-control-zoom-in").click()');
+        expect(await value<boolean>(doc + '.querySelector(".leaflet-container").classList.contains("leaflet-zoom-anim")')).toBe(false);
+        await value(doc + '.querySelector(".leaflet-control-zoom-in").click()');
+        const pan = async (times: number) => value('(()=>{const target=' + doc + '.querySelector(".leaflet-container");target.focus();for(let i=0;i<' + times
+          + ';i++)target.dispatchEvent(new KeyboardEvent("keydown",{key:"ArrowRight",keyCode:39,bubbles:true}));return ' + doc + '.querySelector("[data-point-id]").getBoundingClientRect().x;})()');
+        const initialPan = await value<number>(doc + '.querySelector("[data-point-id]").getBoundingClientRect().x');
+        const boundedPan = await pan(100);
+        expect(boundedPan).not.toBe(initialPan);
+        expect(await pan(100)).toBe(boundedPan);
+        await value(doc + '.querySelector("[data-testid=market-map-fit]").click()');
+        await click('.market-workspace__row input[name="market-own"]');
+        await until(doc + '?.querySelectorAll(".market-point--own").length === 1', "selection updates role without map remount");
+        expect(await value<number>(win + ".__mapMessages.findLast(m=>m.type==='yellow-market-map-data').revision")).toBeGreaterThan(data.revision);
+        await fill("[data-testid=market-filter]", "does-not-exist"); await mapReady(0);
+        expect(await value<string>(doc + '.querySelector("[data-testid=market-map-omitted]").textContent')).toContain("0 of 0");
+        expect(await value<number>(doc + '.querySelectorAll(".leaflet-tile-pane img").length')).toBe(0);
+        await fill("[data-testid=market-filter]", ""); await mapReady(3);
+        await send("Emulation.setDeviceMetricsOverride", { width: 375, height: 812, deviceScaleFactor: 1, mobile: true });
+        expect(await value<boolean>("document.documentElement.scrollWidth <= innerWidth + 1")).toBe(true);
+        expect(await value<boolean>(doc + ".documentElement.scrollWidth <= " + win + ".innerWidth + 1")).toBe(true);
+        // Frame ownership expires immediately at refresh, including its old inspect messages.
+        await value("void (globalThis.__oldFrame=" + win + ")");
+        await click("[data-testid=market-refresh]");
+        expect(await value<boolean>(frame + " === null")).toBe(true); await ready();
+        await value('window.dispatchEvent(new MessageEvent("message",{origin:location.origin,source:globalThis.__oldFrame,data:' + JSON.stringify(forged) + "}))");
+        expect(await value<string>('document.querySelector("[data-testid=market-record-inspector]").textContent')).not.toContain("source-1");
+        // Current source limit and projection omissions remain honest; no silent truncation.
+        count = 500; polar = true; await click("[data-testid=market-refresh]"); await ready();
+        await click("[data-testid=market-map-enable]"); await mapReady(499);
+        expect(await value<string>(doc + '.querySelector("[data-testid=market-map-omitted]").textContent')).toContain("499 of 500");
+        expect(await value<string>(doc + '.querySelector("[data-testid=market-map-omitted]").textContent')).toContain("1 omitted");
+        expect(await value<string>('document.querySelector("[data-testid=market-coverage]").textContent')).toContain("500 accepted records");
+        await click("[data-testid=market-map-disable]"); expect(await value<boolean>(frame + " === null")).toBe(true);
+        failTiles = true;
+        // Empty only this disposable browser's synthetic cache to exercise a new tile failure.
+        await send("Network.clearBrowserCache");
+        await click("[data-testid=market-map-enable]"); await mapReady(499);
+        await until(doc + '?.querySelector("[data-testid=market-map-status]").textContent.includes("unavailable or offline")', "offline tiles fallback");
+        expect(await value<number>('document.querySelectorAll(".market-workspace__row").length')).toBe(25);
+        await click("[data-testid=market-record-inspect]");
+        expect(await value<string>('document.querySelector("[data-testid=market-record-inspector]").textContent')).toContain("Synthetic street 0");
+        await value(win + '.dispatchEvent(new Event("pagehide"))');
+        expect(await value<number>(pointPaths + '.length')).toBe(0);
+        expect(await value<string>(doc + '.querySelector("[data-testid=market-map-status]").textContent')).toContain("Map stopped");
+        await fill("[data-testid=market-property-select]", propertyB); await ready();
+        expect(await value<boolean>(frame + " === null")).toBe(true);
+        await click("[data-testid=market-map-enable]"); await mapReady(499);
+        revoked = true; await click("[data-testid=market-refresh]");
+        await until('document.querySelectorAll(".market-workspace__row").length === 0', "permission loss clears map and data");
+        expect(await value<boolean>(frame + " === null")).toBe(true);
+        expect(confirmationCalls).toBe(0); expect(unexpected).toEqual([]); expect(errors).toEqual([]);
+        revoked = false; await click("[data-testid=market-refresh]"); await ready();
+        await click("[data-testid=market-map-enable]"); await mapReady(499);
+        await click('.market-workspace__row input[name="market-own"]');
+        await click('.market-workspace__row:nth-child(2) input[type="checkbox"]');
+        await click(".market-workspace__explicit input"); await click("[data-testid=market-confirm]");
+        await until('document.querySelector("[data-testid=market-status]").textContent.includes("unknown")', "unknown confirmation freezes map controls");
+        expect(confirmationCalls).toBe(1);
+        expect(await value<boolean>('document.querySelector("[data-testid=market-map-enable]").disabled && document.querySelector("[data-testid=market-map-disable]").disabled')).toBe(true);
+        expect(await value<boolean>('[...document.querySelectorAll("[data-testid^=market-attribute-]")].every(n=>n.disabled)')).toBe(true);
+        expect(await value<boolean>('document.querySelector("[data-testid=market-filter]").disabled')).toBe(true);
+        await click("#sign-out");
+        await until(frame + " === null", "sign-out destroys map");
+        expect(await value<number>('document.querySelectorAll(".market-workspace__row").length')).toBe(0);
+        expect(unexpected).toEqual([]); expect(errors).toEqual([]);
+      } finally {
+        await send("Page.navigate", { url: "about:blank" });
+        await Promise.all([...pending]);
+        await send("Fetch.disable"); unsubscribe();
       }
+      expect(interceptionErrors).toEqual([]);
     });
-  } catch (error) {
-    if (proof.status !== "failed") {
-      proof.status = "failed";
-      proof.failure = { stage: "browser-lifecycle", message: error instanceof Error ? error.message : String(error) };
-      await writeProof();
-      reportProof();
-    }
-    throw error;
-  } finally {
-    fixture.server.stop(true); failedFixture.server.stop(true);
-    await rm(temporary, { recursive: true, force: true });
-  }
-}, 55_000);
+  } finally { await server.stop(true); }
+}, 30_000);

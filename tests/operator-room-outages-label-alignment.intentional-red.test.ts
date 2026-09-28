@@ -67,7 +67,9 @@ test("Order 324 intentional red: Room outages preserves exact identities and can
   expect(index.match(/data-journey-view=/g)).toHaveLength(JOURNEYS.length);
 
   expect(script).toContain('location.pathname.endsWith("/operations") ? "operations"');
-  expect(script).toContain('history.pushState(null, "", `/p/${propertySelect.value}/${activeView}`)');
+  expect(script).toContain('const historyProperty = activeView === "market" ? (marketPropertyNode || location.pathname.match(/^\\/p\\/([0-9a-f-]+)\\/market$/)?.[1] || propertySelect.value) : propertySelect.value;');
+  expect(script).toContain("if (historyProperty && updateHistory) {");
+  expect(script).toContain('history.pushState(null, "", `/p/${historyProperty}/${activeView}`)');
   expect(script).toContain('const managementJourneyControls = document.querySelectorAll("[data-journey-view]")');
   expect(script).toContain("setView(control.dataset.journeyView)");
   expect(script).toContain("finishWorkspaceNavigation(control.dataset.journeyView)");

@@ -1,5 +1,9 @@
 # Yellow AI architecture
 
+**Research receipt, 13 September 2026:** [Jarvis/RMS cross-task handoff](research/JARVIS-RMS-RECEIVING-20260913.md)
+adds model candidates and capacity-evaluation inputs to the existing architecture.
+These are not measured Yellow benchmarks or approved runtime model selections.
+
 **Status:** provider foundation implemented by Order 090; agent platform, property knowledge,
 training and adaptive revenue intelligence remain planned or research-required.  
 **Precedence:** `PROJECT.md` → `DECISIONS.log` → executable domain contracts → this document.
