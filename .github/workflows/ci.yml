@@ -234,7 +234,10 @@ jobs:
         env:
           YELLOW_REQUIRE_MARKET_MAP_BROWSER: "1"
           YELLOW_MARKET_MAP_PROOF_DIR: ${{ runner.temp }}/yellow-market-map-proof
-        run: bun test tests/operator-market-map.browser.test.ts
+        run: >-
+          bun test
+          tests/operator-market-map.browser.test.ts
+          tests/operator-overture-market-map.browser.test.ts
 
       - name: Retain market map browser proof
         if: ${{ always() && (steps.market-map-browser.outcome == 'success' || steps.market-map-browser.outcome == 'failure') }}
