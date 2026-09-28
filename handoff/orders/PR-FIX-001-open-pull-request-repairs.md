@@ -11,3 +11,13 @@ draft removal or own merge. Original dirty checkouts remain untouched.
 Verification: diff/conflict-marker checks, focused profile/workspace tests,
 types/boundaries, database referee and exact-head GitHub checks. Historical
 acceptance must not be presented as current exact-head proof.
+
+## Reproduced CI scope amendment - 2026-09-29
+
+The database job fails Order202 P7 in tests/review-seed.integration.test.ts: the
+fixed 2026-09-18 synthetic stay precedes the generic launch profile's normal
+insertion-time effective range. Admit a test-local, tenant-scoped hotel-profile
+fixture covering that fixed stay and its exact identity assertion in this test.
+Do not change scripts/seed.ts, generic profile defaults, production temporal
+selection, applied migrations or live data. Preserve every existing side-effect
+and eligibility assertion. Record red/green native proof and fresh exact-head CI.
