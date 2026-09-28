@@ -32,6 +32,10 @@ const PASSWORD = process.env.YELLOW_REVIEW_SEED_PASSWORD;
 const APPROVER_PASSWORD = PASSWORD ? `${PASSWORD}-approver` : undefined;
 const REQUIRE_DATABASE = process.env.YELLOW_REQUIRE_REVIEW_SEED === "1";
 const SECRET = "yellow-order-046-test-token-secret-exactly-long-enough";
+// This fixed historical stay needs a test-owned profile effective on its date.
+// Generic launch profiles intentionally start at insertion time; never backdate
+// the production seed just to make a historical acceptance fixture eligible.
+const HISTORICAL_DAILY_PROFILE_ID = "bd813aa7-e4ce-463a-8b23-d9961ead1713";
 
 test("Order 444 fiscal review permissions are the exact existing five and exclude checker authority", () => {
   expect(REVIEW_FISCAL_PERMISSIONS).toEqual([
@@ -452,6 +456,17 @@ beforeAll(async () => {
   first = await runReviewSeed({ databaseUrl: DEPLOY_DATABASE_URL, password: PASSWORD,
     approverPassword: APPROVER_PASSWORD!, logger: () => undefined });
   admin = new SQL(DEPLOY_DATABASE_URL, { max: 4 });
+  await admin`
+    INSERT INTO extension (id, tenant_id, type, key, version, effective, content, status)
+    SELECT ${HISTORICAL_DAILY_PROFILE_ID}::uuid, ${SEED_TENANT.id}::uuid,
+           'vertical_profile', 'hotel', 1000000,
+           tstzrange('2026-09-17T00:00:00Z'::timestamptz, '2026-09-20T00:00:00Z'::timestamptz, '[)'),
+           content, 'active'
+      FROM extension
+     WHERE tenant_id IS NULL AND type='vertical_profile' AND key='hotel'
+       AND version=1 AND status='active'
+    ON CONFLICT DO NOTHING
+  `;
   loginPool = new SQL(RUNTIME_DATABASE_URL, { max: 4 });
   platformPool = new SQL(RUNTIME_DATABASE_URL, { max: 4, prepare: false });
   eventPool = new SQL(RUNTIME_DATABASE_URL, { max: 4 });
@@ -961,9 +976,10 @@ databaseDescribe("Order 046 reproducible local-review seed", () => {
     const profile = await admin<Array<{ cadence: string; matches: number }>>`
       SELECT content->>'housekeeping_cadence' AS cadence, count(*)::int AS matches
       FROM extension
-      WHERE type='vertical_profile' AND key='hotel' AND status='active'
+      WHERE id=${HISTORICAL_DAILY_PROFILE_ID}::uuid
+        AND type='vertical_profile' AND key='hotel' AND status='active'
         AND effective @> '2026-09-18T00:00:00Z'::timestamptz
-        AND (tenant_id IS NULL OR tenant_id=${SEED_TENANT.id}::uuid)
+        AND tenant_id=${SEED_TENANT.id}::uuid
       GROUP BY content->>'housekeeping_cadence'
     `;
     expect(profile).toEqual([{ cadence: "daily", matches: 1 }]);
