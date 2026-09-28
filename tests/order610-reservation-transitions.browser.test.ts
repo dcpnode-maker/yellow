@@ -3,6 +3,7 @@ import { existsSync } from "node:fs";
 import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { extname, resolve } from "node:path";
+import { invokeCdp } from "./helpers/cdp-invoke";
 
 const repository = resolve(import.meta.dir, "..");
 const browserPath = [
@@ -157,8 +158,8 @@ test("Order610 built reservation lifecycle route is gated, canonical and contain
       const state = await evaluate<unknown>("({text:document.body?.innerText?.slice(-2500),calls:window.__yellowApiCalls,errors:window.__yellowRuntimeErrors,warnings:window.__yellowConsoleWarnings})");
       throw new Error(`Timed out waiting for ${label}: ${JSON.stringify(state)}`);
     };
-    const clickText = (text: string) => evaluate(`(()=>{const node=[...document.querySelectorAll('button,label')].find((item)=>item.textContent?.includes(${JSON.stringify(text)}));if(!node)throw new Error('Missing '+${JSON.stringify(text)});node.click();})()`);
-    const setTextarea = (value: string) => evaluate(`(()=>{const input=document.querySelector('.reservation-lifecycle-confirmation textarea');if(!(input instanceof HTMLTextAreaElement))throw new Error('Missing reason textarea');const setter=Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype,'value').set;setter.call(input,${JSON.stringify(value)});input.dispatchEvent(new Event('input',{bubbles:true}));})()`);
+    const clickText = (text: string) => invokeCdp(send, "click-text", [text]);
+    const setTextarea = (value: string) => invokeCdp(send, "set-textarea", [value]);
 
     await send("Page.enable");
     await send("Runtime.enable");

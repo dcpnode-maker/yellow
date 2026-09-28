@@ -500,6 +500,11 @@ const EXPECTED_MIGRATIONS = [
     filename: "0099_governed_departure_service_coordination.sql",
     checksum_sha256: "0b08c4a63a403be0a24b480c59f6b26aa988cd70037641decc5ae6184f420e29",
   },
+  {
+    version: 100,
+    filename: "0100_housekeeping_transition_timestamp_precision.sql",
+    checksum_sha256: "f70844b2c8205c286f7f552dd1f8a4a2023645f70dcd00dbdacc7c777b0415d4",
+  },
 ];
 
 if (REQUIRE_DATABASE && !DATABASE_URL) {
@@ -519,13 +524,13 @@ databaseDescribe("fresh deployment database acceptance", () => {
   beforeAll(() => { sql = new SQL(DATABASE_URL!); });
   afterAll(async () => { await sql?.close(); sql = undefined; });
 
-  test("uses exact PostgreSQL 16.15 with pg_stat_statements preloaded and available", async () => {
+  test("uses exact PostgreSQL 18.6 with pg_stat_statements preloaded and available", async () => {
     const rows = await sql!<{ version: string; preload: string; available: boolean }[]>`
       SELECT current_setting('server_version') AS version,
              current_setting('shared_preload_libraries') AS preload,
              EXISTS (SELECT 1 FROM pg_available_extensions WHERE name = 'pg_stat_statements') AS available
     `;
-    expect(rows).toEqual([{ version: "16.15", preload: "pg_stat_statements", available: true }]);
+    expect(rows).toEqual([{ version: "18.6", preload: "pg_stat_statements", available: true }]);
   });
 
   test("has the exact migration ledger owned and isolated from app/public roles", async () => {
@@ -578,7 +583,7 @@ databaseDescribe("fresh deployment database acceptance", () => {
             AND class.relforcerowsecurity) AS "forceRlsTables"
     `;
     expect(catalogue).toEqual([{
-      migrations: 99, tables: 130, rlsTables: 120, policies: 120, forceRlsTables: 29,
+      migrations: 100, tables: 130, rlsTables: 120, policies: 120, forceRlsTables: 29,
       permissions: 21, permissionGrants: 0,
     }]);
   });

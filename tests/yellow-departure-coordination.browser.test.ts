@@ -3,6 +3,7 @@ import { existsSync } from "node:fs";
 import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
+import { invokeCdp } from "./helpers/cdp-invoke";
 
 const browserPath = [
   process.env.PROGRAMFILES && resolve(process.env.PROGRAMFILES, "Google/Chrome/Application/chrome.exe"),
@@ -149,7 +150,7 @@ test("mounted departure coordination is no-write-before-confirm and remains oper
         else if(path.endsWith('/departure-services/proposals')&&method==='POST'){window.__yellowRequest=makeRequest();status=201;body={request:window.__yellowRequest,replayed:false};}
         else if(path.includes('/departure-services/')&&['confirm','assign','start','complete'].includes(path.split('/').at(-1))&&method==='POST'){const action=path.split('/').at(-1);const input=JSON.parse(init.body||'{}');window.__yellowRequest=action==='confirm'?makeRequest({proposalStatus:'confirmed',version:2,taskId:'59300000-0000-4000-8000-000000000010',taskStatus:'open',eligibleActions:['assign']}):action==='assign'?makeRequest({proposalStatus:'confirmed',version:3,taskId:'59300000-0000-4000-8000-000000000010',taskStatus:'assigned',assigneePartyId:staff,eligibleActions:['start']}):action==='start'?makeRequest({proposalStatus:'confirmed',version:4,taskId:'59300000-0000-4000-8000-000000000010',taskStatus:'in_progress',assigneePartyId:staff,eligibleActions:['complete']}):makeRequest({proposalStatus:'confirmed',version:5,taskId:'59300000-0000-4000-8000-000000000010',taskStatus:'done',assigneePartyId:staff,outcome:input.outcome,completedAt:'2044-09-22T10:05:00Z',eligibleActions:[]});body={request:window.__yellowRequest,replayed:false};}
         else if(path.endsWith('/departure-services'))body=overview();
-        else if(path.endsWith('/reservations/'+reservation))body=detail;
+        else if(path.endsWith('/reservations/'+reservation))body={...detail,actions:{canCancel:false,canManageAlerts:false,canModify:false,canOpenPrimaryFolio:false,canReinstate:false}};
         else{status=503;body={error:'not required by Order 593 proof',path};}
         return new Response(JSON.stringify(body),{status,headers:{'content-type':'application/json'}});
       };
@@ -165,7 +166,7 @@ test("mounted departure coordination is no-write-before-confirm and remains oper
     await evaluate("document.querySelector('.yellow-launch').click()");
     await waitFor("Boolean(document.querySelector('[aria-label=\"Ask Yellow\"]'))", "Yellow prompt");
     const submit = async (message: string) => {
-      await evaluate(`(()=>{const input=document.querySelector('[aria-label="Ask Yellow"]'),setter=Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set;setter.call(input,${JSON.stringify(message)});input.dispatchEvent(new Event('input',{bubbles:true}));input.dispatchEvent(new Event('change',{bubbles:true}));return new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(()=>{document.querySelector('[aria-label="Send request to Yellow"]').click();resolve(true)})))})()`);
+      await invokeCdp(send, "submit-yellow", [message]);
     };
     await submit("request minibar check for DEP-593 in 15 minutes");
     await waitFor("document.querySelector('#departure-inspection-title')?.textContent.includes('Request a bounded room check')", "voice-selected departure card");

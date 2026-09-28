@@ -6,6 +6,20 @@ const root = resolve(import.meta.dir, "..");
 const workspace = readFileSync(resolve(root, "frontend/yellow/src/workspaces/ReservationWorkspace.tsx"), "utf8");
 const css = readFileSync(resolve(root, "frontend/yellow/src/styles.css"), "utf8");
 
+test("Order611 timeline does not add a hook after loading/error early returns", () => {
+  const start = workspace.indexOf("function ReservationWorkspace(");
+  const loaded = workspace.indexOf("  if (detail.isLoading)", start);
+  const timeline = workspace.indexOf("  const operationalTimeline =", loaded);
+  const following = workspace.indexOf("  const ready =", timeline);
+  expect(start).toBeGreaterThanOrEqual(0);
+  expect(loaded).toBeGreaterThan(start);
+  expect(timeline).toBeGreaterThan(loaded);
+  expect(following).toBeGreaterThan(timeline);
+  const computation = workspace.slice(timeline, following);
+  expect(computation).toContain("reservationOperationalTimeline(");
+  expect(computation).not.toMatch(/\buse[A-Z]\w*\s*\(/u);
+});
+
 test("Order611 timeline is read-only and composed from authoritative reservation and folio reads", () => {
   expect(workspace).toContain("function reservationOperationalTimeline(");
   expect(workspace).toContain("loadFolioStatement(folio.folioId)");

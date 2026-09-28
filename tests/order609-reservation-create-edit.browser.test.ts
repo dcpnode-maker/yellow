@@ -3,6 +3,7 @@ import { existsSync } from "node:fs";
 import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { extname, resolve } from "node:path";
+import { invokeCdp } from "./helpers/cdp-invoke";
 
 const repository = resolve(import.meta.dir, "..");
 const browserPath = [
@@ -149,7 +150,7 @@ test("Order609 real reservation create route is confirmation-gated and contained
           return json(offerPayload());
         }
         if (url.pathname === `/api/v1/properties/${propertyId}/reservations/${reservationId}` && request.method === "GET")
-          return json({ reservation: {
+          return json({ actions: { canCancel: true, canManageAlerts: false, canModify: true, canOpenPrimaryFolio: false, canReinstate: false }, reservation: {
             reservationId,
             primaryPartyId: partyId,
             confirmationNo: "YEL-609",
@@ -240,7 +241,7 @@ test("Order609 real reservation create route is confirmation-gated and contained
       }
       throw new Error(`Timed out waiting for ${label}`);
     };
-    const setInput = (selector: string, value: string) => evaluate(`(()=>{const input=document.querySelector(${JSON.stringify(selector)});if(!(input instanceof HTMLInputElement))throw new Error('Missing input');const setter=Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set;setter.call(input,${JSON.stringify(value)});input.dispatchEvent(new Event('input',{bubbles:true}));})()`);
+    const setInput = (selector: string, value: string) => invokeCdp(send, "set-input", [selector, value]);
 
     await send("Page.enable");
     await send("Runtime.enable");

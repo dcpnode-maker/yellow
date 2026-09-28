@@ -2952,7 +2952,7 @@ databaseDescribe("Bun SQL migration runner", () => {
             FROM public.schema_migration
            ORDER BY version
         `;
-        expect(upgradedLedger).toHaveLength(99);
+        expect(upgradedLedger).toHaveLength(100);
 
         const noOpLog: string[] = [];
         const noOp = await runMigrations({
@@ -2961,7 +2961,7 @@ databaseDescribe("Bun SQL migration runner", () => {
           logger: (message) => noOpLog.push(message),
         });
         expect(noOp.appliedFiles).toEqual([]);
-        expect(noOp.discoveredFiles).toBe(99);
+        expect(noOp.discoveredFiles).toBe(100);
         expect(noOp.transactionBackendPids).toEqual([]);
         expect(noOpLog).toHaveLength(1);
         expect(noOpLog[0]).toContain("applied=0 status=no-op");
