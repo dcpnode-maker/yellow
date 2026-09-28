@@ -3,6 +3,8 @@ import { isIP } from "node:net";
 
 import { SECURITY_HEADERS } from "./http/security-headers";
 import { ExtensionHttpApi } from "./http/extensions";
+import { MarketMapHttpApi } from "./http/market-map";
+import { marketMapAssets as overtureMarketMapAssets } from "./http/market-map-assets";
 import { MarketHttpApi } from "./http/market";
 import {
   MARKET_MAP_FRAME_CONTENT_SECURITY_POLICY,
@@ -51,6 +53,7 @@ export interface AppOptions {
   readonly extensionRegistry?: ExtensionRegistry;
   readonly marketApi?: MarketHttpApi;
   readonly operatorApi?: OperatorHttpApi;
+  readonly marketMapApi?: MarketMapHttpApi;
   readonly operatorLocalReviewCredentials?: OperatorLocalReviewCredentials;
   readonly hostedDepositRoutes?: HostedDepositProviderHttpApi;
   readonly hostedDepositSurface?: "guest" | "provider" | "all";
@@ -168,6 +171,7 @@ export function createApp(options: AppOptions = {}) {
 
   if (options.operatorApi) {
     const operator = options.operatorApi;
+    const marketMap = options.marketMapApi ?? new MarketMapHttpApi();
     const withOperatorTenant = async (
       request: Request,
       handler: Parameters<TenantContextMiddleware["handle"]>[1],
@@ -186,6 +190,7 @@ export function createApp(options: AppOptions = {}) {
       .get("/p/:property/inventory", ({ request }) => operatorAssets.html(options.operatorLocalReviewCredentials, request))
       .get("/p/:property/restrictions", ({ request }) => operatorAssets.html(options.operatorLocalReviewCredentials, request))
       .get("/p/:property/rates", ({ request }) => operatorAssets.html(options.operatorLocalReviewCredentials, request))
+      .get("/p/:property/market-map", ({ request }) => operatorAssets.html(options.operatorLocalReviewCredentials, request))
       .get("/p/:property/market", ({ request }) => operatorAssets.html(options.operatorLocalReviewCredentials, request))
       .get("/p/:property/operations", ({ request }) => operatorAssets.html(options.operatorLocalReviewCredentials, request))
       .get("/p/:property/housekeeping", ({ request }) => operatorAssets.html(options.operatorLocalReviewCredentials, request))
@@ -217,11 +222,20 @@ export function createApp(options: AppOptions = {}) {
       .get("/static/fonts/urbanist-v1.330.woff2", () => operatorAssets.urbanistFont())
       .get("/static/icons/phosphor-nav-2.1.1.svg", () => operatorAssets.phosphorNav())
       .get("/assets/operator-local-prefill.js", () => operatorAssets.localPrefillJs())
+      .get("/assets/*", ({ params }) => overtureMarketMapAssets.isName(params["*"])
+        ? overtureMarketMapAssets.asset(params["*"]) ?? new Response("Not found", { status: 404 })
+        : new Response("Not found", { status: 404 }))
       .post("/api/v1/auth/local:login", ({ request, body, server }) =>
         operator.login(request, body, localLoginSourceKey(server?.requestIP(request)))
       )
       .get("/api/v1/me/properties", ({ request, tenantContext }) =>
         withOperatorTenant(request, (context) => operator.properties(context))
+      )
+      .get("/api/v1/properties/:property/market-map/places", ({ request, params }) =>
+        withOperatorTenant(request, (context) => marketMap.places(context, params.property))
+      )
+      .post("/api/v1/properties/:property/market-map/selection", ({ request, params, body }) =>
+        withOperatorTenant(request, (context) => marketMap.selection(context, params.property, body))
       )
       .get("/api/operator/properties/:propertyNode/receivable-transfers/targets", ({ request, params, tenantContext }) =>
         withOperatorTenant(request, (context) => operator.receivableTransferTargets(context, params.propertyNode))

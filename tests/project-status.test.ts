@@ -33,7 +33,7 @@ function parseStatus(status: string): Readonly<Record<string, string>> {
   );
 }
 
-async function historicalCounts(directory: string): Promise<string> {
+async function historicalCounts(directory: string, nativeWindows = process.platform === "win32"): Promise<string> {
   async function records(kind: string) {
     const base = join(directory, "handoff", kind);
     const entries = await readdir(base, { withFileTypes: true });
@@ -53,16 +53,39 @@ async function historicalCounts(directory: string): Promise<string> {
   const [orders, reviews, questions] = await Promise.all([
     records("orders"), records("reviews"), records("questions"),
   ]);
-  const unclosed = orders.filter(({ text }) => !/^## MERGED/m.test(text)).length;
+  // The separately executed native batch proof establishes PowerShell's
+  // case-insensitive markers; Bash's grep is intentionally case-sensitive.
+  const mergedMarker = nativeWindows ? /^## MERGED/im : /^## MERGED/m;
+  const resolvedMarker = nativeWindows ? /^## (RESOLVED|RATIFIED)/im : /^## (RESOLVED|RATIFIED)/m;
+  const unclosed = orders.filter(({ text }) => !mergedMarker.test(text)).length;
   const questionNames = new Set(questions.map(({ name }) => name));
   const open = questions.filter(({ name, text }) =>
-    !name.endsWith("-ARCHITECT-RESPONSE.md") && !/^## (RESOLVED|RATIFIED)/m.test(text) &&
+    !name.endsWith("-ARCHITECT-RESPONSE.md") && !resolvedMarker.test(text) &&
     !questionNames.has(`${name.split("-")[0]}-ARCHITECT-RESPONSE.md`)).length;
   return `Historical records: orders=${orders.length} total (${unclosed} lack legacy MERGED marker) ` +
     `reviews=${reviews.length} total questions=${open} without legacy resolution marker (${questions.length} total)`;
 }
 
 describe("canonical project status", () => {
+  test("historical count oracle preserves both established marker case conventions", async () => {
+    const directory = await mkdtemp(join(tmpdir(), "yellow-project-status-marker-case-"));
+    try {
+      for (const kind of ["orders", "reviews", "questions"]) {
+        await mkdir(join(directory, "handoff", kind), { recursive: true });
+      }
+      await Bun.write(join(directory, "handoff", "orders", "001.md"), "## merged lowercase");
+      await Bun.write(join(directory, "handoff", "questions", "001.md"), "## Resolved mixed case");
+      expect(await historicalCounts(directory, true)).toBe(
+        "Historical records: orders=1 total (0 lack legacy MERGED marker) reviews=0 total questions=0 without legacy resolution marker (1 total)",
+      );
+      expect(await historicalCounts(directory, false)).toBe(
+        "Historical records: orders=1 total (1 lack legacy MERGED marker) reviews=0 total questions=1 without legacy resolution marker (1 total)",
+      );
+    } finally {
+      await rm(directory, { recursive: true, force: true });
+    }
+  });
+
   test("records current release work while preserving the historical Order 444 preview", () => {
     const originalSnapshot = JSON.stringify(PROJECT_BUILD_SNAPSHOT);
     expect(PROJECT_BUILD_SNAPSHOT.recordedAt).toBe("2026-09-13");
@@ -180,7 +203,7 @@ describe("canonical project status", () => {
     }
 
     const report = await runState();
-    expect(report.exitCode).toBe(0);
+    expect(report.exitCode, JSON.stringify(report)).toBe(0);
     const output = report.stdout;
     expect(output).toContain(`Current task: ${task}`);
     expect(output).toContain(`Lifecycle: ${lifecycle}`);
@@ -561,7 +584,7 @@ describe("canonical project status", () => {
       const started = performance.now();
       const slow = await invoke("slow");
       const elapsed = performance.now() - started;
-      expect(slow.exitCode).toBe(0);
+      expect(slow.exitCode, JSON.stringify(slow)).toBe(0);
       expect(slow.stderr).toBe("");
       expect(slow.stdout).toContain("Service app: down");
       expect(slow.stdout).toContain("Service postgres: down");
@@ -579,7 +602,7 @@ describe("canonical project status", () => {
       await Bun.write(dockerLog, "");
       ownedPid = undefined;
       const slowTable = await invoke("slow-table");
-      expect(slowTable.exitCode).toBe(0);
+      expect(slowTable.exitCode, JSON.stringify(slowTable)).toBe(0);
       expect(slowTable.stderr).toBe("");
       expect(slowTable.stdout).toContain("Service app: down");
       expect(slowTable.stdout).toContain("Service postgres: down");

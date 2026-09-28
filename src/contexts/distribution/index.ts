@@ -1,6 +1,7 @@
 export * from "./market-shopping";
 export * from "./market-batches";
 export * from "./market-source-adapters";
+export * from "./place-catalog";
 export {
   MARKET_COMPSET_EXTENSION_TYPE,
   MARKET_COMPSET_READ_SCOPE,
