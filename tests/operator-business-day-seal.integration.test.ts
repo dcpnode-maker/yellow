@@ -104,6 +104,6 @@ describe("Order 389 real createApp route composition", () => {
     expect(appSource.match(/\.post\("\/api\/v1\/properties\/:property\/business-days\/:businessDate\/seal"/g)).toHaveLength(1);
     expect(appSource).toContain('context, params.property, params.businessDate, body,\n        )), { parse: "none" })');
     expect(server.match(/new BusinessDaySealService\(\{ events, idempotency: new PostgresIdempotency\(\) \}\)/g)).toHaveLength(1);
-    expect(server).toContain("undefined, undefined, businessDayCarry, businessDaySeal, ownerTrustExpenses)");
+    expect(server).toContain("undefined, undefined, businessDayCarry, businessDaySeal, ownerTrustExpenses, {\n      submissions: fiscalSubmissions,\n      adapters: fiscalSubmissionAdapters,\n    })");
   });
 });

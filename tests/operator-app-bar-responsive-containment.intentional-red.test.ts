@@ -34,6 +34,43 @@ type Geometry = Readonly<{
   rails: Array<{ overflow: number; locallyScrollable: boolean; usable: boolean }>;
 }>;
 
+type PortFileReader = (path: string) => Promise<string>;
+
+async function readDevToolsPort(
+  portFile: string,
+  read: PortFileReader = async path => Bun.file(path).text(),
+): Promise<string> {
+  try {
+    return (await read(portFile)).split(/\r?\n/, 1)[0] ?? "";
+  } catch (error) {
+    const code = typeof error === "object" && error !== null
+      ? (error as { code?: unknown }).code
+      : undefined;
+    if (code === "EBUSY" || code === "ENOENT") return "";
+    throw error;
+  }
+}
+
+test("Order330 retries transient DevTools port-file contention and then accepts the port", async () => {
+  for (const code of ["EBUSY", "ENOENT"] as const) {
+    let reads = 0;
+    const read: PortFileReader = async () => {
+      reads += 1;
+      if (reads === 1) throw Object.assign(new Error("transient port-file contention"), { code });
+      return "43127\n/devtools/browser/q204";
+    };
+    expect(await readDevToolsPort("synthetic-port-file", read)).toBe("");
+    expect(await readDevToolsPort("synthetic-port-file", read)).toBe("43127");
+    expect(reads).toBe(2);
+  }
+});
+
+test("Order330 rethrows non-transient DevTools port-file failures", async () => {
+  const failure = Object.assign(new Error("non-transient port-file failure"), { code: "EACCES" });
+  await expect(readDevToolsPort("synthetic-port-file", async () => { throw failure; }))
+    .rejects.toBe(failure);
+});
+
 const fullShellFixture = (stylesheet: string) => `<!doctype html>
 <html lang="en" data-theme="apple" data-experience="expert"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1"><link rel="stylesheet" href="${stylesheet}"></head>
@@ -108,7 +145,7 @@ async function measure(htmlFile: string, profile: string, width: number): Promis
   try {
     const portFile = resolve(profile, "DevToolsActivePort"); let port = "";
     for (let attempt = 0; attempt < 800; attempt += 1) {
-      if (existsSync(portFile)) port = (await Bun.file(portFile).text()).split(/\r?\n/, 1)[0] ?? "";
+      if (existsSync(portFile)) port = await readDevToolsPort(portFile);
       port ||= diagnostic.match(/DevTools listening on ws:\/\/(?:127\.0\.0\.1|localhost|\[::1\]):(\d+)\//)?.[1] ?? "";
       if (port || chrome.exitCode !== null) break; await Bun.sleep(25);
     }

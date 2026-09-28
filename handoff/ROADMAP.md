@@ -4,6 +4,26 @@
 
 **Current coordination:** Codex under PROJECT and the applicable agent adapter.
 
+**Latest integration:** PR90 is independently merged as4ba1d6f after complete CI,
+actual ARM64 source binding and fresh post-merge80 schema/seed/referee11/11.
+Question207 provider/signed-receipt/authorized-read development now passes independent
+actual81 durability13/0 (one upgrade-only skip), synthetic cryptographic journey4/0,
+receipt GET6/0, hostile-grant readiness, identical fresh/upgraded schema and a separate
+clean81 canonical seed/referee11/11. Original failed runs remain evidence. Current/
+historical compatibility, full standing and exact-source Linux/ARM64 CI remain gates.
+Operator invoice discovery/issuance/printing and authentic external-provider sandbox
+acceptance remain unfinished. Main80/128, development81/128, stable local77/127 and
+all18 phase classifications remain separate; no provider is activated.
+
+**Preceding integration:** Q204 supervised delivery passes exacte4399cf all-six
+CI34049699932 and normal CodeQL; the non-implementer merges PR88 as2a0ba41 after
+personally checking every required gate. Separate fresh post-merge80 schema and
+seed/referee11/11 pass. Main80/128 and unchanged local77/127 are distinct releases.
+Question206 continues authenticated provider and signed-receipt implementation;
+its private exact decoder is independently approved, private RS256 work is active,
+and full provider/read-model/operator/sandbox acceptance remains unfinished.
+Phase priority and complete product scope are unchanged.
+
 **Status reconciled:** 2026-09-06. Orders438/439 merged through PR82; independently
 reviewed native fiscal Order434 passed exact CI178 and merged through PR83 as443e3826
 (77 migrations /127 public tables). Post-merge CI179 and image publication passed.
@@ -13,6 +33,16 @@ proof and continues durable integration; the hotel-journey Order440 history and
 Astra Ultra RMS research Order441 are preserved. Q198 records their consolidation.
 Retained local runtimes and cloud deployment require separate evidence. Historical
 sections below retain their original meaning; PROJECT-STATUS is current.
+Q201 continues this plan with canonical78/128 and application request/retry
+commands. Exact827be467 now passes all-five CI34008495909, including the canonical
+durability19/19 and clean Linux readiness12/12 (combined containment15/15); the
+merged/local frontier remains77/127 atb5ef708. No provider or Phase7 completion
+is implied by the candidate migration count.
+Q203 now has independent local13/13(125) for authenticated request/retry, including
+five real PostgreSQL cases; exact-head CI remains before integration. Q202's native
+ARM64 compatibility passes in all-six CI34010394787 atd88ae59, with no deployed
+host or provider. Continue worker/provider integration without changing the phase
+sequence or the reviewed local77 runtime.
 
 [PROJECT-STATUS](../docs/PROJECT-STATUS.md) records what is current now.
 [BUILD-PLAN.md](../BUILD-PLAN.md) says what each phase contains. This file records

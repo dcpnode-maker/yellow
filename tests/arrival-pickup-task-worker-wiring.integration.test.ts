@@ -12,7 +12,11 @@ describe("Order 213 arrival pickup-task worker wiring", () => {
     expect(server).toContain("new ArrivalPickupTaskAutomationConsumer(events)");
     expect(server).toContain("if (pickupTaskWorkerEnabled)");
     expect(server).toContain('console.error("arrival pickup task consumer failed")');
-    expect(server).toContain('console.error("arrival pickup task consumer stopped unexpectedly")');
+    const wiring = server.slice(server.indexOf("if (pickupTaskWorkerEnabled)"),
+      server.indexOf("if (reservationArrivalRollEnabled)"));
+    expect(wiring).toContain("superviseWorker(pickupTasks.run({ signal: runtimeAbort.signal,");
+    expect(wiring).toContain('}), "arrival pickup task consumer stopped unexpectedly");');
+    expect(server).toContain("runtimeWorkerTasks.push(promise.catch(() => { console.error(failureMessage); }));");
     expect(server).not.toMatch(/arrival pickup task consumer[^\n]*(?:error|cause|stack|message)/i);
   });
 

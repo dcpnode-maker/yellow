@@ -230,8 +230,77 @@ the locked folio balance remains positive. Concurrent losers conflict; no applic
 is allowed for ready, pending, failed, expired, revoked or foreign capture state.
 
 ## 8. Document (fiscal) — draft → issued (number+hash assigned, series advanced,
-prev_hash chained) → cleared|rejected (fiscal_submission) ; issued→void only where
-jurisdiction permits, else credit-note document. Emits document.issued / .cleared.
+prev_hash chained); the separate fiscal_submission head reaches accepted, rejected or
+error without changing that issued document. Issued→void is permitted only where the
+jurisdiction allows it; otherwise correction is a credit-note document. Emits
+document.issued / .cleared where the jurisdiction contract defines clearance.
+
+### Order440 delivery head (durable source, not document mutation)
+
+Issued native documents and their number/content/chain remain immutable. The separate
+`fiscal_submission` status records delivery, with protected append-only transition and
+receipt history. Q199's private draft is integrated by canonical78 and Q205's
+immutable-command correction79, merged through PR87. Q204's supervised discovery is
+merged as migration80 without adding a delivery status or mutating any issued
+document. Q207's private candidate81 adds authenticated signed-receipt retention and
+governed reads. No external provider account or transport is activated.
+
+| Current head | Event | Next head / permitted work |
+|---|---|---|
+| absent | authorized request for eligible issued document | pending / send |
+| pending | runtime claims new attempt | submitted / transport outside the transaction |
+| submitted | pending, timeout or duplicate response | submitted / lookup only |
+| submitted | expired claim | new lookup claim for the same attempt; never a new send |
+| submitted | source-bound signed acceptance or authenticated definitive rejection | terminal accepted or rejected / no work; rejection has no IRN |
+| submitted | authenticated lookup returns provider status `CNL` | terminal error / none / `provider_cancelled`; no discovery or retry |
+| submitted | verified known-not-sent | error / explicit authorized retry eligible |
+| error, known-not-sent | authorized retry, fewer than3 retries | pending / new unique attempt; prior history retained |
+| terminal | identical current or pre81 legacy receipt replay | same immutable terminal state, no duplicate effects |
+| any | stale attempt/token, conflicting receipt, foreign binding | reject without changing the head |
+
+The private generic reducer also models clearance for future adapters; the admitted
+durable India foundation permits reporting only. A lease is15–300 seconds (worker
+default60), and at most3 explicit known-not-sent retries follow the first attempt.
+These are bounded implementation controls, not statutory eligibility policies.
+Pending/submitted/rejected/error remain audited business-day seal blockers unchanged.
+No transition edits an issued document, balances a second ledger, reuses an invoice
+number or interprets a local success receipt as authenticated government acceptance.
+
+Candidate81 stores the versioned terminal envelope in the existing immutable terminal
+head response. Canonical padded base64 preserves the exact raw authenticated response
+and decrypted data bytes; explicit hashes bind those bytes. Accepted receipts retain
+the exact signed invoice and signed QR, and `qr_payload` equals that signed QR. History,
+fact and outbox retain transition identity/hashes rather than copying the sensitive
+receipt bodies. Newly terminal India rows must satisfy the complete envelope; unchanged
+legacy terminal rows and exact replay remain supported.
+
+The candidate GET read is not a state transition. It rechecks the signed session,
+active tenant/user, property containment and the currently unassigned
+`tax-fiscal.submissions:read` permission on every call. Missing and inaccessible rows
+share the same non-disclosing result. The response exposes a bounded pending,
+legacy-hash-only, rejected, provider-cancelled or accepted-signed view and never raw or
+decrypted provider bytes, request wire, claim tokens, credentials or provider messages.
+
+The complete generated-key protocol journey has exercised these transitions through
+the real adapter and worker into actual PostgreSQL81 and the signed-session GET,
+including response-loss lookup by a fresh process, definitive rejection, CNL and
+signed-source mismatch. This proves the synthetic protocol/state integration without a
+stubbed verified outcome; it does not prove authentic external-provider sandbox
+acceptance or activate any runtime.
+
+Q204 discovery and claim share the same database-clock eligibility. A submitted
+head with an unreconciled expired claim is due for lookup; a reconciled pending,
+timeout or duplicate result is due15 seconds after claim_expires_at. Neither path
+creates another send. Inactive tenants, legacy/terminal heads and explicit-retry
+heads are excluded; active tenant is checked again while claiming.
+
+The runtime has a separate process state: `disabled → running → disabled` on
+cooperative shutdown, or `running → failed` on fatal discovery/repository failure.
+An unavailable/busy adapter is an idle delivery result, not fiscal acceptance or
+failure. The exact adapter lane is reserved before claim. Abort after transport
+begins reconciles unknown delivery; late promise settlement releases quarantine
+but cannot change the durable result. These process states do not replace the
+persisted delivery head or establish government authority.
 
 ## 9. Approval (`approval_request.status`) — added by D-93 (Question 011)
 

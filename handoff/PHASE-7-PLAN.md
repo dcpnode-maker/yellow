@@ -7,14 +7,25 @@ also preserved at reviewed main7829eae. Orders237–429 retain their recorded re
 states; Order430's rejection remains historical evidence.
 **Entry point:** approved Phase6/7 dependencies in BUILD-PLAN.md and handoff/ROADMAP.md.
 **Current implementation:** [Order440 fiscal submission](orders/440-fiscal-submission-lifecycle.md)
-continues durable request/delivery/reconciliation after private state and genuine-issued
-wire projection proof. [Order440 hotel journeys](orders/440-hotel-journeys-and-schema-guide.md)
+continues Question207 after PR90's independently merged private source binding at
+4ba1d6f, with complete CI/native ARM64 and post-merge80 schema/referee11/11.
+The authenticated provider and signed-receipt/read integration is now implemented
+in development. Independent actual81 storage13/0 (one upgrade-only skip), full
+synthetic cryptographic journey4/0, authorized GET6/0, hostile-grant readiness,
+identical fresh/upgraded schema and separate clean81 seed/referee11/11 pass.
+Earlier failed runs remain recorded. Current/historical runtime compatibility,
+full standing and exact-source Linux/ARM64 CI remain integration gates. Operator
+invoice discovery/issuance/printing and authentic external-provider sandbox acceptance
+remain unfinished. No live provider is configured or activated.
+[Order440 hotel journeys](orders/440-hotel-journeys-and-schema-guide.md)
 preserves the merged cross-department study and outstanding reference-matched visual
 review. [Question198](questions/198-concurrent-reviewed-source-integration.md)
 disambiguates the concurrent numbering; neither workstream replaces the other.
 [PROJECT-STATUS](../docs/PROJECT-STATUS.md) owns source, local and cloud evidence.
-Main includes77 migrations /127 tables;0075 still contains the rejected legacy entry
-while0076/0077 add reviewed native source. Provider and runtime activation are separate.
+Main includes80 migrations /128 tables;0075 still contains the rejected legacy entry
+while0076/0077 add reviewed native source and0078–0080 durable delivery/replay.
+The stable local stays77/127; unmerged development81 also has128 tables. Provider
+and runtime activation are separate.
 
 ## Outcome
 

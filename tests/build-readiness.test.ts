@@ -1,7 +1,9 @@
 import { describe, expect, test } from "bun:test";
+import type { SQL } from "bun";
 
 import { createApp } from "../src/app";
 import {
+  assertRuntimeReleaseReadiness,
   buildInfoFromEnvironment,
   CURRENT_MIGRATION_FRONTIER,
   UNKNOWN_BUILD_INFO,
@@ -10,13 +12,63 @@ import {
 const REVISION = "0123456789abcdef0123456789abcdef01234567";
 
 describe("release build identity and readiness", () => {
+  test("requires the runtime-only fiscal delivery discovery capability", async () => {
+    let query = "";
+    const sql = ((strings: TemplateStringsArray) => {
+      query = strings.join("?");
+      return Promise.resolve([{
+        runtimeIdentity: true,
+        coreSchemaPresent: true,
+        nativeSourceSchemaPresent: true,
+        nativeEntryAuthorityExact: true,
+        fiscalHistoryProtected: true,
+        fiscalEntryAuthorityExact: true,
+        fiscalReceiptReadAuthorityExact: true,
+        fiscalReceiptColumnsProtected: true,
+        issueFunctionPresent: true,
+        publicIssueDenied: true,
+        appIssueDenied: true,
+        runtimeIssueDenied: true,
+      }]);
+    }) as unknown as SQL;
+
+    await expect(assertRuntimeReleaseReadiness(sql)).resolves.toBeUndefined();
+    const fiscalEntries = query.match(
+      /fiscal_entry\(signature, runtime_allowed\) AS \(VALUES(?<entries>[\s\S]*?)\n    \), fiscal_authority/,
+    )?.groups?.entries;
+    expect(fiscalEntries).toBeDefined();
+    expect(fiscalEntries?.match(/\('[^']+', (?:true|false)\)/g)).toHaveLength(6);
+    expect(fiscalEntries).toContain(
+      "('public.runtime_due_india_fiscal_submissions(integer,uuid,uuid)', true)",
+    );
+    expect(fiscalEntries).toContain(
+      "('public.read_india_fiscal_submission_delivery_receipt(uuid,uuid,uuid,uuid)', false)",
+    );
+    expect(query).toContain("has_column_privilege");
+    expect(query).toContain("fiscalReceiptReadAuthorityExact");
+    expect(query).toContain("fiscalReceiptColumnsProtected");
+  });
+
+  test("refuses a ready claim when receipt read authority or column confinement fails", async () => {
+    for (const failed of ["fiscalReceiptReadAuthorityExact", "fiscalReceiptColumnsProtected"]) {
+      const sql = (() => Promise.resolve([{
+        runtimeIdentity: true, coreSchemaPresent: true, nativeSourceSchemaPresent: true,
+        nativeEntryAuthorityExact: true, fiscalHistoryProtected: true, fiscalEntryAuthorityExact: true,
+        fiscalReceiptReadAuthorityExact: true, fiscalReceiptColumnsProtected: true,
+        issueFunctionPresent: true, publicIssueDenied: true, appIssueDenied: true, runtimeIssueDenied: true,
+        [failed]: false,
+      }])) as unknown as SQL;
+      await expect(assertRuntimeReleaseReadiness(sql)).rejects.toThrow("runtime release readiness is unavailable");
+    }
+  });
+
   test("accepts only an exact immutable Git revision", () => {
     expect(buildInfoFromEnvironment({ YELLOW_BUILD_SHA: REVISION })).toEqual({
       schemaVersion: 1,
       revision: REVISION,
-      expectedMigrationFrontier: 77,
+      expectedMigrationFrontier: 81,
     });
-    expect(CURRENT_MIGRATION_FRONTIER).toBe(77);
+    expect(CURRENT_MIGRATION_FRONTIER).toBe(81);
     expect(buildInfoFromEnvironment({})).toBe(UNKNOWN_BUILD_INFO);
     expect(buildInfoFromEnvironment({ YELLOW_BUILD_SHA: "" })).toBe(UNKNOWN_BUILD_INFO);
 
@@ -46,7 +98,7 @@ describe("release build identity and readiness", () => {
     expect(await response.json()).toEqual({
       status: "not_ready",
       reason: "build_revision_unavailable",
-      build: { schemaVersion: 1, revision: null, expectedMigrationFrontier: 77 },
+      build: { schemaVersion: 1, revision: null, expectedMigrationFrontier: 81 },
     });
     expect(probes).toBe(0);
   });
@@ -70,7 +122,7 @@ describe("release build identity and readiness", () => {
     expect(await noRuntime.json()).toEqual({
       status: "not_ready",
       reason: "runtime_not_configured",
-      build: { schemaVersion: 1, revision: REVISION, expectedMigrationFrontier: 77 },
+      build: { schemaVersion: 1, revision: REVISION, expectedMigrationFrontier: 81 },
     });
 
     const failed = await unavailable.handle(new Request("http://yellow.test/ready"));
@@ -81,7 +133,7 @@ describe("release build identity and readiness", () => {
       status: "not_ready",
       reason: "runtime_dependency_unavailable",
       target: "yellow_runtime_database",
-      build: { schemaVersion: 1, revision: REVISION, expectedMigrationFrontier: 77 },
+      build: { schemaVersion: 1, revision: REVISION, expectedMigrationFrontier: 81 },
     });
 
     const success = await ready.handle(new Request("http://yellow.test/ready"));
@@ -90,7 +142,7 @@ describe("release build identity and readiness", () => {
     expect(await success.json()).toEqual({
       status: "ready",
       target: "yellow_runtime_database",
-      build: { schemaVersion: 1, revision: REVISION, expectedMigrationFrontier: 77 },
+      build: { schemaVersion: 1, revision: REVISION, expectedMigrationFrontier: 81 },
     });
   });
 });

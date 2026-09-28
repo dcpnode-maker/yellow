@@ -51,6 +51,7 @@ export interface OperatorRuntimeStatus {
   readonly reservationArrivalRollWorkerEnabled: boolean;
   readonly reservationDepartureRollWorkerEnabled: boolean;
   readonly businessDayRollWorkerEnabled: boolean;
+  readonly fiscalSubmissionDeliveryWorkerState?: "disabled" | "running" | "failed";
   readonly processStartedAt: string;
 }
 
@@ -63,13 +64,14 @@ export const DEFAULT_OPERATOR_RUNTIME_STATUS: OperatorRuntimeStatus = Object.fre
   reservationArrivalRollWorkerEnabled: false,
   reservationDepartureRollWorkerEnabled: false,
   businessDayRollWorkerEnabled: false,
+  fiscalSubmissionDeliveryWorkerState: "disabled",
   processStartedAt: new Date(0).toISOString(),
 });
 
 export const PROJECT_BUILD_SNAPSHOT: ProjectBuildSnapshot = Object.freeze({
   schemaVersion: 2,
-  recordedAt: "2026-09-06",
-  label: "Durable fiscal submission integration in progress",
+  recordedAt: "2026-09-07",
+  label: "Signed fiscal provider integration; operator invoices next",
   roadmap: Object.freeze({
     phaseCount: 18,
     latestBuiltOrder: 439,
@@ -354,8 +356,8 @@ export const PROJECT_BUILD_SNAPSHOT: ProjectBuildSnapshot = Object.freeze({
     Object.freeze({
       order: 440,
       state: "proof_in_progress" as const,
-      summary: "Order 440 is the current Phase-7 work: provider-neutral durable fiscal submission and reconciliation after accepted native issuance; the separately descriptive Order 440 hotel journeys and fictional design study are merged as design input with a fictional in-memory prototype only. The separate Order 441 Astra Ultra RMS paper is documented research only, with no algorithm runtime or measured uplift.",
-      remaining: "Private fiscal reducer and issued-wire projection are independently verified; durable persistence, claim/reconciliation worker, canonical issued payload assembly and authenticated provider normalization remain unfinished. IRP provider activation and operator invoice UI remain separate; new-department release, local refresh, cloud deployment and live sandbox evidence remain outstanding; the hotel prototype is not production and Phase 7 is not complete.",
+      summary: "Order 440 durable fiscal submission, immutable replay, supervised delivery and private source-bound signature verification are independently merged through PR90 at 4ba1d6f (80 migrations / 128 public tables), with complete CI, native ARM64 execution and post-merge schema/referee 11/11. Q207 provider and signed-receipt integration passes independent actual81 storage, synthetic cryptographic recovery journey, authorized receipt GET, identical schema and clean seed/referee 11/11 in development. The separate Order 440 hotel-journey study remains a fictional design prototype; Order 441 Astra Ultra RMS remains documented research without algorithm runtime or measured uplift.",
+      remaining: "Development81 is not mergedmain80 or the preserved local77. Current/historical runtime compatibility and exact-source Linux/ARM64 CI remain integration gates. Operator invoice discovery, issuance and printing, provider onboarding and authentic sandbox acceptance remain unfinished. No local refresh, provider activation, new-department release or cloud deployment is claimed; Phase 7 is not complete.",
     }),
   ] satisfies readonly ProjectRecordedWorkSnapshot[]),
   phases: Object.freeze([

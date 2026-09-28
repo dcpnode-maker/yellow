@@ -48,6 +48,28 @@ const proof={viewport:innerWidth,theme,disclosure:{fixed:getComputedStyle(menu).
 document.querySelector('#result').textContent=JSON.stringify(proof);document.body.dataset.proof='ready';}));
 </script></body></html>`;
 
+async function readDevToolsPort(file: string, readText = () => Bun.file(file).text()): Promise<string> {
+  try {
+    return (await readText()).split(/\r?\n/, 1)[0] ?? "";
+  } catch (error) {
+    // Chromium can create the file before Windows releases its write handle.
+    // These two transient states reuse the existing bounded startup loop only.
+    const code = error && typeof error === "object" ? Reflect.get(error, "code") : undefined;
+    if (code === "EBUSY" || code === "ENOENT") return "";
+    throw error;
+  }
+}
+
+test("Order195: port-file startup retries only transient creation/locking errors", async () => {
+  for (const code of ["EBUSY", "ENOENT"]) {
+    const transient = Object.assign(new Error("transient port file"), { code });
+    expect(await readDevToolsPort("unused", async () => { throw transient; })).toBe("");
+    expect(await readDevToolsPort("unused", async () => "51234\n/browser")).toBe("51234");
+  }
+  const permanent = Object.assign(new Error("permission denied"), { code: "EACCES" });
+  await expect(readDevToolsPort("unused", async () => { throw permanent; })).rejects.toBe(permanent);
+});
+
 const measureInBrowser = async (htmlFile: string, profile: string, width: number, theme: string): Promise<GeometryProof> => {
   if (!browserPath) throw new Error("Chrome or Chromium is required for Order195 geometry proof");
   const url = `${pathToFileURL(htmlFile).href}?theme=${theme}`;
@@ -69,7 +91,7 @@ const measureInBrowser = async (htmlFile: string, profile: string, width: number
     let port = "";
     for (let attempt = 0; attempt < 800; attempt += 1) {
       if (existsSync(activePortFile)) {
-        port = (await Bun.file(activePortFile).text()).split(/\r?\n/, 1)[0] ?? "";
+        port = await readDevToolsPort(activePortFile);
       }
       port ||= diagnostic.match(/DevTools listening on ws:\/\/(?:127\.0\.0\.1|localhost|\[::1\]):(\d+)\//)?.[1] ?? "";
       if (port || chrome.exitCode !== null) break;

@@ -1,6 +1,6 @@
 # Order 440 — Durable fiscal submission and reconciliation
 
-**Status:** ACTIVE — private contract independently accepted; durable integration next.
+**Status:** ACTIVE — private source binding is independently merged through PR90 with complete CI and post-merge80 proof. Q207 provider/signed-receipt/read integration passes actual81 storage, full synthetic protocol journey, authorized GET, schema and clean seed/referee11/11. Current compatibility/full CI and operator invoice/printing plus authentic sandbox acceptance remain.
 Order434's exact candidate is accepted and merged; no provider is activated.
 **Phase:** 7, planned sequence item6.
 **Owner:** Codex coordinator; bounded internal builders, separate high-risk reviewer.
@@ -9,6 +9,94 @@ Order434's exact candidate is accepted and merged; no provider is activated.
 merged through PR83 as443e3826b47025106d1829fcbb406ce6302fbbba.
 
 ## Outcome
+
+[Question207](../questions/207-signed-fiscal-receipt-integration.md) now admits the
+complete provider/source claim/signed receipt/forward81/authorized GET integration
+with exact path ownership, legacy compatibility and executable proof requirements.
+PR90 has independently merged as4ba1d6f after all-six CI and normal CodeQL. This
+advances verified source, not the preserved local77 or provider activation. New-only
+post-merge80 proof and forward81 development are separately scoped in Q207.
+
+Current Q207 development2026-09-07: frozen forward81
+`d2e4e34a4587f4ee12ed5c43f8fac9d4186345877bdbb75ac74217460f0e06ac`
+is independently applied on owned synthetic targets. Fresh81 durability13/0 with
+one upgrade-only skip, actual cryptographic provider-to-GET journey4/0, separate
+receipt GET6/0, effective-ACL readiness19 assertions, identical normalized schemas
+and separate clean seed/referee11/11 pass. The first full upgrade run remains11pass/
+3harnessfail; its genuine80→81 preservation case passed and the repaired cases pass
+fresh81, not a claimed whole-upgrade rerun. The recovery journey now respects the
+real15-second lookup delay; its initial failures remain recorded. Main80/local77
+are untouched. Current runtime and historical compatibility plus full exact-source
+CI remain before publication/integration. No operator invoice/print or live-provider
+activation is implied. The precise independently executed proof is in review440.
+
+Historical checkpoint2026-09-07: PR89 exactd300 passes all six CI34053928779 jobs
+and normal CodeQL, including actual ARM64 decoder/JWS25/25. Nonimplementer
+fiscal_http_acceptance normally merges43fc758 and personally executes the separate
+fresh post-merge80 exact schema/seed/referee11/11. Main80 and local77 stay separate.
+Q206's new private invoice/QR binder passes root55/0(582) and112 adversarial
+assertions; source/test hashes are recorded in its review. It is source-bound
+signature evidence, not provider acceptance. Complete standing passes1719/0 with
+1264 explicit environment skips and22813 assertions after independently proved
+native batching/outsider-cwd and transient browser startup-read repairs. Both prior
+failed full runs remain recorded. Types,180 boundaries and23 licences pass.
+New candidate CI must actually run the binder on native ARM64 before integration.
+The full provider/SQL/receipt/operator/sandbox outcome remains unfinished.
+
+Historical D1399 runtime checkpoint:
+
+Current D1399: exacte4399cf passes all-six CI34049699932 and normal CodeQL;
+non-implementer fiscal_http_acceptance verifies actual full gates and merges PR88
+as2a0ba41. Separate genuine post-merge80 schema and seed/referee11/11 pass.
+Question206 admits private exact JSON and RS256 dependencies of the complete
+authenticated provider/signed receipt/read-model outcome. It does not yet admit
+the prospective81 migration. Main80 and stable local77 remain separate.
+
+The following Q204 checkpoints retain historical failure/repair evidence.
+
+Q204's latest harness checkpoint is D1397. Actual CI34046418901 proves the Linux
+batch fixture and owned-child cleanup, but fails the first browser at the new8s
+inner budget; later quality/database gates are skipped. The admitted correction
+shares one55s/85s monotonic budget across all twelve cases inside unchanged60s/90s
+test limits. Root's genuine browser/helper/workflow15/15 (213 assertions), complete
+standing1,674/0 with1,264 explicit skips (22,293 assertions), types/boundaries/
+licences pass. Independent frozen-delta focused23/23 plus one Unix skip and actual
+browser4/4 (120 assertions) approve publication. Fresh full CI remains required;
+this changes no production code, SQL, provider or retained local app.
+
+[Question205](../questions/205-fiscal-immutable-command-replay.md) supersedes the
+earlier integration approval: original request/retry keys incorrectly returned a
+later head. Forward79 and canonical HTTP body repair now pass independently executed
+78→79 and all-key replay proof. No applied migration or stored financial row changes.
+Exact15f5204 passes all six CI34039764089 jobs, including the repaired Linux readiness
+and canonical referee. PR87 is independently merged as22f1bed; a separate actual79
+post-merge schema/referee11/11 also passes. The single founder preview remains77.
+
+[Question204](../questions/204-supervised-fiscal-delivery-runtime.md) implements
+supervised discovery→claim→transport→reconciliation with frozen migration80, bounded
+adapter lanes and cancellation, database-clock lookup cadence and common process
+shutdown. Independent genuine two-tenant HTTP/worker proof11/11(95), extra lock/ACL
+proof and current80 schema/referee11/11 pass. New discovery authority is included
+in startup readiness, with historical79 rejection and hostile ACL/config tests.
+Restart-safe lookup receives detached original issued bytes, not only internal IDs;
+the fresh-worker actual database proof needs no prior in-memory submit. Final
+standing1,664/0 with1,263 explicit database skips, types,177 boundaries and23 licences
+pass. Complete current80 CI and actual Linux process/readiness proof remain required
+before integration. Real authenticated provider/sandbox remains unfinished.
+
+[Question203](../questions/203-fiscal-submission-http-integration.md) admits both
+authenticated request/retry HTTP persistence paths after Q201 exact Linux CI.
+They remain unavailable by default: no role grant or adapter is activated.
+Independent real-database signed-session proof now passes: root personally13/13(125),
+including five actual PostgreSQL cases. Exactcb9a87f all-six CI34017067690 now
+passes, with required HTTP9/9(89), including all five genuine cases, and referee11/11.
+Delivery-worker integration and authenticated provider/sandbox remain unfinished.
+
+[Question201](../questions/201-canonical-fiscal-submission-integration.md) admits
+canonical78, release/catalogue/CI proof and transaction-safe request/retry commands
+after Q199's independent execution. It does not activate a provider or refresh the
+stable local app. Historical private-scope restrictions below remain the record of
+those stages; Q201 names the exact newly admitted paths.
 
 Register an already-issued eligible fiscal document through a replaceable provider
 port, preserve the exact issued bytes, record every delivery attempt and receipt,
@@ -54,6 +142,14 @@ reconciliation and crash-recovery tests. Revisit worker partitioning only after
 measured queue/latency pressure, without weakening invoice identity or retry safety.
 
 ## Verified provider facts, not activation authority
+
+[Question206](../questions/206-clearirp-protocol-and-signed-receipts.md) preserves
+the latest directly read ClearIRP protocol evidence, existing artifact-storage gaps
+and independently critiqued proposal for authenticated transport, immutable signed
+receipts and an authorized read model. Only its exact private decoder and JWS
+and original-source binding paths are admitted; the full provider/SQL/read integration remains to be
+admitted. Its direct core lookup evidence must not be confused with the commercial
+gateway's separate protocol. Q204 is merged; Q206 is current implementation.
 
 The official GSTN IRIS IRP6 pages document Generate IRN and retrieval by document
 number/date/type. Generation checks duplicates across IRPs. Document lookup has a
@@ -198,3 +294,28 @@ denials, concurrent claims, crashes before/after transport, unknown/duplicate ou
 recovery, verified receipt binding, retained audit and immutable document/accounting
 census. Migration/schema/11-invariant and independent personally executed proof apply
 to that later high-risk integration. Lane A unit tests alone do not close this order.
+
+## Q199 durable foundation checkpoint
+
+The private SQL draft, repository and one-step worker are implemented without a new
+dependency or live provider. Root and independent native_migration_assembly each
+personally passed17 genuine PostgreSQL tests with190 assertions, including100
+competing claims, three GST wire families, unknown-outcome lookup, bounded retries,
+source/financial preservation, full write rollback, history retention and both actual
+audited seal commit schedules. Worker/state/wire40/40(207) and typecheck pass. Root
+standing1613/0 with1214 explicit database skips(21877;490 files) is separate evidence.
+
+Real red tests found null-result-family acceptance, leases consumed while waiting
+for locks, a concurrent same-request race, nullable mixed legacy/durable metadata,
+and the missing promised history-read grant. All have permanent regressions and
+repairs in the frozen draft. Request correlation IDs do not change semantic replay
+identity; actor/property permission is always checked again. Earlier partial runs and
+test-harness stalls remain in the logs, not counted as successful complete runs.
+
+Draft source SHA-256:
+`65323a81a999a11e3d55893411c994c0b841af9b0465ca7e80630fd78d0ffae6`.
+The draft is not in the migration runner: canonical main stays77/127, while the
+disposable draft catalogue is128 tables/118 policies. Independent reproducible
+schema-dump comparison and the canonical Python referee11/11 now pass; review440
+approves the private foundation and subsequent canonical migration/CI admission. No operator
+command, authenticated provider, serving local app or complete Order440 is claimed.

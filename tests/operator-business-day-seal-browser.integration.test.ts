@@ -4,6 +4,8 @@ import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 
+import { runOwnedProofProcess } from "./helpers/owned-proof-process";
+
 const root = resolve(import.meta.dir, "..");
 const operator = await Bun.file(resolve(root, "src/http/operator/operator.js")).text();
 const markup = await Bun.file(resolve(root, "src/http/operator/index.html")).text();
@@ -29,15 +31,17 @@ const behavior = slice(" function dayCloseSealIsCurrent", " async function runDa
 const dialogMarkup = markup.match(/<dialog class="day-close-seal-dialog"[\s\S]*?<\/dialog>/)?.[0];
 if (!dialogMarkup) throw new Error("production seal dialog is missing");
 
-async function chromium(html: string, width: number, theme: string) {
+async function chromium(html: string, width: number, theme: string, expiresAt: number) {
   if (!browser) throw new Error("Chrome or Edge is required for Order389 browser proof");
   const dir = await mkdtemp(resolve(tmpdir(), "yellow-389-ui-"));
   const file = resolve(dir, "proof.html");
   await writeFile(file, html.replace("THEME", theme));
   try {
-    const proc = Bun.spawn([browser, "--headless=new", "--disable-gpu", "--no-sandbox", "--disable-dev-shm-usage", "--no-first-run", "--no-default-browser-check", "--allow-file-access-from-files", `--window-size=${width},900`, "--virtual-time-budget=4000", "--dump-dom", file], { stdout: "pipe", stderr: "ignore" });
-    const output = await new Response(proc.stdout).text();
-    expect(await proc.exited).toBe(0);
+    const remainingMs = Math.floor(expiresAt - performance.now());
+    if (remainingMs < 1) throw new Error("browser journey deadline exhausted before launch");
+    const result = await runOwnedProofProcess([browser, "--headless=new", "--disable-gpu", "--no-sandbox", "--disable-dev-shm-usage", "--no-first-run", "--no-default-browser-check", "--allow-file-access-from-files", `--user-data-dir=${resolve(dir, "profile")}`, `--window-size=${width},900`, "--virtual-time-budget=4000", "--dump-dom", file], { timeoutMs: remainingMs });
+    const output = result.stdout;
+    expect(result.exitCode).toBe(0);
     const encoded = output.match(/<pre id="proof">([^<]+)<\/pre>/)?.[1];
     if (!encoded) throw new Error(`browser proof did not complete: ${output.slice(-600)}`);
     return JSON.parse(encoded.replaceAll("&quot;", '"').replaceAll("&amp;", "&")) as Record<string, unknown>;
@@ -70,11 +74,13 @@ $("#proof").textContent=JSON.stringify(out);})();
 </script></body></html>`;
 
 test("Order389 executes deliberate seal retry, refresh, focus and six-theme geometry in Chromium", async () => {
+  // All twelve launches share this budget, leaving five seconds for final cleanup.
+  const expiresAt = performance.now() + 85_000;
   expect(operator).toContain("dayCloseSeal.hidden = result.readiness.ready !== true");
   expect(operator).toContain("recoverSealed && businessDate && error?.status === 404");
   for (const theme of ["apple", "android", "win95", "glass", "neo", "erp"]) {
     for (const width of [390, 1280]) {
-      const proof = await chromium(fixture, width, theme);
+      const proof = await chromium(fixture, width, theme, expiresAt);
       expect(proof).toMatchObject({ open: true, initialFocus: true, cancelCalls: 0, cancelFocus: true, staleSuppressed: true, nativeCloseCalls: 0, nativeCloseFocus: true, ambiguousRefresh: 1, ambiguousFocus: true, retrySame: true, zeroBytes: true, post: "POST", path: "/api/v1/properties/property-a/business-days/2026-09-02/seal", ascii: true, definitiveClears: true, everyResultRefreshes: true, dialogClosed: true, theme, overflow: true });
       expect(Number(proof.minHeight)).toBeGreaterThanOrEqual(theme === "android" ? 48 : 44);
     }

@@ -23,7 +23,12 @@ try {
     $orderFiles = @(Get-ChildItem 'handoff/orders' -Filter '*.md' -File -ErrorAction SilentlyContinue | Sort-Object Name)
     $reviewFiles = @(Get-ChildItem 'handoff/reviews' -Filter '*.md' -File -ErrorAction SilentlyContinue | Sort-Object Name)
     $questionFiles = @(Get-ChildItem 'handoff/questions' -Filter '*.md' -File -ErrorAction SilentlyContinue | Sort-Object Name)
-    $historicalUnclosed = @($orderFiles | Where-Object { -not (Select-String -Path $_.FullName -Pattern '^## MERGED' -Quiet) })
+    $mergedOrderPaths = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::OrdinalIgnoreCase)
+    if ($orderFiles.Count -gt 0) {
+        Select-String -LiteralPath $orderFiles.FullName -Pattern '^## MERGED' -List |
+            ForEach-Object { [void]$mergedOrderPaths.Add($_.Path) }
+    }
+    $historicalUnclosed = @($orderFiles | Where-Object { -not $mergedOrderPaths.Contains($_.FullName) })
     $statusPath = if ($env:YELLOW_PROJECT_STATUS_FILE) { $env:YELLOW_PROJECT_STATUS_FILE } else { 'docs/PROJECT-STATUS.md' }
     $statusText = [System.IO.File]::ReadAllText((Resolve-Path -LiteralPath $statusPath).Path, $utf8NoBom)
     function Read-StatusField([string]$Name) {
@@ -47,13 +52,19 @@ try {
             throw "Current order file is missing: $currentOrderFile"
         }
     }
-    $openQuestions = @($questionFiles | Where-Object {
-        $isResponse = $_.Name -match '^\d+-ARCHITECT-RESPONSE\.md$'
+    $questionCandidates = @($questionFiles | Where-Object {
+        $_.Name -notmatch '^\d+-ARCHITECT-RESPONSE\.md$'
+    })
+    $resolvedQuestionPaths = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::OrdinalIgnoreCase)
+    if ($questionCandidates.Count -gt 0) {
+        Select-String -LiteralPath $questionCandidates.FullName -Pattern '^## RESOLVED','^## RATIFIED' -List |
+            ForEach-Object { [void]$resolvedQuestionPaths.Add($_.Path) }
+    }
+    $openQuestions = @($questionCandidates | Where-Object {
         $number = $_.BaseName.Split('-')[0]
-        $response = Join-Path 'handoff/questions' "$number-ARCHITECT-RESPONSE.md"
-        -not $isResponse -and
-            -not (Select-String -Path $_.FullName -Pattern '^## RESOLVED','^## RATIFIED' -Quiet) -and
-            -not (Test-Path -LiteralPath $response)
+        $response = [System.IO.Path]::Combine($PSScriptRoot, 'handoff', 'questions', "$number-ARCHITECT-RESPONSE.md")
+        -not $resolvedQuestionPaths.Contains($_.FullName) -and
+            -not ([System.IO.File]::Exists($response) -or [System.IO.Directory]::Exists($response))
     })
     Write-Host "Current task: $currentTask"
     Write-Host "Lifecycle: $currentLifecycle"

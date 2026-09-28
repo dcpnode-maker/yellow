@@ -390,6 +390,26 @@ const EXPECTED_MIGRATIONS = [
     filename: "0077_india_native_fiscal_source_completion.sql",
     checksum_sha256: "c4023a323ac70dc17e17a1a4bf092c9d35225cf7eef3b094fc31c2b5df28b41b",
   },
+  {
+    version: 78,
+    filename: "0078_fiscal_submission_durability.sql",
+    checksum_sha256: "65323a81a999a11e3d55893411c994c0b841af9b0465ca7e80630fd78d0ffae6",
+  },
+  {
+    version: 79,
+    filename: "0079_fiscal_immutable_command_receipts.sql",
+    checksum_sha256: "b233821d0b683810542f91834458e98f657996268d81bc81398f6c15f86ca52f",
+  },
+  {
+    version: 80,
+    filename: "0080_fiscal_submission_delivery_runtime.sql",
+    checksum_sha256: "2c6b1a82e031470bace7ae8b37a2d67e54497014bd1e82f5364d23a2ce25f250",
+  },
+  {
+    version: 81,
+    filename: "0081_fiscal_signed_delivery_receipts.sql",
+    checksum_sha256: "d2e4e34a4587f4ee12ed5c43f8fac9d4186345877bdbb75ac74217460f0e06ac",
+  },
 ];
 
 if (REQUIRE_DATABASE && !DATABASE_URL) {
@@ -468,9 +488,246 @@ databaseDescribe("fresh deployment database acceptance", () => {
             AND class.relforcerowsecurity) AS "forceRlsTables"
     `;
     expect(catalogue).toEqual([{
-      migrations: 77, tables: 127, rlsTables: 117, policies: 117, forceRlsTables: 26,
-      permissions: 11, permissionGrants: 0,
+      migrations: 81, tables: 128, rlsTables: 118, policies: 118, forceRlsTables: 27,
+      permissions: 14, permissionGrants: 0,
     }]);
+  });
+
+  test("has exact durable fiscal head, protected history and capability authority", async () => {
+    const head = await sql!<Array<{ columns: string; protected_trigger: boolean;
+      document_provider_index: boolean; delivery_cursor_definition: string }>>`
+      SELECT
+        (SELECT string_agg(column_name||':'||data_type||':'||is_nullable,',' ORDER BY ordinal_position)
+           FROM information_schema.columns
+          WHERE table_schema='public' AND table_name='fiscal_submission'
+            AND column_name = ANY(ARRAY[
+              'delivery_version','property_node','business_date','document_sha256','wire_sha256','wire_text',
+              'provider_extension_id','provider_extension_version','attempt_id','attempt_number','retry_count',
+              'transition_seq','claim_token_hash','claim_expires_at','claim_action','disposition',
+              'reconciliation_reason','resolution_source','response_sha256','requested_by','request_id'
+            ])) AS columns,
+        EXISTS(
+          SELECT 1 FROM pg_catalog.pg_trigger
+           WHERE tgrelid='public.fiscal_submission'::regclass
+             AND tgname='fiscal_submission_protected_head' AND tgenabled='O' AND NOT tgisinternal
+        ) AS "protected_trigger",
+        EXISTS(
+          SELECT 1 FROM pg_catalog.pg_index index
+          JOIN pg_catalog.pg_class index_class ON index_class.oid=index.indexrelid
+          WHERE index.indrelid='public.fiscal_submission'::regclass
+            AND index_class.relname='fiscal_submission_document_provider_uq'
+            AND index.indisunique AND pg_catalog.pg_get_expr(index.indpred,index.indrelid)='(delivery_version = 1)'
+        ) AS "document_provider_index",
+        (SELECT pg_catalog.pg_get_indexdef(index.indexrelid)
+           FROM pg_catalog.pg_index index
+           JOIN pg_catalog.pg_class index_class ON index_class.oid=index.indexrelid
+          WHERE index.indrelid='public.fiscal_submission'::regclass
+            AND index_class.relname='fiscal_submission_delivery_cursor'
+            AND index.indisvalid AND index.indisready) AS "delivery_cursor_definition"
+    `;
+    expect(head).toEqual([{
+      columns: [
+        "delivery_version:smallint:YES", "property_node:uuid:YES", "business_date:date:YES",
+        "document_sha256:text:YES", "wire_sha256:text:YES", "wire_text:text:YES",
+        "provider_extension_id:uuid:YES", "provider_extension_version:integer:YES",
+        "attempt_id:uuid:YES", "attempt_number:integer:YES", "retry_count:integer:YES",
+        "transition_seq:bigint:YES", "claim_token_hash:text:YES",
+        "claim_expires_at:timestamp with time zone:YES", "claim_action:text:YES",
+        "disposition:text:YES", "reconciliation_reason:text:YES", "resolution_source:text:YES",
+        "response_sha256:text:YES", "requested_by:uuid:YES", "request_id:uuid:YES",
+      ].join(","),
+      protected_trigger: true,
+      document_provider_index: true,
+      delivery_cursor_definition: "CREATE INDEX fiscal_submission_delivery_cursor ON public.fiscal_submission USING btree (tenant_id, id) WHERE ((delivery_version = 1) AND (status = ANY (ARRAY['pending'::text, 'submitted'::text])))",
+    }]);
+
+    const history = await sql!<Array<{
+      owner: string; rls: boolean; forceRls: boolean; policyCount: number;
+      policyExact: boolean; appSelect: boolean; appMutation: boolean;
+      runtimePrivileges: number; publicPrivileges: number; tenantLeadingIndexes: number;
+      immutableTrigger: boolean; requiredConstraints: number;
+    }>>`
+      SELECT pg_catalog.pg_get_userbyid(class.relowner) AS owner,
+             class.relrowsecurity AS rls,
+             class.relforcerowsecurity AS "forceRls",
+             (SELECT count(*)::int FROM pg_catalog.pg_policy
+               WHERE polrelid=class.oid AND polname='tenant_isolation') AS "policyCount",
+             EXISTS(
+               SELECT 1 FROM pg_catalog.pg_policy policy
+                WHERE policy.polrelid=class.oid AND policy.polname='tenant_isolation'
+                  AND pg_catalog.pg_get_expr(policy.polqual,policy.polrelid)=
+                    '(tenant_id = (NULLIF(current_setting(''app.tenant_id''::text, true), ''''::text))::uuid)'
+                  AND pg_catalog.pg_get_expr(policy.polwithcheck,policy.polrelid)=
+                    '(tenant_id = (NULLIF(current_setting(''app.tenant_id''::text, true), ''''::text))::uuid)'
+             ) AS "policyExact",
+             pg_catalog.has_table_privilege('app_role',class.oid,'SELECT') AS "appSelect",
+             pg_catalog.has_table_privilege('app_role',class.oid,'INSERT,UPDATE,DELETE,TRUNCATE') AS "appMutation",
+             (SELECT count(*)::int FROM unnest(ARRAY[
+               'SELECT','INSERT','UPDATE','DELETE','TRUNCATE','REFERENCES','TRIGGER'
+             ]) privilege WHERE pg_catalog.has_table_privilege('yellow_runtime',class.oid,privilege))
+               AS "runtimePrivileges",
+             (SELECT count(*)::int FROM pg_catalog.aclexplode(
+               COALESCE(class.relacl,pg_catalog.acldefault('r',class.relowner))) acl WHERE acl.grantee=0)
+               AS "publicPrivileges",
+             (SELECT count(*)::int FROM pg_catalog.pg_index index
+               WHERE index.indrelid=class.oid
+                 AND (SELECT attribute.attname FROM pg_catalog.pg_attribute attribute
+                       WHERE attribute.attrelid=class.oid AND attribute.attnum=index.indkey[0])='tenant_id')
+               AS "tenantLeadingIndexes",
+             EXISTS(SELECT 1 FROM pg_catalog.pg_trigger
+               WHERE tgrelid=class.oid AND tgname='fiscal_submission_history_immutable'
+                 AND tgenabled='O' AND NOT tgisinternal) AS "immutableTrigger",
+             (SELECT count(*)::int FROM pg_catalog.pg_constraint
+               WHERE conrelid=class.oid AND conname = ANY(ARRAY[
+                 'fiscal_submission_history_pk','fiscal_submission_history_id_uq',
+                 'fiscal_submission_history_head_fk','fiscal_submission_history_document_fk',
+                 'fiscal_submission_history_property_fk','fiscal_submission_history_provider_fk',
+                 'fiscal_submission_history_actor_fk','fiscal_submission_history_event_shape_ck'
+               ])) AS "requiredConstraints"
+        FROM pg_catalog.pg_class class
+       WHERE class.oid='public.fiscal_submission_history'::regclass
+    `;
+    expect(history).toEqual([{
+      owner: "yellow_owner", rls: true, forceRls: true, policyCount: 1, policyExact: true,
+      appSelect: false, appMutation: false, runtimePrivileges: 0, publicPrivileges: 0,
+      tenantLeadingIndexes: 4, immutableTrigger: true, requiredConstraints: 8,
+    }]);
+
+    const fiscalColumnAuthority = await sql!<Array<{
+      relation: string; appTablePrivileges: number; appColumnPrivileges: string;
+      runtimeTablePrivileges: number; runtimeColumnPrivileges: string;
+      publicTablePrivileges: number; publicColumnPrivileges: string;
+    }>>`
+      SELECT class.relname AS relation,
+             (SELECT count(*)::int FROM unnest(ARRAY[
+               'SELECT','INSERT','UPDATE','DELETE','TRUNCATE','REFERENCES','TRIGGER'
+             ]) AS privilege(name) WHERE pg_catalog.has_table_privilege('app_role',class.oid,privilege.name))
+               AS "appTablePrivileges",
+             COALESCE((SELECT pg_catalog.string_agg(attribute.attname||':'||privilege.name,','
+                                                    ORDER BY attribute.attnum,privilege.name)
+               FROM pg_catalog.pg_attribute attribute
+               CROSS JOIN unnest(ARRAY['SELECT','INSERT','UPDATE','REFERENCES']) AS privilege(name)
+              WHERE attribute.attrelid=class.oid AND attribute.attnum>0 AND NOT attribute.attisdropped
+                AND pg_catalog.has_column_privilege('app_role',class.oid,attribute.attnum,privilege.name)), '')
+               AS "appColumnPrivileges",
+             (SELECT count(*)::int FROM unnest(ARRAY[
+               'SELECT','INSERT','UPDATE','DELETE','TRUNCATE','REFERENCES','TRIGGER'
+             ]) AS privilege(name) WHERE pg_catalog.has_table_privilege('yellow_runtime',class.oid,privilege.name))
+               AS "runtimeTablePrivileges",
+             COALESCE((SELECT pg_catalog.string_agg(attribute.attname||':'||privilege.name,','
+                                                    ORDER BY attribute.attnum,privilege.name)
+               FROM pg_catalog.pg_attribute attribute
+               CROSS JOIN unnest(ARRAY['SELECT','INSERT','UPDATE','REFERENCES']) AS privilege(name)
+              WHERE attribute.attrelid=class.oid AND attribute.attnum>0 AND NOT attribute.attisdropped
+                AND pg_catalog.has_column_privilege('yellow_runtime',class.oid,attribute.attnum,privilege.name)), '')
+               AS "runtimeColumnPrivileges",
+             (SELECT count(*)::int FROM unnest(ARRAY[
+               'SELECT','INSERT','UPDATE','DELETE','TRUNCATE','REFERENCES','TRIGGER'
+             ]) AS privilege(name) WHERE pg_catalog.has_table_privilege('public',class.oid,privilege.name))
+               AS "publicTablePrivileges",
+             COALESCE((SELECT pg_catalog.string_agg(attribute.attname||':'||privilege.name,','
+                                                    ORDER BY attribute.attnum,privilege.name)
+               FROM pg_catalog.pg_attribute attribute
+               CROSS JOIN unnest(ARRAY['SELECT','INSERT','UPDATE','REFERENCES']) AS privilege(name)
+              WHERE attribute.attrelid=class.oid AND attribute.attnum>0 AND NOT attribute.attisdropped
+                AND pg_catalog.has_column_privilege('public',class.oid,attribute.attnum,privilege.name)), '')
+               AS "publicColumnPrivileges"
+        FROM pg_catalog.pg_class class
+       WHERE class.oid IN ('public.fiscal_submission'::regclass,
+                           'public.fiscal_submission_history'::regclass)
+       ORDER BY class.relname
+    `;
+    expect(fiscalColumnAuthority).toEqual([
+      {
+        relation: "fiscal_submission", appTablePrivileges: 0,
+        appColumnPrivileges: "tenant_id:SELECT,document_id:SELECT,status:SELECT",
+        runtimeTablePrivileges: 0, runtimeColumnPrivileges: "",
+        publicTablePrivileges: 0, publicColumnPrivileges: "",
+      },
+      {
+        relation: "fiscal_submission_history", appTablePrivileges: 0, appColumnPrivileges: "",
+        runtimeTablePrivileges: 0, runtimeColumnPrivileges: "",
+        publicTablePrivileges: 0, publicColumnPrivileges: "",
+      },
+    ]);
+
+    const receiptPermission = await sql!<Array<{
+      code: string; description: string; assigned: number;
+    }>>`
+      SELECT permission.code,permission.description,
+             (SELECT count(*)::int FROM public.role_permission grant_row
+               WHERE grant_row.permission_code=permission.code) AS assigned
+        FROM public.permission permission
+       WHERE permission.code='tax-fiscal.submissions:read'
+    `;
+    expect(receiptPermission).toEqual([{
+      code: "tax-fiscal.submissions:read",
+      description: "Read a property-authorized durable fiscal delivery receipt",
+      assigned: 0,
+    }]);
+
+    const capabilities = await sql!<Array<{
+      name: string; owner: string; securityDefiner: boolean; config: string[];
+      appExecute: boolean; runtimeExecute: boolean; publicExecute: boolean;
+    }>>`
+      WITH expected(name) AS (VALUES
+        ('request_india_fiscal_submission(uuid,uuid,uuid,uuid,uuid,text,uuid)'),
+        ('retry_india_fiscal_submission(uuid,uuid,uuid,text,uuid)'),
+        ('claim_india_fiscal_submission(uuid,uuid,integer)'),
+        ('reconcile_india_fiscal_submission(uuid,uuid,uuid,uuid,jsonb)'),
+        ('runtime_due_india_fiscal_submissions(integer,uuid,uuid)'),
+        ('read_india_fiscal_submission_delivery_receipt(uuid,uuid,uuid,uuid)')
+      )
+      SELECT expected.name,pg_catalog.pg_get_userbyid(procedure.proowner) AS owner,
+             procedure.prosecdef AS "securityDefiner",procedure.proconfig AS config,
+             pg_catalog.has_function_privilege('app_role',procedure.oid,'EXECUTE') AS "appExecute",
+             pg_catalog.has_function_privilege('yellow_runtime',procedure.oid,'EXECUTE') AS "runtimeExecute",
+             pg_catalog.has_function_privilege('public',procedure.oid,'EXECUTE') AS "publicExecute"
+        FROM expected
+        JOIN pg_catalog.pg_proc procedure
+          ON procedure.oid=pg_catalog.to_regprocedure('public.'||expected.name)
+       ORDER BY expected.name
+    `;
+    expect(capabilities).toEqual([
+      { name: "claim_india_fiscal_submission(uuid,uuid,integer)", owner: "yellow_owner",
+        securityDefiner: true, config: ["search_path=pg_catalog, public, pg_temp", "TimeZone=UTC", "DateStyle=ISO,YMD"],
+        appExecute: false, runtimeExecute: true, publicExecute: false },
+      { name: "read_india_fiscal_submission_delivery_receipt(uuid,uuid,uuid,uuid)", owner: "yellow_owner",
+        securityDefiner: true, config: ["search_path=pg_catalog, public, pg_temp", "TimeZone=UTC", "DateStyle=ISO,YMD"],
+        appExecute: true, runtimeExecute: false, publicExecute: false },
+      { name: "reconcile_india_fiscal_submission(uuid,uuid,uuid,uuid,jsonb)", owner: "yellow_owner",
+        securityDefiner: true, config: ["search_path=pg_catalog, public, pg_temp", "TimeZone=UTC", "DateStyle=ISO,YMD"],
+        appExecute: false, runtimeExecute: true, publicExecute: false },
+      { name: "request_india_fiscal_submission(uuid,uuid,uuid,uuid,uuid,text,uuid)", owner: "yellow_owner",
+        securityDefiner: true, config: ["search_path=pg_catalog, public, pg_temp", "TimeZone=UTC", "DateStyle=ISO,YMD"],
+        appExecute: true, runtimeExecute: false, publicExecute: false },
+      { name: "retry_india_fiscal_submission(uuid,uuid,uuid,text,uuid)", owner: "yellow_owner",
+        securityDefiner: true, config: ["search_path=pg_catalog, public, pg_temp", "TimeZone=UTC", "DateStyle=ISO,YMD"],
+        appExecute: true, runtimeExecute: false, publicExecute: false },
+      { name: "runtime_due_india_fiscal_submissions(integer,uuid,uuid)", owner: "yellow_owner",
+        securityDefiner: true, config: ["search_path=pg_catalog, public, pg_temp", "TimeZone=UTC", "DateStyle=ISO,YMD"],
+        appExecute: false, runtimeExecute: true, publicExecute: false },
+    ]);
+
+    const helpers = await sql!<Array<{ count: number; ownerOnly: boolean }>>`
+      SELECT count(*)::int AS count,
+             bool_and(pg_catalog.pg_get_userbyid(procedure.proowner)='yellow_owner'
+               AND procedure.proconfig[1]='search_path=pg_catalog, public, pg_temp'
+               AND NOT pg_catalog.has_function_privilege('app_role',procedure.oid,'EXECUTE')
+               AND NOT pg_catalog.has_function_privilege('yellow_runtime',procedure.oid,'EXECUTE')
+               AND NOT pg_catalog.has_function_privilege('public',procedure.oid,'EXECUTE')) AS "ownerOnly"
+        FROM pg_catalog.pg_proc procedure
+        JOIN pg_catalog.pg_namespace namespace ON namespace.oid=procedure.pronamespace
+       WHERE namespace.nspname='public'
+         AND procedure.proname = ANY(ARRAY[
+           'india_fiscal_submission_prevent_history_mutation','india_fiscal_submission_protect_head',
+           'india_fiscal_submission_lock_relations','india_fiscal_submission_money_minor',
+           'india_fiscal_submission_reference','india_fiscal_submission_party_wire',
+           'india_fiscal_submission_project_wire','india_fiscal_submission_receipt',
+           'india_fiscal_submission_record_transition','india_fiscal_submission_signed_result_v1_valid'
+         ])
+    `;
+    expect(helpers).toEqual([{ count: 10, ownerOnly: true }]);
   });
 
   test("has the exact configured positive-tax semantic-route schema and read-only runtime ACL", async () => {
@@ -2593,7 +2850,7 @@ databaseDescribe("fresh deployment database acceptance", () => {
         (SELECT count(*)::int FROM pg_catalog.pg_tables WHERE schemaname = 'public') AS tables,
         (SELECT count(*)::int FROM pg_catalog.pg_policies WHERE schemaname = 'public') AS policies
     `;
-    expect(shape).toEqual([{ tables: 127, policies: 117 }]);
+    expect(shape).toEqual([{ tables: 128, policies: 118 }]);
 
     const relations = await sql!<Array<{
       relation: string;
@@ -2705,7 +2962,7 @@ databaseDescribe("fresh deployment database acceptance", () => {
         has_column_privilege('app_role','public.journal','approval_request_id','UPDATE') AS "appApprovalUpdate"
     `;
     expect(shape).toEqual([{
-      tables: 127, policies: 117, directBill: 1,
+      tables: 128, policies: 118, directBill: 1,
       approvalNullable: true, compositeFk: true, oneUseIndex: true,
       appApprovalInsert: false, appApprovalUpdate: false,
     }]);

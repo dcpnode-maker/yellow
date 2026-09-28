@@ -6,13 +6,92 @@ permit; no worker may silently widen an order. A phase is DONE only when its DoD
 checks pass in CI. Every session starts with the ritual below; no phase may modify
 a prior phase's public surface without a written note in `DECISIONS.log`.
 
-## Current implementation status — 2026-09-06, consolidated Codex Yellow work
+## Current implementation status — 2026-09-07, consolidated Codex Yellow work
+
+PR90 is independently merged as4ba1d6f after all-six CI, actual native ARM64 source
+binding and separate post-merge80 schema/referee11/11. Q207 now implements the
+complete provider→signed receipt→authorized GET path. Independent actual81 proof
+passes fresh durability13/0 (one upgrade-only skip), full synthetic cryptographic
+journey4/0, receipt GET6/0, hostile-grant readiness19 assertions, identical fresh/
+upgraded schema and a separate clean canonical seed/referee11/11. Initial harness
+and recovery-timing failures remain recorded, not relabelled green.
+
+Development81 is not mergedmain80 or the preserved local77. Full current/historical
+runtime compatibility and exact-source Linux/ARM64 CI remain before integration.
+Operator invoice discovery/issuance/printing and authentic external-provider sandbox
+acceptance remain the full Phase7 outcome. All18 phases and dependency-gated
+11→13→17 priority are unchanged; this is not a phase exit.
+
+The following paragraphs preserve the preceding private-foundation checkpoint.
+
+PR89 independently merges the private exact decoder and pinned signature verifier
+as43fc758 after exactd300 all-six CI34053928779, native ARM64 crypto25/25 and
+fresh post-merge80 schema/seed/referee11/11. Main80/128 and stable local77/127
+remain separate. Q206 original-source invoice/QR binding is independently verified
+in development: root55/0(582) plus112 adversarial assertions on frozen source.
+Complete standing passes1719/0 with1264 explicit environment skips and22813
+assertions (507files;109.65s), after independently proved native batch/outsider-cwd
+and transient Chromium port-file repairs. Prior failed runs remain recorded and
+all existing deadlines/geometry assertions are preserved. Types,180 boundaries and
+23 licences pass. The new binder still requires exact-source native ARM64 and full CI.
+Authenticated transport, signed receipt retention/read, operator invoice/printing
+and authentic sandbox acceptance remain the full outcome; no Phase7 closure.
+
+The following D1399 paragraph is the preceding merged runtime checkpoint.
+
+D1399 closes Q204 integration: exacte4399cf passes all six CI34049699932 jobs
+and normal CodeQL. Non-implementer fiscal_http_acceptance personally verifies the
+complete migration/delivery/Linux/readiness/compatibility/schema/referee outputs
+and normally merges PR88 as2a0ba41. A separate fresh post-merge80 native database
+matches frozen schema and passes seed/referee11/11; template and global roles are
+unchanged. Main80/128 and stable local77/127 remain separate releases.
+Question206 is current implementation: signed provider artifacts and authorized
+receipt reads. Its independently approved private exact decoder passes12/12 plus
+10,000 differential cases and full standing1686/0 with1264 explicit environment
+skips. The private RS256 verifier is admitted next; real provider, full signed
+receipt integration, operator printing and sandbox acceptance remain unfinished.
+All18 phases and dependency-gated11→13→17 priority remain unchanged.
+
+### Historical checkpoints (not current integration blockers)
+
+D1398 repairs the sole stale worker caller exposed by exact1b7 CI34047572346.
+Five jobs pass, including full Linux quality; actual current80 delivery11/11 and
+Linux process5/5 pass before the older77-to78 durability case rejects its missing
+provider identity/deadline. The scoped caller correction preserves strict
+production validation and separately proves real cross-tenant database denial.
+Root and non-implementer each personally pass all19 historical durability cases
+on distinct pristine77 clones (227 assertions each). Types,177 boundaries and23
+licences pass. Complete standing passes1,674/0 with1,264 explicit DB/Unix skips and
+22,293 assertions in101.95s. The earlier unchanged long-stay timeout and its
+isolated12/12 result remain recorded; no test limit was changed. New exact-source
+CI remains required before integration. Main79 and stable local77 are unchanged;
+later phases are not closed.
+
+Q204's latest CI harness repair is documented atD1397: actual Linux CI verifies
+batched scans and owned-child cleanup but exposes an overly tight new eight-second
+browser budget. The repair shares one monotonic deadline across each complete
+journey, preserving its original60s/90s outer limit and every assertion. Root's
+complete local suite passes1,674/0 with1,264 explicit DB/Unix skips; focused real
+browser/helper/workflow proof passes15/15. Independent browser4/4 and focused23/23
+proof approves this bounded repair for publication. Fresh complete Linux/current80
+integration gates remain mandatory; earlier CI failures are retained.
+No Phase7 completion, provider activation or retained-local replacement is claimed.
+
+Latest: Q205 repairs late-replay drift without changing applied1–78 or financial
+rows. Exact15f5204 passes all six CI34039764089 jobs, and PR87 is independently
+merged as22f1bed with a separate post-merge actual79 schema/referee11/11. Main is
+now79 migrations/128 public tables. The founder preview stays exactb5ef708/77.
+Q204 supervised delivery is implemented with frozen migration80, independently
+executed genuine HTTP/worker11/11(93), extra ACL/rollback proof and current80
+schema/referee11/11. Complete current80 standing/CI and actual Linux process/readiness
+proof remain before integration. Production provider registration remains empty.
+The earlier CI checkpoints below are historical, not competing current-state records.
 
 [PROJECT-STATUS](docs/PROJECT-STATUS.md) is the canonical current-state record.
 Orders438/439 form the operational baseline through PR82. Order434's independently
 accepted candidate92346674c784b552356934e168d60e4b9650497a passed all five PR83 CI
 jobs and merged as443e3826. Reviewed PR84 then added hotel journeys, schema clarity
-and UI/UX research at main7829eae47d4281efa117c8d3c788c3be52d10d06. Main has77
+and UI/UX research at main7829eae47d4281efa117c8d3c788c3be52d10d06. That baseline has77
 migrations and127 public tables; Question195 preserves0076/0077 after immutable0075.
 The concurrent Order440 fiscal lane continues durable submission integration after
 private state and genuine-issued wire projection proof. The separately named
@@ -21,6 +100,21 @@ Astra Ultra RMS research, not implemented algorithms or measured uplift.
 [Question198](handoff/questions/198-concurrent-reviewed-source-integration.md)
 disambiguates concurrent identifiers and preserves both histories. Main integration,
 image publication and each deployed runtime retain separate receipts.
+PR85 subsequently mergedb5ef708 without changing77/127. Q201 now implements
+canonical78/128 and Tx-safe fiscal request/retry commands in development; real
+durability19/19 and migrations43/43 pass. Exact827be467 all-five CI34008495909
+also passes native116/116, current wire4/4, containment/readiness15/15 (including
+all12 repaired readiness cases with clean Linux exit), compatibility89/89,
+acceptance24/24 and referee11/11. Windows Bun's native crash remains open.
+The founder's local remains exact merged-main77; no provider activation or
+Phase7 completion is claimed.
+Q203 adds authenticated HTTP request/retry with verified-session tenant/property
+binding and an empty production adapter directory. Non-implementing root personally
+passes13/13(125), including five genuine PostgreSQL cases; its own exact-head CI
+is now green at exactcb9a87f in all-six CI34017067690, including required HTTP9/9
+with five genuine database cases and canonical referee11/11. Delivery-worker and
+provider integration remain outstanding. Separate Q202 ARM64 compatibility passes in all-six CI34010394787
+atd88ae59. This prepares free staging without deploying or activating a provider.
 Historical milestones below preserve the
 evidence available when written and do not compete with PROJECT-STATUS.
 

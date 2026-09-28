@@ -1,6 +1,8 @@
 # Question199 — Durable fiscal delivery foundation
 
-**Status:** RESOLVED technical admission; implementation and independent proof pending.
+**Status:** APPROVED PRIVATE FOUNDATION; independent integration17/17, units40/40,
+canonical referee11/11 and reproducible draft-schema proof passed. Canonical
+migration/catalogue/CI admission is the next separate step.
 **Order:** 440-fiscal-submission-lifecycle. **Date:** 2026-09-06.
 
 Build the next part of existing Order440 without creating a second financial ledger,
@@ -30,6 +32,9 @@ inputs are admitted; other mandate modes remain future provider implementations.
 Develop a complete forward-only SQL draft outside the migration runner first. Add
 nullable versioned head metadata with an exact all-or-none constraint; retain every
 legacy row byte-for-byte. Never backfill invented actor, payload or provider evidence.
+History grants app_role SELECT under tenant RLS for authenticated audit reads, never
+INSERT/UPDATE/DELETE. Existing application property permissions still govern any
+future endpoint; this draft adds no endpoint or raw runtime SELECT capability.
 Uniqueness is tenant/document/logical provider key, not extension version. An existing
 legacy submission for a document cannot be silently adopted or bypassed via a changed
 provider alias. History has tenant-leading keys, coherent composite references, FORCE
@@ -93,6 +98,14 @@ transport_result/lookup_result event shape already defined in the private reduce
 including complete tenant/provider/document/payload/attempt binding and bounded
 terminal authorityRef/responseSha256. Only the registered adapter may construct this
 event after verification; a test fixture is never production provider certification.
+
+Request-id is first-effect audit correlation, not semantic idempotency identity.
+The same action/key/tenant/property/document/provider/actor must replay even when a
+new transport request has a new correlation request-id; changed semantic identities
+conflict and active actor/property authorization is checked again before replay.
+Concurrent identical first requests must converge after the same lock, not race into
+an identity-conflict error. Lease start is the database clock after lock acquisition,
+so waiting behind another transaction cannot exhaust the lease before it is returned.
 
 Private owner-only SQL helpers may use the `india_fiscal_submission_` prefix and
 must revoke all PUBLIC/app_role/yellow_runtime execution. Do not expose generic JSON

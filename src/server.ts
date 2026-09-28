@@ -18,7 +18,16 @@ import {
   RateQuoteService,
   RateTargetService,
 } from "./contexts/rates";
-import { TaxJurisdictionResolutionService } from "./contexts/tax-fiscal";
+import {
+  FiscalSubmissionAdapterAvailabilityService,
+  FiscalSubmissionDeliveryRuntime,
+  FiscalSubmissionRepository,
+  FiscalSubmissionService,
+  FiscalSubmissionWorker,
+  loadIndiaIrpAdapterRegistrationsFromEnvironment,
+  TaxJurisdictionResolutionService,
+  VerifiedIndiaIrpAdapterRegistry,
+} from "./contexts/tax-fiscal";
 import { OperatorHttpApi, type OperatorLocalReviewCredentials } from "./http/operator";
 import { HostedDepositProviderHttpApi } from "./http/provider";
 import {
@@ -31,10 +40,12 @@ import {
   PostgresIdempotency,
 } from "./kernel";
 import type { OperatorRuntimeStatus } from "./project-status";
+import { ServerLifecycle, installServerLifecycleSignals } from "./runtime/server-lifecycle";
 import { PostgresDueArrivalScopeSource } from "./workers/postgres-due-arrival-scopes";
 import { PostgresDueDepartureScopeSource } from "./workers/postgres-due-departure-scopes";
 import { PostgresDueHoldScopeSource } from "./workers/postgres-due-hold-scopes";
 import { PostgresDueBusinessDayScopeSource } from "./workers/postgres-due-business-day-scopes";
+import { PostgresDueFiscalSubmissionSource } from "./workers/postgres-due-fiscal-submissions";
 
 const port = Bun.env.PORT === undefined ? 3000 : Number(Bun.env.PORT);
 const workbenchEnabled = Bun.env.YELLOW_OPERATOR_WORKBENCH === "1";
@@ -46,9 +57,32 @@ const pickupTaskWorkerEnabled = workbenchEnabled && Bun.env.YELLOW_PICKUP_TASK_W
 const reservationArrivalRollEnabled = workbenchEnabled && Bun.env.YELLOW_RESERVATION_ARRIVAL_ROLL_WORKER === "1";
 const reservationDepartureRollEnabled = workbenchEnabled && Bun.env.YELLOW_RESERVATION_DEPARTURE_ROLL_WORKER === "1";
 const businessDayRollEnabled = workbenchEnabled && Bun.env.YELLOW_BUSINESS_DAY_ROLL_WORKER === "1";
+const fiscalSubmissionDeliveryEnabled = workbenchEnabled && Bun.env.YELLOW_FISCAL_SUBMISSION_WORKER === "1";
+// Construct one protected, immutable provider snapshot before database pools or
+// intake exist. A configured adapter is not permission to enable its worker.
+const providerConfiguration = await loadIndiaIrpAdapterRegistrationsFromEnvironment(Bun.env);
+if (!providerConfiguration.ok) {
+  throw new Error("India IRP provider deployment configuration is invalid");
+}
+const verifiedIndiaIrpAdapterRegistrations = providerConfiguration.value;
+if (fiscalSubmissionDeliveryEnabled && verifiedIndiaIrpAdapterRegistrations.length === 0) {
+  throw new Error("enabled fiscal submission worker requires a verified provider adapter");
+}
 const maxRequestBodySize = 16 * 1024;
 const processStartedAt = new Date().toISOString();
 const buildInfo = buildInfoFromEnvironment(Bun.env);
+const runtimeAbort = new AbortController();
+const runtimeWorkerTasks: Promise<void>[] = [];
+const runtimeResourceClosers: Array<() => void | Promise<void>> = [];
+
+function superviseWorker(promise: Promise<void>, failureMessage: string): void {
+  runtimeWorkerTasks.push(promise.catch(() => { console.error(failureMessage); }));
+}
+
+function ownSqlPool(pool: SQL): SQL {
+  runtimeResourceClosers.push(() => pool.close({ timeout: 0 }));
+  return pool;
+}
 
 function runtimeHostname(): string {
   const requested = Bun.env.HOST;
@@ -114,9 +148,16 @@ function runtimeApp() {
   }
   const databaseUrl = required("YELLOW_RUNTIME_DATABASE_URL");
   const database = Database.connect(databaseUrl, { maxConnections: 12, prepare: false });
-  const eventPool = new SQL(databaseUrl, { max: 4, prepare: false });
-  const readinessPool = new SQL(databaseUrl, { max: 1, prepare: false });
-  const readinessProbe = (): Promise<void> => assertRuntimeReleaseReadiness(readinessPool);
+  runtimeResourceClosers.push(() => database.close());
+  const eventPool = ownSqlPool(new SQL(databaseUrl, { max: 4, prepare: false }));
+  const readinessPool = ownSqlPool(new SQL(databaseUrl, { max: 1, prepare: false }));
+  let fiscalDeliveryRuntime: FiscalSubmissionDeliveryRuntime | undefined;
+  const readinessProbe = async (): Promise<void> => {
+    await assertRuntimeReleaseReadiness(readinessPool);
+    if (fiscalSubmissionDeliveryEnabled && fiscalDeliveryRuntime?.state !== "running") {
+      throw new Error("fiscal submission delivery runtime is unavailable");
+    }
+  };
   const events = new PostgresEventBus(eventPool);
   const hostedRuntime = hostedDepositEnabled ? (() => {
     const paymentProvider = new LocalPaymentProvider({ decide: (request) =>
@@ -135,9 +176,9 @@ function runtimeApp() {
   })() : undefined;
   const registrarUrl = registrarDatabaseUrl();
   const tokens = new Hs256TokenSigner(required("YELLOW_TOKEN_SECRET"));
-  const loginPool = new SQL(databaseUrl, { max: 4 });
-  const extensionPool = new SQL(databaseUrl, { max: 4, prepare: false });
-  const registrarPool = new SQL(registrarUrl, { max: 2, prepare: false });
+  const loginPool = ownSqlPool(new SQL(databaseUrl, { max: 4 }));
+  const extensionPool = ownSqlPool(new SQL(databaseUrl, { max: 4, prepare: false }));
+  const registrarPool = ownSqlPool(new SQL(registrarUrl, { max: 2, prepare: false }));
   const login = new LocalLoginService(loginPool, tokens, new LocalLoginGuard());
   const registry = new ExtensionRegistry(extensionPool, registrarPool);
   const approvals = new ApprovalService(events);
@@ -225,6 +266,9 @@ function runtimeApp() {
   const availability = new AvailabilityService();
   const publication = new RatePublicationService(registry, approvals, events);
   const taxJurisdictionResolver = new TaxJurisdictionResolutionService(registry);
+  const fiscalSubmissions = new FiscalSubmissionService();
+  const fiscalAdapterRegistry = new VerifiedIndiaIrpAdapterRegistry(verifiedIndiaIrpAdapterRegistrations);
+  const fiscalSubmissionAdapters = new FiscalSubmissionAdapterAvailabilityService(fiscalAdapterRegistry.identities());
   const rateBuilder = {
     models: new RateModelService(registry),
     targets: new RateTargetService(registry),
@@ -242,75 +286,96 @@ function runtimeApp() {
     reservationArrivalRollWorkerEnabled: reservationArrivalRollEnabled,
     reservationDepartureRollWorkerEnabled: reservationDepartureRollEnabled,
     businessDayRollWorkerEnabled: businessDayRollEnabled,
+    get fiscalSubmissionDeliveryWorkerState() {
+      return fiscalDeliveryRuntime?.state ?? "disabled";
+    },
     processStartedAt,
   };
   if (projectionWorkerEnabled) {
     const projectionConsumer = new AvailabilityProjectionConsumer(events, projection);
-    projectionConsumer.run({ onError() { console.error("availability projection consumer failed"); } })
-      .catch(() => console.error("availability projection consumer stopped unexpectedly"));
+    superviseWorker(projectionConsumer.run({ signal: runtimeAbort.signal,
+      onError() { console.error("availability projection consumer failed"); } }),
+    "availability projection consumer stopped unexpectedly");
   }
   if (holdExpiryEnabled) {
-    const discoveryPool = new SQL(databaseUrl, { max: 2 });
+    const discoveryPool = ownSqlPool(new SQL(databaseUrl, { max: 2 }));
     const expiry = new HoldExpiryWorker(database, holds, new PostgresDueHoldScopeSource(discoveryPool));
-    expiry.run({
+    superviseWorker(expiry.run({ signal: runtimeAbort.signal,
       onError() { console.error("hold expiry worker discovery failed"); },
       onResult(result) {
         if (result.failures.length > 0) {
           console.error(`hold expiry worker failed for ${result.failures.length} scope(s)`);
         }
       },
-    }).catch(() => console.error("hold expiry worker stopped unexpectedly"));
+    }), "hold expiry worker stopped unexpectedly");
   }
   if (pickupTaskWorkerEnabled) {
     const pickupTasks = new ArrivalPickupTaskAutomationConsumer(events);
-    pickupTasks.run({
+    superviseWorker(pickupTasks.run({ signal: runtimeAbort.signal,
       onError() { console.error("arrival pickup task consumer failed"); },
-    }).catch(() => console.error("arrival pickup task consumer stopped unexpectedly"));
+    }), "arrival pickup task consumer stopped unexpectedly");
   }
   if (reservationArrivalRollEnabled) {
-    const discoveryPool = new SQL(databaseUrl, { max: 2, prepare: false });
+    const discoveryPool = ownSqlPool(new SQL(databaseUrl, { max: 2, prepare: false }));
     const worker = new ReservationArrivalRollWorker(
       reservationArrivalRolls,
       new PostgresDueArrivalScopeSource(discoveryPool),
     );
-    worker.run({
+    superviseWorker(worker.run({ signal: runtimeAbort.signal,
       onError() { console.error("reservation arrival-roll worker discovery failed"); },
       onResult(result) {
         if (result.failures.length > 0) {
           console.error(`reservation arrival-roll worker failed for ${result.failures.length} scope(s)`);
         }
       },
-    }).catch(() => console.error("reservation arrival-roll worker stopped unexpectedly"));
+    }), "reservation arrival-roll worker stopped unexpectedly");
   }
   if (reservationDepartureRollEnabled) {
-    const discoveryPool = new SQL(databaseUrl, { max: 2, prepare: false });
+    const discoveryPool = ownSqlPool(new SQL(databaseUrl, { max: 2, prepare: false }));
     const worker = new ReservationDepartureRollWorker(
       reservationDepartureRolls,
       new PostgresDueDepartureScopeSource(discoveryPool),
     );
-    worker.run({
+    superviseWorker(worker.run({ signal: runtimeAbort.signal,
       onError() { console.error("reservation departure-roll worker discovery failed"); },
       onResult(result) {
         if (result.failures.length > 0) {
           console.error(`reservation departure-roll worker failed for ${result.failures.length} scope(s)`);
         }
       },
-    }).catch(() => console.error("reservation departure-roll worker stopped unexpectedly"));
+    }), "reservation departure-roll worker stopped unexpectedly");
   }
   if (businessDayRollEnabled) {
-    const discoveryPool = new SQL(databaseUrl, { max: 2, prepare: false });
+    const discoveryPool = ownSqlPool(new SQL(databaseUrl, { max: 2, prepare: false }));
     const worker = new BusinessDayRollWorker(
       businessDayRolls,
       new PostgresDueBusinessDayScopeSource(discoveryPool),
     );
-    worker.run({
+    superviseWorker(worker.run({ signal: runtimeAbort.signal,
       onError() { console.error("business-day roll worker discovery failed"); },
       onResult(result) {
         if (result.failures.length > 0) {
           console.error(`business-day roll worker failed for ${result.failures.length} scope(s)`);
         }
       },
-    }).catch(() => console.error("business-day roll worker stopped unexpectedly"));
+    }), "business-day roll worker stopped unexpectedly");
+  }
+  if (fiscalSubmissionDeliveryEnabled) {
+    const fiscalPool = ownSqlPool(new SQL(databaseUrl, { max: 4, prepare: false }));
+    const fiscalRepository = new FiscalSubmissionRepository(fiscalPool);
+    const fiscalWorker = new FiscalSubmissionWorker(fiscalRepository, fiscalAdapterRegistry);
+    fiscalDeliveryRuntime = new FiscalSubmissionDeliveryRuntime(
+      fiscalWorker,
+      new PostgresDueFiscalSubmissionSource(fiscalPool),
+    );
+    superviseWorker(fiscalDeliveryRuntime.run({ signal: runtimeAbort.signal,
+      onError() { console.error("fiscal submission delivery runtime failed"); },
+      onResult(result) {
+        if (result.failures.length > 0) {
+          console.error(`fiscal submission delivery failed for ${result.failures.length} item(s)`);
+        }
+      },
+    }), "fiscal submission delivery runtime stopped unexpectedly");
   }
   return createApp({
     buildInfo,
@@ -318,10 +383,23 @@ function runtimeApp() {
     readinessTarget: "yellow_runtime_database",
     database,
     tenantResolver: new BearerTenantResolver(tokens),
-    operatorApi: new OperatorHttpApi(login, availability, inventory, new PostgresIdempotency(), restrictions, rates, pricing, blocks, policy, holds, projection, runtimeStatus, rateBuilder, reservations, reservationOffers, reservationGuests, reservationLifecycle, reservationSegments, parties, folioStatements, charges, new ReservationBoardService(), new ReservationDetailService(), folios, chargeCorrections, folioTransfers, hostedRuntime?.hostedDeposits, folioSettlements, cashiers, receivables, checkIns, housekeeping, housekeepingSheets, checkoutReadiness, checkouts, vehicleRegister, reservationTravel, pickupTaskDispatch, arrivalRoomCleaning, housekeepingDiscrepancies, vehicleParking, undefined, undefined, businessDayCarry, businessDaySeal, ownerTrustExpenses),
+    operatorApi: new OperatorHttpApi(login, availability, inventory, new PostgresIdempotency(), restrictions, rates, pricing, blocks, policy, holds, projection, runtimeStatus, rateBuilder, reservations, reservationOffers, reservationGuests, reservationLifecycle, reservationSegments, parties, folioStatements, charges, new ReservationBoardService(), new ReservationDetailService(), folios, chargeCorrections, folioTransfers, hostedRuntime?.hostedDeposits, folioSettlements, cashiers, receivables, checkIns, housekeeping, housekeepingSheets, checkoutReadiness, checkouts, vehicleRegister, reservationTravel, pickupTaskDispatch, arrivalRoomCleaning, housekeepingDiscrepancies, vehicleParking, undefined, undefined, businessDayCarry, businessDaySeal, ownerTrustExpenses, {
+      submissions: fiscalSubmissions,
+      adapters: fiscalSubmissionAdapters,
+    }),
     operatorLocalReviewCredentials: localReviewCredentials(),
     ...(hostedRuntime ? { hostedDepositRoutes: hostedRuntime.routes, hostedDepositSurface: "guest" as const } : {}),
   });
 }
 
-runtimeApp().listen({ hostname: runtimeHostname(), port, maxRequestBodySize });
+const server = runtimeApp().listen({ hostname: runtimeHostname(), port, maxRequestBodySize });
+const serverLifecycle = new ServerLifecycle({
+  controller: runtimeAbort,
+  workerTasks: runtimeWorkerTasks,
+  stopIntake: async () => { await server.stop(false); },
+  forceStopIntake: async () => { await server.stop(true); },
+  closeResources: async () => {
+    await Promise.allSettled(runtimeResourceClosers.map(async (close) => close()));
+  },
+});
+installServerLifecycleSignals(serverLifecycle);
