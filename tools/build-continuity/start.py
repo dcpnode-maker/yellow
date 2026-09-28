@@ -14,6 +14,16 @@ import continuity as c
 VERSION = "7.6.2"
 
 
+def handoff_task(root):
+    head = c.git(root, "rev-parse", "HEAD")
+    return {"id": "handoff-" + head[:12], "base_sha": head,
+            "order": "handoff/orders/BUILD-CONTINUITY-001.md",
+            "inputs": ["docs/PROJECT-STATUS.md", "tools/build-continuity/README.md"],
+            "input_ranges": {"docs/PROJECT-STATUS.md": [1, 110]},
+            "outputs": [],
+            "goal": "Read-only handoff: identify the current Yellow priority and next coordinator action. Source HEAD is the exact task base. Project-status text is a dated snapshot, not proof of current published/serving state or a running worker. Preserve all founder requirements. Do not start application work or claim tests ran."}
+
+
 def main():
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument("--install-kilo", action="store_true")
@@ -22,13 +32,8 @@ def main():
     a = p.parse_args()
     root = Path(c.git(Path.cwd(), "rev-parse", "--show-toplevel"))
     private = c.private_directory(root)
-    head = c.git(root, "rev-parse", "HEAD")
-    task = {"id": "handoff-" + head[:12], "base_sha": head,
-            "order": "handoff/orders/BUILD-CONTINUITY-001.md",
-            "inputs": ["docs/PROJECT-STATUS.md", "tools/build-continuity/README.md"],
-            "input_ranges": {"docs/PROJECT-STATUS.md": [1, 110]},
-            "outputs": [],
-            "goal": "Read-only handoff: identify the current Yellow priority, published versus serving state, and next coordinator action. Preserve all founder requirements. Do not start application work or claim tests ran."}
+    task = handoff_task(root)
+    head = task["base_sha"]
     messages, _ = c.context_for(root, task)
     task_path = private / "handoff-task.json"
     c.atomic_json(task_path, task)

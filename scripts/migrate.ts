@@ -6,6 +6,9 @@ const FILE_NAME_PATTERN = /^[0-9]{4}_[a-z0-9][a-z0-9_-]*\.sql$/;
 const BASELINE_FILE = "0001_init.sql";
 const BASELINE_SHA256 = "fe2a9fc949c6bacded3f8d3fc4d14fc596a83ebde9aeb043eb10845f07b30923";
 const ADVISORY_LOCK_KEY = 6_441_674_055_002_974_567n;
+const APP_ROLE_NONLOGIN_VERSION = 12;
+const OWNER_CUTOVER_VERSION = 15;
+const FINAL_OWNER_ROLE = "yellow_owner";
 const DEFAULT_MIGRATIONS_DIRECTORY = resolve(import.meta.dir, "..", "migrations");
 
 interface MigrationRecord {
@@ -228,7 +231,10 @@ async function revokeLedgerPrivileges(connection: ReservedSQL, includePublic: bo
   }
 }
 
-async function validateTrackingTable(connection: ReservedSQL): Promise<void> {
+async function validateTrackingTable(
+  connection: ReservedSQL,
+  expectedOwner: "current" | "current-or-final" | "final" = "current",
+): Promise<void> {
   const tableRows = await connection<
     { relkind: string; owner_name: string; current_name: string; relrowsecurity: boolean; relforcerowsecurity: boolean }[]
   >`
@@ -242,11 +248,15 @@ async function validateTrackingTable(connection: ReservedSQL): Promise<void> {
      WHERE n.nspname = 'public' AND c.relname = 'schema_migration'
   `;
   const table = tableRows[0];
+  const ownerIsValid = table !== undefined && (
+    (expectedOwner !== "final" && table.owner_name === table.current_name)
+    || (expectedOwner !== "current" && table.owner_name === FINAL_OWNER_ROLE)
+  );
   if (
     tableRows.length !== 1 ||
     !table ||
     table.relkind !== "r" ||
-    table.owner_name !== table.current_name ||
+    !ownerIsValid ||
     table.relrowsecurity ||
     table.relforcerowsecurity
   ) {
@@ -362,7 +372,7 @@ async function bootstrapTrackingTable(connection: ReservedSQL): Promise<void> {
         applied_at timestamptz NOT NULL DEFAULT clock_timestamp()
       )
     `);
-    await validateTrackingTable(connection);
+    await validateTrackingTable(connection, "current-or-final");
     await revokeLedgerPrivileges(connection, true);
     await verifyPublicHasNoLedgerPrivileges(connection);
   });
@@ -394,6 +404,179 @@ async function readLedger(connection: ReservedSQL): Promise<readonly LedgerRow[]
   `;
 }
 
+interface RuntimeAppMembershipRow {
+  readonly granted_role: string;
+  readonly member_role: string;
+  readonly admin_option: boolean;
+  readonly inherit_option: boolean;
+  readonly set_option: boolean;
+}
+
+async function runtimeAppMemberships(connection: ReservedSQL): Promise<readonly RuntimeAppMembershipRow[]> {
+  return await connection<RuntimeAppMembershipRow[]>`
+    SELECT granted.rolname AS granted_role,
+           member.rolname AS member_role,
+           membership.admin_option,
+           membership.inherit_option,
+           membership.set_option
+      FROM pg_catalog.pg_auth_members membership
+      JOIN pg_catalog.pg_roles granted ON granted.oid = membership.roleid
+      JOIN pg_catalog.pg_roles member ON member.oid = membership.member
+     WHERE granted.rolname IN ('yellow_deploy', 'yellow_owner', 'yellow_runtime', 'app_role')
+        OR member.rolname IN ('yellow_deploy', 'yellow_owner', 'yellow_runtime', 'app_role')
+     ORDER BY granted.rolname, member.rolname
+  `;
+}
+
+function isExactRuntimeAppMembership(row: RuntimeAppMembershipRow | undefined): boolean {
+  return row !== undefined
+    && row.granted_role === "app_role"
+    && row.member_role === "yellow_runtime"
+    && !row.admin_option
+    && !row.inherit_option
+    && row.set_option;
+}
+
+interface AuthorityRoleRow {
+  readonly rolname: string;
+  readonly rolcanlogin: boolean;
+  readonly rolconnlimit: number;
+  readonly rolpassword: string | null;
+  readonly rolsuper: boolean;
+  readonly rolcreatedb: boolean;
+  readonly rolcreaterole: boolean;
+  readonly rolinherit: boolean;
+  readonly rolreplication: boolean;
+  readonly rolbypassrls: boolean;
+}
+
+async function authorityRoles(connection: ReservedSQL): Promise<readonly AuthorityRoleRow[]> {
+  return await connection<AuthorityRoleRow[]>`
+    SELECT rolname, rolcanlogin, rolconnlimit, rolpassword, rolsuper, rolcreatedb,
+           rolcreaterole, rolinherit, rolreplication, rolbypassrls
+      FROM pg_catalog.pg_authid
+     WHERE rolname IN ('app_role', 'yellow_runtime')
+     ORDER BY rolname
+  `;
+}
+
+function hasNoElevatedAttributes(role: AuthorityRoleRow): boolean {
+  return !role.rolsuper && !role.rolcreatedb && !role.rolcreaterole
+    && !role.rolreplication && !role.rolbypassrls;
+}
+
+function isFinalAppRole(role: AuthorityRoleRow | undefined): boolean {
+  return role !== undefined && !role.rolcanlogin && role.rolconnlimit === 0
+    && role.rolpassword === null && !role.rolinherit && hasNoElevatedAttributes(role);
+}
+
+function isPre0012AppRole(role: AuthorityRoleRow | undefined): boolean {
+  return role !== undefined && role.rolcanlogin && role.rolconnlimit === -1
+    && role.rolpassword === null && role.rolinherit && hasNoElevatedAttributes(role);
+}
+
+function isExactRuntimeRole(role: AuthorityRoleRow | undefined): boolean {
+  return role !== undefined && role.rolcanlogin && role.rolconnlimit === -1
+    && role.rolpassword !== null && !role.rolinherit && hasNoElevatedAttributes(role);
+}
+
+type Migration0012GuardFailure =
+  | "unsupported-membership"
+  | "incompatible-role"
+  | "active-runtime-session"
+  | "membership-restore"
+  | "role-restore";
+
+async function raiseMigration0012GuardFailure(
+  connection: ReservedSQL,
+  failure: Migration0012GuardFailure,
+): Promise<never> {
+  switch (failure) {
+    case "unsupported-membership":
+      await connection.unsafe(`DO $migration_0012_guard$
+        BEGIN
+          RAISE EXCEPTION 'migration 0012 encountered an unsupported database-authority membership edge'
+            USING ERRCODE = '55000';
+        END
+      $migration_0012_guard$`);
+      break;
+    case "incompatible-role":
+      await connection.unsafe(`DO $migration_0012_guard$
+        BEGIN
+          RAISE EXCEPTION 'migration 0012 encountered incompatible app_role or yellow_runtime attributes'
+            USING ERRCODE = '55000';
+        END
+      $migration_0012_guard$`);
+      break;
+    case "active-runtime-session":
+      await connection.unsafe(`DO $migration_0012_guard$
+        BEGIN
+          RAISE EXCEPTION 'yellow_runtime has an active session; drain it before migration 0012'
+            USING ERRCODE = '55000';
+        END
+      $migration_0012_guard$`);
+      break;
+    case "membership-restore":
+      await connection.unsafe(`DO $migration_0012_guard$
+        BEGIN
+          RAISE EXCEPTION 'migration 0012 did not restore the exact yellow_runtime to app_role membership'
+            USING ERRCODE = '55000';
+        END
+      $migration_0012_guard$`);
+      break;
+    case "role-restore":
+      await connection.unsafe(`DO $migration_0012_guard$
+        BEGIN
+          RAISE EXCEPTION 'migration 0012 did not produce the exact final database-authority role attributes'
+            USING ERRCODE = '55000';
+        END
+      $migration_0012_guard$`);
+      break;
+  }
+  throw new Error("migration 0012 guard failed to raise SQLSTATE 55000");
+}
+
+async function suspendExactRuntimeAppMembership(connection: ReservedSQL): Promise<boolean> {
+  const memberships = await runtimeAppMemberships(connection);
+  if (memberships.length === 0) return false;
+  if (memberships.length !== 1 || !isExactRuntimeAppMembership(memberships[0])) {
+    await raiseMigration0012GuardFailure(connection, "unsupported-membership");
+  }
+
+  const roles = await authorityRoles(connection);
+  const app = roles.find(({ rolname }) => rolname === "app_role");
+  const runtime = roles.find(({ rolname }) => rolname === "yellow_runtime");
+  if ((!isFinalAppRole(app) && !isPre0012AppRole(app)) || !isExactRuntimeRole(runtime)) {
+    await raiseMigration0012GuardFailure(connection, "incompatible-role");
+  }
+
+  const active = await connection<{ active: boolean }[]>`
+    SELECT EXISTS (
+      SELECT 1 FROM pg_catalog.pg_stat_activity
+       WHERE usename = 'yellow_runtime'
+    ) AS active
+  `;
+  if (active[0]?.active === true) {
+    await raiseMigration0012GuardFailure(connection, "active-runtime-session");
+  }
+  await connection.unsafe("REVOKE app_role FROM yellow_runtime");
+  return true;
+}
+
+async function restoreExactRuntimeAppMembership(connection: ReservedSQL): Promise<void> {
+  await connection.unsafe("GRANT app_role TO yellow_runtime");
+  const memberships = await runtimeAppMemberships(connection);
+  if (memberships.length !== 1 || !isExactRuntimeAppMembership(memberships[0])) {
+    await raiseMigration0012GuardFailure(connection, "membership-restore");
+  }
+  const roles = await authorityRoles(connection);
+  const app = roles.find(({ rolname }) => rolname === "app_role");
+  const runtime = roles.find(({ rolname }) => rolname === "yellow_runtime");
+  if (!isFinalAppRole(app) || !isExactRuntimeRole(runtime)) {
+    await raiseMigration0012GuardFailure(connection, "role-restore");
+  }
+}
+
 async function applyMigration(
   connection: ReservedSQL,
   record: MigrationRecord,
@@ -407,7 +590,13 @@ async function applyMigration(
       );
     }
 
+    if (record.version > OWNER_CUTOVER_VERSION) {
+      await connection.unsafe(`SET LOCAL ROLE ${FINAL_OWNER_ROLE}`);
+    }
+    const restoreRuntimeAppMembership = record.version === APP_ROLE_NONLOGIN_VERSION
+      && await suspendExactRuntimeAppMembership(connection);
     await connection.unsafe(record.sqlText);
+    if (restoreRuntimeAppMembership) await restoreExactRuntimeAppMembership(connection);
     await revokeLedgerPrivileges(connection, false);
     await connection`
       INSERT INTO public.schema_migration (version, filename, checksum_sha256)
@@ -455,7 +644,8 @@ export async function runMigrations(options: MigrationRunOptions): Promise<Migra
 
     const finalLedger = await readLedger(connection);
     validateLedger(records, finalLedger);
-    await validateTrackingTable(connection);
+    const finalHasOwnerCutover = finalLedger.some(({ version }) => Number(version) >= OWNER_CUTOVER_VERSION);
+    await validateTrackingTable(connection, finalHasOwnerCutover ? "final" : "current");
     await verifyPublicHasNoLedgerPrivileges(connection);
     if (await appRoleExists(connection)) {
       await verifyRoleHasNoLedgerPrivileges(connection, "app_role");
@@ -512,9 +702,9 @@ export async function runMigrations(options: MigrationRunOptions): Promise<Migra
 }
 
 async function runCli(): Promise<void> {
-  const databaseUrl = process.env.DATABASE_URL;
+  const databaseUrl = process.env.YELLOW_DEPLOY_DATABASE_URL;
   if (!databaseUrl) {
-    console.error("DATABASE_URL is required");
+    console.error("YELLOW_DEPLOY_DATABASE_URL is required");
     process.exitCode = 1;
     return;
   }

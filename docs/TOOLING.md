@@ -2,62 +2,53 @@
 
 Principle: **a short, well-chosen set beats a long one.** Every server adds tool
 definitions to the agent's context budget, and every credential widens the surface
-you have to trust. Three servers is the starting set; add one only when a phase
-needs it.
+you have to trust. This repository starts with no auto-launched MCP; add one only
+when a phase needs it and a separate order records its provenance.
 
-## Wired in this repo (`.mcp.json`) — nothing to install
+## Project MCP configuration — intentionally empty
 
-| Server | What it gives Claude Code | Auth |
-|---|---|---|
-| **postgres** | Reads your real schema and data while coding — no more guessing column names. Points at `yellow_dev` on localhost. | none (local) |
-| **github** | Issues, PRs, branches, code search. Turns Claude Code into a participant in the repo, not just an editor. | `GITHUB_TOKEN` env var |
-| **context7** | Live, version-specific library docs (MIT, open source). The fix for a model confidently calling a Bun or Elysia method that was removed two releases ago. | none needed; a free key at context7.com/dashboard raises rate limits |
+`.mcp.json` and `.codex/config.toml` retain valid, mirrored empty configurations.
+They do not auto-launch third-party packages, resolve registry tags, or expose a
+database DSN or GitHub token to an MCP process. This is deliberate: the official
+npm pages mark the previously configured Postgres server 0.6.2 and GitHub server
+2025.4.8 as deprecated, and the launch-on-first-use model created unnecessary
+supply-chain and credential surface.
 
-`npx` fetches each on first use — no global install. Open Claude Code in this folder,
-run `/mcp`, and all three should read **connected**.
+Use the existing local `psql`/repository scripts for Postgres, the configured
+Git/GitHub connection, and the session's approved research/documentation tools.
+These replacements preserve the repository workflows without silently installing
+an external process. Deployment and schema/referee commands use only
+`YELLOW_DEPLOY_DATABASE_URL`; the application, workers, event relay and tenant
+discovery use only `YELLOW_RUNTIME_DATABASE_URL`. Never pass the deployment DSN
+through an application environment or use it as a runtime fallback. A future MCP
+must be introduced by a separate reviewed order
+with an exact version, provenance/integrity record, and explicit credential scope.
 
-### Two things you must do
-1. **GitHub token** — create a fine-grained PAT (repo scope, this repo only), then
-   `export GITHUB_TOKEN=ghp_...` in your shell profile. Least scope, revocable.
-2. **Database running** — `./setup.sh` applies the runner and demo seed to
-   `yellow_dev`, then uses the runner plus the separate fixture for `yellow_test`.
-   `docker compose up -d postgres` only starts the service; it does not migrate it.
+The application additionally receives `YELLOW_EXTENSION_REGISTRAR_DATABASE_URL`
+for the single authenticated extension-type registration command. That credential
+must never be supplied to MCPs, migration, seed, review-seed, worker, event, login or
+discovery tooling. Local setup stores its password beside the distinct deploy/runtime
+passwords in the ignored owner-only authority file and Compose constructs the DSN.
 
 ## Add later, at the phase that needs it
 
-```bash
-# Phase 10 — real-browser tests for keyboard flows and offline sync
-claude mcp add playwright -- npx -y @playwright/mcp@latest
-```
+Future tooling is not pre-wired. A future browser or error-tracking integration
+requires a separate reviewed order with exact package provenance before it may be
+added to either project configuration.
 
 Error tracking gets an MCP once GlitchTip is actually running (Phase 0 ops). Add
 nothing else speculatively — an unused server costs context on every single session.
 
 ## Deliberately NOT installed
 
-- **Filesystem MCP** — redundant. Claude Code ships Read/Edit/Write/Glob/Grep with
-  permission rules and sandboxing.
-- **Web search MCP (Exa etc.)** — Claude Code has web search built in. Exa stays
-  useful in the claude.ai chat for research, which is where it's already connected.
+- **Filesystem MCP** — redundant with the development environment's filesystem tools.
+- **Generic web-search MCP** — use the session's approved research tools when a
+  bounded order needs current external evidence.
 - **Everything else in the marketplace** — see the rule below.
-
-## Optional: cost observability (vet before installing)
-
-Useful given the model-routing policy in CLAUDE.md — these read local session logs
-and show which tool, agent, MCP server, or skill is actually burning quota, so you
-can verify the policy works instead of assuming it:
-
-```bash
-npm install -g claude-token-lens     # read the source first — see rule below
-```
-
-Deliberately not wired into `setup.sh`: auto-installing third-party global packages
-is exactly the risk the rule exists to prevent.
 
 ## The rule for anything from the marketplace
 
-The Claude Code plugin ecosystem is enormous — thousands of plugins across ~200
-community marketplaces — and largely unvetted. **Skills, hooks, and MCP servers
+Agent plugin ecosystems contain many unvetted packages. **Skills, hooks, and MCP servers
 execute on your machine with your GitHub token and database credentials.** This is
 DEPENDENCIES.md's supply-chain risk pointed at your laptop.
 
@@ -71,7 +62,7 @@ Before installing anything:
 
 ## Your own skills beat all of it
 
-`.claude/skills/` already holds three skills encoding decisions no generic skill can
+The repository's project skills encode decisions no generic skill can
 know — that folios belong to accounts, that views bypass RLS, that UAE clearance must
 be provider-routed. When a pattern repeats across phases, write a fourth. That is
 strictly better than shopping for one.

@@ -20,6 +20,8 @@ INV_SERIES = "00000000-0000-0000-0000-000000000900"
 ACC_REV = "00000000-0000-0000-0000-000000000800"
 ACC_CASH = "00000000-0000-0000-0000-000000000803"
 PERIOD = "[2026-09-20 14:00+04,2026-09-22 12:00+04)"
+GUEST = "00000000-0000-0000-0000-00000000d0cf"
+RATE_PLAN = "00000000-0000-0000-0000-000000000600"
 results = []
 
 def check(tc, name, ok, detail=""):
@@ -33,20 +35,60 @@ def conn(role_app=False, tenant=None):
     if tenant: cur.execute("SELECT set_config('app.tenant_id', %s, true)", (tenant,))
     return c, cur
 
-def record(space, exclusive, period=PERIOD, out=None):
+def record(space, exclusive, period=PERIOD, out=None, connection=None):
+    owns_connection = connection is None
+    if owns_connection:
+        try:
+            c, cur = conn()
+        except psycopg2.Error:            # can't connect → a failed claim, not a traceback wall
+            if out is not None: out.append(False)
+            return False
+    else:
+        c, cur = connection
+    reservation_id = str(uuid.uuid4())
+    segment_id = str(uuid.uuid4())
     try:
-        c, cur = conn()
-    except psycopg2.Error as e:          # can't connect → a failed claim, not a traceback wall
-        if out is not None: out.append(False)
-        return False
-    try:
+        cur.execute("""SELECT sus.sellable_unit_id, su.unit_type_id, s.property_node
+                         FROM sellable_unit_space sus
+                         JOIN sellable_unit su ON su.id=sus.sellable_unit_id
+                                              AND su.tenant_id=sus.tenant_id
+                                              AND su.status='active'
+                         JOIN unit_type ut ON ut.id=su.unit_type_id
+                                          AND ut.tenant_id=su.tenant_id
+                         JOIN space s ON s.id=sus.space_id
+                                     AND s.tenant_id=sus.tenant_id
+                                     AND s.property_node=ut.property_node
+                                     AND s.status='active'
+                        WHERE sus.tenant_id=%s AND sus.space_id=%s
+                          AND sus.claim_mode=%s""",
+                    (T_A, space, "exclusive" if exclusive else "positional"))
+        mappings = cur.fetchall()
+        if len(mappings) != 1:
+            raise RuntimeError(
+                f"TC-12 fixture requires one active mapping for space={space} "
+                f"exclusive={exclusive}; found {len(mappings)}"
+            )
+        sellable_unit_id, unit_type_id, property_node = mappings[0]
+        cur.execute("""INSERT INTO reservation
+                       (id,tenant_id,property_node,confirmation_no,status,primary_party,currency)
+                       VALUES (%s,%s,%s,%s,'reserved',%s,'AED')""",
+                    (reservation_id, T_A, property_node, f"TC12-{reservation_id}", GUEST))
+        cur.execute("""INSERT INTO reservation_segment
+                       (id,tenant_id,reservation_id,seq,unit_type_id,sellable_unit_id,
+                        period,rate_plan_id,status)
+                       VALUES (%s,%s,%s,1,%s,%s,%s::tstzrange,%s,'booked')""",
+                    (segment_id, T_A, reservation_id, unit_type_id, sellable_unit_id,
+                     period, RATE_PLAN))
         cur.execute("SELECT record_occupancy(%s,%s,%s::tstzrange,%s,%s,%s)",
-                    (T_A, space, period, str(uuid.uuid4()), "segment", exclusive))
+                    (T_A, space, period, segment_id, "segment", exclusive))
+        cur.execute("""INSERT INTO reservation_guest
+                       (tenant_id,reservation_id,party_id,role)
+                       VALUES (%s,%s,%s,'primary')""", (T_A, reservation_id, GUEST))
         c.commit(); ok = True
     except Exception:
         c.rollback(); ok = False
     finally:
-        c.close()
+        if owns_connection: c.close()
     if out is not None: out.append(ok)
     return ok
 
@@ -79,13 +121,49 @@ if rls_active or not can_delete:
         "TC-12.3 harness configuration invalid: cleanup connection must bypass RLS "
         f"and have DELETE privilege (row_security_active={rls_active}, can_delete={can_delete})"
     )
-cur.execute("DELETE FROM space_occupancy WHERE space_id=%s", (DORM,))
-c.commit()
+cur.execute("""SELECT so.slot_ref, rs.reservation_id
+                 FROM space_occupancy so
+                 JOIN reservation_segment rs ON rs.id=so.slot_ref
+                                             AND rs.tenant_id=so.tenant_id
+                                             AND rs.period=so.period
+                 JOIN reservation r ON r.id=rs.reservation_id
+                                   AND r.tenant_id=rs.tenant_id
+                 JOIN sellable_unit_space sus ON sus.sellable_unit_id=rs.sellable_unit_id
+                                             AND sus.tenant_id=rs.tenant_id
+                                             AND sus.space_id=so.space_id
+                                             AND sus.claim_mode=CASE WHEN so.exclusive
+                                                 THEN 'exclusive' ELSE 'positional' END
+                WHERE so.space_id=%s""", (DORM,))
+cleanup_parents = cur.fetchall()
 cur.execute("SELECT count(*) FROM space_occupancy WHERE space_id=%s", (DORM,))
-remaining = cur.fetchone()[0]
-if remaining != 0:
+cleanup_claims = cur.fetchone()[0]
+if len(cleanup_parents) != cleanup_claims:
     c.close()
-    raise RuntimeError(f"TC-12.3 harness cleanup failed: dorm still holds {remaining} rows")
+    raise RuntimeError(
+        "TC-12.3 harness cleanup refused: every dorm claim must have one exact typed parent "
+        f"(claims={cleanup_claims}, parents={len(cleanup_parents)})"
+    )
+segment_ids = [str(row[0]) for row in cleanup_parents]
+reservation_ids = [str(row[1]) for row in cleanup_parents]
+cur.execute("DELETE FROM space_occupancy WHERE space_id=%s", (DORM,))
+if reservation_ids:
+    cur.execute("DELETE FROM reservation_guest WHERE reservation_id=ANY(%s::uuid[])",
+                (reservation_ids,))
+if segment_ids:
+    cur.execute("DELETE FROM reservation_segment WHERE id=ANY(%s::uuid[])", (segment_ids,))
+if reservation_ids:
+    cur.execute("DELETE FROM reservation WHERE id=ANY(%s::uuid[])", (reservation_ids,))
+c.commit()
+cur.execute("""SELECT
+                 (SELECT count(*) FROM space_occupancy WHERE space_id=%s),
+                 (SELECT count(*) FROM reservation_segment WHERE id=ANY(%s::uuid[])),
+                 (SELECT count(*) FROM reservation WHERE id=ANY(%s::uuid[])),
+                 (SELECT count(*) FROM reservation_guest WHERE reservation_id=ANY(%s::uuid[]))""",
+            (DORM, segment_ids, reservation_ids, reservation_ids))
+remaining = cur.fetchone()
+if remaining != (0, 0, 0, 0):
+    c.close()
+    raise RuntimeError(f"TC-12.3 harness cleanup failed: remaining artifacts={remaining}")
 c.close()
 caps = []
 ths = [threading.Thread(target=record, args=(DORM, False, PERIOD, caps)) for _ in range(40)]
@@ -114,16 +192,14 @@ for i in range(500):
 c.rollback(); c.close()
 per_thread = []
 def burst(n, out):
-    c, cur = conn(); ok = 0
+    try:
+        c, cur = conn(); ok = 0
+    except psycopg2.Error:
+        out.append(0); return
     for i in range(n):
         day = (i % 27) + 1
         p = f"[2027-02-{day:02d} 08:00+04,2027-02-{day:02d} 09:00+04)"
-        try:
-            cur.execute("SELECT record_occupancy(%s,%s,%s::tstzrange,%s,'segment',false)",
-                        (T_A, DORM, p, str(uuid.uuid4())))
-            c.commit(); ok += 1
-        except Exception:
-            c.rollback()
+        if record(DORM, False, p, connection=(c, cur)): ok += 1
     c.close(); out.append(ok)
 t0 = time.perf_counter(); outs = []
 ths = [threading.Thread(target=burst, args=(50, outs)) for _ in range(8)]

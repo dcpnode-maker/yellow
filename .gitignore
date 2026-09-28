@@ -1,6 +1,9 @@
 node_modules/
 .env
 .env.*
+!.env.example
+.yellow/runtime-database-authority.env
+.yellow/runtime-database-authority.*.tmp
 dist/
 *.log
 .DS_Store

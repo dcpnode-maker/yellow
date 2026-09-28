@@ -1,13 +1,23 @@
 import { describe, expect, test } from "bun:test";
-import { existsSync } from "node:fs";
-import { resolve } from "node:path";
 
-const root = resolve(import.meta.dir, "..");
+const source = new URL(
+  "../src/contexts/tax-fiscal/india-gst-accommodation-invoice-timeliness.ts",
+  import.meta.url,
+);
+const index = new URL("../src/contexts/tax-fiscal/index.ts", import.meta.url);
 
-describe("Order 293 intentional red: exact India GST accommodation invoice timeliness", () => {
-  test("P0: resolver module and bounded-context export are absent before implementation", async () => {
-    expect(existsSync(resolve(root, "src/contexts/tax-fiscal/india-gst-accommodation-invoice-timeliness.ts"))).toBeTrue();
-    const boundary = await Bun.file(resolve(root, "src/contexts/tax-fiscal/index.ts")).text();
-    expect(boundary).toContain("india-gst-accommodation-invoice-timeliness");
+describe("Order 293 intentional red: ordinary Rule47 invoice timeliness", () => {
+  test("P0: the exact pure resolver and bounded-context export do not exist before implementation", async () => {
+    expect(await Bun.file(source).exists()).toBeTrue();
+
+    const valueModule = await Bun.file(source).text();
+    const moduleSurface = await Bun.file(index).text();
+
+    expect(valueModule).toContain(
+      "export function resolveIndiaGstAccommodationInvoiceTimeliness",
+    );
+    expect(moduleSurface).toContain(
+      'from "./india-gst-accommodation-invoice-timeliness"',
+    );
   });
 });
