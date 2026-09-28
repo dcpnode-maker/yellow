@@ -2,6 +2,16 @@
 
 **Written by:** Claude (architect role) · **Date:** 2026-08-15 · **Status:** planned, not issued
 
+> **Process assumptions superseded by D-91 (2026-08-23)** — see `handoff/CODEX-HANDOFF.md`.
+> This plan predates the founder directive that made Codex primary implementation and
+> coordination owner. Codex, not Claude, now writes and issues every order below,
+> including 019 ("goes first and gets Fable" no longer applies literally — Codex may
+> issue it directly). The Tier-3 orders in the table still require an independent
+> reviewer that did not implement the change to inspect and personally execute the
+> proof (D-84's reviewer-executed, non-waivable rule, unchanged); that reviewer no
+> longer has to be Claude. The order sequence, tiers, dependencies, and the three
+> deferred decisions below are otherwise still the plan of record.
+
 This is the order *sequence*, not the orders. Orders are issued one at a time, each after
 the previous one is reviewed — that is the loop, and batching it would forfeit the thing
 that caught F1, F6 and F8. This file exists so the builder can see the shape of the phase
