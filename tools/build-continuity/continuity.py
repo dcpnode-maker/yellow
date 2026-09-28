@@ -50,6 +50,24 @@ def digest(value):
     return hashlib.sha256(value.encode("utf-8")).hexdigest()
 
 
+def redact_host_paths(value):
+    """Project public context without sending personal absolute host paths.
+
+    Source hashes still bind the unredacted input; this only changes the model
+    payload, including operator-written goals. Relative repository paths survive.
+    """
+    if isinstance(value, str):
+        prefix = r"(?<!\w)(?:[A-Za-z]:[\\/]|/(?:Users|home|root)/)"
+        quoted = r"(?P<quote>[`\"'])" + prefix + r"[^\r\n]*?(?P=quote)"
+        value = re.sub(quoted, lambda m: m["quote"] + "[redacted-host-path]" + m["quote"], value)
+        return re.sub(prefix + r"[^\s`\"'<>|]+", "[redacted-host-path]", value)
+    if isinstance(value, list):
+        return [redact_host_paths(item) for item in value]
+    if isinstance(value, dict):
+        return {key: redact_host_paths(item) for key, item in value.items()}
+    return value
+
+
 def safe_path(root, name):
     if not isinstance(name, str) or not name or "\\" in name or ":" in name:
         raise Blocked("Invalid relative path")
@@ -224,7 +242,7 @@ def context_for(root, task):
             raise Blocked("Required input is missing: " + name)
         else:
             hashes[name] = None
-    prompt = json.dumps({"task": task, "source": files}, ensure_ascii=False)
+    prompt = json.dumps(redact_host_paths({"task": task, "source": files}), ensure_ascii=False)
     if len(prompt) > MAX_CONTEXT:
         raise Blocked("Context budget exceeded; use a smaller coordinator-written task")
     return [{"role": "system", "content": SYSTEM}, {"role": "user", "content": prompt}], hashes

@@ -1,6 +1,10 @@
-# Yellow build resumption status
+# Historical Yellow build resumption status
 
 Verified 2026-08-23 in the Windows checkout.
+
+Historical handoff only. The Git/runtime statements and first-task sequence below
+describe that date, not current branches, workers or serving state. Consult
+docs/PROJECT-STATUS.md and fresh state/referee output before acting on them.
 
 ## Authority
 

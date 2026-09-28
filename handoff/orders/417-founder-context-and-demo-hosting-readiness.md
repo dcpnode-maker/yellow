@@ -1,5 +1,8 @@
 # Order 417 — founder context recovery and demo-hosting readiness
 
+Historical documentation order from the 2026-09-19 recovery. This does not activate
+a present-day model, tunnel, runtime, data-collection job or cleanup operation.
+
 ## Objective
 
 Preserve the recent Yellow product and hosting requirements that existed only in

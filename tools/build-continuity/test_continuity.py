@@ -12,6 +12,14 @@ import threading
 
 import continuity as c
 import batch
+import start
+
+
+def cleanup_symlink(path):
+    # A rejection test can replace a link with a real directory before cleanup.
+    # Never unlink that replacement or its contents.
+    if path.is_symlink():
+        path.unlink(missing_ok=True)
 
 
 class ContinuityTests(unittest.TestCase):
@@ -47,7 +55,7 @@ class ContinuityTests(unittest.TestCase):
                 link_path.symlink_to(target_path, target_is_directory=True)
             else:
                 link_path.symlink_to(target_path)
-            self.addCleanup(link_path.unlink, missing_ok=True)
+            self.addCleanup(cleanup_symlink, link_path)
             self.symlink_supported = True
             return True
         except OSError as error:
@@ -156,6 +164,45 @@ class ContinuityTests(unittest.TestCase):
             with self.assertRaises(c.Blocked):
                 self.run_worker(lambda *a: self.fail("Escaped task directory called provider"))
             self.assertEqual(list(Path(outside).iterdir()), [])
+
+    def test_symlink_cleanup_preserves_replacement_directory_and_file(self):
+        replacement = self.root / "replacement"
+        replacement.mkdir()
+        sentinel = replacement / "preserve.txt"
+        sentinel.write_text("preserve")
+        cleanup_symlink(replacement)
+        cleanup_symlink(sentinel)
+        cleanup_symlink(self.root / "missing")
+        self.assertTrue(replacement.is_dir())
+        self.assertEqual(sentinel.read_text(), "preserve")
+
+    def test_handoff_uses_actual_head_and_labels_status_as_snapshot(self):
+        task = start.handoff_task(self.root)
+        self.assertEqual(task["base_sha"], c.git(self.root, "rev-parse", "HEAD"))
+        self.assertEqual(task["id"], "handoff-" + task["base_sha"][:12])
+        self.assertIn("dated snapshot", task["goal"])
+        self.assertIn("not proof", task["goal"])
+
+    def test_model_payload_redacts_host_paths_but_hashes_full_original_source(self):
+        original = ('Windows `C:/Users/Alice/Private Folder/yellow`\n'
+                    'Backslash "C:\\Users\\Alice\\Private Folder\\yellow"\n'
+                    'Linux /home/alice/private/yellow\n'
+                    'Mac /Users/Alice/yellow\n'
+                    'Repository tools/build-continuity/start.py remains visible.\n'
+                    'URL https://example.invalid/public remains visible.\n')
+        (self.root / "input.txt").write_text(original, encoding="utf-8")
+        self.task["goal"] = "Review D:/Private/review, not /root/private/review"
+        messages, hashes = c.context_for(self.root, self.task)
+        payload = messages[1]["content"]
+        self.assertNotIn("Alice", payload)
+        self.assertNotIn("/home/alice", payload)
+        self.assertNotIn("/root/private", payload)
+        self.assertNotIn("D:/Private", payload)
+        self.assertIn("tools/build-continuity/start.py", payload)
+        self.assertIn("https://example.invalid/public", payload)
+        self.assertIn("[redacted-host-path]", payload)
+        self.assertEqual(hashes["input.txt"], c.digest(original))
+        self.assertEqual((self.root / "input.txt").read_text(), original)
 
     def test_private_state_file_symlink_rejected(self):
         directory = c.private_directory(self.root, self.task["id"])

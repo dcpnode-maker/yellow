@@ -2,6 +2,9 @@
 -- PMS QA TEST SEED FIXTURE
 -- Run this before executing any test cases from PMS_QA_Test_Suite.md
 -- Tenant: Acme Hotels | Property: Downtown Dubai | 15 rooms | Currency: AED
+-- Order301 temporal reference: active v2 begins at Kolkata civil midnight on
+-- 2025-09-22 and contains business date 2026-01-01, whose exact Kolkata day starts
+-- at 2025-12-31T18:30:00.000000Z (not UTC midnight).
 -- ============================================================================
 
 -- Set tenant context
@@ -43,12 +46,24 @@ INSERT INTO extension (id, tenant_id, type, key, version, effective, content, st
    '{"country":"AE","price_display":"tax_inclusive","rounding":"line","taxes":[{"code":"VAT","name":"Value Added Tax","mode":"percent","rate":0.05,"applies_to":["room_revenue","fnb_revenue"]}]}',
    'active');
 
--- India GST for boundary testing
+-- India GST accommodation launch history: retired Notification 20/2019 predecessor
+-- followed by active Notification 15/2025 successor at Kolkata midnight.
 INSERT INTO extension (id, tenant_id, type, key, version, effective, content, status) VALUES
-  ('00000000-0000-0000-0000-000000000102', NULL, 'tax_jurisdiction', 'in-gst-lodging', 1,
-   tstzrange('2026-01-01', NULL),
-   '{"country":"IN","price_display":"tax_exclusive","rounding":"document","taxes":[{"code":"GST_ROOM","name":"GST on accommodation","mode":"slab_percent","slab_basis":"transaction_value","applies_to":["room_revenue"],"slabs":[{"upto_minor":100000,"rate":0,"itc_eligible":false},{"upto_minor":750000,"rate":0.05,"itc_eligible":false},{"upto_minor":null,"rate":0.18,"itc_eligible":true}]}]}',
+  ('a806f516-fed6-5768-b310-94aa03286adb', NULL, 'tax_jurisdiction', 'in-gst-lodging', 1,
+   tstzrange('2022-07-17T18:30:00.000000Z', '2025-09-21T18:30:00.000000Z', '[)'),
+   '{"country":"IN","price_display":"tax_exclusive","rounding":"document","taxes":[{"code":"GST_ROOM","name":"GST on accommodation","mode":"slab_percent","slab_basis":"transaction_value","applies_to":["room_revenue"],"slabs":[{"upto_minor":750000,"rate":0.12,"itc_eligible":true},{"upto_minor":null,"rate":0.18,"itc_eligible":true}]},{"code":"GST_FNB","name":"GST on F&B (restaurant in hotel)","mode":"percent","rate":0.05,"applies_to":["fnb_revenue"]}]}',
+   'retired'),
+  ('0b21daf2-ea6e-5568-9c21-69e4d4424574', NULL, 'tax_jurisdiction', 'in-gst-lodging', 2,
+   tstzrange('2025-09-21T18:30:00.000000Z', NULL, '[)'),
+   '{"country":"IN","price_display":"tax_exclusive","rounding":"document","taxes":[{"code":"GST_ROOM","name":"GST on accommodation","mode":"slab_percent","slab_basis":"transaction_value","applies_to":["room_revenue"],"slabs":[{"upto_minor":750000,"rate":0.05,"itc_eligible":false},{"upto_minor":null,"rate":0.18,"itc_eligible":true}]},{"code":"GST_FNB","name":"GST on F&B (restaurant in hotel)","mode":"percent","rate":0.05,"applies_to":["fnb_revenue"]}]}',
    'active');
+
+-- Deterministic reservation owner for the protected TC-12 occupancy referee.
+INSERT INTO party (id, tenant_id, kind, display_name, status) VALUES
+  ('00000000-0000-0000-0000-00000000d0cf', '00000000-0000-0000-0000-000000000001',
+   'person', 'Invariant Referee Guest', 'active');
+INSERT INTO party_role (tenant_id, party_id, role) VALUES
+  ('00000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-00000000d0cf', 'guest');
 
 -- ============================================================================
 -- SPACES (15 rooms: 10 STD floors 1-2, 5 DLX floor 2)
@@ -167,6 +182,10 @@ INSERT INTO account (id, tenant_id, property_node, role, name, currency, status)
   ('00000000-0000-0000-0000-000000000805', '00000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000012', 'deposit_liability', 'Deposit Liability', 'AED', 'open'),
   ('00000000-0000-0000-0000-000000000806', '00000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000012', 'house', 'House Account', 'AED', 'open');
 
+INSERT INTO tx_code_route (tenant_id, property_node, currency, tx_code, debit_account_id, credit_account_id) VALUES
+  ('00000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000012', 'AED', 'DEP', NULL,
+   '00000000-0000-0000-0000-000000000805');
+
 -- ============================================================================
 -- BUSINESS DAY (open)
 -- ============================================================================
@@ -230,7 +249,6 @@ INSERT INTO permission (code, description) VALUES
   ('reservation.checkin.dirty_room', 'Allow check-in to dirty room'),
   ('reservation.override.rate', 'Override rate above threshold'),
   ('finance.approval.trust_negative', 'Approve negative trust balance'),
-  ('business_day.seal', 'Seal business day'),
   ('business_day.reopen', 'Reopen sealed business day');
 
 INSERT INTO role (id, tenant_id, name) VALUES
@@ -243,7 +261,10 @@ INSERT INTO role_permission (role_id, permission_code) VALUES
   ('00000000-0000-0000-0000-000000000951', 'business_day.seal'),
   ('00000000-0000-0000-0000-000000000952', 'reservation.override.rate'),
   ('00000000-0000-0000-0000-000000000952', 'finance.approval.trust_negative'),
-  ('00000000-0000-0000-0000-000000000952', 'business_day.reopen');
+  ('00000000-0000-0000-0000-000000000952', 'business_day.reopen'),
+  ('00000000-0000-0000-0000-000000000952', 'financials.payments:read'),
+  ('00000000-0000-0000-0000-000000000952', 'financials.payments:write'),
+  ('00000000-0000-0000-0000-000000000952', 'financials.deposits:apply');
 
 -- ============================================================================
 -- APP USER (test front desk agent)
@@ -310,10 +331,20 @@ WHERE schemaname = 'public' AND tablename IN (
 -- ============================================================================
 INSERT INTO unit_type (id, tenant_id, property_node, code, name, profile_key, base_occupancy, max_occupancy)
 VALUES ('00000000-0000-0000-0000-00000000d0c0','00000000-0000-0000-0000-000000000001',
-        '00000000-0000-0000-0000-000000000010','DORM6','6-Bed Dorm','hostel',1,1);
+        '00000000-0000-0000-0000-000000000012','DORM6','6-Bed Dorm','hostel',1,1);
 INSERT INTO space (id, tenant_id, property_node, code, profile_key, capacity, max_occupancy, floor, status)
 VALUES ('00000000-0000-0000-0000-00000000d0c1','00000000-0000-0000-0000-000000000001',
         '00000000-0000-0000-0000-000000000012','D101','hostel',6,6,'1','active');
+INSERT INTO sellable_unit (id, tenant_id, unit_type_id, name, status) VALUES
+  ('00000000-0000-0000-0000-00000000d0c2','00000000-0000-0000-0000-000000000001',
+   '00000000-0000-0000-0000-00000000d0c0','DORM6-BED','active'),
+  ('00000000-0000-0000-0000-00000000d0c3','00000000-0000-0000-0000-000000000001',
+   '00000000-0000-0000-0000-00000000d0c0','DORM6-PRIVATE','active');
+INSERT INTO sellable_unit_space (tenant_id, sellable_unit_id, space_id, claim_mode) VALUES
+  ('00000000-0000-0000-0000-000000000001','00000000-0000-0000-0000-00000000d0c2',
+   '00000000-0000-0000-0000-00000000d0c1','positional'),
+  ('00000000-0000-0000-0000-000000000001','00000000-0000-0000-0000-00000000d0c3',
+   '00000000-0000-0000-0000-00000000d0c1','exclusive');
 
 INSERT INTO tenant (id, slug, name) VALUES
   ('00000000-0000-0000-0000-000000000002','tenant-b','Rival Hotels');

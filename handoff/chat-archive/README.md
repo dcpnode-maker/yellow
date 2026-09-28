@@ -6,8 +6,8 @@ must never override `PROJECT.md`, `DECISIONS.log`, reviewed orders, or executabl
 proof. Use task IDs to reopen the original conversation when detail is needed.
 
 - `THREADS.md` — relevant task catalog and retrieval map.
-- `CURRENT-STATUS.md` — verified starting brief for the next build task.
-- `FOUNDER-CONTEXT-2026-09-19.md` — recovered current product, AI/voice, hosting and
+- `CURRENT-STATUS.md` — historical verified starting brief from 2026-08-23.
+- `FOUNDER-CONTEXT-2026-09-19.md` — dated recovered product, AI/voice, hosting and
   Lighthouse-status context; secrets and unverified portal content excluded.
 
 The archive deliberately excludes unrelated personal, medical, design, and general

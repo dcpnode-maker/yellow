@@ -3,11 +3,18 @@ import { randomUUID } from "node:crypto";
 import { resolve } from "node:path";
 import { SQL, type Subprocess } from "bun";
 import { runMigrations } from "../scripts/migrate";
-import { runSeed, SEED_PROPERTY, SEED_TENANT, SeedError } from "../scripts/seed";
+import {
+  LAUNCH_EXTENSIONS,
+  LAUNCH_EXTENSION_TYPES,
+  runSeed,
+  SEED_PROPERTY,
+  SEED_TENANT,
+  SeedError,
+} from "../scripts/seed";
 
 const PROJECT_ROOT = resolve(import.meta.dir, "..");
 const SEED_SCRIPT = resolve(PROJECT_ROOT, "scripts", "seed.ts");
-const ADMIN_URL = process.env.YELLOW_SEED_TEST_ADMIN_URL;
+const ADMIN_URL = process.env.YELLOW_DEPLOY_DATABASE_URL ?? process.env.YELLOW_SEED_TEST_ADMIN_URL;
 const REQUIRE_DATABASE = process.env.YELLOW_REQUIRE_SEED_DB === "1";
 const FORBIDDEN_DATABASES = new Set(["yellow_dev", "yellow_test"]);
 
@@ -77,9 +84,10 @@ async function collectChild(child: Subprocess<"ignore", "pipe", "pipe">): Promis
 }
 
 describe("seed CLI", () => {
-  test("requires DATABASE_URL", async () => {
+    test("requires YELLOW_DEPLOY_DATABASE_URL", async () => {
     const env = { ...process.env };
     delete env.DATABASE_URL;
+    delete env.YELLOW_DEPLOY_DATABASE_URL;
     const result = await collectChild(Bun.spawn([process.execPath, SEED_SCRIPT], {
       cwd: PROJECT_ROOT,
       env,
@@ -87,13 +95,13 @@ describe("seed CLI", () => {
       stdout: "pipe",
       stderr: "pipe",
     }));
-    expect(result).toEqual({ exitCode: 1, stdout: "", stderr: "DATABASE_URL is required\n" });
+    expect(result).toEqual({ exitCode: 1, stdout: "", stderr: "YELLOW_DEPLOY_DATABASE_URL is required\n" });
   });
 });
 
 const databaseDescribe = ADMIN_URL ? describe.serial : describe.skip;
 
-databaseDescribe("deterministic app-role bootstrap seed", () => {
+databaseDescribe("deterministic deploy-owned bootstrap seed", () => {
   beforeAll(async () => {
     const parsed = new URL(requiredAdminUrl());
     const adminDatabase = parsed.pathname.replace(/^\//, "");
@@ -108,13 +116,15 @@ databaseDescribe("deterministic app-role bootstrap seed", () => {
     admin = undefined;
   });
 
-  test("runner then seed writes exactly one canonical tenant and property as app_role", async () => {
+  test("runner then seed writes exactly one canonical tenant and property as deploy authority", async () => {
     await withDatabase(async (targetUrl, sql) => {
       const lines: string[] = [];
       const result = await runSeed({ databaseUrl: targetUrl, logger: (line) => lines.push(line) });
       expect(result.tenant).toBe("inserted");
       expect(result.property).toBe("inserted");
-      expect(result.writeRole).toBe("app_role");
+      expect(result.registry).toBe("inserted");
+      expect(result.writeRole).toBe(result.deploymentRole);
+      expect(result.writeRole).not.toBe("app_role");
       expect(result.roleReset).toBe(true);
       expect(result.tenantContextCleared).toBe(true);
       expect(result.reuseProbeCleared).toBe(true);
@@ -125,7 +135,11 @@ databaseDescribe("deterministic app-role bootstrap seed", () => {
       ]);
 
       const tenants = await sql`SELECT id, slug, name, tier, residency, status FROM tenant`;
-      const properties = await sql`SELECT id, tenant_id, path::text AS path, kind, name, timezone, currency, config FROM org_node`;
+      const properties = await sql`
+        SELECT id, tenant_id, path::text AS path, kind, name, timezone, currency,
+               config, jsonb_typeof(config) AS config_type
+        FROM org_node
+      `;
       expect(tenants).toEqual([SEED_TENANT]);
       expect(properties).toEqual([{
         id: SEED_PROPERTY.id,
@@ -135,8 +149,15 @@ databaseDescribe("deterministic app-role bootstrap seed", () => {
         name: SEED_PROPERTY.name,
         timezone: SEED_PROPERTY.timezone,
         currency: SEED_PROPERTY.currency,
-        config: "{}",
+        config: {},
+        config_type: "object",
       }]);
+      expect(Number((await sql`SELECT count(*)::int AS count FROM extension_type`)[0]?.count)).toBe(LAUNCH_EXTENSION_TYPES.length);
+      expect(Number((await sql`SELECT count(*)::int AS count FROM extension WHERE tenant_id IS NULL`)[0]?.count)).toBe(LAUNCH_EXTENSIONS.length);
+      expect(Number((await sql`
+        SELECT count(*)::int AS count FROM fact_log
+        WHERE fact_type IN ('extension_type.registered', 'extension.seeded')
+      `)[0]?.count)).toBe(LAUNCH_EXTENSION_TYPES.length + LAUNCH_EXTENSIONS.length);
     });
   }, 60_000);
 
@@ -148,9 +169,31 @@ databaseDescribe("deterministic app-role bootstrap seed", () => {
       const after = await sql`SELECT created_at FROM tenant WHERE id = ${SEED_TENANT.id}`;
       expect(second.tenant).toBe("already exact");
       expect(second.property).toBe("already exact");
+      expect(second.registry).toBe("already exact");
       expect(after).toEqual(before);
       expect(Number((await sql`SELECT count(*)::int AS count FROM tenant`)[0]?.count)).toBe(1);
       expect(Number((await sql`SELECT count(*)::int AS count FROM org_node`)[0]?.count)).toBe(1);
+      expect(Number((await sql`SELECT count(*)::int AS count FROM extension_type`)[0]?.count)).toBe(LAUNCH_EXTENSION_TYPES.length);
+      expect(Number((await sql`SELECT count(*)::int AS count FROM extension`)[0]?.count)).toBe(LAUNCH_EXTENSIONS.length);
+      expect(Number((await sql`SELECT count(*)::int AS count FROM fact_log`)[0]?.count)).toBe(
+        LAUNCH_EXTENSION_TYPES.length + LAUNCH_EXTENSIONS.length,
+      );
+    });
+  }, 60_000);
+
+  test("divergent launch registry content hard-fails without partial repair", async () => {
+    await withDatabase(async (targetUrl, sql) => {
+      await runSeed({ databaseUrl: targetUrl, logger: () => undefined });
+      await sql`
+        UPDATE extension_type
+        SET json_schema = '{"type":"string"}'::jsonb
+        WHERE type = 'vertical_profile'
+      `;
+      const before = Number((await sql`SELECT count(*)::int AS count FROM fact_log`)[0]?.count);
+      const error = await seedFailure(() => runSeed({ databaseUrl: targetUrl, logger: () => undefined }));
+      expect(error.message).toContain("Extension type seed collision for vertical_profile");
+      expect(Number((await sql`SELECT count(*)::int AS count FROM fact_log`)[0]?.count)).toBe(before);
+      expect((await sql`SELECT json_schema FROM extension_type WHERE type = 'vertical_profile'`)[0]?.json_schema).toEqual({ type: "string" });
     });
   }, 60_000);
 
@@ -192,7 +235,7 @@ databaseDescribe("deterministic app-role bootstrap seed", () => {
           const rows = await connection<{ current_user: string; tenant_context: string }[]>`
             SELECT current_user, current_setting('app.tenant_id', true) AS tenant_context
           `;
-          expect(rows).toEqual([{ current_user: "app_role", tenant_context: SEED_TENANT.id }]);
+          expect(rows).toEqual([{ current_user: "yellow_deploy", tenant_context: SEED_TENANT.id }]);
           throw new Error("controlled pre-property failure");
         },
       }));
@@ -215,7 +258,7 @@ databaseDescribe("deterministic app-role bootstrap seed", () => {
       const runnableUrl = targetUrl;
       const result = await collectChild(Bun.spawn([process.execPath, SEED_SCRIPT], {
         cwd: PROJECT_ROOT,
-        env: { ...process.env, DATABASE_URL: runnableUrl },
+        env: { ...process.env, YELLOW_DEPLOY_DATABASE_URL: runnableUrl },
         stdin: "ignore",
         stdout: "pipe",
         stderr: "pipe",

@@ -47,13 +47,28 @@ export function schemaMismatch(actual: string, expected: string): string | null 
   return "Schema drift detected";
 }
 
-async function captureDump(databaseName: string): Promise<string> {
+function deployUsername(databaseUrl: string): string {
+  let parsed: URL;
+  try {
+    parsed = new URL(databaseUrl);
+  } catch {
+    throw new Error("YELLOW_DEPLOY_DATABASE_URL must be a valid PostgreSQL URL");
+  }
+  if (!/^postgres(?:ql)?:$/.test(parsed.protocol)
+      || decodeURIComponent(parsed.username) !== "yellow_deploy"
+      || parsed.password === "") {
+    throw new Error("YELLOW_DEPLOY_DATABASE_URL must authenticate the exact yellow_deploy role");
+  }
+  return "yellow_deploy";
+}
+
+async function captureDump(databaseName: string, username: string): Promise<string> {
   if (!DATABASE_NAME_PATTERN.test(databaseName)) {
     throw new Error(`Invalid YELLOW_SCHEMA_DATABASE: ${databaseName}`);
   }
   const child = Bun.spawn([
     "docker", "compose", "exec", "-T", "postgres",
-    "pg_dump", "--username", "yellow", "--dbname", databaseName,
+    "pg_dump", "--username", username, "--dbname", databaseName,
     "--schema-only", "--no-owner", "--no-comments",
   ], { stdout: "pipe", stderr: "pipe" });
   const [exitCode, stdout, stderr] = await Promise.all([
@@ -72,7 +87,9 @@ async function runCli(): Promise<void> {
   }
   const databaseName = process.env.YELLOW_SCHEMA_DATABASE;
   if (!databaseName) throw new Error("YELLOW_SCHEMA_DATABASE is required");
-  const actual = await captureDump(databaseName);
+  const databaseUrl = process.env.YELLOW_DEPLOY_DATABASE_URL;
+  if (!databaseUrl) throw new Error("YELLOW_DEPLOY_DATABASE_URL is required");
+  const actual = await captureDump(databaseName, deployUsername(databaseUrl));
   if (mode === "--print") {
     process.stdout.write(actual);
     return;

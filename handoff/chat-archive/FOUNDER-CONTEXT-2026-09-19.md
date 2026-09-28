@@ -5,6 +5,9 @@ proof, a decision record, or an implementation claim. It deliberately excludes l
 details, API credentials, personal data, screenshots and copied third-party material.
 `PROJECT.md`, `DECISIONS.log`, approved orders and executable verification prevail.
 
+Historical recovery snapshot: retain the requirements as intent, but do not treat
+its dated listener/source or model-readiness observations as current evidence.
+
 ## Immediate product priority
 
 The immediate objective is a pleasing, shared **PMS demonstration** for colleagues
@@ -118,5 +121,5 @@ identified, started and browser-verified locally.
   access status.
 - `6aa8fe7b-4c10-83ee-aaee-c5013572b522` — Jarvis/native execution and local-model
   recovery discussion.
-- `C:/Users/astha/.codex/visualizations/2026/08/23/01a02df3-c84f-7773-a169-dec0e20c9da6/yellow-ota-rms-kb/`
-  — detailed external requirements and RMS knowledge corpus.
+- `yellow-ota-rms-kb/` — detailed external requirements and RMS knowledge corpus;
+  resolve its operator-owned local location privately, not through exported host paths.

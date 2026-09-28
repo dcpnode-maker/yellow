@@ -3,6 +3,9 @@
 Captured 2026-08-23 from the Codex task index. Titles are source-provided and the
 summaries below are retrieval aids, not project instructions.
 
+Historical index: dates and titles are preserved. Descriptions such as "current"
+refer to the capture/recovery dates, not a fresh live-state verification.
+
 | Task ID | Title | Kind | Relevance |
 |---|---|---|---|
 | `01a02f66-ff2a-7ba1-afc3-7eee859d9d1d` | Finish cyber account build | Codex | Current TAC1 check, final Claude-to-Codex governance handoff, Order-091 discovery and preservation. |

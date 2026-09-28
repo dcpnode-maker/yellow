@@ -1,8 +1,9 @@
 import { describe, expect, test } from "bun:test";
-import { mkdir, mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readdir, rm, stat, writeFile } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
 import { tmpdir } from "node:os";
 import { checkImportBoundaries } from "../scripts/check-import-boundaries";
+import { runOwnedProofProcess } from "./helpers/owned-proof-process";
 
 const PROJECT_ROOT = resolve(import.meta.dir, "..");
 const CHECKER = resolve(PROJECT_ROOT, "scripts", "check-import-boundaries.ts");
@@ -41,8 +42,23 @@ async function withFixture<T>(
   }
 }
 
+async function countTypeScriptFiles(root: string): Promise<number> {
+  let count = 0;
+
+  for (const entry of await readdir(root, { withFileTypes: true })) {
+    const path = resolve(root, entry.name);
+    if (entry.isDirectory()) {
+      count += await countTypeScriptFiles(path);
+    } else if (entry.isFile() && entry.name.endsWith(".ts")) {
+      count += 1;
+    }
+  }
+
+  return count;
+}
+
 describe("context layout", () => {
-  test("contains exactly 13 empty context indices and one empty kernel index", async () => {
+  test("contains exactly 13 canonical context indices and one kernel index", async () => {
     const contextRoot = resolve(PROJECT_ROOT, "src", "contexts");
     const contextDirectories = (await readdir(contextRoot, { withFileTypes: true }))
       .filter((entry) => entry.isDirectory())
@@ -52,16 +68,20 @@ describe("context layout", () => {
     expect(contextDirectories).toEqual([...EXPECTED_CONTEXTS]);
 
     for (const context of EXPECTED_CONTEXTS) {
-      expect(await readFile(resolve(contextRoot, context, "index.ts"), "utf8")).toBe("");
+      expect((await stat(resolve(contextRoot, context, "index.ts"))).isFile()).toBe(true);
     }
 
-    expect(await readFile(resolve(PROJECT_ROOT, "src", "kernel", "index.ts"), "utf8")).toBe("");
+    expect((await stat(resolve(PROJECT_ROOT, "src", "kernel", "index.ts"))).isFile()).toBe(true);
   });
 
   test("the real source tree obeys the boundary rule", async () => {
     const result = await checkImportBoundaries(PROJECT_ROOT);
+    const expectedFilesScanned =
+      await countTypeScriptFiles(resolve(PROJECT_ROOT, "src", "commands")) +
+      await countTypeScriptFiles(resolve(PROJECT_ROOT, "src", "contexts")) +
+      await countTypeScriptFiles(resolve(PROJECT_ROOT, "src", "kernel"));
 
-    expect(result.filesScanned).toBe(14);
+    expect(result.filesScanned).toBe(expectedFilesScanned);
     expect(result.violations).toEqual([]);
   });
 });
@@ -134,6 +154,30 @@ describe("import boundary checker", () => {
     );
   });
 
+  test("allows command index imports and rejects deep context imports in every syntax form", async () => {
+    await withFixture(
+      {
+        "src/contexts/financials/index.ts": "",
+        "src/contexts/tax-fiscal/index.ts": "",
+        "src/kernel/index.ts": "",
+        "src/commands/good.ts": 'import "../contexts/financials"; export * from "../contexts/tax-fiscal/index"; import "../kernel";\n',
+        "src/commands/static.ts": 'import "../contexts/financials/private";\n',
+        "src/commands/reexport.ts": 'export * from "../contexts/tax-fiscal/internal";\n',
+        "src/commands/dynamic.ts": 'void import("../contexts/financials/handler");\n',
+      },
+      async (root) => {
+        const result = await checkImportBoundaries(root);
+        expect(result.violations.map(({ specifier }) => specifier).sort()).toEqual([
+          "../contexts/financials/handler",
+          "../contexts/financials/private",
+          "../contexts/tax-fiscal/internal",
+        ]);
+        expect(result.violations.every(({ reason }) => reason.startsWith("command must import context")))
+          .toBe(true);
+      },
+    );
+  });
+
   test("an illegal fixture makes the real CLI exit nonzero with actionable output", async () => {
     await withFixture(
       {
@@ -142,22 +186,16 @@ describe("import boundary checker", () => {
         "src/kernel/index.ts": "",
       },
       async (root) => {
-        const child = Bun.spawn([process.execPath, CHECKER, root], {
+        const result = await runOwnedProofProcess([process.execPath, CHECKER, root], {
           cwd: PROJECT_ROOT,
-          stderr: "pipe",
-          stdout: "pipe",
+          timeoutMs: 3_000,
         });
-        const [exitCode, stdout, stderr] = await Promise.all([
-          child.exited,
-          new Response(child.stdout).text(),
-          new Response(child.stderr).text(),
-        ]);
 
-        expect(exitCode).not.toBe(0);
-        expect(stdout).toBe("");
-        expect(stderr).toContain("src/contexts/reservations/bad.ts");
-        expect(stderr).toContain('"../inventory/repository"');
-        expect(stderr).toContain("public index");
+        expect(result.exitCode).not.toBe(0);
+        expect(result.stdout).toBe("");
+        expect(result.stderr).toContain("src/contexts/reservations/bad.ts");
+        expect(result.stderr).toContain('"../inventory/repository"');
+        expect(result.stderr).toContain("public index");
       },
     );
   });
