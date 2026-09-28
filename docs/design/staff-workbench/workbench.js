@@ -100,6 +100,23 @@ const journey = [
 ];
 const $ = id => document.getElementById(id);
 const escapeHtml = value => String(value).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const departmentIcons = ['bell','calendar-blank','broom','briefcase','handshake','identification-card','briefcase','confetti','fork-knife','cooking-pot','flower-lotus','house-line','identification-card','chart-line-up','briefcase','house-line'];
+const skins = new Set(['calm','precision','timeline']);
+// Cosmetic only: never re-render a form, change its command identity or perform a request.
+function applySkin(value) {
+  const skin = skins.has(value) ? value : 'calm';
+  document.documentElement.dataset.skin = skin;
+  $('skin-select').value = skin;
+}
+const maySeeGuestProfile = () => ['fo','reservations','concierge','fnb','finance','duty'].includes(state.department);
+function profileCard(kind, compact = false) {
+  const guest = kind === 'guest';
+  return `<article class="profile-card${compact?' rail-profile':''}" aria-label="${guest?'Mira Shah, fictional guest profile':'Aditi Rao, fictional staff profile'}"><img class="profile-photo" src="assets/${guest?'guest-mira':'staff-aditi'}.png" alt="Fictional portrait of ${guest?'Mira Shah':'Aditi Rao'}" width="1024" height="1536"><span class="profile-kind">${guest?'GUEST PROFILE':'TEAM PROFILE'}</span><div class="profile-content"><p class="profile-id">${guest?'G-20451':'HH-STAFF-014'}</p><h3>${guest?'Mira Shah':'Aditi Rao'}</h3><p class="profile-description">${guest?'A considered stay, from the first welcome.':'Duty manager. Here for the details that make a difference.'}</p><div class="profile-bottom"><span><img src="assets/${guest?'calendar-blank':'clock'}.svg" alt="" width="16" height="16">${guest?'5–8 Sep':'On duty'}</span><button class="profile-action" ${compact?'data-profile="staff"':guest?'data-explore="YC-01"':'data-profile-shift="duty"'}>${compact?'View profile':guest?'View stay':'View shift'}<img src="assets/arrow-up-right.svg" alt="" width="17" height="17"></button></div></div></article>`;
+}
+function renderProfiles() {
+  const guest = maySeeGuestProfile();
+  $('profiles-view').innerHTML = `<div class="section-intro"><p class="eyebrow">PEOPLE / IDENTITY</p><h2 id="profiles-heading">A familiar face. The right context.</h2><p>Guest and team profiles, with the details that belong to your role. These people and user IDs are fictional.</p></div><div class="profiles-grid">${guest?profileCard('guest'):''}${profileCard('staff')}<section class="profile-context"><p class="eyebrow">${guest?'THE CURRENT STAY':'TEAM CONTEXT'}</p><h3>${guest?'Welcome, Mira.':'Aditi Rao'}</h3><p>${guest?'A room is only part of the welcome. Keep arrival, preparation and guest communication connected.':'The duty manager coordinates exceptions across the hotel. A role label is context; production actions still require server authorization.'}</p><dl><div><dt>${guest?'Reservation':'User ID'}</dt><dd>${guest?'HH-20451':'HH-STAFF-014'}</dd></div><div><dt>${guest?'Room / category':'Role'}</dt><dd>${guest?'412 / Deluxe king':'Duty manager'}</dd></div><div><dt>${guest?'Stay':'Shift'}</dt><dd>${guest?'5–8 Sep 2026 · 2 adults':'Afternoon · Harbour House'}</dd></div><div><dt>Property</dt><dd>Harbour House, Mumbai</dd></div></dl><div class="handoff-note">${guest?'A room assignment does not establish room readiness. Open the stay to review the current preparation and inspection evidence.':'This department view keeps guest profile details out of the visible interface.'}</div><button class="secondary" ${guest?'data-explore="YC-01"':'data-profile-shift="duty"'}>${guest?'Continue arrival review':'Open the duty manager queue'}</button></section></div>`;
+}
 let state = {department:'fo', view:'shift', filter:'all', search:'', selected:'YC-01', detailOpen:false};
 const progress = new Map(cases.map(c => [c.id, {index:0, history:[]} ]));
 let receiptNumber = 0;
@@ -127,13 +144,13 @@ function rememberView() {
   history.replaceState(null, '', `#${params}`);
 }
 function renderNavigation() {
-  $('departments').innerHTML = departments.map(([id,name]) => `<button class="department" data-department="${id}"${id === state.department ? ' aria-current="page"' : ''}><span>${escapeHtml(name)}</span><span>${cases.filter(c => c.teams.includes(id) && currentStep(c)?.owner === id).length}</span></button>`).join('');
+  $('departments').innerHTML = departments.map(([id,name],i) => `<button class="department" data-department="${id}"${id === state.department ? ' aria-current="page"' : ''}><span class="department-name"><img src="assets/${departmentIcons[i]}.svg" alt="" width="18" height="18">${escapeHtml(name)}</span><span class="department-count">${cases.filter(c => c.teams.includes(id) && currentStep(c)?.owner === id).length}</span></button>`).join('');
   $('mobile-department').innerHTML = departments.map(([id,name]) => `<option value="${id}"${id===state.department?' selected':''}>${escapeHtml(name)}</option>`).join('');
   $('department-heading').textContent = team(state.department);
   $('department-description').textContent = departments.find(d => d[0] === state.department)[2];
   document.querySelectorAll('[data-view]').forEach(button => {const active=button.dataset.view===state.view;button.classList.toggle('active',active);if(active)button.setAttribute('aria-current','page');else button.removeAttribute('aria-current');});
   document.querySelectorAll('[data-filter]').forEach(button => button.setAttribute('aria-pressed',String(button.dataset.filter===state.filter)));
-  ['shift','journey','cases'].forEach(view => $(`${view}-view`).hidden = state.view!==view);
+  ['shift','journey','cases','profiles'].forEach(view => $(`${view}-view`).hidden = state.view!==view);
 }
 function renderQueue() {
   const related=departmentCases();
@@ -154,7 +171,7 @@ function renderDetail() {
   const record=progress.get(item.id); const next=currentStep(item); const own=next?.owner===state.department;
   const roomCondition=item.id==='YC-01' ? (record.index<3?'Dirty / preparation':record.index===3?'Clean · inspection required':'Inspection recorded') : item.area;
   const currentOwner=next?team(next.owner):'Review complete';
-  $('detail').innerHTML=`<button class="mobile-back" id="back-queue">Back to work queue</button><div class="detail-head"><div class="detail-meta"><span>${escapeHtml(item.id)} · ${escapeHtml(item.area)}</span><span class="tag ${next?item.tone:'complete'}">${next?`${record.index+1} of ${item.steps.length} steps`:'Review complete'}</span></div><h2 tabindex="-1" id="detail-title">${escapeHtml(visibleSubject(item))}</h2><p>${escapeHtml(item.context)}</p></div><dl class="context-grid"><div><dt>Current owner</dt><dd>${escapeHtml(currentOwner)}</dd></div><div><dt>${item.id==='YC-01'?'Room condition':'Next update'}</dt><dd>${escapeHtml(item.id==='YC-01'?roomCondition:item.due)}</dd></div></dl><div class="action-area"><p class="action-label">${next?'THE NEXT USEFUL ACTION':'THE LOOP IS VISIBLE'}</p><h3>${escapeHtml(next?.title??'This scenario review is complete')}</h3><p class="action-copy">${escapeHtml(next?.copy??'The handoffs and review receipts remain below. This was a fictional workflow; the production app must execute its own authorized commands.')}</p><div class="handoff-note"><strong>Guest promise</strong><br>${escapeHtml(item.promise)}</div>${item.id==='YC-11'?outletEvidence(record,own):''}${next?(own?`<div class="checklist">${next.checks.map((check,i)=>`<label><input type="checkbox" data-check="${i}"><span>${escapeHtml(check)}</span></label>`).join('')}</div><button class="primary" id="advance" disabled>${escapeHtml(next.action)}</button><p class="action-footnote">Acting as ${escapeHtml(next.role??team(next.owner))} in the design. Updates this simulation only.</p>`:`<button class="secondary" id="follow-owner">Continue in ${escapeHtml(team(next.owner))}</button><p class="action-footnote">Explore the receiving team’s view. Department choice does not grant production access.</p>`):'<button class="secondary" id="open-journey">Explore the complete guest journey</button>'}</div><details class="detail-section" open><summary>Handoff history · ${record.history.length} receipts</summary>${record.history.length?`<ol class="timeline">${record.history.map(event=>`<li><time>${event.time}</time><span><strong>${escapeHtml(event.owner)}</strong><br>${escapeHtml(event.text)}</span></li>`).join('')}</ol>`:'<p>No handoff yet. The next action starts an owned request.</p>'}</details><details class="detail-section"><summary>Context and decision evidence</summary><ul>${item.evidence.map(v=>`<li>${escapeHtml(v)}</li>`).join('')}</ul></details>`;
+  $('detail').innerHTML=`<button class="mobile-back" id="back-queue">Back to work queue</button><div class="detail-head"><div class="detail-meta"><span>${escapeHtml(item.id)} · ${escapeHtml(item.area)}</span><span class="tag ${next?item.tone:'complete'}">${next?`${record.index+1} of ${item.steps.length} steps`:'Review complete'}</span></div><h2 tabindex="-1" id="detail-title">${escapeHtml(visibleSubject(item))}</h2><p>${escapeHtml(item.context)}</p></div><dl class="context-grid"><div><dt>Current owner</dt><dd>${escapeHtml(currentOwner)}</dd></div><div><dt>${item.id==='YC-01'?'Room condition':'Next update'}</dt><dd>${escapeHtml(item.id==='YC-01'?roomCondition:item.due)}</dd></div></dl><ol class="stage-track" aria-label="Scenario handoff stages">${item.steps.map((s,i)=>`<li data-stage="${i<record.index?'complete':i===record.index?'current':'upcoming'}"><span class="stage-index">${i+1}</span><span>${escapeHtml(s.role??team(s.owner))}<br>${i<record.index?'Completed':i===record.index?'Current step':'Upcoming'}</span></li>`).join('')}</ol><div class="action-area"><p class="action-label">${next?'THE NEXT USEFUL ACTION':'THE LOOP IS VISIBLE'}</p><h3>${escapeHtml(next?.title??'This scenario review is complete')}</h3><p class="action-copy">${escapeHtml(next?.copy??'The handoffs and review receipts remain below. This was a fictional workflow; the production app must execute its own authorized commands.')}</p><div class="handoff-note"><strong>Guest promise</strong><br>${escapeHtml(item.promise)}</div>${item.id==='YC-11'?outletEvidence(record,own):''}${next?(own?`<div class="checklist">${next.checks.map((check,i)=>`<label><input type="checkbox" data-check="${i}"><span>${escapeHtml(check)}</span></label>`).join('')}</div><button class="primary" id="advance" disabled>${escapeHtml(next.action)}</button><p class="action-footnote">Acting as ${escapeHtml(next.role??team(next.owner))} in the design. Updates this simulation only.</p>`:`<button class="secondary" id="follow-owner">Continue in ${escapeHtml(team(next.owner))}</button><p class="action-footnote">Explore the receiving team’s view. Department choice does not grant production access.</p>`):'<button class="secondary" id="open-journey">Explore the complete guest journey</button>'}</div><details class="detail-section" open><summary>Handoff history · ${record.history.length} receipts</summary>${record.history.length?`<ol class="timeline">${record.history.map(event=>`<li><time>${event.time}</time><span><strong>${escapeHtml(event.owner)}</strong><br>${escapeHtml(event.text)}</span></li>`).join('')}</ol>`:'<p>No handoff yet. The next action starts an owned request.</p>'}</details><details class="detail-section"><summary>Context and decision evidence</summary><ul>${item.evidence.map(v=>`<li>${escapeHtml(v)}</li>`).join('')}</ul></details>`;
 }
 function outletEvidence(record, own) {
   return `<section class="source-evidence" aria-label="Original outlet request"><h3>Original attempt · POS-1842-A</h3><p>Restaurant check 1842 · INR 2,450.00<br>Recorded target: <strong>Mira Shah · personal folio F-412-M</strong><br>Result at the outlet: <strong>unknown</strong>. Keep this attempt identity.</p>${record.index===0&&own?`<label for="outlet-account">Which resident account matches the original attempt?<select id="outlet-account"><option value="">Choose the exact account</option><option value="mira"${record.account==='mira'?' selected':''}>Mira Shah · personal folio F-412-M</option><option value="rohan"${record.account==='rohan'?' selected':''}>Rohan Shah · company folio F-412-R</option></select></label><p id="account-feedback" role="status">${record.account==='mira'?'Selected account matches the original request.':record.account==='rohan'?'This account differs from the original request. Review the source before proceeding.':'Room 412 contains two accounts. Room number alone is insufficient.'}</p>`:''}${record.index>0?'<div class="reconciliation-receipt"><strong>Fictional reconciliation receipt · P-8726</strong><p>Accepted · 13:38 IST, 5 Sep 2026<br>Attempt POS-1842-A · Check 1842<br>Mira Shah · F-412-M · INR 2,450.00<br>One existing posting. No new posting or tender.</p></div>':''}</section>`;
@@ -171,7 +188,7 @@ function renderJourney() {
 function renderCases() {
   $('cases-view').innerHTML='<div class="section-intro"><p class="eyebrow">FICTIONAL SCENARIOS · ORIGINAL DESIGN SYNTHESIS</p><h2 id="cases-heading">A shift is more than its happy path.</h2><p>Explore how people handle interruptions, changed promises and uncertain outcomes. These are design cases, not field observations or claims of shipped functionality.</p></div><div class="case-grid">'+cases.map(item=>`<article class="case-card"><span class="case-code">${item.id} · ${escapeHtml(item.area.toUpperCase())}</span><h3>${escapeHtml(item.title)}</h3><p>${escapeHtml(item.promise)}</p><div class="case-teams">${item.teams.map(team).map(escapeHtml).join(' · ')}</div><button class="text-action" data-explore="${item.id}">Open scenario</button></article>`).join('')+'</div>';
 }
-function render() {renderNavigation();renderQueue();renderJourney();renderCases();rememberView();}
+function render() {renderNavigation();renderQueue();renderJourney();renderCases();renderProfiles();rememberView();}
 function changeDepartment(id, retain=false) {
   if (!departments.some(d=>d[0]===id))return;
   state.department=id;state.filter='all';state.search='';$('search').value='';state.detailOpen=retain;render();
@@ -180,6 +197,8 @@ function changeDepartment(id, retain=false) {
 document.addEventListener('click',event=>{
   const button=event.target.closest('button');if(!button)return;
   if(button.dataset.department){changeDepartment(button.dataset.department);return;}
+  if(button.dataset.profile||button.id==='my-profile'){state.view='profiles';renderNavigation();renderProfiles();$('profiles-heading')?.scrollIntoView({block:'nearest'});return;}
+  if(button.dataset.profileShift){state.view='shift';changeDepartment(button.dataset.profileShift);return;}
   if(button.dataset.view){state.view=button.dataset.view;render();return;}
   if(button.dataset.filter){state.filter=button.dataset.filter;renderQueue();return;}
   if(button.dataset.case){state.selected=button.dataset.case;state.detailOpen=true;renderQueue();rememberView();$('detail-title')?.focus();return;}
@@ -200,6 +219,7 @@ document.addEventListener('click',event=>{
   if(button.id==='reset'){progress.forEach(record=>{record.index=0;record.history=[];delete record.account;});receiptNumber=0;state={department:'fo',view:'shift',filter:'all',search:'',selected:'YC-01',detailOpen:false};$('search').value='';render();announce('Fictional cases reset. No hotel data was changed.');}
 });
 document.addEventListener('change',event=>{
+  if(event.target.id==='skin-select'){applySkin(event.target.value);return;}
   if(event.target.id==='mobile-department'){changeDepartment(event.target.value);return;}
   if(event.target.id==='outlet-account'){progress.get('YC-11').account=event.target.value;$('account-feedback').textContent=event.target.value==='mira'?'Selected account matches the original request.':event.target.value==='rohan'?'This account differs from the original request. Review the source before proceeding.':'Room 412 contains two accounts. Room number alone is insufficient.';updateActionGate();}
   if(event.target.matches('[data-check]'))updateActionGate();
@@ -211,6 +231,8 @@ document.addEventListener('keydown',event=>{
 });
 const initial=new URLSearchParams(location.hash.slice(1));
 if(departments.some(d=>d[0]===initial.get('department')))state.department=initial.get('department');
-if(['shift','journey','cases'].includes(initial.get('view')))state.view=initial.get('view');
+if(['shift','journey','cases','profiles'].includes(initial.get('view')))state.view=initial.get('view');
 if(cases.some(c=>c.id===initial.get('case')&&c.teams.includes(state.department)))state.selected=initial.get('case');
+$('shift-profile').innerHTML = profileCard('staff', true);
+applySkin($('skin-select').value);
 render();

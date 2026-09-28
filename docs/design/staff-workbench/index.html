@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en" data-theme="apple">
+<html lang="en" data-theme="glass" data-skin="calm">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -10,7 +10,7 @@
 <body>
   <a class="skip" href="#workspace">Skip to work queue</a>
   <div class="review-bar">
-    <span><strong>Yellow design review</strong><span class="review-description"> · Fictional hotel. Actions stay in this page.</span></span>
+    <span><strong>Yellow preview</strong><span class="review-description"> · Fictional hotel. Actions stay in this page.</span></span>
     <div class="review-actions"><button id="phone-toggle" aria-pressed="false">Phone layout</button><button id="notes-open">Design notes</button><button id="reset">Reset scenario</button></div>
   </div>
   <div class="app-shell" id="app-shell">
@@ -18,35 +18,41 @@
       <div class="wordmark"><span class="brand-mark">Y</span><strong>yellow</strong></div>
       <div class="property"><strong>Harbour House</strong><span>Mumbai · Fictional review property</span></div>
       <label class="mobile-department" for="mobile-department">Explore a department<select id="mobile-department"></select></label>
-      <p class="nav-label">EXPLORE A DEPARTMENT</p>
+      <p class="nav-label">YOUR HOTEL, CONNECTED</p>
       <nav id="departments" aria-label="Explore a department"></nav>
-      <div class="sidebar-footer"><strong>A connected shift.</strong><p>Every request has an owner.<br>Every handoff has a receipt.</p></div>
+      <div class="sidebar-footer"><span class="property-icon"><img src="assets/house-line.svg" alt="" width="20" height="20"></span><div><strong>Harbour House</strong><p>One property. One team.</p></div></div>
     </aside>
     <main id="workspace" tabindex="-1">
       <header class="workspace-header">
-        <div><p class="eyebrow">SATURDAY, 5 SEPTEMBER 2026 · 13:40 IST</p><h1 id="department-heading">Front office</h1><p id="department-description" class="muted"></p></div>
-        <span class="shift-badge">Afternoon shift · sample data</span>
+        <div><p class="eyebrow">HARBOUR HOUSE / WORKSPACE</p><h1 id="department-heading">Front office</h1><p id="department-description" class="muted"></p></div>
+        <div class="workspace-settings"><label class="skin-control" for="skin-select"><span>Workspace skin</span><select id="skin-select"><option value="calm">Calm Workbench</option><option value="precision">Precision Desk</option><option value="timeline">Service Timeline</option></select></label><button id="my-profile" class="account-button" aria-label="View Aditi Rao’s staff profile"><img src="assets/staff-aditi.png" alt="" width="42" height="42"></button></div>
       </header>
       <nav class="view-tabs" aria-label="Workspace view">
         <button data-view="shift" class="active" aria-current="page">My shift</button>
         <button data-view="journey">Guest journey</button>
         <button data-view="cases">Casebook</button>
+        <button data-view="profiles">Profiles</button>
+        <span class="shift-badge"><img src="assets/clock.svg" alt="" width="15" height="15">5 Sep · 13:40 IST</span>
       </nav>
       <section id="shift-view">
+        <div class="shift-intro"><div><p class="eyebrow">THE AFTERNOON SHIFT</p><h2>Thoughtful service starts here.</h2></div><span class="quiet-label">Every handoff, accounted for.</span></div>
+        <div class="dashboard-grid"><div class="operations-column">
         <div class="metric-row" id="metrics" aria-label="Current department scenario counts"></div>
         <div class="work-layout">
           <section class="queue-panel" aria-labelledby="queue-heading">
-            <div class="queue-heading"><div><h2 id="queue-heading">What needs attention</h2><p class="muted">Guest impact first. Ownership always visible.</p></div><span class="count" id="queue-count"></span></div>
-            <label class="search-label" for="search">Find a guest, room or task<input id="search" type="search" placeholder="Search this department…" autocomplete="off"></label>
+            <div class="queue-heading"><div><h2 id="queue-heading">Your work queue</h2><p class="muted">The right next step, in one place.</p></div><span class="count" id="queue-count"></span></div>
+            <label class="search-label" for="search"><span>Find a guest, room or task</span><span class="search-field"><img src="assets/magnifying-glass.svg" alt="" width="18" height="18"><input id="search" type="search" placeholder="Search this department…" autocomplete="off"><kbd>/</kbd></span></label>
             <div class="filter-row" aria-label="Queue filter"><button data-filter="all" aria-pressed="true">All</button><button data-filter="mine" aria-pressed="false">Needs my team</button><button data-filter="waiting" aria-pressed="false">With another team</button><button data-filter="done" aria-pressed="false">Completed</button></div>
             <div id="queue" class="queue"></div>
           </section>
           <section id="detail" class="detail-panel" aria-label="Selected task"></section>
         </div>
+        </div><aside class="people-rail" aria-label="Staff context"><div class="rail-heading"><span>YOUR SHIFT LEAD</span><img src="assets/identification-card.svg" alt="" width="20" height="20"></div><div id="shift-profile"></div><div class="shift-note"><p class="eyebrow">A LITTLE CONTEXT</p><h3>Good service is a team effort.</h3><p>Keep the next owner in the loop. A request becomes a handoff when someone accepts it.</p><button class="text-action" data-view="journey">Follow the guest journey <img src="assets/arrow-up-right.svg" alt="" width="17" height="17"></button></div></aside></div>
       </section>
       <section id="journey-view" hidden aria-labelledby="journey-heading"></section>
       <section id="cases-view" hidden aria-labelledby="cases-heading"></section>
-      <footer class="workspace-footer">Business date: 5 Sep 2026 · Asia/Kolkata <span>Order 440 · Interaction study</span></footer>
+      <section id="profiles-view" hidden aria-labelledby="profiles-heading"></section>
+      <footer class="workspace-footer">Business date: 5 Sep 2026 · Asia/Kolkata <span>Connected work. Considered design.</span></footer>
     </main>
   </div>
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
@@ -55,7 +61,8 @@
     <p>This is a working interaction study for Yellow, using fictional people and hotel operations. It does not connect to the hotel database, send messages, post charges, issue keys or invoices, or change a real booking. Reloading resets all actions.</p>
     <p><strong>Try the early arrival:</strong> Front office requests preparation. Switch to Housekeeping, accept the handoff, complete cleaning and inspection. Switch back to Front office, acknowledge readiness and complete the arrival review.</p>
     <p>Department selection explores a design role; it is not authentication. The production app must authorize every query and command on the server. Event, F&amp;B and spa workflows here are planned scope.</p>
-    <p>The design extends Yellow’s existing Apple appearance: solid work surfaces, blue primary actions, restrained yellow identity and contextual detail. Other appearance families remain in the product roadmap.</p>
+    <p>The three workspace skins share the same tasks and evidence: Calm Workbench, Precision Desk and Service Timeline. Change the skin while completing a checklist: your entered work stays in place. The production app retains its six appearance families.</p>
+    <p>Guest and staff identity cards take their surface direction from the right-hand Sophie Bennett card by Tran Mau Tri Tam for UI8. The portraits and identities here are fictional; they are not the designer’s portrait or real hotel records. Department navigation explores a role and does not grant access.</p>
     <p><a href="compare.html">Compare local screenshots</a> for matched-image review. This requires an independently selected source; it does not establish a reference automatically.</p>
     <p>Specifications live beside this prototype: <code>STAFF-JOURNEYS.md</code>, <code>HOTEL-CASEBOOK.md</code> and <code>STAFF-WORKBENCH-SPEC.md</code>. Research and schema-count evidence are linked from the repository README.</p>
   </dialog>

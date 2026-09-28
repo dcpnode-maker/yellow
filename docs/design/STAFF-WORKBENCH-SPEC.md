@@ -6,7 +6,8 @@ The [interactive study](staff-workbench/index.html) translates the
 [staff journeys](STAFF-JOURNEYS.md), [casebook](HOTEL-CASEBOOK.md) and
 [independent findings](../research/HOTEL-OPERATIONS-REVIEW.md) into a concrete review
 surface. It lives inside the existing Yellow repository and extends the existing
-operator's Apple appearance. It does not replace the current main app or introduce a
+operator's existing command and appearance boundaries. Order442 adds three
+selectable workspace skins and profile surfaces inspired by the founder's references. It does not replace the current main app or introduce a
 second backend. The six product appearance families and STR workspace destination
 remain required.
 
@@ -36,11 +37,29 @@ The department control is a compact select on narrow screens. The study's Phone
 layout control deliberately constrains the rendered app to 390 CSS pixels for review;
 it is not native-client evidence or a device-emulator performance claim.
 
-The interface uses existing Yellow semantic colours and Apple token values: solid
-white work surfaces, `#f5f5f7` background, `#1d1d1f` text, blue governed-action styling,
-restrained yellow brand identity and readable status text. No new artwork, tracking,
-third-party scripts, fonts, runtime dependencies or remote data calls are required.
-Typography and density may differ by device; permissions and meaning must not.
+Order442 uses a muted sage/ivory canvas, near-black text, restrained yellow identity
+and self-hosted Urbanist. The Phosphor icons and font retain their source notices;
+generated fictional guest and staff portraits are confined to the study. All assets
+are served locally by a fixed allowlist; no remote data call or new runtime
+dependency is introduced. [Asset provenance](staff-workbench/assets/README.md)
+records the exact files. Typography and density may differ; permissions and meaning
+must not.
+
+Calm Workbench keeps generous task context and a staff profile; Precision Desk uses
+compact aligned records; Service Timeline emphasizes the actual ordered handoff
+stages and receipts. The native Workspace skin selector changes only a root
+attribute and its own value, preserving mounted controls and partly completed
+checklists. The selection lasts for the current page session.
+
+The Profiles view demonstrates guest identity G-20451 (Mira Shah) and management
+identity HH-STAFF-014 (Aditi Rao). Guest details are omitted in minimized department
+views. View stay and View shift lead back to the existing cases; a role label is
+never an authorization grant. The Sophie treatment belongs to identity cards, not
+task rows. Production receives the three skins and styling of its existing
+authorized identity content; no generated portrait is assigned to a real person.
+
+The current browser-rendered visual gate is **blocked**; previous Order440 captures
+do not prove this revision. See [design QA](staff-workbench/design-qa.md).
 
 ## Complete prototype interaction: YC-01
 

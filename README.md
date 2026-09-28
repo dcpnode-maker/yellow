@@ -16,7 +16,7 @@ command scaffolds package metadata, while this repository already has the author
 
 | Source line | Exact commit | Runnable migrations | Public base tables | Acceptance state |
 |---|---|---:|---:|---|
-| Reviewed `main` | [`443e3826b47025106d1829fcbb406ce6302fbbba`](https://github.com/dcpnode-maker/yellow/commit/443e3826b47025106d1829fcbb406ce6302fbbba) | 77 | 127, including `schema_migration` | [PR83](https://github.com/dcpnode-maker/yellow/pull/83) merged independently reviewed source `92346674`; all five jobs in [CI178](https://github.com/dcpnode-maker/yellow/actions/runs/33993977811) passed, including database acceptance23/23 and referee11/11 |
+| Reviewed `main` | [`b5ef70842b658183f7b5b4c650c8e78c7a0b513d`](https://github.com/dcpnode-maker/yellow/commit/b5ef70842b658183f7b5b4c650c8e78c7a0b513d) | 77 | 127, including `schema_migration` | [PR85](https://github.com/dcpnode-maker/yellow/pull/85) independently merged the consolidated work; all five jobs in [CI187](https://github.com/dcpnode-maker/yellow/actions/runs/34000319799) passed, including database acceptance23/23, issued-wire4/4 and referee11/11 |
 | Earlier operational baseline | [`5879e2b719db18077e00556477ba34bdb9b9991c`](https://github.com/dcpnode-maker/yellow/commit/5879e2b719db18077e00556477ba34bdb9b9991c) | 75 | 125, including `schema_migration` | Historical PR82 release; later forward migrations preserve this history |
 
 The historical **80** is the number of application tables declared by immutable
@@ -56,6 +56,14 @@ banquets, F&B, spa, engineering, concierge, security, stores and management.
 - [Guest and department journeys](docs/design/STAFF-JOURNEYS.md)
 - [16 synthetic case studies](docs/design/HOTEL-CASEBOOK.md)
 - [Interactive workbench and local viewing instructions](docs/design/STAFF-WORKBENCH-SPEC.md)
+
+**Order442 UI candidate:** Calm Workbench, Precision Desk and Service Timeline are
+three selectable workspace skins around the same mounted controls. Profile-card
+design applies to guest and staff/management identities. The fictional study adds
+generated example portraits; production does not attach those portraits to real
+people. This candidate requires rendered visual review before release; see the
+[current QA record](design-qa.md). Skin selection is page-session only, matching
+the existing no-browser-storage policy.
 
 The prototype has 16 department views and 14 playable fictional scenarios. It is a
 reviewable design inside this repository; the main hotel's domain commands and

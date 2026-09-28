@@ -502,6 +502,39 @@ vendor/person dependency. Independent high-risk proof remains required.
 A branch, document, test, container build, merge and deployment are separate evidence
 states. The runtime must identify its exact source and applied migration frontier.
 
+## Historical PR86 snapshot — retained during 2026-09-29 base reconciliation
+
+The following is the original pre-integration PR86 record, not current release
+or laptop evidence. Main's subsequent record above remains authoritative.
+
+The repaired source passed1600 local standing tests with1195 explicit database
+skips, types and independent narrow proof. The historical failure was discharged
+at reviewed head088d093 by all five jobs in CI18633999540391. An independent
+reviewer merged PR85 as `b5ef70842b658183f7b5b4c650c8e78c7a0b513d`;
+[CI187](https://github.com/dcpnode-maker/yellow/actions/runs/34000319799) passed
+all five jobs, including issued-wire4/4, catalogue23/23 and referee11/11.
+[Release images](https://github.com/dcpnode-maker/yellow/actions/runs/34000989837)
+were published at that exact source. No retained hotel database or founder-local
+app was refreshed by that publication.
+
+Order442 profile cards/workspace skins had three presentation-only skins and
+a revised fictional profile study. The cloud browser refused that preview
+before rendering, so that original visual QA remained blocked; it did not prove
+merge or release. PR85 was the reviewed baseline at that time. See the preserved
+[Order442](../handoff/orders/442-profile-cards-and-workspace-skins.md) and
+[QA record](../design-qa.md).
+
+| Historical surface | Original PR86 evidence | Original boundary |
+|---|---|---|
+| Source | Independently merged PR85 atb5ef70842b658183f7b5b4c650c8e78c7a0b513d consolidated PR83/84, private fiscal/issued-wire proof and RMS research | Main sole release; Order442 then unmerged |
+| Fiscal acceptance | migration41/41, native116/116, compatibility89/89, catalogue23/23 and referee11/11; PR83 CI33993977811 green | Review434 bounded native issuance, not provider/retained DB activation |
+| Queue | Original62-PR audit closed; PR82/83/84/85 merged; no open PR at Order442 start | Consolidation manifest retained; live GitHub queue authoritative |
+| Schema | Main77 migrations/127 tables;0076 added two;0077/Order440 added no table | Immutable80-table0001 and0075 containment preserved; retained DB unmigrated |
+| Issued wire | Independent10/10 unit and4/4 real-issued, financial/cross-tenant preservation | Deliberately distinct wire/source hashes; no certified provider/durable writer |
+| Design | Workbench specification, hotel casebook/research and Sophie reference retained | Fictional study; rendered capture blocked by cloud browser URL policy |
+| Local app | Launcher passed CI:real DB, canonical/review seeds, exact-SHA readiness/auth and volume-preserving stop | CI did not prove founder-machine refresh |
+| Cloud | b5ef7084 mainCI34000319799 and image34000989837 succeeded | Digests not retrieved; no approved host/ingress/serving URL; not deployment |
+
 ## Product status
 
 | Scope | Status | Meaning |
