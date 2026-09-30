@@ -481,6 +481,9 @@ export function createApp(options: AppOptions = {}) {
       .post("/api/v1/properties/:property/availability:search", ({ request, params, body, tenantContext }) =>
         withOperatorTenant(request, (context) => operator.search(context, params.property, body))
       )
+      .post("/api/v1/crs/availability:search", ({ request }) =>
+        withOperatorTenant(request, (context) => operator.searchCrs(context)), { parse: "none" }
+      )
       .get("/api/v1/properties/:property/inventory", ({ request, params, tenantContext }) =>
         withOperatorTenant(request, (context) => operator.inventory(context, params.property))
       )

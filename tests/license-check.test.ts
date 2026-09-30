@@ -13,6 +13,12 @@ import {
 } from "../scripts/license-check";
 
 describe("dependency license policy", () => {
+  it("accepts founder-approved 0BSD without relaxing conjunction or exception checks", () => {
+    expect(isAllowedLicenseExpression("0BSD")).toBeTrue();
+    expect(isAllowedLicenseExpression("0BSD AND GPL-3.0-only")).toBeFalse();
+    expect(isAllowedLicenseExpression("0BSD WITH Unknown-exception")).toBeFalse();
+  });
+
   it("accepts every allowlisted SPDX identifier", () => {
     for (const license of ALLOWED_LICENSES) {
       expect(isAllowedLicenseExpression(license)).toBeTrue();

@@ -43,6 +43,39 @@ const SECRET = "yellow-order-084-offer-search-token-secret";
 const OCCUPANCY_SLOT = "00000000-0000-0000-0000-000000008401";
 const RESTRICTION = "00000000-0000-0000-0000-000000008402";
 
+function assertLegacyProofUrl(raw: string): void {
+  let url: URL;
+  try {
+    url = new URL(raw);
+  } catch {
+    throw new Error("Order 084 requires its owned loopback disposable proof database URL");
+  }
+  const host = url.hostname.toLowerCase().replace(/^\[|\]$/g, "");
+  const databaseName = decodeURIComponent(url.pathname.replace(/^\/+/, ""));
+  if ((url.protocol !== "postgres:" && url.protocol !== "postgresql:") ||
+      !["localhost", "127.0.0.1", "::1"].includes(host) ||
+      databaseName !== "yellow_pms_offer_regression") {
+    throw new Error("Order 084 accepts only the owned loopback yellow_pms_offer_regression target");
+  }
+}
+
+interface LegacyDatabaseAuthority {
+  readonly database_name: string;
+  readonly session_user: string;
+  readonly current_user: string;
+  readonly database_owner: string;
+}
+
+function assertLegacyDatabaseAuthority(authority: LegacyDatabaseAuthority | undefined): void {
+  if (!authority || authority.database_name !== "yellow_pms_offer_regression" ||
+      authority.session_user !== "yellow_deploy" || authority.current_user !== "yellow_deploy" ||
+      authority.database_owner !== "yellow_deploy") {
+    throw new Error("Order 084 seed requires a yellow_deploy session that owns yellow_pms_offer_regression");
+  }
+}
+
+if (DATABASE_URL) assertLegacyProofUrl(DATABASE_URL);
+
 if (REQUIRE_DATABASE && (!DATABASE_URL || !PASSWORD || !APPROVER_PASSWORD)) {
   throw new Error(
     "YELLOW_RESERVATION_OFFERS_URL, YELLOW_RESERVATION_OFFERS_PASSWORD and " +
@@ -70,6 +103,9 @@ let stayStart: Date;
 let stayEnd: Date;
 let localStart: string;
 let localEnd: string;
+let legacyRoom203: Readonly<{ id: string; status: string }> | undefined;
+let occupancyFixtureActive = false;
+let authorityAdmitted = false;
 
 interface InventoryFixtureRow {
   readonly sellable_unit_id: string;
@@ -130,6 +166,7 @@ async function inventoryFixtures(): Promise<readonly InventoryFixtureRow[]> {
     JOIN space ON space.id = mapping.space_id
     WHERE sellable.tenant_id = ${SEED_TENANT.id}::uuid
       AND unit_type.property_node = ${SEED_PROPERTY.id}::uuid
+      AND sellable.status = 'active'
     ORDER BY unit_type.sort_order, unit_type.code, sellable.name, sellable.id
   `;
 }
@@ -147,6 +184,14 @@ function jsonHeaders(token = accessToken): HeadersInit {
   return { "content-type": "application/json", authorization: `Bearer ${token}` };
 }
 
+async function clearOccupancyFixture(): Promise<void> {
+  if (!occupancyFixtureActive) return;
+  await database.withTenantTransaction(SEED_TENANT.id, (tx) =>
+    tx`SELECT public.release_occupancy(${SEED_TENANT.id}::uuid, ${OCCUPANCY_SLOT}::uuid)`
+  );
+  occupancyFixtureActive = false;
+}
+
 beforeAll(async () => {
   if (!DATABASE_URL || !PASSWORD || !APPROVER_PASSWORD) return;
   admin = new SQL(DATABASE_URL, { max: 4 });
@@ -154,6 +199,15 @@ beforeAll(async () => {
   eventPool = new SQL(DATABASE_URL, { max: 4 });
   registryPool = new SQL(DATABASE_URL, { max: 4 });
   database = Database.connect(DATABASE_URL, { maxConnections: 10 });
+  const [authority] = await admin<{ database_name: string; session_user: string; current_user: string; database_owner: string }[]>`
+    SELECT current_database()::text AS database_name, session_user::text AS session_user,
+      current_user::text AS current_user,
+      pg_catalog.pg_get_userbyid(database_row.datdba)::text AS database_owner
+    FROM pg_catalog.pg_database AS database_row
+    WHERE database_row.datname = current_database()
+  `;
+  assertLegacyDatabaseAuthority(authority);
+  authorityAdmitted = true;
   const review = await runReviewSeed({
     databaseUrl: DATABASE_URL,
     password: PASSWORD,
@@ -161,6 +215,28 @@ beforeAll(async () => {
     logger: () => undefined,
   });
   ratePlanId = review.rate.ratePlanId;
+  const room203 = await admin<{ id: string; status: string }[]>`
+    SELECT sellable.id, sellable.status
+    FROM sellable_unit AS sellable
+    JOIN sellable_unit_space AS mapping ON mapping.sellable_unit_id = sellable.id
+    JOIN space ON space.id = mapping.space_id
+    WHERE sellable.tenant_id = ${SEED_TENANT.id}::uuid AND space.code = '203'
+  `;
+  if (room203.length !== 1 || !room203[0]) {
+    throw new Error("the documented five-sellable legacy fixture requires exactly one Room 203");
+  }
+  legacyRoom203 = room203[0];
+  if (legacyRoom203.status === "active") {
+    const disabled = await admin<{ id: string }[]>`
+      UPDATE sellable_unit SET status = 'inactive'
+      WHERE tenant_id = ${SEED_TENANT.id}::uuid AND id = ${legacyRoom203.id}::uuid
+        AND status = 'active'
+      RETURNING id
+    `;
+    if (disabled.length !== 1) throw new Error("could not disable only Room 203 for the legacy five-sellable fixture");
+  } else if (legacyRoom203.status !== "inactive") {
+    throw new Error("Room 203 has an unsupported status for the legacy five-sellable fixture");
+  }
   stayStart = new Date(Date.now() + 30 * 86_400_000);
   stayStart.setUTCHours(15, 0, 0, 0);
   stayEnd = new Date(stayStart.getTime() + 2 * 86_400_000);
@@ -224,14 +300,42 @@ beforeAll(async () => {
 }, 90_000);
 
 afterAll(async () => {
-  if (!DATABASE_URL) return;
-  await admin`DELETE FROM restriction WHERE id = ${RESTRICTION}::uuid`;
-  await admin`DELETE FROM space_occupancy WHERE slot_ref = ${OCCUPANCY_SLOT}::uuid`;
-  await admin.close();
-  await loginPool.close();
-  await eventPool.close();
-  await registryPool.close();
-  await database.close();
+  if (!authorityAdmitted) {
+    await Promise.allSettled([
+      admin?.close(), loginPool?.close(), eventPool?.close(), registryPool?.close(), database?.close(),
+    ]);
+    return;
+  }
+  try {
+    await admin`DELETE FROM restriction WHERE id = ${RESTRICTION}::uuid`;
+  } finally {
+    try {
+      await clearOccupancyFixture();
+    } finally {
+      try {
+        if (!occupancyFixtureActive) {
+          await admin`DELETE FROM ooo_oos WHERE id = ${OCCUPANCY_SLOT}::uuid`;
+        }
+      } finally {
+        try {
+          if (legacyRoom203 && legacyRoom203.status === "active") {
+            const restored = await admin<{ id: string; status: string }[]>`
+              UPDATE sellable_unit SET status = ${legacyRoom203.status}
+              WHERE tenant_id = ${SEED_TENANT.id}::uuid AND id = ${legacyRoom203.id}::uuid
+              RETURNING id, status
+            `;
+            if (restored.length !== 1 || restored[0]?.status !== legacyRoom203.status) {
+              throw new Error("legacy offer cleanup did not restore Room 203's original status");
+            }
+          }
+        } finally {
+          await Promise.allSettled([
+            admin.close(), loginPool.close(), eventPool.close(), registryPool.close(), database.close(),
+          ]);
+        }
+      }
+    }
+  }
 }, 30_000);
 
 describe("Order 084 offer-search pre-registration", () => {
@@ -239,6 +343,37 @@ describe("Order 084 offer-search pre-registration", () => {
     expect(ReservationOfferSearchService).toBeDefined();
     expect(ReservationOfferValidationError).toBeDefined();
     expect(ReservationOfferSearchTooBroadError).toBeDefined();
+  });
+
+  test("legacy database authority accepts only the owned loopback target", () => {
+    expect(() => assertLegacyProofUrl("postgres://yellow_deploy@127.0.0.1/yellow_pms_offer_regression")).not.toThrow();
+    expect(() => assertLegacyProofUrl("postgres://yellow_deploy@192.0.2.1/yellow_pms_offer_regression"))
+      .toThrow("owned loopback");
+    expect(() => assertLegacyProofUrl("postgres://yellow_deploy@127.0.0.1/yellow_live"))
+      .toThrow("yellow_pms_offer_regression");
+    expect(() => assertLegacyProofUrl("https://yellow_deploy@127.0.0.1/yellow_pms_offer_regression"))
+      .toThrow("owned loopback");
+  });
+
+  test("legacy setup admits only its deploy-owned database session before fixture mutation", () => {
+    expect(() => assertLegacyDatabaseAuthority({
+      database_name: "yellow_pms_offer_regression",
+      session_user: "yellow_deploy",
+      current_user: "yellow_deploy",
+      database_owner: "yellow_deploy",
+    })).not.toThrow();
+    expect(() => assertLegacyDatabaseAuthority({
+      database_name: "yellow_pms_offer_regression",
+      session_user: "postgres",
+      current_user: "postgres",
+      database_owner: "postgres",
+    })).toThrow("yellow_deploy session");
+    expect(() => assertLegacyDatabaseAuthority({
+      database_name: "yellow_pms_offer_regression",
+      session_user: "yellow_deploy",
+      current_user: "yellow_deploy",
+      database_owner: "postgres",
+    })).toThrow("owns yellow_pms_offer_regression");
   });
 });
 
@@ -361,39 +496,58 @@ databaseDescribe("Order 084 live PostgreSQL reservation offers", () => {
       ON CONFLICT (property_node, unit_type_id, stay_date)
       DO UPDATE SET physical = EXCLUDED.physical, sold = 0, held = 0, blocked = 0, ooo = 0
     `;
-    await admin`
-      INSERT INTO space_occupancy (tenant_id, space_id, period, slot_ref, slot_kind, exclusive, claim)
-      VALUES (${SEED_TENANT.id}::uuid, ${room101.space_id}::uuid,
-              tstzrange(${stayStart.toISOString()}::timestamptz, ${stayEnd.toISOString()}::timestamptz, '[)'),
-              ${OCCUPANCY_SLOT}::uuid, 'hold', true, int4range(0, NULL))
-    `;
-    const occupiedBefore = await artifactCounts();
-    const occupied = await database.withTenantTransaction(SEED_TENANT.id, (tx) => offers.search(tx, input()));
-    const blockedRoom = occupied.options.find(({ sellableUnit }) => sellableUnit.id === room101.sellable_unit_id);
-    expect(blockedRoom).toMatchObject({
-      state: "blocked", bookable: false, availableCount: 0, total: null, perNight: [],
-    });
-    expect(await artifactCounts()).toEqual(occupiedBefore);
-    await admin`DELETE FROM space_occupancy WHERE slot_ref = ${OCCUPANCY_SLOT}::uuid`;
+    try {
+      await admin`
+        INSERT INTO ooo_oos (id, tenant_id, space_id, kind, period, reason)
+        VALUES (
+          ${OCCUPANCY_SLOT}::uuid, ${SEED_TENANT.id}::uuid, ${room101.space_id}::uuid, 'ooo',
+          tstzrange(${stayStart.toISOString()}::timestamptz, ${stayEnd.toISOString()}::timestamptz, '[)'),
+          'Order 084 live occupancy fixture'
+        )
+      `;
+      await database.withTenantTransaction(SEED_TENANT.id, (tx) => tx`
+        SELECT public.record_occupancy(
+          ${SEED_TENANT.id}::uuid, ${room101.space_id}::uuid,
+          tstzrange(${stayStart.toISOString()}::timestamptz, ${stayEnd.toISOString()}::timestamptz, '[)'),
+          ${OCCUPANCY_SLOT}::uuid, 'ooo', true
+        )
+      `);
+      occupancyFixtureActive = true;
+      const occupiedBefore = await artifactCounts();
+      const occupied = await database.withTenantTransaction(SEED_TENANT.id, (tx) => offers.search(tx, input()));
+      const blockedRoom = occupied.options.find(({ sellableUnit }) => sellableUnit.id === room101.sellable_unit_id);
+      expect(blockedRoom).toMatchObject({
+        state: "blocked", bookable: false, availableCount: 0, total: null, perNight: [],
+      });
+      expect(await artifactCounts()).toEqual(occupiedBefore);
+    } finally {
+      await clearOccupancyFixture();
+      if (!occupancyFixtureActive) {
+        await admin`DELETE FROM ooo_oos WHERE id = ${OCCUPANCY_SLOT}::uuid`;
+      }
+    }
 
-    await admin`
-      INSERT INTO restriction (
-        id, tenant_id, scope_node, unit_type_id, rate_plan_id, kind, stay_dates, source
-      ) VALUES (
-        ${RESTRICTION}::uuid, ${SEED_TENANT.id}::uuid, ${SEED_PROPERTY.id}::uuid,
-        ${standard.unit_type_id}::uuid, ${ratePlanId}::uuid, 'closed',
-        daterange(${localStart}::date, ${localEnd}::date, '[)'), 'manual'
-      )
-    `;
-    const restrictedBefore = await artifactCounts();
-    const restricted = await database.withTenantTransaction(SEED_TENANT.id, (tx) => offers.search(tx, input()));
-    const standardOffers = restricted.options.filter(({ unitType }) => unitType.code === "STD");
-    expect(standardOffers).toHaveLength(3);
-    expect(standardOffers.every(({ state, total, restrictionsApplied }) =>
-      state === "blocked" && total === null && restrictionsApplied.some(({ kind }) => kind === "closed")
-    )).toBe(true);
-    expect(await artifactCounts()).toEqual(restrictedBefore);
-    await admin`DELETE FROM restriction WHERE id = ${RESTRICTION}::uuid`;
+    try {
+      await admin`
+        INSERT INTO restriction (
+          id, tenant_id, scope_node, unit_type_id, rate_plan_id, kind, stay_dates, source
+        ) VALUES (
+          ${RESTRICTION}::uuid, ${SEED_TENANT.id}::uuid, ${SEED_PROPERTY.id}::uuid,
+          ${standard.unit_type_id}::uuid, ${ratePlanId}::uuid, 'closed',
+          daterange(${localStart}::date, ${localEnd}::date, '[)'), 'manual'
+        )
+      `;
+      const restrictedBefore = await artifactCounts();
+      const restricted = await database.withTenantTransaction(SEED_TENANT.id, (tx) => offers.search(tx, input()));
+      const standardOffers = restricted.options.filter(({ unitType }) => unitType.code === "STD");
+      expect(standardOffers).toHaveLength(3);
+      expect(standardOffers.every(({ state, total, restrictionsApplied }) =>
+        state === "blocked" && total === null && restrictionsApplied.some(({ kind }) => kind === "closed")
+      )).toBe(true);
+      expect(await artifactCounts()).toEqual(restrictedBefore);
+    } finally {
+      await admin`DELETE FROM restriction WHERE id = ${RESTRICTION}::uuid`;
+    }
 
     await admin`
       UPDATE availability_projection SET physical = 100, sold = 100, held = 0, blocked = 0, ooo = 0

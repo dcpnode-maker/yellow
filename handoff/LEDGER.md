@@ -1705,3 +1705,57 @@ appears here; dispatch/execution remain unverified.
 - Tightened the colleague-readiness probe so the server-owned contribution hierarchy must prove multiple source lines. Live proof now shows 2 market groups, 2 market segments, 3 sources, 14 room nights, 20 available rooms and SAR 1,001,280 room revenue.
 - No schema, migration, occupancy write, journal/posting write or external-provider call was added.
 - Proof: `powershell -NoProfile -ExecutionPolicy Bypass -File .\tools\provision-public-commercial-taxonomy.ps1`; `powershell -NoProfile -ExecutionPolicy Bypass -File .\tools\provision-public-detailed-commercial-stats.ps1`; `bun tools\probe-colleague-demo-readiness.ts`; `bun tools\probe-mobile-public-demo.ts`; `bun tools\probe-public-demo-performance.ts`; `bun test tests\order642-public-detailed-commercial-stats.test.ts tests\order641-commercial-contribution-read-model.test.ts tests\order621-colleague-demo-readiness-probe.test.ts`; `bun run typecheck`.
+
+# 2026-09-30 — CRM departure task dispatch queue
+
+- Order `CRM-20260930-departure-dispatch-queue`, pinned e06 source on isolated `phase-7/crm-departure-dispatch-queue-20260930`. One SQL ordering hunk in the existing governed departure service; no parallel task store or new command/state/permission/schema/UI.
+- Confirmed unfinished tasks lead the property queue before completed backlog, with original `due_at,id` order in each group and unchanged100 cap. Completed outcomes still appear when space permits; reservation history and idempotent completion receipts retain existing behavior.
+- Independent final proof personally reproduces baseline0/1/14 and accepts candidate1/0/33 on disposable PostgreSQL18 with actual restricted runtime, signed HTTP and full public row/sequence fingerprints. Required missing-runtime, owner-runtime and mismatched-target controls each reject; scoped foreign-tenant/property denials are proved, successful second-tenant queue switching is not claimed.
+- Existing real PostgreSQL departure12/0/127, focused contracts/HTTP10/0/40, typecheck and205-file import boundaries pass. Unmodified `./setup.sh --db-only` exit0,11/11; exact execution/receipts kept in cloud handoff. Product50446498 and testf837adc5 frozen in dated independent review. Complete staged diff includes all new files before local commit.
+- Inherited license and legacy-offer release gates remain RED. No push/PR/merge/deploy/laptop integration, generic staff inbox/SLA/shift or full CRM completion. Precise dirty-laptop source/serving evidence requested; reconciliation and Hotel/STR/Both full-core small-owner design remain separate artifacts.
+
+# 2026-09-30 — PMS-CRS-20260930 staff offer-search cloud checkpoint
+
+- Built authenticated `POST /api/v1/crs/availability:search` for1–4 explicit properties, authorizing the entire request before canonical offer evaluation in the existing tenant transaction. Exact amounts/evidence and existing error semantics survive unchanged; no booking/inventory/finance mutation or migration.
+- Basis `e06e400a57485cc10a8a35c21dcb1e01b5a667d1`; isolated `phase-7/pms-crs-staff-offer-search-20260930`. New module/tests/governance and protected app/operator wiring supplied separately; laptop dirty source and published d708 successor are not silently overwritten.
+- Proof: new helper/HTTP27pass0fail163; required PostgreSQL6pass0fail66 with independent personal tenant/auth execution and four failing authority controls; root combined focused41pass0fail360; types,205boundaries,diff and canonical setup11/11 pass.
+- Open baseline gates: unchanged license policy rejects tslib0BSD; existing required offer suite1pass5fail16 on both candidate and pristine e06 fresh fixtures. No policy/assertion weakening. Scoped review records source hashes, mutable-grant/stream/pairing repairs, empty-peer and inherited actor-status limits.
+- Status: bounded CRS query foundation proved; laptop integration/release reconciliation pending. No PR/push/merge/deploy, CompSet work or full PMS/CRS completion.
+
+# 2026-09-30 — CRM department routing queue
+
+- Authorized order CRM-20260930-department-routing-queue, base40eb866, isolated branch. Optional target-role predicate precedes LIMIT100, preserving default active-first ordering, history, canonical commands and current tenant/property/staff authority.
+- Independent reviewer personally required PostgreSQL baseline0/1/13 and candidate1/0/40, focused14/0/62 and three pre-fixture authority-negative controls; full public row/sequence fingerprints show reads unchanged. Typecheck/boundaries205 pass; builder legacy departure12/0 and accepted CRM1/0 are separately reported. Coordinator unchanged canonical setup exits0 with11/11.
+- Full source/test hashes and scope are in the dated independent review; final cached/basis checks include new files. Operator wiring remains separate for dirty-laptop review. No personal inbox/SLA/shift, raw URL byte budget, live integration, push/PR/merge/deploy or whole CRM completion. Physical-offer production/fixture regression is separately governed; inherited license/release blockers remain visible.
+
+- Append-only ROUTING-002 corrects prior body/query wording: this GET slice adds query validation only. No source/test change or rerun is needed for that documentation clarification.
+
+# 2026-09-30 — PMS physical offer-pair contract repair (builder checkpoint)
+
+- Removed the unit-type representative filter so every filtered physical sellable/rate-plan pair remains independently quoted and the existing 1,000-pair cap counts full work before quote resolution.
+- Added pure and restricted PostgreSQL proofs for six physical identities, exact per-room quote evidence, both first/later sibling blocker orders, zero quote calls above a five-pair cap, and full public row/sequence fingerprints around reads.
+- Preserved the legacy five-sellable assertions with a test-local Room203 inactive status restored and checked during teardown. P3 occupancy uses a typed OOO parent plus `record_occupancy()`/`release_occupancy()`; occupancy and restriction cleanup runs in `finally`.
+- Builder evidence: new disposable PostgreSQL 1/0/19, retained legacy offer suite 6/0/76, pure test 2/0/11, typecheck and 205-file import-boundary checks pass. Independent baseline/candidate and authority-negative review remains pending. No commit, merge, deployment, or Phase7 closure.
+
+## PMS final independent checkpoint
+
+- Final productf6be0755 unchanged; exact physical pair counts/quote semantics restored. Identical newPG baseline0/1/6 to candidate1/0/69, direct six-ID raw availability and perphysical canonical quote evidence parity, mixed first/later blockers, prequote cap and full public row/sequence fingerprints. Three required authority-negative modes reject beforefixtures.
+- Hardened legacy actual log8/0/83 (three pre-registration plus fivePG tests), preserving every original assertion; earlier6/0/76 is retained history. Pure2/0/22 plus focused guard assertions pass, types/boundaries205 green. Unsafe target and wrong session refuse beforefixture writes; cleanup only after admitted authority, failed occupancy release retains its typed parent, Room203 status restores and pools close.
+- Governed detached composition copies exact acceptedCRSsource/tests plus only frozen repaired offers: independent27/0/163 and requiredPG6/0/66 pass, no preview commit/promotion. Coordinator unchanged canonicalsetup11/11 passes. Final scoped review and complete9-file cached/basis checks precede local commit. No dirty-laptop integration/releaseGREEN/merge/deploy or wholePMS/CRM completion.
+
+# 2026-09-30 — Public property evidence capture foundation
+
+- Exact11-file PROFILE order, base40eb866, pure parser/composer/publicexports plus offline CLI and scoped tests/governance. No network/database/auth/profile publication, image download or parallel PMS entities.
+- Independent reviewer personally74/0/380 plus32hostile checks, types/boundaries207, actual real-data CLI and overwrite denial. All reported parser/provenance findings were reproduced, repaired within scoped files and rerun; final hashes retained in dated review. Coordinator canonical11/11 and actual two-source CLI/hash/amenity/photo checks pass.
+- Exact genuine source input is Aketa HTTP20047375bytes/hash ef5fa417 and HeadingleyHTTP20024706bytes/hash d436ac56. Aketa1lodging8amenities3source images with dimensions/rights/update unknown; Headingley remains0lodging structured nodes. Draft incomplete; bnbme/Locanda and private Lighthouse roster are not capture coverage.
+- Full staged/basis checks include every new file before isolated local commit. No laptop integration, latest/allOTA/fullsize/ownedmaster/provider eligibility, push/PR/merge/deploy or phase-wide completion is claimed. Quota stop rule1% PLAN is preserved; no new substantial model lanes.
+
+# 2026-09-30 — Founder-approved0BSD license policy
+
+- Exact allowlist addition0BSD plus3focused assertions, preserving existing parser and forbidden-license policy. Explicit founder legal/business decision is recorded in dated order. No dependency/lockfile/installed-manifest change.
+- Independent policy suite17/0/40 and actual populated dependency audit67/0/0; root typecheck and205-file boundaries pass. First boundary invocation lacked Bun on subprocess PATH and failed precondition127; corrected pinned PATH run exits0, no source change. Coordinator unchanged canonical setup11/11 passes.
+- Scope is six files: script/test/order/review/append-only DECISIONS/LEDGER. Complete staged/basis checks required. License gate is repaired in this isolated source candidate; offers and broad release/integration proof remain separate. No push/PR/merge/deploy or laptop integration.
+
+2026-09-30 | INTEGRATION-20260930-reviewed-yellow-composition | PAUSED-QUOTA-READING-UNAVAILABLE | e06 basis; six reviewed inputs composed, exact40 paths. Root static gates green; default standing interrupted, failures not classified; independent review INCOMPLETE before PG execution. Binary staged checkpoint preserved; no publication/live/whole-capability claim. Await explicit human resume with verified quota gating.
+
+2026-09-30 | INTEGRATION-20260930-reviewed-yellow-composition | SOURCE-ACCEPTED-RELEASE-INCOMPLETE | Exact40 paths, independent integrated tenant/evidence proof passed; root canonical11/11/static/legacy passed. Complete standing/browser and inherited blockers retained. Local checkpoint eligible; no publication/live/full-phase claim.
