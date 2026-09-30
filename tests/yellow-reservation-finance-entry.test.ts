@@ -13,7 +13,7 @@ function sourceBetween(start: string, end: string): string {
 test("reservation detail and the rendered movement board open Finance for the exact reservation with honest context", () => {
   expect(app).toContain('workspace=finance&reservation=${encodeURIComponent(reservation.reservationId)}');
   expect(app).toContain('workspace=finance&reservation=${encodeURIComponent(detail.data!.reservation.reservationId)}');
-  const movementGrid = sourceBetween('function MovementGrid', 'function ReservationWorkspace');
+  const movementGrid = sourceBetween('function MovementGrid', 'function LegacyReservationWorkspace');
   expect(movementGrid).toContain('className="movement-billing-action"');
   expect(movementGrid).toContain('aria-label={`Open cashier and billing for ${stay.confirmationNo}`}');
   expect(movementGrid).toContain('workspace=finance&reservation=${encodeURIComponent(stay.reservationId)}');
