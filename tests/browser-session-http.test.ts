@@ -183,3 +183,76 @@ test("actual operations route selects same React asset document as Today, preser
   const legacy = await createApp({ operatorApi, publicOperatorSurface: "legacy" }).handle(new Request(`${ORIGIN}/p/${property}/operations`));
   expect(legacy.status).toBe(200); expect(await legacy.text()).not.toBe(html);
 });
+
+
+test("preview login route is disabled by default, admits same-origin empty requests, and uses server-held credentials", async () => {
+  const f = await fixture(); let calls = 0;
+  const expected = { tenant: "yellow-demo", email: "preview.operator@yellow.local", password: "synthetic-preview-secret" };
+  const sources: Array<string | undefined> = [];
+  class SyntheticLogin extends LocalLoginService {
+    constructor() { super({ async reserve(): Promise<never> { throw new Error("No DB fixture"); } },
+      { async issue(): Promise<never> { throw new Error("No issue fixture"); } }); }
+    override async authenticate(input: Parameters<LocalLoginService["authenticate"]>[0], sourceKey?: string): Promise<LocalLoginResult | null> {
+      ++calls; expect(input).toEqual(expected); sources.push(sourceKey); return await f.login().json();
+    }
+  }
+  const app = createApp({ operatorApi: new OperatorHttpApi(new SyntheticLogin(), new AvailabilityService()),
+    browserSessionApi: f.api, operatorPublicPreviewCredentials: expected, publicOperatorSurface: "yellow-next" });
+  const oldFlag = Bun.env.YELLOW_PUBLIC_PREVIEW_AUTO_LOGIN;
+  try {
+    delete Bun.env.YELLOW_PUBLIC_PREVIEW_AUTO_LOGIN;
+    const disabledHtml = await app.handle(new Request(`${ORIGIN}/`));
+    expect(await disabledHtml.text()).toBe(await Bun.file(new URL("../public/yellow-next/index.html", import.meta.url)).text());
+    expect((await app.handle(request("preview:enter"))).status).toBe(404);
+    expect(calls).toBe(0);
+    Bun.env.YELLOW_PUBLIC_PREVIEW_AUTO_LOGIN = "1";
+    const denied = request("preview:enter", { origin: "https://evil.example.invalid" });
+    expect((await app.handle(denied)).status).toBe(403); expect(calls).toBe(0);
+    const malformed = request("preview:enter");
+    expect((await app.handle(new Request(malformed.url, { method: "POST", headers: malformed.headers, body: JSON.stringify({ password: "client" }) }))).status).toBe(400);
+    expect(calls).toBe(0);
+    const browserRequest = request("preview:enter", { "cf-connecting-ip": "198.51.100.23" });
+    const accepted = await app.handle(browserRequest);
+    expect(accepted.status).toBe(200);
+    expect(accepted.headers.get("set-cookie")).toBe(`${COOKIE}=${f.token}; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=900`);
+    expect(accepted.headers.get("cache-control")).toBe("no-store");
+    expect(await accepted.text()).not.toContain(expected.password);
+    expect(calls).toBe(1);
+    expect(sources).toEqual(["unknown"]); // caller-supplied forwarding headers never define local source identity
+    const unsafeApp = createApp({ operatorApi: new OperatorHttpApi(new SyntheticLogin(), new AvailabilityService()),
+      browserSessionApi: f.api, operatorPublicPreviewCredentials: { ...expected, tenant: "other-tenant" } });
+    expect((await unsafeApp.handle(request("preview:enter"))).status).toBe(404);
+    expect(calls).toBe(1);
+    const cookie = accepted.headers.get("set-cookie")!.split(";", 1)[0]!;
+    const resumed = await app.handle(request("browser/resume", { cookie }));
+    expect(resumed.status).toBe(200); expect((await resumed.json()).accessToken).toBe(f.token);
+    const html = await app.handle(new Request(`${ORIGIN}/`));
+    const htmlBody = await html.text();
+    expect(htmlBody).toContain('<meta name="yellow-public-preview-auto-login" content="enabled">');
+    expect(htmlBody).not.toContain(expected.password);
+  } finally {
+    if (oldFlag === undefined) delete Bun.env.YELLOW_PUBLIC_PREVIEW_AUTO_LOGIN;
+    else Bun.env.YELLOW_PUBLIC_PREVIEW_AUTO_LOGIN = oldFlag;
+  }
+});
+
+
+test("preview credential loader requires the separate flag, loopback workbench, browser policy, and fixed synthetic identity", async () => {
+  const source = await Bun.file(new URL("../src/server.ts", import.meta.url)).text();
+  const start = source.indexOf("function publicPreviewCredentials():");
+  const end = source.indexOf("function required(name:", start);
+  expect(start).toBeGreaterThanOrEqual(0); expect(end).toBeGreaterThan(start);
+  const code = new Bun.Transpiler({ loader: "ts" }).transformSync(source.slice(start, end));
+  const make = new Function("Bun", "workbenchEnabled", "hostedProviderOnly", "runtimeHostname", "browserSessionPolicy", code + "\nreturn publicPreviewCredentials();");
+  const creds = { YELLOW_PUBLIC_PREVIEW_AUTO_LOGIN: "1", YELLOW_LOCAL_REVIEW_TENANT: "yellow-demo",
+    YELLOW_LOCAL_REVIEW_EMAIL: "preview.operator@yellow.local", YELLOW_LOCAL_REVIEW_PASSWORD: "fixture-secret" };
+  expect(make({ env: {} }, true, false, () => "127.0.0.1", () => ({ httpsOrigins: [ORIGIN] }))).toBeUndefined();
+  expect(make({ env: creds }, true, false, () => "127.0.0.1", () => ({ httpsOrigins: [ORIGIN] }))).toEqual({ tenant: "yellow-demo",
+    email: "preview.operator@yellow.local", password: "fixture-secret" });
+  expect(() => make({ env: creds }, false, false, () => "127.0.0.1", () => ({ httpsOrigins: [ORIGIN] }))).toThrow("loopback operator workbench");
+  expect(() => make({ env: creds }, true, true, () => "127.0.0.1", () => ({ httpsOrigins: [ORIGIN] }))).toThrow("loopback operator workbench");
+  expect(() => make({ env: creds }, true, false, () => "0.0.0.0", () => ({ httpsOrigins: [ORIGIN] }))).toThrow("loopback operator workbench");
+  expect(() => make({ env: creds }, true, false, () => "127.0.0.1", () => undefined)).toThrow("loopback operator workbench");
+  expect(() => make({ env: { ...creds, YELLOW_LOCAL_REVIEW_EMAIL: "other@example.invalid" } }, true, false, () => "127.0.0.1", () => ({ httpsOrigins: [ORIGIN] })))
+    .toThrow("configured synthetic preview account");
+});

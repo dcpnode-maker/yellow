@@ -143,3 +143,95 @@ test("property verification cannot commit a token that expired while the grant r
   await expect(auth.signIn(credentials)).rejects.toThrow("expired before property access");
   expect(auth.getSnapshot().status).toBe("anonymous");
 });
+
+
+test("preview auto-login is opt-in, resume-first, and uses the same verified bearer and live grants", async () => {
+  for (const resumeStatus of [401, 404]) {
+    const calls: Array<{ url: string; init?: RequestInit }> = [];
+    const auth = store({ automaticPreviewLogin: true, fetch: async (url, init) => {
+      calls.push({ url, init });
+      if (url.endsWith("browser/resume")) return response({}, resumeStatus);
+      if (url.endsWith("preview:enter")) return response(login());
+      return response({ properties });
+    } });
+    const accepted = await auth.bootstrap(LOCANDA);
+    expect(accepted.status).toBe("authenticated");
+    expect(accepted.properties).toEqual(properties);
+    expect(calls.map(call => call.url)).toEqual(["/api/v1/auth/browser/resume", "/api/v1/auth/preview:enter", "/api/v1/me/properties"]);
+    for (const call of calls.slice(0, 2)) {
+      expect(call.init?.method).toBe("POST");
+      expect(call.init?.credentials).toBe("same-origin");
+      expect(call.init?.cache).toBe("no-store");
+      expect(call.init?.body).toBe("{}");
+      expect(new Headers(call.init?.headers).get("x-yellow-browser-session")).toBe("v1");
+      expect(new Headers(call.init?.headers).get("content-type")).toBe("application/json");
+      expect(new Headers(call.init?.headers).has("authorization")).toBe(false);
+    }
+    expect(new Headers(calls[2]?.init?.headers).get("authorization")).toBe(`Bearer ${token()}`);
+    expect(JSON.stringify(auth.getSnapshot())).not.toContain(token());
+  }
+});
+
+test("preview fallback stays off by default and runs only for initial resume 401 or 404", async () => {
+  for (const status of [401, 404, 429, 503]) {
+    const calls: string[] = [];
+    const auth = store({ automaticPreviewLogin: true, fetch: async url => {
+      calls.push(url);
+      return response(url.endsWith("browser/resume") ? {} : login(), status);
+    } });
+    if (status === 401 || status === 404) {
+      await expect(auth.bootstrap()).rejects.toMatchObject({ status });
+      expect(calls).toEqual(["/api/v1/auth/browser/resume", "/api/v1/auth/preview:enter"]);
+    } else {
+      await expect(auth.bootstrap()).rejects.toMatchObject({ status });
+      expect(calls).toEqual(["/api/v1/auth/browser/resume"]);
+    }
+  }
+  const calls: string[] = [];
+  const ordinary = store({ fetch: async url => { calls.push(url); return response({}, 401); } });
+  expect((await ordinary.bootstrap()).status).toBe("anonymous");
+  expect(calls).toEqual(["/api/v1/auth/browser/resume"]);
+});
+
+test("successful cookie resume and explicit sign-out never auto-enter the preview account", async () => {
+  const calls: string[] = [];
+  const auth = store({ automaticPreviewLogin: true, fetch: async url => {
+    calls.push(url);
+    if (url.endsWith("browser/resume")) return response(login());
+    if (url.endsWith("me/properties")) return response({ properties });
+    return new Response(null, { status: 204 });
+  } });
+  expect((await auth.bootstrap()).status).toBe("authenticated");
+  expect(calls).toEqual(["/api/v1/auth/browser/resume", "/api/v1/me/properties"]);
+  await auth.logout();
+  expect((await auth.bootstrap()).status).toBe("expired");
+  expect(calls).toEqual(["/api/v1/auth/browser/resume", "/api/v1/me/properties", "/api/v1/auth/browser/logout"]);
+});
+
+
+test("sign-out waits for an in-flight preview login before clearing its cookie", async () => {
+  let resolvePreview!: (value: Response) => void;
+  let previewStarted!: () => void;
+  const started = new Promise<void>(resolve => { previewStarted = resolve; });
+  const calls: string[] = [];
+  const auth = store({ automaticPreviewLogin: true, fetch: async url => {
+    calls.push(url);
+    if (url.endsWith("browser/resume")) return response({}, 401);
+    if (url.endsWith("preview:enter")) {
+      previewStarted();
+      return new Promise<Response>(resolve => { resolvePreview = resolve; });
+    }
+    if (url.endsWith("browser/logout")) return new Response(null, { status: 204 });
+    throw new Error("unexpected request");
+  } });
+  const bootstrap = auth.bootstrap();
+  await started;
+  const logout = auth.logout();
+  await Promise.resolve();
+  expect(calls).toEqual(["/api/v1/auth/browser/resume", "/api/v1/auth/preview:enter"]);
+  resolvePreview(response(login()));
+  await expect(bootstrap).rejects.toThrow("newer authentication request");
+  await logout;
+  expect(calls).toEqual(["/api/v1/auth/browser/resume", "/api/v1/auth/preview:enter", "/api/v1/auth/browser/logout"]);
+  expect(calls).not.toContain("/api/v1/me/properties");
+});

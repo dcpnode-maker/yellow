@@ -65,7 +65,7 @@ function loginFailure(status: number): AuthenticationError {
     status === 429 ? "Sign-in is temporarily limited. Try again later." : "Sign-in is temporarily unavailable.", status);
 }
 
-export function createAuthSession(options: Readonly<{ fetch?: Transport; now?: () => number }> = {}) {
+export function createAuthSession(options: Readonly<{ fetch?: Transport; now?: () => number; automaticPreviewLogin?: boolean }> = {}) {
   const transport = options.fetch ?? ((url, init) => fetch(url, init));
   const now = options.now ?? Date.now;
   let snapshot: AuthSnapshot = Object.freeze({ status: "anonymous", principal: null, properties: EMPTY_PROPERTIES });
@@ -148,10 +148,17 @@ export function createAuthSession(options: Readonly<{ fetch?: Transport; now?: (
     const attempt = ++generation;
     const requestAt = now();
     bootstrapPromise = (async () => {
-      const response = await transport("/api/v1/auth/browser/resume", { method: "POST", headers: browserHeaders,
+      let response = await transport("/api/v1/auth/browser/resume", { method: "POST", headers: browserHeaders,
         credentials: "same-origin", cache: "no-store", body: "{}" });
       if (attempt !== generation) throw new AuthenticationError("A newer authentication request has replaced this request.");
-      if (response.status === 401 || response.status === 404) return snapshot;
+      if (response.status === 401 || response.status === 404) {
+        if (!options.automaticPreviewLogin) return snapshot;
+        const previewLogin = transport("/api/v1/auth/preview:enter", { method: "POST", headers: browserHeaders,
+          credentials: "same-origin", cache: "no-store", body: "{}" });
+        pendingLogins.add(previewLogin);
+        try { response = await previewLogin; } finally { pendingLogins.delete(previewLogin); }
+        if (attempt !== generation) throw new AuthenticationError("A newer authentication request has replaced this request.");
+      }
       if (!response.ok) throw new AuthenticationError("Session restoration is unavailable. Sign in to continue.", response.status);
       const candidate = parseLogin(await json(response, "The session response could not be verified."));
       const propertyResponse = await transport("/api/v1/me/properties", {
@@ -196,7 +203,8 @@ export function createAuthSession(options: Readonly<{ fetch?: Transport; now?: (
 }
 export type AuthSession = ReturnType<typeof createAuthSession>;
 export type AuthSessionAccess = Omit<AuthSession, "dispose">;
-const defaultSession = createAuthSession();
+const previewAutoLogin = typeof document !== "undefined" && document.querySelector('meta[name="yellow-public-preview-auto-login"][content="enabled"]') !== null;
+const defaultSession = createAuthSession({ automaticPreviewLogin: previewAutoLogin });
 export const reactAuthSession: AuthSessionAccess = Object.freeze({
   session: defaultSession.session, signIn: defaultSession.signIn, bootstrap: defaultSession.bootstrap, logout: defaultSession.logout, grantedProperties: defaultSession.grantedProperties,
   getSnapshot: defaultSession.getSnapshot, subscribe: defaultSession.subscribe,

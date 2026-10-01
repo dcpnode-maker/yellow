@@ -133,6 +133,24 @@ function localReviewCredentials(): OperatorLocalReviewCredentials | undefined {
   return credentials;
 }
 
+function publicPreviewCredentials(): OperatorLocalReviewCredentials | undefined {
+  if (Bun.env.YELLOW_PUBLIC_PREVIEW_AUTO_LOGIN !== "1") return undefined;
+  const sessionPolicy = browserSessionPolicy();
+  if (!workbenchEnabled || hostedProviderOnly || !["127.0.0.1", "localhost", "::1"].includes(runtimeHostname()) ||
+      !sessionPolicy || sessionPolicy.httpsOrigins.length === 0 && !sessionPolicy.localhostHttpOrigin) {
+    throw new Error("public preview auto-login requires a loopback operator workbench and browser-session origin policy");
+  }
+  const credentials = {
+    tenant: Bun.env.YELLOW_LOCAL_REVIEW_TENANT ?? "",
+    email: Bun.env.YELLOW_LOCAL_REVIEW_EMAIL ?? "",
+    password: Bun.env.YELLOW_LOCAL_REVIEW_PASSWORD ?? "",
+  };
+  if (credentials.tenant !== "yellow-demo" || credentials.email !== "preview.operator@yellow.local" || !credentials.password) {
+    throw new Error("public preview auto-login requires the configured synthetic preview account");
+  }
+  return credentials;
+}
+
 function required(name: "YELLOW_RUNTIME_DATABASE_URL" | "YELLOW_EXTENSION_REGISTRAR_DATABASE_URL" | "YELLOW_TOKEN_SECRET" |
   "YELLOW_HOSTED_DEPOSIT_CALLBACK_SECRET"): string {
   const value = Bun.env[name];
@@ -418,6 +436,7 @@ function runtimeApp() {
       adapters: fiscalSubmissionAdapters,
     }, reservationAlerts, new OperatingPerformanceService(), groupReservations),
     operatorLocalReviewCredentials: localReviewCredentials(),
+    operatorPublicPreviewCredentials: publicPreviewCredentials(),
     jarvis: new OverwatchService(Bun.env.YELLOW_GEMINI_API_KEYS ?? Bun.env.YELLOW_GEMINI_API_KEY),
     // The temporary public demo is intentionally the mobile-first shell; legacy
     // routes remain mounted for workspaces that have not yet moved to React.

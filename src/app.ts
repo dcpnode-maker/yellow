@@ -53,6 +53,7 @@ export interface AppOptions {
   readonly operatorApi?: OperatorHttpApi;
   readonly browserSessionApi?: BrowserSessionHttpApi;
   readonly operatorLocalReviewCredentials?: OperatorLocalReviewCredentials;
+  readonly operatorPublicPreviewCredentials?: OperatorLocalReviewCredentials;
   readonly hostedDepositRoutes?: HostedDepositProviderHttpApi;
   readonly hostedDepositSurface?: "guest" | "provider" | "all";
   /** Legacy transport option retained while `/api/v1/jarvis:ask` remains compatible. */
@@ -64,16 +65,24 @@ export interface AppOptions {
 const YELLOW_NEXT_ROOT = new URL("../public/yellow-next/", import.meta.url);
 const YELLOW_NEXT_ASSET = /^[A-Za-z0-9][A-Za-z0-9._-]*$/;
 
-async function yellowNextHtml(): Promise<Response> {
+async function yellowNextHtml(previewAutoLogin = false): Promise<Response> {
   const file = Bun.file(new URL("index.html", YELLOW_NEXT_ROOT));
   if (!(await file.exists())) {
     return new Response("Yellow interface is unavailable", { status: 503 });
   }
-  return new Response(file, {
+  if (!previewAutoLogin) return new Response(file, {
     headers: {
       "content-type": "text/html; charset=utf-8",
       "cache-control": "no-store",
     },
+  });
+  const html = await file.text();
+  const headClose = html.indexOf("</head>");
+  if (headClose < 0 || html.indexOf("</head>", headClose + 7) >= 0) {
+    return new Response("Yellow interface is unavailable", { status: 503, headers: { "cache-control": "no-store" } });
+  }
+  return new Response(`${html.slice(0, headClose)}<meta name="yellow-public-preview-auto-login" content="enabled">${html.slice(headClose)}`, {
+    headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" },
   });
 }
 
@@ -169,7 +178,7 @@ export function createApp(options: AppOptions = {}) {
     const operator = options.operatorApi;
     const publicOperatorHtml = (request: Request) =>
       options.publicOperatorSurface === "yellow-next"
-        ? yellowNextHtml()
+        ? yellowNextHtml(Bun.env.YELLOW_PUBLIC_PREVIEW_AUTO_LOGIN === "1" && options.operatorPublicPreviewCredentials !== undefined)
         : operatorAssets.html(options.operatorLocalReviewCredentials, request);
     const withOperatorTenant = async (
       request: Request,
@@ -229,6 +238,24 @@ export function createApp(options: AppOptions = {}) {
         // The browser never receives or submits the process-scoped synthetic-demo
         // credentials.  This route is enabled only for the isolated demo process.
         return operator.publicReadOnlyDemoLogin(request, credentials, publicDemoSourceKey(request, server?.requestIP(request)));
+      })
+      .post("/api/v1/auth/preview:enter", async ({ request, body, server }) => {
+        const browser = options.browserSessionApi;
+        const credentials = options.operatorPublicPreviewCredentials;
+        if (Bun.env.YELLOW_PUBLIC_PREVIEW_AUTO_LOGIN !== "1" || !credentials ||
+            credentials.tenant !== "yellow-demo" || credentials.email !== "preview.operator@yellow.local") {
+          return new Response("Not found", { status: 404, headers: { "cache-control": "no-store" } });
+        }
+        if (!browser) return new Response("Browser sessions are not configured", { status: 503, headers: { "cache-control": "no-store" } });
+        const peer = server?.requestIP(request);
+        const denied = browser.admission(request, peer);
+        if (denied) return denied;
+        if (!body || typeof body !== "object" || Array.isArray(body) || Object.keys(body).length !== 0 ||
+            Object.getPrototypeOf(body) !== Object.prototype) {
+          return new Response("Invalid preview login request", { status: 400, headers: { "cache-control": "no-store" } });
+        }
+        const login = await operator.login(request, credentials, localLoginSourceKey(peer));
+        return browser.captureCredentialLogin(request, login, peer);
       })
       .post("/api/v1/auth/local:login", async ({ request, body, server }) => {
         const browser = options.browserSessionApi;
