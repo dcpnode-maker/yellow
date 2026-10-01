@@ -26,10 +26,15 @@ describe("Order453 series configuration source contract", () => {
     const shared = readFileSync(new URL("./fixtures/india-native-credit-delivery-fixture.ts", import.meta.url), "utf8");
     const originalQuery = /export async function creditDeliveryCatalogue[\s\S]*?`(SELECT jsonb_build_object\([\s\S]*?)`;/.exec(shared)?.[1];
     expect(originalQuery).toBeDefined();
+    const currentProjection = "to_jsonb(c) - 'relpages' - 'reltuples'";
+    expect(originalQuery).toContain(currentProjection);
     const excluded = ["relhastriggers", "relpages", "reltuples", "relallvisible", "relfrozenxid", "relminmxid"];
     const exclusion = `to_jsonb(c)-ARRAY[${excluded.map(name => `'${name}'`).join(",")}]::text[] ORDER BY c.oid`;
-    expect(query.replaceAll("\r\n", "\n")).toBe(originalQuery!
-      .replace("to_jsonb(c) ORDER BY c.oid", exclusion).replaceAll("\r\n", "\n"));
+    const expectedQuery = originalQuery!.replaceAll("\r\n", "\n").replace(
+      /to_jsonb\(c\) - 'relpages' - 'reltuples' ORDER BY c\.oid\)\n      FROM pg_catalog\.pg_class/,
+      `${exclusion}) FROM pg_catalog.pg_class`,
+    );
+    expect(query.replaceAll("\r\n", "\n")).toBe(expectedQuery);
     for (const retained of ["relfilenode", "relhasrules", "relhassubclass", "relhasindex", "relacl", "relowner", "relrowsecurity", "relforcerowsecurity"]) {
       expect(excluded).not.toContain(retained);
     }
