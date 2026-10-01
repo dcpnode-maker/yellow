@@ -1,0 +1,61 @@
+{
+  "observedUtc": "2026-10-01T10:24:28.846110+00:00",
+  "scope": "Bounded defensive HTTP configuration checks on exact old VM-local synthetic Yellow app only; not Daybreak or a formal security scan",
+  "source": "937912cc0546bfe7b7cd8b3c082f8ef798c20e5b",
+  "checks": [
+    {
+      "path": "/health",
+      "httpStatus": 200,
+      "bodyBytesRead": 15,
+      "bodySha256": "a29ee2b15c494311c52521766e44af56a3ad2248e7a8ab465e5206463c13d288"
+    },
+    {
+      "path": "/ready",
+      "httpStatus": 200,
+      "bodyBytesRead": 167,
+      "bodySha256": "5b5b8240800ea875560d12f6fa558cf1efbd1212021a7d63d335f30c0f7ad06f",
+      "readinessTarget": "yellow_runtime_database",
+      "revision": "937912cc0546bfe7b7cd8b3c082f8ef798c20e5b",
+      "frontier": 100
+    },
+    {
+      "path": "/api/v1/me/properties",
+      "httpStatus": 401,
+      "bodyBytesRead": 175,
+      "bodySha256": "f38ec6b8f25ffde34c8b10ae0eea75dce2f7c1709dda91e432227d730ce83d40"
+    },
+    {
+      "path": "/.git/config",
+      "httpStatus": 404,
+      "bodyBytesRead": 9,
+      "bodySha256": "920b8d07262e4e924669c0e38ef57e0da66b68c9d387248d83a9aa19be7c96c4"
+    },
+    {
+      "path": "/.env",
+      "httpStatus": 404,
+      "bodyBytesRead": 9,
+      "bodySha256": "920b8d07262e4e924669c0e38ef57e0da66b68c9d387248d83a9aa19be7c96c4"
+    },
+    {
+      "path": "/.codex/config.toml",
+      "httpStatus": 404,
+      "bodyBytesRead": 9,
+      "bodySha256": "920b8d07262e4e924669c0e38ef57e0da66b68c9d387248d83a9aa19be7c96c4"
+    },
+    {
+      "path": "/.yellow/runtime-database-authority.env",
+      "httpStatus": 404,
+      "bodyBytesRead": 9,
+      "bodySha256": "920b8d07262e4e924669c0e38ef57e0da66b68c9d387248d83a9aa19be7c96c4"
+    },
+    {
+      "path": "/src/server.ts",
+      "httpStatus": 404,
+      "bodyBytesRead": 9,
+      "bodySha256": "920b8d07262e4e924669c0e38ef57e0da66b68c9d387248d83a9aa19be7c96c4"
+    }
+  ],
+  "homeNetworkTested": false,
+  "latestImageLaunched": false,
+  "publicAppURL": null
+}

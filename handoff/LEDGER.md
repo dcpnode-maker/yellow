@@ -1808,3 +1808,6 @@ appears here; dispatch/execution remain unverified.
 
 
 2026-10-01 RELEASE-20261001-source-backup-9ff: independently verified artifact-only checkpoint of9ff, ZIP642e11aa/all25 members/145+8 guarded paths; current CI36842043047 all six green; managed image/source proof retained. No merge/laptop integration/public app/data or config recovery claim. Laptop is controller.
+
+
+2026-10-01 RELEASE-20261001-restricted-route-handoff: root verified managed9ff imageID/no registryDigest/no app launch; old937 local health+ready200/API401/privatepaths404; officialWorkersAccess supports workers.dev. Exact latest-source/secure-origin/Access/data recovery inputs documented. No public app URL or route/DB mutation; laptop controller.

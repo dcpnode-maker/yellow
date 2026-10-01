@@ -1,0 +1,37 @@
+{
+  "observedUtc": "2026-10-01T10:29:53.310445+00:00",
+  "source": "9ff27ad8765dc75ebae9e083d4635c7a9b89fa62",
+  "tree": "4311a79c0c9ffc33877809162b1b38ae1b3c944a",
+  "imageId": "sha256:103cafd6ad6ca67c8ba4b41098c09cd325d3ac705e4867707b9f9ec49f9dc1f0",
+  "repoDigests": [],
+  "imagePlatform": "linux/amd64",
+  "runtimeUser": "bun",
+  "bunVersion": "1.3.14",
+  "all272RuntimeSourceFilesMatchGit": true,
+  "managedImageRunningContainers": 0,
+  "managedImageAppLaunchPerformed": false,
+  "currentAppSource": "937912cc0546bfe7b7cd8b3c082f8ef798c20e5b",
+  "currentHealth": 200,
+  "currentReadiness": 200,
+  "currentFrontier": 100,
+  "currentAppRestartPolicy": "no",
+  "databaseStorage": "VM-local PostgreSQL volume; not deletion protection",
+  "dockerPublishedListeners": {
+    "app": "127.0.0.1:53007",
+    "postgres": "127.0.0.1:55442",
+    "valkey": "127.0.0.1:56396"
+  },
+  "currentWorkerExecutionFreshlyVerified": false,
+  "currentLoginFreshlyVerified": false,
+  "environmentSpec": "127",
+  "managedRuntimeBindings": [],
+  "publicAppURL": null,
+  "registryImagePublished": false,
+  "sourceArtifactCommit": "eb68e4f5d88a4b140f1420156fec8ee1d8e9e03f",
+  "remaining": [
+    "Controller-accepted integrated source",
+    "Supported secure origin/managed network binding",
+    "Distinct Access-restricted app route",
+    "Selected one data/config authority and retained recovery"
+  ]
+}
