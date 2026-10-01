@@ -505,6 +505,21 @@ const EXPECTED_MIGRATIONS = [
     filename: "0100_housekeeping_transition_timestamp_precision.sql",
     checksum_sha256: "f70844b2c8205c286f7f552dd1f8a4a2023645f70dcd00dbdacc7c777b0415d4",
   },
+  {
+    version: 101,
+    filename: "0101_linked_group_runtime_commands.sql",
+    checksum_sha256: "3e89c0a8da1d7173b9b8def0bc99fff527996fb73248a57880fa1b1204c39d21",
+  },
+  {
+    version: 102,
+    filename: "0102_property_operating_mode.sql",
+    checksum_sha256: "e84484fd3f824c44cc38535030683b67ff9cf9f5c8a5db6870ceb6bb52bc08e2",
+  },
+  {
+    version: 103,
+    filename: "0103_property_operating_mode_runtime_guard.sql",
+    checksum_sha256: "6201be796d8f1400968e8e199b95b546b382fc80e03bed7903e05f36791da277",
+  },
 ];
 
 if (REQUIRE_DATABASE && !DATABASE_URL) {

@@ -1,3 +1,4 @@
+import { GroupReservationWorkspace } from "./GroupReservationWorkspace";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
 import * as AppRuntime from "../yellow-api";
@@ -178,7 +179,8 @@ function reservationOperationalTimeline(
       unavailable: !statementsReady ? "Posting rows load through the governed folio statement read; this timeline will not invent them." : undefined,
       returnTarget: "finance",
     });
-    for (const row of statement?.rows ?? []) {
+    if (!statement) continue;
+    for (const row of statement.rows) {
       entries.push({
         id: `posting-${row.lineId}`,
         kind: "posting",
@@ -3526,6 +3528,7 @@ function ReservationBoardWorkspace({ timezone }: Readonly<{ timezone: string }>)
   return (
     <section className="reservation-board-next">
       <div className="reservation-board-actions"><button type="button" onClick={() => setCreating(true)}>New reservation</button></div>
+      <GroupReservationWorkspace key={propertyId} propertyId={propertyId} />
       <GroupBlockWorkbenchPanel
         loading={groupBlocks.isLoading}
         error={groupBlocks.isError ? groupBlocks.error.message : null}

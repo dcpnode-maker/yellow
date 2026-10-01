@@ -1,6 +1,7 @@
 import { lazy, Suspense, useEffect, useMemo, useRef, useState, type ComponentProps } from "react";
 import { useQuery, useQueryClient, type UseQueryResult } from "@tanstack/react-query";
 import { AnimatePresence, motion } from "framer-motion";
+import { HousekeepingFloorWorkbench } from "./workspaces/HousekeepingFloorWorkbench";
 import {
   arrivalCleaningAttendantIntent,
   cashierChargeConfirmationIntent,
@@ -153,6 +154,7 @@ import {
 // import App.tsx.
 export { resolveVoiceTransferSource, validateFolioTransferReceipt, previewMatchesFolioTransferDraft, submitFolioTransfer };
 
+const LazyPropertyOperatingModeCard = lazy(() => import("./ui/PropertyOperatingModeCard").then(module => ({ default: module.PropertyOperatingModeCard })));
 const OperationalHub = lazy(() => import("./workspaces/OperationalHub"));
 const EcosystemHub = lazy(() => import("./workspaces/EcosystemHub"));
 const MarketIntelligenceLab = lazy(() => import("./workspaces/MarketIntelligenceLab"));
@@ -5428,6 +5430,7 @@ function HousekeepingWorkspace({
   const [proposal, setProposal] = useState<HousekeepingActionProposal | null>(null);
   const [confirmed, setConfirmed] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [floorRefreshGeneration, setFloorRefreshGeneration] = useState(0);
   const [result, setResult] = useState<string | null>(null);
   const prepare = (task: HousekeepingTask, action: HousekeepingTaskAction) => {
     setProposal(Object.freeze({ task, action, key: `yellow-housekeeping-${crypto.randomUUID()}` }));
@@ -5471,6 +5474,7 @@ function HousekeepingWorkspace({
         setResult(`${detail} Current task truth was refreshed and the stale proposal was cleared.`);
       }
     } finally {
+      setFloorRefreshGeneration((current) => current + 1);
       setBusy(false);
       onLifecycleBusyChange(false);
     }
@@ -5517,25 +5521,17 @@ function HousekeepingWorkspace({
         {Object.entries(counts).map(([condition, count]) => (
           <div key={condition}>
             <strong>{count}</strong>
-            <span>{condition}</span>
+            <span>{condition} · loaded</span>
           </div>
         ))}
       </div>
       <div className="housekeeping-grid">
         <article className="detail-card">
-          <h2>Room conditions</h2>
-          <div className="room-grid">
-            {rooms.map((room) => (
-              <div key={room.spaceId} className={`room-tile ${room.condition}`}>
-                <strong>{room.code}</strong>
-                <span>Floor {room.floor}</span>
-                <small>{room.condition}</small>
-              </div>
-            ))}
-          </div>
+          <HousekeepingFloorWorkbench key={propertyId} propertyId={propertyId} getToken={session}
+            disabled={busy} refreshGeneration={floorRefreshGeneration} onPrepare={prepare} />
         </article>
         <article className="detail-card">
-          <h2>Current tasks</h2>
+          <h2>Loaded current tasks</h2>
           {tasks.length ? (
             <ul>
               {tasks.map((task) => (
@@ -5742,7 +5738,16 @@ function CommercialWorkspace() {
   );
 }
 
-function PropertySettingsWorkspace({ property }: Readonly<{ property: Property | undefined }>) {
+function PropertySettingsWorkspace({ property, onNavigationLockChange }: Readonly<{ property: Property | undefined; onNavigationLockChange: (locked: boolean) => void }>) {
+  return <>
+    <Suspense fallback={<section className="property-mode-card" aria-label="Property operating mode"><p role="status">Loading property mode controls…</p></section>}>
+      <LazyPropertyOperatingModeCard key={propertyId} propertyId={propertyId} onNavigationLockChange={onNavigationLockChange} />
+    </Suspense>
+    <PropertySettingsSummary property={property} />
+  </>;
+}
+
+function PropertySettingsSummary({ property }: Readonly<{ property: Property | undefined }>) {
   const query = useQuery<PropertySettingsSnapshot, Error>({
     queryKey: ["property-settings", propertyId],
     queryFn: loadPropertySettings,
@@ -7152,6 +7157,7 @@ export function App() {
   const [cashierChargeProposal, setCashierChargeProposal] = useState<CashierChargeProposal | null>(null);
   const [voiceBillWindowTransferProposal, setVoiceBillWindowTransferProposal] = useState<VoiceBillWindowTransferProposal | null>(null);
   const [voiceTransferRecoveryLocked, setVoiceTransferRecoveryLocked] = useState(false);
+  const [propertyModeNavigationLocked, setPropertyModeNavigationLocked] = useState(false);
   const voiceTransferRecoveryLockedRef = useRef(false);
   const setVoiceBillWindowTransfer = (proposal: VoiceBillWindowTransferProposal | null) => {
     const locked = Boolean(proposal?.postingAttempted);
@@ -7186,13 +7192,22 @@ export function App() {
     },
     [],
   );
+  useEffect(() => {
+    if (!propertyModeNavigationLocked) return;
+    const warnBeforeLeaving = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+      event.returnValue = "";
+    };
+    window.addEventListener("beforeunload", warnBeforeLeaving);
+    return () => window.removeEventListener("beforeunload", warnBeforeLeaving);
+  }, [propertyModeNavigationLocked]);
   const guardReservationLifecycleFlight = (event: {
     preventDefault: () => void;
     stopPropagation: () => void;
     target?: EventTarget | null;
   }) => {
-    if (!reservationLifecycleBusyRef.current && !voiceTransferRecoveryLockedRef.current) return;
-    if (event.target instanceof Element && event.target.closest('[data-lifecycle-recovery="true"]')) return;
+    if (!reservationLifecycleBusyRef.current && !voiceTransferRecoveryLockedRef.current && !propertyModeNavigationLocked) return;
+    if (event.target instanceof Element && event.target.closest('[data-lifecycle-recovery="true"], [data-property-mode-recovery="true"]')) return;
     event.preventDefault();
     event.stopPropagation();
   };
@@ -7319,7 +7334,7 @@ export function App() {
     rememberOverwatch({ open: assistant, language, turns, reservationQuery: reservationQueryContext ?? undefined });
   }, [assistant, language, reservationQueryContext, turns]);
   const workflow = (part: string) => {
-    if (reservationLifecycleBusyRef.current || voiceTransferRecoveryLockedRef.current) return;
+    if (reservationLifecycleBusyRef.current || voiceTransferRecoveryLockedRef.current || propertyModeNavigationLocked) return;
     window.location.assign(
       part === "rates"
         ? `/p/${propertyId}/today?workspace=rates`
@@ -7335,15 +7350,15 @@ export function App() {
     );
   };
   const billingDesk = () => {
-    if (reservationLifecycleBusyRef.current || voiceTransferRecoveryLockedRef.current) return;
+    if (reservationLifecycleBusyRef.current || voiceTransferRecoveryLockedRef.current || propertyModeNavigationLocked) return;
     window.location.assign(`/p/${propertyId}/today?workspace=finance`);
   };
   const open = (stay: Stay) => {
-    if (reservationLifecycleBusyRef.current || voiceTransferRecoveryLockedRef.current) return;
+    if (reservationLifecycleBusyRef.current || voiceTransferRecoveryLockedRef.current || propertyModeNavigationLocked) return;
     window.location.assign(`/p/${propertyId}/res/${stay.reservationId}`);
   };
   const review = (stay: Stay) => {
-    if (reservationLifecycleBusyRef.current || voiceTransferRecoveryLockedRef.current) return;
+    if (reservationLifecycleBusyRef.current || voiceTransferRecoveryLockedRef.current || propertyModeNavigationLocked) return;
     setAssistant(true);
     setAssistantCard({
       eyebrow: "LIVE ARRIVAL FLOW",
@@ -9231,7 +9246,7 @@ export function App() {
             <button className="selected" onClick={() => workflow("settings")}>Settings & setup</button>
             <button onClick={() => workflow("rates")}>Rates & distribution</button>
           </aside>
-          <PropertySettingsWorkspace property={selected} />
+          <PropertySettingsWorkspace property={selected} onNavigationLockChange={setPropertyModeNavigationLocked} />
         </main>
         {assistantDock}
       </div>
@@ -9584,7 +9599,7 @@ export function App() {
                 { label: "Cashier", title: "Folio & posting desk", purpose: "Search guests, open statements, deposits, transfers and governed posting.", status: "Confirmation-gated", onOpen: billingDesk },
                 { label: "Departures", title: "Guided checkout", purpose: "Open due-outs, service coordination and server-owned departure readiness.", status: "Confirmation-gated", onOpen: () => openOperationalTable("due_out") },
                 { label: "Rooms", title: "Housekeeping & operations", purpose: "Room condition, service requests and operational source evidence.", status: "Role-aware", onOpen: () => workflow("operations") },
-                { label: "Overwatch", title: "Multilingual AI assistant", purpose: "Ask Yellow in Indian English/Hindi with explicit confirmation before actions.", status: "Docked assistant", onOpen: () => setAssistantOpen(true) },
+                { label: "Overwatch", title: "Multilingual AI assistant", purpose: "Ask Yellow in Indian English/Hindi with explicit confirmation before actions.", status: "Docked assistant", onOpen: () => setAssistant(true) },
               ]}
               onOpenPerformance={() => setPerformanceDetailRequestKey((key) => key + 1)}
             />

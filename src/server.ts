@@ -6,7 +6,7 @@ import { PartyProfileService } from "./contexts/crm";
 import { BusinessDayDiscrepancyCarryOperatorService, BusinessDayRollService, BusinessDayRollWorker, BusinessDaySealService, CashierService, ChargeCorrectionService, ChargeService, FolioService, FolioSettlementService, FolioStatementService, FolioTransferService, HostedDepositService, LocalPaymentProvider, OwnerTrustExpenseWorkbenchService, PaymentService, ReceivableService } from "./contexts/financials";
 import { AvailabilityProjectionConsumer, AvailabilityProjectionService, AvailabilityService, HoldExpiryWorker, HoldService, InventoryPolicyService, InventoryService, OperationalBlockService, ReservationOccupancyService, RestrictionService } from "./contexts/inventory";
 import { OperatingPerformanceService } from "./contexts/reporting";
-import { ReservationAlertService, ReservationArrivalRollService, ReservationArrivalRollWorker, ReservationBoardService, ReservationCommitService, ReservationDepartureRollService, ReservationDepartureRollWorker, ReservationDetailService, ReservationGuestService, ReservationLifecycleService, ReservationOfferSearchService, ReservationSegmentService, ReservationTravelService } from "./contexts/reservations";
+import { GroupReservationService, ReservationAlertService, ReservationArrivalRollService, ReservationArrivalRollWorker, ReservationBoardService, ReservationCommitService, ReservationDepartureRollService, ReservationDepartureRollWorker, ReservationDetailService, ReservationGuestService, ReservationLifecycleService, ReservationOfferSearchService, ReservationSegmentService, ReservationTravelService } from "./contexts/reservations";
 import { ArrivalPickupTaskAutomationConsumer, ArrivalPickupTaskDispatchService, CheckInService, CheckoutReadinessService, CheckoutService, VehicleParkingAssignmentService, VehicleRegisterService } from "./contexts/stay-operations";
 import { ArrivalRoomCleaningTaskService, HousekeepingDiscrepancyService, HousekeepingSheetService, HousekeepingTaskService } from "./contexts/housekeeping";
 import {
@@ -201,6 +201,7 @@ function runtimeApp() {
   });
   const reservationGuests = new ReservationGuestService({ events, idempotency: new PostgresIdempotency() });
   const reservationAlerts = new ReservationAlertService({ events, idempotency: new PostgresIdempotency() });
+  const groupReservations = new GroupReservationService({ events, idempotency: new PostgresIdempotency() });
   const reservationLifecycle = new ReservationLifecycleService({
     events, idempotency: new PostgresIdempotency(), occupancy: reservationOccupancy,
   });
@@ -391,7 +392,7 @@ function runtimeApp() {
     operatorApi: new OperatorHttpApi(login, availability, inventory, new PostgresIdempotency(), restrictions, rates, pricing, blocks, policy, holds, projection, runtimeStatus, rateBuilder, reservations, reservationOffers, reservationGuests, reservationLifecycle, reservationSegments, parties, folioStatements, charges, new ReservationBoardService(), new ReservationDetailService(), folios, chargeCorrections, folioTransfers, hostedRuntime?.hostedDeposits, folioSettlements, cashiers, receivables, checkIns, housekeeping, housekeepingSheets, checkoutReadiness, checkouts, vehicleRegister, reservationTravel, pickupTaskDispatch, arrivalRoomCleaning, housekeepingDiscrepancies, vehicleParking, undefined, undefined, businessDayCarry, businessDaySeal, ownerTrustExpenses, {
       submissions: fiscalSubmissions,
       adapters: fiscalSubmissionAdapters,
-    }, reservationAlerts, new OperatingPerformanceService()),
+    }, reservationAlerts, new OperatingPerformanceService(), groupReservations),
     operatorLocalReviewCredentials: localReviewCredentials(),
     jarvis: new OverwatchService(Bun.env.YELLOW_GEMINI_API_KEYS ?? Bun.env.YELLOW_GEMINI_API_KEY),
     // The temporary public demo is intentionally the mobile-first shell; legacy

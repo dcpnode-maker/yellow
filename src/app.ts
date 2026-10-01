@@ -258,6 +258,12 @@ export function createApp(options: AppOptions = {}) {
       .get("/api/v1/properties/:property/profile", ({ request, params, tenantContext }) =>
         withOperatorTenant(request, (context) => operator.propertyProfile(context, params.property))
       )
+      .get("/api/v1/properties/:property/operating-mode", ({ request, params }) =>
+        withOperatorTenant(request, context => operator.propertyOperatingMode(context, params.property))
+      )
+      .post("/api/v1/properties/:property/operating-mode", ({ request, params, body }) =>
+        withOperatorTenant(request, context => operator.setPropertyOperatingMode(context, params.property, body))
+      )
       .post("/api/v1/properties/:property/profile/name", ({ request, params, body, tenantContext }) =>
         withOperatorTenant(request, (context) => operator.renamePropertyProfile(context, params.property, body))
       )
@@ -593,6 +599,21 @@ export function createApp(options: AppOptions = {}) {
       )
       .get("/api/v1/properties/:property/group-blocks", ({ request, params, tenantContext }) =>
         withOperatorTenant(request, (context) => operator.groupBlocks(context, params.property))
+      )
+      .get("/api/v1/properties/:property/groups", ({ request, params }) =>
+        withOperatorTenant(request, (context) => operator.listGroups(context, params.property))
+      )
+      .post("/api/v1/properties/:property/groups", ({ request, params, body }) =>
+        withOperatorTenant(request, (context) => operator.createGroup(context, params.property, body))
+      )
+      .get("/api/v1/properties/:property/groups/:groupId", ({ request, params }) =>
+        withOperatorTenant(request, (context) => operator.groupDetail(context, params.property, params.groupId))
+      )
+      .get("/api/v1/properties/:property/groups/:groupId/candidates", ({ request, params }) =>
+        withOperatorTenant(request, (context) => operator.groupCandidate(context, params.property, params.groupId))
+      )
+      .put("/api/v1/properties/:property/groups/:groupId/members/:reservationId", ({ request, params, body }) =>
+        withOperatorTenant(request, (context) => operator.attachGroupMember(context, params.property, params.groupId, params.reservationId, body))
       )
       .get("/api/v1/properties/:property/operating-performance", ({ request, params, tenantContext }) =>
         withOperatorTenant(request, (context) => operator.operatingPerformance(context, params.property))

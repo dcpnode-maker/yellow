@@ -48,6 +48,14 @@ export type {
   GroupBlockWorkbenchInput,
 } from "./group-blocks";
 export {
+  GroupReservationService,
+  GroupReservationValidationError,
+  GroupReservationNotFoundError,
+  GroupReservationConflictError,
+  groupName,
+} from "./groups";
+export type { GroupReservationHeader, GroupReservationMember, GroupReservationCandidate, GroupReservationPage, GroupReservationDetail, GroupReservationServiceOptions } from "./groups";
+export {
   ReservationGuestConflictError,
   ReservationGuestNotFoundError,
   ReservationGuestService,

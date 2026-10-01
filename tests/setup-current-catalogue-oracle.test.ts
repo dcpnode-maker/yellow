@@ -1,8 +1,9 @@
 import { describe, expect, test } from "bun:test";
 import { join } from "node:path";
+import { CURRENT_MIGRATION_FRONTIER } from "../src/kernel";
 
 describe("Order 371 current setup catalogue oracle", () => {
-  test("full-project migration acceptance stays current100 without relabeling the historical86/87/88/89 boundaries", async () => {
+  test("full-project migration acceptance stays current103 without relabeling the historical86/87/88/89 boundaries", async () => {
     const source = await Bun.file(new URL("migrate.integration.test.ts", import.meta.url)).text();
     const testBlock = (name: string): string => {
       const start = source.indexOf(`  test(\n    "${name}"`);
@@ -40,8 +41,11 @@ describe("Order 371 current setup catalogue oracle", () => {
       '"0098_property_identity_profile.sql"',
       '"0099_governed_departure_service_coordination.sql"',
       '"0100_housekeeping_transition_timestamp_precision.sql"',
-      "expect(upgradedLedger).toHaveLength(100)",
-      "expect(noOp.discoveredFiles).toBe(100)",
+      '"0101_linked_group_runtime_commands.sql"',
+      '"0102_property_operating_mode.sql"',
+      '"0103_property_operating_mode_runtime_guard.sql"',
+      "expect(upgradedLedger).toHaveLength(CURRENT_MIGRATION_FRONTIER)",
+      "expect(noOp.discoveredFiles).toBe(CURRENT_MIGRATION_FRONTIER)",
       "tables: 130, rlsTables: 120, policies: 120, forceRlsTables: 29",
     ]) expect(fullUpgrade).toContain(current);
     expect(source.match(/WHERE conrelid = class\.oid\s+AND contype <> 'n'/gu)).toHaveLength(6);
@@ -82,14 +86,14 @@ describe("Order 371 current setup catalogue oracle", () => {
     expect(historical88).toContain("expect(fresh.appliedFiles).toHaveLength(88)");
   });
 
-  test("other full-current acceptance suites retain the exact current100 catalogue", async () => {
+  test("other full-current acceptance suites retain the exact current103 catalogue", async () => {
     const financial = await Bun.file(new URL("financial-postings.integration.test.ts", import.meta.url)).text();
     const applicability = await Bun.file(new URL("india-gst-accommodation-quoted-rate-applicability-recording.integration.test.ts", import.meta.url)).text();
     expect({
       financial130: financial.includes("table_type='BASE TABLE'`)[0]!.n).toBe(130)"),
-      applicabilityTitle100: applicability.includes("fresh catalogue is exactly 100/130/120/120/29/2"),
-      applicabilityShape100: applicability.includes("migrations:100, tables:130, rls:120, policies:120, forced:29, views:2"),
-    }).toEqual({ financial130: true, applicabilityTitle100: true, applicabilityShape100: true });
+      applicabilityTitleCurrent: applicability.includes("fresh catalogue is exactly 103/130/120/120/29/2"),
+      applicabilityShapeCurrent: applicability.includes("migrations:CURRENT_MIGRATION_FRONTIER, tables:130, rls:120, policies:120, forced:29, views:2"),
+    }).toEqual({ financial130: true, applicabilityTitleCurrent: true, applicabilityShapeCurrent: true });
   });
 
   test("derives the migration and public-table frontier before checking setup", async () => {
@@ -104,14 +108,14 @@ describe("Order 371 current setup catalogue oracle", () => {
     const publicBaseTables = expectedSchema.match(/^CREATE TABLE public\./gm)?.length ?? 0;
 
     expect({ migrationCount: migrations.length, highestMigration, publicBaseTables }).toEqual({
-      migrationCount: 100,
-      highestMigration: 100,
+      migrationCount: CURRENT_MIGRATION_FRONTIER,
+      highestMigration: CURRENT_MIGRATION_FRONTIER,
       publicBaseTables: 130,
     });
     expect(setup).toContain("[ \"$tables\" = '130' ]");
     for (const entrypoint of [setup, nativeSetup]) {
-      expect(entrypoint).toContain("expected 130 after migrations 1-100");
-      expect(entrypoint).toContain("yellow_test tables: 130 after migrations 1-100");
+      expect(entrypoint).toContain("expected 130 after migrations 1-103");
+      expect(entrypoint).toContain("yellow_test tables: 130 after migrations 1-103");
     }
     expect(setup).not.toContain("expected 116 after migrations 1-64");
     expect(setup).not.toContain("expected 115 after migrations 1-62");
