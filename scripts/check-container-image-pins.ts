@@ -6,7 +6,7 @@ export const EXPECTED_BUN =
 export const EXPECTED_VALKEY =
   "valkey/valkey:8.1.9-alpine@sha256:e0eb7c480958d32bdc4357a74bdd70653ae15f2f9b4c93c4a5a9fad1dc471c84";
 export const EXPECTED_POSTGRES =
-  "postgres:18.6-alpine3.24@sha256:d8703cd7fba306b9fec9268ecedfa8a966846c053036a60e3635791957eb2f66";
+  "postgres:18.6-alpine3.24@sha256:77f585114c32fbca283dc835b0596f4e52b51b4c6662d7810b2f4084f60a1873";
 
 const DIGEST = /@sha256:[0-9a-f]{64}$/;
 

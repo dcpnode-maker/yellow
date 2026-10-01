@@ -39,7 +39,7 @@ describe("runtime diagnostic storage policy", () => {
 
   test("PostgreSQL runtime is pinned to the approved PostgreSQL 18 image", () => {
     expect(compose.services.postgres?.image).toBe(
-      "postgres:18.6-alpine3.24@sha256:d8703cd7fba306b9fec9268ecedfa8a966846c053036a60e3635791957eb2f66",
+      "postgres:18.6-alpine3.24@sha256:77f585114c32fbca283dc835b0596f4e52b51b4c6662d7810b2f4084f60a1873",
     );
     expect(Object.keys(compose.volumes ?? {}).sort()).toEqual([
       "yellow-pg18data",
