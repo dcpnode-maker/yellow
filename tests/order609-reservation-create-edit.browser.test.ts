@@ -138,7 +138,7 @@ test("Order609 real reservation create route is confirmation-gated and contained
           if (request.headers.get("x-yellow-browser-session") !== "v1" || Object.keys(supplied).length !== 3 ||
               Object.entries(fixtureCredentials).some(([key, value]) => supplied[key] !== value)) return json({ error: "invalid_synthetic_credentials" }, 401);
           fixtureToken = await fixtureTokens.issue({ userId: fixtureActor, tenantId: fixtureTenant,
-            scopes: ["reservation.lifecycle:read", "reservation.lifecycle:write", "inventory.availability:read", "crm.party:read"] });
+            scopes: ["reservations.lifecycle:read", "reservations.lifecycle:write", "inventory.availability:read", "crm.party:read"] });
           return json({ accessToken: fixtureToken, tokenType: "Bearer", expiresInSeconds: 900,
             user: { id: fixtureActor, displayName: "Synthetic browser fixture" } });
         }

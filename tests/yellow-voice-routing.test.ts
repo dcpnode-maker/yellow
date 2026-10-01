@@ -299,7 +299,11 @@ test("renders deterministic KPI comparisons inside Yellow without a model call",
 test("renders deterministic PMS workspace reads inside Yellow without navigation", () => {
   expect(app).toContain('workspace: targetWorkspace');
   expect(app).toContain('className="yellow-inline-workspace"');
-  expect(app).toContain('<ReservationBoardWorkspace timezone={selected?.timezone ?? "UTC"} />');
+  expect(app).toContain('<ReservationBoardWorkspace timezone={selected?.timezone ?? "UTC"} onCrsContinue={continueCrs} />');
+  const crsContinuation = app.slice(app.indexOf("  const continueCrs ="), app.indexOf("  const billingDesk ="));
+  const retainedLock = "if (reservationLifecycleBusyRef.current || voiceTransferRecoveryLockedRef.current || propertyModeNavigationLocked) return;";
+  expect(crsContinuation).toContain(retainedLock);
+  expect(crsContinuation.indexOf(retainedLock)).toBeLessThan(crsContinuation.indexOf("window.location.assign(href);"));
   expect(app).toContain('<GuestsWorkspace />');
   expect(app).toContain('<HousekeepingWorkspace onLifecycleBusyChange={setReservationLifecycleFlight} />');
   expect(app).toContain('<FinanceWorkspace onLifecycleBusyChange={setReservationLifecycleFlight} />');

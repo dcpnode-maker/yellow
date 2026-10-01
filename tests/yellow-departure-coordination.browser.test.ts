@@ -133,7 +133,7 @@ test("mounted departure coordination is no-write-before-confirm and remains oper
     await send("Page.enable");
     await send("Runtime.enable");
     const fixtureToken = await fixtureTokens.issue({ userId: fixtureActor, tenantId: fixtureTenant,
-      scopes: ["reservation.lifecycle:read", "reservation.lifecycle:write", "inventory.availability:read", "crm.party:read"] });
+      scopes: ["reservations.lifecycle:read", "reservations.lifecycle:write", "inventory.availability:read", "crm.party:read"] });
     await send("Page.addScriptToEvaluateOnNewDocument", { source: `
       const fixtureToken=${JSON.stringify(fixtureToken)}, fixtureActor=${JSON.stringify(fixtureActor)}, fixtureCredentials=${JSON.stringify(fixtureCredentials)};
       window.__yellowRuntimeErrors=[]; window.__yellowConsoleWarnings=[]; window.__yellowApiCalls=[]; window.__yellowRequest=null;

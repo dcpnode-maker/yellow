@@ -185,7 +185,7 @@ test("mounted Yellow stays silent until one explicit response and keeps Speak op
     await send("Page.enable");
     await send("Runtime.enable");
     const fixtureToken = await fixtureTokens.issue({ userId: fixtureActor, tenantId: fixtureTenant,
-      scopes: ["reservation.lifecycle:read", "reservation.lifecycle:write", "inventory.availability:read", "crm.party:read"] });
+      scopes: ["reservations.lifecycle:read", "reservations.lifecycle:write", "inventory.availability:read", "crm.party:read"] });
     await send("Page.addScriptToEvaluateOnNewDocument", { source: `
       const fixtureToken=${JSON.stringify(fixtureToken)}, fixtureActor=${JSON.stringify(fixtureActor)}, fixtureCredentials=${JSON.stringify(fixtureCredentials)};
       window.__yellowSpeechCalls = [];
