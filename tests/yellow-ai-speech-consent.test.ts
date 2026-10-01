@@ -4,6 +4,7 @@ import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 import { resolveChromiumPath } from "./helpers/chromium-path";
+import { Hs256TokenSigner } from "../src/contexts/identity";
 import {
   languagePreferenceFromText,
   speechOutputIntent,
@@ -57,6 +58,11 @@ describe("Order 594 explicit one-shot speech output consent", () => {
     expect(app).not.toMatch(/speechEnabled|setSpeechEnabled/);
   });
 });
+
+const fixtureActor = "b2836978-73fe-58f9-b808-8b58cceac1c4";
+const fixtureTenant = "6d9b7ce2-2d14-5576-b8c3-80f06501a603";
+const fixtureCredentials = { tenant: "synthetic-browser-fixture", email: "fixture@yellow.example.invalid", password: "test-only" };
+const fixtureTokens = new Hs256TokenSigner("synthetic-browser-fixture-only-secret-0001");
 
 const browserPath = resolveChromiumPath();
 
@@ -138,7 +144,7 @@ test("mounted Yellow stays silent until one explicit response and keeps Speak op
       await Bun.sleep(25);
     }
     if (!port) throw new Error(`Browser did not expose DevTools: ${diagnostic.slice(-800)}`);
-    const appUrl = `http://127.0.0.1:${server.port}/yellow-next/p/6081b544-22a1-534f-a86d-bb1ae0519e14/today`;
+    const appUrl = `http://127.0.0.1:${server.port}/p/6081b544-22a1-534f-a86d-bb1ae0519e14/today`;
     const targetResponse = await fetch(`http://127.0.0.1:${port}/json/new?${encodeURIComponent("about:blank")}`, { method: "PUT" });
     const target = await targetResponse.json() as { webSocketDebuggerUrl?: string };
     if (!target.webSocketDebuggerUrl) throw new Error("Browser target has no debugger endpoint");
@@ -178,7 +184,10 @@ test("mounted Yellow stays silent until one explicit response and keeps Speak op
     };
     await send("Page.enable");
     await send("Runtime.enable");
+    const fixtureToken = await fixtureTokens.issue({ userId: fixtureActor, tenantId: fixtureTenant,
+      scopes: ["reservation.lifecycle:read", "reservation.lifecycle:write", "inventory.availability:read", "crm.party:read"] });
     await send("Page.addScriptToEvaluateOnNewDocument", { source: `
+      const fixtureToken=${JSON.stringify(fixtureToken)}, fixtureActor=${JSON.stringify(fixtureActor)}, fixtureCredentials=${JSON.stringify(fixtureCredentials)};
       window.__yellowSpeechCalls = [];
       window.__yellowRuntimeErrors = [];
       addEventListener('error', event => window.__yellowRuntimeErrors.push(String(event.error?.message || event.message)));
@@ -202,11 +211,22 @@ test("mounted Yellow stays silent until one explicit response and keeps Speak op
         stop() {}
       }
       Object.defineProperty(window, 'SpeechRecognition', { configurable: true, value: YellowRecognition });
-      window.fetch = async input => {
+      window.fetch = async (input, init = {}) => {
         const pathname = new URL(typeof input === 'string' ? input : input.url, location.href).pathname;
         let status = 200;
         let body;
-        if (pathname.endsWith('/auth/demo:enter')) body = { accessToken: 'order594-browser-proof' };
+        if (pathname.endsWith('/auth/browser/resume')) { status = 401; body = { error: 'browser_session_unauthenticated' }; }
+        else if (pathname.endsWith('/auth/local:login')) {
+          const supplied = JSON.parse(init.body || '{}');
+          if ((init.method || 'GET') !== 'POST' || new Headers(init.headers).get('x-yellow-browser-session') !== 'v1' ||
+              Object.keys(supplied).length !== 3 || Object.entries(fixtureCredentials).some(([key, value]) => supplied[key] !== value)) {
+            status = 401; body = { error: 'invalid_synthetic_credentials' };
+          } else body = { accessToken: fixtureToken, tokenType: 'Bearer', expiresInSeconds: 900,
+            user: { id: fixtureActor, displayName: 'Synthetic browser fixture' } };
+        }
+        else if (pathname.startsWith('/api/') && new Headers(init.headers).get('authorization') !== 'Bearer ' + fixtureToken) {
+          status = 401; body = { error: 'synthetic_bearer_required' };
+        }
         else if (pathname.endsWith('/me/properties')) body = { properties: [{ id: '6081b544-22a1-534f-a86d-bb1ae0519e14', name: 'Proof Hotel', timezone: 'Asia/Kolkata' }] };
         else if (pathname.endsWith('/reservation-board')) body = { reservations: [], nextCursor: null };
         else if (pathname.endsWith('/jarvis:ask')) body = { answer: 'This is the completed guided test answer.' };
@@ -216,6 +236,18 @@ test("mounted Yellow stays silent until one explicit response and keeps Speak op
     ` });
     await send("Emulation.setDeviceMetricsOverride", { width: 375, height: 812, deviceScaleFactor: 1, mobile: true });
     await send("Page.navigate", { url: appUrl });
+    await waitFor("Boolean(document.querySelector('#auth-password')) && !document.querySelector('.auth-card form button[type=submit]').disabled", "explicit credential sign-in");
+    await evaluate(`(() => {
+      const credentials = ${JSON.stringify(fixtureCredentials)};
+      for (const [name, value] of Object.entries(credentials)) {
+        const input = document.querySelector('#auth-' + name);
+        Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(input, value);
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+        input.dispatchEvent(new Event('change', { bubbles: true }));
+      }
+      document.querySelector('.auth-card form').requestSubmit();
+    })()`);
+
     await waitFor("Boolean(document.querySelector('.yellow-launch'))", "Yellow launcher");
     await evaluate("document.querySelector('.yellow-launch').click()");
     await waitFor("Boolean(document.querySelector('[aria-label=\"Ask Yellow\"]'))", "Yellow prompt");

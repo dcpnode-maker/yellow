@@ -5,6 +5,12 @@ import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 import { invokeCdp } from "./helpers/cdp-invoke";
 import { resolveChromiumPath } from "./helpers/chromium-path";
+import { Hs256TokenSigner } from "../src/contexts/identity";
+
+const fixtureActor = "b2836978-73fe-58f9-b808-8b58cceac1c4";
+const fixtureTenant = "6d9b7ce2-2d14-5576-b8c3-80f06501a603";
+const fixtureCredentials = { tenant: "synthetic-browser-fixture", email: "fixture@yellow.example.invalid", password: "test-only" };
+const fixtureTokens = new Hs256TokenSigner("synthetic-browser-fixture-only-secret-0001");
 
 const browserPath = resolveChromiumPath();
 
@@ -126,7 +132,10 @@ test("mounted departure coordination is no-write-before-confirm and remains oper
     };
     await send("Page.enable");
     await send("Runtime.enable");
+    const fixtureToken = await fixtureTokens.issue({ userId: fixtureActor, tenantId: fixtureTenant,
+      scopes: ["reservation.lifecycle:read", "reservation.lifecycle:write", "inventory.availability:read", "crm.party:read"] });
     await send("Page.addScriptToEvaluateOnNewDocument", { source: `
+      const fixtureToken=${JSON.stringify(fixtureToken)}, fixtureActor=${JSON.stringify(fixtureActor)}, fixtureCredentials=${JSON.stringify(fixtureCredentials)};
       window.__yellowRuntimeErrors=[]; window.__yellowConsoleWarnings=[]; window.__yellowApiCalls=[]; window.__yellowRequest=null;
       addEventListener('error',event=>window.__yellowRuntimeErrors.push(String(event.error?.message||event.message)));
       addEventListener('unhandledrejection',event=>window.__yellowRuntimeErrors.push(String(event.reason)));
@@ -140,7 +149,18 @@ test("mounted departure coordination is no-write-before-confirm and remains oper
       const makeRequest=(patch={})=>Object.assign({requestId:'59300000-0000-4000-8000-000000000009',reservationId:reservation,segmentId:detail.reservation.segments[0].segmentId,spaceId:'59300000-0000-4000-8000-000000000007',serviceKind:'minibar_check',parentRequestId:null,targetRoleId:role,targetRoleName:'Housekeeping Desk',proposalStatus:'pending',version:1,expiresAt:'2044-09-22T10:15:00Z',departureAt:'2044-09-22T12:00:00Z',dueAt:'2044-09-22T10:00:00Z',dueLocal:'22 Sep 2044, 3:30 pm',timezone:'Asia/Kolkata',taskId:null,taskStatus:null,assigneePartyId:null,outcome:null,completedAt:null,eligibleActions:['confirm','withdraw']},patch);
       const overview=()=>({reservationId:reservation,reservationStatus:'due_out',timezone:'Asia/Kolkata',evidence:{segmentId:detail.reservation.segments[0].segmentId,spaceId:'59300000-0000-4000-8000-000000000007',departureAt:'2044-09-22T12:00:00Z'},roles:[{roleId:role,name:'Housekeeping Desk'}],staff:[{partyId:staff,name:'Avery Housekeeping'}],requests:window.__yellowRequest?[window.__yellowRequest]:[]});
       window.fetch=async(input,init={})=>{const url=new URL(typeof input==='string'?input:input.url,location.href),path=url.pathname,method=init.method||'GET';window.__yellowApiCalls.push({path,method,body:init.body||null});let status=200,body;
-        if(path.endsWith('/auth/demo:enter'))body={accessToken:'order593-browser-proof'};
+        if (path.endsWith('/auth/browser/resume')) { status = 401; body = { error: 'browser_session_unauthenticated' }; }
+        else if (path.endsWith('/auth/local:login')) {
+          const supplied = JSON.parse(init.body || '{}');
+          if ((init.method || 'GET') !== 'POST' || new Headers(init.headers).get('x-yellow-browser-session') !== 'v1' ||
+              Object.keys(supplied).length !== 3 || Object.entries(fixtureCredentials).some(([key, value]) => supplied[key] !== value)) {
+            status = 401; body = { error: 'invalid_synthetic_credentials' };
+          } else body = { accessToken: fixtureToken, tokenType: 'Bearer', expiresInSeconds: 900,
+            user: { id: fixtureActor, displayName: 'Synthetic browser fixture' } };
+        }
+        else if (path.startsWith('/api/') && new Headers(init.headers).get('authorization') !== 'Bearer ' + fixtureToken) {
+          status = 401; body = { error: 'synthetic_bearer_required' };
+        }
         else if(path.endsWith('/me/properties'))body={properties:[{id:property,name:'Fictional Yellow Hotel',timezone:'Asia/Kolkata'}]};
         else if(path.endsWith('/reservation-board'))body={reservations:url.searchParams.get('status')&&url.searchParams.get('status')!=='due_out'?[]:[row],nextCursor:null};
         else if(path.endsWith('/checkout-readiness'))body={ready:false,blockers:['folio_window_missing'],reservationStatus:'due_out',room:{spaceCode:'118'},folios:[]};
@@ -153,11 +173,23 @@ test("mounted departure coordination is no-write-before-confirm and remains oper
       };
     ` });
     await send("Emulation.setDeviceMetricsOverride", { width: 375, height: 900, deviceScaleFactor: 1, mobile: true });
-    const appUrl = `http://127.0.0.1:${server.port}/yellow-next/p/6081b544-22a1-534f-a86d-bb1ae0519e14/today`;
+    const appUrl = `http://127.0.0.1:${server.port}/p/6081b544-22a1-534f-a86d-bb1ae0519e14/today`;
     await send("Page.navigate", { url: appUrl });
+    await waitFor("Boolean(document.querySelector('#auth-password')) && !document.querySelector('.auth-card form button[type=submit]').disabled", "explicit credential sign-in");
+    await evaluate(`(() => {
+      const credentials = ${JSON.stringify(fixtureCredentials)};
+      for (const [name, value] of Object.entries(credentials)) {
+        const input = document.querySelector('#auth-' + name);
+        Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(input, value);
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+        input.dispatchEvent(new Event('change', { bubbles: true }));
+      }
+      document.querySelector('.auth-card form').requestSubmit();
+    })()`);
+
     await waitFor("Boolean(document.querySelector('.yellow-launch'))", "Yellow launcher");
     expect(await evaluate<boolean>("Array.isArray(window.__yellowApiCalls)")).toBe(true);
-    expect(await evaluate<string>("location.pathname")).toBe("/yellow-next/p/6081b544-22a1-534f-a86d-bb1ae0519e14/today");
+    expect(await evaluate<string>("location.pathname")).toBe("/p/6081b544-22a1-534f-a86d-bb1ae0519e14/today");
     expect(await evaluate<string>("document.title")).toContain("Yellow");
     expect(await evaluate<boolean>("document.body.innerText.includes('Hotel Operations') && !document.querySelector('vite-error-overlay')")).toBe(true);
     await evaluate("document.querySelector('.yellow-launch').click()");

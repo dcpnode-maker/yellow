@@ -25,7 +25,7 @@ test("the ribbon is keyboard navigable and touch sized", () => {
   expect(ribbon).toContain('event.key === "ArrowRight"');
   expect(ribbon).toContain('event.key === "Home"');
   expect(ribbon).toContain('event.key === "End"');
-  expect(ribbon).toContain('window.matchMedia("(prefers-reduced-motion: reduce)").matches');
+  expect(ribbon).toContain('behavior: "auto",');
   expect(css).toContain("min-height: 46px;");
   expect(css).toContain("min-height: 44px;");
 });
