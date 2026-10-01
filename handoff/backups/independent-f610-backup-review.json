@@ -1,0 +1,10 @@
+{
+  "archive": "/workspace/yellow-coordination/release-20261001/reviewed-source-checkpoint-f610a926-20261001.zip",
+  "sha256": "71d255e57fb977a55fc7d502c6c6258af4856c09fa0551ab5bc121ece6f1f808",
+  "bytes": 828968,
+  "members": 64,
+  "treeReconstructedIndependently": "f810a9d36276a8891b55209fcc5d3d22a9d19451",
+  "credentialScan": "passed",
+  "oldMcpContent": "not exported",
+  "disposition": "Source backup only; CI database pending, no release/laptop/live acceptance"
+}
