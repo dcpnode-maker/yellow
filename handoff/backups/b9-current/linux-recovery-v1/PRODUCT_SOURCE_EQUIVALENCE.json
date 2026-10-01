@@ -1,0 +1,23 @@
+{
+  "source": "b9ba702a074a487feeafa056abb49abcdcf01ba8",
+  "test_only_successor": "7f1a70cf1b799685f4dfc4ce91bce1907ae62a8e",
+  "compared_product_paths": [
+    "src",
+    "frontend",
+    "migrations",
+    "package.json",
+    "bun.lock",
+    "Dockerfile",
+    "scripts"
+  ],
+  "product_paths_identical": true,
+  "all_changed_paths": [
+    "tests/operator-business-day-seal.integration.test.ts",
+    "tests/operator-reservation-travel.integration.test.ts",
+    "tests/order620-today-colleague-demo-path.test.ts",
+    "tests/order687-groups.ui.test.ts",
+    "tests/yellow-cashier-receivable-workbench.test.ts"
+  ],
+  "image_source_label_remains": "b9ba702a074a487feeafa056abb49abcdcf01ba8",
+  "receiving_worktree_or_original_source_merged": false
+}

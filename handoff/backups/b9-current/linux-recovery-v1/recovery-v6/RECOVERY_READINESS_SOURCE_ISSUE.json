@@ -1,0 +1,68 @@
+{
+  "schema": "yellow-recovery-readiness-source-issue/v1",
+  "classification": "confirmed source-level exact-text readiness mismatch",
+  "feature_edit_made": false,
+  "source_records": [
+    {
+      "repo": "/workspace/yellow-release",
+      "expected_commit": "9ff27ad8765dc75ebae9e083d4635c7a9b89fa62",
+      "observed_head": "9ff27ad8765dc75ebae9e083d4635c7a9b89fa62",
+      "source_file_sha256": "3be22349a30899da9a987a0f339c65d3468b3c13bcf35917ccd3baee5e35dc7b",
+      "source_git_blob_sha1": "4a8717e1db1416fb557dc0b52ee34608848e0010",
+      "build_info_file_clean": true,
+      "reason_expression_source_lines": "8-11",
+      "reason_expression_source_span_sha256": "9104625394141089949ca1fe8d3cf4fed7c1a5a4c3bb7717f3ecfc67432c69fd",
+      "exact_pg_get_expr_join_source_lines": "532-535",
+      "exact_pg_get_expr_join_span_sha256": "c9e17e118bc7ba771e75e890bb1b75ab10cf8e2739b1e3e41a8cd24399d7ac98"
+    },
+    {
+      "repo": "/workspace/yellow-receiving-b9",
+      "expected_commit": "b9ba702a074a487feeafa056abb49abcdcf01ba8",
+      "observed_head": "b9ba702a074a487feeafa056abb49abcdcf01ba8",
+      "source_file_sha256": "74fefdd3972fd8d569c37254bb4bf770857d6f61c0ccb47306b3bd61292d7269",
+      "source_git_blob_sha1": "47226d17273f8fcb7ce0b918089ff23b978c0019",
+      "build_info_file_clean": true,
+      "reason_expression_source_lines": "8-11",
+      "reason_expression_source_span_sha256": "9104625394141089949ca1fe8d3cf4fed7c1a5a4c3bb7717f3ecfc67432c69fd",
+      "exact_pg_get_expr_join_source_lines": "532-535",
+      "exact_pg_get_expr_join_span_sha256": "c9e17e118bc7ba771e75e890bb1b75ab10cf8e2739b1e3e41a8cd24399d7ac98"
+    }
+  ],
+  "private_actual_v5_schema": {
+    "source_dump_sha256": "4bef2873d7746c10d73d57a953d515df4d14a9c7930298e2cf35e7b01bc16652",
+    "restored_dump_sha256": "3547f3a13b840c7214554280cd0b7f2c003952b4470dbb8e41540eee483fc588",
+    "schema_proof_sha256": "c4185015ec18933dad4d9f9b26e0c4c3d27f77e6590ddc17269468d28073215d",
+    "pglast_version": "v7.10",
+    "source_statement_count": 2449,
+    "restored_statement_count": 2449,
+    "normalized_line_diff_count": 20,
+    "full_ast_equal_after_scanner_coordinates_removed": true,
+    "strict_full_schema_equivalence_passed": true,
+    "raw_schema_lines_published": false
+  },
+  "credit_reason_check": {
+    "constraint_name": "india_native_fiscal_credit_note_reason_check",
+    "expected_source_expression_bytes": 202,
+    "expected_source_expression_sha256": "16ed3a449ec7ff06e31e5ba3f976d0e33ace95f9026c7148dcd8032a0d10597c",
+    "source_dump_expression_bytes": 202,
+    "source_dump_expression_sha256": "16ed3a449ec7ff06e31e5ba3f976d0e33ace95f9026c7148dcd8032a0d10597c",
+    "restored_dump_expression_bytes": 200,
+    "restored_dump_expression_sha256": "534c90613b10c865728a5b0358b7cb8728ad2da054d60128aea8c21b93dff264",
+    "exact_source_text_equals_restored_text": false,
+    "expected_and_restored_canonical_expression_ast_sha256": "82c522e5bd0ade855a12bfe70420e2b389f34e98bb838bc66bd16cf1a38dc680",
+    "canonical_expression_ast_equal": true,
+    "expected_and_restored_differ_only_by_parentheses": true
+  },
+  "impact": {
+    "source_file": "src/kernel/build-info.ts",
+    "exact_string_comparison_line": 535,
+    "check_set_cte_lines": "516-535",
+    "projection_field": "nativeCreditBindingProtected",
+    "reason": "The exact pg_get_expr string predicate no longer matches this restored constraint rendering; the joined row count drops below nine and credit_check_shape.exact becomes false. The protected readiness field is therefore false despite equivalent CHECK AST."
+  },
+  "limits": [
+    "Hashes and sizes only; private raw schema dumps and expression text are excluded.",
+    "This establishes a source-level query/renderer mismatch in the exact v5 private schema evidence.",
+    "No database query, feature modification, network operation, or Docker command was performed."
+  ]
+}

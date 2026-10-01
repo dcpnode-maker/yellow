@@ -1,0 +1,108 @@
+{
+  "schema": "yellow-independent-b9-image-oci-review/v1",
+  "reviewed_utc": "2026-10-01T14:00:36Z",
+  "result": "PASS_BOUNDED_IMAGE_CONTENT_REVIEW",
+  "scope": {
+    "source_revision": "b9ba702a074a487feeafa056abb49abcdcf01ba8",
+    "source_tree": "9446a6735d712ccfd30c6957ea511fb0e3b644cf",
+    "runtime_image_id": "sha256:1e522a8ab84af27ddc57d4aef3e7f6a383d254be15225a8c9df1722df87d7bc9",
+    "source_checkout_clean": true,
+    "source_worktree_modified": false,
+    "build_manifest_sha256": "6ace3aecb185a71dc63ad293b19a2694c0a40649681644320bb5c6e38f096d4e",
+    "build_manifest_matches_build_proof": true
+  },
+  "evidence_artifact_sha256": {
+    "ORDER.md": "ec94579054752a0286cdf9e73ca3ae869c44851173fc5326625fe1ebd4246ac4",
+    "BUILD_INPUT_MANIFEST_V2.json": "6ace3aecb185a71dc63ad293b19a2694c0a40649681644320bb5c6e38f096d4e",
+    "LINUX_IMAGE_BUILD_PROOF.json": "c1f2f47b158025dbb5a3d11eb34ecb2518f0a0ef0a186d96b1261f733080944a",
+    "B9_OCI_CONTENT_PROOF.json": "2f800327af873496138e5a0976af67261d250cb05f5be21acfc680d2bb255ef6",
+    "OCI_VERIFIER_INITIAL_FAILURE.json": "333e376acf124aa7e2d456df1d8b75dfb4e1da821327f8d5380ed4ee58bbd961",
+    "verify_b9_oci_export.py": "8fbf8730cd306c913ab515b09bbe1c4582852e01ea9d6b1b5fdd0f67149136c8",
+    "verify_b9_oci_export_original.py": "713885e2b733be18837fca65fadda0b6ae8523de68c9d057b915f046b99fe781",
+    "private-oci-export-b9-v1/docker-save.tar": "d5224edffda0892d15025c313551b1ffe8abff656de5f1cc5df8ae95879c2200",
+    "private-oci-export-b9-v1/selected-image.json": "1fa6ae6bf4e6998d3138f56de7b7b2dddb44771ede891bcdc43fb89a20bb7813",
+    "private-oci-export-b9-v1/conversion-result.json": "d17341355e7934673d5f2d974535fb3622bb19a908951f0e30d9d1669ef51567",
+    "private-oci-export-b9-v1/oci-layout/index.json": "b812ad99a46246c5d2ba25e67b41243375712b5440d1f8c87c13b96d3e74063a"
+  },
+  "oci_verification": {
+    "command": "python3 verify_b9_oci_export.py",
+    "passed": true,
+    "stdout_sha256": "2f800327af873496138e5a0976af67261d250cb05f5be21acfc680d2bb255ef6",
+    "stdout_equals_saved_B9_OCI_CONTENT_PROOF": true,
+    "config_digest": "sha256:1e522a8ab84af27ddc57d4aef3e7f6a383d254be15225a8c9df1722df87d7bc9",
+    "manifest_digest": "sha256:bbd2acbe6175765ad5fc36562d8a1e6156396d87b82b291c013ab595a5746ded",
+    "index_sha256": "b812ad99a46246c5d2ba25e67b41243375712b5440d1f8c87c13b96d3e74063a",
+    "docker_save_archive_sha256": "d5224edffda0892d15025c313551b1ffe8abff656de5f1cc5df8ae95879c2200",
+    "docker_save_archive_bytes": 202605568,
+    "source_format": "docker-save-manifest+oci-metadata",
+    "source_revision_annotation": null,
+    "repo_digests": [],
+    "layer_count": 11,
+    "all_compressed_blob_and_uncompressed_diffid_checks_passed": true,
+    "config_env_read": false
+  },
+  "image_metadata": {
+    "image_id": "sha256:1e522a8ab84af27ddc57d4aef3e7f6a383d254be15225a8c9df1722df87d7bc9",
+    "revision_label": "b9ba702a074a487feeafa056abb49abcdcf01ba8",
+    "os": "linux",
+    "architecture": "amd64",
+    "user": "bun",
+    "command": ["bun", "run", "start"],
+    "rootfs_diffids_match_build_and_inspect_proofs": true,
+    "config_env_read": false
+  },
+  "app_content_comparison": {
+    "build_input_manifest_target_paths": 291,
+    "exact_source_src_package_lock_files": 260,
+    "fresh_linux_vite_public_yellow_next_files": 31,
+    "image_files_checked": 291,
+    "missing_paths": 0,
+    "extra_paths": 0,
+    "nonregular_or_symlink_paths": 0,
+    "hash_or_size_mismatches": 0,
+    "source_and_build_context_hashes_match_manifest": true,
+    "image_hashes_match_manifest_context": true,
+    "private_context_ca_adapter_sha256": "7140f4c927df646cda538e5167c25292363c08154d8354db5763fc31efe929bb"
+  },
+  "owned_container": {
+    "name": "b9-image-review-e8b42ca1e50c48d6",
+    "container_id": "a0ff72ccfec7da7d43b960632106a539ad447d23cb5fd5f9e4a59fbac4066f55",
+    "image_id": "sha256:1e522a8ab84af27ddc57d4aef3e7f6a383d254be15225a8c9df1722df87d7bc9",
+    "nonce": "e8b42ca1e50c48d602954a8fae47810e",
+    "owner_label": "independent-b9-image-oci-review",
+    "network": "none",
+    "observed_status_before_removal": "created",
+    "started": false,
+    "removed_by_exact_container_id": true,
+    "post_removal_inspect": "No such object"
+  },
+  "preserved_failure": {
+    "initial_v1_verifier_failure": "KeyError annotations",
+    "cause": "9ff-specific annotation assertion was reused for a generic b9 image",
+    "v1_failure_receipt_sha256": "333e376acf124aa7e2d456df1d8b75dfb4e1da821327f8d5380ed4ee58bbd961",
+    "original_verifier_sha256": "713885e2b733be18837fca65fadda0b6ae8523de68c9d057b915f046b99fe781",
+    "corrected_v2_verifier_sha256": "8fbf8730cd306c913ab515b09bbe1c4582852e01ea9d6b1b5fdd0f67149136c8"
+  },
+  "commands": [
+    "python3 verify_b9_oci_export.py",
+    "git -C /workspace/yellow-receiving-b9 rev-parse HEAD",
+    "git -C /workspace/yellow-receiving-b9 rev-parse 'HEAD^{tree}'",
+    "git -C /workspace/yellow-receiving-b9 status --short",
+    "docker --host unix:///var/run/docker.sock image inspect sha256:1e522a8ab84af27ddc57d4aef3e7f6a383d254be15225a8c9df1722df87d7bc9 --format '{{json .Id}} {{json .RepoDigests}} {{json .Os}} {{json .Architecture}} {{json .Config.User}} {{json .Config.Cmd}} {{json .RootFS.Layers}} {{json (index .Config.Labels \"org.opencontainers.image.revision\")}}'",
+    "docker --host unix:///var/run/docker.sock create --network none --name b9-image-review-e8b42ca1e50c48d6 --label yellow.review.owner=independent-b9-image-oci-review --label yellow.review.nonce=e8b42ca1e50c48d602954a8fae47810e sha256:1e522a8ab84af27ddc57d4aef3e7f6a383d254be15225a8c9df1722df87d7bc9",
+    "docker --host unix:///var/run/docker.sock cp a0ff72ccfec7da7d43b960632106a539ad447d23cb5fd5f9e4a59fbac4066f55:/app/src private-b9-image-review-e8b42ca1e50c48d6/app/",
+    "docker --host unix:///var/run/docker.sock cp a0ff72ccfec7da7d43b960632106a539ad447d23cb5fd5f9e4a59fbac4066f55:/app/package.json private-b9-image-review-e8b42ca1e50c48d6/app/",
+    "docker --host unix:///var/run/docker.sock cp a0ff72ccfec7da7d43b960632106a539ad447d23cb5fd5f9e4a59fbac4066f55:/app/bun.lock private-b9-image-review-e8b42ca1e50c48d6/app/",
+    "docker --host unix:///var/run/docker.sock cp a0ff72ccfec7da7d43b960632106a539ad447d23cb5fd5f9e4a59fbac4066f55:/app/public/yellow-next private-b9-image-review-e8b42ca1e50c48d6/app/public/",
+    "docker --host unix:///var/run/docker.sock inspect a0ff72ccfec7da7d43b960632106a539ad447d23cb5fd5f9e4a59fbac4066f55 --format '{{.Id}} {{.Image}} {{.State.Status}} {{index .Config.Labels \"yellow.review.owner\"}} {{index .Config.Labels \"yellow.review.nonce\"}}'",
+    "docker --host unix:///var/run/docker.sock rm a0ff72ccfec7da7d43b960632106a539ad447d23cb5fd5f9e4a59fbac4066f55",
+    "docker --host unix:///var/run/docker.sock inspect a0ff72ccfec7da7d43b960632106a539ad447d23cb5fd5f9e4a59fbac4066f55 --format '{{.Id}} {{.State.Status}}' (confirmed No such object after removal)",
+    "Source/context/image path audit and verifier-to-saved-proof equality audit are included verbatim in companion review Markdown."
+  ],
+  "limits": [
+    "Image was not started; no database migration, application behavior, readiness, or public URL was exercised.",
+    "RepoDigests is empty. OCI manifest digest is local content identity, not a registry digest or publication claim.",
+    "This review does not claim laptop binary-backup verification or production recovery.",
+    "Migration source bytes remain bound by the exact clean source tree/build manifest; applied migration 101-103 database state was not tested here."
+  ]
+}

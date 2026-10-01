@@ -1,0 +1,15 @@
+{
+  "ordinary_https_status": 403,
+  "bounded_public_response": "Your request was blocked.",
+  "cloudflared_source_url": "https://github.com/cloudflare/cloudflared/blob/2026.9.3/cmd/cloudflared/tunnel/quick_tunnel.go#L137",
+  "cloudflared_transport_uses_proxy_from_environment": false,
+  "transport_lines": "137-143: explicit http.Transport with timeout fields and no Proxy hook",
+  "same_network_namespace": true,
+  "proxy_and_ca_unchanged": true,
+  "documented_provisioning_proxy_cli_option_found": false,
+  "proxy_flags_in_tunnel_help_are_origin_side": true,
+  "edge_7844_tested": false,
+  "provisioning_success": false,
+  "new_tunnel_attempts": 0,
+  "supported_next_step": "Managed environment HTTP preview/port binding or supported egress configuration; no caller-controlled proxy bypass or modified cloudflared."
+}

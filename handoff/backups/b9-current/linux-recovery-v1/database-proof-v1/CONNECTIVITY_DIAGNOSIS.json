@@ -1,0 +1,65 @@
+{
+  "schema": "yellow-b9-host-loopback-diagnosis/v1",
+  "source_revision": "b9ba702a074a487feeafa056abb49abcdcf01ba8",
+  "namespace": "yellow-b9-linux-20261001-v1",
+  "nonce_label": "c6b6a40da9e315e43f419ab89f1a2c92",
+  "comparison": {
+    "canonical_bun_sql_select_1": {
+      "target": "127.0.0.1:55446/yellow_dev",
+      "result": "connection_closed",
+      "exit_code": 1,
+      "authority": "consumed through --env-file; values not printed or hashed"
+    },
+    "postgres_container_local_tcp_psql_select_1": {
+      "target": "127.0.0.1:5432/yellow_dev inside postgres container",
+      "result": "success",
+      "result_value": "1",
+      "authority": "same generated deploy password passed by environment-key reference; values not printed or hashed"
+    },
+    "database_container": {
+      "id": "5130f77cbd0a59c0597277791b81746c9ea0aaf30a9a060248fa8864d36e885b",
+      "health": "healthy",
+      "image_id": "sha256:c293117fcecda7344b5480222e813b9f673d7abd69b1dd95eff239b768b04f59"
+    },
+    "network": {
+      "id": "4dd070dab7bc892a6867ee677bac138dbb7bfd29ff461db9831ca5c82a281fed",
+      "internal": true
+    },
+    "host_55446_tcp_listen_entry": "absent in /proc/net/tcp and tcp6",
+    "docker_port_binding": "127.0.0.1:55446 -> container 5432"
+  },
+  "diagnosis": "Evidence localizes the observed failure to the host-loopback/published-port connection path rather than proving a defect in source provisioning logic. The successful container-local TCP check confirms the fresh PostgreSQL server accepts the same deploy authority. The internal network is a plausible cause, but this comparison does not prove it is the only cause.",
+  "canonical_failure": {
+    "safe_error": "database authority provisioning failed: Connection closed",
+    "source_path": "scripts/provision-local-database-authority.ts",
+    "line": 352,
+    "canonical_setup_attempts": 1
+  },
+  "next_finite_namespace_proposal": {
+    "project": "yellow-b9-linux-20261001-v2-host-loopback",
+    "fresh_database_volume": "yellow-b9-linux-20261001-v2-pgdata",
+    "services": [
+      "postgres",
+      "valkey"
+    ],
+    "ports": [
+      "127.0.0.1:55447:5432",
+      "127.0.0.1:56447:6379"
+    ],
+    "image_policy": "same cached immutable RepoDigests, pull_policy never",
+    "limits": "1 CPU and 1 GiB per service",
+    "application": "not started during canonical database proof",
+    "network_change": "replace internal:true bridge with a standard non-internal project bridge to permit host-published loopback access",
+    "constraint": "this broadens container egress capability; require root/controller acceptance of that tradeoff or an already-supported host-loopback path before any new setup",
+    "status": "proposal only; no v2 resources created"
+  },
+  "not_done": [
+    "no SQL writes or inspection of partial provisioning state",
+    "no migration retry",
+    "no canonical seed or schema check",
+    "no source edits",
+    "no cleanup/stop/reset",
+    "no old service or database access",
+    "no network route outside owned local PostgreSQL checks"
+  ]
+}

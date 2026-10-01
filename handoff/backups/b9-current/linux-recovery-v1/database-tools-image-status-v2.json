@@ -1,0 +1,41 @@
+{
+  "job": "RELEASE-20261001-receiving-b9-linux-database-tools",
+  "source": "b9ba702a074a487feeafa056abb49abcdcf01ba8",
+  "target": "database-tools",
+  "tag": "yellow-receiving-database-tools:b9ba702a074a487feeafa056abb49abcdcf01ba8",
+  "started_utc": "2026-10-01T13:41:23.096322+00:00",
+  "timeout_seconds": 300,
+  "automatic_retry": false,
+  "public_route": false,
+  "owned_cli_pid": 1113407,
+  "exit_code": 0,
+  "passed": true,
+  "image": {
+    "id": "sha256:62c30c6fbaf88ac783a510a92854a855d1de0d228ae53b91a2dc0b66573be847",
+    "os": "linux",
+    "architecture": "amd64",
+    "user": "bun",
+    "command": [
+      "bun",
+      "run",
+      "db:migrate"
+    ],
+    "revision": "b9ba702a074a487feeafa056abb49abcdcf01ba8",
+    "diff_ids": [
+      "sha256:0854555d70acaa318b38ee50bc667cb51ff6bf0757624624c7ff3b6fe17459a0",
+      "sha256:9072d322eb16c6a414861801ae295eb67839e0aeabeab982bea0520b6fccdeaa",
+      "sha256:135be4fad03ab91972ef4eb6846e200938c2dea183881ba5cac3d79648a09737",
+      "sha256:7a415decbb54be30a9369d7466887b96544eedd7b28dbb7ad87dc6381a4b91a0",
+      "sha256:fb0c09554b3fc2d49fda0df4305e80bbd89a17e405ed02b65b79c54fcf6fd637",
+      "sha256:592e878c2cd79244e9ecf582b4688c9fa9c45bb31b1890119e1fb88fae6a6784",
+      "sha256:e51fbaa4439c4e38781cc712ef035b33f5c6f5e3d4dd4d1377552689102b3d84",
+      "sha256:06fca1b110f6a67625050001ccdee537dbe49390d99e394a9899f3c481b97b11",
+      "sha256:2cfbf35b5f39e58c0e271f4e4211192b643e614daf9ed30829ad66c8d210397f",
+      "sha256:c4644548619070b0b3e358d5ab660ae7b79b0140c5c9bf1335e921c20928cacf",
+      "sha256:8a31020223b51df7ade7ba2b2d7f61a7bb834a57c47316a909026f965cf0199d",
+      "sha256:d39a364f4165d6d70c58843ea73cc68a6944a590fbc8346b3fbea91e41892f1c"
+    ],
+    "repo_digests": []
+  },
+  "finished_utc": "2026-10-01T13:41:26.103024+00:00"
+}

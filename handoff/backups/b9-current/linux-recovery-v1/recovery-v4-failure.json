@@ -1,0 +1,76 @@
+{
+  "schema": "yellow-synthetic-recovery-failure/v4",
+  "stage": "restore-comparison",
+  "error_type": "GuardError",
+  "guard_reason": "restored global role/membership/database ACL differs",
+  "source_after_diagnostic": "completed",
+  "restored_fingerprint_saved": true,
+  "comparison_summary_saved": true,
+  "comparison_summary_file": "/workspace/yellow-coordination/release-20261001/synthetic-recovery-v4/private-recovery-v4/restore-comparison.json",
+  "schema_diff_hashes_saved": true,
+  "schema_diff_hashes_file": "/workspace/yellow-coordination/release-20261001/synthetic-recovery-v4/private-recovery-v4/schema-diff-hashes.json",
+  "private_schema_dumps_saved": true,
+  "raw_business_rows_or_settings_or_credentials_included": false,
+  "source_before_after_equal": true,
+  "source_snapshot_sha256": "483cc5e245386470b814eb9fc2622e328fb2797184e635a0a233abab3d64ca6a",
+  "comparison": {
+    "schema": "yellow-synthetic-restore-comparison/v4",
+    "comparisons": {
+      "identity_equal": true,
+      "tables_equal": true,
+      "ledger_equal": true,
+      "table_digests_equal": true,
+      "schema_equal": false,
+      "sequences_equal": true,
+      "global_roles_equal": true,
+      "global_memberships_equal_with_exact_bootstrap_allowance": false,
+      "global_settings_equal": true,
+      "database_acl_and_identity_equal": true,
+      "global_metadata_equal": false
+    },
+    "differing_paths_and_hashes": [
+      {
+        "path": "global_memberships[0].grantor",
+        "source_sha256": "97e448b22adaed179657b4a349641a9d542b0de0600ff9d309e942561dd90f9f",
+        "restored_sha256": "e840f562dc3802dbc93d05e8e1c2322ff08a2d355e03a5f2eeb213c1f2ceddd6"
+      },
+      {
+        "path": "global_memberships[1].grantor",
+        "source_sha256": "97e448b22adaed179657b4a349641a9d542b0de0600ff9d309e942561dd90f9f",
+        "restored_sha256": "e840f562dc3802dbc93d05e8e1c2322ff08a2d355e03a5f2eeb213c1f2ceddd6"
+      },
+      {
+        "path": "global_memberships[2].grantor",
+        "source_sha256": "97e448b22adaed179657b4a349641a9d542b0de0600ff9d309e942561dd90f9f",
+        "restored_sha256": "e840f562dc3802dbc93d05e8e1c2322ff08a2d355e03a5f2eeb213c1f2ceddd6"
+      },
+      {
+        "path": "global_memberships[3].grantor",
+        "source_sha256": "97e448b22adaed179657b4a349641a9d542b0de0600ff9d309e942561dd90f9f",
+        "restored_sha256": "e840f562dc3802dbc93d05e8e1c2322ff08a2d355e03a5f2eeb213c1f2ceddd6"
+      },
+      {
+        "path": "schema",
+        "source_sha256": "30e2cf7c4b2f11da5d5f14a02ac3b7049115adf6665ba1ef2b2ab992e9020d99",
+        "restored_sha256": "876c5b25bdeb91d8afef241d05f80bf515a2d54479938631b08f2b02c6a5d283"
+      }
+    ],
+    "schema_first_difference_hashes": {
+      "schema": "yellow-synthetic-schema-diff-hashes/v4",
+      "source_sha256": "b924ed9532046a563df6332881716130deeb2e69dc88341d0123849d61c8edf9",
+      "restored_sha256": "81b5d3c21ba1a484f5360d25c44835c62e938df21606ae11739c201443b6b6d0",
+      "source_line_count": 36728,
+      "restored_line_count": 36728,
+      "first_differing_line_hashes": {
+        "line_number": 7320,
+        "source_line_sha256": "f0bbe95c8515dba439363c8fd6a60358166bf69a741c5fb1c79fb3be95be1c97",
+        "restored_line_sha256": "1b7ec1a450c0012bfa4c3edc2f00caae79fdb3bf8d06751d127905b7db072892"
+      },
+      "raw_schema_lines_included": false
+    }
+  },
+  "bootstrap_identity_finding": "Original cluster bootstrap yellow_deploy has OID10; superuser grants use the initial bootstrap identity even in a separately authenticated superuser session. Fresh bootstrap must retain original name.",
+  "schema_finding": "20 CHECK header parentheses-only changes; both complete dumps parse to equal2449 ordered PostgreSQL statements after integer scanner-coordinate removal. Independent strict semantic comparator review pending; no equality waiver.",
+  "restore_success_claim": false,
+  "next_reviewed_action": "new v5 original bootstrap plus narrow full-schema AST proof and exact global equality"
+}

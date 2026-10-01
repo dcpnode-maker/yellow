@@ -1,0 +1,14 @@
+{
+  "schema": "yellow-canonical-referee-summary/v1",
+  "source_revision": "b9ba702a074a487feeafa056abb49abcdcf01ba8",
+  "project": "yellow-b9-linux-20261001-v2",
+  "command": "./setup.sh --db-only",
+  "exit_code": 0,
+  "private_log_sha256": "06d8a85293c6f5c870e0c119c82d5467edfb1f88af7dbc8c201939f001a58497",
+  "root_independently_read_actual_result_lines": true,
+  "passed_cases": ["TC-12.1", "TC-12.2", "TC-12.3", "TC-12.4", "TC-12.5", "TC-5.6", "TC-7.1", "TC-5.4", "TC-8.2", "TC-13.1", "TC-13.4"],
+  "pass_count": 11,
+  "fail_count": 0,
+  "tenant_authorization_proof": "actual separate-tenant table and security-invoker view RLS plus direct occupancy INSERT denial",
+  "scope": "fresh synthetic canonical referee database; no public route, business data, browser or complete operational acceptance"
+}

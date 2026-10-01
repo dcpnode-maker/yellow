@@ -1,0 +1,223 @@
+{
+  "schema": "yellow-root-executed-synthetic-recovery/v6",
+  "executed": true,
+  "recovery_acceptance_passed": false,
+  "backup_restore_data_schema_grants_passed": true,
+  "failure": {
+    "schema": "yellow-synthetic-recovery-failure/v6",
+    "stage": "http-proof",
+    "error_type": "GuardError",
+    "guard_reason": "container-local HTTP proof failed at ready reason ready-contract status 503",
+    "source_after_diagnostic": "completed",
+    "restored_fingerprint_saved": true,
+    "comparison_summary_saved": true,
+    "comparison_summary_file": "/workspace/yellow-coordination/release-20261001/synthetic-recovery-v6/private-recovery-v6/restore-comparison.json",
+    "schema_proof_saved": true,
+    "schema_proof_file": "/workspace/yellow-coordination/release-20261001/synthetic-recovery-v6/private-recovery-v6/schema-proof.json",
+    "private_schema_dumps_saved": true,
+    "http_diagnostic": {
+      "frontier": 100,
+      "private_path_index": null,
+      "reason": "ready-contract",
+      "revision": "9ff27ad8765dc75ebae9e083d4635c7a9b89fa62",
+      "stage": "ready",
+      "status": 503,
+      "target": "yellow_runtime_database"
+    },
+    "readiness_diagnostic": {
+      "captured": true,
+      "error_type": "Error",
+      "false_fields": [
+        "nativeCreditBindingProtected"
+      ],
+      "row_count": 1
+    },
+    "raw_business_rows_or_settings_or_credentials_included": false
+  },
+  "source_before_after_exact": true,
+  "source_before_sha256": "ecfffd78cc81e24d9d558fad9c38f13d1fee22c948090dd43ee398bfb6136915",
+  "source_after_sha256": "ecfffd78cc81e24d9d558fad9c38f13d1fee22c948090dd43ee398bfb6136915",
+  "source_revision": "9ff27ad8765dc75ebae9e083d4635c7a9b89fa62",
+  "frontier": 100,
+  "table_count": 130,
+  "restored_comparisons": {
+    "schema": "yellow-synthetic-restore-comparison/v6",
+    "comparisons": {
+      "identity_equal": true,
+      "tables_equal": true,
+      "ledger_equal": true,
+      "table_digests_equal": true,
+      "schema_equal": false,
+      "sequences_equal": true,
+      "global_roles_equal": true,
+      "global_memberships_equal": true,
+      "global_settings_equal": true,
+      "database_acl_and_identity_equal": true,
+      "global_metadata_equal": true
+    },
+    "differing_paths_and_hashes": [
+      {
+        "path": "schema",
+        "source_sha256": "30e2cf7c4b2f11da5d5f14a02ac3b7049115adf6665ba1ef2b2ab992e9020d99",
+        "restored_sha256": "876c5b25bdeb91d8afef241d05f80bf515a2d54479938631b08f2b02c6a5d283"
+      }
+    ],
+    "schema_byte_equal_after_dump_control_normalization": false,
+    "schema_full_ast_equal_after_scanner_coordinates_removed": true,
+    "schema_strict_equivalence_passed": true
+  },
+  "schema_proof": {
+    "schema": "yellow-synthetic-schema-proof/v6",
+    "source_raw_sha256": "120e61d5f95c69efb213594e1d3ed41690799967609bd1ea9b96b99386c7e767",
+    "restored_raw_sha256": "41b33f4c208d7f8b1bae3133ac580512b216308aab7c356514911cf11c59232f",
+    "source_normalized_sha256": "b924ed9532046a563df6332881716130deeb2e69dc88341d0123849d61c8edf9",
+    "restored_normalized_sha256": "81b5d3c21ba1a484f5360d25c44835c62e938df21606ae11739c201443b6b6d0",
+    "source_line_count": 36728,
+    "restored_line_count": 36728,
+    "byte_equal_after_dump_control_normalization": false,
+    "line_diff_count": 20,
+    "line_differences_sha256": [
+      {
+        "line_number": 7320,
+        "constraint_name": "fiscal_submission_history_check",
+        "source_line_sha256": "f0bbe95c8515dba439363c8fd6a60358166bf69a741c5fb1c79fb3be95be1c97",
+        "restored_line_sha256": "1b7ec1a450c0012bfa4c3edc2f00caae79fdb3bf8d06751d127905b7db072892"
+      },
+      {
+        "line_number": 21670,
+        "constraint_name": "cash_drawer_code_ck",
+        "source_line_sha256": "07fdbe0825b27eceb3d4b645671b386b336df864588c4535c7c2cdbb2c8b5796",
+        "restored_line_sha256": "26ffb0be5a82bf39365605c9d92a718a9c0dc40dc90a41b5c1df4a415c4ff7f1"
+      },
+      {
+        "line_number": 21671,
+        "constraint_name": "cash_drawer_name_ck",
+        "source_line_sha256": "105152c0c7550c59f6185556c49255e68da5c273f19baf868982c94739d2056e",
+        "restored_line_sha256": "dd3e46de6b2a7cd6cb3119123f8785fd0a1eed2800d0ba61bae2fa981e5a2f47"
+      },
+      {
+        "line_number": 21757,
+        "constraint_name": "cashier_session_close_reason_ck",
+        "source_line_sha256": "8341024baa864775b2475d61d2d3c6dacaab7f8969b7b337eb74e5dad9223f68",
+        "restored_line_sha256": "e19508c00ae6923a2bd624df135b95056df95ca49258e63a0237f4367899d3d0"
+      },
+      {
+        "line_number": 23206,
+        "constraint_name": "india_native_fiscal_credit_note_reason_check",
+        "source_line_sha256": "a0707ecf41f078751370d485fac703e1939c299a19784b718a31119834e7e6e4",
+        "restored_line_sha256": "9a001ac21bc3e373a1b5cf0b75517b9789b482ecee37f1970fea2a92d10cb03d"
+      },
+      {
+        "line_number": 23238,
+        "constraint_name": "india_sez_unit_loa_renewal_file_number_ck",
+        "source_line_sha256": "5b18a31c50c9393d4e04ed42b15daae5226b122db5b64de0f8a82ed3fd46db59",
+        "restored_line_sha256": "fa20be28fd3217aa335b55bb0a7d635e83723d639b72af624ba46b6c1d1f92a9"
+      },
+      {
+        "line_number": 23243,
+        "constraint_name": "india_sez_unit_loa_renewal_original_reference_ck",
+        "source_line_sha256": "b7e4531ed73574770f29fb8ea8bc7908ee2e753e240427c16550c2251b45587b",
+        "restored_line_sha256": "1f1abbe0f7dd2677c12b3c2754fccc033cbde3f2fc2bdc8a9fa53e54bcc36405"
+      },
+      {
+        "line_number": 23509,
+        "constraint_name": "party_fiscal_registration_address_line1_ck",
+        "source_line_sha256": "b6255de0535237e6b44c5620899aa9edd8f68d0300d774c478da47a036aed557",
+        "restored_line_sha256": "c5e7030995e690e84442cf7ab05c771f5ffe9e6fc5972b7dc564cffaab0f8b32"
+      },
+      {
+        "line_number": 23510,
+        "constraint_name": "party_fiscal_registration_legal_name_ck",
+        "source_line_sha256": "3076a7b6ab10de86aef5667192224339f435a5f1db296c76f4933df192b34ac5",
+        "restored_line_sha256": "fff4b97413e93d7438e9d4a65a3eaf91ffadabd656ce00be0e0fbe5e817c14b0"
+      },
+      {
+        "line_number": 23511,
+        "constraint_name": "party_fiscal_registration_locality_ck",
+        "source_line_sha256": "1ec30f89932de3fcfd2eb7aa40d0353f55f0e256768b236586cf42738bbc6706",
+        "restored_line_sha256": "9a24da1694806a32a56ebb5ea115ba16714eddab08e5e8dc21252234d3ed2d1f"
+      },
+      {
+        "line_number": 23517,
+        "constraint_name": "party_fiscal_registration_trade_name_ck",
+        "source_line_sha256": "92271e0a2a07db543ba78d3617fc0bf0c69e11139e3e98292e88c8fb541707a3",
+        "restored_line_sha256": "fe86782b1651fe451aaa563ab0d8537d229d275d285499e95c4626e628a016ea"
+      },
+      {
+        "line_number": 23608,
+        "constraint_name": "payment_instrument_token_shape_ck",
+        "source_line_sha256": "9384d566415156dd19c73524cb12e3724a538101d517eaaca61b9a67b11e6e95",
+        "restored_line_sha256": "cb2eeeca32ac95258411ff45183130a87258dbc30999126d59d52dbcf355589e"
+      },
+      {
+        "line_number": 23716,
+        "constraint_name": "property_fiscal_location_address_line1_ck",
+        "source_line_sha256": "0cf2abe35302dd4b215b4284a394167e481eb3ac74fc9bdea4e630dc5e0ed93f",
+        "restored_line_sha256": "87877f4685118f26a9cad7b9a5e59814d7676d42477dfd620f50110296d7c4bd"
+      },
+      {
+        "line_number": 23718,
+        "constraint_name": "property_fiscal_location_locality_ck",
+        "source_line_sha256": "7da445c83268dbdbeed21f2be0e24578df4ff096cd8a88b65c81c8fc6fd977f0",
+        "restored_line_sha256": "f99eb5692f7d67cb6e1370f21aa7a670a0675ed51dde8bec6b98a21fc720805c"
+      },
+      {
+        "line_number": 23750,
+        "constraint_name": "property_fiscal_registration_address_line_ck",
+        "source_line_sha256": "797751d2395ca46b1c261e25706f4e91a66ffb3fe4625765c9a2059b49f0195a",
+        "restored_line_sha256": "3fb85824dd43aa210fb96b835a633d69bf0a023b0109e3c2f91cae72a423fb66"
+      },
+      {
+        "line_number": 23756,
+        "constraint_name": "property_fiscal_registration_legal_name_ck",
+        "source_line_sha256": "cf5aa6897a82d5d2fbc2dadf5a620a176092510ed22613df5736eaed165cf4f7",
+        "restored_line_sha256": "756b113fd82ba60e1c7e747da4a22583d660521dd98bfcf0f6e21c2e45a892f3"
+      },
+      {
+        "line_number": 23757,
+        "constraint_name": "property_fiscal_registration_locality_ck",
+        "source_line_sha256": "40d9033bf0ee8b0b99686442d394c3a0fca2d609512c383185ccfe0226547fbd",
+        "restored_line_sha256": "a3c6bb4a2269f79ecff64981be7af6eb2c3fa104bfe2e649eb864b0b7d1b3e7a"
+      },
+      {
+        "line_number": 23763,
+        "constraint_name": "property_fiscal_registration_trade_name_ck",
+        "source_line_sha256": "14f54f439adb444261210b8ade54fda73df98284b353fbf74ececdc0296f87b4",
+        "restored_line_sha256": "25862daa990a3d39a9e363168de6d2cb0b686b1d4a22f3c4dc5536385d8996c7"
+      },
+      {
+        "line_number": 23788,
+        "constraint_name": "provider_event_receipt_event_id_ck",
+        "source_line_sha256": "44a1a168d85d9bbd4eb4f9a3c7026768b85ab924bb5157f64ea88ea022bb80f7",
+        "restored_line_sha256": "c776d65951200345ab4c7a3d617efe103c1067d9614602c7f5e2d128afbcddf9"
+      },
+      {
+        "line_number": 23792,
+        "constraint_name": "provider_event_receipt_provider_reference_ck",
+        "source_line_sha256": "61befa8d2c8dc17e080db823e9fef7d581523137bb89699a64d71aa401fd9015",
+        "restored_line_sha256": "c6a04942c6df847fe9b18c9ea444cbf2abf48e956af06eb806391e417cd9e574"
+      }
+    ],
+    "pglast_version": "v7.10",
+    "source_statement_count": 2449,
+    "restored_statement_count": 2449,
+    "source_ast_sha256": "ada40d1cd8ac9d2200d40953c61208cac615ff8ab826de2ad6b29e1138209c3e",
+    "restored_ast_sha256": "ada40d1cd8ac9d2200d40953c61208cac615ff8ab826de2ad6b29e1138209c3e",
+    "full_ast_equal_after_scanner_coordinates_removed": true,
+    "strict_full_schema_equivalence_passed": true,
+    "guard_reason": null,
+    "raw_schema_lines_included": false
+  },
+  "owned_failed_resources_absent_after_cleanup": true,
+  "protected_original_and_b9_app_containers_running": [
+    "fe96ec05f4db113a5935c0d7e0f38aa6445b9ca16995c073195e399edcea4599",
+    "8285d83c127f8981d94e10c09fe6fce1bba9c594efe13a70332597eb0e5b5680",
+    "d002232dfdb8ba671ca51fc53ae8657ea72cc361740acd61c91b49e8f5bdca59",
+    "f58e39a497b6dfb39b9d96b07f15378da3a1a13e8896b753ba5abbc82454b5c8"
+  ],
+  "no_public_url": true,
+  "production_data_recovery_proven": false,
+  "private_dump_sha256": "cb72f58ee469a8987852e5412f95f70e8c1c58dd1264668cca280ca430b48933",
+  "private_globals_sha256": "f9e4582c89c43c38a36b74cf057b67fc11cf16485b604fb3dfb5aa9b1d95f89c",
+  "raw_business_rows_config_secrets_included": false
+}

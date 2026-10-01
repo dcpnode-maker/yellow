@@ -1,0 +1,8 @@
+{
+  "command": "./setup.sh --db-only",
+  "exit_code": 0,
+  "elapsed_seconds": 17,
+  "timeout_seconds": 300,
+  "private_log": "private-logs/setup.log",
+  "private_log_sha256": "06d8a85293c6f5c870e0c119c82d5467edfb1f88af7dbc8c201939f001a58497"
+}

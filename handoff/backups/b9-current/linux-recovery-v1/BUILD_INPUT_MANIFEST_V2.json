@@ -1,0 +1,3025 @@
+{
+  "source": "b9ba702a074a487feeafa056abb49abcdcf01ba8",
+  "tree": "9446a6735d712ccfd30c6957ea511fb0e3b644cf",
+  "files": [
+    {
+      "path": ".dockerignore",
+      "git_blob": "170f6cf565cc25bec404ecbc5ae12347944edcce",
+      "sha256": "6e472f56309da026cc5ef7271a304ac28b7ac0155ab25a38e1f2353efc72c65a",
+      "bytes": 164,
+      "kind": "exact source"
+    },
+    {
+      "path": "Dockerfile",
+      "git_blob": "96b39f895462b16740b1b98a5f5ece950e0c1b4c",
+      "sha256": "02d7f198c90df0daed2b0571638d2e326646ab271bc83d5eebf93cac93e5874b",
+      "bytes": 1459,
+      "kind": "exact source"
+    },
+    {
+      "path": "bun.lock",
+      "git_blob": "e699f584f71a65089b4c4faa3adfdf74e8814a6a",
+      "sha256": "5718ec41f5e14e35ce2ff4f6947e17a999545cfa46b1437271fb568ce28fb282",
+      "bytes": 26937,
+      "kind": "exact source"
+    },
+    {
+      "path": "migrations/0001_init.sql",
+      "git_blob": "dce210b2c911efb63a49a4e58778d88084073494",
+      "sha256": "fe2a9fc949c6bacded3f8d3fc4d14fc596a83ebde9aeb043eb10845f07b30923",
+      "bytes": 55735,
+      "kind": "exact source"
+    },
+    {
+      "path": "migrations/0002_kernel_consumer_cursor.sql",
+      "git_blob": "9c7cb890eb4f3e5982309592cdbf8b16e0f2a6cc",
+      "sha256": "0ace078c04196ccff2d066b0483fce17fddbc1ef592effb25dd57c2ce996c3f4",
+      "bytes": 782,
+      "kind": "exact source"
+    },
+    {
+      "path": "migrations/0003_revoke_legacy_expire_holds.sql",
+      "git_blob": "0cab7f0a1a198c409806e75d5480233ed49f8b1e",
+      "sha256": "a9564092d14367d37fe7f79eee65a97fdf2dbd1c359536d1b807006540d6251b",
+      "bytes": 414,
+      "kind": "exact source"
+    },
+    {
+      "path": "migrations/0004_api_idempotency.sql",
+      "git_blob": "68cf84739fcbb07d250c9c8a23d6330f9118c1cc",
+      "sha256": "f08fcc6be6c6a2cd631da8c4e2d08bf5d2139de24ba2b1ca6ec1554ab2590ab2",
+      "bytes": 1610,
+      "kind": "exact source"
+    },
+    {
+      "path": "migrations/0005_projection_replace_privilege.sql",
+      "git_blob": "59c8545765bb7b8d87f400b97d61f6b5d1c1a43f",
+      "sha256": "3421cbc8353b51f876701c062ab990eaad3833e3314b5273ed54e17b09fdbd54",
+      "bytes": 241,
+      "kind": "exact source"
+    },
+    {
+      "path": "migrations/0006_rate_release_approval_lookup.sql",
+      "git_blob": "c28bdc4b6e36a338b4a930a6ab92d5c4a480e09d",
+      "sha256": "72a938e1a9d5c862d873ce987c0cdb36247008d8b5d4b76aeec1aeabf6aa1c11",
+      "bytes": 413,
+      "kind": "exact source"
+    },
+    {
+      "path": "migrations/0007_reservation_guest_delete_privilege.sql",
+      "git_blob": "b1283cc3bc6126c7ed1d06d9face86e9a21acd89",
+      "sha256": "b39b67ed47e83f348f88dfa892dc5c6df75014822b2bf1084c97c51d2c6571db",
+      "bytes": 404,
+      "kind": "exact source"
+    },
+    {
+      "path": "migrations/0008_party_search_indexes.sql",
+      "git_blob": "b68086ae233bb840efa010eb976ed0388b84593a",
+      "sha256": "88345b7d1cf6d7afbe1154b315bdc9569b7081b0cf5bcd1d864c9bad9b08270e",
+      "bytes": 239,
+      "kind": "exact source"
+    },
+    {
+      "path": "migrations/0009_account_folio_integrity.sql",
+      "git_blob": "1149eeb91df4e61900b350ea5b997b60f99ebf27",
+      "sha256": "56d3d47e2007d9106376459dc77623551f21731c5b6312e43e6ab100150205c2",
+      "bytes": 1199,
+      "kind": "exact source"
+    },
+    {
+      "path": "migrations/0010_financial_posting_integrity.sql",
+      "git_blob": "bd0a06f6522b5407beb278e04640c965c5126c51",
+      "sha256": "859bdbbba98d858ac04e24f51751914c2cda10073b26c3c068ff8a27d4698ae3",
+      "bytes": 7103,
+      "kind": "exact source"
+    },
+    {
+      "path": "migrations/0011_security_definer_containment.sql",
+      "git_blob": "7d9e78969c6023e71c8427c57582b3e29e78f8d9",
+      "sha256": "6c9af4f72fa6be5a2c0e256624620c7ee8cf61d709c3ca99a37cd126bbe57796",
+      "bytes": 6152,
+      "kind": "exact source"
+    },
+    {
+      "path": "migrations/0012_app_role_nonlogin.sql",
+      "git_blob": "b44757121cb97d7e3b4f98446507d2329ec72b71",
+      "sha256": "6f377ca182bcbd8ece5c6a0688597b4a4e0fc5129345a80f6f9d31076fb0ed25",
+      "bytes": 1998,
+      "kind": "exact source"
+    },
+    {
+      "path": "migrations/0013_revoke_app_role_business_day_seal.sql",
+      "git_blob": "1bd3a83e838143253ebb5e51a3ff8bc97b62b506",
+      "sha256": "75aef629ebc90a7c2ba3dcf94532295cfce57fc521197d7b5cdc6b6d5a1bf712",
+      "bytes": 239,
+      "kind": "exact source"
+    },
+    {
+      "path": "migrations/0014_bind_occupancy_caller_tenant.sql",
+      "git_blob": "a9cee230b9ae339e21c87a6f917c39c28ff909ef",
+      "sha256": "706806ad3c041d506df1e90f75b19ed219baa3fedb8968471828657ab6c7493a",
+      "bytes": 10589,
+      "kind": "exact source"
+    },
+    {
+      "path": "migrations/0015_runtime_database_authority.sql",
+      "git_blob": "c63cbe915f1febd8d65ff786374f30b187d974f5",
+      "sha256": "cd201b7e0bc9a2fb538b32f69adb0900d7b2149f9cc82fd5e9a02056a573166a",
+      "bytes": 26687,
+      "kind": "exact source"
+    },
+    {
+      "path": "migrations/0016_runtime_dml_authority.sql",
+      "git_blob": "4e20823e4280b5c92fb9821f3b52a4d4d96c320f",
+      "sha256": "216e79ab0b10a697b79e99872cbf3a65394dcdf94773af1fd4c13862f4e83fe5",
+      "bytes": 5547,
+      "kind": "exact source"
+    },
+    {
+      "path": "migrations/0017_financial_row_lock_capability.sql",
+      "git_blob": "5e9a10fc6a9a8a8cc011f6f403709aa8a45b4081",
+      "sha256": "0d784fab670353b665e464d350e92ab5e6de401a131a737a63b86e1844a6ec81",
+      "bytes": 2928,
+      "kind": "exact source"
+    },
+    {
+      "path": "migrations/0018_extension_type_registration_capability.sql",
+      "git_blob": "b551ca6cebb8d420a427f0ed4108b75bad28c977",
+      "sha256": "77e80f10c1c148fe79dcf71c546afe87fbdf97ac7f320644f5e550c88d409fc3",
+      "bytes": 5981,
+      "kind": "exact source"
+    },
+    {
+      "path": "migrations/0019_financial_reversal_authority.sql",
+      "git_blob": "cfd3aad795e3e38fcc6af4bc2800eae1ca45aa78",
+      "sha256": "40cbd74f4c154ac23f56a1b69edf865c3a5904a98d2264ad6d962671414fcc4d",
+      "bytes": 6270,
+      "kind": "exact source"
+    },
+    {
+      "path": "migrations/0020_multi_window_folio_routing.sql",
+      "git_blob": "d3b5002f80d8e011d59fd7c44663962c7ae5c942",
+      "sha256": "137c9aea660aea953b86b8bdb1233af6385ddf73daa01a25bfa3149af416d9f1",
+      "bytes": 19742,
+      "kind": "exact source"
+    },
+    {
+      "path": "migrations/0021_token_only_payment_foundation.sql",
+      "git_blob": "61de36b25af8a838c2bea4d2d1e99b60f4535287",
+      "sha256": "8538168ae7158c4a3f4b1f93b9bae5bcc1f9fb5d6e45327486e0a68bba04dcc1",
+      "bytes": 12153,
+      "kind": "exact source"
+    },
+    {
+      "path": "migrations/0022_hosted_deposit_workbench.sql",
+      "git_blob": "33837028c269f2bf99859ee5416301a02ee1f541",
+      "sha256": "a906182ea41fb3f92617900716c6a6523ac7a34af2651b6907781f6607080dfd",
+      "bytes": 10768,
+      "kind": "exact source"
+    },
+    {
+      "path": "migrations/0023_folio_settlement_capability.sql",
+      "git_blob": "961d2f4712d0af090e97f32bbeafcacaa5fc9dbf",
+      "sha256": "1209d2cf1e7b7c949640a8da0202633c6713d0006f3f17752e976195186ea933",
+      "bytes": 5549,
+      "kind": "exact source"
+    },
+    {
+      "path": "migrations/0024_governed_cashier_sessions.sql",
+      "git_blob": "7bf1c807e47201236fcf0491c631eac047b40da4",
+      "sha256": "8884596df1155a308c752e733834e9cdcf95dd462b286450c6dbc3ae22b50e76",
+      "bytes": 33295,
+      "kind": "exact source"
+    },
+    {
+      "path": "migrations/0025_governed_receivable_transfer.sql",
+      "git_blob": "a58c436223a819f80647aa905a3ec039a793526d",
+      "sha256": "ce3fe52783ffb467f56a2a7342c0a5808ab8824d625f3b01b5e3532e1191c9fe",
+      "bytes": 12532,
+      "kind": "exact source"
+    },
+    {
+      "path": "migrations/0026_governed_housekeeping_task_transition.sql",
+      "git_blob": "d0ba45cbd4e6a3afb4d0bfad3596d2058b043532",
+      "sha256": "f3667d8443db21ad921512bfadc453e9a9f341b60594f888dad7f69a88f0fba6",
+      "bytes": 6729,
+      "kind": "exact source"
+    },
+    {
+      "path": "migrations/0027_governed_housekeeping_task_sheet_generation.sql",
+      "git_blob": "28e4a2213221ea3b47bc9d6b8c538ac3476cb586",
+      "sha256": "fb46db4af1ebca0dd1d66501e51ed2064c5dc108a40701a6a7b00d170b30be43",
+      "bytes": 14502,
+      "kind": "exact source"
+    },
+    {
+      "path": "migrations/0028_governed_reservation_travel.sql",
+      "git_blob": "0aba6bd6f14b35ea6d32869fa3c1201063e072b4",
+      "sha256": "c282ca42fe52d7ea6bc0de077fa3842c5d578a56de5ecc6ceb108963f61391b6",
+      "bytes": 9026,
+      "kind": "exact source"
+    },
+    {
+      "path": "migrations/0029_governed_arrival_pickup_task.sql",
+      "git_blob": "86a2f80558ba7b76257fbc4f2fc3ac3ac8c5cc04",
+      "sha256": "44bfef33a0cb775ed790a7df6d6510e23286cb1570fe5565473e8b422a2d1576",
+      "bytes": 5244,
+      "kind": "exact source"
+    },
+    {
+      "path": "migrations/0030_governed_unit_condition_initialization.sql",
+      "git_blob": "e277c8297b9b104d18c3a1a272c78461da16afc8",
+      "sha256": "2afcace484bcba5f3513a92102216f8f73da2159e1f2348f6870b459fcef8524",
+      "bytes": 3536,
+      "kind": "exact source"
+    },
+    {
+      "path": "migrations/0031_governed_arrival_pickup_task_transition.sql",
+      "git_blob": "b09de9b70a9ca5cd69056d43370e68c0289de7f6",
+      "sha256": "e337fcb52b38e98d5877f3ce927dd54825d465d90328104d87e1df83a187598f",
+      "bytes": 7754,
+      "kind": "exact source"
+    },
+    {
+      "path": "migrations/0032_governed_arrival_room_cleaning_task.sql",
+      "git_blob": "540ed79b0f9048d2a2de550becfc6ff6328f1a53",
+      "sha256": "f69c72349c237d635826136575ec1c66ccb48cf0f0ac9b3ea4a83f786b2a6718",
+      "bytes": 8082,
+      "kind": "exact source"
+    },
+    {
+      "path": "migrations/0033_governed_due_in_room_assignment.sql",
+      "git_blob": "15e69b3f6ed282e913c0ded0339a1c2c99a4fb33",
+      "sha256": "cd983c31250bc5ace863fe156bc6aa15927eac74ba24ab449eff692e87aae82d",
+      "bytes": 8114,
+      "kind": "exact source"
+    },
+    {
+      "path": "migrations/0034_runtime_due_arrival_scopes.sql",
+      "git_blob": "1b362f1d1112630904981ba6b0ae546cf6f54906",
+      "sha256": "b59480ab270c8822c9f972de527fc47ab73c411dc9037d37e6d3d326f19cc21a",
+      "bytes": 2103,
+      "kind": "exact source"
+    },
+    {
+      "path": "migrations/0035_runtime_due_departure_scopes.sql",
+      "git_blob": "c0896e4866ddc54e9b827f4717f73596f3a9ca2d",
+      "sha256": "ee102c6e479badc14fb8945d0c493905840d1c58845b9def4d74d6e2bf1a7447",
+      "bytes": 2119,
+      "kind": "exact source"
+    },
+    {
+      "path": "migrations/0036_governed_room_discrepancy_reporting.sql",
+      "git_blob": "58e29fef3c7f47f49e0496855db13e18211aca1b",
+      "sha256": "bd72ca9ff3b02d4f0c00b4ce82a6afb1591056b71a04cebda71b61efacc61b76",
+      "bytes": 14455,
+      "kind": "exact source"
+    },
+    {
+      "path": "migrations/0037_governed_vehicle_parking_assignment.sql",
+      "git_blob": "9c735ebdb31ec7bcb2fb070c091983a48b7eb1c2",
+      "sha256": "82df1de46ee97771390d1d102142380b40b590456f687fdd1bd0cd1d3a4d601a",
+      "bytes": 18481,
+      "kind": "exact source"
+    },
+    {
+      "path": "migrations/0038_canonical_tax_attribution_persistence.sql",
+      "git_blob": "a4c80e6e9f64b98e48bae5be375dbeda4610bb57",
+      "sha256": "dea9cfaf573d56ce2c0f5ee7987bf7009d12d0517f72dcd8a3b316232937f982",
+      "bytes": 9824,
+      "kind": "exact source"
+    },
+    {
+      "path": "migrations/0039_parking_occupancy_definer_path_repair.sql",
+      "git_blob": "8f86cbf47f873f60ecd966e2007df5e5c472c499",
+      "sha256": "365ffb951f4ea5f4febac97ed7a4d86d5c342891d0d5464e8a36a73653c1b841",
+      "bytes": 440,
+      "kind": "exact source"
+    },
+    {
+      "path": "migrations/0040_quoted_tax_hold_binding.sql",
+      "git_blob": "f6989b80c3d5cb5835c1a38874581aeb0c665ee7",
+      "sha256": "b61d1332acf17df9189612d355fb584754bdd7ddda9782e377bf73be44cc589b",
+      "bytes": 9623,
+      "kind": "exact source"
+    },
+    {
+      "path": "migrations/0041_quoted_tax_reservation_lineage.sql",
+      "git_blob": "6861ff6bd8dc85f11277d2df8e92b668515274fa",
+      "sha256": "96795066ed0ae795044a56c7fbef33087e8c7fa94647b22482ee6b48ed06f171",
+      "bytes": 11523,
+      "kind": "exact source"
+    },
+    {
+      "path": "migrations/0042_quoted_tax_reservation_no_binding_compatibility.sql",
+      "git_blob": "bea90a97749e3f7764ce995b3f60cdc80d9485dd",
+      "sha256": "dd2622f024859231a6128f649276bb4904d60f2380de9324196c22ac43b0c098",
+      "bytes": 7524,
+      "kind": "exact source"
+    },
+    {
+      "path": "migrations/0043_positive_tax_semantic_route.sql",
+      "git_blob": "e1bcccc42d4a3a541d136575ab69e6f135459994",
+      "sha256": "a5036df30f07c4c8add08c46cdb805c71b87597efa542e368e64aa35d572bf40",
+      "bytes": 3133,
+      "kind": "exact source"
+    },
+    {
+      "path": "migrations/0044_governed_positive_tax_posting.sql",
+      "git_blob": "a542904e00a94cbfae6517da4c3708757f7652a1",
+      "sha256": "5ea338b18aabb3cb2c5a4613c00ebf57806be881b956b13df1e2c95262cce55c",
+      "bytes": 34363,
+      "kind": "exact source"
+    },
+    {
+      "path": "migrations/0045_governed_positive_tax_correction.sql",
+      "git_blob": "f90f304499f5576add958d3414117ff05910ac93",
+      "sha256": "aec7f04eaa0536568adf68d51d7e2fa3ff578cd043b3079c080a680d6e210dba",
+      "bytes": 19200,
+      "kind": "exact source"
+    },
+    {
+      "path": "migrations/0046_positive_tax_posting_ordinal_repair.sql",
+      "git_blob": "edef3ecb4f9d669156a8c6c1cc13452a641e8ae4",
+      "sha256": "bd7fb83f619aabf76b7247246a096ca09275823d07cbdceeb2deec8a1e76b574",
+      "bytes": 26029,
+      "kind": "exact source"
+    },
+    {
+      "path": "migrations/0047_property_fiscal_registration.sql",
+      "git_blob": "15ecf041a77b53a2311eef065bce5cfd76541455",
+      "sha256": "7e5b8a912230ebbd7cf033b4883a7138ba5ae2d9fcb007dda42b5345d1c95bf0",
+      "bytes": 4491,
+      "kind": "exact source"
+    },
+    {
+      "path": "migrations/0048_party_fiscal_registration.sql",
+      "git_blob": "aea3ebb744ff090c1c6caafab0fc408b7a23a40f",
+      "sha256": "d57c5db53f75d719ef2e802a738f815cd03a54a87dbdec1f8813574666e0012f",
+      "bytes": 3183,
+      "kind": "exact source"
+    },
+    {
+      "path": "migrations/0049_property_fiscal_location.sql",
+      "git_blob": "8e2e156bbe740d78aa6038b8a943089de519c772",
+      "sha256": "7efed30ed6d84b7229ec298425925c38d28c13dc570f8e03eabc35fe17c276b4",
+      "bytes": 2207,
+      "kind": "exact source"
+    },
+    {
+      "path": "migrations/0050_india_gst_item_classification.sql",
+      "git_blob": "4f819eb602a138a759af8c02ab65a58ff4a4dc5c",
+      "sha256": "a3eeba9a7a4b00c580c822126b8c48d17053c9acaccbf15538cadfddb47d9433",
+      "bytes": 3308,
+      "kind": "exact source"
+    },
+    {
+      "path": "migrations/0051_india_gst_supplier_service_location.sql",
+      "git_blob": "dd951599d4a4f1474d570dd9141bc3c40dcef18b",
+      "sha256": "af457264bb976d64930022eb4686a55096248bf0b9e1f13151454b47d47b2496",
+      "bytes": 2485,
+      "kind": "exact source"
+    },
+    {
+      "path": "migrations/0052_india_gst_recipient_sez_status.sql",
+      "git_blob": "02ec5428118196fc74098137faa5c6d28b50d341",
+      "sha256": "7a318a99c4e3e40722fc97c0445b3475e7cedc10feb651b4c5049f4e3afd65da",
+      "bytes": 4639,
+      "kind": "exact source"
+    },
+    {
+      "path": "migrations/0053_india_gst_supplier_sez_status.sql",
+      "git_blob": "ac6fe7cc064ec2f0b5b972b481ee8d6421d5ce59",
+      "sha256": "e5208a1698c06db64842946876c90912c03d9aa0481ed0ceced6fa0295020c3d",
+      "bytes": 4615,
+      "kind": "exact source"
+    },
+    {
+      "path": "migrations/0054_india_sez_unit_loa_renewal.sql",
+      "git_blob": "92a036f817c26d4628010d9545546c87b61147d0",
+      "sha256": "54a65ae32acfc5e232037129685a7c7edfb950aa66b54d4ea053c7acf11bb717",
+      "bytes": 3856,
+      "kind": "exact source"
+    },
+    {
+      "path": "migrations/0055_india_gst_supplier_registration_status.sql",
+      "git_blob": "2f035ec75e0510f3bee415391da728961ce09c9d",
+      "sha256": "c0f50dc59178da55cd89ad06bcbd4ee48f36a48e154c07e41b089a7608cb1f80",
+      "bytes": 2886,
+      "kind": "exact source"
+    },
+    {
+      "path": "migrations/0056_india_gst_accommodation_service_provision_date.sql",
+      "git_blob": "04d76992c48c23e5a2749c4f130789fdf3afb336",
+      "sha256": "920b98c03e65e7ed968b2fe277f6f9d67185be125a68aec3123b9ad0b8f27658",
+      "bytes": 3306,
+      "kind": "exact source"
+    },
+    {
+      "path": "migrations/0057_india_gst_accommodation_payment_receipt_date.sql",
+      "git_blob": "6e98552c5c26234dc007716a1fce2062d46619e7",
+      "sha256": "12108a774929f7541090c628d28972b313498d51cd84b0d3a9ccd6b541d25117",
+      "bytes": 3314,
+      "kind": "exact source"
+    },
+    {
+      "path": "migrations/0058_india_gst_accommodation_invoice_issue_date.sql",
+      "git_blob": "0437da19d6dff8337bcf2763e75d2deead11ae77",
+      "sha256": "d2eaf70479a602ec82dc5abe73442475abb80ed8ec3f2ef3ec333b182c30dddf",
+      "bytes": 3182,
+      "kind": "exact source"
+    },
+    {
+      "path": "migrations/0059_tax_extension_effective_period.sql",
+      "git_blob": "bf8164548cb27760db0dad3e424cd1add9adcfbe",
+      "sha256": "b920169d3776ff8f9804b8273c27a35d750a704919f3f1012af50ec94166f2e8",
+      "bytes": 4528,
+      "kind": "exact source"
+    },
+    {
+      "path": "migrations/0060_owner_trust_negative_authorization.sql",
+      "git_blob": "84ae2c4746f204faaaa3a101a336227a3e094429",
+      "sha256": "2379fed5d09385a19f6abcc2a27582b3d1d77495a7b3c1b49437d66baade4f11",
+      "bytes": 10783,
+      "kind": "exact source"
+    },
+    {
+      "path": "migrations/0061_runtime_due_business_day_scopes.sql",
+      "git_blob": "8319886dcef37bec79018cd35d2317135915af7b",
+      "sha256": "50cf8593ac385b74fbe61da9d28f0ecf59b78297c7aff46ad073f34409efc34f",
+      "bytes": 3900,
+      "kind": "exact source"
+    },
+    {
+      "path": "migrations/0062_india_gst_accommodation_final_valuation.sql",
+      "git_blob": "c16055d9de2672720ab16e7bde2349efc2fd8963",
+      "sha256": "0107247dd397886cdfdb5444c841d536f4288fcbc8407cc2a55e76279820d10c",
+      "bytes": 34637,
+      "kind": "exact source"
+    },
+    {
+      "path": "migrations/0063_governed_business_day_discrepancy_carry.sql",
+      "git_blob": "f5571c59c400dcc77c286191159044fcc5ee94d8",
+      "sha256": "2b9dc9c73b77b68a06cae3e2dd05da88e00f3f073a41232bada2569c7d49702b",
+      "bytes": 15188,
+      "kind": "exact source"
+    },
+    {
+      "path": "migrations/0064_audited_business_day_seal.sql",
+      "git_blob": "622f113c4d9e6a27e2c6a4592d6cdf10642fcb3c",
+      "sha256": "82a1c49f936c0ae13ddc8325f9ca54002958ac382bda607edd544dfe71284db7",
+      "bytes": 23288,
+      "kind": "exact source"
+    },
+    {
+      "path": "migrations/0065_business_day_roll_contention_repair.sql",
+      "git_blob": "2334a29b89768d72f47578a4d4fdfc17f3b29e86",
+      "sha256": "8e28af137263ff23ecacb1f9e49b4f48b203d5f8c3773d1c2471c5a78cae331a",
+      "bytes": 2473,
+      "kind": "exact source"
+    },
+    {
+      "path": "migrations/0066_business_day_read_permission.sql",
+      "git_blob": "b14de8089bec36ccb3f3de2f6e22c2eb10baa685",
+      "sha256": "9a479726039063c5d3f54997347a19e1da5c3542766bd0be2fc5b512b6b82d67",
+      "bytes": 349,
+      "kind": "exact source"
+    },
+    {
+      "path": "migrations/0067_business_day_seal_permission.sql",
+      "git_blob": "614767f50308586c117eccdcaece1487ee6af6fb",
+      "sha256": "a2c3ae78442c29c56766eae6d718970f39fa493ae1ec30427ac44489cf42b2c5",
+      "bytes": 379,
+      "kind": "exact source"
+    },
+    {
+      "path": "migrations/0068_prepare_owner_trust_expense.sql",
+      "git_blob": "6de263a55f3baed9ff12a9ecccecb9884b10eb3b",
+      "sha256": "19eedaa18ae6816825535c98a794c5fa0ed420c4c12776f960183dced1966884",
+      "bytes": 6005,
+      "kind": "exact source"
+    },
+    {
+      "path": "migrations/0069_india_gst_accommodation_quoted_rate_applicability.sql",
+      "git_blob": "f95e0c453d97578933f44058b280d6d9c27e7073",
+      "sha256": "622aed18c22baf6793cc8ff7ac8dea8b9af4c1688ced5dc341f21b6f3305688e",
+      "bytes": 59349,
+      "kind": "exact source"
+    },
+    {
+      "path": "migrations/0070_india_gst_accommodation_final_component_tax.sql",
+      "git_blob": "a3f7259676bdb242b95e797bca5fbbfde5dbf605",
+      "sha256": "a9eefe19e7d31e71aba55bc88146cbdf1f0b75915c691bbc3dabbe50b627a4f2",
+      "bytes": 37857,
+      "kind": "exact source"
+    },
+    {
+      "path": "migrations/0071_governed_india_final_component_tax_posting.sql",
+      "git_blob": "7854c18c9bd9c1fdba6be5d9552d6c233feb61fc",
+      "sha256": "e0c377b9d881403a2b88742c7d2e09e3723526e76cedb52a465ef57f530919c5",
+      "bytes": 26121,
+      "kind": "exact source"
+    },
+    {
+      "path": "migrations/0072_governed_india_final_component_tax_correction.sql",
+      "git_blob": "636e0635c1535fc1159e9108534396c282e941d8",
+      "sha256": "2407d1433672e5f5a958af39acf96406b41ca0e190d1d8987100cd59c5b0f22d",
+      "bytes": 24010,
+      "kind": "exact source"
+    },
+    {
+      "path": "migrations/0073_document_series_runtime_authority_containment.sql",
+      "git_blob": "b66d39771f66f7b602150c2751fb51103ca0a2ca",
+      "sha256": "d5cef790f3f75f902de457d22e21f272530a77257f65daac1bb5e6e51f1688aa",
+      "bytes": 4448,
+      "kind": "exact source"
+    },
+    {
+      "path": "migrations/0074_india_native_fiscal_invoice_authority.sql",
+      "git_blob": "e4f6bb7c27c6de5d9df24e32068ee38f58ea3ca4",
+      "sha256": "58cb493c86aeb13a697f6e882656a49b5b7617d185c5cf0746de8bf2eaa4c43c",
+      "bytes": 52661,
+      "kind": "exact source"
+    },
+    {
+      "path": "migrations/0075_contain_unapproved_native_fiscal_issuance.sql",
+      "git_blob": "bf0e8a879db3a0ac21a4b8f965be83bce31f9a59",
+      "sha256": "db8b8758e65e41e232663648708616dfa7f071476eda660a7869be5cb1590dee",
+      "bytes": 405,
+      "kind": "exact source"
+    },
+    {
+      "path": "migrations/0076_india_native_fiscal_source_evidence.sql",
+      "git_blob": "18f6a4d38101d12daeb2f7776dc2387de28ec364",
+      "sha256": "d550b41cd405aea2da2b84e75fd3632ae2a6aca3b24b5cd12697394405d29869",
+      "bytes": 147436,
+      "kind": "exact source"
+    },
+    {
+      "path": "migrations/0077_india_native_fiscal_source_completion.sql",
+      "git_blob": "b34d828b85093738d14e9011d7ae53bd5a63f9b5",
+      "sha256": "c4023a323ac70dc17e17a1a4bf092c9d35225cf7eef3b094fc31c2b5df28b41b",
+      "bytes": 430210,
+      "kind": "exact source"
+    },
+    {
+      "path": "migrations/0078_fiscal_submission_durability.sql",
+      "git_blob": "5bf6ad9fb42b79e9e8363ab5601715e79bd291f4",
+      "sha256": "65323a81a999a11e3d55893411c994c0b841af9b0465ca7e80630fd78d0ffae6",
+      "bytes": 67439,
+      "kind": "exact source"
+    },
+    {
+      "path": "migrations/0079_fiscal_immutable_command_receipts.sql",
+      "git_blob": "3a76719d524cf53d9f35b4c4a2ce2f38720053f8",
+      "sha256": "b233821d0b683810542f91834458e98f657996268d81bc81398f6c15f86ca52f",
+      "bytes": 15498,
+      "kind": "exact source"
+    },
+    {
+      "path": "migrations/0080_fiscal_submission_delivery_runtime.sql",
+      "git_blob": "80622643bb6549dcc70d96d08d8735f7f34d82a9",
+      "sha256": "2c6b1a82e031470bace7ae8b37a2d67e54497014bd1e82f5364d23a2ce25f250",
+      "bytes": 7952,
+      "kind": "exact source"
+    },
+    {
+      "path": "migrations/0081_fiscal_signed_delivery_receipts.sql",
+      "git_blob": "025f3e433b238bb885538c8a11f1c95e9c62e963",
+      "sha256": "d2e4e34a4587f4ee12ed5c43f8fac9d4186345877bdbb75ac74217460f0e06ac",
+      "bytes": 46836,
+      "kind": "exact source"
+    },
+    {
+      "path": "migrations/0082_india_native_fiscal_operator_workflow.sql",
+      "git_blob": "a16380045abb2c0d02d827e8c2d4ce1c80428082",
+      "sha256": "702f66b3e05547f397e2393ae5a608a6f0c3069ec534b2c947bfc309983bf185",
+      "bytes": 55603,
+      "kind": "exact source"
+    },
+    {
+      "path": "migrations/0083_india_native_fiscal_operator_calendar_bounds.sql",
+      "git_blob": "85d0eeb2e2975222b365cb81cff4a0ef18bca3e7",
+      "sha256": "5a8ac565f3aaebfee4245121a434dba5867f558091a58aad87f23bed5dee0705",
+      "bytes": 13541,
+      "kind": "exact source"
+    },
+    {
+      "path": "migrations/0084_india_native_fiscal_operator_query_execution.sql",
+      "git_blob": "02840da1970eb889e113be705da8de80b7a6d36e",
+      "sha256": "e9d8b75f832e687f567806e82faaece7672cdbcf4ee8813c9c7b56cfc78ecd69",
+      "bytes": 31510,
+      "kind": "exact source"
+    },
+    {
+      "path": "migrations/0085_india_native_fiscal_operator_command.sql",
+      "git_blob": "ada112be2361ae4f9c88c008b13cd6867321d69d",
+      "sha256": "c94c97efbb237fb99c5a35caf01faefa4d7fee98a07d8b30b89bec3ce0a7670c",
+      "bytes": 20829,
+      "kind": "exact source"
+    },
+    {
+      "path": "migrations/0086_fiscal_submission_retry_binding.sql",
+      "git_blob": "446fc344d5e3159133c381e4e47636066c906ee8",
+      "sha256": "40c55de6a34fb0f0ba354e5e37d210500038018fa649cf9437e29813fa0b915e",
+      "bytes": 10588,
+      "kind": "exact source"
+    },
+    {
+      "path": "migrations/0087_india_native_fiscal_credit_note.sql",
+      "git_blob": "1ab39e51e9a0ab4512ef5208371b97cb1ff1f088",
+      "sha256": "c8b4ada5702807a0705a13e888e95730e0dbcc8ac7796e0ad2358208a5f873ba",
+      "bytes": 44347,
+      "kind": "exact source"
+    },
+    {
+      "path": "migrations/0088_native_credit_fiscal_submission.sql",
+      "git_blob": "4692d787fb9310dd166842451ef3aec45256763a",
+      "sha256": "214754e94bdfb0a2163395c9ab4449b0b5e87da7830c45e69d77ac05a2cddb64",
+      "bytes": 12062,
+      "kind": "exact source"
+    },
+    {
+      "path": "migrations/0089_native_credit_delivery_discovery.sql",
+      "git_blob": "8482ff34d7da05a88b86e8275e422f77fc37e6ae",
+      "sha256": "26aac42e59146dfa29f558dc75209166420a5aa7621bc34b1f6ec0f9c834c1cd",
+      "bytes": 12811,
+      "kind": "exact source"
+    },
+    {
+      "path": "migrations/0090_india_native_fiscal_series_configuration.sql",
+      "git_blob": "b85998a6ce4397e8795f2808da1b6cb351762701",
+      "sha256": "67802156fe1a35d76023361dc8461699dad204017ff727441523fa9fb2b1faf9",
+      "bytes": 11825,
+      "kind": "exact source"
+    },
+    {
+      "path": "migrations/0091_reservation_alert_authority.sql",
+      "git_blob": "84c9ea3ac436ba5a34883543b31ad974ebbdc294",
+      "sha256": "ec49a08984c2a8db3c2faaca8041d19e614741ef486d7b65f4eefe94dc4f35d3",
+      "bytes": 553,
+      "kind": "exact source"
+    },
+    {
+      "path": "migrations/0092_governed_party_profile_update.sql",
+      "git_blob": "09e32cf20e408689737ac0003b07563cace4d913",
+      "sha256": "105ca27c2f4d7fcb4f8bb6dfb6eb28b5a8c615d80eb9b4d863a006497dd47dda",
+      "bytes": 4969,
+      "kind": "exact source"
+    },
+    {
+      "path": "migrations/0093_governed_synthetic_clean_arrival_reconciliation.sql",
+      "git_blob": "316ead8affa7f7a77c5267be967791f7198a5378",
+      "sha256": "c9201892e38bc8f3fbb55def457b7289e34cee126282d57a386580b1f0c21346",
+      "bytes": 6620,
+      "kind": "exact source"
+    },
+    {
+      "path": "migrations/0094_governed_synthetic_clean_arrival_account_reconciliation.sql",
+      "git_blob": "a81388ad89731592a6e894095d01bcc7b4d469a9",
+      "sha256": "867f54d3f94655fc5aa4b631433c37ed173aa20bb6e515f9df39d52e1c1b7c89",
+      "bytes": 6017,
+      "kind": "exact source"
+    },
+    {
+      "path": "migrations/0095_rate_policy_runtime_read.sql",
+      "git_blob": "72608789e0457e53f5860593ff8469aee0158677",
+      "sha256": "6ffb69469566ce3e5267f06f972ddba7ab0c99b7eafcf36287f3b1f953c186b0",
+      "bytes": 248,
+      "kind": "exact source"
+    },
+    {
+      "path": "migrations/0096_governed_checkin_room_condition_lock.sql",
+      "git_blob": "ad9de3543d6f66557be5c31078e4b90f70ec52fe",
+      "sha256": "3d0c1b99445620ca972ccd971d94f5847d2c983e0eb0b2f6e2eb09ed02093f1a",
+      "bytes": 2444,
+      "kind": "exact source"
+    },
+    {
+      "path": "migrations/0097_governed_nonfiscal_folio_series_configuration.sql",
+      "git_blob": "a808529be08628b8bbc863f4b005b97d0c5642ac",
+      "sha256": "27ef8bf95f5ca18b54abb031298825ab6536f28a9ca1a0afbff762bba3b53dca",
+      "bytes": 8821,
+      "kind": "exact source"
+    },
+    {
+      "path": "migrations/0098_property_identity_profile.sql",
+      "git_blob": "92ebdbc694c93f1fde9d9a8c19e45349203ff3a6",
+      "sha256": "dc8472faebbd05c4ebd3baf34d6582e3a7bd9f370be0d1bc8afc66284db69e2a",
+      "bytes": 15332,
+      "kind": "exact source"
+    },
+    {
+      "path": "migrations/0099_governed_departure_service_coordination.sql",
+      "git_blob": "a3a6aa6090011b9de07e4f8181d41d7e3555fe96",
+      "sha256": "115bd87ee7c247f8ed3ccdf2f870860d7da96217e232dae577ff09cc477e51e4",
+      "bytes": 26410,
+      "kind": "exact source"
+    },
+    {
+      "path": "migrations/0100_housekeeping_transition_timestamp_precision.sql",
+      "git_blob": "ccc2842fb7e6b04bfc6ce302666a4f9079b204a5",
+      "sha256": "f70844b2c8205c286f7f552dd1f8a4a2023645f70dcd00dbdacc7c777b0415d4",
+      "bytes": 6601,
+      "kind": "exact source"
+    },
+    {
+      "path": "migrations/0101_linked_group_runtime_commands.sql",
+      "git_blob": "93a681cd08b999f23c9233937c6502c390b74119",
+      "sha256": "3e89c0a8da1d7173b9b8def0bc99fff527996fb73248a57880fa1b1204c39d21",
+      "bytes": 343,
+      "kind": "exact source"
+    },
+    {
+      "path": "migrations/0102_property_operating_mode.sql",
+      "git_blob": "4223a4922c72cadcbd2c88bb58bd6bdd88a5deb0",
+      "sha256": "e84484fd3f824c44cc38535030683b67ff9cf9f5c8a5db6870ceb6bb52bc08e2",
+      "bytes": 9221,
+      "kind": "exact source"
+    },
+    {
+      "path": "migrations/0103_property_operating_mode_runtime_guard.sql",
+      "git_blob": "5d7e32c10ce5221bcdc2c5b1767db0cc7ce5752d",
+      "sha256": "6201be796d8f1400968e8e199b95b546b382fc80e03bed7903e05f36791da277",
+      "bytes": 1509,
+      "kind": "exact source"
+    },
+    {
+      "path": "package.json",
+      "git_blob": "0d5569f59ed3a65fcc15c065a530c3d36d61699a",
+      "sha256": "aaa53ac245af8ffc5bd0e6731c1a4cdc419fba9179179c63c127f437d709f29c",
+      "bytes": 2277,
+      "kind": "exact source"
+    },
+    {
+      "path": "scripts/backup-yellow-recovery.ps1",
+      "git_blob": "55e11c0c30c1acfc422776b4c5e3fe182a7da6d7",
+      "sha256": "02729ec08048490920d26074a0bbb2cd7edbc7c80ec8a8aff3908da3ad4b3930",
+      "bytes": 18850,
+      "kind": "exact source"
+    },
+    {
+      "path": "scripts/check-container-image-pins.ts",
+      "git_blob": "91a356f229f4bc16a74b9b06a245338028f21f20",
+      "sha256": "f67e1ecf9eb48cfc4e68a56a778b9d6c4272aca8cf6ee12ec79e52c14ad73b08",
+      "bytes": 2815,
+      "kind": "exact source"
+    },
+    {
+      "path": "scripts/check-import-boundaries.ts",
+      "git_blob": "4dffb46f1be5bd265e68b71e0a5d15f03d01ae2b",
+      "sha256": "38c9f82f1837647dafbdafd0db064caa636a86f228fcb14aa966df746c08d5cf",
+      "bytes": 6726,
+      "kind": "exact source"
+    },
+    {
+      "path": "scripts/derive-review-coverage.ts",
+      "git_blob": "7c5b9ce1d228bd5d733b79f1297ef22261fc26ad",
+      "sha256": "50f3e83549e67fc0be81a27c66c7b5b078ebf41191a95e0707aa1dc808d0f981",
+      "bytes": 6143,
+      "kind": "exact source"
+    },
+    {
+      "path": "scripts/generate-scenario-foundations.ts",
+      "git_blob": "b340ae25cce2d932f6af18e41c495c43822b5463",
+      "sha256": "9c2e911d6c4248eadf04c187acdfb56088fd47543fa6551b8549e4d086ea2cd4",
+      "bytes": 28179,
+      "kind": "exact source"
+    },
+    {
+      "path": "scripts/guarded-local-app-cutover.ps1",
+      "git_blob": "0ece622143be448b0fc6ee12beca03285c813ca5",
+      "sha256": "6bdcbb7d67b863d5d909f3cf03e6033a2442697729c2aa37738c7928196f2628",
+      "bytes": 2808,
+      "kind": "exact source"
+    },
+    {
+      "path": "scripts/lib/uuid-v5.ts",
+      "git_blob": "fc04ae681ab5a946f6a528bd307378edc55af501",
+      "sha256": "ef00da30ed6a5e8ee3f12ba4f1f82f965f67cc92636af3a2b7af5ed21944d2d3",
+      "bytes": 1192,
+      "kind": "exact source"
+    },
+    {
+      "path": "scripts/license-check.ts",
+      "git_blob": "b50421289d99033141b23b46a03fef176b6db6fd",
+      "sha256": "2b760943deda5a3947d5ad2fce6093b02a20c49823d95c4f6c0cc1a7119876b6",
+      "bytes": 8409,
+      "kind": "exact source"
+    },
+    {
+      "path": "scripts/local-review.sh",
+      "git_blob": "4182399ba2a451552b57fe2deab242cd75f1d06f",
+      "sha256": "a3a2ed18a539ce27e91fea5522f201c20e566c4afdc2b5ed1241719f47c19a39",
+      "bytes": 6967,
+      "kind": "exact source"
+    },
+    {
+      "path": "scripts/migrate.ts",
+      "git_blob": "390012dd5fcd7b8328f15b71ec581c05cad61e26",
+      "sha256": "9f3e44724cf0eb68cc877846bf3c1c4be2146bfbbd24c822f573e6d7689aa7e0",
+      "bytes": 26459,
+      "kind": "exact source"
+    },
+    {
+      "path": "scripts/mobile-stable-tunnel.ps1",
+      "git_blob": "f4c5c67f490e64bce38dd4708ec132200404f2aa",
+      "sha256": "3e0abd186dde5ff1af052da2fc21a4c02d1786a8ff7e2d7622673162eb3e7a6d",
+      "bytes": 1918,
+      "kind": "exact source"
+    },
+    {
+      "path": "scripts/order444-native-review.ps1",
+      "git_blob": "efff4cc1af29d7d42a52e3f1b26ef5f9b848e722",
+      "sha256": "6719c15bab5356c188b7975dfe047a40f7ee40dd8f4bdb3273d171b8a85cfb79",
+      "bytes": 55650,
+      "kind": "exact source"
+    },
+    {
+      "path": "scripts/provision-colleague-commercial-configuration.ts",
+      "git_blob": "8e6f1082c2a7ec088360029866fdd3015267b275",
+      "sha256": "394373fe5a418c8be63cd1109404f2a91456c778be1a16e7f5342692cce70eeb",
+      "bytes": 17209,
+      "kind": "exact source"
+    },
+    {
+      "path": "scripts/provision-colleague-current-date.ts",
+      "git_blob": "7553c54652663804a7cdbcf9e1d8a7c60bdae5c9",
+      "sha256": "2949ea257db4917a439cb811444c1be79761d732f2204319a4a2a290eb5b0434",
+      "bytes": 26822,
+      "kind": "exact source"
+    },
+    {
+      "path": "scripts/provision-local-database-authority.ts",
+      "git_blob": "92e410308efd1866742bab03af581a030b3a1232",
+      "sha256": "5f53a9ec70a524cfbfd8c8af6a4064a23d5eac0358de106421af93f9bc3bba4e",
+      "bytes": 13816,
+      "kind": "exact source"
+    },
+    {
+      "path": "scripts/provision-local-hosted-deposit-uat.ts",
+      "git_blob": "c2e1a52b4615187617c1fe230412881e276ecba9",
+      "sha256": "175b3fd17430e441886085f104af05d18094f85f1b91464566b0c1f044142f68",
+      "bytes": 17139,
+      "kind": "exact source"
+    },
+    {
+      "path": "scripts/provision-public-locanda-charge-catalogue.ts",
+      "git_blob": "2c679ba4ab59c0d27bfb5b6295b2716240c899ad",
+      "sha256": "f2b63592070c168c94a5eda36828c289876490dc2e5603aa01ed4b6fb74fdb83",
+      "bytes": 10063,
+      "kind": "exact source"
+    },
+    {
+      "path": "scripts/provision-two-property-operating-scenario.ts",
+      "git_blob": "014976f69687995e780fd6b34673fe4f7ac57fb9",
+      "sha256": "452717ff11d5717b71c0325158b8b7dbe4ad3279d6547cb74d21fde2a4e88f37",
+      "bytes": 17201,
+      "kind": "exact source"
+    },
+    {
+      "path": "scripts/reconcile-local-review-permissions.ts",
+      "git_blob": "256b4f9db69acac3c7cabee935680e21a35f6be9",
+      "sha256": "951bcbeb63a1fb0a3c4effe7f7007675fd538729c0620d9c8f2aec9ebb5dc9d3",
+      "bytes": 10029,
+      "kind": "exact source"
+    },
+    {
+      "path": "scripts/reconcile-synthetic-clean-arrival.ts",
+      "git_blob": "fa2b4cfd96dfd19a57564492e95fdba93ef583b7",
+      "sha256": "29f831fe0e1d0e617c39f765c5278ce9817469fd26952701ed91d6872eca42ea",
+      "bytes": 2841,
+      "kind": "exact source"
+    },
+    {
+      "path": "scripts/research/market-source-batch.ts",
+      "git_blob": "618e308cfc61a209719e8c07f8c49ebabd5a4334",
+      "sha256": "13d12070650c11b45a7b644fab6fac8b04e569aae241bd7e7dafd09f279411b0",
+      "bytes": 12640,
+      "kind": "exact source"
+    },
+    {
+      "path": "scripts/research/market-source-example.json",
+      "git_blob": "72610ce41bc65e036735c1eb63e38135d88663c4",
+      "sha256": "1246722f1fad10c1534302bf46c46b136227fb659ed2811a77d5493925759cf6",
+      "bytes": 745,
+      "kind": "exact source"
+    },
+    {
+      "path": "scripts/research/pricelabs-import.ts",
+      "git_blob": "24c4adbda95dc39c0e9e8005c513030c72ff8b15",
+      "sha256": "38aea4911c9ec5f164ad083ba2c2c4fdd8a8c6c0b5300d4b3da30dfef641af97",
+      "bytes": 38321,
+      "kind": "exact source"
+    },
+    {
+      "path": "scripts/research/pricelabs-staging-schema.sql",
+      "git_blob": "3708061073411b0b3b3acbc1ca398eb78b8d97ba",
+      "sha256": "63089227e1638669b20243a3acec3933e05f9203ddf14227d18b33df0ef29f58",
+      "bytes": 4175,
+      "kind": "exact source"
+    },
+    {
+      "path": "scripts/research/pricelabs-staging.ts",
+      "git_blob": "d53b264d3033cdcddd917b11b48a42ac8386ddc5",
+      "sha256": "ba508afcc6ea4a1e2c450dea98beb24f7d404b5110cc9e6addd247350b4af9e0",
+      "bytes": 14717,
+      "kind": "exact source"
+    },
+    {
+      "path": "scripts/research/pricelabs-windows-intake.ps1",
+      "git_blob": "7260258197bf89ad7590b7405c9e8010e85fd77b",
+      "sha256": "d0a141551f28e54fa8993c95fa9b8c65c0d36190a1b968c27fdeb77be51598cc",
+      "bytes": 13071,
+      "kind": "exact source"
+    },
+    {
+      "path": "scripts/research/property-profile-capture.ts",
+      "git_blob": "b221bbfe97c209b9177dfb443e931b00b55cfa2c",
+      "sha256": "7d8809c3e91afb825fed9664ab32730e4c8e5065303317f97e3215d2b6408cf8",
+      "bytes": 6208,
+      "kind": "exact source"
+    },
+    {
+      "path": "scripts/resume-merged-native-review.ps1",
+      "git_blob": "c63ad87d51523266faadc1fcb067ce1cc999333d",
+      "sha256": "bc952811c288cf198156048780e0c985c673a84c2c3dbefc824446ed860f2fc1",
+      "bytes": 32330,
+      "kind": "exact source"
+    },
+    {
+      "path": "scripts/run-irp-sandbox-acceptance.ts",
+      "git_blob": "3347a643e655f082c22794fc12dcedfb2be7598b",
+      "sha256": "d3b33800c7b95aa41ff9d699a968c6bef224c660b47c227c97435ac1648d8cf1",
+      "bytes": 19558,
+      "kind": "exact source"
+    },
+    {
+      "path": "scripts/run-native-review-bounded.ps1",
+      "git_blob": "27d1ac2d82535b9dd8f01bfecad23d7559894712",
+      "sha256": "2fcf1464793b555dbf404243c58b4f558d6f35c9ed2c301c9f5df53b6439bde1",
+      "bytes": 17593,
+      "kind": "exact source"
+    },
+    {
+      "path": "scripts/run-order444-native-review-bounded.ps1",
+      "git_blob": "b9bb457bab8e36e60040070711a450702d46ad33",
+      "sha256": "8e6703632c13eedde25bd3a0146d2ac2ed140e989fef879d2de6431df297553c",
+      "bytes": 23776,
+      "kind": "exact source"
+    },
+    {
+      "path": "scripts/run-phase-3-gate.ts",
+      "git_blob": "8249c59dc82bfff55afbf1c34f1626ccb811ff97",
+      "sha256": "d6979a0b7ad5c422bb0128f070dc32af133eb276421a0e96da008e49c360cc88",
+      "bytes": 13320,
+      "kind": "exact source"
+    },
+    {
+      "path": "scripts/schema-drift.ts",
+      "git_blob": "e4fbba9310b3a2477810b4e33eae4efdc355fa8b",
+      "sha256": "5b3815c3709e23bf5b1dae47ce1f988e6f74f98818be5ae31826e8a63fdd3d36",
+      "bytes": 4651,
+      "kind": "exact source"
+    },
+    {
+      "path": "scripts/seed-demo-showcase-stays.ts",
+      "git_blob": "b4154335b5d3ee9bd1e644a277069a65a2a071bc",
+      "sha256": "712118a0ddac8dd2495dcc6b4f669a329c947467369f9be8642547c5c756cc07",
+      "bytes": 8411,
+      "kind": "exact source"
+    },
+    {
+      "path": "scripts/seed-fiscal-review.ts",
+      "git_blob": "962f67c6c2d8fa25022397ea8af1d9427ebeef82",
+      "sha256": "a4c5903395b659f9df6ca85f8b2391dca62a8a3559129a810e8e7b57a7cbc5ae",
+      "bytes": 47751,
+      "kind": "exact source"
+    },
+    {
+      "path": "scripts/seed-review.ts",
+      "git_blob": "27e8d5a5eb027c7b3eb7426a1f9b6e159cf972ed",
+      "sha256": "cc0b67181f7cd7fca9f3e3a85dad2a4312eed17002f37436695936f8598c0248",
+      "bytes": 168507,
+      "kind": "exact source"
+    },
+    {
+      "path": "scripts/seed-scenario-review.ts",
+      "git_blob": "083ec907f21e0c2327aecf91636a211893050379",
+      "sha256": "883e72719baaae39ae3a3716838f669d713b5175e622d62becab008afe91b890",
+      "bytes": 42172,
+      "kind": "exact source"
+    },
+    {
+      "path": "scripts/seed.ts",
+      "git_blob": "04dfe4594ecbe1b8a693776b0da65e96d82c0083",
+      "sha256": "716d6f4df1a577fe6019d9febfd39f0b165d2c97c13637bc2f451d0312a31eea",
+      "bytes": 31269,
+      "kind": "exact source"
+    },
+    {
+      "path": "scripts/start-merged-native-review.ps1",
+      "git_blob": "79ca71e535a378c6cc2b3405757a62bb158d6112",
+      "sha256": "544b990f4825ed0df6fbfcc6ccf33b4daee3f2d916e0cc09f713a990906583f9",
+      "bytes": 9321,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/app.ts",
+      "git_blob": "ddb82521d8a2b81ddd06b565820d9ba9d2f46db6",
+      "sha256": "44af83c348b9ee6984143294ceca24be1e6b7796cece33419ce6fd367de724b6",
+      "bytes": 55923,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/commands/configure-india-native-fiscal-series.ts",
+      "git_blob": "afec645569f79720f840ad5ddd8267e256b43bc3",
+      "sha256": "125f3c0e0cb5fe777764600a2d69a99c28f7d81f58bf6be4edf05583fe481308",
+      "bytes": 1658,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/commands/issue-india-native-fiscal-credit-note.ts",
+      "git_blob": "d0194a92760cefc4cf0b10dce6236b9489179e4e",
+      "sha256": "1aa47f5ec76aa2aa5c38e75bc1b69f0e8350550ef8260edc10fde65fa9a22a5d",
+      "bytes": 5921,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/commands/issue-india-native-fiscal-invoice.ts",
+      "git_blob": "5386209c8cb67754f3ebc9e499b4a57dfc76e1c9",
+      "sha256": "a1930f3f301b40e05856c9f1f5f6861502286c9005fdc1f68bba1548951c6dac",
+      "bytes": 3716,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/commands/list-india-native-fiscal-credit-notes.ts",
+      "git_blob": "a7423fb0c33c14197cf3bdd9cd96b1bbded4f3dd",
+      "sha256": "5e093659e0b433de4ff8b561e9c5cb3c92b55baae757dedaadbaed8eebd7c467",
+      "bytes": 1445,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/commands/read-india-native-credit-delivery.ts",
+      "git_blob": "4f86c7d4ce3bffd0820bd38033ddf550bc89d03f",
+      "sha256": "3112a6cc4297983bf11fffc04a29f5e0bdd6e337296ad2465ef5236db67b13bd",
+      "bytes": 1388,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/commands/read-india-native-fiscal-series.ts",
+      "git_blob": "ebdedf34188e4b1d26b5fbf47c7a39fc60bc5709",
+      "sha256": "f29153a4948ffe82184cff3b06cba701976babf176380c19fdb3fae5f7611c81",
+      "bytes": 1517,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/commands/request-india-fiscal-submission.ts",
+      "git_blob": "66431397ed87ba966ab2dfb3c61c3dd715f73ebd",
+      "sha256": "19d62ab918e70959a4973abd86fcb1fde7084f2fae1a87ba1ff487ad87465960",
+      "bytes": 2994,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/commands/retry-india-fiscal-submission.ts",
+      "git_blob": "d5482e3f16336281c733d165d3282424dc762aec",
+      "sha256": "d508aba3676cc5939a5c74f1081dcf3ae44e000e05ca79c342ad1f3fc2e64a9c",
+      "bytes": 2846,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/contexts/crm/index.ts",
+      "git_blob": "0cd15d02d745a23f7c32e273bae62aee64fed660",
+      "sha256": "5a1f6939f907bec6f6851504c0ecea4a348e9e25b7c56771e84185a356e75f32",
+      "bytes": 466,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/contexts/crm/parties.ts",
+      "git_blob": "b6041fe562dc47aa51b2e28f0400f987c7ebb0c2",
+      "sha256": "970a2c3d3d323750836f7026a5e04f2f396c29e0a8df65e58e18aff11b8674e7",
+      "bytes": 30730,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/contexts/distribution/index.ts",
+      "git_blob": "e962774a4119b6adbebacc6251ae186bc859c77d",
+      "sha256": "42354e8797c7eed49d169b186415a5dbcd3c7fb1a0e46768c98561dc70e6f623",
+      "bytes": 217,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/contexts/distribution/market-batches.ts",
+      "git_blob": "35c3a201908ab40d92724b945a5aa5ffd5c4eeba",
+      "sha256": "a628e984397e8416da17eedfec6db70549e74e554cc4236d55f56cce2e2a3087",
+      "bytes": 19499,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/contexts/distribution/market-shopping.ts",
+      "git_blob": "60c14e056cebdffe68cd59db84ff2bca646f8da1",
+      "sha256": "bd7d1366510ca2601f11120612fdafbd1093337ab94ad7009a10e6071c5ce756",
+      "bytes": 42209,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/contexts/distribution/market-source-adapters.ts",
+      "git_blob": "5e7a6c166f542c9304544ec405c0941603f03b80",
+      "sha256": "290795e7128fc753624ad4e2124031b54778f277264c9571ce0c390abe80250f",
+      "bytes": 41350,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/contexts/distribution/property-profile-candidate-evidence.ts",
+      "git_blob": "b9228e09b79f14ee86aa5806da4190a6dfcbdff9",
+      "sha256": "be1872dfa9d233f12179422ed4addb858e62a0cfb056ef5587046b8ce0812061",
+      "bytes": 24425,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/contexts/distribution/property-profile-public-capture.ts",
+      "git_blob": "4682dacd302006ebf82dd7ac9ed92ff03402c0c4",
+      "sha256": "cddcdf6425df903a719cb7127039428cf4b3c2e20d58609093d226aaf3c1d4b9",
+      "bytes": 21904,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/contexts/financials/business-day-close-readiness.ts",
+      "git_blob": "dc9a42d9814c6e2fdff18f40b736b633d125c926",
+      "sha256": "180ded83bf7965d0eaea25be1abd85aa396cd9a24cfcc0c8f6a40794631613e7",
+      "bytes": 48716,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/contexts/financials/business-day-close-workbench.ts",
+      "git_blob": "02afcca5907ba721fc74151c744ecef3211653e1",
+      "sha256": "c9041c6f84e0ef56876cd93eb4db9641d37f0ce7f5a795abec1263bf03344cad",
+      "bytes": 10872,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/contexts/financials/business-day-discrepancy-carry-operator.ts",
+      "git_blob": "480499b95f138f4ef576d034292fa619caa9b7d3",
+      "sha256": "8d1b07d6007e77afbe71451493697979c44ba90a6eb03959b86521479f9d98cd",
+      "bytes": 30630,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/contexts/financials/business-day-discrepancy-carry.ts",
+      "git_blob": "b9b6a4c21b3087ec1230d433a3746f574a14d7d7",
+      "sha256": "e882fe3998731e6ef822c945aefa9eb71b7075ffca847b16944f8134f379ba38",
+      "bytes": 9018,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/contexts/financials/business-day-roll.ts",
+      "git_blob": "3b05d5a0a04a3d45eafcf89628c07c0d0b512ca1",
+      "sha256": "69f99d6bee0bc33f25852d5e0faa7e6d897d5fcc3d9b61f2c008ad24595cdcd6",
+      "bytes": 10659,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/contexts/financials/business-day-seal.ts",
+      "git_blob": "89b8f5dc488dff53c674ae9b0875027bd91f0a3b",
+      "sha256": "d2e500c38df76825c2240f70392c61146ef92d47dfa1336859f2786db20b8bf6",
+      "bytes": 10524,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/contexts/financials/cashiers.ts",
+      "git_blob": "a28e941bfb7ac4b3a410463d6adf2ecada8d7760",
+      "sha256": "6402f89ca8ee24aa3a65b1015335191573def08007fcf7fbc252146cc0979b53",
+      "bytes": 50161,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/contexts/financials/corrections.ts",
+      "git_blob": "f393e67ceeddeb7eb40b925b07bbf3cd445295a0",
+      "sha256": "8801588c9baf380e52d1944130b9c69678f25997d0dcd6158c3df19f8012e820",
+      "bytes": 25268,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/contexts/financials/folio-series.ts",
+      "git_blob": "9f754fee999c2e0f4867de3509dc7b51fdbf021e",
+      "sha256": "a672630295346423022cefde1f946c75000964f56ac37f5148f1c55402028ec8",
+      "bytes": 7054,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/contexts/financials/folios.ts",
+      "git_blob": "7b8ab07bd25b41e1a545326963967584febcb58a",
+      "sha256": "30fe3ea6ab9bb194f40a2abb649bc0bbfe8a540115a9f98fd89489d7aa0eebea",
+      "bytes": 26429,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/contexts/financials/hosted-deposits.ts",
+      "git_blob": "881c84ff83acd53ab6c2b0db7a77beea2151acd2",
+      "sha256": "7f852e1b140940290f634ce9fe31a257d9843eacf75b6a31d9cb37c2a14a1992",
+      "bytes": 30751,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/contexts/financials/index.ts",
+      "git_blob": "db775ce66fccc305265b6492fe7e127b13a31819",
+      "sha256": "301489398e40553ac855f5505cbf167be03c3720def1bf169e0936efb7b5ec89",
+      "bytes": 10832,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/contexts/financials/india-final-component-tax-corrections.ts",
+      "git_blob": "41a727e26e3b05ed9e7d363e8fae273f552129e7",
+      "sha256": "9c612d2fc1336f5fe81b304ed7849296ae840fe4296befdb1345d1ed87e639de",
+      "bytes": 22014,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/contexts/financials/india-final-component-tax-fiscal-source.ts",
+      "git_blob": "fd80f0ff29ae72caec8cd64202e7f450560c1512",
+      "sha256": "fa87a523d681a4786e9209d8528b6483e3cd2f37631533ed0a9c551794484994",
+      "bytes": 61646,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/contexts/financials/india-final-component-tax-postings.ts",
+      "git_blob": "9cb8c85f2565554df1b70b7b7cf4dfc15310ffcd",
+      "sha256": "185974544621ff8e7e7cbceb0a09d02673473c8306cb44bf5526bd49947cbe6b",
+      "bytes": 21913,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/contexts/financials/india-native-fiscal-accounting.ts",
+      "git_blob": "cba8322e980f1af32f621983f547d1987bb578ba",
+      "sha256": "060a97f70e93c821860ea2e52b6c936196f8fe735218cc80d2f3e8382458e0a5",
+      "bytes": 9804,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/contexts/financials/payment-provider.ts",
+      "git_blob": "90fff16ecd616beef770f46bbb1ea39206b76667",
+      "sha256": "82acde733d38504aa2b1edfd853c9203a1d278899541f3f19ee1682413bc5e34",
+      "bytes": 2445,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/contexts/financials/payments.ts",
+      "git_blob": "79400b62adc742fabaa5ad6679788b8a3cae69ef",
+      "sha256": "a81563e6542e6aff49d85b89eb665285c22775a7e902bde74162cb45474c3f8f",
+      "bytes": 39586,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/contexts/financials/positive-tax-corrections.ts",
+      "git_blob": "46acba5fb0f5d2af3efe5c97d2f4809a6a5ea54b",
+      "sha256": "fb6cf0ca8253d9bc6b2800e9f3560020223d90af24b45313591062ed340e32b1",
+      "bytes": 36265,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/contexts/financials/positive-tax-postings.ts",
+      "git_blob": "1b6c3f4b284fd79498df1b2c4b487e7af3abdc69",
+      "sha256": "4990e7dac11fa0b70000abab0c6e2e54f57180b927137e2614a32e502d792a52",
+      "bytes": 29341,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/contexts/financials/postings.ts",
+      "git_blob": "e9949a5224fc54ffd8612703fcda02b4df959ef8",
+      "sha256": "d0350ff16adb9bb59383e5a02c52a39d4db4c2ae0544360b3d6cc855f4039d59",
+      "bytes": 19402,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/contexts/financials/receivables.ts",
+      "git_blob": "d6ae51690b7178f8ad3861506ef9894b04805551",
+      "sha256": "6d529541de0edcca4e994e1ca3d526dc316b6e46cc72c6304711cde52091aade",
+      "bytes": 18214,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/contexts/financials/settlements.ts",
+      "git_blob": "8e96e28f13fc18e5275d56a5c166ed224e46985c",
+      "sha256": "904260a1f30ba66c6a1745075848e9d34bc91d82afd255ef208b41314b9e9154",
+      "bytes": 13112,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/contexts/financials/statements.ts",
+      "git_blob": "82596b9b02f25eb0c2a399547ec3ca8f0bdf92b4",
+      "sha256": "b54cc7e56f5ec2b6b2b9ca41f644a643883e9d75fb8c43f06064cd5cbaf28d26",
+      "bytes": 33822,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/contexts/financials/transfers.ts",
+      "git_blob": "fa7c2e800aab20ea52cb60dc057a197e6857d921",
+      "sha256": "1e664b33dab4c5d3da05a38fc2700d2397e08f5265385c297db199774e0683e3",
+      "bytes": 25205,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/contexts/financials/trust-workbench.ts",
+      "git_blob": "80405fca164b3437f117977030fe248edfca14ec",
+      "sha256": "e5e158b0b05eff019687a8e9bc28b67003422933e2c6cd32fa06b12c0e3c35b9",
+      "bytes": 25959,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/contexts/financials/trust.ts",
+      "git_blob": "980ef4abc543fb8813a863782fc514289c4cddfc",
+      "sha256": "158feb67acb225bc7aef88142582545f8e8a273ff81d568d77b4dfecd6942c91",
+      "bytes": 6713,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/contexts/groups/index.ts",
+      "git_blob": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/contexts/housekeeping/arrival-cleaning.ts",
+      "git_blob": "28eace53df8fd8f0fc755ae689e344c1ee73bee9",
+      "sha256": "8795802d6d639fd1d4faa5ea169df8c498678d0cf02d35d590da87bf27126af0",
+      "bytes": 15419,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/contexts/housekeeping/discrepancies.ts",
+      "git_blob": "c67f58a6a0fb545578b670af0902cac2548a004c",
+      "sha256": "535e11009f1d4b0293008d471198514503866f474a8ea9679e717b17a672abe3",
+      "bytes": 17038,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/contexts/housekeeping/index.ts",
+      "git_blob": "f97a2dc7293365a8cdc1e5c5552795cac0f76bdb",
+      "sha256": "a795d3e09b14eeab4fd1f465afefa81efd461078fe8426322e4c2f6c6b060e14",
+      "bytes": 2422,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/contexts/housekeeping/sheets.ts",
+      "git_blob": "ea34d03e3c83f668929e097f3bff4c967438557d",
+      "sha256": "9c1f6cb32fb9f47b1930e3d051fdb02fa24107aa4a66d42013924ba9d6cce615",
+      "bytes": 19109,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/contexts/housekeeping/tasks.ts",
+      "git_blob": "c14833a856861b47c51b6d2d357626182b6fbbb0",
+      "sha256": "9628c1e084f4592b73d650070f11b9d97244e28c0807e30b4afa82a0ab3fed1a",
+      "bytes": 41355,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/contexts/identity/index.ts",
+      "git_blob": "394cff4fb32495834064a653703e2de574ed8905",
+      "sha256": "bdd29a78ae077a660206e77ca7e4513432ebc9c02da643fd4fd26462b96a633f",
+      "bytes": 1517,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/contexts/identity/local-login.ts",
+      "git_blob": "3dc36b01f0010af54555ce5f90c21ca219babb9e",
+      "sha256": "9a7397e5cac8178870ab1554973ffa4f617610bb006c2daa19f079887d7ab93e",
+      "bytes": 6019,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/contexts/identity/login-guard.ts",
+      "git_blob": "51d878de4c66e2298a02f0b8bc16f32771ffc21c",
+      "sha256": "dead6c14e377892331b85feaff5808066c9bd18503a584f51129c0f1ed430aee",
+      "bytes": 10574,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/contexts/identity/org-hierarchy.ts",
+      "git_blob": "806bd538e510430cdd41a0010a152674d737151d",
+      "sha256": "19cf050c30a92fa66637565b71727449156fe7e11fb5d09b09c3c037dc95ad05",
+      "bytes": 4766,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/contexts/identity/password.ts",
+      "git_blob": "2a988d1f1582623379d7f75ac8f49a941a473fdd",
+      "sha256": "1bc8188c1ac4601568c36acbdee9ae533e529938269571eb3084f651b2d38b99",
+      "bytes": 1131,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/contexts/identity/property-mode.ts",
+      "git_blob": "19a8a5f8aa940ed0ef37139c5e021346ca8d4fd3",
+      "sha256": "78f954c8df897c634d1ed4e81c7d27e1eb538b9b107a4897577c70ad0031569b",
+      "bytes": 11056,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/contexts/identity/property-profile.ts",
+      "git_blob": "2a6c6abc6e8d3ed88b53b02b2c13b5871f4a347b",
+      "sha256": "29a033977bc35403269daef432400dc16b882757736769096fbb1143a62d0c99",
+      "bytes": 10861,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/contexts/identity/resolver.ts",
+      "git_blob": "a8831699f319b9af7001cfe17c504dd5989ea034",
+      "sha256": "11f2e12350fba78399c382bdc963cb27f9a718df165b031a7f69612369229e48",
+      "bytes": 764,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/contexts/identity/token.ts",
+      "git_blob": "16ec5bccc98cd8bc4f0bea1072d2f966f884dadc",
+      "sha256": "f2a2fa0836a275ea66c0ac56ec3ccf39451faebe137b728a0d7fd5322957348d",
+      "bytes": 8795,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/contexts/inventory/availability-projection-consumer.ts",
+      "git_blob": "e647562fa72b4267a30969d416eeac99aa5f5615",
+      "sha256": "cf00ed511de4afb8500a310f78cdd47e48e29f308e1a679fc6bfc5bd5d1cb5f2",
+      "bytes": 5786,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/contexts/inventory/availability-projection.ts",
+      "git_blob": "8497b545238286a5b067aafed2ce604d003e6769",
+      "sha256": "c4f809a9055817309753d07be4293b4164bb30c8c357002f81ce4aa9641f9ddf",
+      "bytes": 14362,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/contexts/inventory/availability.ts",
+      "git_blob": "b41f64c3e3a8b4c3163248fbe141be002e6d5b14",
+      "sha256": "fc0aa59c593848f29d5ad771fa63b31d461fe793fdf257785d31dce99f937721",
+      "bytes": 14691,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/contexts/inventory/hold-expiry-worker.ts",
+      "git_blob": "c12aff69a016599bd9df2ef8618836d7bc549d86",
+      "sha256": "155a83763a8bf1e4676f1eabbf38444d640ccd897002d5faee6aa041a2a711e1",
+      "bytes": 4808,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/contexts/inventory/holds.ts",
+      "git_blob": "e9542561bb4874733120a9b6e587ff425cb1d7e1",
+      "sha256": "58eb66d39ba05531c93daa7c11d0ac22396664806ac7f2deb98ccb96ca055760",
+      "bytes": 24650,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/contexts/inventory/index.ts",
+      "git_blob": "bc0c2aedbaf4319c7bf38fae1ac2bf8c9800801f",
+      "sha256": "30e87fd26e789be0236ff39f31e0679cbb1bd689c7ed5f6e8b1908e95315b4d2",
+      "bytes": 2536,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/contexts/inventory/inventory-policy.ts",
+      "git_blob": "617bd8b39fd58965774cbe326e81f7ffde80aa5a",
+      "sha256": "aab6f91b49136c7eabc40488f3b4c307eb4e6570dc4d0575497c353bd3a738e1",
+      "bytes": 4823,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/contexts/inventory/inventory.ts",
+      "git_blob": "6802cf7a2be6f94cd33d3c0a57efb5509085380d",
+      "sha256": "a9ed7ebb7f462c0210e2e1823ae798dbfe446263ce386b18e01e0a1b79fb56f9",
+      "bytes": 22115,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/contexts/inventory/operational-blocks.ts",
+      "git_blob": "867df515e1b819ee6d8c0a8ac8cdb08766030e0a",
+      "sha256": "07aba8c1b904003b896f1388051626f99dd00fa370242535360495c41acb6488",
+      "bytes": 12163,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/contexts/inventory/reservation-occupancy.ts",
+      "git_blob": "ae85eb6fa51dc78b5505c531b1a53587767f1bb5",
+      "sha256": "1d0943437a7a7feab2afacf9dfba3c0e4a73471cfaee1f39023f5b6a865f8626",
+      "bytes": 14461,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/contexts/inventory/restrictions.ts",
+      "git_blob": "7d09b81b792333922cf17b8d36333ea0005cc80b",
+      "sha256": "73c8b5daabeb1efcdcab245b04eed22f3b020f03dce6c638e9409724169d3594",
+      "bytes": 10457,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/contexts/rates/authoring.ts",
+      "git_blob": "ed1eee2dc21701447f203e71940ae111d144cc08",
+      "sha256": "3cd79f14ff97e95712a68d725f971548d9dcf67b1d86d8d78bf948ddfeaf18d4",
+      "bytes": 14867,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/contexts/rates/composition.ts",
+      "git_blob": "75c6746b0b413eb54d0b5b7e94f1589acbf2ae0a",
+      "sha256": "213b9c2a351307f08a24cc35f33d3254d75ec1f6c5a9d4495bd26fd33a371525",
+      "bytes": 52611,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/contexts/rates/configuration.ts",
+      "git_blob": "61b7dab6b3311f96320ea49d2c1f02864ecf95dd",
+      "sha256": "5e291ff201b9132bddf750baec26f531e7f0a9c7b1ab685f3b135357a200aaa6",
+      "bytes": 20388,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/contexts/rates/economics.ts",
+      "git_blob": "423887679e3db5c781b6005d62a19153ed7fd38a",
+      "sha256": "c47bfe562309e07bffa159c197005bcddc629521a6795ada63f098d48d5ea7b6",
+      "bytes": 17146,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/contexts/rates/evaluators.ts",
+      "git_blob": "a30d3a1dab341087f1c0430c28afd6775c9a10b8",
+      "sha256": "14a48eb3415a8dd3cbf7ef3908c8025b20124924af5141665b88ae435507f1f8",
+      "bytes": 45971,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/contexts/rates/index.ts",
+      "git_blob": "ae590ba1eeb7c21db804047437162b4f57f752ea",
+      "sha256": "b7ad529efafcc18a8e90b0f6a02dc18d31010df85fb8d6611a9fb83b4af10d26",
+      "bytes": 5225,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/contexts/rates/intent-provider.ts",
+      "git_blob": "de53bd01642273225edbbad2336346c1198a3325",
+      "sha256": "221d8ffa9f1aa4ac9a147e183744c92a5396f3f841bee5e8d9e682ffa323eb63",
+      "bytes": 10351,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/contexts/rates/intent.ts",
+      "git_blob": "2a5e708c20735decf973b8dc909a73c0f346401b",
+      "sha256": "e29726fd8bfccd93d3f9776d540abf82c4b9a7e6bc63fa88b8f5fc501c8bc4bf",
+      "bytes": 21630,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/contexts/rates/models.ts",
+      "git_blob": "831c03cba885e0c42324b890f2d2e55a8d6e6d96",
+      "sha256": "63bcb95a7faeb8c40de94cec8658ea651a7838b61c28fee9a04201b1271601d7",
+      "bytes": 14331,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/contexts/rates/pricing.ts",
+      "git_blob": "cd8be79e61334e639d27bea2c3650803984784d0",
+      "sha256": "dc4d1da515f1bb89fb6e38bb1655def9a7ae368f7de8f77dc1d1e637197e0624",
+      "bytes": 18836,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/contexts/rates/publication.ts",
+      "git_blob": "04a427022097c4e2563ce3cd2ee781b80d78c84c",
+      "sha256": "e3a61a2689ebee6f08698982a395b7bc84fcadc2abb0347218c20943935f7e02",
+      "bytes": 64772,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/contexts/rates/quote.ts",
+      "git_blob": "dddc67e5d5c373b9f26e2c5f43b29fe6606a17e6",
+      "sha256": "5d7d983c1439f2e4fccb54f8f89a53a303b146d44eab0f5991b31065108464c1",
+      "bytes": 28348,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/contexts/rates/recommendations.ts",
+      "git_blob": "ed9e23ad953e4f27194d440577537d0cd1adab06",
+      "sha256": "1e6f7dac9f6585fe6f06edb3984a690dab2c0ae920b44ba1928be80f647e0710",
+      "bytes": 11149,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/contexts/rates/targeting.ts",
+      "git_blob": "f4c2143e07eea6f757287fbad14f193989e95cb7",
+      "sha256": "c0b7c82dbde437ccbc439976017bd5854a8e1b0e70ac9a273c5dfacf42cfe3f6",
+      "bytes": 29523,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/contexts/reporting/commercial-attribution.ts",
+      "git_blob": "89a2090eb5ed935d894a6f7bcdfdfe098684a12e",
+      "sha256": "5708a5db3650b88beb9fdf52917957cdb5f2c22da6334655c273043943ca5e62",
+      "bytes": 15825,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/contexts/reporting/commercial-contribution.ts",
+      "git_blob": "89485c37e11897fed997d3d2e9145aa66e8082c7",
+      "sha256": "9d1a5a282ec0d16eaa88742add52433f39fa4f54bd895041e92cc362ba66d55f",
+      "bytes": 7930,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/contexts/reporting/index.ts",
+      "git_blob": "0defff4b5dc7946e69c37b168c9e5c244182235c",
+      "sha256": "9e4342ce1024c5ac7766de0155ead5168f6c9d5169979554983a35eefd924278",
+      "bytes": 726,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/contexts/reporting/operating-performance.ts",
+      "git_blob": "69e20141e012d2cae007e03b45b50dc1ea39de9a",
+      "sha256": "69db58a2555d02dce645627f280a92c732feef26c54b975cb4f7a7de0c4b241a",
+      "bytes": 7718,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/contexts/reservations/alerts.ts",
+      "git_blob": "d1aee9334b0f4c7859b6c9701c1f55104c17f9e7",
+      "sha256": "a506f0b6017d1b2bb54d9622c23442a1abab8afb4ab21642e51134c9114b23bc",
+      "bytes": 12668,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/contexts/reservations/arrival-roll.ts",
+      "git_blob": "c3fc5fa58691fe05763d260c12d58b559dc96ce6",
+      "sha256": "c5c65f0cc54d275d11da7460727a2afdd2a666af4494d9d276b0e9818fe12db7",
+      "bytes": 18887,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/contexts/reservations/board.ts",
+      "git_blob": "d092afbb8764441be0446705e9c194d29b72c015",
+      "sha256": "fe2d1b6f49293d442012f0df5689cbdeb89b58f7c8a393d9d87fea741131a45f",
+      "bytes": 25857,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/contexts/reservations/commit.ts",
+      "git_blob": "a41e5600e6dc4186d0d8cbdb00b427a2e8c9de91",
+      "sha256": "ad8f76ca03895dd690ef3d11b5fe5090f7fa59dfc62d5c1efaf078a7c4980f9c",
+      "bytes": 24398,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/contexts/reservations/departure-roll.ts",
+      "git_blob": "86a68b61d4f8b1ccc09c760c4687f9447d38a2bc",
+      "sha256": "f68076f700843b65be7bc7c1cb20126789989226e4c772357acd134b56def759",
+      "bytes": 19119,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/contexts/reservations/detail.ts",
+      "git_blob": "43fa6cad6aa780cc680b4eb0fbf1d10dcc136abf",
+      "sha256": "91227bf1c9a3499481d60fb1ffdc728e96e13d4fa34342e6c61575efde6e7fd0",
+      "bytes": 36539,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/contexts/reservations/group-blocks.ts",
+      "git_blob": "9d0a3dd88790aed1ad94f011388157cb36c81a84",
+      "sha256": "121388c9d46d61414f98d63a73193de9ae46e63a10fcd5739759bcb995232c7c",
+      "bytes": 19166,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/contexts/reservations/groups.ts",
+      "git_blob": "3a328e95f54f25ba5474525de0746834bd4081ee",
+      "sha256": "350d8aea70b329481de02ff9c46553b9b92224a9c904c54e5599247cdbf315a5",
+      "bytes": 17346,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/contexts/reservations/guests.ts",
+      "git_blob": "38968d92c2c88a8aeec795e9cde2294d8391d7af",
+      "sha256": "a792c45f85feeb66f3a0c25ef78575be3ca3fa9b0e53c57e4938074e191d4c2c",
+      "bytes": 18072,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/contexts/reservations/index.ts",
+      "git_blob": "d25008d76d280cf57be584e01ae543a18ab790c3",
+      "sha256": "a509f18970f005305cc22a5513b383c435af43d1cbe9af1774be5a6203c483e7",
+      "bytes": 6275,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/contexts/reservations/lifecycle.ts",
+      "git_blob": "fa425138a33fe35017e36012d2fd63b5175a9bb5",
+      "sha256": "e178b248a65507b3bd1321dc378854f74bcaaeae36d8bcd0339c9b197469cbcf",
+      "bytes": 36282,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/contexts/reservations/offers.ts",
+      "git_blob": "75ce148fed49c75b0b7481482d77dc0947c4d742",
+      "sha256": "f6be07554c3d44198125483f62811450fd097f0c5f7d9915c597dc18707d10fe",
+      "bytes": 21448,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/contexts/reservations/policy-evidence.ts",
+      "git_blob": "17c52adc7197720c199a0e808e04d6df3a650e3f",
+      "sha256": "8295cb9d370a584633ae77fd1dea601a7edbf7c3cfb254ef69e5b36276f003e5",
+      "bytes": 3934,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/contexts/reservations/segments.ts",
+      "git_blob": "e5b74e652c09b4f06c17199859df5c993f1d5b12",
+      "sha256": "75c9e91b615989d7d647d737c6f587ca3f7332191a13a3fa9a6ab4f0220d5651",
+      "bytes": 51190,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/contexts/reservations/state-machine.ts",
+      "git_blob": "af81b52982f0ad9e9ee83a64fab75f7175ad7d16",
+      "sha256": "136dceffa5f516c303a806ec3cab3eaeee63f0eed0869f71414a38efc3e1b082",
+      "bytes": 2014,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/contexts/reservations/travel.ts",
+      "git_blob": "ab7d2e5b64e92ae586ea3bdd27428a18c00b4e07",
+      "sha256": "7bfa4072b7feb8e2c5d921b79dc3ff74c872518f8dacb056497e46d4eb00dc0b",
+      "bytes": 13237,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/contexts/statutory-privacy/index.ts",
+      "git_blob": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/contexts/stay-operations/checkin.ts",
+      "git_blob": "0a456716981679f04ef479aa3261fb4015c1e44d",
+      "sha256": "b198fe443391a22c959ebb6fe928f183fcc5279aea6a8c84340a19a4bb104033",
+      "bytes": 24880,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/contexts/stay-operations/checkout-readiness.ts",
+      "git_blob": "92a2f923de70e76f32df957e9089b74fbb7b9025",
+      "sha256": "3a9c5deda9f2325e7dd34c45b0296d607e1adbb7fe52c65596eb82a6ee9699ef",
+      "bytes": 15489,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/contexts/stay-operations/checkout.ts",
+      "git_blob": "78fb715841aafb3347a00b961fdbf5d2025f5f39",
+      "sha256": "cda1efc8be98f057a37682a3306cbcec7152399b2f28f31cb4b8bc5c6a30bceb",
+      "bytes": 20223,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/contexts/stay-operations/departure-service-coordination.ts",
+      "git_blob": "90359d9f7598ee25f54cbefca378ec9ca0ed75df",
+      "sha256": "39f80d399e8cbba116fe43d698338dd51774eb88ba94ea750c426b045c530275",
+      "bytes": 16558,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/contexts/stay-operations/index.ts",
+      "git_blob": "c1e52bfea999086d4dfc604f911c624396b7e556",
+      "sha256": "a904222dfcc74a406f006c0b64509f0daf9d718373ff713d9e26361f7c19b6f2",
+      "bytes": 2754,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/contexts/stay-operations/pickup-task-automation.ts",
+      "git_blob": "0f93090761aaa2889bd6685eea345236b1d356d7",
+      "sha256": "18b024004f8ea29c507fd16d80aae2979dcc44e6eac0a70cdfd5051f1efe8091",
+      "bytes": 5881,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/contexts/stay-operations/pickup-task-dispatch.ts",
+      "git_blob": "2cd8e8a0d66b872f3cb1dc469aabf9d0c84ebaa3",
+      "sha256": "09069e0eda709b07383b666f20d1220b5527aeea61a2a8b5896a6d505c2aba9f",
+      "bytes": 15689,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/contexts/stay-operations/vehicles.ts",
+      "git_blob": "dc76121ddf9766877e0c3a29ecad05b5d314143a",
+      "sha256": "145765e5aa2814056563f99e7f1e5a7f0f7db23d8344254fbff98ee237116243",
+      "bytes": 31671,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/contexts/tax-fiscal/attribution.ts",
+      "git_blob": "132ccc921c70bcfa07ab067b2d3612f22aca0eee",
+      "sha256": "576487b8b4ddaa51ad96853977a00a2874c4e93f61e02bdf2147f160b5497a48",
+      "bytes": 27384,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/contexts/tax-fiscal/clearirp-direct-adapter.ts",
+      "git_blob": "2ff578c770b4436579ab697938ca4fd167e792a7",
+      "sha256": "be7b4aeb05004c1b9172ff1de9994f782160b5131866bcf27fe1111e3515238d",
+      "bytes": 44503,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/contexts/tax-fiscal/evaluator.ts",
+      "git_blob": "cceee428dca17b7bc5d63fb98807dadb12840a2d",
+      "sha256": "d4a9142b792cc46c0d260679ec8f36f9169b68501a8a424e7de06f9e386884d9",
+      "bytes": 25795,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/contexts/tax-fiscal/fiscal-exact-json.ts",
+      "git_blob": "16289845e8ac78d869a1f1ae4eba50ae3c5bde9f",
+      "sha256": "fc1924ac320a7476f246781dae28cf3306e238c55fe037ac87d5df77fb330af0",
+      "bytes": 11083,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/contexts/tax-fiscal/fiscal-provider.ts",
+      "git_blob": "c6cb4746082b3e12ea675ed5207e0ea745595a7e",
+      "sha256": "c490079d6fe36a5bcd9d171bd621ccac48d7d2b2b7911257c9ecacd3af330e53",
+      "bytes": 2323,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/contexts/tax-fiscal/fiscal-signed-jws.ts",
+      "git_blob": "6cd0052ddcc045fc0715d9543ed8c3702fc84904",
+      "sha256": "844072dfc67d2663d4ba1e3aa794ba8edd322621c41f3d4a794867fa73ede27b",
+      "bytes": 17982,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/contexts/tax-fiscal/fiscal-submission-adapter-availability.ts",
+      "git_blob": "5ce8cd37fb1ad33128c66dc8594a0611c7ab8dbe",
+      "sha256": "5cc3e800717c7baf27883a92816eb035ef3a369bb666f47b9ff83b6f4dea0724",
+      "bytes": 6022,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/contexts/tax-fiscal/fiscal-submission-delivery-runtime.ts",
+      "git_blob": "98088e56ab4cc382e6ab8f0c7123bdd7db33175e",
+      "sha256": "462c798f157108767f1ae057a906fad72d1c5ec3089ac9b9b728904f29526e52",
+      "bytes": 10013,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/contexts/tax-fiscal/fiscal-submission-receipt.ts",
+      "git_blob": "a64da91b3642c9e101355d97b70af2a23945f0e6",
+      "sha256": "b20bd78819da539269f012c1a78abe721d1bbf49737da3ffdb714f1a76a14bcc",
+      "bytes": 19840,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/contexts/tax-fiscal/fiscal-submission-repository.ts",
+      "git_blob": "bc41993ad84c5b5254b28e28ad42955773a6c197",
+      "sha256": "f308b1d6223f569e3993b26d05d1e0f2bc0f4acc44b6d9b168ef12c7663d2e36",
+      "bytes": 31188,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/contexts/tax-fiscal/fiscal-submission-state.ts",
+      "git_blob": "d67e42a4bf9bd5d2f3f66dbc0336f0275a85b0e1",
+      "sha256": "d5a72b07f215db2fd605848ca105d52e7566acb9acfaede8ec1d22de8140daa4",
+      "bytes": 16614,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/contexts/tax-fiscal/fiscal-submission-worker.ts",
+      "git_blob": "f68d4c2bd56bef4480689498381b1621f134992a",
+      "sha256": "d7ffcdc84a00f55210d3268fb5eec8bb683c3aac14964b776e1aefca48566ab1",
+      "bytes": 24651,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/contexts/tax-fiscal/folio-eligibility.ts",
+      "git_blob": "f1c60405d8562b0f46184bc3ff2c5e25ebf70a23",
+      "sha256": "648d4debafb95f59f90fda6f2d8ac9fcbb45fcedb235a4d8441156753d0c07b5",
+      "bytes": 13896,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/contexts/tax-fiscal/index.ts",
+      "git_blob": "c183a1afd77c261f53e250f1b38c5b8df9ca1901",
+      "sha256": "0599104f4c2da4215e9e7305045ee8c770474b15b9f88051f857989215ba2075",
+      "bytes": 31952,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/contexts/tax-fiscal/india-gst-accommodation-classification.ts",
+      "git_blob": "647357a5ff9e6289552859a04cbdd84c058516ac",
+      "sha256": "26d044616f376e264094cccb5b946f01b00e35b095cf8083a75a0c6cf950feb8",
+      "bytes": 13112,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/contexts/tax-fiscal/india-gst-accommodation-component-family.ts",
+      "git_blob": "08363cdab69ae92c19088a1c93546d634e862423",
+      "sha256": "5f63b6ecb25756a531e776f640b3a4e0a7d55ae4ca43f4abf73270056527eb6d",
+      "bytes": 16138,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/contexts/tax-fiscal/india-gst-accommodation-final-component-tax-recorder.ts",
+      "git_blob": "323596e0e3c28a57811f79ded110bf6e23cecabd",
+      "sha256": "0dac5976b52bf05739c087527808d60e20b2df008a10ac38eccefcfc5a4fc8c9",
+      "bytes": 12079,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/contexts/tax-fiscal/india-gst-accommodation-final-component-tax-semantic-route.ts",
+      "git_blob": "8be5fb27842c1921e102a878ad428ec0a01c8c1c",
+      "sha256": "0dc9c5870eda7cf5266fdcb95974bfcde1258f1a4c23fc713d12aa455d7c03bc",
+      "bytes": 22043,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/contexts/tax-fiscal/india-gst-accommodation-final-component-tax.ts",
+      "git_blob": "17290346f4d940bfdb254ccbed18920716d7eb4b",
+      "sha256": "8d65c3699031b7eedc17c41a6e5502d76dfb4926103388e4365cf0ef0ee0faa3",
+      "bytes": 20725,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/contexts/tax-fiscal/india-gst-accommodation-final-valuation.ts",
+      "git_blob": "8e4e86fd07ea1c8115e8e9b78fc38f14c132a6c6",
+      "sha256": "d3d144bb00125f2224da569b78230f4d2d50e20caaef18f34438b068bee3dbf1",
+      "bytes": 24796,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/contexts/tax-fiscal/india-gst-accommodation-historical-resolution.ts",
+      "git_blob": "e0b3fa2129787b5ff59dee83b47bdfd70ea50419",
+      "sha256": "dae35099b26f8d9ee771a1d4ffb346b13300c5779fa791ab426b589fb095abd6",
+      "bytes": 16238,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/contexts/tax-fiscal/india-gst-accommodation-invoice-issue-date.ts",
+      "git_blob": "b0b4246b7ea5d10f4b5447c56f3b5cb212e05d44",
+      "sha256": "f29fd6f8373e302468af0c97ee1c053976fc950a42c90de61e8d27236cc3ce10",
+      "bytes": 21636,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/contexts/tax-fiscal/india-gst-accommodation-invoice-source.ts",
+      "git_blob": "180d112fcf70ceee55e9f2110d76b989b936d90e",
+      "sha256": "01d477613089223f552d8e7613cb8d4fb7f00221df9d9b3b13f387288688590d",
+      "bytes": 48898,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/contexts/tax-fiscal/india-gst-accommodation-invoice-timeliness.ts",
+      "git_blob": "4ea4cb5f91335311e9a40f2c01f23386d9c70490",
+      "sha256": "d19467870935db9d4ed4c294325b12a94dae394e2c26b23e9cb28898c4d1e710",
+      "bytes": 19815,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/contexts/tax-fiscal/india-gst-accommodation-levy-component-identity.ts",
+      "git_blob": "8b141955d0fc62411bd47c61e943bf56b87977c0",
+      "sha256": "e8aeda8da82f06e50c62ab9517a22b0426c7cead1e8b6916f69df03a39c32202",
+      "bytes": 7544,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/contexts/tax-fiscal/india-gst-accommodation-levy-component-rate-schedule.ts",
+      "git_blob": "21832e692a5a893892917d6d54e19e41bca5d1c3",
+      "sha256": "9982d88bb406de201aefd103a65d1f7a14a95cd4f984625325fe037a5104fa96",
+      "bytes": 10255,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/contexts/tax-fiscal/india-gst-accommodation-levy-input-bundle.ts",
+      "git_blob": "56fe7f8beff5a9a9c4a5d0295056ea0a5e64bb42",
+      "sha256": "7416ada02edff54fec10c727f02e29b69eeb8014e98f765bcf2a067d63cb8e87",
+      "bytes": 18941,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/contexts/tax-fiscal/india-gst-accommodation-ordinary-regime-evidence.ts",
+      "git_blob": "225143cc59738d3d671fe2f254b3319d43c6668c",
+      "sha256": "4c0474b3db4a4dec54b190fe1813f2706d4580b4edf6647aa3aa9f696b014102",
+      "bytes": 9286,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/contexts/tax-fiscal/india-gst-accommodation-payment-receipt-date.ts",
+      "git_blob": "793f5ec271ec7c8f4555f54945d9040de4060964",
+      "sha256": "f402e9aefbeba8938cc5d871a8eef65eb9553eb34dd02625eb13bd87faa28919",
+      "bytes": 21386,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/contexts/tax-fiscal/india-gst-accommodation-place-of-supply.ts",
+      "git_blob": "20fa6a390acde6e022d8334760eaca9ca2c9081c",
+      "sha256": "5be1769edcee2133d2eec2e1ebbc9d303f069fbbdc584008d3d4bc1c0d849e3c",
+      "bytes": 25948,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/contexts/tax-fiscal/india-gst-accommodation-quoted-rate-applicability-recorder.ts",
+      "git_blob": "db1241f5c0abac063b2ec07f2547c1833c74df97",
+      "sha256": "e6f418360714220d7d2406a3b5a652039c6b1ddeefb30b1366a76b721aef7974",
+      "bytes": 14868,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/contexts/tax-fiscal/india-gst-accommodation-quoted-rate-applicability.ts",
+      "git_blob": "8f6d75a35c8936ccffaed7783e2e578b16879138",
+      "sha256": "8b7f15dcbdfcf878d973642316f9df434160beb6ea49d317a14f2dced6191df1",
+      "bytes": 49409,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/contexts/tax-fiscal/india-gst-accommodation-rate-change-date.ts",
+      "git_blob": "2cf755bb961e7d0a2e7f0353722f75528839b671",
+      "sha256": "917d245b342c39872d3881abe1a3915121f57a3f86496fc9d8b4e7f649f7f5a8",
+      "bytes": 14361,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/contexts/tax-fiscal/india-gst-accommodation-rate-version-pair.ts",
+      "git_blob": "e6b86887e0a526bc634e230d273524a088a997d0",
+      "sha256": "10296fcb500e95910c931d944a6a8f5e0703e244e956aee6008c649ac2c34cc9",
+      "bytes": 22389,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/contexts/tax-fiscal/india-gst-accommodation-registered-state-comparison.ts",
+      "git_blob": "1a5598cd8cbb37fa5fbd099f50ced840c5da23c2",
+      "sha256": "cf54b52bccf7ec59754b014d5e24e61f5b43e79887c8a70dd889dda56e4b1507",
+      "bytes": 18171,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/contexts/tax-fiscal/india-gst-accommodation-service-provision-date.ts",
+      "git_blob": "4f94ccf755fad8a93fa3fb4b44ba845b2cdd9ae7",
+      "sha256": "0ec6661ada34201a692ced35108acb1723da6ea632e54e6c64a54e91f96c4afb",
+      "bytes": 16423,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/contexts/tax-fiscal/india-gst-accommodation-source-intake.ts",
+      "git_blob": "6b810b006039efc0d51cd48a2eeef7c16103c1a4",
+      "sha256": "f1b38bc86af96e6ca794935292ae7737830fba96158f016496e010902e96d035",
+      "bytes": 16267,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/contexts/tax-fiscal/india-gst-accommodation-supply-nature-at-time-of-supply.ts",
+      "git_blob": "b795ce9d62fdca76590cb5f5e906d25f0ab06517",
+      "sha256": "3d7920a3cf90b3571f976675cc4d7280952ee3c0435f8f489660297787e319ab",
+      "bytes": 58578,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/contexts/tax-fiscal/india-gst-accommodation-supply-nature.ts",
+      "git_blob": "0e262fe100a8bd6d6912e3219f083e4f5ad44383",
+      "sha256": "2a6b24a109e8224dfaae7a47c5faf7eea655ada63cf042adfcbd76402952ff89",
+      "bytes": 32502,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/contexts/tax-fiscal/india-gst-accommodation-time-of-supply.ts",
+      "git_blob": "dde7f05912ea03f1d36a1d856557182bf9274d16",
+      "sha256": "ce85a06b0c6dd915c93b5efcb4e1eb0ff3d92c146dd4afec18160de9b6fc2ee2",
+      "bytes": 22810,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/contexts/tax-fiscal/india-gst-folio-buyer-candidate.ts",
+      "git_blob": "337516706d20850a8e42830f4a1e519510cc8242",
+      "sha256": "0e410bd039916cd75d08b9a9f8cf50cdce5994256c2995698e509f2f567ec07a",
+      "bytes": 12635,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/contexts/tax-fiscal/india-gst-property-location.ts",
+      "git_blob": "2d9a0972d5c0bc71a3e310c91c17b330fd033eef",
+      "sha256": "a34540ab7c2494ecbfe6bfaef4ccb9beed8b94abf8542b8f4509075704399ca9",
+      "bytes": 8715,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/contexts/tax-fiscal/india-gst-recipient-registration-at-time-of-supply.ts",
+      "git_blob": "6d9e0b47fbe5aa6680f4f306f510055b5400bb58",
+      "sha256": "4d0652e295690b25fa0b45062ee18856e12dc31b66d666e45550626ba30c8420",
+      "bytes": 42252,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/contexts/tax-fiscal/india-gst-recipient-registration.ts",
+      "git_blob": "ffd8a2982c196b0cc0ce55e0015e2d4cc9b6b046",
+      "sha256": "6a367280bf2f22b808253ef08a5df3960114b88c5b3039c158fb48993f1ad9f5",
+      "bytes": 11695,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/contexts/tax-fiscal/india-gst-recipient-sez-status.ts",
+      "git_blob": "d4a7327e88c02a3bd1bcbcb73a42d12b8dd39bd1",
+      "sha256": "515606293c4bbd2363bfa7b9885177b6a7a0d4591f388020a80b7db089b04612",
+      "bytes": 17946,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/contexts/tax-fiscal/india-gst-registration-at-time-of-supply.ts",
+      "git_blob": "e8732964c3a50060d16739733c1edd36f3937edd",
+      "sha256": "4d1ec3f63a1f8e729cfec70a17b8429d71eca34ca19e4fdf65a90e010174c7c3",
+      "bytes": 43482,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/contexts/tax-fiscal/india-gst-section14-payment-proviso.ts",
+      "git_blob": "0b04ed4b78e64e01cd78a881f269f736e68ce90b",
+      "sha256": "745ad1aa2f62b86f83710b1ed9dd766e4b729358cd454f0cd43663b3f1d2945b",
+      "bytes": 4708,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/contexts/tax-fiscal/india-gst-section14-payment-receipt-date.ts",
+      "git_blob": "d5f47ce1cc18f99e22678e7e4bb62ede330c37d9",
+      "sha256": "9d7147eac21daf9a936fbb278302df8f75d7bb8ef7b0f17a3148d3b3f61d9529",
+      "bytes": 8723,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/contexts/tax-fiscal/india-gst-section14-rate-selection.ts",
+      "git_blob": "2a05003d56665b36306e80e7869772cf983b2382",
+      "sha256": "1b3348c1cbd4344f0af85d93e6c11b8ec767b63e70375fbf94118784dd1214c1",
+      "bytes": 24491,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/contexts/tax-fiscal/india-gst-section14-working-day-calendar-evidence.ts",
+      "git_blob": "b27fc7651e0111f2fef55a3da8d9cc748f1b3bbd",
+      "sha256": "41cbd530b5d3379b7f2a704b61f956e58a79b37acb219997634103268ec442eb",
+      "bytes": 8648,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/contexts/tax-fiscal/india-gst-supplier-registration-status.ts",
+      "git_blob": "b95824df2fb1a2db45dcf8f6fb28659721562e3a",
+      "sha256": "ae2bcfefcfb46786aee39e317cad7537498a362d12f7c572810525c451387482",
+      "bytes": 18559,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/contexts/tax-fiscal/india-gst-supplier-registration.ts",
+      "git_blob": "39703c4b87774e82d991153f804798b4eaefc1f8",
+      "sha256": "59604d821608e16724e608914501f14e1577930519adb3062c0b52542373ab20",
+      "bytes": 14971,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/contexts/tax-fiscal/india-gst-supplier-service-location.ts",
+      "git_blob": "aa361ddb199f0c6d84620ef608de4fcb00751e41",
+      "sha256": "426d56f8ec44a252960e494605a052f99b0472d21f88039398a369c0aede9860",
+      "bytes": 15810,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/contexts/tax-fiscal/india-gst-supplier-sez-status.ts",
+      "git_blob": "4ffeffe8b629c345bd105d86dcc064be7b0d85a5",
+      "sha256": "a7bc304edfa2ade5205333f60f1489f0971b7ab1fa2f2d83d1b941063e7c4b00",
+      "bytes": 20988,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/contexts/tax-fiscal/india-irp-accommodation-fiscal-action-readiness.ts",
+      "git_blob": "680ebdef9bf238269541304102dd83b98a56f92f",
+      "sha256": "e776f61cc130270258fbe0f2103e821da37f49fe5598980b508453ca96b028dd",
+      "bytes": 20012,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/contexts/tax-fiscal/india-irp-accommodation-invoice-value-candidate.ts",
+      "git_blob": "1f4aae351b76417872fab374d7ba1abfcc70c728",
+      "sha256": "3cee4f51b043717085243a7ee498ba2aab7a35f9f2ebb2f4d0611d09464c47ff",
+      "bytes": 9043,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/contexts/tax-fiscal/india-irp-accommodation-numeric-item-source.ts",
+      "git_blob": "9eb402c35b98bc06fe7fc1aa1b2cbadd773abd55",
+      "sha256": "0348a8d40bf0fb8e3aa23a92c0123f94d8b7b5382d96f7a3b0a984383b21a687",
+      "bytes": 45964,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/contexts/tax-fiscal/india-irp-accommodation-party-details-candidate.ts",
+      "git_blob": "8c165a918c61f776fc8c595cd3ed7253f1682a5d",
+      "sha256": "e37ee60c042ede40344ea3eb3070ac90ea5f9e7db5135bd42e3a566c6354442e",
+      "bytes": 3821,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/contexts/tax-fiscal/india-irp-accommodation-pre-document-evidence-assembly.ts",
+      "git_blob": "c190f4d1c53a55ea1e3315a185a2caaf013b6d1a",
+      "sha256": "743882bd38510681647fed6c8b0bbf659ec2386e767cf27f162193a10bd7e9da",
+      "bytes": 7224,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/contexts/tax-fiscal/india-irp-accommodation-room-night-item-candidate.ts",
+      "git_blob": "3946f92fcbfca347ad6b1b6afd250f0c9736e075",
+      "sha256": "d71cedd58eea2dd8cc9499d92dc0f0e664562e98ff1d928da8f6b84d1e728b30",
+      "bytes": 12240,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/contexts/tax-fiscal/india-irp-accommodation-service-quantity-uqc-compatibility-candidate.ts",
+      "git_blob": "10b96eedf04d88a9431478702b1dc2f97ef32f08",
+      "sha256": "0bd2a43ad09e3a609568cc207aab7d847819ef1f6d4e628a0cb88dab98761c84",
+      "bytes": 7126,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/contexts/tax-fiscal/india-irp-accommodation-source.ts",
+      "git_blob": "fc82850ad6d2a6f0c6996e4b70cc06aaf4f11142",
+      "sha256": "7f3d31d486c7e8e5a234bb364db407cf5c37599a1762e490c4c22a6791c7b66f",
+      "bytes": 22924,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/contexts/tax-fiscal/india-irp-accommodation-validation-compatibility-pre-document-evidence-assembly.ts",
+      "git_blob": "2c41436f8ee518f762018919e4dfd0a8b7e34e70",
+      "sha256": "4c4fb75792f65e16b917d6ba695269baa096226ebfc6d76cfdc1dadcd4ab2643",
+      "bytes": 7840,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/contexts/tax-fiscal/india-irp-buyer-details.ts",
+      "git_blob": "1437164300a684e2fff03f6ce6fbe0df50bff45e",
+      "sha256": "86b452715bd9175f64903da592b7c6467672ea4ce69470de751742e8254306e7",
+      "bytes": 7083,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/contexts/tax-fiscal/india-irp-issued-wire-candidate.ts",
+      "git_blob": "8af5c41e2c69771e75d90b16ab9316e94e2c731f",
+      "sha256": "d4b42f8be43ca228a40ede6ae75b4c6851d2d0a92b8f55d58c09fe5041a3da82",
+      "bytes": 20257,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/contexts/tax-fiscal/india-irp-ordinary-b2b-transaction-details-candidate.ts",
+      "git_blob": "c5a7989c2235caa863abba11d6b76e239e994052",
+      "sha256": "493e2a0fa007a24088b5723acb2aa1666437c109fdcba056d568baadc1501937",
+      "bytes": 3246,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/contexts/tax-fiscal/india-irp-ordinary-registered-b2b-supply-type.ts",
+      "git_blob": "7634b9bcf6c7a19ac6a111f07bf45c2cde9d798b",
+      "sha256": "c0764dc87d5f1cb39fa9d15f3e740e61aa4462418271b26ee715b92fb161fc1d",
+      "bytes": 4398,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/contexts/tax-fiscal/india-irp-provider-configuration.ts",
+      "git_blob": "e33182b96aa6572164d83dd8080065b1447d79e2",
+      "sha256": "ff96acd53b1bbd9b063193094c56dfef0a045d1171afb0b851360f6b0919f92b",
+      "bytes": 14188,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/contexts/tax-fiscal/india-irp-seller-details.ts",
+      "git_blob": "1cb6255a9c05c55f577139bac4db21bd0127f9b5",
+      "sha256": "bcd8606d9e1c37315d769088f1c9ecfd4b11bb7711bb322f0404c55b954a53fb",
+      "bytes": 8177,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/contexts/tax-fiscal/india-irp-signed-receipt-binding.ts",
+      "git_blob": "8a38415f5c50609888be4cd1553fc94fae8c0396",
+      "sha256": "107b56557700b8728d250bb74d44b2031656bdc428f184caac6a1459061d066d",
+      "bytes": 28533,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/contexts/tax-fiscal/india-native-credit-delivery.ts",
+      "git_blob": "53bcbeff53acae23c93ac18a12da7afae2cf8276",
+      "sha256": "62297e467d972353a16ccb319a41de290128e7c54c477d2ca3b31c38c8cf91e1",
+      "bytes": 6772,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/contexts/tax-fiscal/india-native-fiscal-credit-note-list.ts",
+      "git_blob": "b9bf3331f28d28113197759959cc3ffdf4acc5ee",
+      "sha256": "18939fd603bc3bbacf16710df6b738c8e83eb77f69db0da9d0590bcb5d048e38",
+      "bytes": 17443,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/contexts/tax-fiscal/india-native-fiscal-credit-note.ts",
+      "git_blob": "5215cb885d0821f9bef7fc7cd6270364aaca6aa1",
+      "sha256": "dea55d4f96b34f582c6932612374cae41265f89c48d580c2640b7f72f832fb70",
+      "bytes": 24121,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/contexts/tax-fiscal/india-native-fiscal-document-read.ts",
+      "git_blob": "a585a651066217b2002a647f6bc614a9685261b8",
+      "sha256": "d759f04513b5718292fb6eef7fdd9c49769944fd07e84a6ae7596374ed1f0d24",
+      "bytes": 17884,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/contexts/tax-fiscal/india-native-fiscal-invoice.ts",
+      "git_blob": "63a8efded8dd42882b5958f2f682592bb531ea19",
+      "sha256": "736165950d286040ac317a824fb3dc48594d7fb04fa11cd4861ba6e99c7eb874",
+      "bytes": 68993,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/contexts/tax-fiscal/india-native-fiscal-operator.ts",
+      "git_blob": "b600a4e0d193d1d8e010b1914bcf684badffd1ec",
+      "sha256": "a0fb299a10399e2590523678a7a1992df7b1ee4cd2b2bd6ee80bc2aeffc92e48",
+      "bytes": 23022,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/contexts/tax-fiscal/india-native-fiscal-series-discovery.ts",
+      "git_blob": "45068700a1663c3552c2c5c171b38341712afe3b",
+      "sha256": "e6c8f08a3c981f2ae9a8f300a0837b29143d79bb5ac1b196f1859ab5cc1f09ac",
+      "bytes": 11939,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/contexts/tax-fiscal/india-native-fiscal-source.ts",
+      "git_blob": "565aae80db5b5b82f92e04027c4772953630e984",
+      "sha256": "f25cb6cbc2e199ebd5d1d9cc2c5f92555176a7dc00defad13dce8c024cfac63a",
+      "bytes": 15075,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/contexts/tax-fiscal/india-sez-unit-loa-renewal.ts",
+      "git_blob": "59ac761551de37cbbcd5ba55e036e83fd48cbc97",
+      "sha256": "4e4380179590dd26ec738b763558324e84340134c990b3d8db5f040ff7ee5cb0",
+      "bytes": 21469,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/contexts/tax-fiscal/persistence.ts",
+      "git_blob": "894703d31cd18f2537c8e2ee1dee6390b3190bf2",
+      "sha256": "a7cfe163590a710c6bbc1bd34b569e07c3260454ab0208d7a87f474e4b5ec82b",
+      "bytes": 15400,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/contexts/tax-fiscal/posting-plan.ts",
+      "git_blob": "88520c692acc7527ff2aea1e8b99050549a2db81",
+      "sha256": "e0169f6eb6f4de65f7a11d603c36be7f44489cc6877142644c073512ebde1818",
+      "bytes": 5224,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/contexts/tax-fiscal/quoted-holds.ts",
+      "git_blob": "6759bb244f205432412f7287512997804f50951c",
+      "sha256": "5707eb8ec1cbbfad9f7d86b6f81ba8a5190a705ba23a4d4c6763a9eeb91f747c",
+      "bytes": 33652,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/contexts/tax-fiscal/resolution.ts",
+      "git_blob": "c98a0454b30a92ef57da9eb9a14cab5e871265b7",
+      "sha256": "b78ebece187180112d243102dc7a9a530b82c528a9fa2b35f5e425de3cdaca94",
+      "bytes": 20978,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/contexts/tax-fiscal/semantic-route.ts",
+      "git_blob": "7bf00094a9e439a3dfcf35446e85d697d6e5974b",
+      "sha256": "7af472cc5636453fe8728b4dfd4bd488d18aa314b973ed2d2ed9dce2517db1df",
+      "bytes": 11841,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/contexts/tax-fiscal/signed-largest-remainder.ts",
+      "git_blob": "e08ba318b72f6e397003b87629c7ff403666df09",
+      "sha256": "cdce44694ea6069de2427b4d4090f00986855c8d88b53da7b9f94509e9f5f758",
+      "bytes": 3191,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/generated/review-coverage.ts",
+      "git_blob": "5a641e91cb68e0b6b017d6aa1d0704850dba10ad",
+      "sha256": "c08a767eeb577642f81046e49cbb25a876827c0475f4803186d1da1179a3de63",
+      "bytes": 572,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/http/client/locanda-detail.html",
+      "git_blob": "e446e05e293ed1452f9d57dab7556c2b793b5592",
+      "sha256": "964aae732f0150a867f170b1ab426de4bb327c052f3a48ac07b7ddad6aa6638c",
+      "bytes": 2329,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/http/client/locanda-guest-program.css",
+      "git_blob": "c53d38895ed3e0d6332e1e66fd0a6b46bbfe12c3",
+      "sha256": "face87dfcd6c7155614f6ffd57868074fdfc1a37bb2c0179502516da06b9b55a",
+      "bytes": 1714,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/http/client/locanda-guest-program.js",
+      "git_blob": "1a7d5d10a354ca2aed10591cda6f07393cf2138a",
+      "sha256": "79c0d6a341cedbfb5b89f04682c20b6c73f4aee809b6d351470ca87a7f7596fb",
+      "bytes": 2132,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/http/client/locanda-map.css",
+      "git_blob": "76f69dd48c5dbaa71e01c342b95b010345e9673a",
+      "sha256": "03bfb62eb3eeab4b783cba5af6787d9a392c2665caa0df3268abfe9574f9ff10",
+      "bytes": 2533,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/http/client/locanda-map.js",
+      "git_blob": "1f4869147f68de7df73683d96ec1816f472dd820",
+      "sha256": "1c751e8cd9e40ff314f800c61f011a740599329587e883e18f53d2b47e7601ce",
+      "bytes": 2316,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/http/client/locanda-results.css",
+      "git_blob": "0a53385adfd16243c10e361d4059e2b902b6c16f",
+      "sha256": "7483389cc54d70553cd77a97660110813818f8289a78cb3affcdf807fe236ca2",
+      "bytes": 2810,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/http/client/locanda-stays.html",
+      "git_blob": "2080faeed6eb946998731b8ae93573c28f218568",
+      "sha256": "f3c270c35e7c377bb5b62b4a6430e3327ea9dc6e2fcf5c7e5f662a0b69a62e90",
+      "bytes": 2268,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/http/client/locanda.css",
+      "git_blob": "d21762b3ee12a57c13d24e4eb35ef35bfc62924d",
+      "sha256": "fd2e322a35ba8faf881a1dc5e16d378f5d6280472d6fab37ad74891d9b4ffa36",
+      "bytes": 9218,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/http/client/locanda.html",
+      "git_blob": "a492c6564822589c25a54853165ecf9104cf1ad2",
+      "sha256": "49cf7d4651a57b86bd1ce64c92b22e3702dadf67bc10eb0e1785e2e6b3b69a77",
+      "bytes": 11237,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/http/crs-search.ts",
+      "git_blob": "0b25bd0b38afc1f027c986ecdf398f8a6e8a3808",
+      "sha256": "89cd679498fd3aa0f2271c85e5ef79c1e0d9af847355bed2fcc533944aeefcf1",
+      "bytes": 10832,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/http/departure-services-query.ts",
+      "git_blob": "426961816969225a4404a9bb44219937bd4372bb",
+      "sha256": "cdacc720d2187eee35a3fca39d8d138cd627d26250478c88e88e5712076a8a09",
+      "bytes": 1004,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/http/extensions.ts",
+      "git_blob": "55945ce8a2b6cb76ed803c13943144722aa2f586",
+      "sha256": "c0f28d5e8b48e41aa33f2632f544be047916927b4c3b576d91bb5c26abe2c9fa",
+      "bytes": 3995,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/http/guest/guest.css",
+      "git_blob": "5a95d0c0395b330085a57912dac75f7c4a6276df",
+      "sha256": "ab89453f4c266ec56cc6033bba847424da31628ac533a83afd95f78e6692f269",
+      "bytes": 1270,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/http/guest/guest.js",
+      "git_blob": "dbcbdf4bb142938999e3fabc21bc0f34ecb28be5",
+      "sha256": "c1edd35ddb82a8493729010140b4f695253ccd520e3ace8be2d82e60aebea80e",
+      "bytes": 2106,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/http/guest/index.html",
+      "git_blob": "15a569ec64e9e2349b9f959377aa576737bec4e5",
+      "sha256": "73303fa87cd160d482cd44174e7592570e941911d3a096df99a2d0541362ef25",
+      "bytes": 883,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/http/operator.ts",
+      "git_blob": "8d04896e94757038d3a28dbf7d7196c58a7cefb5",
+      "sha256": "9fca52e6bb751c4ea184e726cb98ee508c6c7712b8792c2d54b9333d03dc35e8",
+      "bytes": 401768,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/http/operator/index.html",
+      "git_blob": "3215dd91005aa0b8c72ce95879d0454730699aaf",
+      "sha256": "d33028c94571b0f053d169b4e84163774d7c4616905c27c6ade5769723e3fa48",
+      "bytes": 147313,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/http/operator/invoice-print.js",
+      "git_blob": "322fe1f5fd195d1c7db710d970b37d78097e569c",
+      "sha256": "895803a6d7cc36df779dfa6b5e126ddcc1b441578fffd0c3f7a95c8e0f944ee8",
+      "bytes": 33970,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/http/operator/invoices.js",
+      "git_blob": "ae981b6191ce4f524d63d2aaf8db84efd588af7e",
+      "sha256": "dc6d4ec389d0b326f2e145f977f94aba50dab62bce2992c69a7bb8d49821ee12",
+      "bytes": 93880,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/http/operator/operator-deposits.css",
+      "git_blob": "fbd2e6417c438cf10b95f12ba2dfada13e69c647",
+      "sha256": "c9a3d83bebb62d31c7a99d5009fd43bd8f7476de9802019537f95254fc608be8",
+      "bytes": 963,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/http/operator/operator-deposits.js",
+      "git_blob": "b1bd3aaf015d63c55bbb7497290a13d4d610dd98",
+      "sha256": "8a78f53dcce608faae2c8d669e0973195cb8738920a4ffaedda5df07b0ebc58c",
+      "bytes": 11626,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/http/operator/operator-interfaces.css",
+      "git_blob": "794e5e1ae22578b9d85b8943e93dc1f63f11e103",
+      "sha256": "70a0a176b7d99d7f6c36380e0674b5dddfb2288ba7184f9a1acf3d4c8a9118f0",
+      "bytes": 75137,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/http/operator/operator-interfaces.js",
+      "git_blob": "e11d81db9d35a844dcfb5d253edc26006426ad0c",
+      "sha256": "0ac3b2ac02a402de2b3a353c79b0d964e4f39010a60b6c3ce3fe741b386528b0",
+      "bytes": 9231,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/http/operator/operator-layouts.js",
+      "git_blob": "3b4d85eac6bea279e0591d8004158eda57fc2e36",
+      "sha256": "4fca918dc62320b22e9b6c020c0bb24a276a83a270850f8a77fed86388d37975",
+      "bytes": 11635,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/http/operator/operator.css",
+      "git_blob": "8e156738826542eeb4373308b468410fe8ca310e",
+      "sha256": "7da08fbd337c10a1e4a798174e1771089e64e3c2b7dc8b4276f5616c756bd779",
+      "bytes": 427987,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/http/operator/operator.js",
+      "git_blob": "9f1a98d531f5013025830dcfd4af0636dcc82706",
+      "sha256": "b8ba04744f39591d343e08774bb7f52b2994261d9528718e26b27ea1602355e8",
+      "bytes": 757371,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/http/operator/vendor/ASTRA-VISUAL-ASSETS-NOTICE.md",
+      "git_blob": "ca3f861214a44c64a78aa0c046d55fb76eb0a100",
+      "sha256": "2dcfea8e373c67dc914afc4ae6687b5e04ecbf9a1891aab9958602f96be6e711",
+      "bytes": 5566,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/http/operator/vendor/QR-CODE-NOTICE.md",
+      "git_blob": "a004d0604d3a3bb398ffed271d8695b0cebfccc6",
+      "sha256": "49dc6a84b301469ac30cba28f296002fc6db0043094533bbd1ec444b0c0b9284",
+      "bytes": 2016,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/http/operator/vendor/phosphor-core-2.1.1/LICENSE",
+      "git_blob": "78c9810819776e135d314adc0ff26eda7bec8b38",
+      "sha256": "b5b1f1da112d18ea2147decfd48ddc1bf2b5aeb6c265381579340e95b15a2bb2",
+      "bytes": 1071,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/http/operator/vendor/phosphor-core-2.1.1/phosphor-nav-regular.svg",
+      "git_blob": "d94f7539d056eb2ed47ff1445ac1f6eafdff5f90",
+      "sha256": "1fe873c70f4a2e3734ffa1118a078e0b1ac986d01499eb462b788acfb81358c0",
+      "bytes": 7161,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/http/operator/vendor/qrcodegen-v1.8.0-es6.js",
+      "git_blob": "b214a7c675f532e907a9fba880737590737cdb81",
+      "sha256": "c6599a62397cf9cd70570c5f74b0f9b962eb21fc3444aadb440efbfbebe0d1d8",
+      "bytes": 45358,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/http/operator/vendor/urbanist-v1.330/OFL.txt",
+      "git_blob": "43172385b412f188cf84e988b04188b269ac89d5",
+      "sha256": "502f01e7ab22276fa50b68f6e4b9db36d2928e08de227484ec5f430cb0d9defa",
+      "bytes": 4385,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/http/operator/vendor/urbanist-v1.330/Urbanist[ital,wght].woff2",
+      "git_blob": "df09e29ebd42465ff98213e31667577c0398fea5",
+      "sha256": "464493d71c6645dd5c6c4c2bb3b1620011283bf0ff06ae7dd61fa983d25bc628",
+      "bytes": 58004,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/http/provider.ts",
+      "git_blob": "d474f17e7eb56ed0cba09816ce30e0b65f64f769",
+      "sha256": "d94b8530862a638db411e6e1c612649dc9b6f8585378b4cde9242316307ef99c",
+      "bytes": 15080,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/http/provider/index.html",
+      "git_blob": "e176ca82e44960d2696b89da3e3df2cc092590a8",
+      "sha256": "9ef51f597813975263f2bb32e59217252dc1761cc6d70dd823b6b8b8c2c45797",
+      "bytes": 992,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/http/provider/provider.css",
+      "git_blob": "cbe05ce2d9ad7af8bbb9982256c7819126b6a9e9",
+      "sha256": "818e2d71d42d352e34cd0218b34bf1dee285f453aa039fed9a1af05914664b29",
+      "bytes": 710,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/http/provider/provider.js",
+      "git_blob": "b15e1b48be14835582d691396b4a21d00f201dc9",
+      "sha256": "3f175a3787caa204f6500caf941f9968a83a9d54fd4f60052bdbce38229248de",
+      "bytes": 867,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/http/security-headers.ts",
+      "git_blob": "3e512745485dda1f9e0786aa3c8623c09b25dfea",
+      "sha256": "5b37aab54a740fa0d2f35e2c26138f6207f627bc68199b679b2d02eb56a9a1e9",
+      "bytes": 625,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/kernel/approval.ts",
+      "git_blob": "2ffd1af6e20bdf49c62aac8e5613d2b0ce8caa18",
+      "sha256": "5a63d324b8f9d476ad2da2c25e7c3ad40a9505a998f0cd5c28c1c79667ce3937",
+      "bytes": 9825,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/kernel/audit.ts",
+      "git_blob": "439b94502e21e892f0cc53554a290bf7d32b5169",
+      "sha256": "3362d099b5b21ad9fc023cf28597b46132f4c3a2e5c22c2b8b2a09ecc146e79d",
+      "bytes": 922,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/kernel/build-info.ts",
+      "git_blob": "47226d17273f8fcb7ce0b918089ff23b978c0019",
+      "sha256": "74fefdd3972fd8d569c37254bb4bf770857d6f61c0ccb47306b3bd61292d7269",
+      "bytes": 47368,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/kernel/db.ts",
+      "git_blob": "53f15066ebc7a38570d84137f0fd9e576b03a29d",
+      "sha256": "105436435adf2727d7e85713951f8def9f206f1d22d609880221c32cda55265b",
+      "bytes": 4510,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/kernel/event-bus.ts",
+      "git_blob": "bbd2cf87cff0ebc34ba8779b47c2461d40a7e3cb",
+      "sha256": "ab89c912a4491b8a4763c4f02ddd1628da30426abb434603ece5cad7993e9d05",
+      "bytes": 1505,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/kernel/extension.ts",
+      "git_blob": "e94875e7b21447a32cf30b4ce90b0beafea1efaa",
+      "sha256": "499317848d3f92bf6ff44ca574089ecb5ff9efec29108101038bafb97e4f6e16",
+      "bytes": 20404,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/kernel/fact-log.ts",
+      "git_blob": "bc29ddba8fc99c73d4228bb2b0271917ab283fba",
+      "sha256": "297a39c9bf63d38ac80910a668a66830641bf5eebdde96061083b2d0ba4ee7e1",
+      "bytes": 3169,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/kernel/idempotency.ts",
+      "git_blob": "4ce44e200141e1b58bc16e3d32a36a03348d8a3f",
+      "sha256": "5846ed4e12a6130a27e1c56f38e64d96540b5dde74b142d5b34cd983c916d03a",
+      "bytes": 7280,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/kernel/index.ts",
+      "git_blob": "87bbe06c4e20a426963a65befef06e645f586254",
+      "sha256": "f0f6976982ad5728c578fea1cd04a5fdf730ff197a8c9f52d5d42f3f8d51feaa",
+      "bytes": 1983,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/kernel/outbox.ts",
+      "git_blob": "8127ba53a23fcd021c4188bf68366bb4571ddc53",
+      "sha256": "dfff59cb3be5f33e541f3f0516a91e6489ceb7e6323a56bd34ec59ed50a2d36a",
+      "bytes": 16443,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/kernel/relay.ts",
+      "git_blob": "2425bce8eb1d11b4316d45a7424b2f13bee86a2c",
+      "sha256": "747118ed9edab3bc5d49e2c81c4e0a9fcd9bbafc353913a91a90eb4c5cbc84e5",
+      "bytes": 3010,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/kernel/tenant-context.ts",
+      "git_blob": "1d0f178e27543cd0a029b64e378e4cd1fb122359",
+      "sha256": "10bf9608000f6df8788ca2b89c9d679de51dfe1f18bb4a21377a8aa61ff5a0a7",
+      "bytes": 1418,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/overwatch/index.ts",
+      "git_blob": "6ea278c82bb41f7ba5ba8346d9a607ad559a4fa8",
+      "sha256": "50039ee3745dcf9c06fb1041370a5abd0fae5a0f7334b3e799c8f55ae4937b02",
+      "bytes": 13225,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/project-status.ts",
+      "git_blob": "e7a4d56f385996a3dd4d2ddb359dac9e8f9dead4",
+      "sha256": "dbd33bf2bef8531746b48b41d10f5beb7d3b1b68a00967f63bb4b1de38c4437c",
+      "bytes": 29536,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/runtime/server-lifecycle.ts",
+      "git_blob": "2a2b9ecda0d38f106e9d22757d43166f1c261fba",
+      "sha256": "947001af20e2d5ff171e6f69df98c130334dcb7837bd5c4a967daee160651624",
+      "bytes": 3492,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/server.ts",
+      "git_blob": "a8dffb0036688786d418b9e3d6a88a30bb706856",
+      "sha256": "4e01d5040d7ef8758739541eeb9660390e4031d2317c9de20b78734d195c976b",
+      "bytes": 22576,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/workers/postgres-due-arrival-scopes.ts",
+      "git_blob": "760165430d4ee3aba088c685a6d6f9d42bafbdf8",
+      "sha256": "262e55ed41de97127afb198160b14681b735c5aba98dbf1cf243f286f4e98139",
+      "bytes": 943,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/workers/postgres-due-business-day-scopes.ts",
+      "git_blob": "025cfdd33513bb817a62c5c335abe0a6a023648e",
+      "sha256": "036844fdef43364a3fe0e5bc461503751c37c659f47028abc6ebe8b42bb1b244",
+      "bytes": 974,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/workers/postgres-due-departure-scopes.ts",
+      "git_blob": "7856060c02f167e9fadca159b04c2fb581381fc1",
+      "sha256": "1acb5568002fa10c4f7c44737cf8369e93250a1295edbc8c69f3c23c6883a8a0",
+      "bytes": 959,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/workers/postgres-due-fiscal-submissions.ts",
+      "git_blob": "90ccd4ec6780d552ea43c77c0a6d5a0265dd85c7",
+      "sha256": "2179c057cf72407d4971beb545a7625b7354bcc3d2b4ab6ea3fd42e5bffd185c",
+      "bytes": 4818,
+      "kind": "exact source"
+    },
+    {
+      "path": "src/workers/postgres-due-hold-scopes.ts",
+      "git_blob": "f977468216e4f2803976d74e8524310e3ecc6f28",
+      "sha256": "4c33f78382b509ea11d88abd82f4fbe32518107fdb9c17471bf471fe6c93553d",
+      "bytes": 898,
+      "kind": "exact source"
+    },
+    {
+      "path": "public/yellow-next/assets/EcosystemHub-Dj4wGSrs.js",
+      "sha256": "59dd959a51a7e3aaed352da085f4ed5c5636ad89c92ce15c2eaba252788a26a9",
+      "bytes": 43040,
+      "kind": "fresh Linux Vite output from exact source"
+    },
+    {
+      "path": "public/yellow-next/assets/FinanceWorkspace-CzWbLso5.js",
+      "sha256": "40ca81721de93b8fde66ba8227c192b273d6e5b734ef20b195ec6704e7b750ff",
+      "bytes": 58304,
+      "kind": "fresh Linux Vite output from exact source"
+    },
+    {
+      "path": "public/yellow-next/assets/MarketIntelligenceLab-Dz4OOulJ.js",
+      "sha256": "9e1058d9ace494774d489296399f0fd4d18a29c2ef17799bcc9e9e475dda178d",
+      "bytes": 9893,
+      "kind": "fresh Linux Vite output from exact source"
+    },
+    {
+      "path": "public/yellow-next/assets/OperationalHub-D9uspKmJ.js",
+      "sha256": "19d6b4041b6a628f3b40df064130720fe0e03e5ce223e1c8e889ef8b376db63c",
+      "bytes": 16319,
+      "kind": "fresh Linux Vite output from exact source"
+    },
+    {
+      "path": "public/yellow-next/assets/OptionsDrawer-ChWqF8L8.js",
+      "sha256": "c5daf91df5165c768aa5c32d31b54e6c8a06d694557b4308d9ca4b9ce0cff9c3",
+      "bytes": 1661,
+      "kind": "fresh Linux Vite output from exact source"
+    },
+    {
+      "path": "public/yellow-next/assets/PropertyOperatingModeCard-CMwwEElo.js",
+      "sha256": "582abdc6692aad2c5ce1ccf17c74559d9205bcf502e43e67827a63cd734c8c2a",
+      "bytes": 8614,
+      "kind": "fresh Linux Vite output from exact source"
+    },
+    {
+      "path": "public/yellow-next/assets/PropertyOperatingModeCard-DjTS7HUv.css",
+      "sha256": "dc7047068a6034676cf9549e959a48a5efc0649037f7bad1d7f87fa07aaa194b",
+      "bytes": 4130,
+      "kind": "fresh Linux Vite output from exact source"
+    },
+    {
+      "path": "public/yellow-next/assets/ReservationWorkspace-BVdbMncE.js",
+      "sha256": "f013ee826bcd0573490e68489d19a23214ff7b5b10bd74512152c97722e3474a",
+      "bytes": 151289,
+      "kind": "fresh Linux Vite output from exact source"
+    },
+    {
+      "path": "public/yellow-next/assets/ReservationWorkspace-GJ2ReXAQ.css",
+      "sha256": "c5091fa136d2f7f80cb6ff91867f504bcc4b27db09cc4c7596f1d367f390a562",
+      "bytes": 2375,
+      "kind": "fresh Linux Vite output from exact source"
+    },
+    {
+      "path": "public/yellow-next/assets/StatusBadge-B-AWhDdX.js",
+      "sha256": "5ad01537d778b4b731abf83436a7a976cde1922af3b5ab0048e8f6ef77de7d58",
+      "bytes": 2048,
+      "kind": "fresh Linux Vite output from exact source"
+    },
+    {
+      "path": "public/yellow-next/assets/index-Bcg5hvwy.js",
+      "sha256": "e9a0a10c3651bdb88a80fd43df307881477e541397308486befb2a689a5864bc",
+      "bytes": 1133,
+      "kind": "fresh Linux Vite output from exact source"
+    },
+    {
+      "path": "public/yellow-next/assets/index-D1zeL5we.css",
+      "sha256": "8c7a72baba49403e8f137d979b23eef3e9f698dae5c6ed21474a31665ba806ca",
+      "bytes": 145295,
+      "kind": "fresh Linux Vite output from exact source"
+    },
+    {
+      "path": "public/yellow-next/assets/react-runtime-CqoVAshB.js",
+      "sha256": "91f798f4f07596201a2b0d974c125e9b8f06723b1b09c32c44ceb2a9f8a8f2dc",
+      "bytes": 210629,
+      "kind": "fresh Linux Vite output from exact source"
+    },
+    {
+      "path": "public/yellow-next/assets/rolldown-runtime-hePW80VL.js",
+      "sha256": "580ad8c58061a4dde99bde0a56905e382f0568516ee2f5b84dbfb52085709021",
+      "bytes": 716,
+      "kind": "fresh Linux Vite output from exact source"
+    },
+    {
+      "path": "public/yellow-next/assets/vendor-CfgmVNC9.js",
+      "sha256": "def004b325205057b4b60539127f110849818e4e018b994e033697ccdcea96c6",
+      "bytes": 13644,
+      "kind": "fresh Linux Vite output from exact source"
+    },
+    {
+      "path": "public/yellow-next/assets/yellow-app-BHbMVcCq.css",
+      "sha256": "a29b795ff0904ccfbcd3ddcd8a0813caa52dc23ba6d2e880a07fa0fb5da452a1",
+      "bytes": 2151,
+      "kind": "fresh Linux Vite output from exact source"
+    },
+    {
+      "path": "public/yellow-next/assets/yellow-app-fcIy6a2a.js",
+      "sha256": "9de6cb44482aad75d39b28418e471b75dca26d56a6a8735f2b9664603ce5d898",
+      "bytes": 393930,
+      "kind": "fresh Linux Vite output from exact source"
+    },
+    {
+      "path": "public/yellow-next/index.html",
+      "sha256": "4337e1f69acb586f93f18b339b3c14837a938bfd2f6df812ea735f064654b5c6",
+      "bytes": 852,
+      "kind": "fresh Linux Vite output from exact source"
+    },
+    {
+      "path": "public/yellow-next/yellow-next/assets/EcosystemHub-EDFkSayR.js",
+      "sha256": "298ad7970ada6542b8bb6e01b8272131fb9161798908dab3bee09efec570fdc6",
+      "bytes": 43041,
+      "kind": "fresh Linux Vite output from exact source"
+    },
+    {
+      "path": "public/yellow-next/yellow-next/assets/FinanceWorkspace-CXh0JO34.js",
+      "sha256": "a91d8b2d74baacd003f7e7ceaed114467361e1aa2d935047892c72dbb6b52edf",
+      "bytes": 58366,
+      "kind": "fresh Linux Vite output from exact source"
+    },
+    {
+      "path": "public/yellow-next/yellow-next/assets/MarketIntelligenceLab-BCj8VG4l.js",
+      "sha256": "0d87ffd8b0873c0db92a151af0e49e544b0c0046954174c0c20b51e4737ea2d4",
+      "bytes": 9894,
+      "kind": "fresh Linux Vite output from exact source"
+    },
+    {
+      "path": "public/yellow-next/yellow-next/assets/OperationalHub-DyYEhd6J.js",
+      "sha256": "cb027731dadf38ef6f868ce268b02c9ce412dd7541ee83bc11079c003775b79f",
+      "bytes": 16353,
+      "kind": "fresh Linux Vite output from exact source"
+    },
+    {
+      "path": "public/yellow-next/yellow-next/assets/OptionsDrawer-BJ5GciDZ.js",
+      "sha256": "389fe4bc6f8bd9dccafcc5ac60b3f47ea5426facd6b934b3f560ffa5de15b2d0",
+      "bytes": 1621,
+      "kind": "fresh Linux Vite output from exact source"
+    },
+    {
+      "path": "public/yellow-next/yellow-next/assets/ReservationWorkspace-CuqJRPi9.js",
+      "sha256": "30be12db5c781046ae11059d0d2f748e4f406726ea88eb3caa2d5e8268b97245",
+      "bytes": 139661,
+      "kind": "fresh Linux Vite output from exact source"
+    },
+    {
+      "path": "public/yellow-next/yellow-next/assets/StatusBadge-Dav-a6et.js",
+      "sha256": "b8d6bd6d8713f3b8b16d7a277cbf4cb2f207b772df01540f13e138ec051028a1",
+      "bytes": 2049,
+      "kind": "fresh Linux Vite output from exact source"
+    },
+    {
+      "path": "public/yellow-next/yellow-next/assets/index-BZRdwTST.js",
+      "sha256": "5c8ee1124944872adddf35ef09ddcc048a4dc49248daf7cc4b2e0889a4a3298b",
+      "bytes": 215300,
+      "kind": "fresh Linux Vite output from exact source"
+    },
+    {
+      "path": "public/yellow-next/yellow-next/assets/index-D1zeL5we.css",
+      "sha256": "8c7a72baba49403e8f137d979b23eef3e9f698dae5c6ed21474a31665ba806ca",
+      "bytes": 145295,
+      "kind": "fresh Linux Vite output from exact source"
+    },
+    {
+      "path": "public/yellow-next/yellow-next/assets/react-runtime-CR5VJ85Q.js",
+      "sha256": "b19a9fcdb691b2158d837ef44b93412f755c06ec395363af87850a92252826b4",
+      "bytes": 218840,
+      "kind": "fresh Linux Vite output from exact source"
+    },
+    {
+      "path": "public/yellow-next/yellow-next/assets/rolldown-runtime-hePW80VL.js",
+      "sha256": "580ad8c58061a4dde99bde0a56905e382f0568516ee2f5b84dbfb52085709021",
+      "bytes": 716,
+      "kind": "fresh Linux Vite output from exact source"
+    },
+    {
+      "path": "public/yellow-next/yellow-next/assets/vendor-CNqRKreC.js",
+      "sha256": "0eb9c401f77add137025d435b85a4a9a367b05ddfed7cab756af9e03cae972c3",
+      "bytes": 163303,
+      "kind": "fresh Linux Vite output from exact source"
+    },
+    {
+      "path": "public/yellow-next/yellow-next/index.html",
+      "sha256": "da10492b9833e917a7cbcbdf1f20e20a169592586c98c8bdf986d2aef90a77e7",
+      "bytes": 672,
+      "kind": "fresh Linux Vite output from exact source"
+    }
+  ],
+  "adapter_sha256": "7140f4c927df646cda538e5167c25292363c08154d8354db5763fc31efe929bb",
+  "adapter_change": "only inherited managed proxy CA secret for Bun dependency install",
+  "fresh_ui_replaces_tracked_prior_bundle_only_in_private_build_context": true,
+  "source_worktree_modified": false,
+  "credentials_in_context": false
+}

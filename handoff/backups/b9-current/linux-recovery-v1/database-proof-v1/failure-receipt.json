@@ -1,0 +1,108 @@
+{
+  "schema": "yellow-b9-isolated-db-proof/v1",
+  "attempted": true,
+  "canonical_command": "./setup.sh --db-only",
+  "canonical_setup_attempts": 1,
+  "exit_code": 1,
+  "elapsed_seconds": 8,
+  "failed_stage": "local database authority provisioning before migrate.ts",
+  "safe_error": "database authority provisioning failed: Connection closed",
+  "source_error_location": {
+    "path": "scripts/provision-local-database-authority.ts",
+    "line": 352
+  },
+  "not_reached": [
+    "canonical migrations",
+    "yellow_test fixture invariants 11/11",
+    "seed.ts",
+    "schema-drift.ts --check",
+    "ledger 103 SQL proof"
+  ],
+  "source": {
+    "commit": "b9ba702a074a487feeafa056abb49abcdcf01ba8",
+    "tree": "9446a6735d712ccfd30c6957ea511fb0e3b644cf",
+    "worktree_clean_after": true
+  },
+  "preflight": {
+    "passed": true,
+    "project_absent_before_start": true,
+    "target_ports_free_before_start": [
+      55446,
+      56446,
+      53013
+    ],
+    "authority_file_absent_before_start": true,
+    "pinned_cached_image_repo_digests_verified": true,
+    "pull_policy": "never"
+  },
+  "compose": {
+    "project": "yellow-b9-linux-20261001-v1",
+    "network": "yellow-b9-linux-20261001-v1-internal",
+    "internal_network": true,
+    "postgres_volume": "yellow-b9-linux-20261001-v1-pgdata",
+    "postgres_port": "127.0.0.1:55446:5432",
+    "valkey_port": "127.0.0.1:56446:6379",
+    "cpu_per_service": 1,
+    "memory_bytes_per_service": 1073741824,
+    "external_network_or_pull": false
+  },
+  "resources_at_checkpoint": {
+    "postgres": {
+      "id": "5130f77cbd0a59c0597277791b81746c9ea0aaf30a9a060248fa8864d36e885b",
+      "name": "yellow-b9-linux-20261001-v1-postgres-1",
+      "state": "running",
+      "health": "healthy",
+      "image": "mirror.gcr.io/library/postgres@sha256:77f585114c32fbca283dc835b0596f4e52b51b4c6662d7810b2f4084f60a1873",
+      "image_id": "sha256:c293117fcecda7344b5480222e813b9f673d7abd69b1dd95eff239b768b04f59"
+    },
+    "valkey": {
+      "id": "67030ff2801adf4b5233a67be299565894b9d3ec4a46f4b85ac1c5cb7a3fa24b",
+      "name": "yellow-b9-linux-20261001-v1-valkey-1",
+      "state": "running",
+      "health": "healthy",
+      "image": "mirror.gcr.io/valkey/valkey@sha256:e0eb7c480958d32bdc4357a74bdd70653ae15f2f9b4c93c4a5a9fad1dc471c84",
+      "image_id": "sha256:65d392fea9bf232fc1e77764e3e5e389b3bab658b43e0a861f5696b28801f18f"
+    },
+    "network": {
+      "id": "4dd070dab7bc892a6867ee677bac138dbb7bfd29ff461db9831ca5c82a281fed",
+      "name": "yellow-b9-linux-20261001-v1-internal",
+      "internal": true
+    },
+    "volume": {
+      "name": "yellow-b9-linux-20261001-v1-pgdata",
+      "driver": "local"
+    },
+    "all_resources_nonce_label_verified": "c6b6a40da9e315e43f419ab89f1a2c92",
+    "image_pulls_attempted": false,
+    "application_container_started": false
+  },
+  "authority_file": {
+    "path": "/workspace/yellow-receiving-b9/.yellow/runtime-database-authority.env",
+    "present": true,
+    "mode": "0600",
+    "contents_not_read_or_hashed": true
+  },
+  "private_log": {
+    "path": "private-logs/setup.log",
+    "sha256": "ff4714f697da6997adb73817a5ee15198faecfc41611e00953f5dd51a74c1d2a",
+    "raw_log_not_in_receipt": true
+  },
+  "commands": {
+    "docker_wrapper": "database-proof-v1/bin/docker; unsets only Docker selector variables and execs /usr/local/bin/docker --host unix:///var/run/docker.sock",
+    "setup_environment": "COMPOSE_PROJECT_NAME=yellow-b9-linux-20261001-v1 COMPOSE_FILE=/workspace/yellow-receiving-b9/docker-compose.yml:/workspace/yellow-coordination/release-20261001/receiving-b9-linux-v1/database-proof-v1/compose.override.yml COMPOSE_DISABLE_ENV_FILE=1 YELLOW_POSTGRES_PORT=55446 YELLOW_VALKEY_PORT=56446 YELLOW_APP_PORT=53013",
+    "preflight": "database-proof-v1/preflight.sh"
+  },
+  "source_file_sha256": {
+    "/workspace/yellow-receiving-b9/setup.sh": "d6538b359a0e4598a95a29923827959979f827080fab958f788bffd59689b4b1",
+    "/workspace/yellow-receiving-b9/scripts/provision-local-database-authority.ts": "5f53a9ec70a524cfbfd8c8af6a4064a23d5eac0358de106421af93f9bc3bba4e",
+    "/workspace/yellow-receiving-b9/docker-compose.yml": "af77c20f838ce5716d45801b3ef6d63029c5922bc02177a9a8abd2e0cc602e35"
+  },
+  "actions_not_taken": [
+    "no setup retry",
+    "no seed/schema command after setup failure",
+    "no source edits",
+    "no old service/database access",
+    "no Docker logs read or exposed",
+    "no cleanup/stop/reset yet"
+  ]
+}

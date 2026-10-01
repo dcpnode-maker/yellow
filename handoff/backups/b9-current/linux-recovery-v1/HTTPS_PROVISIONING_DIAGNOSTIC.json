@@ -1,0 +1,39 @@
+{
+  "command": [
+    "curl",
+    "--silent",
+    "--show-error",
+    "--connect-timeout",
+    "10",
+    "--max-time",
+    "20",
+    "--output",
+    "/dev/null",
+    "--write-out",
+    "%{http_code}",
+    "https://api.trycloudflare.com"
+  ],
+  "exit_code": 0,
+  "http_status": "403",
+  "bounded_error_chain": "",
+  "network_namespace": "net:[4026531833]",
+  "same_execution_namespace_as_cloudflared": true,
+  "inherited_environment_unchanged": true,
+  "managed_proxy_presence": {
+    "HTTPS_PROXY": true,
+    "https_proxy": true,
+    "HTTP_PROXY": true,
+    "http_proxy": true,
+    "ALL_PROXY": false,
+    "all_proxy": false
+  },
+  "trust_binding_presence": {
+    "SSL_CERT_FILE": true,
+    "SSL_CERT_DIR": false,
+    "CURL_CA_BUNDLE": false,
+    "REQUESTS_CA_BUNDLE": true
+  },
+  "proxy_values_printed": false,
+  "tls_verification_disabled": false,
+  "edge_7844_tested": false
+}

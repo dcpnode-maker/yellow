@@ -1,0 +1,515 @@
+{
+  "schema": "yellow-linux-recovery-artifact-manifest/v1",
+  "source_revision": "b9ba702a074a487feeafa056abb49abcdcf01ba8",
+  "original_source_revision": "9ff27ad8765dc75ebae9e083d4635c7a9b89fa62",
+  "parent_artifact_revision": "0aac2a98af76483277b7eb6aca923e919c45bdce",
+  "base_tree": "8fa7147ff4793bb40d5ed0c2df5f97cf5325dde9",
+  "artifact_only": true,
+  "files": [
+    {
+      "path": "handoff/backups/b9-current/linux-recovery-v1/LAPTOP_LINUX_RECOVERY_HANDOFF.md",
+      "mode": "100644",
+      "bytes": 9911,
+      "sha256": "25a174d5372e2ff0540af3ef648a0c40ad6d4911f4bc24c90c57f5a8f49e5838",
+      "git_blob": "7316631e6778c4845b5eacff9d2cd9dd4cb85667"
+    },
+    {
+      "path": "handoff/backups/b9-current/linux-recovery-v1/PUBLIC_LINK_STATUS.md",
+      "mode": "100644",
+      "bytes": 6300,
+      "sha256": "cdf57be2e6f86bf28bfc1e415d69d082fc7a77eda16bcfd4c361ae86ec28fc39",
+      "git_blob": "67969b8217e7de0eefdf2e552e615df081c39ce5"
+    },
+    {
+      "path": "handoff/backups/b9-current/linux-recovery-v1/ORDER.md",
+      "mode": "100644",
+      "bytes": 2825,
+      "sha256": "ec94579054752a0286cdf9e73ca3ae869c44851173fc5326625fe1ebd4246ac4",
+      "git_blob": "0de7e10d6a3a78b0d7fe12fe94c04984f62ae1a8"
+    },
+    {
+      "path": "handoff/backups/b9-current/linux-recovery-v1/DATABASE_PROOF_ORDER.md",
+      "mode": "100644",
+      "bytes": 4579,
+      "sha256": "c695cab2fa337fa4cb8c03682404339c219753dfe1a379a39571d8e385c0a626",
+      "git_blob": "782af703391ebb85df1e233f9e0ab502fc16d982"
+    },
+    {
+      "path": "handoff/backups/b9-current/linux-recovery-v1/LINUX_RECEIVING_PLAN.md",
+      "mode": "100644",
+      "bytes": 3402,
+      "sha256": "298c44f8e9af25a25e99a99a3ae714fec9ee835c4bfed1d5b25c68af629282b2",
+      "git_blob": "bcc28f6ac20d345eea92c99a25e607e1fa809eb9"
+    },
+    {
+      "path": "handoff/backups/b9-current/linux-recovery-v1/CI_QUALITY_FAILURE_HANDOFF.md",
+      "mode": "100644",
+      "bytes": 2952,
+      "sha256": "c9f030d4c2ad4338d987c7c6c5d113e38094fb6cdc6d535e90a8f50c69c3268d",
+      "git_blob": "df44799d32b1975efd68a7f2e58ff7289a394d15"
+    },
+    {
+      "path": "handoff/backups/b9-current/linux-recovery-v1/CI_SUCCESSOR_TIMEOUT_HANDOFF.md",
+      "mode": "100644",
+      "bytes": 2759,
+      "sha256": "7bd0525cfa8f941b372a30b0f74c9c461c861899097bdfbb315ad1cca838bcb7",
+      "git_blob": "da634e53fcda016b4228e34fe28f56fe75bb9f0a"
+    },
+    {
+      "path": "handoff/backups/b9-current/linux-recovery-v1/PRODUCT_SOURCE_EQUIVALENCE.json",
+      "mode": "100644",
+      "bytes": 747,
+      "sha256": "e94da1e68ec3ae2eb7fe7b1b41393d2dfc283b6fb48fc03473eef9396c62442d",
+      "git_blob": "566bc3034096b8990aa078c00d575182791ba192"
+    },
+    {
+      "path": "handoff/backups/b9-current/linux-recovery-v1/BUILD_INPUT_MANIFEST_V2.json",
+      "mode": "100644",
+      "bytes": 118782,
+      "sha256": "6ace3aecb185a71dc63ad293b19a2694c0a40649681644320bb5c6e38f096d4e",
+      "git_blob": "a7ba9c95cf81430dc1b66eae8846e3ef9753acd4"
+    },
+    {
+      "path": "handoff/backups/b9-current/linux-recovery-v1/LINUX_IMAGE_BUILD_PROOF.json",
+      "mode": "100644",
+      "bytes": 4079,
+      "sha256": "c1f2f47b158025dbb5a3d11eb34ecb2518f0a0ef0a186d96b1261f733080944a",
+      "git_blob": "a8c1565f6cdd35d377d4e6e4e195ba38f826550f"
+    },
+    {
+      "path": "handoff/backups/b9-current/linux-recovery-v1/B9_OCI_CONTENT_PROOF.json",
+      "mode": "100644",
+      "bytes": 4276,
+      "sha256": "2f800327af873496138e5a0976af67261d250cb05f5be21acfc680d2bb255ef6",
+      "git_blob": "e45b971f7a6a1d6c6630c20126d140040b6478ae"
+    },
+    {
+      "path": "handoff/backups/b9-current/linux-recovery-v1/INDEPENDENT_B9_IMAGE_OCI_REVIEW.md",
+      "mode": "100644",
+      "bytes": 10121,
+      "sha256": "d4f67d7921ac99b70920fa53bbc8afd6133caef72dc7ad038df03c04b6192da2",
+      "git_blob": "058312bfeb7f9e4b82920d52fadfda3786a8fff8"
+    },
+    {
+      "path": "handoff/backups/b9-current/linux-recovery-v1/INDEPENDENT_B9_IMAGE_OCI_REVIEW.json",
+      "mode": "100644",
+      "bytes": 7548,
+      "sha256": "3b151ec5d2d761b6d15bcbbc138e12154a0fb230f765044705fd5a2a14a9c63b",
+      "git_blob": "3759e6ed8a8ada2222f6900a76f2d7d3e6048758"
+    },
+    {
+      "path": "handoff/backups/b9-current/linux-recovery-v1/ROOT_PRIVATE_B9_REVIEW.json",
+      "mode": "100644",
+      "bytes": 2905,
+      "sha256": "0db5688624fdbadaac841bcb101535a4e58e66a92d113ddc4a3ed72ad75c036e",
+      "git_blob": "3b844bab28fe36d793488351f407bceb84b04372"
+    },
+    {
+      "path": "handoff/backups/b9-current/linux-recovery-v1/root_verify_private_b9.py",
+      "mode": "100644",
+      "bytes": 5315,
+      "sha256": "5e06bc5fa1623c65c3145fb104cb8fa8a9bf5b4094cae70c702e375ee88f4a73",
+      "git_blob": "e37974c3f8f8134689923f8c473b3a44b78b428a"
+    },
+    {
+      "path": "handoff/backups/b9-current/linux-recovery-v1/CANONICAL_REFEREE_SUMMARY.json",
+      "mode": "100644",
+      "bytes": 804,
+      "sha256": "d90423170f71fa8a47b64c481d3b8105b6f1b64483ddadc3cee641d4b8faa270",
+      "git_blob": "906bc36c47e18ba17d69537a92d221225ceadbcf"
+    },
+    {
+      "path": "handoff/backups/b9-current/linux-recovery-v1/HOST_ENVIRONMENT_OBSERVATION.json",
+      "mode": "100644",
+      "bytes": 558,
+      "sha256": "123a4caad968fdff73589f6b1d8732e72f4797a57623c6f5c4640d55f3da8995",
+      "git_blob": "87229c80c7a4d7fe37064fa138b1bdd3c22ca35e"
+    },
+    {
+      "path": "handoff/backups/b9-current/linux-recovery-v1/runtime-image-status.json",
+      "mode": "100644",
+      "bytes": 413,
+      "sha256": "3f4e9fa9bc5c5b11e07354c847a0180b60f584fee77c32bf969dcf43b17b3113",
+      "git_blob": "1a8896b2bec05e2c6c32434b11c5cac2f2d94281"
+    },
+    {
+      "path": "handoff/backups/b9-current/linux-recovery-v1/runtime-image-status-v2.json",
+      "mode": "100644",
+      "bytes": 1698,
+      "sha256": "b96cee00a10ba704d1158614fce97465db92cdfd1a87c8df04e96a4f2b231f69",
+      "git_blob": "09ef7ea0d63876326655d03a34587080b9d84d4a"
+    },
+    {
+      "path": "handoff/backups/b9-current/linux-recovery-v1/database-tools-image-status-v2.json",
+      "mode": "100644",
+      "bytes": 1805,
+      "sha256": "1487d813c6ec65df24cf18848467b96e909fdaef0a7accf7bace38b9f7e458f3",
+      "git_blob": "b8c957d21014e842d232c49ad60f5a2990c838f3"
+    },
+    {
+      "path": "handoff/backups/b9-current/linux-recovery-v1/OCI_VERIFIER_INITIAL_FAILURE.json",
+      "mode": "100644",
+      "bytes": 368,
+      "sha256": "333e376acf124aa7e2d456df1d8b75dfb4e1da821327f8d5380ed4ee58bbd961",
+      "git_blob": "6aa88e496022671bc24fbe912ef2260b937a1e4a"
+    },
+    {
+      "path": "handoff/backups/b9-current/linux-recovery-v1/b9-export-execution.json",
+      "mode": "100644",
+      "bytes": 1065,
+      "sha256": "c453e0ff4d8960e9deba975e1c40ea28d51aed1081df095890f9724c426e7651",
+      "git_blob": "c0d9d9b6782dc59eda7e0e340c848eeed8ae68c2"
+    },
+    {
+      "path": "handoff/backups/b9-current/linux-recovery-v1/build_pinned_images.py",
+      "mode": "100644",
+      "bytes": 8058,
+      "sha256": "64483a37a8da8bdf78ec6a86caf3d71bb2b52eefc788a35ae20c4335531b1348",
+      "git_blob": "00e6581847cbcc7f8aa10a1bc2ff76610ddd4436"
+    },
+    {
+      "path": "handoff/backups/b9-current/linux-recovery-v1/verify_b9_oci_export.py",
+      "mode": "100644",
+      "bytes": 4305,
+      "sha256": "8fbf8730cd306c913ab515b09bbe1c4582852e01ea9d6b1b5fdd0f67149136c8",
+      "git_blob": "9984736f8874e2da9a92620543e46c5cc97d2890"
+    },
+    {
+      "path": "handoff/backups/b9-current/linux-recovery-v1/docker_save_to_oci.py",
+      "mode": "100644",
+      "bytes": 24621,
+      "sha256": "d4b9f325581404c5782ab81ebfedc1ca974a0bb55da24fd1dedabdbe372767f8",
+      "git_blob": "1dbdbf52e5added3f92c3019012b896f24beab9b"
+    },
+    {
+      "path": "handoff/backups/b9-current/linux-recovery-v1/run_owned_b9_image_export.py",
+      "mode": "100644",
+      "bytes": 6490,
+      "sha256": "3abfb4afc6fb008aa4f9b5abc08f5aa71f3f437a8ce9a33e5aafdb39a2bfdfe7",
+      "git_blob": "2293014b42860ab2162ad9199a613e309086b200"
+    },
+    {
+      "path": "handoff/backups/b9-current/linux-recovery-v1/freeze_linux_recovery_packet.py",
+      "mode": "100644",
+      "bytes": 8134,
+      "sha256": "32639f51c8b1e73a4bc9584150d3c21772dce37aaa8cb4053c9275dc1ca10ea9",
+      "git_blob": "836374df258d7430f0b04087f3c70a36b1889401"
+    },
+    {
+      "path": "handoff/backups/b9-current/linux-recovery-v1/test_standard_quick_tunnel.py",
+      "mode": "100644",
+      "bytes": 3289,
+      "sha256": "7e548457a3b28d27968152584178afb1307b4a0b83e934740a9ea27114e58457",
+      "git_blob": "2c58eee991f812900c54a28e6d5f94c0d43887d7"
+    },
+    {
+      "path": "handoff/backups/b9-current/linux-recovery-v1/quick-tunnel-v1/VERIFIED_QUICK_TUNNEL_FAILURES.json",
+      "mode": "100644",
+      "bytes": 2554,
+      "sha256": "01b0f20d16430c06e00c09ee7d93b33f45ec5d4f8b252c41b00cc8ba1bae48e7",
+      "git_blob": "ec3c9af5ef4470c4bdbfa051b7fa70520d6a29f5"
+    },
+    {
+      "path": "handoff/backups/b9-current/linux-recovery-v1/database-proof-v1/failure-receipt.json",
+      "mode": "100644",
+      "bytes": 4426,
+      "sha256": "b81c9179c0c3ba82a5f3abcaad66c21200768834cf63a696d34d28db9ba1a4c9",
+      "git_blob": "7546ae81610bce93af9fca2a55428e9c235572aa"
+    },
+    {
+      "path": "handoff/backups/b9-current/linux-recovery-v1/database-proof-v1/CONNECTIVITY_DIAGNOSIS.json",
+      "mode": "100644",
+      "bytes": 3053,
+      "sha256": "0a4f805d914c6cbcec5ec43d349749bb558277e12141fdbb70a4772e010be75e",
+      "git_blob": "599ac5afb52e053ab7609ed1922418701aa7f4d9"
+    },
+    {
+      "path": "handoff/backups/b9-current/linux-recovery-v1/database-proof-v2/FINAL_PRIVATE_LOOPBACK_RECEIPT.json",
+      "mode": "100644",
+      "bytes": 6473,
+      "sha256": "b227c854e21707e1b6cbe8cc5daa9d8119d1add55793542b80cc76cf8034e777",
+      "git_blob": "cc1ff7ae57fa2d009cf23f67b0c962d4dc253ad2"
+    },
+    {
+      "path": "handoff/backups/b9-current/linux-recovery-v1/database-proof-v2/database-snapshot.json",
+      "mode": "100644",
+      "bytes": 53139,
+      "sha256": "fea2ca109b3c6d23a85626996466b89aade32c650bd16c58eb8f2d5ac63229fe",
+      "git_blob": "628493abebcb73263086e5777010c9370f0d777e"
+    },
+    {
+      "path": "handoff/backups/b9-current/linux-recovery-v1/database-proof-v2/database-snapshot-pg_roles-masked.json",
+      "mode": "100644",
+      "bytes": 53376,
+      "sha256": "27e286601a456dd773e27daacca806287c56add290a69c0493edcf2904f2fb6f",
+      "git_blob": "74c6b347ba3e737ca75c12036094d21367c674e3"
+    },
+    {
+      "path": "handoff/backups/b9-current/linux-recovery-v1/database-proof-v2/setup-status.json",
+      "mode": "100644",
+      "bytes": 244,
+      "sha256": "1d5687053ff15d93881528605df03245f00ec579ed95df682a58fc0471d770dc",
+      "git_blob": "8d0f29437306bc2d0860314b8bda410c79d9752b"
+    },
+    {
+      "path": "handoff/backups/b9-current/linux-recovery-v1/database-proof-v2/seed-status.json",
+      "mode": "100644",
+      "bytes": 219,
+      "sha256": "fd745a92a9096412c7bd54feadaebacf2ace28a7e77ea44dd5b0d4d9899491d1",
+      "git_blob": "c72c5b0032f1ddac7405266511c0779a89052c7c"
+    },
+    {
+      "path": "handoff/backups/b9-current/linux-recovery-v1/database-proof-v2/schema-check-status.json",
+      "mode": "100644",
+      "bytes": 234,
+      "sha256": "729adf45be8b8088ce33d5ffbdcc5ddc6ed3e7d95724dd31b2ec534b2639287a",
+      "git_blob": "911c11ead9b38a75e2239c7856df491cf4283828"
+    },
+    {
+      "path": "handoff/backups/b9-current/linux-recovery-v1/HTTPS_PROVISIONING_DIAGNOSTIC.json",
+      "mode": "100644",
+      "bytes": 879,
+      "sha256": "880143ff135717456c06946d59503b1b7a9244ff5150e5a64e1f976769eb6699",
+      "git_blob": "be4a5ef72f4625ecf56ea218909b50f777d0cc0d"
+    },
+    {
+      "path": "handoff/backups/b9-current/linux-recovery-v1/HTTPS_CLIENT_COMPARISON.json",
+      "mode": "100644",
+      "bytes": 1373,
+      "sha256": "da7299e3dbb4703e886b55f0b1e6f0cad65ee61c228960f8466b58940fd2d822",
+      "git_blob": "52dc9681e36456702a122879659650333536edc0"
+    },
+    {
+      "path": "handoff/backups/b9-current/linux-recovery-v1/PROVISIONING_PROXY_FINDING.json",
+      "mode": "100644",
+      "bytes": 820,
+      "sha256": "2b4f74f0eac6a71923a9715b78996efe984072fef03f695415354ea9b8191910",
+      "git_blob": "86d063fde1ade6a847944ac903a4f7144b3daa4f"
+    },
+    {
+      "path": "handoff/backups/b9-current/linux-recovery-v1/HOST_ENVIRONMENT_OBSERVATION_CURRENT.json",
+      "mode": "100644",
+      "bytes": 558,
+      "sha256": "8354a30cdddd21f42d589804d07190bb943d35f4c6e13290d2bcff1edd369384",
+      "git_blob": "829b29c451a12604efc8f615056a1d1b7b2c89a2"
+    },
+    {
+      "path": "handoff/backups/b9-current/linux-recovery-v1/CURRENT_PRIVATE_ORIGIN_RECHECK.json",
+      "mode": "100644",
+      "bytes": 360,
+      "sha256": "eae3877c7657ff4ed3fc139d577fa0bbfa932bb541f0afb6cb6caa5f27d7907b",
+      "git_blob": "055e0944788cc12608cfb4c13541d6e9b8476e87"
+    },
+    {
+      "path": "handoff/backups/b9-current/linux-recovery-v1/PRODUCT_SOURCE_EQUIVALENCE_444.json",
+      "mode": "100644",
+      "bytes": 890,
+      "sha256": "7c1c2579ba7541135e3ece429986869974375af8e7275e2fd1ad2b27e40223a8",
+      "git_blob": "a25308af99122f6321589161d30ee0a3d840a6a9"
+    },
+    {
+      "path": "handoff/backups/b9-current/linux-recovery-v1/CI_444_OBSERVATION.json",
+      "mode": "100644",
+      "bytes": 2509,
+      "sha256": "835d6bf26de696df4584ecf4b650c0afee4982493a2d92c7166bdd4b0b9c8f78",
+      "git_blob": "7ef1b9554e3781c889a05ef7a0dc08ba41f0d862"
+    },
+    {
+      "path": "handoff/backups/b9-current/linux-recovery-v1/SUPPORTED_HOSTING_CONFIGURATION_REQUEST.md",
+      "mode": "100644",
+      "bytes": 3316,
+      "sha256": "82f50f220a3f31f440dc31b845250bbe277799276edb19ed20a98d9d78fb9bba",
+      "git_blob": "74e89eb6651bd767c4f9c5a424512fcecbbbd0b2"
+    },
+    {
+      "path": "handoff/backups/b9-current/linux-recovery-v1/recovery-v1-failure.json",
+      "mode": "100644",
+      "bytes": 936,
+      "sha256": "9d5b48d71743744cfe5258831769db9b26add7095378f28c198dee8c08bdcc9a",
+      "git_blob": "cfc4d52faaaa89f5f860d9423623dbd5d3d53575"
+    },
+    {
+      "path": "handoff/backups/b9-current/linux-recovery-v1/recovery-v2-failure.json",
+      "mode": "100644",
+      "bytes": 656,
+      "sha256": "fe52c3afc8f8f21c8475f50a7d791afa02de3a8d89697477d43a71f1a38a9e07",
+      "git_blob": "7f2e0be4afc1e63b0bb10fdc956152129261961f"
+    },
+    {
+      "path": "handoff/backups/b9-current/linux-recovery-v1/recovery-v3-failure.json",
+      "mode": "100644",
+      "bytes": 2786,
+      "sha256": "99d7088a91831c2e5dcbb5e15707435735302b389e620b35126ffe7f94388a18",
+      "git_blob": "3aecc35522dd57215d0a91828e0f96330cad812e"
+    },
+    {
+      "path": "handoff/backups/b9-current/linux-recovery-v1/recovery-v4-failure.json",
+      "mode": "100644",
+      "bytes": 3981,
+      "sha256": "d9a87532ac4203150330c0dfe2053f842757afc635959701e2c77d72195c2d7b",
+      "git_blob": "afb45b72570a7e90714efbb52e1fbde37c75854a"
+    },
+    {
+      "path": "handoff/backups/b9-current/linux-recovery-v1/recovery-v5/ORDER.md",
+      "mode": "100644",
+      "bytes": 13736,
+      "sha256": "5caef83c455b421348377c27a5fc2b2aa2cde7f2e94ddfedf13d3975ac03a707",
+      "git_blob": "3265e0d7ad39462acc15fd5a8b3e9d6729c40091"
+    },
+    {
+      "path": "handoff/backups/b9-current/linux-recovery-v1/recovery-v5/compose.yml",
+      "mode": "100644",
+      "bytes": 3549,
+      "sha256": "434960ddf3bfa0739b6f470a7b25f68e1195bf941b8ea04b5fda430d3cab11cb",
+      "git_blob": "ee239806be34de2d0e6d48660a7f3e6b4d26e0f8"
+    },
+    {
+      "path": "handoff/backups/b9-current/linux-recovery-v1/recovery-v5/recover_synthetic_origin.py",
+      "mode": "100644",
+      "bytes": 82325,
+      "sha256": "859ef30edb7ad3b806abe771c5442a943f909fd8dfab06934ff72d32ada09488",
+      "git_blob": "e2da6e58e1ef653729e2257f737bb11bb0b7f2e5"
+    },
+    {
+      "path": "handoff/backups/b9-current/linux-recovery-v1/recovery-v5/test_recovery_guards.py",
+      "mode": "100644",
+      "bytes": 32768,
+      "sha256": "7e8a789a3db3841dc37f3dbe71c20bcf22d065b386fac22115b24b9103efea20",
+      "git_blob": "b55e219f9da244e31b194aef6606371a7fe3be6e"
+    },
+    {
+      "path": "handoff/backups/b9-current/linux-recovery-v1/recovery-v5/BUILDER_RECEIPT.md",
+      "mode": "100644",
+      "bytes": 2350,
+      "sha256": "007d33f28113c7117085ba4b8ff51b26671f51aa447364d407377633844d2c17",
+      "git_blob": "adaaddf0a85f42cf8646b81dc08112ad582f2f63"
+    },
+    {
+      "path": "handoff/backups/b9-current/linux-recovery-v1/recovery-v5/INDEPENDENT_SCHEMA_RECOVERY_REVIEW.md",
+      "mode": "100644",
+      "bytes": 1333,
+      "sha256": "177a1f872db1ea91cd9f622d1c7d181035a086d13ed2d12320b42190ed18a06d",
+      "git_blob": "cd5c0d4e13636a391646f59dfa6aca5f16a6eded"
+    },
+    {
+      "path": "handoff/backups/b9-current/linux-recovery-v1/recovery-v5/INDEPENDENT_SCHEMA_RECOVERY_REVIEW.json",
+      "mode": "100644",
+      "bytes": 3304,
+      "sha256": "4a87de17fd38b7f489ac8e7c11e46274fc59d0ee389a2d7c1ad3a6a8130e0723",
+      "git_blob": "a0a798cf003e9d0a6c99d7e85b9bb4febf4b0d47"
+    },
+    {
+      "path": "handoff/backups/b9-current/linux-recovery-v1/recovery-v5/ACTUAL_RECOVERY_PROOF.json",
+      "mode": "100644",
+      "bytes": 9899,
+      "sha256": "42f00ada4cd2ab32289304309f6092e0a745d688000692bfb7c840db364896da",
+      "git_blob": "5b56fb5348c895c8085175f6f58c7be386614301"
+    },
+    {
+      "path": "handoff/backups/b9-current/linux-recovery-v1/recovery-v5/ROOT_RECOVERY_REVIEW.md",
+      "mode": "100644",
+      "bytes": 2475,
+      "sha256": "b85730a6f6e8781adc03931475832ce9c691dfdb64afd3a40ad7a8d051f2fca6",
+      "git_blob": "fb7599659041e0030ed88f1a9cbb8eb67200bf04"
+    },
+    {
+      "path": "handoff/backups/b9-current/linux-recovery-v1/recovery-v6/ORDER.md",
+      "mode": "100644",
+      "bytes": 17265,
+      "sha256": "afbb72a0ac4ce35fd1893c8ff6a80a23285948a5e97de23b5797c2e58c300c55",
+      "git_blob": "fb3874f8816dfcb687ab0d82953d755fa7e3b66b"
+    },
+    {
+      "path": "handoff/backups/b9-current/linux-recovery-v1/recovery-v6/compose.yml",
+      "mode": "100644",
+      "bytes": 3549,
+      "sha256": "2a2cbe4f9e091a7170e9ee6635fd94864ebfbc1fd96831c0d5937edc126d61b7",
+      "git_blob": "ffa5e77aa01222008fa170d8c63d24e5bca077e7"
+    },
+    {
+      "path": "handoff/backups/b9-current/linux-recovery-v1/recovery-v6/recover_synthetic_origin.py",
+      "mode": "100644",
+      "bytes": 94561,
+      "sha256": "e9a77858772cc9c5854f210e18ec2e603978f89525f7da65b7f3a73afbef247f",
+      "git_blob": "60447c581f1473847545ef694187c7923a942b5e"
+    },
+    {
+      "path": "handoff/backups/b9-current/linux-recovery-v1/recovery-v6/test_recovery_guards.py",
+      "mode": "100644",
+      "bytes": 37621,
+      "sha256": "8ae7ed9b25920eaffb7c5fca23fafa8a21fc625e9cfd1d7bb4f2094bb56919de",
+      "git_blob": "50367eaaaecafe13fab511a89aa066931cd41004"
+    },
+    {
+      "path": "handoff/backups/b9-current/linux-recovery-v1/recovery-v6/BUILDER_RECEIPT.md",
+      "mode": "100644",
+      "bytes": 2279,
+      "sha256": "99bf6f13fb6ba9d11fcbe7923c0dcffe7bf8760300e8881975d20ea7a2a8227a",
+      "git_blob": "bd9c158e130d5f11a61e388557e170a4516b4af3"
+    },
+    {
+      "path": "handoff/backups/b9-current/linux-recovery-v1/recovery-v6/INDEPENDENT_RECOVERY_DIAGNOSTIC_REVIEW.md",
+      "mode": "100644",
+      "bytes": 2679,
+      "sha256": "a2d8d69f4455401bc8b71ec310e676c3f0d836924b899f0ed7664737df8d0afa",
+      "git_blob": "00af554979423ab507cc9d20cb4a33ec0bd20470"
+    },
+    {
+      "path": "handoff/backups/b9-current/linux-recovery-v1/recovery-v6/INDEPENDENT_RECOVERY_DIAGNOSTIC_REVIEW.json",
+      "mode": "100644",
+      "bytes": 2462,
+      "sha256": "00b2df569cb15ea1d6efca671c3a746d5499b985377be41bf6ce69130778b1b9",
+      "git_blob": "01e162f5e86f7ee325fb395b5f6455122166e808"
+    },
+    {
+      "path": "handoff/backups/b9-current/linux-recovery-v1/recovery-v6/RECOVERY_READINESS_SOURCE_ISSUE.md",
+      "mode": "100644",
+      "bytes": 1543,
+      "sha256": "d1dd79058d9fff7818173c7db4d7e2b2a91ccd49aa7e8510c422f5e947121480",
+      "git_blob": "d16decdd1f60ddf13b5d8dec31aecf338a1a6bd9"
+    },
+    {
+      "path": "handoff/backups/b9-current/linux-recovery-v1/recovery-v6/RECOVERY_READINESS_SOURCE_ISSUE.json",
+      "mode": "100644",
+      "bytes": 3893,
+      "sha256": "c30775aa2caeaef180e0a87e456b2a8dfd6025354df181b30621cb8b4233aefa",
+      "git_blob": "4504bb991cf4709f457918f72e86f9df48cc7792"
+    },
+    {
+      "path": "handoff/backups/b9-current/linux-recovery-v1/recovery-v6/RECOVERY_READINESS_REPAIR_ORDER.md",
+      "mode": "100644",
+      "bytes": 2205,
+      "sha256": "55ad7a889dc445e55576f60650592a56ae8b2fcf1e8476c4022b209a601a0ca0",
+      "git_blob": "08a0baf60858a3e2a5ad944e4326b10a6ce0c84d"
+    },
+    {
+      "path": "handoff/backups/b9-current/linux-recovery-v1/recovery-v6/ACTUAL_RECOVERY_PROOF.json",
+      "mode": "100644",
+      "bytes": 10763,
+      "sha256": "a502b3757de7d889735d3c94e8a49e87dc791cf8cac62056045fd0001aa4f400",
+      "git_blob": "a775c74de3cb08dee8399344108c520800503b7d"
+    },
+    {
+      "path": "handoff/backups/b9-current/linux-recovery-v1/recovery-v6/ROOT_RECOVERY_REVIEW.md",
+      "mode": "100644",
+      "bytes": 2434,
+      "sha256": "e229044ba4abc032d89cd64fafcbab5c09468b6bbf5d1c3984e0baf81e0c0a59",
+      "git_blob": "94b99098f7587ee9255866d7f702f2254f0f3e72"
+    },
+    {
+      "path": "handoff/LEDGER.md",
+      "mode": "100644",
+      "bytes": 762504,
+      "sha256": "5a264779fb0d21943839c091e662506777fcf407b6077d15d7d9aab9511bbd87",
+      "git_blob": "d6dcf01dd861857b8479841c3b3eef90a7476357"
+    }
+  ],
+  "excluded": [
+    "credential/env bindings",
+    "private SQL dumps/raw command logs",
+    "opaque OCI/Docker image binaries/config",
+    "laptop dirty source",
+    "real business data"
+  ],
+  "no_public_app_url": true
+}

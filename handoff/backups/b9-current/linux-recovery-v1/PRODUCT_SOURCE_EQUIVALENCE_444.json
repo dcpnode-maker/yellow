@@ -1,0 +1,26 @@
+{
+  "product_base": "b9ba702a074a487feeafa056abb49abcdcf01ba8",
+  "laptop_latest_test_only_revision": "444072ffdff2b7745345d88f71b603c17e11ace6",
+  "compared_product_paths": [
+    "src",
+    "frontend",
+    "migrations",
+    "scripts",
+    "Dockerfile",
+    "package.json",
+    "bun.lock"
+  ],
+  "product_changed_files": [],
+  "all_changed_files": [
+    "tests/build-readiness.integration.test.ts",
+    "tests/native-fiscal-release-containment.integration.test.ts",
+    "tests/operator-business-day-seal.integration.test.ts",
+    "tests/operator-reservation-travel.integration.test.ts",
+    "tests/order620-today-colleague-demo-path.test.ts",
+    "tests/order687-groups.ui.test.ts",
+    "tests/runtime-dml-authority.integration.test.ts",
+    "tests/yellow-cashier-receivable-workbench.test.ts"
+  ],
+  "laptop_receiving_checkout_modified": false,
+  "cloud_source_checkout_modified": false
+}

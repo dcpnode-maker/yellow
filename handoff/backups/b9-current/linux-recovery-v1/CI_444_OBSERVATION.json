@@ -1,0 +1,69 @@
+{
+  "revision": "444072ffdff2b7745345d88f71b603c17e11ace6",
+  "run_id": 36886787199,
+  "jobs": [
+    {
+      "id": 110452019196,
+      "name": "local-review",
+      "status": "completed",
+      "conclusion": "success",
+      "run_attempt": 1
+    },
+    {
+      "id": 110452019608,
+      "name": "quality",
+      "status": "completed",
+      "conclusion": "success",
+      "run_attempt": 1
+    },
+    {
+      "id": 110452019819,
+      "name": "windows-state",
+      "status": "completed",
+      "conclusion": "failure",
+      "run_attempt": 1
+    },
+    {
+      "id": 110453171458,
+      "name": "database",
+      "status": "in_progress",
+      "conclusion": null,
+      "run_attempt": 1
+    },
+    {
+      "id": 110453171726,
+      "name": "container-smoke",
+      "status": "completed",
+      "conclusion": "success",
+      "run_attempt": 1
+    },
+    {
+      "id": 110453171741,
+      "name": "free-host-arm64",
+      "status": "completed",
+      "conclusion": "success",
+      "run_attempt": 1
+    }
+  ],
+  "windows_actual_failure": [
+    "2026-10-01T15:46:46.7206780Z error: {\"exitCode\":null,\"signalCode\":\"SIGTERM\",\"exitedDueToTimeout\":true,\"stdoutBytes\":0,\"stderrBytes\":36,\"startupStages\":[\"ORDER444_TEST_STAGE:add-type:start\"],\"observation\":{\"streams\":{\"stdout.0\":{\"exists\":false,\"size\":0,\"tailComplete\":false},\"stdout.1\":{\"exists\":false,\"size\":0,\"tailComplete\":false},\"stdout.2\":{\"exists\":false,\"size\":0,\"tailComplete\":false},\"stderr.0\":{\"exists\":false,\"size\":0,\"tailComplete\":false},\"stderr.1\":{\"exists\":false,\"size\":0,\"tailComplete\":false},\"stderr.2\":{\"exists\":false,\"size\":0,\"tailComplete\":false}}},\"cleanup\":{\"attempted\":false,\"reason\":\"identity_unavailable\"}}\r",
+    "2026-10-01T15:46:46.7210564Z Expected: 7\r",
+    "2026-10-01T15:46:46.7210842Z Received: null\r",
+    "2026-10-01T15:46:46.7240882Z ##[error]Expected: 7",
+    "Received: null",
+    "2026-10-01T15:46:46.7248292Z (fail) Order444 exact-source native review tooling > bounded supervisor records one nonzero child, drains its final output and retains only capped logs [8044.62ms]\r",
+    "2026-10-01T15:47:08.9334320Z ##[error]Process completed with exit code 1.\r"
+  ],
+  "laptop_reported_pg18_required_suite": {
+    "pass": 41,
+    "fail": 0,
+    "skip": 0
+  },
+  "laptop_reported_runtime_dml": {
+    "pass": 5,
+    "fail": 0
+  },
+  "cloud_executed_these_laptop_suites": false,
+  "product_source_diff_from_b9": [],
+  "no_gate_or_timeout_weakened": true
+}

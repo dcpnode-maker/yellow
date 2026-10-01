@@ -1,0 +1,12 @@
+{
+  "schema": "yellow-synthetic-recovery-failed-attempt/v2",
+  "job": "yellow-recovery-9ff-20261001-v2",
+  "actual_failed_stage": "restore-comparison",
+  "roles_and_database_restore_commands_completed": true,
+  "source_database_before_after_equal": true,
+  "source_snapshot_sha256": "483cc5e245386470b814eb9fc2622e328fb2797184e635a0a233abab3d64ca6a",
+  "private_restored_snapshot_retained": false,
+  "failure_diagnostic_gap": "original runner did not retain which equality failed; no waiver or restoration success claimed",
+  "next_action": "bounded diagnostic v3 with private restored snapshot and safe differing-field summary",
+  "public_route": false
+}

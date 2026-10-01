@@ -1,0 +1,41 @@
+{
+  "schema": "yellow-independent-recovery-diagnostic-review/v1",
+  "result": "code_review_pass_with_application_readiness_blocker",
+  "scope": "synthetic-recovery-v6 code, unit tests, Compose, order and builder receipt; no runtime attempt",
+  "files": {
+    "recover_synthetic_origin.py": "e9a77858772cc9c5854f210e18ec2e603978f89525f7da65b7f3a73afbef247f",
+    "test_recovery_guards.py": "8ae7ed9b25920eaffb7c5fca23fafa8a21fc625e9cfd1d7bb4f2094bb56919de",
+    "compose.yml": "2a2cbe4f9e091a7170e9ee6635fd94864ebfbc1fd96831c0d5937edc126d61b7",
+    "ORDER.md": "afbb72a0ac4ce35fd1893c8ff6a80a23285948a5e97de23b5797c2e58c300c55",
+    "BUILDER_RECEIPT.md": "99bf6f13fb6ba9d11fcbe7923c0dcffe7bf8760300e8881975d20ea7a2a8227a",
+    "RECOVERY_READINESS_SOURCE_ISSUE.json": "c30775aa2caeaef180e0a87e456b2a8dfd6025354df181b30621cb8b4233aefa",
+    "RECOVERY_READINESS_SOURCE_ISSUE.md": "d1dd79058d9fff7818173c7db4d7e2b2a91ccd49aa7e8510c422f5e947121480"
+  },
+  "verification": {
+    "command": "python3 -m unittest -q test_recovery_guards.py",
+    "result": "passed",
+    "tests_passed": 38,
+    "hostile_diagnostic_validation": "covered",
+    "structured_http_error_remains_red": "covered including HTTP status 200",
+    "ready_503_ownership_recheck_precedes_probe": "covered"
+  },
+  "reviewed_behavior": {
+    "http_proof_error_transport": "bounded JSON with successful transport exit; Python validates and rejects proof_error as RED",
+    "readiness_probe_gate": "only ready-stage HTTP 503 after fresh exact app-ownership verification",
+    "sql_client": "one connection, prepare false, default transaction read only",
+    "captured_data": "allowlisted false field names, captured/row count, sanitized error type only",
+    "probe_can_waive_failure": false
+  },
+  "blocker": {
+    "kind": "unchanged product source exact-text readiness mismatch",
+    "detail_artifact": "RECOVERY_READINESS_SOURCE_ISSUE.json",
+    "runtime_proven_by_this_review": false,
+    "v6_execution_proven_by_this_review": false
+  },
+  "limits": [
+    "No Docker, database, application request, network probe, credential read, archive operation, or source edit was performed.",
+    "The v6 diagnostic change does not fix the readiness mismatch and cannot make a failed HTTP proof pass.",
+    "No HTTP, public reachability, UDP/7844, or durability claim is made.",
+    "Copied private-recovery-v5 collateral and inherited v5 review files are excluded from this review and publication scope."
+  ]
+}

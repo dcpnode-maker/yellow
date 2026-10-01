@@ -1,0 +1,68 @@
+[
+  {
+    "command": [
+      "/workspace/yellow-toolchain/cloudflared-2026.9.3",
+      "tunnel",
+      "--no-autoupdate",
+      "--protocol",
+      "auto",
+      "--metrics",
+      "127.0.0.1:53016",
+      "--url",
+      "http://127.0.0.1:53014"
+    ],
+    "pid": 1281121,
+    "protocol": "auto",
+    "log": "auto.private.log",
+    "scope": "synthetic authenticated b9 temporary preview",
+    "proxy_trust_policy_unchanged": true,
+    "connection_registered": false,
+    "generated_urls": [],
+    "process_retained": false,
+    "exit_code": 1,
+    "private_log_sha256": "2e413ea666da6da285160b4e58e6b0e02cd0f38173d4778e01aefc612e7cfccc",
+    "sanitized_connection_errors": [
+      "failed to request quick Tunnel: Post \"https://api.trycloudflare.com/tunnel\": dial tcp 104.16.230.132:443: connect: connection refused"
+    ],
+    "user_openable_url_verified": false,
+    "public_autologin": false,
+    "tls_validation_disabled": false,
+    "proxy_removed_or_runtime_policy_changed": false,
+    "diagnostic_stage": "quick-tunnel HTTPS provisioning; no edge dial reached",
+    "udp_7844_or_tcp_7844_tested": false,
+    "parser_correction": "Original generic URL extraction also matched the provisioning API hostname; original result retained, this projection excludes it."
+  },
+  {
+    "command": [
+      "/workspace/yellow-toolchain/cloudflared-2026.9.3",
+      "tunnel",
+      "--no-autoupdate",
+      "--protocol",
+      "http2",
+      "--metrics",
+      "127.0.0.1:53017",
+      "--url",
+      "http://127.0.0.1:53014"
+    ],
+    "pid": 1281191,
+    "protocol": "http2",
+    "log": "http2.private.log",
+    "scope": "synthetic authenticated b9 temporary preview",
+    "proxy_trust_policy_unchanged": true,
+    "connection_registered": false,
+    "generated_urls": [],
+    "process_retained": false,
+    "exit_code": 1,
+    "private_log_sha256": "7cacbe07bee218a8a7739dfd4efe60ca4b5e9da3c86b7e295843e142da2c8831",
+    "sanitized_connection_errors": [
+      "failed to request quick Tunnel: Post \"https://api.trycloudflare.com/tunnel\": dial tcp 104.16.231.132:443: connect: connection refused"
+    ],
+    "user_openable_url_verified": false,
+    "public_autologin": false,
+    "tls_validation_disabled": false,
+    "proxy_removed_or_runtime_policy_changed": false,
+    "diagnostic_stage": "quick-tunnel HTTPS provisioning; no edge dial reached",
+    "udp_7844_or_tcp_7844_tested": false,
+    "parser_correction": "Original generic URL extraction also matched the provisioning API hostname; original result retained, this projection excludes it."
+  }
+]

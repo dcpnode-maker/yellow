@@ -1,0 +1,8 @@
+{
+  "stage": "independent OCI verification",
+  "error": "KeyError annotations",
+  "old_verifier_sha256": "713885e2b733be18837fca65fadda0b6ae8523de68c9d057b915f046b99fe781",
+  "cause": "reused9ff-specific expected annotation; generic converter correctly attests its fixed9ff tuple only",
+  "conversion_succeeded": true,
+  "image_layer_config_checks_not_waived": true
+}

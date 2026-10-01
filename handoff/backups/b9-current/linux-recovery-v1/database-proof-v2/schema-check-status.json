@@ -1,0 +1,7 @@
+{
+  "command": "run-canonical.sh schema-check",
+  "exit_code": 0,
+  "timeout_seconds": 90,
+  "private_log": "private-logs/schema-check.log",
+  "private_log_sha256": "243be329732d78e246b58f974ec84a6ecdfabd3bc2d549895fa86ccd5d518484"
+}

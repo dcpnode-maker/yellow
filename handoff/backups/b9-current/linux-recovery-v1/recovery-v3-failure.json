@@ -1,0 +1,59 @@
+{
+  "schema": "yellow-synthetic-recovery-failure/v3",
+  "stage": "restore-comparison",
+  "error_type": "GuardError",
+  "guard_reason": "restored global role/membership/database ACL differs",
+  "source_after_diagnostic": "completed",
+  "restored_fingerprint_saved": true,
+  "comparison_summary_saved": true,
+  "comparison_summary_file": "/workspace/yellow-coordination/release-20261001/synthetic-recovery-v3/private-recovery-v3/restore-comparison.json",
+  "raw_business_rows_or_settings_or_credentials_included": false,
+  "source_before_after_equal": true,
+  "source_snapshot_sha256": "483cc5e245386470b814eb9fc2622e328fb2797184e635a0a233abab3d64ca6a",
+  "comparison": {
+    "schema": "yellow-synthetic-restore-comparison/v3",
+    "comparisons": {
+      "identity_equal": true,
+      "tables_equal": true,
+      "ledger_equal": true,
+      "table_digests_equal": true,
+      "schema_equal": false,
+      "sequences_equal": true,
+      "global_roles_equal": true,
+      "global_memberships_equal_with_exact_bootstrap_allowance": false,
+      "global_settings_equal": true,
+      "database_acl_and_identity_equal": true,
+      "global_metadata_equal": false
+    },
+    "differing_paths_and_hashes": [
+      {
+        "path": "global_memberships[0].grantor",
+        "source_sha256": "97e448b22adaed179657b4a349641a9d542b0de0600ff9d309e942561dd90f9f",
+        "restored_sha256": "e840f562dc3802dbc93d05e8e1c2322ff08a2d355e03a5f2eeb213c1f2ceddd6"
+      },
+      {
+        "path": "global_memberships[1].grantor",
+        "source_sha256": "97e448b22adaed179657b4a349641a9d542b0de0600ff9d309e942561dd90f9f",
+        "restored_sha256": "e840f562dc3802dbc93d05e8e1c2322ff08a2d355e03a5f2eeb213c1f2ceddd6"
+      },
+      {
+        "path": "global_memberships[2].grantor",
+        "source_sha256": "97e448b22adaed179657b4a349641a9d542b0de0600ff9d309e942561dd90f9f",
+        "restored_sha256": "e840f562dc3802dbc93d05e8e1c2322ff08a2d355e03a5f2eeb213c1f2ceddd6"
+      },
+      {
+        "path": "global_memberships[3].grantor",
+        "source_sha256": "97e448b22adaed179657b4a349641a9d542b0de0600ff9d309e942561dd90f9f",
+        "restored_sha256": "e840f562dc3802dbc93d05e8e1c2322ff08a2d355e03a5f2eeb213c1f2ceddd6"
+      },
+      {
+        "path": "schema",
+        "source_sha256": "30e2cf7c4b2f11da5d5f14a02ac3b7049115adf6665ba1ef2b2ab992e9020d99",
+        "restored_sha256": "876c5b25bdeb91d8afef241d05f80bf515a2d54479938631b08f2b02c6a5d283"
+      }
+    ]
+  },
+  "diagnosis": "source grantor yellow_deploy was replaced by fresh bootstrap despite SET ROLE; source data/ledger/sequence comparisons match; full schema remains strict RED",
+  "no_restore_success_claim": true,
+  "next_reviewed_action": "new v4, authenticate fresh local psql/pg_restore sessions as original source superuser grantor"
+}

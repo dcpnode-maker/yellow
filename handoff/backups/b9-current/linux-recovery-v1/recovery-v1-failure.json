@@ -1,0 +1,15 @@
+{
+  "schema": "yellow-synthetic-recovery-failed-attempt/v1",
+  "job": "yellow-recovery-9ff-20261001-v1",
+  "first_admission_failure": "nil image labels rejected by unguarded Docker template; no private checkpoint or resources created",
+  "reviewed_admission_repair": "nil guard only; exact app revision requirement retained; 20 guards passed",
+  "actual_recovery_failed_stage": "restore-roles",
+  "exact_database_error": "permission denied to grant privileges as role \"yellow_deploy\"",
+  "source_database_before_after_equal": true,
+  "source_snapshot_sha256": "483cc5e245386470b814eb9fc2622e328fb2797184e635a0a233abab3d64ca6a",
+  "owned_failed_containers_network_volume_removed": true,
+  "private_inputs_retained": true,
+  "source_written": false,
+  "restore_or_private_app_proven": false,
+  "next_reviewed_action": "new v2 namespace, restore original grantor role and all source memberships, without widening comparison exception"
+}

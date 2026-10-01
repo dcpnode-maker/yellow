@@ -1,0 +1,7 @@
+{
+  "command": "run-canonical.sh seed",
+  "exit_code": 0,
+  "timeout_seconds": 180,
+  "private_log": "private-logs/seed.log",
+  "private_log_sha256": "9288f84965aee77042e41b586290d3814ad2fc3466dcf3a788348131f395fdf6"
+}

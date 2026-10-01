@@ -1,0 +1,16 @@
+# Supported hosting configuration request — not applied
+
+Current managed environment spec219 is running/current, network policy unrestricted/enforced, capabilities/secrets/outbound identities empty. This observation does not prove an outbound connection works. The only callable cloud_environment operation is environment_status. No preview/port-exposure, configuration draft/editor/apply or private HTTP tunnel-registration operation was found. A read-only owner Sites listing returned no Yellow project. Account authorization cannot supply these missing runtime controls.
+
+If the platform exposes its supported configuration workflow, the bounded request is:
+
+| Required capability | Narrow scope | Executable acceptance |
+| --- | --- | --- |
+| Authenticated VM HTTP preview/binding, preferred if supported | The existing b9 app loopback127.0.0.1:53014 only; no DB, Docker socket or source-directory binding | Independently read the actual URL, confirm exact source readiness, approved tester login and anonymous API/sensitive-path denial |
+| Standard Cloudflare connector provisioning, alternative | HTTPS api.trycloudflare.com:443 using supported runtime egress and normal TLS validation; no proxy removal, CA replacement or custom relay | Actual API provisioning succeeds and yields a genuine tunnel identity; generated URL alone is insufficient |
+| Connector edge transport | One reviewed transport: standard HTTP2/TCP7844 or QUIC/UDP7844 to Cloudflare's documented tunnel endpoints; Workers VPC separately requires QUIC | Connector registration plus independent HTTPS app read; both edge transports remain untested here |
+| Named-connector secret, only if named tunnel is used | Dedicated connector-only managed secret-file binding `yellow-cloudflare-vpc-connector-token`, path variable `YELLOW_CLOUDFLARE_CONNECTOR_TOKEN_FILE`; never phone/admin credentials | Runtime binding presence without printing value; connector accepts the exact dedicated identity |
+
+The concrete platform review/apply step cannot be invoked until a configuration operation is exposed. The previously read runtime skill required the environment configuration workflow and its user review; this file is a complete intent/scope/acceptance proposal, not an invented platform config schema or a claim that settings were applied. No new user account, repeated login or provider scope expansion is required to investigate these runtime controls. The laptop must keep its authoritative source and independently configure any provider-side tester restriction using its existing authorization.
+
+Actual failure evidence: default/HTTP2 cloudflared both fail direct-IP TCP443 provisioning with connection refusal. Ordinary managed curl/urllib instead return HTTP403 and `Your request was blocked.` That response does not identify whether a platform/domain/proxy/Cloudflare policy caused it. Versioned Cloudflare source lacks ProxyFromEnvironment in the provisioning transport; origin proxy CLI options do not control that transport. No documented supported provisioning-proxy switch was found. No edge7844 test, altered binary, manual provisioning request, proxy relay or retry was performed. The missing callable runtime control, not an asserted domain-policy attribution, is the current actionable blocker. No public URL or ETA is verified.

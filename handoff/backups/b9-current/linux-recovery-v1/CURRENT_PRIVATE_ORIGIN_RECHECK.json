@@ -1,0 +1,18 @@
+{
+  "/health": {
+    "http_status": 200,
+    "status": "ok",
+    "target": null,
+    "build": null
+  },
+  "/ready": {
+    "http_status": 200,
+    "status": "ready",
+    "target": "yellow_runtime_database",
+    "build": {
+      "schemaVersion": 1,
+      "revision": "b9ba702a074a487feeafa056abb49abcdcf01ba8",
+      "expectedMigrationFrontier": 103
+    }
+  }
+}

@@ -1,0 +1,89 @@
+{
+  "schema": "yellow-independent-oci-content-proof/v1",
+  "source_revision": "b9ba702a074a487feeafa056abb49abcdcf01ba8",
+  "source_tree": "9446a6735d712ccfd30c6957ea511fb0e3b644cf",
+  "config_digest": "sha256:1e522a8ab84af27ddc57d4aef3e7f6a383d254be15225a8c9df1722df87d7bc9",
+  "oci_export_manifest_digest": "sha256:bbd2acbe6175765ad5fc36562d8a1e6156396d87b82b291c013ab595a5746ded",
+  "index_sha256": "b812ad99a46246c5d2ba25e67b41243375712b5440d1f8c87c13b96d3e74063a",
+  "manifest_bytes": 1968,
+  "source_format": "docker-save-manifest+oci-metadata",
+  "layers": [
+    {
+      "compressed_digest": "sha256:278cf7cec561fd505823b644929d1dddb110fb402f2eb212c2869c364b395c13",
+      "compressed_bytes": 3673371,
+      "uncompressed_diff_id": "sha256:0854555d70acaa318b38ee50bc667cb51ff6bf0757624624c7ff3b6fe17459a0",
+      "uncompressed_bytes": 8609792
+    },
+    {
+      "compressed_digest": "sha256:0e98c12e46484e1b311113f1fa7aa577c3ece5399ad2cfa4e48dfeee869d0c7d",
+      "compressed_bytes": 34384924,
+      "uncompressed_diff_id": "sha256:9072d322eb16c6a414861801ae295eb67839e0aeabeab982bea0520b6fccdeaa",
+      "uncompressed_bytes": 88612352
+    },
+    {
+      "compressed_digest": "sha256:5e8274dc0cfbba469d6952268401453befb979c28dd256d27dc17a8661314e1f",
+      "compressed_bytes": 290,
+      "uncompressed_diff_id": "sha256:135be4fad03ab91972ef4eb6846e200938c2dea183881ba5cac3d79648a09737",
+      "uncompressed_bytes": 3584
+    },
+    {
+      "compressed_digest": "sha256:3ac4bcea2bc21e0dfd2c853d9f8ebfc6524674fa032707dbb0c61c233db2bba6",
+      "compressed_bytes": 182,
+      "uncompressed_diff_id": "sha256:7a415decbb54be30a9369d7466887b96544eedd7b28dbb7ad87dc6381a4b91a0",
+      "uncompressed_bytes": 3072
+    },
+    {
+      "compressed_digest": "sha256:31cd4ed77f41293b06ef741a8739c708dfec25064f93feff566d49ab20f500ac",
+      "compressed_bytes": 3632922,
+      "uncompressed_diff_id": "sha256:fb0c09554b3fc2d49fda0df4305e80bbd89a17e405ed02b65b79c54fcf6fd637",
+      "uncompressed_bytes": 5588992
+    },
+    {
+      "compressed_digest": "sha256:35a7a5350f63fc1492c368fa32a73366d9a202baa1420d00767f8d45d29e7c06",
+      "compressed_bytes": 138,
+      "uncompressed_diff_id": "sha256:592e878c2cd79244e9ecf582b4688c9fa9c45bb31b1890119e1fb88fae6a6784",
+      "uncompressed_bytes": 2560
+    },
+    {
+      "compressed_digest": "sha256:e9f4bc7c19ab4bc4cfd853e309653176f718ca4ca3f4f66c68930a5edb920b15",
+      "compressed_bytes": 85,
+      "uncompressed_diff_id": "sha256:e51fbaa4439c4e38781cc712ef035b33f5c6f5e3d4dd4d1377552689102b3d84",
+      "uncompressed_bytes": 1536
+    },
+    {
+      "compressed_digest": "sha256:9c5428de2971c1e01b4cbd8f2530c235b693a8a2970840dfcc079bdf4c30d539",
+      "compressed_bytes": 21532429,
+      "uncompressed_diff_id": "sha256:06fca1b110f6a67625050001ccdee537dbe49390d99e394a9899f3c481b97b11",
+      "uncompressed_bytes": 91377664
+    },
+    {
+      "compressed_digest": "sha256:14ea97add5d18a8d863ee0392f00237d149967e33778890d69d41913dedabf7a",
+      "compressed_bytes": 11660,
+      "uncompressed_diff_id": "sha256:2cfbf35b5f39e58c0e271f4e4211192b643e614daf9ed30829ad66c8d210397f",
+      "uncompressed_bytes": 32256
+    },
+    {
+      "compressed_digest": "sha256:4f906654faa19a2e4c08bd073174d46ee5b058bcefe16520eb01dce4d3c8b793",
+      "compressed_bytes": 1145326,
+      "uncompressed_diff_id": "sha256:c768036e3683227bc2dbbda3c2886a372eeff193f0186ba9d0ed677bbaab4068",
+      "uncompressed_bytes": 6228480
+    },
+    {
+      "compressed_digest": "sha256:d747649b87f107f403ef55206b156be18efb153ceac1ebf1870d7d4d5d633b93",
+      "compressed_bytes": 550960,
+      "uncompressed_diff_id": "sha256:64022fcc6881f35e088f90d624fbff2525318464faaac9b8f5a730509d6e9805",
+      "uncompressed_bytes": 2108928
+    }
+  ],
+  "docker_save_archive_digest": "sha256:d5224edffda0892d15025c313551b1ffe8abff656de5f1cc5df8ae95879c2200",
+  "docker_save_archive_bytes": 202605568,
+  "registry_digest": null,
+  "registry_published": false,
+  "image_launched": false,
+  "public_url_verified": false,
+  "laptop_binary_backup_verified": false,
+  "opaque_config_verified": true,
+  "source_binding": "exact inspected Docker image label and separate build input manifest; converter emits no non9ff revision annotation",
+  "oci_revision_annotation": null,
+  "passed": true
+}

@@ -1,0 +1,76 @@
+{
+  "schema": "yellow-independent-schema-recovery-review/v1",
+  "result": "pass",
+  "scope": "read-only review of v5 schema proof only; no Docker/database/credential/network operations",
+  "source_pin": {
+    "normalized_schema_sha256": "b924ed9532046a563df6332881716130deeb2e69dc88341d0123849d61c8edf9",
+    "actual_source_raw_sha256": "b212fafcc3e58d48c4fa9a7363bd14660bd84d1f33542e8dff4cc1bdc0bdab8f",
+    "actual_restored_raw_sha256": "8b0308d23ca91087c0712f075c75369e1ee629b54fc8596427012f269239c337",
+    "actual_source_normalized_sha256": "b924ed9532046a563df6332881716130deeb2e69dc88341d0123849d61c8edf9",
+    "actual_restored_normalized_sha256": "81b5d3c21ba1a484f5360d25c44835c62e938df21606ae11739c201443b6b6d0",
+    "source_dump_path": "synthetic-recovery-v4/private-recovery-v4/source-schema-only.sql",
+    "restored_dump_path": "synthetic-recovery-v4/private-recovery-v4/restored-schema-only.sql"
+  },
+  "comparator": {
+    "source_file": "recover_synthetic_origin.py",
+    "source_sha256": "859ef30edb7ad3b806abe771c5442a943f909fd8dfab06934ff72d32ada09488",
+    "test_file": "test_recovery_guards.py",
+    "test_sha256": "7e8a789a3db3841dc37f3dbe71c20bcf22d065b386fac22115b24b9103efea20",
+    "parser": "pglast v7.10",
+    "parser_site": "/workspace/yellow-toolchain/schema-parser-v1/lib/python3.12/site-packages",
+    "source_statement_count": 2449,
+    "restored_statement_count": 2449,
+    "normalized_raw_line_differences": 20,
+    "known_check_constraint_count": 20,
+    "ast_hash_source": "ada40d1cd8ac9d2200d40953c61208cac615ff8ab826de2ad6b29e1138209c3e",
+    "ast_hash_restored": "ada40d1cd8ac9d2200d40953c61208cac615ff8ab826de2ad6b29e1138209c3e",
+    "full_ordered_ast_equal_except_scanner_coordinates": true,
+    "strict_schema_equivalence_passed": true,
+    "raw_schema_lines_included_in_proof": false
+  },
+  "hostile_mutations": {
+    "CHECK bound": {
+      "rejected": true,
+      "guard_reason": "schema dump has a non-allowlisted CHECK-line byte difference"
+    },
+    "RLS mode": {
+      "rejected": true,
+      "guard_reason": "schema dump has a non-allowlisted CHECK-line byte difference"
+    },
+    "object owner": {
+      "rejected": true,
+      "guard_reason": "schema dump has a non-allowlisted CHECK-line byte difference"
+    },
+    "grant privilege": {
+      "rejected": true,
+      "guard_reason": "schema dump has a non-allowlisted CHECK-line byte difference"
+    },
+    "function body": {
+      "rejected": true,
+      "guard_reason": "schema dump has a non-allowlisted CHECK-line byte difference"
+    },
+    "unknown DDL": {
+      "rejected": true,
+      "guard_reason": "schema dump line count differs"
+    },
+    "parser failure": {
+      "rejected": true,
+      "guard_error": "PostgreSQL schema AST parse failed"
+    }
+  },
+  "function_body_mutation_additional_check": {
+    "line_count_preserved": true,
+    "parsed_ast_changed": true,
+    "schema_proof_rejected": true
+  },
+  "validation": {
+    "python_compile": "pass",
+    "unit_tests": "33 passed",
+    "independent_v4_actual_dump_baseline": "pass",
+    "independent_hostile_mutations": "7 rejected"
+  },
+  "limits": [
+    "This review evaluates comparator behavior on retained synthetic v4 schema-only dumps.",
+    "It does not claim the v5 backup/restore or private app recovery was executed."
+  ]
+}

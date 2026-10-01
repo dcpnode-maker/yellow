@@ -1,0 +1,61 @@
+{
+  "api": {
+    "status": 403,
+    "body_bytes": 25,
+    "sha256": "870d84f11d07934098167265fdbe64f27821a0e5d7843d66b6a27efe8a02461b",
+    "known_policy_markers": {
+      "Access denied": false,
+      "blocked": true,
+      "proxy": false,
+      "Forbidden": false,
+      "ROBOTS_DENIED": false,
+      "policy": false,
+      "Cloudflare": false
+    },
+    "response_header_names": [
+      "cache-control",
+      "cf-ray",
+      "connection",
+      "content-length",
+      "content-type",
+      "date",
+      "expires",
+      "referrer-policy",
+      "server",
+      "x-envoy-upstream-service-time",
+      "x-frame-options",
+      "x-robots-tag"
+    ]
+  },
+  "source": {
+    "status": 200,
+    "body_bytes": 9647,
+    "sha256": "637457fc155436876ccf51407148dc5c74c4c8117a5ad23b8647428460b8082a",
+    "transport_excerpt": [
+      {
+        "line": 24,
+        "text": "const httpTimeout = 15 * time.Second"
+      },
+      {
+        "line": 137,
+        "text": "\tclient := http.Client{"
+      },
+      {
+        "line": 138,
+        "text": "\t\tTransport: &http.Transport{"
+      },
+      {
+        "line": 139,
+        "text": "\t\t\tTLSHandshakeTimeout:   httpTimeout,"
+      },
+      {
+        "line": 140,
+        "text": "\t\t\tResponseHeaderTimeout: httpTimeout,"
+      },
+      {
+        "line": 142,
+        "text": "\t\tTimeout: httpTimeout,"
+      }
+    ]
+  }
+}

@@ -1,0 +1,95 @@
+services:
+  postgres:
+    image: sha256:c293117fcecda7344b5480222e813b9f673d7abd69b1dd95eff239b768b04f59
+    platform: linux/amd64
+    container_name: yellow-recovery-9ff-20261001-v5-postgres
+    restart: "no"
+    mem_limit: 1g
+    cpus: 1.0
+    command: ["postgres", "-c", "shared_preload_libraries=pg_stat_statements"]
+    labels:
+      yellow.recovery.job: yellow-recovery-9ff-20261001-v5
+      yellow.recovery.source: 9ff27ad8765dc75ebae9e083d4635c7a9b89fa62
+      yellow.recovery.nonce: "${YELLOW_RECOVERY_NONCE:?required}"
+    environment:
+      POSTGRES_USER: yellow_deploy
+      POSTGRES_PASSWORD: "${YELLOW_DEPLOY_DATABASE_PASSWORD:?required}"
+      POSTGRES_DB: postgres
+    volumes:
+      - yellow-recovery-pgdata:/var/lib/postgresql
+    networks:
+      - private-recovery
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U yellow_deploy -d postgres"]
+      interval: 2s
+      timeout: 3s
+      retries: 20
+
+  app:
+    image: sha256:103cafd6ad6ca67c8ba4b41098c09cd325d3ac705e4867707b9f9ec49f9dc1f0
+    platform: linux/amd64
+    container_name: yellow-recovery-9ff-20261001-v5-app
+    user: bun
+    command: ["bun", "run", "start"]
+    restart: "no"
+    mem_limit: 1g
+    cpus: 1.0
+    labels:
+      yellow.recovery.job: yellow-recovery-9ff-20261001-v5
+      yellow.recovery.source: 9ff27ad8765dc75ebae9e083d4635c7a9b89fa62
+      yellow.recovery.nonce: "${YELLOW_RECOVERY_NONCE:?required}"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      HOST: "0.0.0.0"
+      PORT: "3000"
+      YELLOW_BUILD_SHA: 9ff27ad8765dc75ebae9e083d4635c7a9b89fa62
+      YELLOW_OPERATOR_WORKBENCH: "1"
+      YELLOW_OPERATOR_ALLOW_NON_LOOPBACK: "1"
+      YELLOW_LOCAL_REVIEW_PREFILL: "0"
+      YELLOW_PUBLIC_DEMO_AUTOMATIC_LOGIN: "0"
+      YELLOW_HOSTED_DEPOSIT_WORKBENCH: "0"
+      YELLOW_HOSTED_PROVIDER_ONLY: "0"
+      YELLOW_FISCAL_SUBMISSION_WORKER: "0"
+      YELLOW_HOLD_EXPIRY_WORKER: "0"
+      YELLOW_AVAILABILITY_PROJECTION_WORKER: "0"
+      YELLOW_PICKUP_TASK_WORKER: "0"
+      YELLOW_RESERVATION_ARRIVAL_ROLL_WORKER: "0"
+      YELLOW_RESERVATION_DEPARTURE_ROLL_WORKER: "0"
+      YELLOW_BUSINESS_DAY_ROLL_WORKER: "0"
+      YELLOW_RUNTIME_DATABASE_URL: "postgres://yellow_runtime:${YELLOW_RUNTIME_DATABASE_PASSWORD:?required}@postgres:5432/yellow_dev"
+      YELLOW_EXTENSION_REGISTRAR_DATABASE_URL: "postgres://yellow_extension_registrar:${YELLOW_EXTENSION_REGISTRAR_DATABASE_PASSWORD:?required}@postgres:5432/yellow_dev"
+      YELLOW_TOKEN_SECRET: "${YELLOW_TOKEN_SECRET:?required}"
+    networks:
+      - private-recovery
+    healthcheck:
+      test:
+        - CMD
+        - bun
+        - -e
+        - >-
+          const response = await fetch("http://127.0.0.1:3000/health");
+          const body = await response.json();
+          if (response.status !== 200 || JSON.stringify(body) !== '{"status":"ok"}') process.exit(1);
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+networks:
+  private-recovery:
+    name: yellow-recovery-9ff-20261001-v5-network
+    internal: true
+    labels:
+      yellow.recovery.job: yellow-recovery-9ff-20261001-v5
+      yellow.recovery.source: 9ff27ad8765dc75ebae9e083d4635c7a9b89fa62
+      yellow.recovery.nonce: "${YELLOW_RECOVERY_NONCE:?required}"
+
+volumes:
+  yellow-recovery-pgdata:
+    name: yellow-recovery-9ff-20261001-v5-pgdata
+    labels:
+      yellow.recovery.job: yellow-recovery-9ff-20261001-v5
+      yellow.recovery.source: 9ff27ad8765dc75ebae9e083d4635c7a9b89fa62
+      yellow.recovery.nonce: "${YELLOW_RECOVERY_NONCE:?required}"

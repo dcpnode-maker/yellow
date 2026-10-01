@@ -1,0 +1,85 @@
+{
+  "passed": true,
+  "reviewer": "root non-implementer of database/app proof",
+  "source_revision": "b9ba702a074a487feeafa056abb49abcdcf01ba8",
+  "app_container_id": "f58e39a497b6dfb39b9d96b07f15378da3a1a13e8896b753ba5abbc82454b5c8",
+  "image_id": "sha256:1e522a8ab84af27ddc57d4aef3e7f6a383d254be15225a8c9df1722df87d7bc9",
+  "database_container_id": "53b7f6b70ca8faa971d0483c25a40e6b39a05c3fdfbd230f23e8484675d3a050",
+  "frontier": 103,
+  "all_103_migration_checksums_match": true,
+  "public_tables": 130,
+  "nologin_roles_have_no_password": true,
+  "health_ready_ui_anonymous_and_private_path_checks": [
+    {
+      "path": "/health",
+      "status": 200,
+      "bytes": 15,
+      "sha256": "a29ee2b15c494311c52521766e44af56a3ad2248e7a8ab465e5206463c13d288"
+    },
+    {
+      "path": "/ready",
+      "status": 200,
+      "bytes": 167,
+      "sha256": "39b3a572e3cf749f770dbfdce86a2d41ac23cb02f85438a872ac212523dd5632"
+    },
+    {
+      "path": "/",
+      "status": 200,
+      "bytes": 852,
+      "sha256": "4337e1f69acb586f93f18b339b3c14837a938bfd2f6df812ea735f064654b5c6"
+    },
+    {
+      "path": "/api/v1/me/properties",
+      "status": 401,
+      "bytes": 175,
+      "sha256": "030b6ebeda24eb6c80508b314f29cd531856546748c9e342d6aec80d24e618a5"
+    },
+    {
+      "path": "/.env",
+      "status": 404,
+      "bytes": 9,
+      "sha256": "920b8d07262e4e924669c0e38ef57e0da66b68c9d387248d83a9aa19be7c96c4"
+    },
+    {
+      "path": "/src/server.ts",
+      "status": 404,
+      "bytes": 9,
+      "sha256": "920b8d07262e4e924669c0e38ef57e0da66b68c9d387248d83a9aa19be7c96c4"
+    },
+    {
+      "path": "/package.json",
+      "status": 404,
+      "bytes": 9,
+      "sha256": "920b8d07262e4e924669c0e38ef57e0da66b68c9d387248d83a9aa19be7c96c4"
+    },
+    {
+      "path": "/Dockerfile",
+      "status": 404,
+      "bytes": 9,
+      "sha256": "920b8d07262e4e924669c0e38ef57e0da66b68c9d387248d83a9aa19be7c96c4"
+    },
+    {
+      "path": "/migrations/0103_property_operating_mode_reserved_config_guard.sql",
+      "status": 404,
+      "bytes": 9,
+      "sha256": "920b8d07262e4e924669c0e38ef57e0da66b68c9d387248d83a9aa19be7c96c4"
+    }
+  ],
+  "html_matches_fresh_build_manifest": true,
+  "previous_services_running": {
+    "fe96ec05f4db113a5935c0d7e0f38aa6445b9ca16995c073195e399edcea4599": {
+      "image": "sha256:35f7d5d121eec9ae34ad1c991bc40bc6474939610938a29383ecd30b65b63c8f",
+      "running": true
+    },
+    "d002232dfdb8ba671ca51fc53ae8657ea72cc361740acd61c91b49e8f5bdca59": {
+      "image": "sha256:103cafd6ad6ca67c8ba4b41098c09cd325d3ac705e4867707b9f9ec49f9dc1f0",
+      "running": true
+    },
+    "8285d83c127f8981d94e10c09fe6fce1bba9c594efe13a70332597eb0e5b5680": {
+      "image": "sha256:c293117fcecda7344b5480222e813b9f673d7abd69b1dd95eff239b768b04f59",
+      "running": true
+    }
+  },
+  "scope": "VM loopback synthetic only",
+  "public_route_login_browser_business_recovery_proven": false
+}

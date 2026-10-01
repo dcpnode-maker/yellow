@@ -1,0 +1,154 @@
+{
+  "schema": "yellow-b9-private-loopback-proof/v1",
+  "scope": "private loopback synthetic b9 validation only",
+  "namespace": {
+    "project": "yellow-b9-linux-20261001-v2",
+    "nonce": "4d32ae1963c807bdded446822aa65670",
+    "source_commit": "b9ba702a074a487feeafa056abb49abcdcf01ba8",
+    "source_tree": "9446a6735d712ccfd30c6957ea511fb0e3b644cf",
+    "source_clean": true
+  },
+  "database": {
+    "postgres_image_digest": "sha256:77f585114c32fbca283dc835b0596f4e52b51b4c6662d7810b2f4084f60a1873",
+    "valkey_image_digest": "sha256:e0eb7c480958d32bdc4357a74bdd70653ae15f2f9b4c93c4a5a9fad1dc471c84",
+    "migration_frontier": 103,
+    "ledger_count": 103,
+    "ledger_checksums_match_source": true,
+    "public_base_tables": 130,
+    "strict_schema_match": true,
+    "expected_schema_sha256": "83155d0dc477e800187f4852f0965806b00ce74bc8aa77da61f1eea3fcffbe58",
+    "role_contract_matches": true,
+    "role_contract_mismatches": [],
+    "roles_diagnostic_pg_authid_sha256": "55d03344309cb0ba2ea05249341bea275a082d7e098ae0d5695523a4be985962",
+    "password_presence_recheck_sha256": "ea642889e46f01b02c8a4ec95c12a097dfa4609bb7124578c90bb1337ed16b35"
+  },
+  "preserved_false_positive": {
+    "source": "initial read-only snapshot queried pg_roles, whose rolpassword masking produced false password-present flags for two NOLOGIN roles",
+    "preserved_snapshot": "database-snapshot-pg_roles-masked.json",
+    "snapshot_sha256": "27e286601a456dd773e27daacca806287c56add290a69c0493edcf2904f2fb6f",
+    "correction": "only the catalog relation supplying rolpassword boolean was changed to pg_authid; original snapshot and logs retained"
+  },
+  "app": {
+    "container_id": "f58e39a497b6dfb39b9d96b07f15378da3a1a13e8896b753ba5abbc82454b5c8",
+    "state": "running",
+    "health": "healthy",
+    "configured_image": "yellow-receiving-runtime:b9ba702a074a487feeafa056abb49abcdcf01ba8",
+    "image_id": "sha256:1e522a8ab84af27ddc57d4aef3e7f6a383d254be15225a8c9df1722df87d7bc9",
+    "job_label": "yellow-b9-linux-20261001-v2",
+    "source_label": "b9ba702a074a487feeafa056abb49abcdcf01ba8",
+    "nonce_label": "4d32ae1963c807bdded446822aa65670",
+    "port_bindings": {
+      "3000/tcp": [
+        {
+          "HostIp": "127.0.0.1",
+          "HostPort": "53014"
+        }
+      ]
+    },
+    "nano_cpus": 1000000000,
+    "memory_bytes": 1073741824
+  },
+  "network": {
+    "name": "yellow-b9-linux-20261001-v2-bridge",
+    "driver": "bridge",
+    "internal": false,
+    "nonce_label": "4d32ae1963c807bdded446822aa65670",
+    "host_binding": "127.0.0.1:53014",
+    "network_mode": "standard Docker bridge; no host networking"
+  },
+  "app_http_loopback": {
+    "anonymous_me_properties": {
+      "bytes": 175,
+      "content_type": "application/json;charset=utf-8",
+      "path": "/api/v1/me/properties",
+      "sha256": "4eebb3cfffd050b7afa0f0132881e1f5e9405f1ea0d068c83433b06f4309fd91",
+      "status": 401
+    },
+    "auth_used": false,
+    "base": "127.0.0.1:53014",
+    "checks": [
+      {
+        "bytes": 15,
+        "content_type": "application/json;charset=utf-8",
+        "path": "/health",
+        "sha256": "a29ee2b15c494311c52521766e44af56a3ad2248e7a8ab465e5206463c13d288",
+        "status": 200
+      },
+      {
+        "bytes": 167,
+        "content_type": "application/json;charset=utf-8",
+        "path": "/ready",
+        "sha256": "39b3a572e3cf749f770dbfdce86a2d41ac23cb02f85438a872ac212523dd5632",
+        "status": 200
+      },
+      {
+        "bytes": 852,
+        "content_type": "text/html; charset=utf-8",
+        "path": "/",
+        "sha256": "4337e1f69acb586f93f18b339b3c14837a938bfd2f6df812ea735f064654b5c6",
+        "status": 200
+      }
+    ],
+    "compiled_asset": {
+      "bytes": 1133,
+      "content_type": "text/javascript; charset=utf-8",
+      "path": "/yellow-next/assets/index-Bcg5hvwy.js",
+      "sha256": "e9a0a10c3651bdb88a80fd43df307881477e541397308486befb2a689a5864bc",
+      "status": 200
+    },
+    "expectations": {
+      "anonymous_denied": true,
+      "asset_200": true,
+      "health_200": true,
+      "ready_200": true,
+      "root_200": true
+    },
+    "revision": "b9ba702a074a487feeafa056abb49abcdcf01ba8"
+  },
+  "configuration": {
+    "override_sha256": "8834f3b658cbefd77e3f0bd1471abbea1dfbd163b5fcf114a6b462caa266c0b8",
+    "database_override_sha256": "5d2d95053db01e3ced037a724f033ffce03a2799f8c287bb565add50f7a84314",
+    "runtime_image_id": "sha256:1e522a8ab84af27ddc57d4aef3e7f6a383d254be15225a8c9df1722df87d7bc9",
+    "worker_flags_all_zero": true,
+    "fiscal_submission_worker_zero": true,
+    "hosted_provider_only_zero": true,
+    "public_demo_automatic_login_zero": true,
+    "local_review_prefill_zero": true,
+    "auth_used_in_http_checks": false
+  },
+  "setup": {
+    "setup_status_sha256": "1d5687053ff15d93881528605df03245f00ec579ed95df682a58fc0471d770dc",
+    "setup_log_sha256": "06d8a85293c6f5c870e0c119c82d5467edfb1f88af7dbc8c201939f001a58497",
+    "seed_status_sha256": "fd745a92a9096412c7bd54feadaebacf2ace28a7e77ea44dd5b0d4d9899491d1",
+    "seed_log_sha256": "9288f84965aee77042e41b586290d3814ad2fc3466dcf3a788348131f395fdf6",
+    "schema_check_status_sha256": "729adf45be8b8088ce33d5ffbdcc5ddc6ed3e7d95724dd31b2ec534b2639287a",
+    "schema_check_log_sha256": "243be329732d78e246b58f974ec84a6ecdfabd3bc2d549895fa86ccd5d518484",
+    "snapshot_sha256": "fea2ca109b3c6d23a85626996466b89aade32c650bd16c58eb8f2d5ac63229fe"
+  },
+  "limits": [
+    "No interactive login was exercised.",
+    "No public route, external transport, UDP, or provider connector was tested.",
+    "Loopback readiness is not production or durability proof.",
+    "Synthetic tenant/database only; no business rows emitted.",
+    "V2 canonical DB setup ran once; source feature files were not modified."
+  ],
+  "app_launch_history": [
+    {
+      "event": "initial owned app start",
+      "status_file": "app-up-status.json",
+      "private_log_sha256": "261025ac0d3ff890f7bcc1e4c28f62070e337c5003cac42a74ff1107d07cd805",
+      "exit_code": 0
+    },
+    {
+      "event": "exact nonce-owned app service stopped before pg_authid role recheck",
+      "scope": "docker compose stop app in yellow-b9-linux-20261001-v2 only",
+      "container_and_database_volumes_preserved": true
+    },
+    {
+      "event": "app relaunched after strict pg_authid assertions passed",
+      "status_file": "app-up-status-v2.json",
+      "private_log_sha256": "eef83e083a21cd796352886bcd751ea7f7d0092a6848ef2fac74c537fafb27f8",
+      "exit_code": 0
+    }
+  ]
+}
