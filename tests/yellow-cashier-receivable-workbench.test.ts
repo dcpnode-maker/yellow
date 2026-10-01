@@ -56,7 +56,7 @@ test("uncertain mutations keep one immutable proposal and operation key until re
   expect(app).toContain('receivableUncertainOperation !== "transfer"');
   expect(app).toContain("Retry same approval request");
   expect(app).toContain('data-lifecycle-recovery={receivableAttemptUncertain || undefined}');
-  expect(shell).toContain("event.target.closest('[data-lifecycle-recovery=\"true\"]')");
+  expect(shell).toContain("if (event.target instanceof Element && event.target.closest('[data-lifecycle-recovery=\"true\"], [data-property-mode-recovery=\"true\"]')) return;");
   expect(app).toContain("The latest folio refresh failed. The last authoritative statement remains visible");
 });
 
