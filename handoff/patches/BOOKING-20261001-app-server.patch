@@ -1,0 +1,43 @@
+diff --git a/src/app.ts b/src/app.ts
+index ddb82521..eb04de43 100644
+--- a/src/app.ts
++++ b/src/app.ts
+@@ -4,0 +5 @@ import { SECURITY_HEADERS } from "./http/security-headers";
++import { GuestBookingHttpApi } from "./http/guest-booking";
+@@ -52,0 +54 @@ export interface AppOptions {
++  readonly guestBookingRoutes?: GuestBookingHttpApi;
+@@ -182,0 +185,5 @@ export function createApp(options: AppOptions = {}) {
++    if (options.guestBookingRoutes) {
++      const booking = options.guestBookingRoutes;
++      app.post("/api/v1/properties/:property/booking-invitations", ({request,params}) =>
++        withOperatorTenant(request, context => booking.issue(context,params.property)), {parse:"none"});
++    }
+@@ -829,0 +837,7 @@ export function createApp(options: AppOptions = {}) {
++  if (options.guestBookingRoutes) {
++    const booking = options.guestBookingRoutes;
++    app.post("/api/public/booking/offers", ({request}) => booking.handle(request,"offers"), {parse:"none"})
++      .post("/api/public/booking/quotes", ({request}) => booking.handle(request,"quotes"), {parse:"none"})
++      .post("/api/public/booking/holds", ({request}) => booking.handle(request,"holds"), {parse:"none"})
++      .post("/api/public/booking/reservations", ({request}) => booking.handle(request,"reservations"), {parse:"none"});
++  }
+diff --git a/src/server.ts b/src/server.ts
+index a8dffb00..b791f952 100644
+--- a/src/server.ts
++++ b/src/server.ts
+@@ -4 +4 @@ import { createApp } from "./app";
+-import { BearerTenantResolver, Hs256TokenSigner, LocalLoginGuard, LocalLoginService } from "./contexts/identity";
++import { BearerTenantResolver, GuestBookingTokenSigner, Hs256TokenSigner, LocalLoginGuard, LocalLoginService } from "./contexts/identity";
+@@ -9 +9 @@ import { OperatingPerformanceService } from "./contexts/reporting";
+-import { GroupReservationService, ReservationAlertService, ReservationArrivalRollService, ReservationArrivalRollWorker, ReservationBoardService, ReservationCommitService, ReservationDepartureRollService, ReservationDepartureRollWorker, ReservationDetailService, ReservationGuestService, ReservationLifecycleService, ReservationOfferSearchService, ReservationSegmentService, ReservationTravelService } from "./contexts/reservations";
++import { GuestBookingService, GroupReservationService, ReservationAlertService, ReservationArrivalRollService, ReservationArrivalRollWorker, ReservationBoardService, ReservationCommitService, ReservationDepartureRollService, ReservationDepartureRollWorker, ReservationDetailService, ReservationGuestService, ReservationLifecycleService, ReservationOfferSearchService, ReservationSegmentService, ReservationTravelService } from "./contexts/reservations";
+@@ -28,0 +29 @@ import {
++  TaxAttributionPersistenceService,
+@@ -31,0 +33 @@ import {
++import { GuestBookingHttpApi } from "./http/guest-booking";
+@@ -391,0 +394,6 @@ function runtimeApp() {
++    guestBookingRoutes: new GuestBookingHttpApi({ database, service: new GuestBookingService({
++      tokens: new GuestBookingTokenSigner(required("YELLOW_TOKEN_SECRET")),
++      offers: reservationOffers, quotes: rateBuilder.quote, rates, publication, holds,
++      attributions: new TaxAttributionPersistenceService({events,idempotency:new PostgresIdempotency()}), reservations,
++      idempotency: new PostgresIdempotency(), events,
++    }) }),

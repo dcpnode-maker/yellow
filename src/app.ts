@@ -2,6 +2,7 @@ import { Elysia } from "elysia";
 import { isIP } from "node:net";
 
 import { SECURITY_HEADERS } from "./http/security-headers";
+import { GuestBookingHttpApi } from "./http/guest-booking";
 import { ExtensionHttpApi } from "./http/extensions";
 import { operatorAssets, type OperatorHttpApi, type OperatorLocalReviewCredentials } from "./http/operator";
 import { hostedDepositAssets, type HostedDepositProviderHttpApi } from "./http/provider";
@@ -50,6 +51,7 @@ export interface AppOptions {
   readonly tenantResolver?: TenantResolver;
   readonly extensionRegistry?: ExtensionRegistry;
   readonly operatorApi?: OperatorHttpApi;
+  readonly guestBookingRoutes?: GuestBookingHttpApi;
   readonly operatorLocalReviewCredentials?: OperatorLocalReviewCredentials;
   readonly hostedDepositRoutes?: HostedDepositProviderHttpApi;
   readonly hostedDepositSurface?: "guest" | "provider" | "all";
@@ -180,6 +182,11 @@ export function createApp(options: AppOptions = {}) {
         return operator.failure(request, error);
       }
     };
+    if (options.guestBookingRoutes) {
+      const booking = options.guestBookingRoutes;
+      app.post("/api/v1/properties/:property/booking-invitations", ({request,params}) =>
+        withOperatorTenant(request, context => booking.issue(context,params.property)), {parse:"none"});
+    }
     app
       .get("/", ({ request }) => publicOperatorHtml(request))
       .get("/p/:property/availability", ({ request }) => operatorAssets.html(options.operatorLocalReviewCredentials, request))
@@ -827,6 +834,13 @@ export function createApp(options: AppOptions = {}) {
       );
   }
 
+  if (options.guestBookingRoutes) {
+    const booking = options.guestBookingRoutes;
+    app.post("/api/public/booking/offers", ({request}) => booking.handle(request,"offers"), {parse:"none"})
+      .post("/api/public/booking/quotes", ({request}) => booking.handle(request,"quotes"), {parse:"none"})
+      .post("/api/public/booking/holds", ({request}) => booking.handle(request,"holds"), {parse:"none"})
+      .post("/api/public/booking/reservations", ({request}) => booking.handle(request,"reservations"), {parse:"none"});
+  }
   if (options.hostedDepositRoutes) {
     const provider = options.hostedDepositRoutes;
     const surface = options.hostedDepositSurface ?? "all";

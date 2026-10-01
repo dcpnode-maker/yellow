@@ -1,0 +1,110 @@
+{
+  "reviewer": "/root/guest_booking_security_review",
+  "independent_nonimplementer": true,
+  "source_basis": "444072ffdff2b7745345d88f71b603c17e11ace6",
+  "reviewed_at_utc": "2026-10-01T19:25:08.897691+00:00",
+  "authorization": "parent104READY; exclusive owned synthetic fixture",
+  "native_receipt": {
+    "mode": "normal",
+    "exit_code": 0,
+    "log_sha256": "f142f726c50ae1cf7df56511eeebfa037f423973c82e0c16712c7aabb89ed43b",
+    "source_basis": "444072ffdff2b7745345d88f71b603c17e11ace6",
+    "test_sha256": "5be2a19cdf88e3d8349be24a03a7c5672e42f8d4a20e28f66b31f4f42fd97546",
+    "database": "yellow_guest_booking_proof",
+    "ownership_verified": true,
+    "credentials_printed": false
+  },
+  "native_result": {
+    "passed": 11,
+    "failed": 0,
+    "assertions": 95,
+    "elapsed_seconds": 6.98
+  },
+  "negative_modes_expected_exit1": [
+    "--missing-runtime",
+    "--owner-runtime",
+    "--mismatched-target"
+  ],
+  "focused_with_readiness_oracles": {
+    "passed": 39,
+    "failed": 0,
+    "assertions": 452
+  },
+  "source_hashes_sha256": {
+    ".github/workflows/ci.yml": "e3271a21f06d4c4ff3b8e656cb1a35b99cdd556ea28f2a1e3a7052e4c148ce36",
+    ".github/workflows/release.yml": "b26ef288fce97a0c9883ff9e685af92cb783cf4de64a282493177d615e57f5b2",
+    "docs/contracts/GUEST-BOOKING-INVITATION-20261001.md": "d5a5fb6e3b607f34c5d7e51c4c4bf13677333b28dc4fa5b03de1711972d5533e",
+    "handoff/orders/BOOKING-20261001-guest-invitation-flow.md": "f7cf73e57287379e4693a08de872e14bde090f0b0bb5929b39eb4715e98934fe",
+    "handoff/questions/BOOKING-20261001-frontier104-closure.md": "9dc7a7b53a1d178545c202ee48ec50ac76a8e28ec75b871fea356791c6084fc7",
+    "migrations/0104_guest_booking_authority.sql": "4c41dc4765ecbfe705999c5d5980ea482579403bdc681e468669fd3021c6be4a",
+    "scripts/local-review.sh": "fbd0aa75b1d2d855240f1588b1c34f4dc6f98a65cf00c906f73cad034b1c6b6a",
+    "setup.ps1": "3c3de57ed05170dfb1b77841ceb7c906614e4e9d63a531aab6ba904c5c85fbe5",
+    "setup.sh": "e8124b3a74806bb1278c530da245cf7be380d4821ea1eda3a3008f6df39690b2",
+    "src/app.ts": "4ea15c21d2a54c9f1f2c9c0ba4b8cf78be6c3728b38cbbb0bbe3decc62ed972e",
+    "src/contexts/identity/guest-booking-authority.ts": "54bb6be8034e636a256dc6d786210eb1b22f52202c667efd960f03a47564bfe7",
+    "src/contexts/identity/guest-booking-token.ts": "ca80907a8f94dfba220c032dbdde8668f0b71918d594dc34cd06bbccaedfb5b1",
+    "src/contexts/identity/index.ts": "b9f3bdf69b6427038cc22757d2e1068e4390d2ab18100908c7f93cbb693fdea7",
+    "src/contexts/reservations/guest-booking.ts": "52c670be5e59268733d852f1aa6433637c190d33a8f759067f1bedfb1aaae7ea",
+    "src/contexts/reservations/index.ts": "7f7c77d2c26868dc85f690a1aa17742cd40cf1de989033f017362fbdf3ad87ae",
+    "src/http/guest-booking.ts": "2407e34f61df6d4bca099385655c8964619da839909e3b21a6225e74d6b543f2",
+    "src/kernel/build-info.ts": "3333d755a06df2ddd305971c6bca96752f57876669921ec00a848a39a7e7878e",
+    "src/server.ts": "b02fad22ac541b152a334d4dc31d4719ed27ec91f9188154b41e344b6b4c5632",
+    "tests/build-readiness.integration.test.ts": "18b493d30c0a0cce3c40120373c7c1d9095ca6eab71a9f4ac3a6dde88ea17bb4",
+    "tests/build-readiness.test.ts": "4ca7fbda73ad528309493fe7f9c7e6dbdb57156fb23df0ba2df3aa476021b1ca",
+    "tests/free-host-arm64.test.ts": "46568818118f3c6107da71a39325f0787857b6f368859bcb5d1e855837897bb4",
+    "tests/guest-booking-token.test.ts": "a1982cfb0aeffd53adbe8c425fdac1778a2f5af85393e9fa3e84173163e88d1d",
+    "tests/guest-booking.http.test.ts": "6f2208ea3cd9c52be3a3ea972b1fb098981ce2f60043a6edbc812be616c4972d",
+    "tests/guest-booking.integration.test.ts": "5be2a19cdf88e3d8349be24a03a7c5672e42f8d4a20e28f66b31f4f42fd97546",
+    "tests/guest-booking.test.ts": "864a581cd730d6a94a8136e1ec41af2a6b1bc6ac1c01f0e4d26c8562d24076cd",
+    "tests/migrate.integration.test.ts": "6547ebebe4cb83c58135dbe84b72c68a6f2d61c79f9de6963f1bff86ead2ae32",
+    "tests/release-workflow.test.ts": "500e069ea28d45b0985ef83af1d18d9f1b3c97139805be7adc8cca55c451c5c0",
+    "tests/schema/expected.sql": "9b11a56a80ceefaaf6d8ba570d975f271a80e29b8eec93c6108ee0051f4908f5",
+    "tests/setup-current-catalogue-oracle.test.ts": "b088f7282b443fd7882fbd3e0d6df50efc0008ee3770f9781dc4cb96d703f041"
+  },
+  "no_feature_or_test_edits_by_reviewer": true,
+  "credentials_printed": false,
+  "acceptance": "bounded guest booking source publication accepted after personal native proof and observed green integrator standing; exact remote CI and laptop integration pending; no deployment or full guest engine acceptance",
+  "metadata_closure_reviewed_at_utc": "2026-10-01T19:32:26.766483+00:00",
+  "metadata_focused": {
+    "passed": 10,
+    "failed": 0,
+    "assertions": 126,
+    "files": [
+      "scripts/local-review.sh",
+      ".github/workflows/ci.yml",
+      ".github/workflows/release.yml",
+      "tests/free-host-arm64.test.ts",
+      "tests/release-workflow.test.ts"
+    ],
+    "literal_frontier_only": true
+  },
+  "initial_receipt_sha256": "17e88f5977213f2d98770e1f6470d1399b30cf0d0351abea625a19636a26ac06",
+  "final_integrator_standing_observed": {
+    "personally_executed_by_reviewer": false,
+    "log": "quality-full-subreaper.log",
+    "log_sha256": "3be575cd72422ee026dcb4b295057d6eca5f8d6ec697e2ae00668a7d50a00dc2",
+    "passed": 2581,
+    "explicit_environment_skips": 1618,
+    "failed": 0,
+    "assertions": 45297,
+    "elapsed_seconds": 65.32,
+    "owned_subreaper_reaps_reported": 116
+  },
+  "final_integrator_setup_observed": {
+    "personally_executed_by_reviewer": false,
+    "log": "setup104.log",
+    "log_sha256": "4c8870930bab3d5cc51d8754b2d9acb7c4793464c04b60964b8b5f4350194f1c",
+    "referee_passed": 11,
+    "referee_failed": 0,
+    "elapsed_seconds": 5.453,
+    "frontier": 104
+  },
+  "final_integrator_runtime_readiness_observed": {
+    "personally_executed_by_reviewer": false,
+    "receipt": "runtime-readiness104.json",
+    "receipt_sha256": "dd12c401c2a205554baa91a7b98523a3ce5f41f55ff1bd28a9363d54e5edf35a",
+    "actual_owned_frontier104_readiness_reported": "passed"
+  },
+  "final_metadata_receipt_sha256": "dff12cc37bce03b517a403fceae13f93220fcaf5bfa6f0c40089dd42c9485413",
+  "final_review_updated_at_utc": "2026-10-01T19:34:52.072955+00:00"
+}

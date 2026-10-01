@@ -12,6 +12,13 @@ export type {
   Hs256TokenSignerOptions,
   TokenSigner,
 } from "./token";
+export { GuestBookingTokenSigner } from "./guest-booking-token";
+export { GuestBookingAuthority, GuestBookingAuthorityError, GUEST_BOOKING_ISSUER_SCOPES } from "./guest-booking-authority";
+export type {
+  GuestBookingToken,
+  GuestBookingTokenPurpose,
+  GuestBookingTokenSignerOptions,
+} from "./guest-booking-token";
 export { LocalLoginService } from "./local-login";
 export type { LocalLoginInput, LocalLoginResult } from "./local-login";
 export { LocalLoginGuard, LocalLoginLimitedError, localLoginGuardPolicy } from "./login-guard";

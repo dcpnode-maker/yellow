@@ -1,0 +1,3 @@
+-- Superseded unnumbered proposal. Canonical reserved source:
+-- migrations/0104_guest_booking_authority.sql
+-- First unadmitted disposable prototype retained in external proof receipts.

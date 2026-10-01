@@ -1,12 +1,12 @@
 import { SQL } from "bun";
 
 import { createApp } from "./app";
-import { BearerTenantResolver, Hs256TokenSigner, LocalLoginGuard, LocalLoginService } from "./contexts/identity";
+import { BearerTenantResolver, GuestBookingTokenSigner, Hs256TokenSigner, LocalLoginGuard, LocalLoginService } from "./contexts/identity";
 import { PartyProfileService } from "./contexts/crm";
 import { BusinessDayDiscrepancyCarryOperatorService, BusinessDayRollService, BusinessDayRollWorker, BusinessDaySealService, CashierService, ChargeCorrectionService, ChargeService, FolioService, FolioSettlementService, FolioStatementService, FolioTransferService, HostedDepositService, LocalPaymentProvider, OwnerTrustExpenseWorkbenchService, PaymentService, ReceivableService } from "./contexts/financials";
 import { AvailabilityProjectionConsumer, AvailabilityProjectionService, AvailabilityService, HoldExpiryWorker, HoldService, InventoryPolicyService, InventoryService, OperationalBlockService, ReservationOccupancyService, RestrictionService } from "./contexts/inventory";
 import { OperatingPerformanceService } from "./contexts/reporting";
-import { GroupReservationService, ReservationAlertService, ReservationArrivalRollService, ReservationArrivalRollWorker, ReservationBoardService, ReservationCommitService, ReservationDepartureRollService, ReservationDepartureRollWorker, ReservationDetailService, ReservationGuestService, ReservationLifecycleService, ReservationOfferSearchService, ReservationSegmentService, ReservationTravelService } from "./contexts/reservations";
+import { GuestBookingService, GroupReservationService, ReservationAlertService, ReservationArrivalRollService, ReservationArrivalRollWorker, ReservationBoardService, ReservationCommitService, ReservationDepartureRollService, ReservationDepartureRollWorker, ReservationDetailService, ReservationGuestService, ReservationLifecycleService, ReservationOfferSearchService, ReservationSegmentService, ReservationTravelService } from "./contexts/reservations";
 import { ArrivalPickupTaskAutomationConsumer, ArrivalPickupTaskDispatchService, CheckInService, CheckoutReadinessService, CheckoutService, VehicleParkingAssignmentService, VehicleRegisterService } from "./contexts/stay-operations";
 import { ArrivalRoomCleaningTaskService, HousekeepingDiscrepancyService, HousekeepingSheetService, HousekeepingTaskService } from "./contexts/housekeeping";
 import {
@@ -26,9 +26,11 @@ import {
   FiscalSubmissionService,
   FiscalSubmissionWorker,
   loadIndiaIrpAdapterRegistrationsFromEnvironment,
+  TaxAttributionPersistenceService,
   TaxJurisdictionResolutionService,
   VerifiedIndiaIrpAdapterRegistry,
 } from "./contexts/tax-fiscal";
+import { GuestBookingHttpApi } from "./http/guest-booking";
 import { OperatorHttpApi, type OperatorLocalReviewCredentials } from "./http/operator";
 import { HostedDepositProviderHttpApi } from "./http/provider";
 import { OverwatchService } from "./overwatch";
@@ -389,6 +391,12 @@ function runtimeApp() {
     readinessTarget: "yellow_runtime_database",
     database,
     tenantResolver: new BearerTenantResolver(tokens),
+    guestBookingRoutes: new GuestBookingHttpApi({ database, service: new GuestBookingService({
+      tokens: new GuestBookingTokenSigner(required("YELLOW_TOKEN_SECRET")),
+      offers: reservationOffers, quotes: rateBuilder.quote, rates, publication, holds,
+      attributions: new TaxAttributionPersistenceService({events,idempotency:new PostgresIdempotency()}), reservations,
+      idempotency: new PostgresIdempotency(), events,
+    }) }),
     operatorApi: new OperatorHttpApi(login, availability, inventory, new PostgresIdempotency(), restrictions, rates, pricing, blocks, policy, holds, projection, runtimeStatus, rateBuilder, reservations, reservationOffers, reservationGuests, reservationLifecycle, reservationSegments, parties, folioStatements, charges, new ReservationBoardService(), new ReservationDetailService(), folios, chargeCorrections, folioTransfers, hostedRuntime?.hostedDeposits, folioSettlements, cashiers, receivables, checkIns, housekeeping, housekeepingSheets, checkoutReadiness, checkouts, vehicleRegister, reservationTravel, pickupTaskDispatch, arrivalRoomCleaning, housekeepingDiscrepancies, vehicleParking, undefined, undefined, businessDayCarry, businessDaySeal, ownerTrustExpenses, {
       submissions: fiscalSubmissions,
       adapters: fiscalSubmissionAdapters,

@@ -1,0 +1,30 @@
+{
+  "sourceBasis": "444072ffdff2b7745345d88f71b603c17e11ace6",
+  "controllerSourceObserved": "3039ac9345503b2e0aec07759d5686493b3ff3c7",
+  "migration104": {
+    "filename": "0104_guest_booking_authority.sql",
+    "sha256": "4c41dc4765ecbfe705999c5d5980ea482579403bdc681e468669fd3021c6be4a",
+    "applied": "only owned disposable proof yellow_dev/guest_booking_proof/yellow_test namespaces",
+    "nonDisposableApplication": "none",
+    "prototype": "first unadmitted prototype and failed logs retained externally; disposable target recreated before final proof"
+  },
+  "schemaSha256": "9b11a56a80ceefaaf6d8ba570d975f271a80e29b8eec93c6108ee0051f4908f5",
+  "publicHostedSource": "laptop3039/frontier103; guestbackend notadmitted",
+  "standing": {
+    "pass": 2581,
+    "fail": 0,
+    "skip": 1618,
+    "assertions": 45297,
+    "subreaper": "ownedchildreaping; no sourcewaiver"
+  },
+  "independentNative": {
+    "pass": 11,
+    "fail": 0,
+    "assertions": 95
+  },
+  "referee": {
+    "pass": 11,
+    "fail": 0
+  },
+  "originalFailuresRetained": true
+}

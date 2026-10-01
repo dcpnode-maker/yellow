@@ -1,0 +1,10 @@
+{
+  "mode": "normal",
+  "exit_code": 0,
+  "log_sha256": "f142f726c50ae1cf7df56511eeebfa037f423973c82e0c16712c7aabb89ed43b",
+  "source_basis": "444072ffdff2b7745345d88f71b603c17e11ace6",
+  "test_sha256": "5be2a19cdf88e3d8349be24a03a7c5672e42f8d4a20e28f66b31f4f42fd97546",
+  "database": "yellow_guest_booking_proof",
+  "ownership_verified": true,
+  "credentials_printed": false
+}

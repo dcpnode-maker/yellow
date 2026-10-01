@@ -1,0 +1,10 @@
+{
+  "target": "owned synthetic proof only",
+  "runtimeTableAclUnchanged": true,
+  "frontier": [
+    {
+      "count": 104,
+      "frontier": "104"
+    }
+  ]
+}

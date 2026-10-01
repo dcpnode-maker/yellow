@@ -5,6 +5,8 @@ export {
   type ReservationStatus,
   type ReservationTransition,
 } from "./state-machine";
+export { GuestBookingService, GuestBookingError, guestBookingTermsFingerprint } from "./guest-booking";
+export type { GuestBookingSession, GuestBookingServiceOptions } from "./guest-booking";
 export {
   ReservationCommitService,
   ReservationConflictError,
