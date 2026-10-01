@@ -1,0 +1,44 @@
+{
+  "schema": "yellow-independent-no-token-protocol-review/v1",
+  "result": "bounded_protocol_packet_review_pass_no_connectivity_claim",
+  "reviewed_files": {
+    "NO_SECRET_DIAGNOSE_EXECUTION.json": "528a7fc44103e9f53e8ffcc931314a684a48fce9a55e9da6d164435684dc9415",
+    "NO_TOKEN_AGENT_START_EXECUTION.json": "84b197bc04ca47deb9a737d35df95815af6a2aeb7a5e9a6739af7611b829e935",
+    "NO_TOKEN_AGENT_REDACTED.log": "d837dc33a8a2301966010b39b5cd9ce481e9c65f423c504048c690daa689fa95",
+    "BOUNDED_PROTOCOL_RESULT.json": "4d902834f3fccc526a282793e45f92413047b1fc058ceabfeb475f0ed8579801",
+    "NGROK_NO_TOKEN_PROTOCOL_HANDOFF.md": "e85f165e8e2c859505a5ed8e70495313c73fbd8ee30df4bc9d07b6c44951cbe7",
+    "PROTOCOL_PREFLIGHT_ORDER.md": "8bc0888ea310a8e0937ba6c191bd376426fff3da01200ef1a182041e34d7d0a1",
+    "PLATFORM_BINDING_CAPABILITY_OBSERVATION.json": "9b043c95da91bec8a67ce30344ff4226d5326ba0115833a4300e00cf988dab6b"
+  },
+  "receipt_consistency": {
+    "diagnose_exit": 1,
+    "diagnose_proxy_tcp_check": "OK",
+    "diagnose_dns_and_generic_internet": "WARN; not agent protocol proof",
+    "start_session_close_occurrences": 6,
+    "provider_authentication_error_received": false,
+    "agent_session_or_public_endpoint_proven": false,
+    "start_elapsed_seconds": 26.005,
+    "start_exit_zero_after_requested_stop_is_not_success": true,
+    "no_token_or_paid_resource_used": true,
+    "proxy_network_tls_controls_changed": false,
+    "unchanged_retry_scheduled": false
+  },
+  "laptop_ui_trace": {
+    "attribution": "controller-reported; not independently inspected in this review",
+    "exact_source_commit_pending": true,
+    "cloud_frontend_changes_made": false,
+    "unreviewed_frontend_copy_authorized": false
+  },
+  "platform_capability": {
+    "spec_revision": "226",
+    "callable_operation": "environment_status only",
+    "secret_binding_or_native_config_apply_available": false,
+    "token_binding": false
+  },
+  "limits": [
+    "No private config, log, binary, or token was opened.",
+    "No network, agent, provider, database, or runtime probe was performed.",
+    "Old services/current private origin were not independently inspected or tested.",
+    "No provider refusal, working tunnel, public/session URL, authenticated user access, paid entitlement, or durable hosting claim is made."
+  ]
+}

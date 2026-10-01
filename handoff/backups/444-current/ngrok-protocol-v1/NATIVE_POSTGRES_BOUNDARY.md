@@ -1,0 +1,7 @@
+# External free PostgreSQL boundary — no provisioning
+
+Laptop/controller is independently verifying a no-card free PostgreSQL provider (including NeonFree); cloud has not created an account/database, read a DSN or connected any provider. Official free quota claims supplied by laptop are not a compatibility or connectivity proof.
+
+Yellow uses Bun.SQL persistent native PostgreSQL/TLS on provider port5432 with tenant transactions, PostgreSQL roles/RLS, locking, immutable migrations and full readiness/fiscal authority. A working HTTPS managed proxy or app ingress does not automatically carry native PostgreSQL TCP. Do not replace the driver/role authority with REST, browser DSNs or an implicit alternate database. Keep one authoritative business dataset; current103 fixtures are synthetic only.
+
+After controller supplies an exact reviewed provider endpoint and supported secure credential/trust binding: prove the platform-supported outbound TCP/TLS route, normal certificate/hostname verification, exact PostgreSQL version/role capabilities and canonical schema/readiness/invariants in a disposable provider-scoped namespace before any business migration/cutover. Do not guess endpoints, disable proxy/TLS/network restrictions, assume free roles equal local PG18 deployment superuser authority, provision paid/card resources or access emergency credits. No provider connection or production recovery has been established by this checkpoint.

@@ -1,0 +1,101 @@
+{
+  "schema": "yellow-ngrok-protocol-artifact-manifest/v1",
+  "source_revision": "444072ffdff2b7745345d88f71b603c17e11ace6",
+  "parent_artifact_revision": "b0dbf54fd80b2048a5435570e8bbb10825aae965",
+  "base_tree": "a7296ff57a63071a93411974ba8d7b187d5a75e7",
+  "artifact_only": true,
+  "no_public_app_url": true,
+  "files": [
+    {
+      "path": "handoff/backups/444-current/ngrok-protocol-v1/NO_SECRET_DIAGNOSE_EXECUTION.json",
+      "mode": "100644",
+      "bytes": 799,
+      "sha256": "528a7fc44103e9f53e8ffcc931314a684a48fce9a55e9da6d164435684dc9415",
+      "git_blob": "b8e37e26890be47fadaba84cd521956856d3f0c6"
+    },
+    {
+      "path": "handoff/backups/444-current/ngrok-protocol-v1/NO_TOKEN_AGENT_START_EXECUTION.json",
+      "mode": "100644",
+      "bytes": 986,
+      "sha256": "84b197bc04ca47deb9a737d35df95815af6a2aeb7a5e9a6739af7611b829e935",
+      "git_blob": "e59c23f686c46642f4c071a8a4f55b70a5b0513c"
+    },
+    {
+      "path": "handoff/backups/444-current/ngrok-protocol-v1/NO_TOKEN_AGENT_REDACTED.log",
+      "mode": "100644",
+      "bytes": 1324,
+      "sha256": "d837dc33a8a2301966010b39b5cd9ce481e9c65f423c504048c690daa689fa95",
+      "git_blob": "a47926eb42441863b6dc9099e49fcdf8a45f9e6b"
+    },
+    {
+      "path": "handoff/backups/444-current/ngrok-protocol-v1/BOUNDED_PROTOCOL_RESULT.json",
+      "mode": "100644",
+      "bytes": 2954,
+      "sha256": "4d902834f3fccc526a282793e45f92413047b1fc058ceabfeb475f0ed8579801",
+      "git_blob": "310a6fbac0a8eb86417659dbb9ead5b58ba36f26"
+    },
+    {
+      "path": "handoff/backups/444-current/ngrok-protocol-v1/NGROK_NO_TOKEN_PROTOCOL_HANDOFF.md",
+      "mode": "100644",
+      "bytes": 4846,
+      "sha256": "e85f165e8e2c859505a5ed8e70495313c73fbd8ee30df4bc9d07b6c44951cbe7",
+      "git_blob": "74c1edfcd8a8e217e0adc977c6503a67d076326a"
+    },
+    {
+      "path": "handoff/backups/444-current/ngrok-protocol-v1/PROTOCOL_PREFLIGHT_ORDER.md",
+      "mode": "100644",
+      "bytes": 845,
+      "sha256": "8bc0888ea310a8e0937ba6c191bd376426fff3da01200ef1a182041e34d7d0a1",
+      "git_blob": "9980356753fea70cd09545f3fa084d8746aee3ed"
+    },
+    {
+      "path": "handoff/backups/444-current/ngrok-protocol-v1/INDEPENDENT_NO_TOKEN_PROTOCOL_REVIEW.md",
+      "mode": "100644",
+      "bytes": 2076,
+      "sha256": "e948a7294de13ddfec170080aa11f9de73e809ff5ff159dcb4026121bc0ec6e5",
+      "git_blob": "3d5dfe26d66b6aff78a99f037ad8b1a05f8d0e84"
+    },
+    {
+      "path": "handoff/backups/444-current/ngrok-protocol-v1/INDEPENDENT_NO_TOKEN_PROTOCOL_REVIEW.json",
+      "mode": "100644",
+      "bytes": 2310,
+      "sha256": "563e4db7ba073a52e871068673dee71eeb79e0ee7046d552fffd9c597f1a0096",
+      "git_blob": "5e3f69d2dc060292d219796417a8647fc373bb20"
+    },
+    {
+      "path": "handoff/backups/444-current/ngrok-protocol-v1/IMPLICIT_DIAGNOSTIC_REPORT_PRIVACY.json",
+      "mode": "100644",
+      "bytes": 136,
+      "sha256": "c8e66d0cad1b05c6097bc2470392e7a87224c34e62266b7add863f78ddc65146",
+      "git_blob": "c9ddc7a0b36cd8f5ffc95b8a5207dda0adac19be"
+    },
+    {
+      "path": "handoff/backups/444-current/ngrok-protocol-v1/NATIVE_POSTGRES_BOUNDARY.md",
+      "mode": "100644",
+      "bytes": 1449,
+      "sha256": "2ab28264d659301eb0f24a43b609a2f731560c9555653c973d23ec30ba45fcd7",
+      "git_blob": "cf3a3c1546dda99f0688d4e01f98cc5fb33839f5"
+    },
+    {
+      "path": "handoff/backups/444-current/ngrok-protocol-v1/freeze_protocol_packet.py",
+      "mode": "100644",
+      "bytes": 5283,
+      "sha256": "d2ee2f58f1346f3933e6ce20cf872326869dc9661887bb8b772fea3c5434c6c3",
+      "git_blob": "06a9f56efcc1483583174e4737de9ed9dc6ac445"
+    },
+    {
+      "path": "handoff/LEDGER.md",
+      "mode": "100644",
+      "bytes": 764956,
+      "sha256": "a787fe46b27f9af25b54ff848dc0ea3bf4fc9dbb1142d1822cd5de876a2945a2",
+      "git_blob": "a0050630ba0bbe7c9afcb1486940bfc21f85fdd1"
+    }
+  ],
+  "excluded": [
+    "all managed secret/env/proxy/CA configuration values",
+    "private agent config/log/token/binary",
+    "opaque Docker/OCI binaries/config",
+    "raw PostgreSQL dumps/data/logs",
+    "laptop dirty source/business data"
+  ]
+}

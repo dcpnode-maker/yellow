@@ -1,0 +1,67 @@
+{
+  "schema": "ngrok-bounded-protocol-result/v1",
+  "source": "444072ffdff2b7745345d88f71b603c17e11ace6",
+  "cloud_origin": {
+    "url": "http://127.0.0.1:53018",
+    "container_id": "5d7fa9269e152eb13af21387b574c72f22f561bded6aa9f7547103a8b466e314",
+    "image_id": "sha256:265557572fb06f6699b85fd2732ebcacd12bc5e9299feacbe5ece2f0883dafce",
+    "job": "RELEASE-20261001-candidate-444-runtime",
+    "ownership_nonce": "4c6bc14f268848955a484920575daf0f",
+    "ready_status": 200,
+    "migration_frontier": 103
+  },
+  "actual_no_token_agent_result": {
+    "error": "failed to send authentication request: session closed",
+    "occurrences": 6,
+    "provider_authentication_error_received": false,
+    "protocol_reachability_proven": false,
+    "public_endpoint_registered": false,
+    "elapsed_seconds": 26.005,
+    "terminated_owned_pid": 1655940,
+    "process_exited": true,
+    "exit_code_after_requested_stop": 0,
+    "exit_zero_is_success_evidence": false
+  },
+  "diagnose_result": {
+    "exit_code": 1,
+    "proxy_tcp_check": "OK",
+    "dns_checks": "WARN",
+    "internet_probe": "WARN",
+    "errors": [
+      "ERR_NGROK_8000",
+      "ERR_NGROK_8001",
+      "ERR_NGROK_8002"
+    ],
+    "note": "Diagnostic included standard DNS and generic internet probes; these are not proof of agent negotiation; no resolver/proxy/CA changes were made. No further diagnose retries."
+  },
+  "secret_binding": {
+    "token_bound": false,
+    "callable_secret_injection_method": false,
+    "available_operation": "environment_status only",
+    "spec_revision": "226",
+    "proposal": "dedicated managed ngrok agent-token file binding through platform-supported secret configuration if made available; no values in chat/Git; no claim this workflow is currently callable"
+  },
+  "legacy_url_provenance": {
+    "url": "https://leasing-computed-social-instance.trycloudflare.com/p/6081b544-22a1-534f-a86d-bb1ae0519e14/today?lane=in_house",
+    "exact_hostname_mapping_found": false,
+    "scope_searched": "fetchedGitdocs/handoff/state historical commits and owned public cloud receipts",
+    "matching_property_id_record": "handoff/reviews/623-624-group-block-pg18-public-demo.md:18",
+    "matching_property_id_is_not_hostname_or_revision_proof": true,
+    "old9ff_and_b9_preserved": true,
+    "ui_changes_made": false,
+    "laptop_controller_successor_finding": {
+      "source": "authorized laptop delegation; not independently inspected by cloud",
+      "order": 737,
+      "react_js_asset": "index-DusA4ysm.js",
+      "react_css_asset": "index-C9ZASg81.css",
+      "laptop_retained_directory": "canonical public/yellow-next",
+      "receipt": 734,
+      "reported_container_prefix": "34b83ec",
+      "exact_source_commit_pending_controller_trace": true,
+      "cloud_must_not_copy_unreviewed_frontend": true
+    }
+  },
+  "network_or_tls_controls_changed": false,
+  "account_secret_or_paid_resource_used": false,
+  "captured_utc": "2026-10-01T17:17:17.605587+00:00"
+}
