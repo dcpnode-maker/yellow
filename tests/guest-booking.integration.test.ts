@@ -663,6 +663,31 @@ databaseDescribe("Order BOOKING-20261001 guest invitation PostgreSQL proof", () 
     await deploy!`INSERT INTO role_permission(role_id,permission_code) VALUES(${ROLE}::uuid,${GUEST_BOOKING_ISSUER_SCOPES[4]})`;
   });
 
+  test("C1: context reads authoritative property/plan metadata without writes and denies revoked issuer", async()=>{
+    const token=await issueInvitation();
+    const before=await fixtureCounts();
+    const result=await withSession(token,(tx,session)=>service!.context(tx,session,{})) as {
+      property:{id:string;name:string;timeZone:string};ratePlans:{id:string;code:string;name:string;unitTypes:unknown[]}[]
+    };
+    expect(result.property).toEqual({id:PROPERTY,name:"Guest Booking Proof",timeZone:"UTC"});
+    expect(result.ratePlans).toEqual([{id:RATE_PLAN,code:"GBP-RATE",name:"Guest Booking Rate",unitTypes:[]}]);
+    expect(await fixtureCounts()).toEqual(before);
+    await deploy!`DELETE FROM role_permission WHERE role_id=${ROLE}::uuid AND permission_code=${GUEST_BOOKING_ISSUER_SCOPES[4]}`;
+    try{await expect(withSession(token,(tx,session)=>service!.context(tx,session,{}))).rejects.toMatchObject({status:403});}
+    finally{await deploy!`INSERT INTO role_permission(role_id,permission_code) VALUES(${ROLE}::uuid,${GUEST_BOOKING_ISSUER_SCOPES[4]})`;}
+  });
+
+  test("C2: bound quote cannot extend a valid signed envelope with a later payload deadline",async()=>{
+    const sessionToken=await issueInvitation();
+    const quoted=await quote(sessionToken,18) as {quoteToken:string};
+    const signer=new GuestBookingTokenSigner(TOKEN_SECRET,{now:()=>clockNow});
+    const payload=signer.verify("quote",quoted.quoteToken)!.payload;
+    const short=signer.issue("quote",payload,5);
+    const before=await fixtureCounts();
+    await expect(hold(sessionToken,short)).rejects.toMatchObject({status:403});
+    expect(await fixtureCounts()).toEqual(before);
+  });
+
   test("P2: canonical offer, quote, complete-tax hold and held commit bind one reservation with exact replay and tax lineage", async () => {
     quoteMode = "normal";
     const before = await fixtureCounts();

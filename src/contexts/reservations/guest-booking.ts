@@ -15,6 +15,8 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 const HASH = /^[0-9a-f]{64}$/;
 const CHANNEL = /^[a-z][a-z0-9._-]{0,63}$/;
 const KEY = /^[\x21-\x7e]{8,200}$/;
+const DISPLAY_CODE = /^[A-Z0-9][A-Z0-9._-]{0,63}$/;
+const MAX_CONTEXT_UNIT_ROWS = 4096;
 
 export class GuestBookingError extends Error {
   constructor(readonly status: number, readonly code: string) { super("Guest booking request could not be completed"); this.name = "GuestBookingError"; }
@@ -47,6 +49,24 @@ function instant(value: unknown): Date {
   const date = new Date(value);
   if (!Number.isFinite(date.getTime()) || date.toISOString() !== value) return invalid();
   return date;
+}
+function displayName(value: unknown): string {
+  if (typeof value !== "string" || value.length < 1 || value.trim() !== value || value.length > 256 ||
+      /[\x00-\x1f\x7f\u200b-\u200d\u202a-\u202e\u2060\u2066-\u2069\ufeff]/u.test(value)) return denied();
+  return value;
+}
+function ianaTimeZone(value: unknown): string {
+  if (typeof value !== "string" || value.length < 1 || value.length > 128 || value.trim() !== value ||
+      (value !== "UTC" && value !== "GMT" &&
+        (!value.includes("/") || value.split("/").some((part) => !/^[A-Z][A-Za-z0-9._+-]*$/.test(part))))) return denied();
+  try {
+    const resolved = new Intl.DateTimeFormat("en", { timeZone: value }).resolvedOptions().timeZone;
+    const canonical = value === "GMT" && resolved === "GMT" ? "UTC" : resolved;
+    if (canonical !== "UTC" && (!canonical.includes("/") ||
+        canonical.split("/").some((part) => !/^[A-Z][A-Za-z0-9._+-]*$/.test(part)))) return denied();
+    if (canonical === "UTC" && value !== "UTC" && value !== "GMT") return denied();
+    return canonical;
+  } catch { return denied(); }
 }
 function stay(value: unknown, selected: boolean): { from: Date; to: Date; adults: number; childAges: readonly number[]; sellableUnitId?: string; ratePlanId?: string } {
   const v = record(value, ["stayStart", "stayEnd", "adults", "childAges", ...(selected ? ["sellableUnitId", "ratePlanId"] : [])]);
@@ -131,16 +151,144 @@ export class GuestBookingService {
     const seconds = Math.floor(now.getTime()/1000);
     if (seconds < session.issuedAt || seconds >= Math.min(session.expiresAt,boundUntil)) throw new GuestBookingError(401,"booking/expired");
   }
-  async #authorize(tx: Tx, session: GuestBookingSession): Promise<Date> {
+  async #authorize(tx: Tx, session: GuestBookingSession, ratePlanId?: string): Promise<Date> {
     if (!this.#sessions.has(session)) return denied();
     let now: Date;
-    try { now = await this.#authority.authorize(tx, session); } catch (error) {
+    try {
+      now = await this.#authority.authorize(tx, {
+        tenantId: session.tenantId, propertyNode: session.propertyNode, actorId: session.actorId,
+        primaryPartyId: session.primaryPartyId, ...(ratePlanId === undefined ? {} : { ratePlanId }),
+      });
+    } catch (error) {
       if (error instanceof GuestBookingAuthorityError) return denied(); throw error;
     }
     if (Math.floor(now.getTime()/1000) >= session.expiresAt || Math.floor(now.getTime()/1000) < session.issuedAt) {
       throw new GuestBookingError(401, "booking/expired");
     }
     return now;
+  }
+  /** Property-local display authority for constructing a stay; carries no booking promise. */
+  async context(tx: Tx, session: GuestBookingSession, body: unknown): Promise<unknown> {
+    if (!this.#sessions.has(session)) return denied();
+    record(body, []);
+    await this.#authorize(tx, session);
+    type ContextRow = {
+      tenant_id: string; property_id: string; property_name: string; property_timezone: string;
+      rate_plan_id: string | null; rate_plan_code: string | null; rate_plan_name: string | null;
+      unit_type_id: string | null; unit_type_code: string | null; unit_type_name: string | null;
+      sellable_unit_id: string | null; sellable_unit_name: string | null;
+    };
+    const rows = await tx<ContextRow[]>`
+      SELECT property.tenant_id::text AS tenant_id,
+             property.id::text AS property_id,
+             property.name AS property_name,
+             property.timezone AS property_timezone,
+             plan.id::text AS rate_plan_id,
+             plan.code AS rate_plan_code,
+             plan.name AS rate_plan_name,
+             unit.id::text AS unit_type_id,
+             unit.code AS unit_type_code,
+             unit.name AS unit_type_name,
+             sellable.id::text AS sellable_unit_id,
+             sellable.name AS sellable_unit_name
+      FROM public.org_node AS property
+      LEFT JOIN public.rate_plan AS plan
+        ON plan.tenant_id = property.tenant_id
+       AND plan.property_node = property.id
+       AND plan.id IN ${tx(session.ratePlanIds)}
+       AND plan.status = 'active'
+      LEFT JOIN public.unit_type AS unit
+        ON unit.tenant_id = property.tenant_id
+       AND unit.property_node = property.id
+       AND plan.id IS NOT NULL
+       AND EXISTS (
+         SELECT 1 FROM public.rate_price AS price
+         WHERE price.tenant_id = property.tenant_id
+           AND price.rate_plan_id = plan.id
+           AND price.unit_type_id = unit.id
+           AND price.superseded_by IS NULL
+       )
+      LEFT JOIN public.sellable_unit AS sellable
+        ON sellable.tenant_id = unit.tenant_id
+       AND sellable.unit_type_id = unit.id
+       AND sellable.status = 'active'
+      WHERE property.tenant_id = ${session.tenantId}::uuid
+        AND property.tenant_id = current_setting('app.tenant_id', true)::uuid
+        AND property.id = ${session.propertyNode}::uuid
+        AND property.kind = 'property'
+      ORDER BY plan.code, unit.sort_order, unit.code, sellable.name, sellable.id
+      LIMIT ${MAX_CONTEXT_UNIT_ROWS + 1}
+    `;
+    if (rows.length === 0 || rows.length > MAX_CONTEXT_UNIT_ROWS) {
+      if (rows.length > MAX_CONTEXT_UNIT_ROWS) throw new GuestBookingError(503, "service/unavailable");
+      return denied();
+    }
+    const first = rows[0]!;
+    if (first.tenant_id !== session.tenantId || first.property_id !== session.propertyNode) return denied();
+    const property = Object.freeze({
+      id: uuid(first.property_id),
+      name: displayName(first.property_name),
+      timeZone: ianaTimeZone(first.property_timezone),
+    });
+    const plans = new Map<string, {
+      id: string; code: string; name: string;
+      unitTypes: Map<string, { id: string; code: string; name: string; units: Map<string, { id: string; name: string }> }>;
+    }>();
+    for (const row of rows) {
+      if (row.tenant_id !== session.tenantId || row.property_id !== session.propertyNode ||
+          row.property_name !== first.property_name || row.property_timezone !== first.property_timezone) return denied();
+      if (row.rate_plan_id === null) {
+        if (row.rate_plan_code !== null || row.rate_plan_name !== null || row.unit_type_id !== null ||
+            row.unit_type_code !== null || row.unit_type_name !== null || row.sellable_unit_id !== null ||
+            row.sellable_unit_name !== null) return denied();
+        continue;
+      }
+      const planId = uuid(row.rate_plan_id);
+      if (!session.ratePlanIds.includes(planId) || row.rate_plan_code === null || row.rate_plan_name === null) return denied();
+      let plan = plans.get(planId);
+      if (!plan) {
+        if (!DISPLAY_CODE.test(row.rate_plan_code)) return denied();
+        plan = { id: planId, code: row.rate_plan_code, name: displayName(row.rate_plan_name), unitTypes: new Map() };
+        plans.set(planId, plan);
+      } else if (plan.code !== row.rate_plan_code || plan.name !== row.rate_plan_name) return denied();
+      if (row.unit_type_id === null) {
+        if (row.unit_type_code !== null || row.unit_type_name !== null || row.sellable_unit_id !== null ||
+            row.sellable_unit_name !== null) return denied();
+        continue;
+      }
+      const unitTypeId = uuid(row.unit_type_id);
+      if (row.unit_type_code === null || !DISPLAY_CODE.test(row.unit_type_code) || row.unit_type_name === null) return denied();
+      let unitType = plan.unitTypes.get(unitTypeId);
+      if (!unitType) {
+        unitType = { id: unitTypeId, code: row.unit_type_code, name: displayName(row.unit_type_name), units: new Map() };
+        plan.unitTypes.set(unitTypeId, unitType);
+      } else if (unitType.code !== row.unit_type_code || unitType.name !== row.unit_type_name) return denied();
+      if (row.sellable_unit_id === null) {
+        if (row.sellable_unit_name !== null) return denied();
+        continue;
+      }
+      if (row.sellable_unit_name === null) return denied();
+      const unitId = uuid(row.sellable_unit_id);
+      const unitName = displayName(row.sellable_unit_name);
+      const existingUnit = unitType.units.get(unitId);
+      if (existingUnit && existingUnit.name !== unitName) return denied();
+      unitType.units.set(unitId, { id: unitId, name: unitName });
+    }
+    if (plans.size !== session.ratePlanIds.length || session.ratePlanIds.some((id) => !plans.has(id))) return denied();
+    for (const plan of plans.values()) await this.#authorize(tx, session, plan.id);
+    await this.#fresh(tx, session);
+    this.#ttl(session.expiresAt, 900);
+    return Object.freeze({
+      property,
+      ratePlans: Object.freeze([...plans.values()].sort((a, b) => a.code.localeCompare(b.code)).map((plan) => Object.freeze({
+        id: plan.id, code: plan.code, name: plan.name,
+        unitTypes: Object.freeze([...plan.unitTypes.values()].sort((a, b) => a.code.localeCompare(b.code)).map((unitType) => Object.freeze({
+          id: unitType.id, code: unitType.code, name: unitType.name,
+          units: Object.freeze([...unitType.units.values()].sort((a, b) => a.name.localeCompare(b.name) || a.id.localeCompare(b.id))
+            .map((unit) => Object.freeze(unit))),
+        }))),
+      }))),
+    });
   }
   async #event(tx: Tx, session: Pick<GuestBookingSession,"tenantId"|"propertyNode"|"actorId"|"sessionId"|"primaryPartyId">,
     requestId: string, eventType: string, entityType: string, entityId: string, details: Data): Promise<void> {
@@ -231,7 +379,7 @@ export class GuestBookingService {
     const planHash = await this.#planHash(tx, session, input.ratePlanId);
     const quote = await this.#o.quotes.resolve(tx, input);
     if (!quote.availabilityOption.bookable || quote.result.state !== "quoted" || quote.tenantId !== session.tenantId) return stale();
-    const validUntil = Math.min(session.expiresAt, Math.floor(now.getTime()/1000)+300);
+    const validUntil = Math.min(session.expiresAt, Math.floor(now.getTime()/1000)+300,Math.floor(this.#now()/1000)+300);
     const selection = { sessionId: session.sessionId, input: this.#selection(input), termsHash: guestBookingTermsFingerprint(quote),
       planHash, releaseId: quote.releaseId, releaseVersion: quote.releaseVersion, releaseContentHash: quote.releaseContentHash,
       quoteHash: quote.quoteHash, validUntil };
@@ -246,7 +394,7 @@ export class GuestBookingService {
     if (!token) throw new GuestBookingError(401, "booking/expired");
     const p = record(token.payload, ["sessionId", "input", "termsHash", "planHash", "releaseId", "releaseVersion", "releaseContentHash", "quoteHash", "validUntil", ...(purpose === "hold" ? ["holdId"] : [])]);
     if (p.sessionId !== session.sessionId || !Number.isSafeInteger(p.validUntil) ||
-        (p.validUntil as number) > session.expiresAt || Math.floor(now.getTime()/1000) >= (p.validUntil as number)) return denied();
+        (p.validUntil as number) > Math.min(session.expiresAt,token.expiresAt) || Math.floor(now.getTime()/1000) >= (p.validUntil as number)) return denied();
     for (const key of ["termsHash","planHash","releaseContentHash","quoteHash"]) if (typeof p[key] !== "string" || !HASH.test(p[key] as string)) return invalid();
     uuid(p.releaseId); if (!Number.isSafeInteger(p.releaseVersion) || (p.releaseVersion as number) < 1) return invalid();
     if (purpose === "hold") uuid(p.holdId);

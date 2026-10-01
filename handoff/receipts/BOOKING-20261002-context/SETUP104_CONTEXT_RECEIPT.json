@@ -1,0 +1,8 @@
+{
+  "exit_code": 0,
+  "elapsed_seconds": 6.94,
+  "project": "yellow-guest-booking-proof-20261001",
+  "command": "./setup.sh --db-only",
+  "sha256": "83f39a9fb1520d8f84515c818f7c7a74a505c6bd8b04fa529de551f61bffd3ec",
+  "migration104sha256": "4c41dc4765ecbfe705999c5d5980ea482579403bdc681e468669fd3021c6be4a"
+}

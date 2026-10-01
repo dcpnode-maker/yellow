@@ -9,11 +9,16 @@ const NOW=Date.now();
 const claims={tenantId:id(1),propertyNode:id(2),actorId:id(3),primaryPartyId:id(4),ratePlanIds:[id(5)],
   channelCode:"direct",sessionId:id(6),validFrom:Math.floor(NOW/1000),validUntil:Math.floor(NOW/1000)+900};
 const body={stayStart:"2026-11-01T00:00:00.000Z",stayEnd:"2026-11-02T00:00:00.000Z",adults:1,childAges:[]};
-function fixture(authority?:GuestBookingServiceOptions["authority"]) {
+function fixture(authority?:GuestBookingServiceOptions["authority"], contextRows: readonly Record<string, unknown>[] = [], serviceNow:()=>number=()=>NOW) {
   const calls:unknown[]=[];
   const tokens=new GuestBookingTokenSigner("a".repeat(32),{now:()=>NOW});
-  const tx=(async(strings:TemplateStringsArray)=>strings.join("").includes("clock_timestamp")?[{now:new Date(NOW)}]:[]) as unknown as Tx;
-  const options={tokens,authority:authority??{authorize:async()=>new Date(NOW)},now:()=>NOW,
+  const tx=(async(strings:TemplateStringsArray)=>{
+    const query=strings.join("");
+    if(query.includes("clock_timestamp"))return [{now:new Date(NOW)}];
+    if(query.includes("FROM public.org_node AS property"))return contextRows;
+    return [];
+  }) as unknown as Tx;
+  const options={tokens,authority:authority??{authorize:async()=>new Date(NOW)},now:serviceNow,
     rates:{getRatePlan:async()=>({id:id(5),tenantId:id(1),propertyNode:id(2),code:"PUBLIC",status:"active"})},
     offers:{search:async(_tx:Tx,input:unknown)=>{calls.push(input);return {options:[]};}},
   } as unknown as GuestBookingServiceOptions;
@@ -50,6 +55,71 @@ describe("Invitation guest booking authority and input",()=>{
     await expect(f.service.hold(f.tx,f.session,{quoteToken:"invalid"},id(8))).rejects.toMatchObject({status:403});
     await expect(f.service.reserve(f.tx,f.session,{holdToken:"invalid"},id(8))).rejects.toMatchObject({status:403});
     expect(f.calls).toHaveLength(0);
+  });
+  test("returns property-local labels only for every active invitation plan and linked sellable unit",async()=>{
+    const f=fixture(undefined,[{
+      tenant_id:id(1),property_id:id(2),property_name:"Harbor House",property_timezone:"Asia/Kolkata",
+      rate_plan_id:id(5),rate_plan_code:"PUBLIC",rate_plan_name:"Public rate",
+      unit_type_id:id(9),unit_type_code:"QUEEN",unit_type_name:"Queen room",
+      sellable_unit_id:id(7),sellable_unit_name:"Room 204",
+    }]);
+    const result=await f.service.context(f.tx,f.session,{});
+    const canonicalTimeZone=new Intl.DateTimeFormat("en",{timeZone:"Asia/Kolkata"}).resolvedOptions().timeZone;
+    expect(result).toEqual({property:{id:id(2),name:"Harbor House",timeZone:canonicalTimeZone},ratePlans:[{
+      id:id(5),code:"PUBLIC",name:"Public rate",unitTypes:[{id:id(9),code:"QUEEN",name:"Queen room",units:[{id:id(7),name:"Room 204"}]}],
+    }]});
+    const legacyGmt=fixture(undefined,[{
+      tenant_id:id(1),property_id:id(2),property_name:"Harbor House",property_timezone:"GMT",
+      rate_plan_id:id(5),rate_plan_code:"PUBLIC",rate_plan_name:"Public rate",
+      unit_type_id:null,unit_type_code:null,unit_type_name:null,sellable_unit_id:null,sellable_unit_name:null,
+    }]);
+    await expect(legacyGmt.service.context(legacyGmt.tx,legacyGmt.session,{})).resolves.toMatchObject({
+      property:{timeZone:"UTC"},
+    });
+  });
+  test("rejects foreign query rows, absent allowed plans and invalid IANA property timezone",async()=>{
+    const row={tenant_id:id(1),property_id:id(2),property_name:"Harbor House",property_timezone:"UTC",
+      rate_plan_id:id(5),rate_plan_code:"PUBLIC",rate_plan_name:"Public rate",
+      unit_type_id:null,unit_type_code:null,unit_type_name:null,sellable_unit_id:null,sellable_unit_name:null};
+    const foreign=fixture(undefined,[{...row,tenant_id:id(99)}]);
+    await expect(foreign.service.context(foreign.tx,foreign.session,{})).rejects.toBeInstanceOf(GuestBookingError);
+    const missingPlan=fixture(undefined,[{...row,rate_plan_id:null,rate_plan_code:null,rate_plan_name:null}]);
+    await expect(missingPlan.service.context(missingPlan.tx,missingPlan.session,{})).rejects.toBeInstanceOf(GuestBookingError);
+    const unallowedPlan=fixture(undefined,[{...row,rate_plan_id:id(6)}]);
+    await expect(unallowedPlan.service.context(unallowedPlan.tx,unallowedPlan.session,{})).rejects.toBeInstanceOf(GuestBookingError);
+    for(const property_timezone of ["Not/A_Timezone","+05:30","utc","asia/Kolkata","Asia/calcutta"]) {
+      const badTimeZone=fixture(undefined,[{...row,property_timezone}]);
+      await expect(badTimeZone.service.context(badTimeZone.tx,badTimeZone.session,{})).rejects.toBeInstanceOf(GuestBookingError);
+    }
+  });
+  test("rechecks live plan authority and session expiry after loading context labels",async()=>{
+    const row={tenant_id:id(1),property_id:id(2),property_name:"Harbor House",property_timezone:"UTC",
+      rate_plan_id:id(5),rate_plan_code:"PUBLIC",rate_plan_name:"Public rate",
+      unit_type_id:null,unit_type_code:null,unit_type_name:null,sellable_unit_id:null,sellable_unit_name:null};
+    let authorizationCalls=0;
+    const revoked=fixture({authorize:async()=>{
+      authorizationCalls++;
+      if(authorizationCalls===2)throw new GuestBookingAuthorityError();
+      return new Date(NOW);
+    }},[row]);
+    await expect(revoked.service.context(revoked.tx,revoked.session,{})).rejects.toMatchObject({status:403});
+
+    let wallClock=NOW;
+    const expiring=fixture({authorize:async()=>{
+      wallClock=NOW+901_000;
+      return new Date(NOW);
+    }},[row],()=>wallClock);
+    await expect(expiring.service.context(expiring.tx,expiring.session,{})).rejects.toMatchObject({status:401});
+  });
+  test("requires the authentic in-memory session, exact empty body, and rejects excess unit rows",async()=>{
+    const row={tenant_id:id(1),property_id:id(2),property_name:"Harbor House",property_timezone:"UTC",
+      rate_plan_id:id(5),rate_plan_code:"PUBLIC",rate_plan_name:"Public rate",
+      unit_type_id:null,unit_type_code:null,unit_type_name:null,sellable_unit_id:null,sellable_unit_name:null};
+    const f=fixture(undefined,[row]);
+    await expect(f.service.context(f.tx,{...f.session},{})).rejects.toMatchObject({status:403});
+    await expect(f.service.context(f.tx,f.session,{tenantId:id(1)})).rejects.toMatchObject({status:400});
+    const excessive=fixture(undefined,Array.from({length:4097},()=>row));
+    await expect(excessive.service.context(excessive.tx,excessive.session,{})).rejects.toMatchObject({status:503});
   });
   test("expiry is rechecked using PostgreSQL clock even when signature wall clock is earlier",async()=>{
     const f=fixture({authorize:async()=>new Date(NOW+901_000)});

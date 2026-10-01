@@ -1,0 +1,14 @@
+{
+  "mode": "normal",
+  "exit_code": 0,
+  "log_sha256": "3a4093c01eb992ca291e14fb451e9894df56e2d612f5a63eb028174a43a1c89f",
+  "source_basis": "bdb94cad8ddccda628a6b3db7e69e4b63512f86f",
+  "test_sha256": "07af06d7ab2c74d2b78020530525646843efd6974750ff3e48afd5dce36ba6f0",
+  "source_sha256": {
+    "src/contexts/reservations/guest-booking.ts": "565100528c4df6ba245dff0b4c93937d4c8890a7130b1b507c79bbd8747cf18b",
+    "src/http/guest-booking.ts": "6b5283dbf91598ae51928caa564ffafbe96d0d892c1f5df0ab4f22a36652ce7b"
+  },
+  "database": "yellow_guest_booking_proof",
+  "ownership_verified": true,
+  "credentials_printed": false
+}

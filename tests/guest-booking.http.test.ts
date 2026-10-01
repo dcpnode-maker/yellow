@@ -121,6 +121,62 @@ describe("guest booking HTTP boundary", () => {
     expect(calls.quote).toBe(1);
   });
 
+  it("serves context through the guest bearer with an exact empty object and no-store headers", async () => {
+    const context = { property: { id: "property-a", name: "Harbor House", timeZone: "Asia/Kolkata" }, ratePlans: [] };
+    let contextCalls = 0;
+    const { api, calls } = harness({
+      async context(_tx, _session, body) {
+        expect(body).toEqual({});
+        contextCalls++;
+        return context;
+      },
+    });
+    const response = await api.handle(guestRequest(
+      "/api/public/booking/context", TOKEN, "{}", { origin: "https://yellow.test" },
+    ), "context");
+    expect(response.status).toBe(200);
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(response.headers.get("content-type")).toContain("application/json");
+    expect(await response.json()).toEqual(context);
+    expect(contextCalls).toBe(1);
+    expect(calls.transactions).toBe(1);
+  });
+
+  it("rejects context query, nonempty body, and cross-origin Origin before opening a transaction", async () => {
+    let contextCalls = 0;
+    const { api, calls } = harness({ async context() { contextCalls++; return {}; } });
+    const query = await api.handle(guestRequest("/api/public/booking/context?property=property-b"), "context");
+    const emptyQuery = await api.handle(guestRequest("/api/public/booking/context?"), "context");
+    const body = await api.handle(guestRequest("/api/public/booking/context", TOKEN, "{\"property\":\"property-a\"}"), "context");
+    const origin = await api.handle(guestRequest(
+      "/api/public/booking/context", TOKEN, "{}", { origin: "https://attacker.test" },
+    ), "context");
+    expect([query.status, emptyQuery.status, body.status, origin.status]).toEqual([400, 400, 400, 403]);
+    expect(contextCalls).toBe(0);
+    expect(calls.transactions).toBe(0);
+  });
+
+  it("applies the existing session budget and response-size ceiling to context", async () => {
+    let contextCalls = 0;
+    const { api, calls } = harness({
+      async context() { contextCalls++; return { property: { name: "x".repeat(1024 * 1024) } }; },
+    });
+    const oversized = await api.handle(guestRequest("/api/public/booking/context"), "context");
+    expect(oversized.status).toBe(503);
+    expect(calls.transactions).toBe(1);
+    expect(calls.commits).toBe(0);
+    expect(calls.rollbacks).toBe(1);
+
+    const budget = harness({ async context() { contextCalls++; return {}; } });
+    const responses: Response[] = [];
+    for (let index = 0; index < 31; index++) {
+      responses.push(await budget.api.handle(guestRequest("/api/public/booking/context"), "context"));
+    }
+    expect(responses.slice(0, 30).every((response) => response.status === 200)).toBe(true);
+    expect(responses[30]?.status).toBe(429);
+    expect(budget.calls.transactions).toBe(30);
+  });
+
   it("does not forward a guest supplied operation key to the hold domain command", async () => {
     const { api } = harness({
       async hold(...args: unknown[]) {

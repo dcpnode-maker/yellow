@@ -14,9 +14,9 @@ const ISSUE_SAVEPOINT = "guest_booking_issue_http";
 const BEARER = /^Bearer ([^\s]+)$/i;
 const IDEMPOTENCY_KEY = /^[A-Za-z0-9._:-]{1,128}$/;
 
-type GuestAction = "offers" | "quotes" | "holds" | "reservations";
+type GuestAction = "context" | "offers" | "quotes" | "holds" | "reservations";
 type GuestApiService = Pick<GuestBookingService,
-  "authenticate" | "issue" | "offers" | "quote" | "hold" | "reserve">;
+  "authenticate" | "issue" | "context" | "offers" | "quote" | "hold" | "reserve">;
 type GuestApiDatabase = Pick<Database, "withTenantTransaction">;
 
 interface SessionBudget {
@@ -84,6 +84,21 @@ function parseBearer(request: Request): string | null {
   if (authorization === null) return null;
   const match = BEARER.exec(authorization);
   return match?.[1] ?? null;
+}
+
+function exactEmptyObject(value: unknown): boolean {
+  return typeof value === "object" && value !== null && !Array.isArray(value) &&
+    Object.getPrototypeOf(value) === Object.prototype && Reflect.ownKeys(value).length === 0;
+}
+
+function sameOrigin(request: Request): boolean {
+  const supplied = request.headers.get("origin");
+  if (supplied === null) return true;
+  try {
+    return supplied === new URL(request.url).origin;
+  } catch {
+    return false;
+  }
 }
 
 function validSession(session: ReturnType<GuestApiService["authenticate"]>): session is NonNullable<typeof session> {
@@ -171,12 +186,17 @@ export class GuestBookingHttpApi {
         cancelBody(request);
         throw new HttpFailure(401, "auth/unauthorized");
       }
-      if (new URL(request.url).search !== "") {
+      if (new URL(request.url).search !== "" || (action === "context" && request.url.includes("?"))) {
         cancelBody(request);
         throw new HttpFailure(400, "request/invalid");
       }
+      if (action === "context" && !sameOrigin(request)) {
+        cancelBody(request);
+        throw new HttpFailure(403, "auth/forbidden");
+      }
       this.#consumeSessionBudget(session.sessionId);
       const body = await readCrsSearchJson(request);
+      if (action === "context" && !exactEmptyObject(body)) throw new HttpFailure(400, "request/invalid");
       const encoded = await this.#database.withTenantTransaction(session.tenantId, async (tx) => {
         const result = await this.#runAction(tx, action, session!, body, id);
         return encode(result);
@@ -213,6 +233,7 @@ export class GuestBookingHttpApi {
   #runAction(tx: Tx, action: GuestAction, session: NonNullable<ReturnType<GuestApiService["authenticate"]>>,
     body: unknown, id: string): Promise<unknown> {
     switch (action) {
+      case "context": return this.#service.context(tx, session, body);
       case "offers": return this.#service.offers(tx, session, body);
       case "quotes": return this.#service.quote(tx, session, body);
       case "holds": return this.#service.hold(tx, session, body, id);

@@ -1,0 +1,11 @@
+--- a/src/app.ts
++++ b/src/app.ts
+@@ -837,6 +837,7 @@
+   if (options.guestBookingRoutes) {
+     const booking = options.guestBookingRoutes;
+-    app.post("/api/public/booking/offers", ({request}) => booking.handle(request,"offers"), {parse:"none"})
++    app.post("/api/public/booking/context", ({request}) => booking.handle(request,"context"), {parse:"none"})
++      .post("/api/public/booking/offers", ({request}) => booking.handle(request,"offers"), {parse:"none"})
+       .post("/api/public/booking/quotes", ({request}) => booking.handle(request,"quotes"), {parse:"none"})
+       .post("/api/public/booking/holds", ({request}) => booking.handle(request,"holds"), {parse:"none"})
+       .post("/api/public/booking/reservations", ({request}) => booking.handle(request,"reservations"), {parse:"none"});
