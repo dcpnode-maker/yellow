@@ -2,14 +2,20 @@
 
 <!-- status-schema: yellow-project-status/v1 -->
 <!-- current-phase: 7 -->
-<!-- current-task: Codex Yellow — resumed: integrate existing PriceLabs/market pipelines and private staging, then current-line phase closure and the retained build priorities -->
-<!-- current-order-files: handoff/orders/462-pricelabs-intake-and-market-pipeline-integration.md;handoff/orders/460-current-source-single-local-promotion.md;handoff/orders/463-reservation-alert-workflow.md;handoff/orders/461-bounded-irp-sandbox-acceptance.md -->
-<!-- current-lifecycle: ACTIVE goal resumed2026-09-13; preparing selective source through464/frontier91 for exact native validation. Retained native55503 PID2340 running;3000/3001 stopped. September12 recovery, readiness91 and temporary frozen90 staging/owned shutdown are accepted. New-source publication, real PriceLabs intake and local promotion pending -->
+<!-- current-task: Codex Yellow — restore requested original UI and integrate CRS CRM RMS booking engine; laptop source and live hosting owner -->
+<!-- current-order-files: handoff/orders/RESOURCE-20261001-root-reference-ui-integration.md;handoff/orders/RESOURCE-20261001-restore-reference-ui.md;handoff/orders/RESOURCE-20261001-react-normal-auth.md -->
+<!-- current-lifecycle: ACTIVE receiving444/frontier103; reviewed41-path original UI and normal credential login integrated. New normal-auth laptop runtime and public hosting validation pending; cloud owns missing public booking adapter. Existing runtime/data preserved -->
 
 This is the canonical current-state record. It identifies the consolidated source,
 verified behavior, release boundaries and active work. Historical orders, reviews,
 decisions and ledger entries remain evidence; their filenames are not an active
 backlog. `state.sh` and `state.ps1` read the machine-readable comments above.
+
+## Receiving update — 1 October: requested reference UI
+
+The laptop receiving branch now integrates the independently reviewed original Yellow presentation and normal-login boundary from the41-path ab0d4ae8 freeze. The prior narrow frontend preview did not preserve the user's approved theme/navigation; this restores its header, workspace dock, ribbons, tables, search and explicit field dictation while retaining current guarded readers and domain commands. Review67/0 plus auth48/0, types, boundaries and compiled-module proof passed. This is source admission, not visual/browser or public-host acceptance.
+
+The catalogue test oracle now matches the actual103-migration frontier and26 permission catalogue, with all130-table/RLS/grant predicates preserved; the isolated PG18 run passed24/0/75 and its owned process stopped. Existing Windows CI startup failure remains unresolved. The current cloud inventory verifies staff CRS offer/hold/commit, departure-task prioritization and rate strategy foundations; public guest booking, group-price escalation and full forecasting remain incomplete. Memory-only document navigation needs session-resume follow-up before claiming the original flow is complete. Map/reports remain explicitly unavailable. No real hotel/guest data or provider activation is introduced.
 
 ## Current task
 

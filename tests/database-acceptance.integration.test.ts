@@ -598,8 +598,8 @@ databaseDescribe("fresh deployment database acceptance", () => {
             AND class.relforcerowsecurity) AS "forceRlsTables"
     `;
     expect(catalogue).toEqual([{
-      migrations: 100, tables: 130, rlsTables: 120, policies: 120, forceRlsTables: 29,
-      permissions: 24, permissionGrants: 0,
+      migrations: 103, tables: 130, rlsTables: 120, policies: 120, forceRlsTables: 29,
+      permissions: 26, permissionGrants: 0,
     }]);
     const permissionCodes = await sql!<{ code: string }[]>`
       SELECT code FROM public.permission ORDER BY code
@@ -614,6 +614,8 @@ databaseDescribe("fresh deployment database acceptance", () => {
       "financials.folio-series:configure",
       "financials.payments:read",
       "financials.payments:write",
+      "identity.property-mode:read",
+      "identity.property-mode:write",
       "identity.property-profile:read",
       "identity.property-profile:write",
       "stay-operations.departure-services:confirm",

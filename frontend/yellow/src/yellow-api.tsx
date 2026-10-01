@@ -1,3 +1,4 @@
+import { reactAuthSession } from "./auth-session";
 import { collectReservationBoardPages } from "./reservation-board";
 import {
   isPropertyOperatingModeReceiptForAttempt,
@@ -19,7 +20,6 @@ import type {
 } from "./voice";
 import type { MovementQuery } from "./today-workspace";
 
-const SHOWCASE_PROPERTIES = new Set(["6081b544-22a1-534f-a86d-bb1ae0519e14", "01e4e102-c54f-5205-9542-d84d103084f8"]);
 let propertyId = "";
 export function configureYellowApi(nextPropertyId: string): void { propertyId = nextPropertyId; }
 
@@ -1015,33 +1015,11 @@ type Recognition = {
   onend: (() => void) | null;
 };
 
-let sharedDemoSession: Promise<string> | null = null;
-
 async function session(): Promise<string> {
-  sharedDemoSession ??= (async () => {
-    const r = await fetch("/api/v1/auth/demo:enter", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-    });
-    const body = (await r.json()) as { accessToken?: string };
-    if (!r.ok || !body.accessToken)
-      throw new Error("The shared demo session is unavailable.");
-    return body.accessToken;
-  })();
-  try {
-    return await sharedDemoSession;
-  } catch (error) {
-    sharedDemoSession = null;
-    throw error;
-  }
+  return reactAuthSession.session();
 }
 async function loadProperties(): Promise<readonly Property[]> {
-  const r = await fetch("/api/v1/me/properties", {
-    headers: { authorization: `Bearer ${await session()}` },
-  });
-  if (!r.ok) throw new Error("Property choices are unavailable.");
-  return (((await r.json()) as { properties?: Property[] }).properties ?? [])
-    .filter((property) => SHOWCASE_PROPERTIES.has(property.id));
+  return reactAuthSession.grantedProperties();
 }
 async function loadLane(status: Status): Promise<Lane> {
   const token = await session();

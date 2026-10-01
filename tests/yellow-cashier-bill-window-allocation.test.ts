@@ -1,15 +1,43 @@
-import { expect, test } from "bun:test";
+import { afterAll, expect, test } from "bun:test";
 
 const app = await Bun.file("frontend/yellow/src/App.tsx").text();
 const css = await Bun.file("frontend/yellow/src/styles.css").text();
 
+const originalWindowDescriptor = Object.getOwnPropertyDescriptor(globalThis, "window");
 Object.defineProperty(globalThis, "window", {
   configurable: true,
+  writable: true,
   value: { location: { pathname: "/p/6081b544-22a1-534f-a86d-bb1ae0519e14/today", search: "" } },
 });
-const { previewMatchesFolioTransferDraft, submitFolioTransfer, validateFolioTransferReceipt } =
-  // @ts-expect-error The root checker intentionally excludes JSX; Bun executes this focused runtime import.
-  await import("../frontend/yellow/src/App.tsx");
+// Synthetic client fixture only: execute the real API with a private factory session.
+// This redirects one auth import in memory; production modules and default auth state are untouched.
+const fixtureApiUrl = new URL("../frontend/yellow/src/yellow-api.tsx", import.meta.url);
+const fixtureAuthUrl = new URL("../frontend/yellow/src/auth-session.ts", import.meta.url).href;
+const fixtureAuthModule = "data:text/javascript;base64," + Buffer.from(
+  `import { createAuthSession } from ${JSON.stringify(fixtureAuthUrl)}; export const reactAuthSession = createAuthSession(); // bill-window-normal-auth-fixture`,
+).toString("base64");
+const { reactAuthSession: fixtureAuth } = await import(fixtureAuthModule);
+const fixtureApiOriginal = await Bun.file(fixtureApiUrl).text();
+const authImport = 'import { reactAuthSession } from "./auth-session";';
+if (fixtureApiOriginal.split(authImport).length !== 2) throw new Error("Auth fixture import contract changed");
+const fixtureApiSource = fixtureApiOriginal.replace(authImport, `import { reactAuthSession } from ${JSON.stringify(fixtureAuthModule)};`)
+  .replace(/from "(\.\/[^"\n]+)"/g, (_match, relative: string) =>
+    `from ${JSON.stringify(new URL(relative + ".ts", fixtureApiUrl).href)}`);
+const fixtureApiModule = "data:text/javascript;base64," + Buffer.from(
+  new Bun.Transpiler({ loader: "tsx" }).transformSync(fixtureApiSource),
+).toString("base64");
+const fixtureActor = "b2836978-73fe-58f9-b808-8b58cceac1c4";
+const fixtureTenant = "6d9b7ce2-2d14-5576-b8c3-80f06501a603";
+const fixtureToken = "synthetic." + btoa(JSON.stringify({ sub: fixtureActor, tid: fixtureTenant })) + ".fixture";
+const fixtureLoginResponse = () => Response.json({ accessToken: fixtureToken, tokenType: "Bearer", expiresInSeconds: 900,
+  user: { id: fixtureActor, displayName: "Synthetic client fixture" } });
+const fixtureCredentials = { tenant: "fixture", email: "fixture@example.invalid", password: "test-only" };
+const { previewMatchesFolioTransferDraft, submitFolioTransfer, validateFolioTransferReceipt } = await import(fixtureApiModule);
+afterAll(() => {
+  fixtureAuth.dispose();
+  if (originalWindowDescriptor) Object.defineProperty(globalThis, "window", originalWindowDescriptor);
+  else delete (globalThis as { window?: unknown }).window;
+});
 
 const sourceFolioId = "11111111-1111-4111-8111-111111111111";
 const destinationFolioId = "22222222-2222-4222-8222-222222222222";
@@ -159,7 +187,7 @@ test("preview matching uses the selected sibling name and keeps exact new-window
 });
 
 test("every malformed HTTP 2xx transfer receipt retains same-key recovery", async () => {
-  const originalFetch = globalThis.fetch;
+  const originalFetchDescriptor = Object.getOwnPropertyDescriptor(globalThis, "fetch");
   const draft = canonicalDraft();
   const attempts: Array<Readonly<{ url: string; init: RequestInit | undefined }>> = [];
   const malformedReceipts = [
@@ -167,18 +195,18 @@ test("every malformed HTTP 2xx transfer receipt retains same-key recovery", asyn
     { ...canonicalReceipt(), unexpected: "hostile field" },
     { ...canonicalReceipt(), destinationFolioId: "not-a-folio-id" },
   ];
-  globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
+  Object.defineProperty(globalThis, "fetch", { configurable: true, writable: true, value: async (input: RequestInfo | URL, init?: RequestInit) => {
     const url = String(input);
     attempts.push({ url, init });
-    if (url === "/api/v1/auth/demo:enter") {
-      return new Response(JSON.stringify({ accessToken: "test-token" }), { status: 200 });
-    }
+    if (url === "/api/v1/auth/local:login") return fixtureLoginResponse();
+    if (url === "/api/v1/me/properties") return Response.json({ properties: [{ id: "6081b544-22a1-534f-a86d-bb1ae0519e14", name: "Fixture property", timezone: "UTC" }] });
     if (url.endsWith("/transfers")) {
       return new Response(JSON.stringify(malformedReceipts.shift()), { status: 201 });
     }
     throw new Error(`Unexpected request: ${url}`);
-  }) as typeof fetch;
+  } });
   try {
+    await fixtureAuth.signIn(fixtureCredentials);
     for (const key of ["yellow-folio-transfer-r1-same-key-1", "yellow-folio-transfer-r1-same-key-2", "yellow-folio-transfer-r1-same-key-3"]) {
       try {
         await submitFolioTransfer(draft, key);
@@ -188,7 +216,7 @@ test("every malformed HTTP 2xx transfer receipt retains same-key recovery", asyn
       }
     }
   } finally {
-    globalThis.fetch = originalFetch;
+    if (originalFetchDescriptor) Object.defineProperty(globalThis, "fetch", originalFetchDescriptor);
   }
   const transfers = attempts.filter((attempt) => attempt.url.endsWith("/transfers"));
   expect(transfers).toHaveLength(3);

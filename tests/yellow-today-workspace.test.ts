@@ -122,6 +122,7 @@ describe("Order 507 Today workspace helpers", () => {
     ]);
     expect(RESERVATION_BOARD_CAPABILITIES.sorts).toEqual([
       "eta", "guest", "confirmation", "nights", "room", "source", "rate", "adults", "children",
+      "arrival", "departure", "roomType", "sourceCode", "marketCode", "status", "roomTypeCode", "rateCode",
     ]);
     expect(Object.isFrozen(RESERVATION_BOARD_CAPABILITIES.filters)).toBe(true);
     expect(Object.isFrozen(RESERVATION_BOARD_CAPABILITIES.sorts)).toBe(true);

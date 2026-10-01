@@ -1,13 +1,20 @@
 import { expect, test } from "bun:test";
 import { collectReservationBoardPages, operationalStateDescription, operationalStateLabel } from "../frontend/yellow/src/reservation-board";
 
-const app = await Bun.file("frontend/yellow/src/App.tsx").text();
+import { movementColumns } from "../frontend/yellow/src/movement-table-query";
 
 test("the unified reservation board displays its property-local arrival date", () => {
-  expect(app).toContain('const timeValue = status === "due_out"');
-  expect(app).toContain(': stay.arrivalTravel?.scheduledAt ?? stay.stayFrom;');
-  expect(app).toContain('formatMovementTime(timeValue, timezone, status === "all")');
-  expect(app).toContain('day: "2-digit", month: "short", year: "numeric"');
+  const row = { reservationId: "test-display", confirmationNo: "TEST", stayFrom: "2026-10-01T22:00:00Z", stayTo: "2026-10-05T22:00:00Z", arrivalTravel: { scheduledAt: "2026-10-02T23:30:00Z" } };
+  const arrival = movementColumns("arrival", "Asia/Riyadh", true).find(column => column.key === "eta")!;
+  expect(arrival.label).toBe("Arrival");
+  expect(String(arrival.value(row))).toMatch(/03[- ]Oct[- ]2026/);
+  expect(String(arrival.value(row))).toContain("02:30");
+  expect(String(arrival.value({ ...row, arrivalTravel: null }))).toMatch(/02[- ]Oct[- ]2026/);
+  expect(String(arrival.value({ ...row, arrivalTravel: null }))).toContain("01:00");
+  const departure = movementColumns("departure", "Asia/Riyadh", true).find(column => column.key === "eta")!;
+  expect(departure.label).toBe("Departure");
+  expect(String(departure.value(row))).toMatch(/06[- ]Oct[- ]2026/);
+  expect(String(departure.value(row))).toContain("01:00");
 });
 
 test("labels actual events separately from planned and continuing states", () => {

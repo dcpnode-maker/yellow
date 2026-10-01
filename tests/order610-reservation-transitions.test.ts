@@ -15,9 +15,32 @@ afterAll(() => {
   }
 });
 
-const originalFetch = globalThis.fetch;
-const apiModulePath = "../frontend/yellow/src/yellow-api.tsx?order610-isolated-fixture";
-const api = await import(apiModulePath);
+const originalFetchDescriptor = Object.getOwnPropertyDescriptor(globalThis, "fetch");
+Object.defineProperty(globalThis, "fetch", { configurable: true, writable: true, value: globalThis.fetch });
+// Synthetic client fixture only: execute the real API with a private factory session.
+// This redirects one auth import in memory; production modules and default auth state are untouched.
+const fixtureApiUrl = new URL("../frontend/yellow/src/yellow-api.tsx", import.meta.url);
+const fixtureAuthUrl = new URL("../frontend/yellow/src/auth-session.ts", import.meta.url).href;
+const fixtureAuthModule = "data:text/javascript;base64," + Buffer.from(
+  `import { createAuthSession } from ${JSON.stringify(fixtureAuthUrl)}; export const reactAuthSession = createAuthSession(); // order610-normal-auth-fixture`,
+).toString("base64");
+const { reactAuthSession: fixtureAuth } = await import(fixtureAuthModule);
+const fixtureApiOriginal = await Bun.file(fixtureApiUrl).text();
+const authImport = 'import { reactAuthSession } from "./auth-session";';
+if (fixtureApiOriginal.split(authImport).length !== 2) throw new Error("Auth fixture import contract changed");
+const fixtureApiSource = fixtureApiOriginal.replace(authImport, `import { reactAuthSession } from ${JSON.stringify(fixtureAuthModule)};`)
+  .replace(/from "(\.\/[^"\n]+)"/g, (_match, relative: string) =>
+    `from ${JSON.stringify(new URL(relative + ".ts", fixtureApiUrl).href)}`);
+const fixtureApiModule = "data:text/javascript;base64," + Buffer.from(
+  new Bun.Transpiler({ loader: "tsx" }).transformSync(fixtureApiSource),
+).toString("base64");
+const fixtureActor = "b2836978-73fe-58f9-b808-8b58cceac1c4";
+const fixtureTenant = "6d9b7ce2-2d14-5576-b8c3-80f06501a603";
+const fixtureToken = "synthetic." + btoa(JSON.stringify({ sub: fixtureActor, tid: fixtureTenant })) + ".fixture";
+const fixtureLoginResponse = () => Response.json({ accessToken: fixtureToken, tokenType: "Bearer", expiresInSeconds: 900,
+  user: { id: fixtureActor, displayName: "Synthetic client fixture" } });
+const fixtureCredentials = { tenant: "fixture", email: "fixture@example.invalid", password: "test-only" };
+const api = await import(fixtureApiModule);
 const { reservationVoiceAction } = await import("../frontend/yellow/src/voice");
 
 const propertyId = "6081b544-22a1-534f-a86d-bb1ae0519e14";
@@ -53,7 +76,8 @@ const reinstatementEnvelope = Object.freeze({
 });
 
 afterAll(() => {
-  globalThis.fetch = originalFetch;
+  fixtureAuth.dispose();
+  if (originalFetchDescriptor) Object.defineProperty(globalThis, "fetch", originalFetchDescriptor);
 });
 
 test("resolves named lifecycle speech only to the real reservation workspace", () => {
@@ -121,14 +145,16 @@ test("returns verified receipts and classifies uncertain write outcomes", async 
   let authenticated = false;
   globalThis.fetch = (async (input: string | URL | Request) => {
     const url = String(input);
-    if (url === "/api/v1/auth/demo:enter") {
+    if (url === "/api/v1/auth/local:login") {
       authenticated = true;
-      return Response.json({ accessToken: "demo-token" });
+      return fixtureLoginResponse();
     }
+    if (url === "/api/v1/me/properties") return Response.json({ properties: [{ id: propertyId, name: "Fixture property", timezone: "UTC" }] });
     expect(authenticated).toBe(true);
     expect(url).toBe(`/api/v1/properties/${propertyId}/reservations/${reservationId}/cancel`);
     return Response.json(cancellationEnvelope, { headers: { "idempotency-replayed": "false" } });
   }) as typeof fetch;
+  await fixtureAuth.signIn(fixtureCredentials);
   expect(await api.cancelReservationLifecycle(reservationId, "Guest changed plans", "cancel-key")).toEqual({
     ...cancellationEnvelope.reservation,
     replayed: false,
