@@ -1,11 +1,22 @@
 import { afterAll, expect, test } from "bun:test";
 
-Object.assign(globalThis, {
-  window: { location: { pathname: "/p/property-a/reservations", search: "" } },
+const originalWindowDescriptor = Object.getOwnPropertyDescriptor(globalThis, "window");
+Object.defineProperty(globalThis, "window", {
+  configurable: true,
+  enumerable: originalWindowDescriptor?.enumerable ?? true,
+  writable: true,
+  value: { location: { pathname: "/p/property-a/reservations", search: "" } },
+});
+afterAll(() => {
+  if (originalWindowDescriptor) {
+    Object.defineProperty(globalThis, "window", originalWindowDescriptor);
+  } else {
+    delete (globalThis as { window?: unknown }).window;
+  }
 });
 
 const originalFetch = globalThis.fetch;
-const apiModulePath = "../frontend/yellow/src/yellow-api.tsx";
+const apiModulePath = "../frontend/yellow/src/yellow-api.tsx?order610-isolated-fixture";
 const api = await import(apiModulePath);
 const { reservationVoiceAction } = await import("../frontend/yellow/src/voice");
 

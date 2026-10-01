@@ -700,9 +700,8 @@ function ReservationWorkspace({
   const reservation = detail.data.reservation;
   const timelineStatements = timelineStatementQueries.flatMap((query) => query.data ? [query.data] : []);
   const timelineStatementsReady = timelineStatementQueries.every((query) => query.isSuccess);
-  const operationalTimeline = useMemo(
-    () => reservationOperationalTimeline(reservation, timelineStatements, timelineStatementsReady),
-    [reservation, timelineStatements, timelineStatementsReady],
+  const operationalTimeline = reservationOperationalTimeline(
+    reservation, timelineStatements, timelineStatementsReady,
   );
   const ready = readiness.data?.canCheckIn === true;
   const departureReady = departure.data?.ready === true;

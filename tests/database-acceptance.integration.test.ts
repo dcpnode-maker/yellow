@@ -498,7 +498,12 @@ const EXPECTED_MIGRATIONS = [
   {
     version: 99,
     filename: "0099_governed_departure_service_coordination.sql",
-    checksum_sha256: "0b08c4a63a403be0a24b480c59f6b26aa988cd70037641decc5ae6184f420e29",
+    checksum_sha256: "115bd87ee7c247f8ed3ccdf2f870860d7da96217e232dae577ff09cc477e51e4",
+  },
+  {
+    version: 100,
+    filename: "0100_housekeeping_transition_timestamp_precision.sql",
+    checksum_sha256: "f70844b2c8205c286f7f552dd1f8a4a2023645f70dcd00dbdacc7c777b0415d4",
   },
 ];
 
@@ -519,13 +524,13 @@ databaseDescribe("fresh deployment database acceptance", () => {
   beforeAll(() => { sql = new SQL(DATABASE_URL!); });
   afterAll(async () => { await sql?.close(); sql = undefined; });
 
-  test("uses exact PostgreSQL 16.15 with pg_stat_statements preloaded and available", async () => {
+  test("uses exact PostgreSQL 18.6 with pg_stat_statements preloaded and available", async () => {
     const rows = await sql!<{ version: string; preload: string; available: boolean }[]>`
       SELECT current_setting('server_version') AS version,
              current_setting('shared_preload_libraries') AS preload,
              EXISTS (SELECT 1 FROM pg_available_extensions WHERE name = 'pg_stat_statements') AS available
     `;
-    expect(rows).toEqual([{ version: "16.15", preload: "pg_stat_statements", available: true }]);
+    expect(rows).toEqual([{ version: "18.6", preload: "pg_stat_statements", available: true }]);
   });
 
   test("has the exact migration ledger owned and isolated from app/public roles", async () => {
@@ -578,9 +583,38 @@ databaseDescribe("fresh deployment database acceptance", () => {
             AND class.relforcerowsecurity) AS "forceRlsTables"
     `;
     expect(catalogue).toEqual([{
-      migrations: 99, tables: 130, rlsTables: 120, policies: 120, forceRlsTables: 29,
-      permissions: 21, permissionGrants: 0,
+      migrations: 100, tables: 130, rlsTables: 120, policies: 120, forceRlsTables: 29,
+      permissions: 24, permissionGrants: 0,
     }]);
+    const permissionCodes = await sql!<{ code: string }[]>`
+      SELECT code FROM public.permission ORDER BY code
+    `;
+    expect(permissionCodes.map(row => row.code)).toEqual([
+      "business_day.seal",
+      "financials.business-day:approve-discrepancy-carry",
+      "financials.business-day:carry-discrepancy",
+      "financials.business-days:read",
+      "financials.business-days:seal",
+      "financials.deposits:apply",
+      "financials.folio-series:configure",
+      "financials.payments:read",
+      "financials.payments:write",
+      "identity.property-profile:read",
+      "identity.property-profile:write",
+      "stay-operations.departure-services:confirm",
+      "stay-operations.departure-services:dispatch",
+      "stay-operations.departure-services:escalate",
+      "stay-operations.departure-services:read",
+      "stay-operations.departure-services:request",
+      "stay-operations.departure-services:work",
+      "tax-fiscal.documents:issue",
+      "tax-fiscal.documents:read",
+      "tax-fiscal.india-valuation:finalize",
+      "tax-fiscal.series:configure",
+      "tax-fiscal.submissions:read",
+      "tax-fiscal.submissions:request",
+      "tax-fiscal.submissions:retry",
+    ]);
   });
 
   test("has exact durable fiscal head, protected history and capability authority", async () => {
@@ -1013,7 +1047,7 @@ databaseDescribe("fresh deployment database acceptance", () => {
              ) AS "policyUsesNullifContext",
              (
                SELECT count(*)::int FROM pg_catalog.pg_constraint
-                WHERE conrelid = cls.oid
+                WHERE conrelid = cls.oid AND contype <> 'n'
              ) AS "constraintCount",
              (
                SELECT count(*)::int FROM pg_catalog.pg_constraint
@@ -1202,7 +1236,7 @@ databaseDescribe("fresh deployment database acceptance", () => {
              ) AS "policyUsesNullifContext",
              (
                SELECT count(*)::int FROM pg_catalog.pg_constraint
-                WHERE conrelid = cls.oid
+                WHERE conrelid = cls.oid AND contype <> 'n'
              ) AS "constraintCount",
              (
                SELECT count(*)::int FROM pg_catalog.pg_constraint
@@ -1392,7 +1426,7 @@ databaseDescribe("fresh deployment database acceptance", () => {
              ) AS "policyUsesNullifContext",
              (
                SELECT count(*)::int FROM pg_catalog.pg_constraint
-                WHERE conrelid = cls.oid
+                WHERE conrelid = cls.oid AND contype <> 'n'
              ) AS "constraintCount",
              (
                SELECT count(*)::int FROM pg_catalog.pg_constraint
@@ -1558,7 +1592,7 @@ databaseDescribe("fresh deployment database acceptance", () => {
              ) AS "policyUsesNullifContext",
              (
                SELECT count(*)::int FROM pg_catalog.pg_constraint
-                WHERE conrelid = cls.oid
+                WHERE conrelid = cls.oid AND contype <> 'n'
              ) AS "constraintCount",
              (
                SELECT count(*)::int FROM pg_catalog.pg_constraint
@@ -1739,7 +1773,7 @@ databaseDescribe("fresh deployment database acceptance", () => {
              ) AS "policyUsesNullifContext",
              (
                SELECT count(*)::int FROM pg_catalog.pg_constraint
-                WHERE conrelid = cls.oid
+                WHERE conrelid = cls.oid AND contype <> 'n'
              ) AS "constraintCount",
              (
                SELECT count(*)::int FROM pg_catalog.pg_constraint
@@ -1893,7 +1927,7 @@ databaseDescribe("fresh deployment database acceptance", () => {
              ) AS "policyUsesNullifContext",
              (
                SELECT count(*)::int FROM pg_catalog.pg_constraint
-                WHERE conrelid = cls.oid
+                WHERE conrelid = cls.oid AND contype <> 'n'
              ) AS "constraintCount",
              (
                SELECT count(*)::int FROM pg_catalog.pg_constraint
@@ -2049,7 +2083,7 @@ databaseDescribe("fresh deployment database acceptance", () => {
              ) AS "policyUsesNullifContext",
              (
                SELECT count(*)::int FROM pg_catalog.pg_constraint
-                WHERE conrelid = cls.oid
+                WHERE conrelid = cls.oid AND contype <> 'n'
              ) AS "constraintCount",
              (
                SELECT count(*)::int FROM pg_catalog.pg_constraint
@@ -2205,7 +2239,7 @@ databaseDescribe("fresh deployment database acceptance", () => {
              ) AS "policyUsesNullifContext",
              (
                SELECT count(*)::int FROM pg_catalog.pg_constraint
-                WHERE conrelid = cls.oid
+                WHERE conrelid = cls.oid AND contype <> 'n'
              ) AS "constraintCount",
              (
                SELECT count(*)::int FROM pg_catalog.pg_constraint
@@ -2364,7 +2398,7 @@ databaseDescribe("fresh deployment database acceptance", () => {
              ) AS "policyUsesNullifContext",
              (
                SELECT count(*)::int FROM pg_catalog.pg_constraint
-                WHERE conrelid = cls.oid
+                WHERE conrelid = cls.oid AND contype <> 'n'
              ) AS "constraintCount",
              (
                SELECT count(*)::int FROM pg_catalog.pg_constraint
@@ -2495,7 +2529,7 @@ databaseDescribe("fresh deployment database acceptance", () => {
                    LIKE '%NULLIF(current_setting(''app.tenant_id''::text, true), ''''::text)%')
                AS "policyUsesNullifContext",
              (SELECT count(*)::int FROM pg_catalog.pg_constraint
-               WHERE conrelid=cls.oid) AS "constraintCount",
+               WHERE conrelid=cls.oid AND contype <> 'n') AS "constraintCount",
              (SELECT count(*)::int FROM pg_catalog.pg_constraint
                WHERE conrelid=cls.oid AND conname=ANY(ARRAY[
                  'india_gst_accommodation_service_provision_snapshot_pk',
@@ -2653,7 +2687,7 @@ databaseDescribe("fresh deployment database acceptance", () => {
              ) AS "policyUsesNullifContext",
              (
                SELECT count(*)::int FROM pg_catalog.pg_constraint
-                WHERE conrelid = cls.oid
+                WHERE conrelid = cls.oid AND contype <> 'n'
              ) AS "constraintCount",
              (
                SELECT count(*)::int FROM pg_catalog.pg_constraint

@@ -5,6 +5,8 @@ const viteConfig = await Bun.file("frontend/yellow/vite.config.ts").text();
 test("splits the Yellow frontend with the installed Rolldown contract", () => {
   expect(viteConfig).toContain("rolldownOptions");
   expect(viteConfig).toContain("codeSplitting");
+  expect(viteConfig).toContain('name: "yellow-app"');
+  expect(viteConfig).toContain("frontend[\\\\/]yellow[\\\\/]src[\\\\/]App\\.tsx$");
   expect(viteConfig).toContain('name: "react-runtime"');
   expect(viteConfig).toContain('name: "vendor"');
   expect(viteConfig).toContain("node_modules[\\\\/](?:react|react-dom)[\\\\/]");

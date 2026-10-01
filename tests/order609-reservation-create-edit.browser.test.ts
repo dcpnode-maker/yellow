@@ -3,13 +3,11 @@ import { existsSync } from "node:fs";
 import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { extname, resolve } from "node:path";
+import { invokeCdp } from "./helpers/cdp-invoke";
+import { resolveChromiumPath } from "./helpers/chromium-path";
 
 const repository = resolve(import.meta.dir, "..");
-const browserPath = [
-  process.env.PROGRAMFILES && resolve(process.env.PROGRAMFILES, "Google/Chrome/Application/chrome.exe"),
-  process.env["PROGRAMFILES(X86)"] && resolve(process.env["PROGRAMFILES(X86)"], "Microsoft/Edge/Application/msedge.exe"),
-  process.env.LOCALAPPDATA && resolve(process.env.LOCALAPPDATA, "Google/Chrome/Application/chrome.exe"),
-].find((candidate): candidate is string => Boolean(candidate && existsSync(candidate)));
+const browserPath = resolveChromiumPath();
 
 const propertyId = "6081b544-22a1-534f-a86d-bb1ae0519e14";
 const partyId = "00000000-0000-4000-8000-000000000609";
@@ -149,7 +147,7 @@ test("Order609 real reservation create route is confirmation-gated and contained
           return json(offerPayload());
         }
         if (url.pathname === `/api/v1/properties/${propertyId}/reservations/${reservationId}` && request.method === "GET")
-          return json({ reservation: {
+          return json({ actions: { canCancel: true, canManageAlerts: false, canModify: true, canOpenPrimaryFolio: false, canReinstate: false }, reservation: {
             reservationId,
             primaryPartyId: partyId,
             confirmationNo: "YEL-609",
@@ -240,7 +238,7 @@ test("Order609 real reservation create route is confirmation-gated and contained
       }
       throw new Error(`Timed out waiting for ${label}`);
     };
-    const setInput = (selector: string, value: string) => evaluate(`(()=>{const input=document.querySelector(${JSON.stringify(selector)});if(!(input instanceof HTMLInputElement))throw new Error('Missing input');const setter=Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set;setter.call(input,${JSON.stringify(value)});input.dispatchEvent(new Event('input',{bubbles:true}));})()`);
+    const setInput = (selector: string, value: string) => invokeCdp(send, "set-input", [selector, value]);
 
     await send("Page.enable");
     await send("Runtime.enable");

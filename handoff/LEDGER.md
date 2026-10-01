@@ -1766,3 +1766,18 @@ appears here; dispatch/execution remain unverified.
 - Non-implementer root baseline6pass1DBskip2fail83assertions; final8pass1DBskip0fail111assertions and canonical11/11. Types207boundaries and exact scope/whitespace pass.
 - Root normal-history fetch resolves existing unchanged referee P0/hash proof1pass4DBskips0fail4assertions; historical shallow-checkout limitation recorded.
 - Exact seven-file source accepted. Full standing/browser/frontend/MCP/live and dirty-laptop integration remain open; no PR/push/self-merge/deployment.
+
+# 2026-09-30 — PROOF-20260930 current100 catalogue reconciliation
+
+- Reconciled stale full-current99 expectations with accepted0100; strict table/RLS/policy/forced/view invariants preserved. No new migrations or production domain changes.
+- PG18 structural constraints exclude only NOT NULL metadata; exact mandatory-column vectors are checked against immutable schema and deliberately broken only in a newly-created owned fixture to prove detection.
+- Independent root actual proof: baseline0pass2fail; final3pass0fail23assertions, pure3/0/61 and canonical11/11. Two unrelated historical environment skips are not claimed as proof. Types and205-file boundaries pass. All102 protected migration/schema/referee files and historical test blocks unchanged.
+- Bounded source accepted, exact ten-file scope. Combined standing/browser/frontend/provenance gates and immutable serving evidence remain open. No push/PR/self-merge/deployment or dirty-laptop overwrite.
+
+## 2026-10-01 — RELEASE-20261001 local release gates
+
+- Source basis51d3f47 on phase-7/release-local-gates-20261001; accepted operational6b0be81 and catalogue627905f retained; published d708 repairs reconciled by exact admitted source/amendments. Protected migration/schema/referee source unchanged.
+- Project MCP policy restored, strict frontend entry1130B/maxJS372851B/initialJS+CSSgzip201002B accepted; App unchanged, staticApp preload is delivery split without an initial-transfer improvement claim. Real pinned Chromium runtime executes browser workflows under unchanged deadlines.
+- Root standing2518pass/1578explicitDBskips/0fail/44975; required currentPG acceptance24/0/75, hostile runtime readiness35/0/329, canonical11passed0failed. Nonimplementer personally tenant/CRS/CRM/PMS plus nine prefixture authority controls and final current acceptance/readiness; source-bound browser review is in RELEASE review. Historical RED logs retained, including first invoice focus timing case followed by isolated unchanged6/0/133.
+- External task-owned child subreaper supplies normal orphan reaping missing from container PID1; process-helper/test bytes and all cleanup/assertion/deadline contracts preserved. Full standing uses default bun test, no concurrency/skip workaround. Final fullstanding/static/source-manifest verification is recorded before publication.
+- Exact finite source/assets/order question/review; no credentials, sessions, runtime binaries or private authority in handoff. Laptop dirty-source receiving-tree reconciliation and immutable serving readiness remain separate pending proof; no self-merge, deployment, unrelated project or complete PMS/CRM/18-phase claim.

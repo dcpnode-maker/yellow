@@ -33,5 +33,5 @@ test("Order 326 intentional red: only the visible Folio tab label becomes Separa
   expect(script.match(/action\.textContent = "Correct a wrong charge";/g)).toHaveLength(2);
   expect(script.match(/action\.dataset\.journalId = row\.journalId;/g)).toHaveLength(2);
 
-  expect(tab.replace(/<[^>]+>/g, "").trim()).toBe("Separate charges");
+  expect(tab).toMatch(/^<button\b[^>]*>Separate charges<\/button>$/);
 });

@@ -3,6 +3,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
+import { resolveChromiumPath } from "./helpers/chromium-path";
 import {
   languagePreferenceFromText,
   speechOutputIntent,
@@ -57,11 +58,7 @@ describe("Order 594 explicit one-shot speech output consent", () => {
   });
 });
 
-const browserPath = [
-  process.env.PROGRAMFILES && resolve(process.env.PROGRAMFILES, "Google/Chrome/Application/chrome.exe"),
-  process.env["PROGRAMFILES(X86)"] && resolve(process.env["PROGRAMFILES(X86)"], "Microsoft/Edge/Application/msedge.exe"),
-  process.env.LOCALAPPDATA && resolve(process.env.LOCALAPPDATA, "Google/Chrome/Application/chrome.exe"),
-].find((candidate): candidate is string => Boolean(candidate && existsSync(candidate)));
+const browserPath = resolveChromiumPath();
 
 type CdpResult<T> = { result?: { value?: T } };
 
