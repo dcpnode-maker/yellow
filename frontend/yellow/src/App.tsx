@@ -164,6 +164,7 @@ import {
 export { resolveVoiceTransferSource, validateFolioTransferReceipt, previewMatchesFolioTransferDraft, submitFolioTransfer };
 
 const LazyPropertyOperatingModeCard = lazy(() => import("./ui/PropertyOperatingModeCard").then(module => ({ default: module.PropertyOperatingModeCard })));
+const StaffRmsWorkspace = lazy(() => import("./workspaces/StaffRmsWorkspace").then(module => ({ default: module.StaffRmsWorkspace })));
 const OperationalHub = lazy(() => import("./workspaces/OperationalHub"));
 const EcosystemHub = lazy(() => import("./workspaces/EcosystemHub"));
 const MarketIntelligenceLab = lazy(() => import("./workspaces/MarketIntelligenceLab"));
@@ -5661,6 +5662,7 @@ function CommercialWorkspace() {
           <p>Start with the hotel’s current setup, then open the existing governed configuration only for the exact change you want to review.</p>
         </div>
       </div>
+      <Suspense fallback={<p role="status">Loading RMS evidence controls…</p>}><StaffRmsWorkspace key={propertyId} propertyId={propertyId} snapshot={query.data} /></Suspense>
       <div className="commercial-steps" aria-label="Commercial configuration overview">
         <article><span>01 · Inventory</span><strong>{inventory.unitTypes.length} room types · {inventory.spaces.length} rooms</strong><p>{inventory.sellableUnits.length} sellable units are currently configured.</p><button onClick={() => window.location.assign(`/p/${propertyId}/inventory`)}>Review rooms & inventory</button></article>
         <article><span>02 · Policies</span><strong>{policies.length} reusable policies</strong><p>{policies.slice(0, 3).map((policy) => policy.name).join(" · ") || "No policies configured"}</p><button onClick={() => window.location.assign(`/p/${propertyId}/rates?legacy=1#policies`)}>Review policies</button></article>
@@ -7297,6 +7299,11 @@ export function App() {
         : `/p/${propertyId}/${part}`,
     );
   };
+  const continueCrs = (href: string) => {
+    if (reservationLifecycleBusyRef.current || voiceTransferRecoveryLockedRef.current || propertyModeNavigationLocked) return;
+    if (!/^\/p\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\/reservations\?create=crs&/.test(href)) return;
+    window.location.assign(href);
+  };
   const billingDesk = () => {
     if (reservationLifecycleBusyRef.current || voiceTransferRecoveryLockedRef.current || propertyModeNavigationLocked) return;
     window.location.assign(`/p/${propertyId}/today?workspace=finance`);
@@ -8886,7 +8893,7 @@ export function App() {
                   {assistantCard.workspace ? (
                     <div className="yellow-inline-workspace">
                       {assistantCard.workspace === "reservations" ? (
-                        <ReservationBoardWorkspace timezone={selected?.timezone ?? "UTC"} />
+                        <ReservationBoardWorkspace timezone={selected?.timezone ?? "UTC"} onCrsContinue={continueCrs} />
                       ) : assistantCard.workspace === "guests" ? (
                         <GuestsWorkspace />
                       ) : assistantCard.workspace === "housekeeping" ? (
@@ -9378,7 +9385,7 @@ export function App() {
               Housekeeping
             </button>
           </aside>
-          <ReservationBoardWorkspace timezone={selected?.timezone ?? "UTC"} />
+          <ReservationBoardWorkspace timezone={selected?.timezone ?? "UTC"} onCrsContinue={continueCrs} />
         </main>
         {assistantDock}
       </div>

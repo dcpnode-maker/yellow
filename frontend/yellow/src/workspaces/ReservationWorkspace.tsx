@@ -1,3 +1,6 @@
+import { StaffCrsWorkspace } from "./StaffCrsWorkspace";
+import { readStaffCrsReservationDraft } from "./staff-crs-client";
+import { reservationViewFromSearch } from "../reservation-navigation";
 import { GroupReservationWorkspace } from "./GroupReservationWorkspace";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -3200,12 +3203,13 @@ function ReservationCreateWorkspace({
   onCancel(): void;
   onCreated(reservationId: string): void | Promise<void>;
 }>) {
+  const crsDraft = useRef(readStaffCrsReservationDraft(window.location.search)).current;
   const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
-  const [arrivalDate, setArrivalDate] = useState(() => propertyLocalDate(timezone, 1));
-  const [departureDate, setDepartureDate] = useState(() => propertyLocalDate(timezone, 3));
-  const [adults, setAdults] = useState(1);
-  const [childAges, setChildAges] = useState("");
-  const [channelCode, setChannelCode] = useState("direct");
+  const [arrivalDate, setArrivalDate] = useState(() => crsDraft?.arrivalDate ?? propertyLocalDate(timezone, 1));
+  const [departureDate, setDepartureDate] = useState(() => crsDraft?.departureDate ?? propertyLocalDate(timezone, 3));
+  const [adults, setAdults] = useState(crsDraft?.adults ?? 1);
+  const [childAges, setChildAges] = useState(crsDraft?.childAges.join(",") ?? "");
+  const [channelCode, setChannelCode] = useState(crsDraft?.channelCode ?? "direct");
   const [guestQuery, setGuestQuery] = useState("");
   const [guests, setGuests] = useState<readonly PartyProfile[]>([]);
   const [guest, setGuest] = useState<PartyProfile | null>(null);
@@ -3489,14 +3493,24 @@ function ReservationCreateWorkspace({
         {commitUncertain ? <p className="reservation-uncertain" role="status">The original idempotency key is retained. Reconciliation replays only that exact command, then rereads the reservation.</p> : null}
         <div className="reservation-create-actions"><button type="button" className="quiet" disabled={working} onClick={() => setStep(3)}>Back</button><button type="button" disabled={!confirmed || working || missingRequiredFields.length > 0} onClick={() => void createReservation()}>{working ? "Checking authoritative state…" : commitUncertain ? "Reconcile same request" : "Confirm and create reservation"}</button></div>
       </div> : null}
+      {crsDraft ? <p className="commercial-note">CRS draft reference {crsDraft.optionRef}. Choose a canonical guest and search current offers again; this reference does not reserve inventory or authorize a price.</p> : null}
       {message ? <p className="reservation-create-message" aria-live="polite">{message}</p> : null}
       {error ? <p className="error" role="alert">{error}</p> : null}
     </section>
   );
 }
 
-function ReservationBoardWorkspace({ timezone }: Readonly<{ timezone: string }>) {
-  const [creating, setCreating] = useState(false);
+function ReservationBoardWorkspace({ timezone, onCrsContinue }: Readonly<{ timezone: string; onCrsContinue: (href: string) => void }>) {
+  const [view, setView] = useState(() => reservationViewFromSearch(window.location.search));
+  useEffect(() => {
+    const sync = () => setView(reservationViewFromSearch(window.location.search));
+    window.addEventListener("popstate", sync); return () => window.removeEventListener("popstate", sync);
+  }, []);
+  return view === "crs" ? <StaffCrsWorkspace key={propertyId} propertyId={propertyId} timezone={timezone} onContinue={onCrsContinue} /> : <ReservationBoardContents timezone={timezone} />;
+}
+
+function ReservationBoardContents({ timezone }: Readonly<{ timezone: string }>) {
+  const [creating, setCreating] = useState(() => readStaffCrsReservationDraft(window.location.search) !== null);
   const board = useQuery({
     queryKey: ["reservation-board", propertyId],
     queryFn: loadReservationBoard,

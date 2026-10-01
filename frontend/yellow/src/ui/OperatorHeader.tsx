@@ -14,8 +14,8 @@ import {
 } from "./workspace-dock";
 
 const sections = [
-  { label: "Operate", items: [["today", "Today"], ["reservations", "Reservations"], ["operations", "Front desk"], ["housekeeping-menu", "Housekeeping"]] },
-  { label: "Business", items: [["finance", "Cashier"], ["rates", "Rates & distribution"], ["market-map", "Map"], ["status", "Reports"]] },
+  { label: "Operate", items: [["today", "Today"], ["reservations", "Reservations"], ["operations", "Front desk"], ["housekeeping-menu", "Housekeeping"], ["crm-menu", "CRM"]] },
+  { label: "Business", items: [["finance", "Cashier"], ["rates", "Rates & distribution"], ["rms", "RMS"], ["market-map", "Map"], ["status", "Reports"]] },
   { label: "System", items: [["ecosystem", "All workspaces"], ["settings", "Property setup"]] },
 ] as const;
 
@@ -93,6 +93,7 @@ export function OperatorHeader({ children, workspace, propertyId, propertyName, 
   const dockPlacementChosen = useRef(savedDockPlacement.current !== undefined);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [reservationsOpen, setReservationsOpen] = useState(workspace === "reservations");
+  const [crmOpen, setCrmOpen] = useState(workspace === "guests");
   const [roomsOpen, setRoomsOpen] = useState(workspace === "operations" || workspace === "housekeeping");
   const [reservationView, setReservationView] = useState<ReservationWorkspaceView>(() =>
     typeof window === "undefined" ? "list" : reservationViewFromSearch(window.location.search));
@@ -103,6 +104,7 @@ export function OperatorHeader({ children, workspace, propertyId, propertyName, 
   const panelId = useId();
   const reservationsChildrenId = `${panelId}-reservations-views`;
   const roomsChildrenId = `${panelId}-rooms-views`;
+  const crmChildrenId = `${panelId}-crm-views`;
   const open = mobile ? mobileOpen : expanded;
   const childList = Children.toArray(children);
   const propertyControl = childList.find((child) => isValidElement<{ className?: string }>(child) && child.props.className === "property-switcher");
@@ -169,6 +171,9 @@ export function OperatorHeader({ children, workspace, propertyId, propertyName, 
   const dockActions: readonly WorkspaceDockAction[] = [
     { id: "today", label: "Today", current: workspace === "today", icon: <WorkspaceIcon name="today" />, onActivate: () => onNavigate("today") },
     { id: "reservations", label: "Reservations", current: workspace === "reservations", icon: <WorkspaceIcon name="reservations" />, onActivate: () => { setReservationView("list"); onNavigate(reservationViewDestination("list")); } },
+    { id: "crs", label: "CRS", current: workspace === "reservations" && reservationView === "crs", icon: <WorkspaceIcon name="reservations" />, onActivate: () => onNavigate(reservationViewDestination("crs")) },
+    { id: "crm", label: "CRM", current: workspace === "guests", icon: <WorkspaceIcon name="groups" />, onActivate: () => onNavigate("guests") },
+    { id: "rms", label: "RMS", current: workspace === "rates", icon: <WorkspaceIcon name="rates" />, onActivate: () => onNavigate("rates") },
     { id: "operations", label: "Front desk", current: workspace === "operations", icon: <WorkspaceIcon name="operations" />, onActivate: () => onNavigate("operations") },
     { id: "housekeeping", label: "Housekeeping", current: workspace === "housekeeping", icon: <WorkspaceIcon name="housekeeping" />, onActivate: () => onNavigate("housekeeping") },
     { id: "finance", label: "Cashier", current: workspace === "finance", icon: <WorkspaceIcon name="finance" />, onActivate: onBilling },
@@ -195,7 +200,12 @@ export function OperatorHeader({ children, workspace, propertyId, propertyName, 
             <WorkspaceIcon name={destination} /><span>{label}</span><span className="operator-navigation-disclosure" aria-hidden="true">{reservationsOpen ? "⌄" : "›"}</span>
           </button>
           <div id={reservationsChildrenId} className="operator-reservation-children operator-navigation-children" role="group" aria-label="Reservation views" hidden={!reservationsOpen}>
-            {([ ["list", "Individual", "individual"], ["groups", "Groups", "groups"], ["calendar", "Calendar", "calendar"] ] as const).map(([view, childLabel, icon]) => <button key={view} type="button" title={childLabel} aria-label={childLabel} aria-current={reservationView === view && workspace === "reservations" ? "page" : undefined} disabled={locked} onClick={() => { if (locked) return; setReservationView(view); onNavigate(reservationViewDestination(view)); setMobileOpen(false); }}><WorkspaceIcon name={icon} /><span>{childLabel}</span></button>)}
+            {([ ["list", "Individual", "individual"], ["groups", "Groups", "groups"], ["calendar", "Calendar", "calendar"], ["crs", "CRS", "reservations"] ] as const).map(([view, childLabel, icon]) => <button key={view} type="button" title={childLabel} aria-label={childLabel} aria-current={reservationView === view && workspace === "reservations" ? "page" : undefined} disabled={locked} onClick={() => { if (locked) return; setReservationView(view); onNavigate(reservationViewDestination(view)); setMobileOpen(false); }}><WorkspaceIcon name={icon} /><span>{childLabel}</span></button>)}
+          </div>
+        </div> : destination === "crm-menu" ? <div key={destination} className="operator-navigation-nested">
+          <button className="operator-navigation-parent" type="button" title={label} aria-label={label} aria-expanded={crmOpen} aria-controls={crmChildrenId} data-active={workspace === "guests"} disabled={locked} onClick={() => setCrmOpen(value => !value)}><WorkspaceIcon name="groups" /><span>{label}</span><span className="operator-navigation-disclosure" aria-hidden="true">{crmOpen ? "⌄" : "›"}</span></button>
+          <div id={crmChildrenId} className="operator-navigation-children" role="group" aria-label="CRM views" hidden={!crmOpen}>
+            {([ ["guests", "Guests & profiles", "groups"], ["operations", "Department tasks", "operations"] ] as const).map(([route, childLabel, icon]) => <button key={route} type="button" aria-label={childLabel} disabled={locked} onClick={() => { if (locked) return; onNavigate(route); setMobileOpen(false); }}><WorkspaceIcon name={icon} /><span>{childLabel}</span></button>)}
           </div>
         </div> : destination === "housekeeping-menu" ? <div key={destination} className="operator-navigation-nested">
           <button className="operator-navigation-parent" type="button" title={label} aria-label={label} aria-expanded={roomsOpen} aria-controls={roomsChildrenId} data-active={workspace === "operations" || workspace === "housekeeping"} disabled={locked} onClick={() => setRoomsOpen(value => !value)}>
@@ -204,7 +214,7 @@ export function OperatorHeader({ children, workspace, propertyId, propertyName, 
           <div id={roomsChildrenId} className="operator-navigation-children operator-room-children" role="group" aria-label="Room and housekeeping views" hidden={!roomsOpen}>
             {([ ["operations", "Room status", "operations"], ["housekeeping", "Cleaning & inspection", "housekeeping"] ] as const).map(([route, childLabel, icon]) => <button key={route} type="button" title={childLabel} aria-label={childLabel} aria-current={workspace === route ? "page" : undefined} disabled={locked} onClick={() => { if (locked) return; onNavigate(route); setMobileOpen(false); }}><WorkspaceIcon name={icon} /><span>{childLabel}</span></button>)}
           </div>
-        </div> : <button key={destination} type="button" aria-label={label} aria-current={workspace === destination ? "page" : undefined} disabled={locked || destination === "market-map" || destination === "status"} title={destination === "market-map" || destination === "status" ? `${label} unavailable in this receiving source` : label} onClick={() => { if (locked || destination === "market-map" || destination === "status") return; destination === "finance" ? onBilling() : onNavigate(destination); setMobileOpen(false); }}><WorkspaceIcon name={destination} /><span>{label}</span></button>)}</section>)}
+        </div> : <button key={destination} type="button" aria-label={label} aria-current={workspace === destination ? "page" : undefined} disabled={locked || destination === "market-map" || destination === "status"} title={destination === "market-map" || destination === "status" ? `${label} unavailable in this receiving source` : label} onClick={() => { if (locked || destination === "market-map" || destination === "status") return; destination === "finance" ? onBilling() : onNavigate(destination === "rms" ? "rates" : destination); setMobileOpen(false); }}><WorkspaceIcon name={destination} /><span>{label}</span></button>)}</section>)}
         {internalMarketLabEnabled ? <button type="button" title="Internal market lab" disabled={locked} onClick={() => { onNavigate("market-lab"); setMobileOpen(false); }}><WorkspaceIcon name="status" /><span>Internal market lab</span></button> : null}
       </nav>
     </aside>

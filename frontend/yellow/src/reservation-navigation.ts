@@ -1,7 +1,7 @@
-export type ReservationWorkspaceView = "list" | "groups" | "calendar";
+export type ReservationWorkspaceView = "list" | "groups" | "calendar" | "crs";
 
 const isReservationWorkspaceView = (value: string | null): value is ReservationWorkspaceView =>
-  value === "list" || value === "groups" || value === "calendar";
+  value === "list" || value === "groups" || value === "calendar" || value === "crs";
 
 export function reservationViewFromSearch(search: string): ReservationWorkspaceView {
   const value = new URLSearchParams(search).get("view");
@@ -38,5 +38,6 @@ export function reservationViewHref(
   if (view === "list") url.searchParams.delete("view");
   else url.searchParams.set("view", view);
   if (view !== "groups") url.searchParams.delete("group");
+  for (const key of ["create", "from", "to", "adults", "child_ages", "channel", "option_ref"]) url.searchParams.delete(key);
   return `${url.pathname}${url.search}${url.hash}`;
 }
