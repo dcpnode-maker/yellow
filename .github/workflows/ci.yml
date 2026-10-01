@@ -942,6 +942,8 @@ jobs:
           YELLOW_ORDER453_Q212_DEPLOY_DATABASE_URL="$readiness_deploy_url" \
           YELLOW_ORDER453_Q212_RUNTIME_DATABASE_URL="$readiness_runtime_url" \
           YELLOW_REQUIRE_ORDER453_Q212_DATABASE=1 \
+          YELLOW_REQUIRE_ORDER453_Q212_CI_CANONICAL=1 \
+          YELLOW_ORDER453_Q212_CI_DATABASE_ADDRESS="$POSTGRES_ADDRESS" \
             bun test tests/fiscal-retry-readiness.integration.test.ts
 
       - name: Prove native fiscal release containment on fresh and upgraded databases
@@ -1118,7 +1120,7 @@ jobs:
           READY_FILE="$proof_directory/readiness.json" bun -e '
             const body = await Bun.file(process.env.READY_FILE!).json();
             if (body.status !== "ready" || body.build?.revision !== process.env.YELLOW_BUILD_SHA
-                || body.build?.expectedMigrationFrontier !== 91
+                || body.build?.expectedMigrationFrontier !== 100
                 || body.target !== "yellow_runtime_database") process.exit(1);
           '
 

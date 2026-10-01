@@ -116,7 +116,8 @@ export class DepartureServiceCoordinationService {
     `;
     return new Set(rows.map((row) => row.code));
   }
-  async #requests(tx: Tx, identity: DepartureServiceIdentity, reservationId: string | null, requestId: string | null = null) {
+  async #requests(tx: Tx, identity: DepartureServiceIdentity, reservationId: string | null, requestId: string | null = null,
+    targetRoleId: string | null = null) {
     const permissions = await this.#permissions(tx, identity);
     const rows = await tx<{ data: DepartureServiceRequest; expired: boolean; active_stay: boolean }[]>`
       SELECT jsonb_build_object(
@@ -141,7 +142,9 @@ export class DepartureServiceCoordinationService {
         AND (${reservationId}::uuid IS NULL OR r.reservation_id=${reservationId}::uuid)
         AND (${requestId}::uuid IS NULL OR r.id=${requestId}::uuid)
         AND (${reservationId}::uuid IS NOT NULL OR r.proposal_status='confirmed')
-      ORDER BY r.due_at,r.id LIMIT 100
+        AND (${targetRoleId}::uuid IS NULL OR r.target_role_id=${targetRoleId}::uuid)
+      ORDER BY CASE WHEN ${reservationId}::uuid IS NULL AND task.status IN ('open','assigned','in_progress') THEN 0 ELSE 1 END,
+        r.due_at,r.id LIMIT 100
     `;
     return rows.map(({ data, expired, active_stay }) => {
       const eligible: string[] = [];
@@ -158,11 +161,16 @@ export class DepartureServiceCoordinationService {
       return Object.freeze({ ...data, eligibleActions: Object.freeze(eligible) });
     });
   }
-  async list(tx: Tx, identity: DepartureServiceIdentity, reservationId: string | null) {
+  async list(tx: Tx, identity: DepartureServiceIdentity, reservationId: string | null,
+    targetRoleId: string | null = null) {
     try {
       if (reservationId !== null) uuid(reservationId);
+      if (targetRoleId !== null) {
+        if (reservationId !== null) return invalid();
+        uuid(targetRoleId);
+      }
       await this.#authority(tx, identity, "read");
-      const requests = await this.#requests(tx, identity, reservationId);
+      const requests = await this.#requests(tx, identity, reservationId, null, targetRoleId);
       const roles = await tx<{ roleId: string; name: string }[]>`
         SELECT DISTINCT duty.id AS "roleId",duty.name FROM public.role duty
         JOIN public.role_permission permission ON permission.role_id=duty.id AND permission.permission_code='stay-operations.departure-services:read'

@@ -4,13 +4,10 @@ import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { extname, resolve } from "node:path";
 import { invokeCdp } from "./helpers/cdp-invoke";
+import { resolveChromiumPath } from "./helpers/chromium-path";
 
 const repository = resolve(import.meta.dir, "..");
-const browserPath = [
-  process.env.PROGRAMFILES && resolve(process.env.PROGRAMFILES, "Google/Chrome/Application/chrome.exe"),
-  process.env["PROGRAMFILES(X86)"] && resolve(process.env["PROGRAMFILES(X86)"], "Microsoft/Edge/Application/msedge.exe"),
-  process.env.LOCALAPPDATA && resolve(process.env.LOCALAPPDATA, "Google/Chrome/Application/chrome.exe"),
-].find((candidate): candidate is string => Boolean(candidate && existsSync(candidate)));
+const browserPath = resolveChromiumPath();
 
 const propertyId = "6081b544-22a1-534f-a86d-bb1ae0519e14";
 const partyId = "00000000-0000-4000-8000-000000000609";

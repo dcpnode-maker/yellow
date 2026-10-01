@@ -4,13 +4,10 @@ import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { extname, resolve } from "node:path";
 import { invokeCdp } from "./helpers/cdp-invoke";
+import { resolveChromiumPath } from "./helpers/chromium-path";
 
 const repository = resolve(import.meta.dir, "..");
-const browserPath = [
-  process.env.PROGRAMFILES && resolve(process.env.PROGRAMFILES, "Google/Chrome/Application/chrome.exe"),
-  process.env["PROGRAMFILES(X86)"] && resolve(process.env["PROGRAMFILES(X86)"], "Microsoft/Edge/Application/msedge.exe"),
-  process.env.LOCALAPPDATA && resolve(process.env.LOCALAPPDATA, "Google/Chrome/Application/chrome.exe"),
-].find((candidate): candidate is string => Boolean(candidate && existsSync(candidate)));
+const browserPath = resolveChromiumPath();
 
 type CdpResult<T> = { result?: { value?: T }; exceptionDetails?: { text?: string; exception?: { description?: string } } };
 type Geometry = Readonly<{
@@ -217,7 +214,7 @@ test("Order610 built reservation lifecycle route is gated, canonical and contain
       expect(await evaluate<boolean>("/^yellow-reservation-lifecycle-/.test(window.__yellowApiCalls.find(call=>call.path.endsWith('/cancel')).headers['idempotency-key'])")).toBe(true);
 
       await send("Page.navigate", { url: `${appUrl}?drift=${width}` });
-      await waitFor("document.body.textContent.includes('Governed status actions')", `${width}px drift reload`);
+      await waitFor(`document.readyState==='complete'&&location.search===${JSON.stringify(`?drift=${width}`)}&&window.__yellowScenario==='drift'&&document.body?.textContent?.includes('Governed status actions')`, `${width}px drift reload`);
       await clickText("Cancel reservation");
       await setTextarea("Guest changed plans");
       await clickText("I confirm cancellation");
@@ -226,7 +223,7 @@ test("Order610 built reservation lifecycle route is gated, canonical and contain
       expect(await evaluate<number>("window.__yellowApiCalls.filter(call=>call.method==='POST'&&call.path.endsWith('/cancel')).length")).toBe(0);
 
       await send("Page.navigate", { url: `${appUrl}?reinstate=${width}` });
-      await waitFor("document.body.textContent.includes('Reinstate reservation')", `${width}px reinstate reload`);
+      await waitFor(`document.readyState==='complete'&&location.search===${JSON.stringify(`?reinstate=${width}`)}&&window.__yellowScenario==='reinstate'&&document.body?.textContent?.includes('Reinstate reservation')`, `${width}px reinstate reload`);
       await clickText("Reinstate reservation");
       await waitFor("document.body.textContent.includes('PostgreSQL will recheck')", `${width}px reinstate proposal`);
       await clickText("I confirm reinstatement");

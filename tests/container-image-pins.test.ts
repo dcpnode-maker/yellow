@@ -21,6 +21,10 @@ const parentCompose = [
 ].join("\n");
 
 describe("container image pin validator", () => {
+  test("committed Dockerfile and Compose use the reviewed current pins", () => {
+    expect(validateContainerImagePinFiles(join(import.meta.dir, ".."))).toEqual([]);
+  });
+
   test("P0 parent is red from committed files", () => {
     const errors = validateContainerImagePins(parentDockerfile, parentCompose);
     expect(errors.some((error) => error.includes("mutable or undigested: oven/bun:1.3.14-alpine"))).toBe(true);
@@ -32,6 +36,20 @@ describe("container image pin validator", () => {
     const dockerfile = parentDockerfile.replaceAll("oven/bun:1.3.14-alpine", EXPECTED_BUN);
     const compose = parentCompose.replace("valkey/valkey:8-alpine", EXPECTED_VALKEY);
     expect(validateContainerImagePins(dockerfile, compose)).toEqual([]);
+  });
+
+  test("rejects the superseded amd64-only PostgreSQL child manifest", () => {
+    const dockerfile = parentDockerfile.replaceAll("oven/bun:1.3.14-alpine", EXPECTED_BUN);
+    const amd64Child = EXPECTED_POSTGRES.replace(
+      "77f585114c32fbca283dc835b0596f4e52b51b4c6662d7810b2f4084f60a1873",
+      "d8703cd7fba306b9fec9268ecedfa8a966846c053036a60e3635791957eb2f66",
+    );
+    const compose = parentCompose
+      .replace(EXPECTED_POSTGRES, amd64Child)
+      .replace("valkey/valkey:8-alpine", EXPECTED_VALKEY);
+    const errors = validateContainerImagePins(dockerfile, compose);
+    expect(errors.some((error) => error.includes(`Compose image reference is unexpected: ${amd64Child}`))).toBe(true);
+    expect(errors.some((error) => error.includes("Compose image reference is missing: postgres:"))).toBe(true);
   });
 
   test("rejects malformed, wrong, and unexpected references", () => {

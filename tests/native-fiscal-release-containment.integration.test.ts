@@ -3,7 +3,7 @@ import { SQL } from "bun";
 import { mkdtemp, readdir, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
-import { Database } from "../src/kernel";
+import { CURRENT_MIGRATION_FRONTIER, Database } from "../src/kernel";
 import { IssueIndiaNativeFiscalInvoiceCommand } from "../src/commands/issue-india-native-fiscal-invoice";
 import { runMigrations } from "../scripts/migrate";
 import { createNativeIssuanceFixture } from "./fixtures/india-native-fiscal-source-completion-fixture";
@@ -151,12 +151,24 @@ databaseDescribe("Order439 released native fiscal authority is contained", () =>
   }, 120_000);
 
   test("fresh91 retains legacy denial after the series configuration migration", async () => {
-    await withDatabase(async (url, sql, runtimeUrl) => {
-      const migration = await runMigrations({ databaseUrl: url, logger: () => undefined });
+    await withHistoricalMigrations(91, async historical => withDatabase(async (url, sql, runtimeUrl) => {
+      const migration = await runMigrations({ databaseUrl: url, migrationsDirectory: historical, logger: () => undefined });
       expect(migration.appliedFiles).toHaveLength(91);
       expect(migration.appliedFiles.at(-1)).toBe("0091_reservation_alert_authority.sql");
       const before = await census(sql);
       expect(before[0]?.tables).toBe(129);
+      await assertContained(sql, runtimeUrl);
+      expect(await census(sql)).toEqual(before);
+    }));
+  }, 120_000);
+
+  test("fresh current frontier retains legacy denial without business side effects", async () => {
+    await withDatabase(async (url, sql, runtimeUrl) => {
+      const migration = await runMigrations({ databaseUrl: url, logger: () => undefined });
+      expect(migration.appliedFiles).toHaveLength(CURRENT_MIGRATION_FRONTIER);
+      expect(migration.appliedFiles.at(-1)).toBe("0100_housekeeping_transition_timestamp_precision.sql");
+      const before = await census(sql);
+      expect(before[0]?.tables).toBe(130);
       await assertContained(sql, runtimeUrl);
       expect(await census(sql)).toEqual(before);
     });

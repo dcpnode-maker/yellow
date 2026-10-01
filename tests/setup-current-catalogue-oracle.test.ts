@@ -2,16 +2,6 @@ import { describe, expect, test } from "bun:test";
 import { join } from "node:path";
 
 describe("Order 371 current setup catalogue oracle", () => {
-  test("binds current database acceptance to the pinned PostgreSQL patch", async () => {
-    const compose = await Bun.file(new URL("../docker-compose.yml", import.meta.url)).text();
-    const acceptance = await Bun.file(new URL("database-acceptance.integration.test.ts", import.meta.url)).text();
-    const imageVersion = compose.match(/^\s+image: postgres:(\d+\.\d+)-/mu)?.[1];
-    expect(imageVersion).toBe("18.6");
-    expect(acceptance).toContain(`version: "${imageVersion}"`);
-    expect(acceptance).toContain(`uses exact PostgreSQL ${imageVersion} with pg_stat_statements preloaded and available`);
-    expect(acceptance).not.toContain('version: "16.15"');
-  });
-
   test("full-project migration acceptance stays current100 without relabeling the historical86/87/88/89 boundaries", async () => {
     const source = await Bun.file(new URL("migrate.integration.test.ts", import.meta.url)).text();
     const testBlock = (name: string): string => {
@@ -41,10 +31,29 @@ describe("Order 371 current setup catalogue oracle", () => {
       '"0089_native_credit_delivery_discovery.sql"',
       '"0090_india_native_fiscal_series_configuration.sql"',
       '"0091_reservation_alert_authority.sql"',
+      '"0092_governed_party_profile_update.sql"',
+      '"0093_governed_synthetic_clean_arrival_reconciliation.sql"',
+      '"0094_governed_synthetic_clean_arrival_account_reconciliation.sql"',
+      '"0095_rate_policy_runtime_read.sql"',
+      '"0096_governed_checkin_room_condition_lock.sql"',
+      '"0097_governed_nonfiscal_folio_series_configuration.sql"',
+      '"0098_property_identity_profile.sql"',
+      '"0099_governed_departure_service_coordination.sql"',
+      '"0100_housekeeping_transition_timestamp_precision.sql"',
       "expect(upgradedLedger).toHaveLength(100)",
       "expect(noOp.discoveredFiles).toBe(100)",
       "tables: 130, rlsTables: 120, policies: 120, forceRlsTables: 29",
     ]) expect(fullUpgrade).toContain(current);
+    expect(source.match(/WHERE conrelid = class\.oid\s+AND contype <> 'n'/gu)).toHaveLength(6);
+    expect(fullUpgrade).toContain("assertExactNotNullVectors(");
+    expect(fullUpgrade).toContain("ALTER COLUMN registration_number DROP NOT NULL");
+    for (const relation of [
+      "india_gst_item_classification",
+      "india_gst_supplier_service_location",
+      "party_fiscal_registration",
+      "property_fiscal_location",
+      "property_fiscal_registration",
+    ]) expect(source).toContain(`relation: "${relation}"`);
     expect(testBlock("applies exact posting integrity, read-only routes, and authority-safe day sealing"))
       .toContain("expect(tableCount).toEqual([{ count: 130 }])");
 

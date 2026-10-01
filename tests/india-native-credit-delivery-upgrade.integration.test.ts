@@ -72,6 +72,53 @@ describe("Order452 exact executable predecessor pins", () => {
     }
   }, 60_000);
 
+  test("catalogue ignores only ANALYZE estimates while retaining structural and RLS sensitivity", async () => {
+    const tableName = `order452_catalogue_probe_${crypto.randomUUID().replaceAll("-", "")}`;
+    if (!/^[a-z0-9_]+$/.test(tableName)) throw new Error("Invalid Order452 catalogue probe identifier");
+    const regclassName = `public.${tableName}`;
+    const [beforeCreate] = await deploy<{ absent: boolean }[]>`
+      SELECT to_regclass(${regclassName}) IS NULL absent`;
+    if (beforeCreate?.absent !== true) throw new Error("Order452 catalogue probe already exists");
+    let created = false;
+    try {
+      await deploy.unsafe(`CREATE TABLE public."${tableName}" (
+        id bigint PRIMARY KEY, payload text NOT NULL
+      ) WITH (autovacuum_enabled = false)`);
+      created = true;
+      await deploy.unsafe(`INSERT INTO public."${tableName}" (id, payload)
+        SELECT value, repeat(md5(value::text) || md5((value * 7)::text), 32)
+        FROM generate_series(1, 2048) AS value`);
+
+      const beforeRows = await creditDeliveryRows(deploy);
+      const beforeCatalogue = await creditDeliveryCatalogue(deploy);
+      const [beforeStats] = await deploy<{ relpages: string; reltuples: string }[]>`
+        SELECT relpages::text relpages, reltuples::text reltuples
+        FROM pg_catalog.pg_class WHERE oid=to_regclass(${regclassName})`;
+      if (!beforeStats) throw new Error("Missing Order452 probe statistics before ANALYZE");
+
+      await deploy.unsafe(`ANALYZE public."${tableName}"`);
+
+      const [afterStats] = await deploy<{ relpages: string; reltuples: string }[]>`
+        SELECT relpages::text relpages, reltuples::text reltuples
+        FROM pg_catalog.pg_class WHERE oid=to_regclass(${regclassName})`;
+      if (!afterStats) throw new Error("Missing Order452 probe statistics after ANALYZE");
+      expect(afterStats.relpages).not.toBe(beforeStats.relpages);
+      expect(afterStats.reltuples).not.toBe(beforeStats.reltuples);
+      expect(await creditDeliveryRows(deploy)).toEqual(beforeRows);
+      expect(await creditDeliveryCatalogue(deploy)).toBe(beforeCatalogue);
+
+      await deploy.unsafe(`ALTER TABLE public."${tableName}" ALTER COLUMN payload DROP NOT NULL`);
+      const nullableCatalogue = await creditDeliveryCatalogue(deploy);
+      expect(nullableCatalogue).not.toBe(beforeCatalogue);
+
+      await deploy.unsafe(`ALTER TABLE public."${tableName}" ENABLE ROW LEVEL SECURITY`);
+      const rlsCatalogue = await creditDeliveryCatalogue(deploy);
+      expect(rlsCatalogue).not.toBe(nullableCatalogue);
+    } finally {
+      if (created) await deploy.unsafe(`DROP TABLE public."${tableName}"`);
+    }
+  });
+
   test("unmodified production migrator late fault rolls back function and ledger while preserving a genuine populated credit", async () => {
     const scenario = await createCreditDeliveryScenario(deploy, runtime);
     const before = { rows: await creditDeliveryRows(deploy), catalogue: await creditDeliveryCatalogue(deploy) };

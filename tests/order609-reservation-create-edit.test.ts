@@ -1,9 +1,20 @@
-import { expect, test } from "bun:test";
+import { afterAll, expect, test } from "bun:test";
 
 import { reservationOperationFor } from "../src/overwatch";
 
-Object.assign(globalThis, {
-  window: { location: { pathname: "/p/property-a/reservations", search: "" } },
+const originalWindowDescriptor = Object.getOwnPropertyDescriptor(globalThis, "window");
+Object.defineProperty(globalThis, "window", {
+  configurable: true,
+  enumerable: originalWindowDescriptor?.enumerable ?? true,
+  writable: true,
+  value: { location: { pathname: "/p/property-a/reservations", search: "" } },
+});
+afterAll(() => {
+  if (originalWindowDescriptor) {
+    Object.defineProperty(globalThis, "window", originalWindowDescriptor);
+  } else {
+    delete (globalThis as { window?: unknown }).window;
+  }
 });
 const apiModulePath = "../frontend/yellow/src/yellow-api.tsx";
 const api = await import(apiModulePath);

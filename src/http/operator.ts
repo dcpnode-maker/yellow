@@ -290,11 +290,13 @@ import {
   type TenantRequestContext,
   type Tx,
 } from "../kernel";
+import { parseDepartureServicesQuery } from "./departure-services-query";
 import {
   DEFAULT_OPERATOR_RUNTIME_STATUS,
   PROJECT_BUILD_SNAPSHOT,
   type OperatorRuntimeStatus,
 } from "../project-status";
+import { readCrsSearchJson, searchStaffCrsOffers, StaffCrsSearchError } from "./crs-search";
 
 const AVAILABILITY_SCOPE = "inventory.availability:read";
 const CONFIGURATION_READ_SCOPE = "inventory.configuration:read";
@@ -4743,6 +4745,40 @@ export class OperatorHttpApi {
     });
   }
 
+  async searchCrs(context: TenantRequestContext): Promise<Response> {
+    if (!hasAvailabilityScope(context)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Availability access is not granted");
+    }
+    try {
+      const offers = this.#reservationOffers;
+      const result = await searchStaffCrsOffers(await readCrsSearchJson(context.request), {
+        hasAvailabilityScope: true,
+        parseCanonicalSearch: (value) => isCanonicalOfferSearch(value) ? parseOfferSearch(value) : null,
+        listGrantedProperties: () => listGrantedProperties(context),
+        searchOffers: offers ? (input) => offers.search(context.tx, input) : null,
+        serializeOffers: reservationOfferHttpResult,
+      });
+      return apiResponse(context.request, result);
+    } catch (error) {
+      if (error instanceof StaffCrsSearchError) {
+        const title = error.status === 403 ? "Forbidden" :
+          error.status === 503 ? "Service unavailable" : "Invalid request";
+        return apiError(context.request, error.status, error.code, title, error.detail);
+      }
+      if (error instanceof InventoryValidationError || error instanceof ReservationOfferValidationError ||
+          error instanceof ReservationOfferSearchTooBroadError) {
+        return apiError(context.request, 400, "request/invalid", "Invalid request", "Availability search input is invalid");
+      }
+      if (error instanceof RateEvaluationError &&
+          error.message === "booking window must be 0 to 730 property-local days") {
+        return apiError(context.request, 400, "request/booking_window", "Stay dates unavailable",
+          "Choose stay dates within the next 730 property-local days");
+      }
+      return apiError(context.request, 503, "service/unavailable", "Service unavailable",
+        "Availability is temporarily unavailable");
+    }
+  }
+
   async search(context: TenantRequestContext, propertyNode: string, body: unknown): Promise<Response> {
     if (!hasAvailabilityScope(context)) {
       return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Availability access is not granted");
@@ -5542,7 +5578,8 @@ export class OperatorHttpApi {
   }
 
   async departureServices(context: TenantRequestContext, propertyNode: string, reservationId: string | null): Promise<Response> {
-    if (!UUID.test(propertyNode) || (reservationId !== null && !UUID.test(reservationId)) || new URL(context.request.url).search.length > 0) {
+    const query = parseDepartureServicesQuery(context.request, reservationId);
+    if (!UUID.test(propertyNode) || (reservationId !== null && !UUID.test(reservationId)) || query === null) {
       return apiError(context.request,400,"request/invalid","Invalid request","Departure service query is invalid");
     }
     const scope = "stay-operations.departure-services:read";
@@ -5552,7 +5589,7 @@ export class OperatorHttpApi {
     if (!context.identity.actorId) return this.unauthorized(context.request);
     const result = await this.#departureServices.list(context.tx,{
       tenantId:context.tenantId,propertyNode,actorId:context.identity.actorId,
-    },reservationId);
+    },reservationId,query.targetRoleId);
     return apiResponse(context.request,canonicalJson(jsonValue(result)));
   }
 

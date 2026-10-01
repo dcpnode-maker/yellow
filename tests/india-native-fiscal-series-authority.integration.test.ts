@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { SQL } from "bun";
 import { readFileSync } from "node:fs";
-import { Database } from "../src/kernel";
+import { CURRENT_MIGRATION_FRONTIER, Database } from "../src/kernel";
 import { IssueIndiaNativeFiscalInvoiceCommand } from "../src/commands/issue-india-native-fiscal-invoice";
 import { assertSeriesTargets, configureSeries, createSeriesFixture, createSecondSeriesProperty, createPriorYearSeries, parseSeriesMode, SERIES_SIGNATURE,
   seriesCatalogue, seriesRows, seriesSqlState, type SeriesInput, type SeriesRow } from "./fixtures/india-native-fiscal-series-fixture";
@@ -26,10 +26,15 @@ describe("Order453 series configuration source contract", () => {
     const shared = readFileSync(new URL("./fixtures/india-native-credit-delivery-fixture.ts", import.meta.url), "utf8");
     const originalQuery = /export async function creditDeliveryCatalogue[\s\S]*?`(SELECT jsonb_build_object\([\s\S]*?)`;/.exec(shared)?.[1];
     expect(originalQuery).toBeDefined();
+    const currentProjection = "to_jsonb(c) - 'relpages' - 'reltuples'";
+    expect(originalQuery).toContain(currentProjection);
     const excluded = ["relhastriggers", "relpages", "reltuples", "relallvisible", "relfrozenxid", "relminmxid"];
     const exclusion = `to_jsonb(c)-ARRAY[${excluded.map(name => `'${name}'`).join(",")}]::text[] ORDER BY c.oid`;
-    expect(query.replaceAll("\r\n", "\n")).toBe(originalQuery!
-      .replace("to_jsonb(c) ORDER BY c.oid", exclusion).replaceAll("\r\n", "\n"));
+    const expectedQuery = originalQuery!.replaceAll("\r\n", "\n").replace(
+      /to_jsonb\(c\) - 'relpages' - 'reltuples' ORDER BY c\.oid\)\n      FROM pg_catalog\.pg_class/,
+      `${exclusion}) FROM pg_catalog.pg_class`,
+    );
+    expect(query.replaceAll("\r\n", "\n")).toBe(expectedQuery);
     for (const retained of ["relfilenode", "relhasrules", "relhassubclass", "relhasindex", "relacl", "relowner", "relrowsecurity", "relforcerowsecurity"]) {
       expect(excluded).not.toContain(retained);
     }
@@ -91,7 +96,7 @@ describe("Order453 series configuration source contract", () => {
     runtime = Database.connect(runtimeUrl!, { maxConnections: 12, prepare: false });
     const [row] = await deploy<{ version: number; body: string }[]>`SELECT max(version)::int version,
       (SELECT prosrc FROM pg_catalog.pg_proc WHERE oid=${SERIES_SIGNATURE}::regprocedure) body FROM public.schema_migration`;
-    expect(row?.version).toBe(mode === "native-draft" ? 89 : 99);
+    expect(row?.version).toBe(mode === "native-draft" ? 89 : CURRENT_MIGRATION_FRONTIER);
     expect(row?.body).toContain("'document.series.configured'");
   });
   afterAll(async () => { await runtime?.close(); await deploy?.close(); });

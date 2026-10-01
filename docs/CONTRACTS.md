@@ -175,6 +175,14 @@ occupancy-responsive **pricing** input; Valkey is not read here. `option_ref` is
 not a stored or signed capacity token. **Search is never a promise**: hold/direct commit re-runs the
 PostgreSQL choke and may return `409 conflict/occupancy`.
 
+Order PMS-20260930 restores the accepted per-pair behavior in the implementation:
+each active physical sellable unit is quoted against each matching active rate plan,
+even when siblings share one unit type. Live blocker state and exact quote evidence
+belong to that physical option; presentation may group returned options but may not
+substitute a representative room. The 1,000-pair ceiling is checked against the full
+filtered physical-sellable/rate-plan count before quote resolution, and excess work is
+rejected rather than reduced or truncated.
+
 Until the inherited operator diagnostics are migrated, the disjoint legacy authenticated body
 `{from,to,partySize,ratePlanId?,channelCode?}` returns the existing raw truth-availability options.
 It creates no alternate sellability or commit authority.
@@ -3893,6 +3901,12 @@ Routes (all no-store, exact property grants; all POSTs require Idempotency-Key):
   or null, configured roles, active staff candidates, and request history.
 - GET `/api/v1/properties/:property/departure-services`: confirmed task queue plus roles
   and staff candidates. The bounded initial queue returns at most100 requests.
+  It optionally accepts exactly one canonical lower-case UUID query parameter,
+  `target_role_id`, to filter confirmed requests for that target role before the
+  100-request cap. Omitted filters preserve the current queue. Unknown or foreign role
+  UUIDs return an empty request list only after the same property read authority check;
+  the filter does not grant task or command permission. Reservation-history reads and
+  commands reject every query parameter.
 - POST reservation `/departure-services/proposals`: exact body
   `{serviceKind,targetRoleId,parentRequestId,schedule,expected}`. Service is
   `luggage_pickup|minibar_check|room_inspection|escalation`; only escalation has a parent.
@@ -3927,3 +3941,90 @@ and one non-withdrawn escalation per parent/role. Expired proposals remain visib
 may be withdrawn; confirmed requests cannot be replaced, cancelled or retargeted here.
 The24-hour idempotency receipt does not weaken these durable constraints. Changed keys
 or versions race to one canonical write; stale commands return409 and commit nothing.
+
+In property mode only, confirmed requests whose task status is `open`, `assigned` or
+`in_progress` appear first, ordered by `due_at,id`. Other confirmed requests follow,
+also ordered by `due_at,id`; completed outcomes remain visible when space is available
+within the existing 100-row cap. Reservation-scoped request history and command
+receipts retain chronological `due_at,id` ordering. The route and API shape,
+authorization, task states and command behavior are unchanged.
+
+## Staff CRS multi-property offer search — PMS-CRS-20260930
+
+`POST /api/v1/crs/availability:search` uses the existing operator bearer-token,
+tenant transaction and `inventory.availability:read` scope. The authenticated actor's
+current ancestor or exact-property grant must cover every requested property
+before any offer engine call. Unknown, foreign and ungranted properties all fail
+the entire request with the same generic403; a signed scope alone grants no access.
+
+The UTF-8 JSON body is exactly `{searches:[{property_id,search}]}` with1–4 distinct
+UUIDs (case-insensitive identity). Each `search` uses the existing canonical offer
+payload: `stay:{from,to}` with explicit UTC offsets, `party:{adults,children}` and
+`channel`, plus its existing optional unit/rate/promotion/currency/attribute and
+commercial filters. Legacy availability bodies and unknown fields are rejected.
+Each property's explicit instants retain existing property-local evaluation.
+
+Success is no-store JSON `{properties:[{property_id,property_name,time_zone,result}]}`
+in request order. `result` is the unchanged existing canonical offer serializer,
+including quote/publication, availability, policy, tax-preview and pricing evidence.
+Minor-unit amounts remain decimal strings with their original currency and price
+basis. Offers remain indicative (`promise:false`); existing hold/commit arbitration
+is still necessary. Search performs no inventory, booking or financial mutation.
+
+Requests are capped at64KiB of actual UTF-8 bytes, regardless of Content-Length.
+Body reading has a10-second deadline checked around reads as well as by a timer;
+abort, invalid UTF-8/JSON and more than1,024 consecutive empty chunks fail safely.
+Empty chunks are discarded and failed streams are cancelled without awaiting a
+potentially stalled producer. Responses over1MiB fail without partial results.
+Existing1,000 candidate-pair limits apply separately to each property; four is an
+initial request budget, not CRS coverage or a latency guarantee.
+
+Invalid input/domain validation/over-budget requests return400; missing scope or
+property authority returns403; missing offer capability or unexpected failure
+returns503 without private failure details. The existing0–730 property-local-day
+booking-window error remains400. Later property failure yields no partial success.
+No cross-currency aggregation, lowest-rate claim, public guest authentication,
+booking write, payment flow or full-CRS completion is part of this contract.
+
+## Public property profile evidence drafts
+
+The distribution context exposes a pure evidence composer and a parser for already
+captured public HTML. The offline CLI is:
+
+    bun run scripts/research/property-profile-capture.ts --input <capture.json> --output <draft.json>
+
+Input is a JSON object with captures containing1–64 objects shaped as
+{sourceUrl,finalUrl,status,capturedAt,body}. Body is literal captured HTML;
+optional provider and accountNamespace identify an external source namespace only
+and do not assert an authenticated connection. httpStatus is also accepted as a
+status-field spelling. Input files are capped at8MiB and each HTML document at2MiB
+UTF-8. The parser reads JSON-LD only; scripts are never executed and links are
+never followed.
+
+Only schema.org lodging types become property candidates. Organization/company
+nodes are ignored; missing or ambiguous lodging evidence is reported. Identity
+keys contain provider, optional account namespace and exact source identifier.
+Only source-declared sameAs and explicit provider identifiers create aliases.
+Name, address, geography and proximity never merge identities. Each disconnected
+identity group remains a separate draft.
+
+Drafts retain capture URL/status/time, exact document SHA-256, source paths, all
+observations and conflicts. capturedAt is observation time; sourceUpdatedAt comes
+only from a valid source dateModified, otherwise it remains null. Current name,
+address and amenity claims are selected by UTC capture chronology with
+deterministic ties; history remains available. Amenity records retain the raw
+source name/value, a conservative optional canonical key, and scope set to
+unknown. False and unknown claims remain distinct. Images retain the original
+safe source-advertised URL, source-advertised dimensions or null, and rights
+status unknown. Safe source and final URLs preserve their exact query and fragment
+bytes because they can distinguish otherwise unidentified public captures;
+credential-like query or fragment keys are rejected. Unsafe media URLs are excluded
+and reported. JSON-LD is selected with an HTML parser outside inert HTML templates,
+requires a trusted schema.org context and an exact known lodging type name/path,
+rejects URL control/space bytes at public URL boundaries, and rejects duplicate
+JSON object keys. Traversal and diagnostics have explicit limits so hostile nested
+arrays cannot amplify output without bound.
+
+Output is inspection-only with authority unverified-source-candidate. The CLI
+does not access the network, download media, access a PMS database, create a
+Yellow property, assign ownership, publish a profile or approve reuse rights.

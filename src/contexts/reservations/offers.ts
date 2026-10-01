@@ -450,16 +450,10 @@ export class ReservationOfferSearchService {
     })).filter(({ unitTypeCode }) =>
       input.unitTypeCodes.length === 0 || input.unitTypeCodes.includes(unitTypeCode)
     );
-    // The booking workbench needs a bookable representative for each room type,
-    // not a quote for every physically interchangeable room. Commit still
-    // arbitrates the selected unit in PostgreSQL, so this is a presentation
-    // bound rather than an availability promise.
-    const representedUnitTypes = new Set<string>();
-    const inventory = availableInventory.filter(({ unitTypeCode }) => {
-      if (representedUnitTypes.has(unitTypeCode)) return false;
-      representedUnitTypes.add(unitTypeCode);
-      return true;
-    });
+    // Published offers retain exact physical sellable identity. Siblings may
+    // have different live blockers or exact quote evidence, so none can stand
+    // in for another before the bounded pair count and quote resolution.
+    const inventory = availableInventory;
     const plans = (await this.#rates.listRatePlans(tx, input.propertyNode)).filter((plan) =>
       plan.status === "active" &&
       (input.ratePlanCodes.length === 0 || input.ratePlanCodes.includes(plan.code)) &&

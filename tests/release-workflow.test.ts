@@ -122,11 +122,11 @@ describe("Order 438 immutable release and local-review contracts", () => {
     expect(launcher).toContain("seed bun scripts/seed-review.ts");
     expect(launcher).toContain('/ready"');
     expect(launcher).toContain('body.target !== "yellow_runtime_database"');
-    expect(launcher).toContain("body.build?.expectedMigrationFrontier !== 99");
+    expect(launcher).toContain("body.build?.expectedMigrationFrontier !== 100");
     const setup = await Bun.file(new URL("../setup.sh", import.meta.url)).text();
     const windowsSetup = await Bun.file(new URL("../setup.ps1", import.meta.url)).text();
-    expect(setup).toContain("expected 130 after migrations 1-99");
-    expect(windowsSetup).toContain("expected 130 after migrations 1-99");
+    expect(setup).toContain("expected 130 after migrations 1-100");
+    expect(windowsSetup).toContain("expected 130 after migrations 1-100");
     expect(launcher).toContain("/api/v1/auth/local:login");
     expect(launcher).toContain('YELLOW_APP_PORT="${YELLOW_APP_PORT:-3000}"');
     expect(launcher).toContain("crypto.getRandomValues");

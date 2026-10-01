@@ -40,7 +40,8 @@ function row(id: string) {
     visible_primary_party_id: "00000000-0000-0000-0000-000000016604", display_name: "Board Guest",
     stay_from: "2026-09-01T06:30:00.000000Z", stay_to: "2026-09-02T06:30:00.000000Z",
     unit_type_label: "Deluxe", sellable_unit_label: "Room 101", rate_plan_label: "BAR",
-    adults: 2, children: 1, channel_code: "direct", currency: "INR", created_at: CREATED,
+    adults: 2, children: 1, channel_code: "direct", market_code: null, source_code: null,
+    currency: "INR", created_at: CREATED,
     arrival_direction: null, arrival_mode: null, arrival_carrier: null, arrival_service_no: null,
     arrival_scheduled_at: null, arrival_pickup_requested: null, arrival_pickup_task_id: null,
     visible_arrival_pickup_task_id: null,
@@ -84,10 +85,12 @@ describe("Order 166 bounded reservation board", () => {
     expect(Object.keys(first.reservations[0]!).sort()).toEqual([
       "adults", "channelCode", "children", "confirmationNo", "createdAt", "currency",
       "arrivalTravel", "departureTravel",
+      "marketCode", "sourceCode",
       "operationalState",
       "primaryGuestDisplayName", "primaryPartyId", "ratePlanLabel", "reservationId", "sellableUnitLabel",
       "status", "stayFrom", "stayTo", "unitTypeLabel",
     ].sort());
+    expect(first.reservations[0]).toMatchObject({ marketCode: null, sourceCode: null });
     const second = await service.list(tx, input({ limit: 1, after: first.nextCursor! }));
     expect(second.nextCursor).toBe(first.nextCursor);
     expect(calls).toHaveLength(2);

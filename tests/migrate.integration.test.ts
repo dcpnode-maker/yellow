@@ -179,6 +179,58 @@ interface ExactLedgerRow {
   readonly applied_at_bytes: string;
 }
 
+interface ExactNotNullVector {
+  readonly relation: string;
+  readonly columns: readonly string[];
+}
+
+const CURRENT100_FISCAL_NOT_NULL_COLUMNS: readonly ExactNotNullVector[] = [
+  {
+    relation: "india_gst_item_classification",
+    columns: [
+      "tenant_id", "id", "property_node", "jurisdiction_extension_id", "jurisdiction_key",
+      "jurisdiction_version", "jurisdiction_content_hash", "country_code", "line_id",
+      "revenue_group", "classification_system", "classification_code", "is_service_code",
+    ],
+  },
+  {
+    relation: "india_gst_supplier_service_location",
+    columns: [
+      "tenant_id", "id", "supplier_registration_id", "supplier_evidence_hash", "service_scope",
+      "registered_place_kind", "location_basis", "legal_rule",
+    ],
+  },
+  {
+    relation: "party_fiscal_registration",
+    columns: [
+      "tenant_id", "id", "party_id", "scheme", "registration_number", "region_code",
+      "legal_name", "address_line1", "locality", "pin",
+    ],
+  },
+  {
+    relation: "property_fiscal_location",
+    columns: ["tenant_id", "property_node", "country_code", "state_code", "address_line1", "locality", "pin"],
+  },
+  {
+    relation: "property_fiscal_registration",
+    columns: [
+      "tenant_id", "id", "property_node", "scheme", "currency", "jurisdiction_extension_id",
+      "jurisdiction_key", "jurisdiction_version", "jurisdiction_content_hash", "registration_number",
+      "region_code", "legal_name", "address_line", "locality", "postal_code",
+    ],
+  },
+];
+
+function assertExactNotNullVectors(
+  actual: readonly ExactNotNullVector[],
+  expected: readonly ExactNotNullVector[],
+): void {
+  const normalize = (vectors: readonly ExactNotNullVector[]) => vectors.map(vector => [vector.relation, [...vector.columns]]);
+  if (JSON.stringify(normalize(actual)) !== JSON.stringify(normalize(expected))) {
+    throw new Error("Full-current fiscal NOT NULL column vector mismatch");
+  }
+}
+
 async function exactLedger(sql: SQL, through = 9999): Promise<readonly ExactLedgerRow[]> {
   return sql<ExactLedgerRow[]>`
     SELECT pg_catalog.encode(pg_catalog.int8send(version),'hex') AS version_bytes,
@@ -254,8 +306,10 @@ async function normalizedOrder434Dump(databaseUrl: string): Promise<string> {
     const version = await collectChild(Bun.spawn([...command, "--version"], {
       cwd: PROJECT_ROOT, stdin: "ignore", stdout: "pipe", stderr: "pipe",
     }));
-    if (version.exitCode !== 0 || !/^pg_dump \(PostgreSQL\) 16\.15(?:\s|$)/.test(version.stdout.trim())) {
-      throw new Error("Order434 schema proof requires the genuine PostgreSQL 16.15 dump client");
+    const expectedVersion = ORDER434_PG_DUMP_COMPOSE ? "18.6" : "16.15";
+    const reportedVersion = /^pg_dump \(PostgreSQL\) ([0-9]+\.[0-9]+)(?:\s|$)/.exec(version.stdout.trim())?.[1];
+    if (version.exitCode !== 0 || reportedVersion !== expectedVersion) {
+      throw new Error(`Order434 schema proof requires the genuine PostgreSQL ${expectedVersion} dump client`);
     }
     order434DumpVersionVerified = true;
   }
@@ -2803,7 +2857,7 @@ databaseDescribe("Bun SQL migration runner", () => {
             ) AS "runtimePrivileges",
             (
               SELECT count(*)::int FROM pg_catalog.pg_constraint
-               WHERE conrelid = class.oid
+               WHERE conrelid = class.oid AND contype <> 'n'
             ) AS "constraintCount",
             EXISTS (
               SELECT 1
@@ -2927,6 +2981,15 @@ databaseDescribe("Bun SQL migration runner", () => {
           "0089_native_credit_delivery_discovery.sql",
           "0090_india_native_fiscal_series_configuration.sql",
           "0091_reservation_alert_authority.sql",
+          "0092_governed_party_profile_update.sql",
+          "0093_governed_synthetic_clean_arrival_reconciliation.sql",
+          "0094_governed_synthetic_clean_arrival_account_reconciliation.sql",
+          "0095_rate_policy_runtime_read.sql",
+          "0096_governed_checkin_room_condition_lock.sql",
+          "0097_governed_nonfiscal_folio_series_configuration.sql",
+          "0098_property_identity_profile.sql",
+          "0099_governed_departure_service_coordination.sql",
+          "0100_housekeeping_transition_timestamp_precision.sql",
         ]);
 
         const preservedLedger = await sql<Array<{
@@ -3224,7 +3287,7 @@ databaseDescribe("Bun SQL migration runner", () => {
                     WHERE pg_catalog.has_table_privilege('yellow_runtime', class.oid, privilege)
                  ) AS "runtimePrivileges",
                  (SELECT count(*)::int FROM pg_catalog.pg_constraint
-                   WHERE conrelid = class.oid) AS "constraintCount",
+                   WHERE conrelid = class.oid AND contype <> 'n') AS "constraintCount",
                  EXISTS (
                    SELECT 1
                      FROM pg_catalog.pg_index AS index
@@ -3272,7 +3335,7 @@ databaseDescribe("Bun SQL migration runner", () => {
                     WHERE pg_catalog.has_table_privilege('yellow_runtime', class.oid, privilege)
                  ) AS "runtimePrivileges",
                  (SELECT count(*)::int FROM pg_catalog.pg_constraint
-                   WHERE conrelid = class.oid) AS "constraintCount",
+                   WHERE conrelid = class.oid AND contype <> 'n') AS "constraintCount",
                  (
                    SELECT count(*)::int FROM pg_catalog.pg_constraint
                     WHERE conrelid = class.oid
@@ -3349,7 +3412,7 @@ databaseDescribe("Bun SQL migration runner", () => {
                     WHERE pg_catalog.has_table_privilege('yellow_runtime', class.oid, privilege)
                  ) AS "runtimePrivileges",
                  (SELECT count(*)::int FROM pg_catalog.pg_constraint
-                   WHERE conrelid = class.oid) AS "constraintCount",
+                   WHERE conrelid = class.oid AND contype <> 'n') AS "constraintCount",
                  (
                    SELECT count(*)::int FROM pg_catalog.pg_constraint
                     WHERE conrelid = class.oid
@@ -3443,7 +3506,7 @@ databaseDescribe("Bun SQL migration runner", () => {
                     WHERE pg_catalog.has_table_privilege('yellow_runtime', class.oid, privilege)
                  ) AS "runtimePrivileges",
                  (SELECT count(*)::int FROM pg_catalog.pg_constraint
-                   WHERE conrelid = class.oid) AS "constraintCount",
+                   WHERE conrelid = class.oid AND contype <> 'n') AS "constraintCount",
                  (
                    SELECT count(*)::int FROM pg_catalog.pg_constraint
                     WHERE conrelid = class.oid
@@ -3519,7 +3582,7 @@ databaseDescribe("Bun SQL migration runner", () => {
                     WHERE pg_catalog.has_table_privilege('yellow_runtime', class.oid, privilege)
                  ) AS "runtimePrivileges",
                  (SELECT count(*)::int FROM pg_catalog.pg_constraint
-                   WHERE conrelid = class.oid) AS "constraintCount",
+                   WHERE conrelid = class.oid AND contype <> 'n') AS "constraintCount",
                  (
                    SELECT count(*)::int
                      FROM pg_catalog.pg_index AS index
@@ -3547,6 +3610,45 @@ databaseDescribe("Bun SQL migration runner", () => {
           constraintCount: 13, tenantLeadingIndexes: 4, totalIndexes: 4,
           compositePartyForeignKey: true,
         }]);
+
+        const readFiscalNotNullVectors = () => sql<ExactNotNullVector[]>`
+          SELECT class.relname AS relation,
+                 COALESCE(
+                   pg_catalog.array_agg(attribute.attname::text ORDER BY attribute.attnum)
+                     FILTER (WHERE attribute.attnotnull),
+                   ARRAY[]::text[]
+                 ) AS columns
+            FROM pg_catalog.pg_class AS class
+            JOIN pg_catalog.pg_namespace AS namespace ON namespace.oid = class.relnamespace
+            LEFT JOIN pg_catalog.pg_attribute AS attribute
+              ON attribute.attrelid = class.oid
+             AND attribute.attnum > 0
+             AND NOT attribute.attisdropped
+           WHERE namespace.nspname = 'public'
+             AND class.relname = ANY(ARRAY[
+               'india_gst_item_classification',
+               'india_gst_supplier_service_location',
+               'party_fiscal_registration',
+               'property_fiscal_location',
+               'property_fiscal_registration'
+             ])
+           GROUP BY class.relname
+           ORDER BY class.relname
+        `;
+        assertExactNotNullVectors(
+          await readFiscalNotNullVectors(),
+          CURRENT100_FISCAL_NOT_NULL_COLUMNS,
+        );
+
+        // This is the newly created yellow_migrate_UUID fixture owned by withDatabase;
+        // the shared cleanup drops it even when this intentional negative guard fires.
+        await sql.unsafe(`ALTER TABLE public.property_fiscal_registration
+          ALTER COLUMN registration_number DROP NOT NULL`);
+        const missingNotNullVectors = await readFiscalNotNullVectors();
+        expect(() => assertExactNotNullVectors(
+          missingNotNullVectors,
+          CURRENT100_FISCAL_NOT_NULL_COLUMNS,
+        )).toThrow("Full-current fiscal NOT NULL column vector mismatch");
       });
     },
     60_000,

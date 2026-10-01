@@ -15,6 +15,11 @@ export default defineConfig({
         codeSplitting: {
           groups: [
             {
+              name: "yellow-app",
+              test: /frontend[\\/]yellow[\\/]src[\\/]App\.tsx$/,
+              priority: 30,
+            },
+            {
               name: "react-runtime",
               test: /node_modules[\\/](?:react|react-dom)[\\/]/,
               priority: 20,

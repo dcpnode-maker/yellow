@@ -88,8 +88,11 @@ export async function creditDeliveryRows(deploy: SQL): Promise<Record<string, st
   return rows;
 }
 export async function creditDeliveryCatalogue(deploy: SQL): Promise<string> {
+  // ANALYZE updates page/tuple estimates independently of schema rollback.
+  // Keep every other relation field and the complete structural catalogues.
   const [row] = await deploy<{ value: string }[]>`SELECT jsonb_build_object(
-    'relations',(SELECT jsonb_agg(to_jsonb(c) ORDER BY c.oid) FROM pg_catalog.pg_class c WHERE c.relnamespace='public'::regnamespace),
+    'relations',(SELECT jsonb_agg(to_jsonb(c) - 'relpages' - 'reltuples' ORDER BY c.oid)
+      FROM pg_catalog.pg_class c WHERE c.relnamespace='public'::regnamespace),
     'columns',(SELECT jsonb_agg(to_jsonb(a) ORDER BY a.attrelid,a.attnum) FROM pg_catalog.pg_attribute a
       JOIN pg_catalog.pg_class c ON c.oid=a.attrelid WHERE c.relnamespace='public'::regnamespace),
     'functions',(SELECT jsonb_agg(jsonb_build_array(p.oid,pg_get_functiondef(p.oid),p.proacl,p.proowner,p.proconfig) ORDER BY p.oid)

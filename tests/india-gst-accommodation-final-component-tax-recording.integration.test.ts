@@ -13,7 +13,7 @@ import {
   IndiaGstSection14RateSelectionService,
   resolveIndiaGstSection14PaymentProviso,
 } from "../src/contexts/tax-fiscal";
-import { PostgresIdempotency } from "../src/kernel";
+import { CURRENT_MIGRATION_FRONTIER, PostgresIdempotency } from "../src/kernel";
 import {
   ATTRIBUTION, fixture, FOLIO, HOLD, LINEAGE, PROPERTY, RESERVATION,
   SEGMENT, SELLABLE, TENANT,
@@ -230,7 +230,7 @@ databaseRun("Order 367 fresh PostgreSQL integration", () => {
   const runtimeDb = new SQL(runtimeDatabaseUrl!, { max: 4 });
   afterAll(async () => { await Promise.all([db.close(), runtimeDb.close()]); });
 
-  test("has the exact canonical 0090 catalogue frontier", async () => {
+  test("has the exact canonical current-frontier catalogue", async () => {
     const [actual] = await db<Array<{
       migrations: number; tables: number; rls: number; policies: number;
       forced: number; views: number;
@@ -246,7 +246,7 @@ databaseRun("Order 367 fresh PostgreSQL integration", () => {
         (SELECT count(*)::int FROM pg_views WHERE schemaname='public') views
     `;
     expect(actual).toEqual({
-      migrations: 99, tables: 130, rls: 120, policies: 120, forced: 29, views: 2,
+      migrations: CURRENT_MIGRATION_FRONTIER, tables: 130, rls: 120, policies: 120, forced: 29, views: 2,
     });
   });
 

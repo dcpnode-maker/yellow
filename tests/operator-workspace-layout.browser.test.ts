@@ -1,13 +1,12 @@
 import { expect, test } from "bun:test";
-import { existsSync } from "node:fs";
 import { mkdir, mkdtemp, rm } from "node:fs/promises";
-import { resolve } from "node:path";
+import { basename, resolve } from "node:path";
 import { tmpdir } from "node:os";
+import { resolveChromiumPath } from "./helpers/chromium-path";
+import { fetchJsonBounded, withOwnedProcess } from "./helpers/owned-cdp-proof-lifecycle";
 
 const repository = resolve(import.meta.dir, "..");
-const browser = [process.env.PROGRAMFILES && resolve(process.env.PROGRAMFILES, "Google/Chrome/Application/chrome.exe"),
-  process.env["PROGRAMFILES(X86)"] && resolve(process.env["PROGRAMFILES(X86)"], "Microsoft/Edge/Application/msedge.exe"),
-  Bun.which("chromium"), Bun.which("google-chrome")].find((path): path is string => Boolean(path && existsSync(path)));
+const browser = resolveChromiumPath();
 const id = (value: number) => `00000000-0000-4000-8000-${String(value).padStart(12, "0")}`;
 const route = `/p/${id(2)}/invoices`;
 const interfaceChoices = ["ledger", "aura", "relay", "journey", "orbit", "atlas", "focus", "index"] as const;
@@ -51,10 +50,39 @@ function todayRowForWindow(status: keyof typeof todayRows, requestUrl: URL) {
 }
 
 type CdpSend = <Result>(method: string, params?: Record<string, unknown>) => Promise<Result>;
+type PendingCdpCommand = {
+  resolve: (value: unknown) => void;
+  reject: (reason: Error) => void;
+  timer: ReturnType<typeof setTimeout>;
+};
+type BrowserOwnershipState = {
+  socket: WebSocket | null;
+  pendingCommands: Map<number, PendingCdpCommand> | null;
+  requestBrowserClose: (() => Promise<unknown>) | undefined;
+};
+
+function proofDiagnostic(stage: string, details: Record<string, string | number | boolean | null> = {}): void {
+  console.info(`[Order459] ${JSON.stringify({ stage, ...details })}`);
+}
 
 function transientPortRead(error: unknown): boolean {
   return typeof error === "object" && error !== null &&
     ["EBUSY", "ENOENT"].includes(String((error as { code?: unknown }).code));
+}
+
+function localDevtoolsWebSocket(value: string, port: number): string {
+  let endpoint: URL;
+  try {
+    endpoint = new URL(value);
+  } catch {
+    throw new Error("Chromium debugger endpoint is invalid");
+  }
+  if (endpoint.protocol !== "ws:" || endpoint.hostname !== "127.0.0.1"
+    || endpoint.port !== String(port) || endpoint.username || endpoint.password
+    || endpoint.search || endpoint.hash || !/^\/devtools\/page\/[A-Za-z0-9_-]+$/.test(endpoint.pathname)) {
+    throw new Error("Chromium debugger endpoint did not match the owned loopback target");
+  }
+  return endpoint.toString();
 }
 
 async function withOwnedCdp<Result>(
@@ -62,84 +90,102 @@ async function withOwnedCdp<Result>(
   run: (send: CdpSend, runtimeErrors: string[]) => Promise<Result>,
 ): Promise<Result> {
   if (!browser) throw new Error("Chrome or Chromium is required for the actual workspace layout proof");
+  proofDiagnostic("browser-selected", { platform: process.platform, executable: basename(browser) });
   const chrome = Bun.spawn([
     browser, "--headless=new", "--disable-gpu", "--no-sandbox", "--disable-dev-shm-usage",
     "--no-first-run", "--no-default-browser-check", "--remote-debugging-address=127.0.0.1",
     "--remote-debugging-port=0", `--user-data-dir=${profile}`, "about:blank",
   ], { stdout: "ignore", stderr: "ignore" });
-  let socket: WebSocket | null = null;
+  const state: BrowserOwnershipState = { socket: null, pendingCommands: null, requestBrowserClose: undefined };
   try {
-    const portFile = resolve(profile, "DevToolsActivePort");
-    let port = "";
-    for (let attempt = 0; attempt < 800; attempt += 1) {
+    return await withOwnedProcess(chrome, async () => {
       try {
-        if (existsSync(portFile)) port = (await Bun.file(portFile).text()).split(/\r?\n/, 1)[0] ?? "";
+        const portFile = resolve(profile, "DevToolsActivePort");
+        let port = "";
+        proofDiagnostic("devtools-port-wait", { profileName: basename(profile), maxWaitMs: 20_000 });
+        for (let attempt = 0; attempt < 800; attempt += 1) {
+          try {
+            if (await Bun.file(portFile).exists()) port = (await Bun.file(portFile).text()).split(/\r?\n/, 1)[0] ?? "";
+          } catch (error) {
+            if (!transientPortRead(error)) throw error;
+          }
+          if (port || chrome.exitCode !== null || chrome.signalCode !== null) break;
+          await Bun.sleep(25);
+        }
+        if (!port) throw new Error(`Chromium did not expose a DevTools port (exit ${chrome.exitCode ?? chrome.signalCode ?? "unknown"})`);
+        const portNumber = Number(port);
+        if (!/^[1-9][0-9]{0,4}$/.test(port) || !Number.isSafeInteger(portNumber) || portNumber > 65_535) {
+          throw new Error("Chromium DevTools port file contained an invalid port");
+        }
+        proofDiagnostic("devtools-port-ready", { port: portNumber });
+        const targetUrl = `http://127.0.0.1:${portNumber}/json/new?${encodeURIComponent("about:blank")}`;
+        const target = await fetchJsonBounded<{ webSocketDebuggerUrl?: string }>(targetUrl,
+          { method: "PUT", redirect: "error" }, 5_000);
+        if (!target.webSocketDebuggerUrl) throw new Error("Chromium target has no debugger endpoint");
+        const webSocketUrl = localDevtoolsWebSocket(target.webSocketDebuggerUrl, portNumber);
+        proofDiagnostic("target-created", { transportDeadlineMs: 5_000 });
+        state.socket = new WebSocket(webSocketUrl);
+        let commandId = 0;
+        const runtimeErrors: string[] = [];
+        const pending = new Map<number, {
+          resolve: (value: unknown) => void;
+          reject: (reason: Error) => void;
+          timer: ReturnType<typeof setTimeout>;
+        }>();
+        state.pendingCommands = pending;
+        await new Promise<void>((resolveOpen, rejectOpen) => {
+          const timer = setTimeout(() => rejectOpen(new Error("Chromium debugger socket did not open")), 5_000);
+          state.socket?.addEventListener("open", () => { clearTimeout(timer); resolveOpen(); }, { once: true });
+          state.socket?.addEventListener("error", () => { clearTimeout(timer); rejectOpen(new Error("Chromium debugger socket failed")); }, { once: true });
+        });
+        proofDiagnostic("debugger-connected", { timeoutMs: 5_000 });
+        state.socket.addEventListener("message", event => {
+          const message = JSON.parse(String(event.data)) as {
+            id?: number; result?: unknown; error?: { message?: string }; method?: string;
+            params?: { type?: string; args?: Array<{ value?: unknown; description?: string }>; exceptionDetails?: { text?: string; exception?: { description?: string } } };
+          };
+          if (message.method === "Runtime.exceptionThrown") {
+            runtimeErrors.push(message.params?.exceptionDetails?.exception?.description ?? message.params?.exceptionDetails?.text ?? "Runtime exception");
+          }
+          if (message.method === "Runtime.consoleAPICalled" && ["error", "assert"].includes(message.params?.type ?? "")) {
+            runtimeErrors.push((message.params?.args ?? []).map(argument => String(argument.value ?? argument.description ?? "")).join(" "));
+          }
+          if (!message.id) return;
+          const command = pending.get(message.id);
+          if (!command) return;
+          pending.delete(message.id);
+          clearTimeout(command.timer);
+          if (message.error) command.reject(new Error(message.error.message ?? "Chromium command failed"));
+          else command.resolve(message.result);
+        });
+        const send: CdpSend = <CommandResult>(method: string, params: Record<string, unknown> = {}) => new Promise<CommandResult>((resolveCommand, rejectCommand) => {
+          commandId += 1;
+          const id = commandId;
+          const timer = setTimeout(() => {
+            pending.delete(id);
+            rejectCommand(new Error(`Chromium command timed out: ${method}`));
+          }, 5_000);
+          pending.set(id, { resolve: value => resolveCommand(value as CommandResult), reject: rejectCommand, timer });
+          state.socket?.send(JSON.stringify({ id, method, params }));
+        });
+        state.requestBrowserClose = () => send("Browser.close");
+        return await run(send, runtimeErrors);
       } catch (error) {
-        if (!transientPortRead(error)) throw error;
+        proofDiagnostic("browser-proof-failed", { errorType: error instanceof Error ? error.name : typeof error });
+        throw error;
       }
-      if (port || chrome.exitCode !== null) break;
-      await Bun.sleep(25);
-    }
-    if (!port) throw new Error(`Chromium did not expose a DevTools port (exit ${chrome.exitCode ?? "unknown"})`);
-    const targetResponse = await fetch(`http://127.0.0.1:${port}/json/new?${encodeURIComponent("about:blank")}`, { method: "PUT" });
-    if (!targetResponse.ok) throw new Error(`Chromium target creation failed (${targetResponse.status})`);
-    const target = await targetResponse.json() as { webSocketDebuggerUrl?: string };
-    if (!target.webSocketDebuggerUrl) throw new Error("Chromium target has no debugger endpoint");
-    socket = new WebSocket(target.webSocketDebuggerUrl);
-    let commandId = 0;
-    const runtimeErrors: string[] = [];
-    const pending = new Map<number, {
-      resolve: (value: unknown) => void;
-      reject: (reason: Error) => void;
-      timer: ReturnType<typeof setTimeout>;
-    }>();
-    await new Promise<void>((resolveOpen, rejectOpen) => {
-      const timer = setTimeout(() => rejectOpen(new Error("Chromium debugger socket did not open")), 5_000);
-      socket?.addEventListener("open", () => { clearTimeout(timer); resolveOpen(); }, { once: true });
-      socket?.addEventListener("error", () => { clearTimeout(timer); rejectOpen(new Error("Chromium debugger socket failed")); }, { once: true });
-    });
-    socket.addEventListener("message", event => {
-      const message = JSON.parse(String(event.data)) as {
-        id?: number; result?: unknown; error?: { message?: string }; method?: string;
-        params?: { type?: string; args?: Array<{ value?: unknown; description?: string }>; exceptionDetails?: { text?: string; exception?: { description?: string } } };
-      };
-      if (message.method === "Runtime.exceptionThrown") {
-        runtimeErrors.push(message.params?.exceptionDetails?.exception?.description ?? message.params?.exceptionDetails?.text ?? "Runtime exception");
-      }
-      if (message.method === "Runtime.consoleAPICalled" && ["error", "assert"].includes(message.params?.type ?? "")) {
-        runtimeErrors.push((message.params?.args ?? []).map(argument => String(argument.value ?? argument.description ?? "")).join(" "));
-      }
-      if (!message.id) return;
-      const command = pending.get(message.id);
-      if (!command) return;
-      pending.delete(message.id);
-      clearTimeout(command.timer);
-      if (message.error) command.reject(new Error(message.error.message ?? "Chromium command failed"));
-      else command.resolve(message.result);
-    });
-    const send: CdpSend = <CommandResult>(method: string, params: Record<string, unknown> = {}) => new Promise<CommandResult>((resolveCommand, rejectCommand) => {
-      commandId += 1;
-      const id = commandId;
-      const timer = setTimeout(() => {
-        pending.delete(id);
-        rejectCommand(new Error(`Chromium command timed out: ${method}`));
-      }, 5_000);
-      pending.set(id, { resolve: value => resolveCommand(value as CommandResult), reject: rejectCommand, timer });
-      socket?.send(JSON.stringify({ id, method, params }));
-    });
-    try {
-      return await run(send, runtimeErrors);
-    } finally {
-      for (const command of pending.values()) {
+    }, async () => {
+      if (state.socket?.readyState === WebSocket.OPEN && state.requestBrowserClose) await state.requestBrowserClose();
+    }, { gracefulRequestMs: 500, gracefulExitMs: 250, terminateSignalMs: 250, killWaitMs: 1_500 });
+  } finally {
+    state.socket?.close();
+    if (state.pendingCommands) {
+      for (const command of state.pendingCommands.values()) {
         clearTimeout(command.timer);
         command.reject(new Error("Chromium debugger closed with a command pending"));
       }
-      pending.clear();
+      state.pendingCommands.clear();
     }
-  } finally {
-    socket?.close();
-    if (chrome.exitCode === null) chrome.kill();
-    await chrome.exited;
   }
 }
 
@@ -459,6 +505,7 @@ test("Order459 eight compositions retain loaded records, drafts and grouped acce
     if (captures) await mkdir(captures, { recursive: true });
     const cases = [[1440,900,"ledger"],[1024,768,"orbit"],[375,844,"index"]] as const;
     const url = `http://127.0.0.1:${server.port}${route}`;
+    proofDiagnostic("proof-start", { viewportCount: cases.length + 2 });
     await withOwnedCdp(resolve(temporary, "chrome"), async (send, runtimeErrors) => {
       await send("Page.enable");
       await send("Runtime.enable");
@@ -468,6 +515,7 @@ test("Order459 eight compositions retain loaded records, drafts and grouped acce
         { name: "forced-colors", value: "none" },
       ] });
       for (const [width,height,skin] of cases) {
+        proofDiagnostic("viewport-start", { width, height, skin });
         requestedSkin = skin;
         await send("Emulation.setDeviceMetricsOverride", {
           width, height, deviceScaleFactor: 1, mobile: width < 768,
@@ -705,8 +753,10 @@ test("Order459 eight compositions retain loaded records, drafts and grouped acce
           }
           expect(runtimeErrors).toEqual([]);
         }
+        proofDiagnostic("viewport-complete", { width, height, skin });
       }
 
+      proofDiagnostic("viewport-start", { width: 390, height: 844, skin: "forced-colors-reduced-motion" });
       requestedSkin = "relay";
       await send("Emulation.setDeviceMetricsOverride", {
         width: 390, height: 844, deviceScaleFactor: 1, mobile: true,
@@ -758,7 +808,9 @@ test("Order459 eight compositions retain loaded records, drafts and grouped acce
         if (!screenshot.data) throw new Error("No forced-colours viewport screenshot 390/relay");
         await Bun.write(resolve(captures, "390-844-relay-forced-colors.png"), Buffer.from(screenshot.data, "base64"));
       }
+      proofDiagnostic("viewport-complete", { width: 390, height: 844, skin: "forced-colors-reduced-motion" });
 
+      proofDiagnostic("viewport-start", { width: 390, height: 844, skin: "font-fallback" });
       fontExpected = false;
       requestedSkin = "ledger";
       await send("Network.setBlockedURLs", { urls: ["*urbanist-v1.330.woff2*"] });
@@ -819,6 +871,7 @@ test("Order459 eight compositions retain loaded records, drafts and grouped acce
       expect(fallbackProof.afterCalls).toBe(fallbackProof.before.calls);
       expect(fallbackProof.audit).toMatchObject({ documentHash: true, sourceHash: true, identityOutsideAudit: true });
       expect(fallbackProof.groups).toMatchObject({ keys: workspaceGroups, counts: [3,5,3,3,1], legacyRemoved: true });
+      proofDiagnostic("viewport-complete", { width: 390, height: 844, skin: "font-fallback" });
     });
     expect(apiRequests.every(request => request.method === "GET" || request.path.endsWith("/invoices/search"))).toBe(true);
     const todayRequests = apiRequests.filter(request => request.path.includes("/reservation-board?"));

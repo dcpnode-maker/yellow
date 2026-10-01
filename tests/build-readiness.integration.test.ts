@@ -101,7 +101,19 @@ async function readinessFailure(operation: Promise<void>): Promise<Error> {
 async function ensureCurrentRelease(): Promise<void> {
   if (currentReleaseReady) return;
   const result = await runMigrations({ databaseUrl: deploymentDatabaseUrl, logger: () => undefined });
-  expect(result.appliedFiles).toEqual(["0090_india_native_fiscal_series_configuration.sql", "0091_reservation_alert_authority.sql"]);
+  expect(result.appliedFiles).toEqual([
+    "0090_india_native_fiscal_series_configuration.sql",
+    "0091_reservation_alert_authority.sql",
+    "0092_governed_party_profile_update.sql",
+    "0093_governed_synthetic_clean_arrival_reconciliation.sql",
+    "0094_governed_synthetic_clean_arrival_account_reconciliation.sql",
+    "0095_rate_policy_runtime_read.sql",
+    "0096_governed_checkin_room_condition_lock.sql",
+    "0097_governed_nonfiscal_folio_series_configuration.sql",
+    "0098_property_identity_profile.sql",
+    "0099_governed_departure_service_coordination.sql",
+    "0100_housekeeping_transition_timestamp_precision.sql",
+  ]);
   deployment = new SQL(deploymentDatabaseUrl, { max: 1, prepare: false });
   runtime = new SQL(runtimeDatabaseUrl, { max: 1, prepare: false });
   currentReleaseReady = true;
