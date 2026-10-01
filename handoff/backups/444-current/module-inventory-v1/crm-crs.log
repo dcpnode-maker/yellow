@@ -1,0 +1,60 @@
+bun test v1.3.14 (0d9b296a)
+
+tests/departure-service-http.test.ts:
+
+# Unhandled error between tests
+-------------------------------
+error: Cannot find package 'elysia' from '/workspace/yellow-candidate-444/src/app.ts'
+-------------------------------
+
+
+tests/pms-crs-20260930-staff-search.test.ts:
+(pass) PMS CRS staff offer search helper > requires scope before parsing, grants, or offers [0.98ms]
+(pass) PMS CRS staff offer search helper > accepts the exact envelope and one to four distinct UUID properties [1.25ms]
+(pass) PMS CRS staff offer search helper > rejects unknown envelope keys, malformed entries, bad UUIDs, duplicates, and out-of-range counts before search [0.55ms]
+(pass) PMS CRS staff offer search helper > uses the canonical parser and rejects bad canonical inputs before authorization or search [0.15ms]
+(pass) PMS CRS staff offer search helper > authorizes every selected property before starting any offer search [0.14ms]
+(pass) PMS CRS staff offer search helper > uses one generic forbidden error for unknown, foreign, and ungranted properties [0.76ms]
+(pass) PMS CRS staff offer search helper > returns unavailable after current authorization when the offer capability is absent [0.40ms]
+(pass) PMS CRS staff offer search helper > snapshots parsed searches and property ids before asynchronous grant loading [0.35ms]
+(pass) PMS CRS staff offer search helper > searches properties serially in request order and returns each canonical result unchanged [0.56ms]
+(pass) PMS CRS staff offer search helper > snapshots authorized property labels before offer services can mutate the grant rows [0.35ms]
+(pass) PMS CRS staff offer search helper > does not return a partial property batch when a later property search fails [0.23ms]
+(pass) PMS CRS staff offer search helper > reads UTF-8 JSON by actual byte count when Content-Length lies or is absent [4.46ms]
+(pass) PMS CRS staff offer search helper > cancels an overflowing body and rejects wrong content type, malformed JSON, and invalid UTF-8 [0.74ms]
+(pass) PMS CRS staff offer search helper > cancels a stalled body when the bounded reader deadline expires [5.82ms]
+(pass) PMS CRS staff offer search helper > accepts an empty fragment before valid JSON [0.24ms]
+(pass) PMS CRS staff offer search helper > rejects finite synchronous empty-chunk work that runs beyond the reader deadline [13.91ms]
+(pass) PMS CRS staff offer search helper > measures the serialized response in UTF-8 bytes and rejects oversize results without returning partial data [8.18ms]
+
+tests/operator-departure-service.test.ts:
+(pass) departure-service HTTP authority > existing checkout/arrival/financial scopes do not authorize departure work [0.98ms]
+(pass) departure-service HTTP authority > exact property scope is required and foreign existence is concealed [0.25ms]
+(pass) departure-service HTTP authority > missing key and invented action fail before SQL [0.10ms]
+
+tests/pms-crs-20260930-staff-search.http.test.ts:
+
+# Unhandled error between tests
+-------------------------------
+-------------------------------
+
+
+tests/departure-service-contract.test.ts:
+(pass) departure-service strict command boundary > migration refuses any predecessor other than the exact canonical frontier [0.21ms]
+(pass) departure-service strict command boundary > accepts immediate, bounded delay and explicit-offset local schedules [2.02ms]
+(pass) departure-service strict command boundary > rejects free text, surplus authority, impossible action and schedule shapes [0.33ms]
+
+tests/crm-20260930-routing-query.test.ts:
+
+# Unhandled error between tests
+-------------------------------
+-------------------------------
+
+
+3 tests failed:
+
+ 23 pass
+ 3 fail
+ 3 errors
+ 101 expect() calls
+Ran 26 tests across 6 files. [160.00ms]

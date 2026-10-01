@@ -1848,3 +1848,8 @@ appears here; dispatch/execution remain unverified.
 
 - Founder/controllerauthorized root26s actual ngrok3.39.11 start with explicitexistingmanagedproxy/trustedCA and no authtoken, preservedGoogle-emaildeny. Sixfailedsendauthrequest/sessionclosed messages, no providerauthtokenrejection/session/URL; exactownedchild gracefullystopped, exit0onstop is NOTsuccess. No proxy/CA/TLS/route changes, account/paidresources or unchangedCFretries. Standarddiagnose proxyTCPok butgenericDNS/internetwarn; notsessionproof, no repeats.
 - Privatecloud444 app53018 stillready200/frontier103; old9ff/b9images/servicespreserved. Runtime226/statusonly has no callable nativeHTTP/configuration/securesecretbinding. Supportedbindingproposal explicitunavailable, no secretinchat/Git/browserpermissionbypass. Laptop reports preferredoldUIorder737/assetsDusA4ysm-C9ZASg81/receipt734/container34b83ec; cloudattributeslaptoponly, no unreviewedfrontendcopy. NopublicURL or durablebusinessrecoveryclaim; laptopcontroller andplan1%pause/emergencyreserve unchanged.
+
+
+## RESOURCE-20261001 cloud backend module inventory
+
+Readonly exact444072 source inventory; bounded fresh tests98/0/824, independent scope review. Earlier PG proofs remain separate. No product/migration/data/credential changes; private origin preserved. CRM departure queue/CRS search complete as finite slices; broad group-commercial CRM, live forecasting RMS and public guest booking remain partial/unbuilt. Laptop owns restored734/737 UI/public hosting. Packet: `handoff/backups/444-current/module-inventory-v1/MODULE_HANDOFF.md`, hashes in PACKET_MANIFEST.json; order `handoff/orders/RESOURCE-20261001-cloud-module-inventory.md`.

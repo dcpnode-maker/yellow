@@ -1,0 +1,73 @@
+bun test v1.3.14 (0d9b296a)
+
+tests/rate-composition.test.ts:
+(pass) Order 068 rate policy and package composition > P1: package rhythms, included allocation and exact money are distinct [13.30ms]
+(pass) Order 068 rate policy and package composition > P2: explicitly selected promotions stage and round deterministically [6.02ms]
+(pass) Order 068 rate policy and package composition > P3: guest, refund and policy evidence fail closed without suppressing mandatory policy [6.34ms]
+(pass) Order 068 rate policy and package composition > P4: restrictions and operational blockers remain authoritative evidence [4.30ms]
+(pass) Order 068 rate policy and package composition > P5: channel configuration needs attributable mapping but never creates capacity [3.28ms]
+(pass) Order 068 rate policy and package composition > P6: prior price states and exact frozen evidence propagate without tax [3.55ms]
+(pass) Order 068 rate policy and package composition > P7: package and promotion work stays bounded across N and 2N inputs [8.01ms]
+(pass) Order 068 rate policy and package composition > Order 070 P1: whole-stay composition sums nights and applies stay choices once [4.13ms]
+
+tests/rate-intent-provider.test.ts:
+(pass) Order 090 portable AI intent provider > P0/P1: the omitted provider stays zero-network local [5.28ms]
+(pass) Order 090 portable AI intent provider > P1: selected external configuration fails closed [0.63ms]
+(pass) Order 090 portable AI intent provider > P2: compatible transport sends only minimized proposal context [3.43ms]
+(pass) Order 090 portable AI intent provider > P2: api-key authentication stays in its header and never enters the prompt [0.91ms]
+(pass) Order 090 portable AI intent provider > P2/P3: provider failures are generic and never become authority [2.16ms]
+(pass) Order 090 portable AI intent provider > P2: the timeout aborts a stalled provider without exposing configuration [501.71ms]
+(pass) Order 090 portable AI intent provider > P4: architecture distinguishes present inference from deferred RMS and training [0.82ms]
+
+tests/rate-authoring.test.ts:
+(pass) Order 071 canonical rate authoring > catalogue coverage and Guided/Expert commands share one canonical meaning [0.86ms]
+(pass) Order 071 canonical rate authoring > all ten registered model families compile through exact typed inputs [1.83ms]
+(pass) Order 071 canonical rate authoring > money remains exact and hostile transport or authority fields fail closed [0.49ms]
+(pass) Order 071 canonical rate authoring > the operator workbench keeps the complete founder rate flow visible and server-governed [5.31ms]
+(pass) Order 072 secure AI-assisted authoring surface > the workbench exposes proposal-only AI controls without browser persistence or automatic authority [4.11ms]
+(pass) Order 073 applicability-rule and bulk-preview workbench > multiple explicit include/exclude rules compile without weakening exact target semantics [0.71ms]
+(pass) Order 073 applicability-rule and bulk-preview workbench > P0: the workbench exposes the absent multi-rule editor and server-cell evidence renderer [5.82ms]
+
+tests/rms-economics.test.ts:
+(pass) Order 091 canonical RMS room economics > P1: named exact costs produce exact totals and occupied-room-night ratios [0.48ms]
+(pass) Order 091 canonical RMS room economics > P2: losses stay visible and bid price uses contribution without rounding [0.26ms]
+(pass) Order 091 canonical RMS room economics > P3: input is strict, bigint-only and signed-overflow safe [0.28ms]
+(pass) Order 091 canonical RMS room economics > P4: immutable transport evidence uses canonical decimal strings [0.86ms]
+
+tests/rate-evaluation-reuse.test.ts:
+(pass) Order451 private immutable evaluation reuse > module-produced normalization is reused, while equivalent caller copies are not identities [0.34ms]
+(pass) Order451 private immutable evaluation reuse > complete module-produced stay is reused without changing result bytes or logical work [3.82ms]
+(pass) Order451 private immutable evaluation reuse > D244: warm contexts do not authorize forged frozen derived fields or foreign pairings [5.28ms]
+(pass) Order451 private immutable evaluation reuse > normalizations retain no mutable caller aliases, including nested evidence [2.41ms]
+(pass) Order451 private immutable evaluation reuse > accessor and proxy inputs never acquire private provenance or bypass revalidation [3.86ms]
+(pass) Order451 private immutable evaluation reuse > valid serialized and outer-frozen inputs still use canonical validation [2.62ms]
+(pass) Order451 private immutable evaluation reuse > reference, target and recommendation evidence are reconstructed and immutable [1.64ms]
+(pass) Order451 private immutable evaluation reuse > warm versus rebuilt paths retain all nine model families, conflicts and exact guards [4.77ms]
+(pass) Order451 private immutable evaluation reuse > local-date boundaries and signed-int64 failures are unchanged on warm and rebuilt paths [2.66ms]
+(pass) Order451 private immutable evaluation reuse > oversized primitive arrays still produce the original canonical errors [1.14ms]
+(pass) Order451 private immutable evaluation reuse > deep and primitive-wide graphs exhaust eligibility only, never replace validation errors [193.54ms]
+
+tests/rate-intent.test.ts:
+(pass) Order 072 secure rate intent > P0: exact common intent compiles into one reviewable AI proposal [1.02ms]
+(pass) Order 072 secure rate intent > P0: a guardrail-bypass request is rejected without a proposal [0.23ms]
+(pass) Order 072 secure rate intent > P1: adapter input is minimized and candidate authority is restored only by the service [0.61ms]
+(pass) Order 072 secure rate intent > P1: guardrails run before adapters and hostile adapter output fails closed [0.53ms]
+(pass) Order 072 secure rate intent > P1: invalid input and unavailable proposal sources expose no internal failure [0.50ms]
+(pass) Order 072 secure rate intent > P2: local assistant applies exact bounded commercial choices [0.99ms]
+(pass) Order 072 secure rate intent > P2: ambiguous, restriction-owned and complex-model intent asks instead of guessing [0.89ms]
+(pass) Order 072 secure rate intent > P2: secrets, card data, executable formulas and automatic publication are rejected [0.37ms]
+
+tests/rate-evaluators.test.ts:
+(pass) Order 067 typed exact-money evaluators > P1: bigint arithmetic, basis-point rounding and guards remain exact [3.04ms]
+(pass) Order 067 typed exact-money evaluators > P2: property-local dates survive DST and reject ambiguous context [1.90ms]
+(pass) Order 067 typed exact-money evaluators > P3: every direct model and expert composition has one strict contract [5.53ms]
+(pass) Order 067 typed exact-money evaluators > P4: rule order is irrelevant, equal top tuples conflict and stages are numeric [8.32ms]
+(pass) Order 067 typed exact-money evaluators > P5: parent reference identity and version make historical derivation reproducible [1.53ms]
+(pass) Order 067 typed exact-money evaluators > P6: targeting evidence gates matrix and contract pricing without changing sellability [1.84ms]
+(pass) Order 067 typed exact-money evaluators > P7: reported work grows sub-quadratically from 100 to 200 rules [3.04ms]
+(pass) Order 067 typed exact-money evaluators > Order 070 P4: governed RMS evidence cannot bypass local rules or guards [2.78ms]
+
+ 53 pass
+ 0 fail
+ 571 expect() calls
+Ran 53 tests across 7 files. [937.00ms]

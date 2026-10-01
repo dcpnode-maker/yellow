@@ -1,0 +1,64 @@
+{
+  "schema": "yellow-backend-module-inventory-packet/v1",
+  "input_source_commit": "444072ffdff2b7745345d88f71b603c17e11ace6",
+  "artifact_parent": "441d064f6b47b092c9167803d500e9b8e4a8d69f",
+  "review": "Independent readonly source/receipt review; not high-risk feature acceptance",
+  "fresh_test_result": {
+    "pass": 98,
+    "fail": 0,
+    "assertions": 824,
+    "scope": "pure/mocked/source tests"
+  },
+  "files": [
+    {
+      "path": "handoff/backups/444-current/module-inventory-v1/MODULE_HANDOFF.md",
+      "bytes": 12798,
+      "sha256": "1d4b5736ca295b385820f478fac78871ca5510e49550213ef9d8ca51d36dc396"
+    },
+    {
+      "path": "handoff/backups/444-current/module-inventory-v1/FOCUSED_TEST_PROOF.json",
+      "bytes": 6006,
+      "sha256": "19d28814f2a31d70caa661b381b02da9e615ecdc6ed73db6e6b06196ad7d9fa2"
+    },
+    {
+      "path": "handoff/backups/444-current/module-inventory-v1/SOURCE_MANIFEST.json",
+      "bytes": 4209,
+      "sha256": "257f2580c3572ec7b5ea37400a76636739680e5f04dcc911312f76bed6191284"
+    },
+    {
+      "path": "handoff/backups/444-current/module-inventory-v1/PRIVATE_ORIGIN_READ.json",
+      "bytes": 1038,
+      "sha256": "930d6e8e4d5075536728222ac4515e1576ff7568b949ffb647f275ebe2e41509"
+    },
+    {
+      "path": "handoff/backups/444-current/module-inventory-v1/crm-crs.log",
+      "bytes": 3751,
+      "sha256": "6fcbab168058ffd61dbec9eff8e9a20af1881a00b0bf3dac2a39b0d84e30eaf7"
+    },
+    {
+      "path": "handoff/backups/444-current/module-inventory-v1/crm-crs-with-matching-deps.log",
+      "bytes": 5954,
+      "sha256": "944b2c30e287730cc141a5c00c15141635d92196b31485ca3b536a166eea33a3"
+    },
+    {
+      "path": "handoff/backups/444-current/module-inventory-v1/rms.log",
+      "bytes": 7399,
+      "sha256": "6525c7e815637ac7d95bd303b49891fd2b23876fa5499b04c28eb46cc2b7f12d"
+    },
+    {
+      "path": "handoff/backups/444-current/module-inventory-v1/staff-booking.log",
+      "bytes": 732,
+      "sha256": "b46e4a618b8a34dcb3cc8945ed450b438e3adea8580753d8ee26444233124263"
+    },
+    {
+      "path": "handoff/backups/444-current/module-inventory-v1/INDEPENDENT_REVIEW.md",
+      "bytes": 3638,
+      "sha256": "558172b4ffd227ffd2adba2fcfc30c54311a089185c5215af3fb84335b650e47"
+    },
+    {
+      "path": "handoff/orders/RESOURCE-20261001-cloud-module-inventory.md",
+      "bytes": 1336,
+      "sha256": "619fe834dbe007b14495de9fbabc9af8395c227be809cf944c94644dd6b47227"
+    }
+  ]
+}

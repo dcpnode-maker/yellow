@@ -1,0 +1,158 @@
+{
+  "source_commit": "444072ffdff2b7745345d88f71b603c17e11ace6",
+  "source_tree": "2fd5f9b5f55cc3404d81c88385f90c8c17582223",
+  "bun_version": "1.3.14",
+  "database_access": "No live database fixture or binding used; explicit pure/mocked/source tests only",
+  "batches": [
+    {
+      "batch": "crm-crs",
+      "command": [
+        "/workspace/yellow-toolchain/bun",
+        "test",
+        "tests/pms-crs-20260930-staff-search.test.ts",
+        "tests/pms-crs-20260930-staff-search.http.test.ts",
+        "tests/crm-20260930-routing-query.test.ts",
+        "tests/departure-service-contract.test.ts",
+        "tests/departure-service-http.test.ts",
+        "tests/operator-departure-service.test.ts"
+      ],
+      "exit_code": 1,
+      "elapsed_seconds": 0.215,
+      "log_sha256": "6fcbab168058ffd61dbec9eff8e9a20af1881a00b0bf3dac2a39b0d84e30eaf7",
+      "input_files": [
+        {
+          "path": "tests/pms-crs-20260930-staff-search.test.ts",
+          "sha256": "252340e6a09864174644f4a4b8ff61a3f75b38b3f2024931f768c8a043baefe8"
+        },
+        {
+          "path": "tests/pms-crs-20260930-staff-search.http.test.ts",
+          "sha256": "68e71a4c2758ace6060ef2db0c5fa3d0046be33b23445c30260c5f5f027facaf"
+        },
+        {
+          "path": "tests/crm-20260930-routing-query.test.ts",
+          "sha256": "16ac8cab819f73250cdcb9fce043aeb6ac5cdaea5d6c3bd40d54bdb84dd04955"
+        },
+        {
+          "path": "tests/departure-service-contract.test.ts",
+          "sha256": "7ea1ace05c1027a89b2d4520600dcab8cbd64f5eb4f85d6e4c99fc3bd24dc67d"
+        },
+        {
+          "path": "tests/departure-service-http.test.ts",
+          "sha256": "e46d9bf7f53d9de022ca0319316b3514a688ed137d3ddfef0e076a19400b6c99"
+        },
+        {
+          "path": "tests/operator-departure-service.test.ts",
+          "sha256": "92e4a1a8d485bc20ee09f44c1afd9643f255c12fe1d90e8569b6b745b7a8ef7b"
+        }
+      ]
+    },
+    {
+      "batch": "rms",
+      "command": [
+        "/workspace/yellow-toolchain/bun",
+        "test",
+        "tests/rms-economics.test.ts",
+        "tests/rate-evaluators.test.ts",
+        "tests/rate-composition.test.ts",
+        "tests/rate-evaluation-reuse.test.ts",
+        "tests/rate-authoring.test.ts",
+        "tests/rate-intent.test.ts",
+        "tests/rate-intent-provider.test.ts"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 0.967,
+      "log_sha256": "6525c7e815637ac7d95bd303b49891fd2b23876fa5499b04c28eb46cc2b7f12d",
+      "input_files": [
+        {
+          "path": "tests/rms-economics.test.ts",
+          "sha256": "e7ce72174357c4cf704349e04a7c5816480407d19842b7b77c5d7be0eafb10a3"
+        },
+        {
+          "path": "tests/rate-evaluators.test.ts",
+          "sha256": "b08cf594fabdaa748652591ca47477c71ae9203b5e9eccad50ddb42856adffc6"
+        },
+        {
+          "path": "tests/rate-composition.test.ts",
+          "sha256": "71c2556b555452d3d9b6cb36901eed55e3e5bd55e2e6dbe01e0c0ea93e445443"
+        },
+        {
+          "path": "tests/rate-evaluation-reuse.test.ts",
+          "sha256": "2243c44ab7369eb92b7508e9b94904ad7d4d072d8afd425afb0e7ddbe2a07ab9"
+        },
+        {
+          "path": "tests/rate-authoring.test.ts",
+          "sha256": "10784c27eab53689bc5544b6f8f9faa74a09c7b587e8057977396353512e01d2"
+        },
+        {
+          "path": "tests/rate-intent.test.ts",
+          "sha256": "6d963d27672b214e20b7e25b85d0d31ce6b618edfe226f7cd019e6b8923d64ab"
+        },
+        {
+          "path": "tests/rate-intent-provider.test.ts",
+          "sha256": "6bdd064b3e4f97b31605b62f97d7b4bf5ed24a9586f59326546c5dd6afa880b9"
+        }
+      ]
+    },
+    {
+      "batch": "staff-booking",
+      "command": [
+        "/workspace/yellow-toolchain/bun",
+        "test",
+        "tests/operator-reservation-booking.integration.test.ts"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 0.064,
+      "log_sha256": "b46e4a618b8a34dcb3cc8945ed450b438e3adea8580753d8ee26444233124263",
+      "input_files": [
+        {
+          "path": "tests/operator-reservation-booking.integration.test.ts",
+          "sha256": "7ac0acc9018fab636d7dd7bc18d7f0822a0c9ca0a15c628d9f2431e6eadc2684"
+        }
+      ]
+    },
+    {
+      "batch": "crm-crs-with-matching-deps",
+      "command": [
+        "/workspace/yellow-toolchain/bun",
+        "test",
+        "tests/pms-crs-20260930-staff-search.test.ts",
+        "tests/pms-crs-20260930-staff-search.http.test.ts",
+        "tests/crm-20260930-routing-query.test.ts",
+        "tests/departure-service-contract.test.ts",
+        "tests/departure-service-http.test.ts",
+        "tests/operator-departure-service.test.ts"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 0.416,
+      "dependency_source": "/workspace/yellow-receiving-b9/node_modules",
+      "bun_lock_sha256": "5718ec41f5e14e35ce2ff4f6947e17a999545cfa46b1437271fb568ce28fb282",
+      "log_sha256": "944b2c30e287730cc141a5c00c15141635d92196b31485ca3b536a166eea33a3",
+      "input_files": [
+        {
+          "path": "tests/pms-crs-20260930-staff-search.test.ts",
+          "sha256": "252340e6a09864174644f4a4b8ff61a3f75b38b3f2024931f768c8a043baefe8"
+        },
+        {
+          "path": "tests/pms-crs-20260930-staff-search.http.test.ts",
+          "sha256": "68e71a4c2758ace6060ef2db0c5fa3d0046be33b23445c30260c5f5f027facaf"
+        },
+        {
+          "path": "tests/crm-20260930-routing-query.test.ts",
+          "sha256": "16ac8cab819f73250cdcb9fce043aeb6ac5cdaea5d6c3bd40d54bdb84dd04955"
+        },
+        {
+          "path": "tests/departure-service-contract.test.ts",
+          "sha256": "7ea1ace05c1027a89b2d4520600dcab8cbd64f5eb4f85d6e4c99fc3bd24dc67d"
+        },
+        {
+          "path": "tests/departure-service-http.test.ts",
+          "sha256": "e46d9bf7f53d9de022ca0319316b3514a688ed137d3ddfef0e076a19400b6c99"
+        },
+        {
+          "path": "tests/operator-departure-service.test.ts",
+          "sha256": "92e4a1a8d485bc20ee09f44c1afd9643f255c12fe1d90e8569b6b745b7a8ef7b"
+        }
+      ]
+    }
+  ]
+}

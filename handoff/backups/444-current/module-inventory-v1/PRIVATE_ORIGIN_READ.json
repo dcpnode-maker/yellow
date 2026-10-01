@@ -1,0 +1,29 @@
+{
+  "observed_at_utc": "2026-10-01T17:51:54.546673+00:00",
+  "origin": "http://127.0.0.1:53018",
+  "expected_source": "444072ffdff2b7745345d88f71b603c17e11ace6",
+  "scope": "Read-only private synthetic origin; no authenticated writes or business data",
+  "requests": [
+    {
+      "path": "/health",
+      "status": 200,
+      "response_sha256": "a29ee2b15c494311c52521766e44af56a3ad2248e7a8ab465e5206463c13d288"
+    },
+    {
+      "path": "/ready",
+      "status": 200,
+      "response_sha256": "b984501ae9c0d1dedd9f289e1e2a32c394312fc7ff55e08b18d87f9681fe2bda"
+    },
+    {
+      "path": "/api/v1/properties",
+      "status": 404,
+      "response_sha256": "920b8d07262e4e924669c0e38ef57e0da66b68c9d387248d83a9aa19be7c96c4"
+    },
+    {
+      "path": "/api/v1/me/properties",
+      "status": 401,
+      "response_sha256": "e765c0184dae446b2dcacd82e4da65a001231af174f13d9f4c27e418384f41f9"
+    }
+  ],
+  "correction": "The /api/v1/properties 404 is an unmounted path, not authorization proof; mounted /api/v1/me/properties returns 401."
+}

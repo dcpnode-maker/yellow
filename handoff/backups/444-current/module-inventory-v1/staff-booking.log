@@ -1,0 +1,12 @@
+bun test v1.3.14 (0d9b296a)
+
+tests/operator-reservation-booking.integration.test.ts:
+(pass) Order 099 operator reservation booking workbench > P0: complete offers, temporary hold and authoritative commit journey are present [1.39ms]
+(pass) Order 099 operator reservation booking workbench > P1: child ages are parsed exactly and invalid inputs are rejected locally [1.02ms]
+(pass) Order 099 operator reservation booking workbench > P4: browser sends canonical commands and renders only server confirmation truth [0.27ms]
+(pass) Order 099 operator reservation booking workbench > P4: late hold and commit responses cannot resurrect old-property state [1.55ms]
+
+ 4 pass
+ 0 fail
+ 28 expect() calls
+Ran 4 tests across 1 file. [41.00ms]

@@ -1,0 +1,18 @@
+# Independent module-inventory review
+
+Reviewed read-only against source HEAD `444072ffdff2b7745345d88f71b603c17e11ace6` (tree `2fd5f9b5f55cc3404d81c88385f90c8c17582223`), `MODULE_HANDOFF.md` SHA-256 `1d4b5736ca295b385820f478fac78871ca5510e49550213ef9d8ca51d36dc396`, `FOCUSED_TEST_PROOF.json` SHA-256 `19d28814f2a31d70caa661b381b02da9e615ecdc6ed73db6e6b06196ad7d9fa2`, and retained review SHA-256 `6910a55bcd77f5e0b61024ab26be4bf1cd16ba923d2348d50d97d375818ea346`. Source worktree was clean. No tests, database access, network probes, or product changes were performed.
+
+## Findings
+
+The module handoff is consistent with the inspected source and avoids the main scope traps:
+
+- CRM/task routes cover bounded party operations, pickup and housekeeping task transitions, plus departure-service queueing and commands. The role filter is an operator queue filter, not a personal inbox or new permission. The `reservations/groups` routes associate reservations; group blocks are a separate workbench. Neither implements the described sales enquiry → priced group proposal → RM decision/escalation workflow. The handoff correctly treats departure escalation and rate-publication approval as different workflows.
+- CRS exposes the mounted staff availability search over explicit property grants and reuses canonical offer search. The separate staff hold and reservation commit routes exist, but that does not establish a complete CRS/distribution pipeline or a public booking flow.
+- The rates source contains typed model evaluators, quote/release services, publication approvals, and operator routes for quote, simulation, approval, publication, and undo. `server.ts` constructs `RatePublicationService` without a recommendation registry; the service default is empty. The market-lab UI uses deterministic synthetic adapters and is guarded by `VITE_YELLOW_INTERNAL_MARKET_LAB`. The handoff correctly distinguishes this foundation from a live RMS provider, measured uplift, or group-wide forecasting and approval.
+- `src/app.ts` mounts public hosted-deposit status/return reads and payment pages. The guest script calls only those endpoints. I found no mounted public quote/hold/reserve route; the existing offer → hold → commit journey is the staff/operator surface. The handoff correctly avoids presenting payment pages or staff scopes as guest booking authorization.
+
+The source route/scope references checked in the handoff agree with `src/app.ts`, `src/http/operator.ts`, `src/http/crs-search.ts`, `src/contexts/reservations/groups.ts`, `src/contexts/rates/{models,publication}.ts`, `src/server.ts`, and the frontend market-lab files. No material route or permission mismatch found.
+
+The evidence statements are appropriately qualified. The fresh proof binds to commit 444 and says tests were pure/mocked with no database fixture: CRM/CRS 41/0/225 on the matching-dependency rerun, RMS/rates 53/0/571, and staff booking 4/0/28. The initial CRM/CRS missing-Elysia import failure is retained, not erased. These batches do not amount to native-PG, browser, full-app, public guest-booking, live-provider, or product acceptance. The retained September integration review reports earlier bounded proofs and expressly withholds full CRM/PMS/release completion; the handoff labels those receipts historical rather than newly executed on 444.
+
+**Disposition:** no material overclaim found in the handoff as written. Preserve its explicit partial-completion boundaries and controller-owned follow-up decision for the guest booking and commercial group-approval slices. This review does not approve either feature or full product acceptance.

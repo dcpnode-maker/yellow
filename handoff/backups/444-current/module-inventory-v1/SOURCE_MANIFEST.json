@@ -1,0 +1,126 @@
+{
+  "source_commit": "444072ffdff2b7745345d88f71b603c17e11ace6",
+  "source_tree": "2fd5f9b5f55cc3404d81c88385f90c8c17582223",
+  "files": [
+    {
+      "path": "handoff/reviews/INTEGRATION-20260930-reviewed-yellow-composition.md",
+      "bytes": 14232,
+      "sha256": "6910a55bcd77f5e0b61024ab26be4bf1cd16ba923d2348d50d97d375818ea346"
+    },
+    {
+      "path": "src/app.ts",
+      "bytes": 55923,
+      "sha256": "44af83c348b9ee6984143294ceca24be1e6b7796cece33419ce6fd367de724b6"
+    },
+    {
+      "path": "src/contexts/crm/parties.ts",
+      "bytes": 30730,
+      "sha256": "970a2c3d3d323750836f7026a5e04f2f396c29e0a8df65e58e18aff11b8674e7"
+    },
+    {
+      "path": "src/contexts/housekeeping/tasks.ts",
+      "bytes": 41355,
+      "sha256": "9628c1e084f4592b73d650070f11b9d97244e28c0807e30b4afa82a0ab3fed1a"
+    },
+    {
+      "path": "src/contexts/inventory/holds.ts",
+      "bytes": 24650,
+      "sha256": "58eb66d39ba05531c93daa7c11d0ac22396664806ac7f2deb98ccb96ca055760"
+    },
+    {
+      "path": "src/contexts/rates/composition.ts",
+      "bytes": 52611,
+      "sha256": "213b9c2a351307f08a24cc35f33d3254d75ec1f6c5a9d4495bd26fd33a371525"
+    },
+    {
+      "path": "src/contexts/rates/economics.ts",
+      "bytes": 17146,
+      "sha256": "c47bfe562309e07bffa159c197005bcddc629521a6795ada63f098d48d5ea7b6"
+    },
+    {
+      "path": "src/contexts/rates/evaluators.ts",
+      "bytes": 45971,
+      "sha256": "14a48eb3415a8dd3cbf7ef3908c8025b20124924af5141665b88ae435507f1f8"
+    },
+    {
+      "path": "src/contexts/rates/intent-provider.ts",
+      "bytes": 10351,
+      "sha256": "221d8ffa9f1aa4ac9a147e183744c92a5396f3f841bee5e8d9e682ffa323eb63"
+    },
+    {
+      "path": "src/contexts/rates/intent.ts",
+      "bytes": 21630,
+      "sha256": "e29726fd8bfccd93d3f9776d540abf82c4b9a7e6bc63fa88b8f5fc501c8bc4bf"
+    },
+    {
+      "path": "src/contexts/rates/models.ts",
+      "bytes": 14331,
+      "sha256": "63bcb95a7faeb8c40de94cec8658ea651a7838b61c28fee9a04201b1271601d7"
+    },
+    {
+      "path": "src/contexts/rates/publication.ts",
+      "bytes": 64772,
+      "sha256": "e3a61a2689ebee6f08698982a395b7bc84fcadc2abb0347218c20943935f7e02"
+    },
+    {
+      "path": "src/contexts/rates/recommendations.ts",
+      "bytes": 11149,
+      "sha256": "1e6f7dac9f6585fe6f06edb3984a690dab2c0ae920b44ba1928be80f647e0710"
+    },
+    {
+      "path": "src/contexts/reservations/commit.ts",
+      "bytes": 24398,
+      "sha256": "ad8f76ca03895dd690ef3d11b5fe5090f7fa59dfc62d5c1efaf078a7c4980f9c"
+    },
+    {
+      "path": "src/contexts/reservations/groups.ts",
+      "bytes": 17346,
+      "sha256": "350d8aea70b329481de02ff9c46553b9b92224a9c904c54e5599247cdbf315a5"
+    },
+    {
+      "path": "src/contexts/reservations/offers.ts",
+      "bytes": 21448,
+      "sha256": "f6be07554c3d44198125483f62811450fd097f0c5f7d9915c597dc18707d10fe"
+    },
+    {
+      "path": "src/contexts/reservations/state-machine.ts",
+      "bytes": 2014,
+      "sha256": "136dceffa5f516c303a806ec3cab3eaeee63f0eed0869f71414a38efc3e1b082"
+    },
+    {
+      "path": "src/contexts/stay-operations/departure-service-coordination.ts",
+      "bytes": 16558,
+      "sha256": "39f80d399e8cbba116fe43d698338dd51774eb88ba94ea750c426b045c530275"
+    },
+    {
+      "path": "src/contexts/stay-operations/pickup-task-dispatch.ts",
+      "bytes": 15689,
+      "sha256": "09069e0eda709b07383b666f20d1220b5527aeea61a2a8b5896a6d505c2aba9f"
+    },
+    {
+      "path": "src/http/crs-search.ts",
+      "bytes": 10832,
+      "sha256": "89cd679498fd3aa0f2271c85e5ef79c1e0d9af847355bed2fcc533944aeefcf1"
+    },
+    {
+      "path": "src/http/departure-services-query.ts",
+      "bytes": 1004,
+      "sha256": "cdacc720d2187eee35a3fca39d8d138cd627d26250478c88e88e5712076a8a09"
+    },
+    {
+      "path": "src/http/guest/guest.js",
+      "bytes": 2106,
+      "sha256": "c1edd35ddb82a8493729010140b4f695253ccd520e3ace8be2d82e60aebea80e"
+    },
+    {
+      "path": "src/http/operator.ts",
+      "bytes": 401768,
+      "sha256": "9fca52e6bb751c4ea184e726cb98ee508c6c7712b8792c2d54b9333d03dc35e8"
+    },
+    {
+      "path": "src/server.ts",
+      "bytes": 22576,
+      "sha256": "4e01d5040d7ef8758739541eeb9660390e4031d2317c9de20b78734d195c976b"
+    }
+  ]
+}

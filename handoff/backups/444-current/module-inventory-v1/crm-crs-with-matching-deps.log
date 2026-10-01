@@ -1,0 +1,59 @@
+bun test v1.3.14 (0d9b296a)
+
+tests/departure-service-http.test.ts:
+(pass) Order 593 mounted departure-service HTTP routes > mounts the reservation and staff queue reads with exact path identity [13.90ms]
+(pass) Order 593 mounted departure-service HTTP routes > mounts proposal plus reservation and queue actions without changing path meaning [6.00ms]
+(pass) Order 593 mounted departure-service HTTP routes > fails closed before a route handler without identity and maps handler failures [6.87ms]
+(pass) Order 593 mounted departure-service HTTP routes > rejects malformed JSON before the departure command handler [4.22ms]
+
+tests/pms-crs-20260930-staff-search.test.ts:
+(pass) PMS CRS staff offer search helper > requires scope before parsing, grants, or offers [0.76ms]
+(pass) PMS CRS staff offer search helper > accepts the exact envelope and one to four distinct UUID properties [0.80ms]
+(pass) PMS CRS staff offer search helper > rejects unknown envelope keys, malformed entries, bad UUIDs, duplicates, and out-of-range counts before search [0.43ms]
+(pass) PMS CRS staff offer search helper > uses the canonical parser and rejects bad canonical inputs before authorization or search [0.22ms]
+(pass) PMS CRS staff offer search helper > authorizes every selected property before starting any offer search [0.15ms]
+(pass) PMS CRS staff offer search helper > uses one generic forbidden error for unknown, foreign, and ungranted properties [0.68ms]
+(pass) PMS CRS staff offer search helper > returns unavailable after current authorization when the offer capability is absent [0.23ms]
+(pass) PMS CRS staff offer search helper > snapshots parsed searches and property ids before asynchronous grant loading [0.30ms]
+(pass) PMS CRS staff offer search helper > searches properties serially in request order and returns each canonical result unchanged [0.35ms]
+(pass) PMS CRS staff offer search helper > snapshots authorized property labels before offer services can mutate the grant rows [0.19ms]
+(pass) PMS CRS staff offer search helper > does not return a partial property batch when a later property search fails [0.21ms]
+(pass) PMS CRS staff offer search helper > reads UTF-8 JSON by actual byte count when Content-Length lies or is absent [3.07ms]
+(pass) PMS CRS staff offer search helper > cancels an overflowing body and rejects wrong content type, malformed JSON, and invalid UTF-8 [0.67ms]
+(pass) PMS CRS staff offer search helper > cancels a stalled body when the bounded reader deadline expires [6.22ms]
+(pass) PMS CRS staff offer search helper > accepts an empty fragment before valid JSON [0.32ms]
+(pass) PMS CRS staff offer search helper > rejects finite synchronous empty-chunk work that runs beyond the reader deadline [12.91ms]
+(pass) PMS CRS staff offer search helper > measures the serialized response in UTF-8 bytes and rejects oversize results without returning partial data [7.93ms]
+
+tests/operator-departure-service.test.ts:
+(pass) departure-service HTTP authority > existing checkout/arrival/financial scopes do not authorize departure work [1.15ms]
+(pass) departure-service HTTP authority > exact property scope is required and foreign existence is concealed [0.21ms]
+(pass) departure-service HTTP authority > missing key and invented action fail before SQL [0.10ms]
+
+tests/pms-crs-20260930-staff-search.http.test.ts:
+(pass) mounted staff CRS offer search HTTP contract > requires bearer tenant identity and preserves success cache/security headers [7.52ms]
+(pass) mounted staff CRS offer search HTTP contract > searches selected grants serially and forwards the existing canonical offer input unchanged [4.50ms]
+(pass) mounted staff CRS offer search HTTP contract > missing availability scope returns 403 before body parsing, grants, or offer calls [3.44ms]
+(pass) mounted staff CRS offer search HTTP contract > rejects exact-envelope, canonical nested-key, legacy, impossible, and unzoned date inputs before search [24.49ms]
+(pass) mounted staff CRS offer search HTTP contract > rejects duplicate properties and more than four properties before grants/search [6.95ms]
+(pass) mounted staff CRS offer search HTTP contract > unknown and foreign grants fail the full request with zero offer calls [11.86ms]
+(pass) mounted staff CRS offer search HTTP contract > reports missing offer capability as 503 only after property authorization [6.07ms]
+(pass) mounted staff CRS offer search HTTP contract > maps offer input and property-local booking-window errors to 400 [10.93ms]
+(pass) mounted staff CRS offer search HTTP contract > maps unexpected later-property failures to a generic 503 without partial results or private errors [5.96ms]
+(pass) mounted staff CRS offer search HTTP contract > rejects raw oversized, invalid UTF-8, invalid JSON, and wrong-content-type bodies at the route [21.07ms]
+
+tests/departure-service-contract.test.ts:
+(pass) departure-service strict command boundary > migration refuses any predecessor other than the exact canonical frontier [0.17ms]
+(pass) departure-service strict command boundary > accepts immediate, bounded delay and explicit-offset local schedules [0.65ms]
+(pass) departure-service strict command boundary > rejects free text, surplus authority, impossible action and schedule shapes [0.32ms]
+
+tests/crm-20260930-routing-query.test.ts:
+(pass) Order CRM-20260930 departure-services role query > accepts only zero parameters or one canonical property role filter [0.30ms]
+(pass) Order CRM-20260930 departure-services role query > rejects duplicate, empty, malformed, unknown, and reservation-history filters [0.16ms]
+(pass) Order CRM-20260930 departure-services role query > mounted property authorization precedes role selection and the filter reaches the queue query [11.03ms]
+(pass) Order CRM-20260930 departure-services role query > invalid query and filtered history fail before property or history reads [5.77ms]
+
+ 41 pass
+ 0 fail
+ 225 expect() calls
+Ran 41 tests across 6 files. [407.00ms]
