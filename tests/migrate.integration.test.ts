@@ -306,8 +306,10 @@ async function normalizedOrder434Dump(databaseUrl: string): Promise<string> {
     const version = await collectChild(Bun.spawn([...command, "--version"], {
       cwd: PROJECT_ROOT, stdin: "ignore", stdout: "pipe", stderr: "pipe",
     }));
-    if (version.exitCode !== 0 || !/^pg_dump \(PostgreSQL\) 16\.15(?:\s|$)/.test(version.stdout.trim())) {
-      throw new Error("Order434 schema proof requires the genuine PostgreSQL 16.15 dump client");
+    const expectedVersion = ORDER434_PG_DUMP_COMPOSE ? "18.6" : "16.15";
+    const reportedVersion = /^pg_dump \(PostgreSQL\) ([0-9]+\.[0-9]+)(?:\s|$)/.exec(version.stdout.trim())?.[1];
+    if (version.exitCode !== 0 || reportedVersion !== expectedVersion) {
+      throw new Error(`Order434 schema proof requires the genuine PostgreSQL ${expectedVersion} dump client`);
     }
     order434DumpVersionVerified = true;
   }

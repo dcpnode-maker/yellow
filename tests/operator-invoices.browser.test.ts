@@ -413,7 +413,8 @@ function actualShellDriver(mode: "journey" | "late-import"): string {
       const back={pathname:location.pathname,activeView:!document.querySelector('#folios-view').hidden,
         focus:document.activeElement===document.querySelector('#folios-title'),
         reviewText:document.querySelector('#folio-invoice-review').textContent};
-      document.querySelector('#folio-invoice-review').click();await sleep(0);
+      document.querySelector('#folio-invoice-review').click();
+      await until(()=>!document.querySelector('#invoices-view').hidden&&document.activeElement===document.querySelector('#invoices-title'),'invoice heading focus after Review');
       const reviewFocus={pathname:location.pathname,activeView:!document.querySelector('#invoices-view').hidden,
         focus:document.activeElement===document.querySelector('#invoices-title')};
       await until(()=>document.querySelector('#invoices-mount').dataset.invoiceState==='loading','second readiness request');
@@ -458,6 +459,111 @@ function lateInvoiceImportObserver(): string {
     observer.observe(document.documentElement,{subtree:true,childList:true,characterData:true});
   });
   </script>`;
+}
+
+async function actualShellProof(url: string, profile: string, screenshot?: string) {
+  if (!browser) throw new Error("Chrome or Edge is required for the Q208 operator-shell proof");
+  // The existing owner keeps startup, debugger work, stream drain and reap inside
+  // one lifecycle. Real browser time keeps animation frames and Bun HTTP aligned.
+  const owned = runOwnedProofProcess([browser, "--headless=new", "--disable-gpu", "--no-sandbox", "--disable-dev-shm-usage", "--no-first-run", "--no-default-browser-check",
+    "--window-size=1280,900", "--remote-debugging-address=127.0.0.1", "--remote-debugging-port=0", `--user-data-dir=${profile}`, "about:blank"],
+  { timeoutMs: 20_000, maxOutputBytes: 1024 * 1024 });
+  const workAbort = new AbortController();
+  const ended = owned.then(() => { throw new Error("Q208 browser exited before its proof completed"); });
+  void ended.catch(() => undefined);
+  let socket: WebSocket | undefined;
+  let send: ((method: string, params?: Record<string, unknown>) => Promise<unknown>) | undefined;
+  const pending = new Map<number, { resolve: (value: unknown) => void; reject: (error: Error) => void }>();
+  try {
+    const work = (async () => {
+      const portFile = resolve(profile, "DevToolsActivePort");
+      let port = "";
+      while (!port && !workAbort.signal.aborted) {
+        try { if (existsSync(portFile)) port = (await Bun.file(portFile).text()).split(/\r?\n/, 1)[0] ?? ""; } catch (error) {
+          if (!(typeof error === "object" && error !== null && ["EBUSY", "ENOENT"].includes(String((error as { code?: unknown }).code)))) throw error;
+        }
+        if (!port) await Bun.sleep(25);
+      }
+      workAbort.signal.throwIfAborted();
+      if (!/^\d+$/.test(port) || Number(port) < 1 || Number(port) > 65535) throw new Error("Q208 debugger port is invalid");
+      const response = await fetch(`http://127.0.0.1:${port}/json/new?about:blank`, { method: "PUT", signal: workAbort.signal });
+      if (!response.ok) throw new Error(`Q208 target creation failed (${response.status})`);
+      const target = await response.json() as { webSocketDebuggerUrl?: string };
+      if (!target.webSocketDebuggerUrl) throw new Error("Q208 target has no debugger endpoint");
+      const endpoint = new URL(target.webSocketDebuggerUrl);
+      if (endpoint.protocol !== "ws:" || endpoint.hostname !== "127.0.0.1" || endpoint.port !== port) throw new Error("Q208 debugger endpoint is not the owned loopback port");
+      const connected = new WebSocket(endpoint.href);
+      socket = connected;
+      await new Promise<void>((resolveOpen, rejectOpen) => {
+        connected.addEventListener("open", () => resolveOpen(), { once: true });
+        connected.addEventListener("error", () => rejectOpen(new Error("Q208 debugger socket failed")), { once: true });
+        connected.addEventListener("close", () => {
+          rejectOpen(new Error("Q208 debugger socket closed"));
+          for (const command of pending.values()) command.reject(new Error("Q208 debugger socket closed"));
+          pending.clear();
+        }, { once: true });
+        connected.addEventListener("message", event => {
+          const message = JSON.parse(String(event.data)) as { id?: number; result?: unknown; error?: { message?: string } };
+          if (!message.id) return;
+          const command = pending.get(message.id);
+          if (!command) return;
+          pending.delete(message.id);
+          if (message.error) command.reject(new Error(message.error.message ?? "Q208 debugger command failed"));
+          else command.resolve(message.result);
+        });
+      });
+      let nextId = 0;
+      send = (method, params = {}) => new Promise<unknown>((resolveCommand, rejectCommand) => {
+        nextId += 1;
+        pending.set(nextId, { resolve: resolveCommand, reject: rejectCommand });
+        connected.send(JSON.stringify({ id: nextId, method, params }));
+      });
+      await send("Page.enable");
+      await send("Runtime.enable");
+      await send("Page.navigate", { url });
+      const completionDeadline = performance.now() + 5000;
+      let completionTimer: ReturnType<typeof setTimeout> | undefined;
+      const expired = new Promise<never>((_, reject) => {
+        completionTimer = setTimeout(() => reject(new Error("Q208 actual operator shell did not complete within its five-second proof budget")), 5000);
+      });
+      const observeCommand = send;
+      const observe = async () => {
+      while (performance.now() < completionDeadline) {
+        workAbort.signal.throwIfAborted();
+        const observation = await observeCommand("Runtime.evaluate", {
+          expression: "document.querySelector('#actual-shell-proof')?.textContent ?? ''", returnByValue: true,
+        }) as { result?: { value?: string }; exceptionDetails?: unknown };
+        if (observation.exceptionDetails) throw new Error("Q208 proof observation failed");
+        const encoded = observation.result?.value;
+        if (encoded) {
+          if (Buffer.byteLength(encoded) > 1024 * 1024) throw new Error("Q208 proof exceeded its output cap");
+          if (screenshot) {
+            const capture = await observeCommand("Page.captureScreenshot", { format: "png", fromSurface: true }) as { data?: string };
+            if (!capture.data) throw new Error("Q208 screenshot was not produced");
+            await Bun.write(screenshot, Buffer.from(capture.data, "base64"));
+          }
+          return encoded;
+        }
+        await Bun.sleep(10);
+      }
+      throw new Error("Q208 actual operator shell did not complete within its five-second proof budget");
+      };
+      try { return await Promise.race([observe(), expired]); }
+      finally { if (completionTimer !== undefined) clearTimeout(completionTimer); }
+    })();
+    const encoded = await Promise.race([work, ended]);
+    if (send) await Promise.race([send("Browser.close"), ended]).catch(() => undefined);
+    const result = await owned;
+    return { result, encoded };
+  } finally {
+    workAbort.abort();
+    if (send && socket?.readyState === WebSocket.OPEN) await Promise.race([send("Browser.close"), ended]).catch(() => undefined);
+    socket?.close();
+    for (const command of pending.values()) command.reject(new Error("Q208 debugger proof ended"));
+    pending.clear();
+    // On a protocol failure the same owner performs its hard-deadline cleanup.
+    await owned.catch(() => undefined);
+  }
 }
 
 test("Q208 authenticated operator shell preserves invoice deep routes and suppresses late work", async () => {
@@ -537,15 +643,11 @@ test("Q208 authenticated operator shell preserves invoice deep routes and suppre
   try {
     for (const scenario of ["journey", "late-import"] as const) {
 	      mode = scenario; readinessA = 0; releaseLateInvoiceImport = null;
-      const arguments_ = [browser, "--headless=new", "--disable-gpu", "--no-sandbox", "--disable-dev-shm-usage", "--no-first-run", "--no-default-browser-check",
-        `--user-data-dir=${resolve(directory, `profile-${scenario}`)}`, "--window-size=1280,900", "--virtual-time-budget=5000", "--dump-dom"];
-      if (screenshot && scenario === "journey") arguments_.push(`--screenshot=${resolve(screenshot)}`);
-      arguments_.push(`http://127.0.0.1:${server.port}${initialPath}`);
-      const result = await runOwnedProofProcess(arguments_, { timeoutMs: 20_000, maxOutputBytes: 1024 * 1024 });
+      const { result, encoded } = await actualShellProof(`http://127.0.0.1:${server.port}${initialPath}`,
+        resolve(directory, `profile-${scenario}`), screenshot && scenario === "journey" ? resolve(screenshot) : undefined);
       expect(result.exitCode).toBe(0);
-      const encoded = result.stdout.match(/<pre id="actual-shell-proof">([^<]+)<\/pre>/)?.[1];
       if (!encoded) throw new Error(`actual operator shell did not complete (${scenario}): ${result.stderr.slice(-1000)}`);
-      const proof = JSON.parse(encoded.replaceAll("&quot;", '"').replaceAll("&amp;", "&"));
+      const proof = JSON.parse(encoded);
       expect(proof.driverError).toBeUndefined();
       if (scenario === "journey") {
         expect(proof.initial).toEqual({ pathname: initialPath, property: propertyA, view: "issue", state: "selection", focus: true, buyerBlank: true, activeView: true });

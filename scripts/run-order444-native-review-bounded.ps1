@@ -15,6 +15,13 @@ param(
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
 
+function Write-TestStage([string]$Stage) {
+    if ($TestMode) {
+        [Console]::Error.WriteLine("ORDER444_TEST_STAGE:$Stage")
+        [Console]::Error.Flush()
+    }
+}
+
 $productionRuntimeBase = 'D:\Yellow\runtime'
 $productionBunPath = 'C:\Users\astha\.bun\bin\bun.exe'
 $productionPerFileByteLimit = 5MB
@@ -28,6 +35,7 @@ $statusByteLimit = 32768
 
 $pumpType = 'Yellow.Order444.BoundedStreamPump' -as [type]
 if ($null -eq $pumpType) {
+    Write-TestStage 'add-type:start'
     Add-Type -TypeDefinition @'
 using System;
 using System.IO;
@@ -96,6 +104,7 @@ namespace Yellow.Order444
     }
 }
 '@
+    Write-TestStage 'add-type:complete'
 }
 
 function Get-Order444RuntimePaths([string]$Revision) {
@@ -295,9 +304,11 @@ if ($TestMode) {
 }
 
 $statusPath = Join-Path $runtimeRoot "supervisor.$Port.status.json"
+Write-TestStage 'supervisor-identity:start'
 $supervisorRecord=Get-CimInstance Win32_Process -Filter "ProcessId = $PID"
 if($null-eq$supervisorRecord-or$null-eq$supervisorRecord.CreationDate){throw 'Supervisor process start identity is unavailable'}
 $supervisorStartedUtc=$supervisorRecord.CreationDate.ToUniversalTime().ToString('o')
+Write-TestStage 'supervisor-identity:complete'
 $status = [ordered]@{
     schema='yellow-order444-native-bounded/v1';mode=$mode;source=if($TestMode){$null}else{$CandidateRevision};port=$Port
     supervisorStartedUtc=$supervisorStartedUtc;childPid=$null;childStartedUtc=$null;reason='preflight';launchCount=0
@@ -317,10 +328,14 @@ try {
     } else {
         $info = New-SanitizedStartInfo $childExecutable $workingDirectory $arguments $runtimeEnvironment
         $child = [Diagnostics.Process]::new();$child.StartInfo=$info
+        Write-TestStage 'child-launch:start'
         if (-not $child.Start()) { throw 'Exact child process did not start' }
+        Write-TestStage 'child-launch:complete'
         $childRecord=$null
+        Write-TestStage 'child-identity:start'
         foreach($attempt in 1..20){$childRecord=Get-CimInstance Win32_Process -Filter "ProcessId = $($child.Id)";if($null-ne$childRecord-and$null-ne$childRecord.CreationDate){break};Start-Sleep -Milliseconds 25}
         if($null-eq$childRecord-or$null-eq$childRecord.CreationDate){throw 'Exact child process start identity is unavailable'}
+        Write-TestStage 'child-identity:complete'
         $status.childPid=$child.Id;$status.childStartedUtc=$childRecord.CreationDate.ToUniversalTime().ToString('o');$status.launchCount=1;$status.reason='running'
         Write-Status $status $statusPath
         $stdoutTask = [Yellow.Order444.BoundedStreamPump]::PumpAsync($child.StandardOutput.BaseStream,$runtimeRoot,$Port,'stdout',$perFileByteLimit,$retainedLogFilesPerStream,$cancellation.Token)

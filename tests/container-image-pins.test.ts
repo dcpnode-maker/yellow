@@ -21,6 +21,10 @@ const parentCompose = [
 ].join("\n");
 
 describe("container image pin validator", () => {
+  test("committed Dockerfile and Compose use the reviewed current pins", () => {
+    expect(validateContainerImagePinFiles(join(import.meta.dir, ".."))).toEqual([]);
+  });
+
   test("P0 parent is red from committed files", () => {
     const errors = validateContainerImagePins(parentDockerfile, parentCompose);
     expect(errors.some((error) => error.includes("mutable or undigested: oven/bun:1.3.14-alpine"))).toBe(true);

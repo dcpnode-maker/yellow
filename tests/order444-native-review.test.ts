@@ -141,6 +141,41 @@ async function observeSyntheticSupervisor(caseRoot: string, childReceiptPath: st
   return { status, childIdentity, streams };
 }
 
+const supervisorTestStages = new Set([
+  "ORDER444_TEST_STAGE:add-type:start",
+  "ORDER444_TEST_STAGE:add-type:complete",
+  "ORDER444_TEST_STAGE:supervisor-identity:start",
+  "ORDER444_TEST_STAGE:supervisor-identity:complete",
+  "ORDER444_TEST_STAGE:child-launch:start",
+  "ORDER444_TEST_STAGE:child-launch:complete",
+  "ORDER444_TEST_STAGE:child-identity:start",
+  "ORDER444_TEST_STAGE:child-identity:complete",
+]);
+const environmentChildStages = new Set([
+  "ORDER444_ENV_CHILD_STAGE:self-identity",
+  "ORDER444_ENV_CHILD_STAGE:self-cim:start",
+  "ORDER444_ENV_CHILD_STAGE:self-cim:complete",
+  "ORDER444_ENV_CHILD_STAGE:parent-cim:start",
+  "ORDER444_ENV_CHILD_STAGE:parent-cim:complete",
+  "ORDER444_ENV_CHILD_STAGE:observation-written",
+]);
+
+function readStaticStages(value: string, allowed: ReadonlySet<string>) {
+  return value.split(/\r?\n/).map((line) => line.trim()).filter((line) => allowed.has(line));
+}
+
+async function readEnvironmentChildStages(caseRoot: string) {
+  const stages: string[] = [];
+  for (const index of [2, 1, 0]) {
+    const path = join(caseRoot, `supervisor.3000.stderr.${index}.log`);
+    if (!existsSync(path)) continue;
+    const bytes = await readFile(path);
+    if (bytes.byteLength > 5 * 1024 * 1024) continue;
+    stages.push(...readStaticStages(bytes.toString("utf8"), environmentChildStages));
+  }
+  return stages;
+}
+
 async function stopOwnedSyntheticChild(
   cleanupProbe: string,
   childIdentity: SyntheticChildIdentity | undefined,
@@ -464,6 +499,7 @@ foreach($change in @(@{password='secret'},@{schema='wrong'},@{propertyNode=$id1.
       exitedDueToTimeout: result.exitedDueToTimeout ?? false,
       stdoutBytes: result.stdout.byteLength,
       stderrBytes: result.stderr.byteLength,
+      startupStages: readStaticStages(result.stderr.toString("utf8"), supervisorTestStages),
       observation,
       cleanup,
     });
@@ -542,12 +578,29 @@ Assert-Alive $unrelatedHandle 'unrelated child after exact cleanup'
     const caseRoot = join(fixtureRoot, "supervisor-environment");
     const child = join(fixtureRoot, "environment-child.ps1");
     const observedPath = join(fixtureRoot, "environment.json");
-    await writeFile(child, `$self=Get-CimInstance Win32_Process -Filter "ProcessId = $PID";$parent=Get-CimInstance Win32_Process -Filter "ProcessId = $($self.ParentProcessId)";$value=[ordered]@{yellow=@(Get-ChildItem Env:|Where-Object Name -like 'YELLOW_*').Count;host=$env:HOST;port=$env:PORT;node=$env:NODE_ENV;pg=@(Get-ChildItem Env:|Where-Object Name -match '^(?i:PG[A-Z0-9_]*)$').Count;parentStartedUtc=$parent.CreationDate.ToUniversalTime().ToString('o');childStartedUtc=$self.CreationDate.ToUniversalTime().ToString('o')};[IO.File]::WriteAllText('${observedPath.replaceAll("'", "''")}',($value|ConvertTo-Json -Compress));exit 0\n`, "utf8");
+    const childReceipt = join(fixtureRoot, "environment-child.identity.json");
+    const cleanupProbe = await writeProbe("environment-child-cleanup.ps1", syntheticChildCleanupProbe);
+    await writeFile(child, `$process=[Diagnostics.Process]::GetCurrentProcess();$identity=[ordered]@{pid=$PID;startedUtc=$process.StartTime.ToUniversalTime().ToString('o');executable=$process.MainModule.FileName};[IO.File]::WriteAllText('${childReceipt.replaceAll("'", "''")}',($identity|ConvertTo-Json -Compress),[Text.UTF8Encoding]::new($false));[Console]::Error.WriteLine('ORDER444_ENV_CHILD_STAGE:self-identity');[Console]::Error.Flush();[Console]::Error.WriteLine('ORDER444_ENV_CHILD_STAGE:self-cim:start');[Console]::Error.Flush();$self=Get-CimInstance Win32_Process -Filter "ProcessId = $PID";[Console]::Error.WriteLine('ORDER444_ENV_CHILD_STAGE:self-cim:complete');[Console]::Error.Flush();[Console]::Error.WriteLine('ORDER444_ENV_CHILD_STAGE:parent-cim:start');[Console]::Error.Flush();$parent=Get-CimInstance Win32_Process -Filter "ProcessId = $($self.ParentProcessId)";[Console]::Error.WriteLine('ORDER444_ENV_CHILD_STAGE:parent-cim:complete');[Console]::Error.Flush();$value=[ordered]@{yellow=@(Get-ChildItem Env:|Where-Object Name -like 'YELLOW_*').Count;host=$env:HOST;port=$env:PORT;node=$env:NODE_ENV;pg=@(Get-ChildItem Env:|Where-Object Name -match '^(?i:PG[A-Z0-9_]*)$').Count;parentStartedUtc=$parent.CreationDate.ToUniversalTime().ToString('o');childStartedUtc=$self.CreationDate.ToUniversalTime().ToString('o')};[IO.File]::WriteAllText('${observedPath.replaceAll("'", "''")}',($value|ConvertTo-Json -Compress));[Console]::Error.WriteLine('ORDER444_ENV_CHILD_STAGE:observation-written');[Console]::Error.Flush();exit 0\n`, "utf8");
     const result = runPowerShell(supervisorPath, [
       "-TestMode", "-TestRoot", caseRoot, "-TestChildScript", child,
       "-TestMaximumRuntimeMilliseconds", "4000", "-TestPollMilliseconds", "20",
     ], { ...process.env, YELLOW_HOSTED_PROVIDER_ONLY: "1", YELLOW_ORDER444_DATABASE_PASSWORD: "must-not-cross", HOST: "0.0.0.0", PORT: "3999", NODE_ENV: "development", PGOPTIONS: "-c role=hostile", PGPASSWORD: "hostile" });
-    expect(result.exitCode, result.stderr.toString()).toBe(0);
+    let observation: Awaited<ReturnType<typeof observeSyntheticSupervisor>> | undefined;
+    let cleanup: Awaited<ReturnType<typeof stopOwnedSyntheticChild>> | undefined;
+    if (result.exitCode === null) {
+      observation = await observeSyntheticSupervisor(caseRoot, childReceipt);
+      cleanup = await stopOwnedSyntheticChild(cleanupProbe, observation.childIdentity, result.pid, child);
+    }
+    const diagnostic = JSON.stringify({
+      exitCode: result.exitCode,
+      signalCode: result.signalCode ?? null,
+      exitedDueToTimeout: result.exitedDueToTimeout ?? false,
+      startupStages: readStaticStages(result.stderr.toString("utf8"), supervisorTestStages),
+      environmentChildStages: await readEnvironmentChildStages(caseRoot),
+      observation,
+      cleanup,
+    });
+    expect(result.exitCode, diagnostic).toBe(0);
     const observed = JSON.parse(await readFile(observedPath, "utf8"));
     const status = JSON.parse(await readFile(join(caseRoot, "supervisor.3000.status.json"), "utf8"));
     expect(observed).toMatchObject({ yellow: 0, host: null, port: null, node: null, pg: 0 });
