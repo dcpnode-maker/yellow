@@ -74,6 +74,16 @@ if ((DEPLOY_URL || RUNTIME_URL) && (!DEPLOY_URL || !RUNTIME_URL)) {
 const configuredTarget = DEPLOY_URL && RUNTIME_URL
   ? assertSameTarget(DEPLOY_URL, RUNTIME_URL)
   : undefined;
+const canonicalCi = process.env.YELLOW_REQUIRE_ORDER453_Q212_CI_CANONICAL === "1";
+if (canonicalCi) {
+  if (!REQUIRED || configuredTarget?.database !== "yellow_order453_q212_current90_ci"
+    || configuredTarget.authority !== process.env.YELLOW_ORDER453_Q212_CI_DATABASE_ADDRESS
+    || configuredTarget.authority.endsWith(":55503")) {
+    throw new Error("Q212 canonical CI requires mandatory exact current target and address");
+  }
+} else if (configuredTarget?.database === "yellow_order453_q212_current90_ci") {
+  throw new Error("Q212 canonical CI requires explicit admission");
+}
 const databaseDescribe = configuredTarget ? describe.serial : describe.skip;
 
 function sha256(value: string): string {
@@ -311,7 +321,7 @@ databaseDescribe("Q212 direct-runtime retry-binding readiness hostility", () => 
     `;
     expect(deployIdentity).toEqual({ sessionUser: "yellow_deploy", currentUser: "yellow_deploy",
       database: configuredTarget!.database, databaseOwner: "yellow_deploy",
-      superuser: true, serverMajor: 16 });
+      superuser: true, serverMajor: canonicalCi ? 18 : 16 });
     expect(runtimeIdentity).toEqual({ sessionUser: "yellow_runtime", currentUser: "yellow_runtime",
       database: configuredTarget!.database, superuser: false });
     const [frontier] = await deploy<Array<{
@@ -326,7 +336,7 @@ databaseDescribe("Q212 direct-runtime retry-binding readiness hostility", () => 
              pg_catalog.to_regprocedure(${HELPER_SIGNATURE})::text AS helper
       FROM public.schema_migration
     `;
-    expect(frontier).toEqual({ migrations: 99, frontier: CURRENT_MIGRATION_FRONTIER,
+    expect(frontier).toEqual({ migrations: CURRENT_MIGRATION_FRONTIER, frontier: CURRENT_MIGRATION_FRONTIER,
       checksum: MIGRATION_86_SHA256,
       helper: "india_fiscal_submission_retry_binding_v1(text,text,text,uuid,integer)" });
     const [reverseDependencies] = await deploy<Array<{ dependents: number }>>`

@@ -942,6 +942,8 @@ jobs:
           YELLOW_ORDER453_Q212_DEPLOY_DATABASE_URL="$readiness_deploy_url" \
           YELLOW_ORDER453_Q212_RUNTIME_DATABASE_URL="$readiness_runtime_url" \
           YELLOW_REQUIRE_ORDER453_Q212_DATABASE=1 \
+          YELLOW_REQUIRE_ORDER453_Q212_CI_CANONICAL=1 \
+          YELLOW_ORDER453_Q212_CI_DATABASE_ADDRESS="$POSTGRES_ADDRESS" \
             bun test tests/fiscal-retry-readiness.integration.test.ts
 
       - name: Prove native fiscal release containment on fresh and upgraded databases
