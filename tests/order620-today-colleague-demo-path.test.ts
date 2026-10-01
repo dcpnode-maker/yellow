@@ -29,7 +29,7 @@ test("demo path covers the complete public PMS review sequence", () => {
   }
   expect(app).toContain('onOpen: () => openOperationalTable("due_in")');
   expect(app).toContain("onOpen: billingDesk");
-  expect(app).toContain('onOpen: () => setAssistantOpen(true)');
+  expect(app).toContain('onOpen: () => setAssistant(true)');
 });
 
 test("demo path is mobile-contained and preserves neon focus affordance", () => {
