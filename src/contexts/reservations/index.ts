@@ -222,3 +222,6 @@ export type {
   RolledDueDeparture,
   RollDueDeparturesInput,
 } from "./departure-roll";
+
+export {PublicBookingService,PublicBookingError} from "./public-booking";
+export type {PublicBookingSession,PublicBookingServiceOptions} from "./public-booking";

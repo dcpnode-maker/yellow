@@ -1,0 +1,17 @@
+{
+  "base": "7b64ede37a4ded1ffe2e77295f2d3e95b30442be",
+  "source_kind": "reviewed candidate/private synthetic only",
+  "files": {
+    "migrations/0105_public_booking_site.sql": "be9931b96bd6fb3ae06969c956c7050d8aaa8d44199ea0b8990daa02a3522585",
+    "migrations/0104_guest_booking_authority.sql": "4c41dc4765ecbfe705999c5d5980ea482579403bdc681e468669fd3021c6be4a",
+    "tests/schema/expected.sql": "671994b96ccbe402e92d2110fba69f6c5d08b21b06dbdbabb87d39a363555efd",
+    "src/contexts/reservations/public-booking.ts": "3e6f8678fd8e9c5a04ff8e42917d89d78d1492736cb7f5eaa50737c0d3d29db1",
+    "src/contexts/identity/public-booking-site.ts": "9030c4e00665620894fbf1f8a648aafe7cbf3b4855ae891683bb07b4f102d520",
+    "src/http/public-booking.ts": "b196d4119d302979c0052c5db228e92886dc0fd5ff690305084ce81ddd99345d",
+    "handoff/patches/BOOKING-20261002-public-site-app-server.patch": "fee57acc836764fc2ac7e88a72b102d09c40c83bf64a71916a22eb47c6881dba"
+  },
+  "table_count": 130,
+  "frontier": 105,
+  "protected_wiring_source_unchanged": true,
+  "public_or_laptop_database_changed": false
+}

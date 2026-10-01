@@ -291,9 +291,9 @@ describe("release build identity and readiness", () => {
     expect(buildInfoFromEnvironment({ YELLOW_BUILD_SHA: REVISION })).toEqual({
       schemaVersion: 1,
       revision: REVISION,
-      expectedMigrationFrontier: 104,
+      expectedMigrationFrontier: 105,
     });
-    expect(CURRENT_MIGRATION_FRONTIER).toBe(104);
+    expect(CURRENT_MIGRATION_FRONTIER).toBe(105);
     expect(buildInfoFromEnvironment({})).toBe(UNKNOWN_BUILD_INFO);
     expect(buildInfoFromEnvironment({ YELLOW_BUILD_SHA: "" })).toBe(UNKNOWN_BUILD_INFO);
 
@@ -323,7 +323,7 @@ describe("release build identity and readiness", () => {
     expect(await response.json()).toEqual({
       status: "not_ready",
       reason: "build_revision_unavailable",
-      build: { schemaVersion: 1, revision: null, expectedMigrationFrontier: 104 },
+      build: { schemaVersion: 1, revision: null, expectedMigrationFrontier: 105 },
     });
     expect(probes).toBe(0);
   });
@@ -347,7 +347,7 @@ describe("release build identity and readiness", () => {
     expect(await noRuntime.json()).toEqual({
       status: "not_ready",
       reason: "runtime_not_configured",
-      build: { schemaVersion: 1, revision: REVISION, expectedMigrationFrontier: 104 },
+      build: { schemaVersion: 1, revision: REVISION, expectedMigrationFrontier: 105 },
     });
 
     const failed = await unavailable.handle(new Request("http://yellow.test/ready"));
@@ -358,7 +358,7 @@ describe("release build identity and readiness", () => {
       status: "not_ready",
       reason: "runtime_dependency_unavailable",
       target: "yellow_runtime_database",
-      build: { schemaVersion: 1, revision: REVISION, expectedMigrationFrontier: 104 },
+      build: { schemaVersion: 1, revision: REVISION, expectedMigrationFrontier: 105 },
     });
 
     const success = await ready.handle(new Request("http://yellow.test/ready"));
@@ -367,7 +367,7 @@ describe("release build identity and readiness", () => {
     expect(await success.json()).toEqual({
       status: "ready",
       target: "yellow_runtime_database",
-      build: { schemaVersion: 1, revision: REVISION, expectedMigrationFrontier: 104 },
+      build: { schemaVersion: 1, revision: REVISION, expectedMigrationFrontier: 105 },
     });
   });
 });

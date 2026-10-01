@@ -2995,6 +2995,7 @@ databaseDescribe("Bun SQL migration runner", () => {
           "0102_property_operating_mode.sql",
           "0103_property_operating_mode_runtime_guard.sql",
           "0104_guest_booking_authority.sql",
+          "0105_public_booking_site.sql",
         ]);
 
         const preservedLedger = await sql<Array<{

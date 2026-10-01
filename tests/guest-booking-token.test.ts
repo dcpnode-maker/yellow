@@ -1,9 +1,21 @@
 import { createHmac } from "node:crypto";
 import { describe, expect, test } from "bun:test";
-import { GuestBookingTokenSigner } from "../src/contexts/identity";
+import { GuestBookingTokenSigner, Hs256TokenSigner, type GuestBookingTokenPurpose } from "../src/contexts/identity";
 
 const SECRET = "guest-booking-token-test-secret-with-at-least-32-bytes";
 const KEY_DOMAIN = "yellow:guest-booking:key:v1";
+const PURPOSES: readonly GuestBookingTokenPurpose[] = [
+  "session", "quote", "hold", "public-session", "public-quote", "public-hold", "public-details",
+];
+const MAX_TTL: Readonly<Record<GuestBookingTokenPurpose, number>> = {
+  session: 900,
+  quote: 300,
+  hold: 900,
+  "public-session": 900,
+  "public-quote": 300,
+  "public-hold": 900,
+  "public-details": 900,
+};
 
 function signRawEnvelopeJson(json: string): string {
   const key = createHmac("sha256", SECRET).update(KEY_DOMAIN, "utf8").digest();
@@ -48,8 +60,23 @@ describe("GuestBookingTokenSigner", () => {
     const [prefix, body, signature] = token.split(".");
     const tampered = `${prefix}.${body!.slice(0, -1)}${body!.endsWith("A") ? "B" : "A"}.${signature}`;
     expect(signer.verify("quote", tampered)).toBeNull();
+    const publicToken = signer.issue("public-quote", { session: "public-s-1" }, 300);
+    const [publicPrefix, publicBody, publicSignature] = publicToken.split(".");
+    const tamperedPublic = `${publicPrefix}.${publicBody!.slice(0, -1)}${publicBody!.endsWith("A") ? "B" : "A"}.${publicSignature}`;
+    expect(signer.verify("public-quote", tamperedPublic)).toBeNull();
     expect(signer.verify("quote", "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJzdGFmZiJ9.signature")).toBeNull();
     expect(signer.verify("quote", `gb2.${body}.${signature}`)).toBeNull();
+  });
+
+  test("every invitation and public purpose rejects every other signed purpose", () => {
+    const signer = new GuestBookingTokenSigner(SECRET, { now: () => 1_800_000_000_000 });
+    for (const purpose of PURPOSES) {
+      const token = signer.issue(purpose, { purpose }, MAX_TTL[purpose]);
+      expect(signer.verify(purpose, token)).not.toBeNull();
+      for (const otherPurpose of PURPOSES) {
+        if (otherPurpose !== purpose) expect(signer.verify(otherPurpose, token)).toBeNull();
+      }
+    }
   });
 
   test("enforces expiry, future-issued-at and TTL bounds", () => {
@@ -58,12 +85,18 @@ describe("GuestBookingTokenSigner", () => {
     expect(() => signer.issue("session", {}, 0)).toThrow();
     expect(() => signer.issue("session", {}, 901)).toThrow();
     expect(() => signer.issue("quote", {}, 301)).toThrow();
+    expect(() => signer.issue("public-session", {}, 901)).toThrow();
+    expect(() => signer.issue("public-quote", {}, 301)).toThrow();
+    expect(() => signer.issue("public-hold", {}, 901)).toThrow();
+    expect(() => signer.issue("public-details", {}, 901)).toThrow();
     expect(() => signer.issue("session", {}, 1.5)).toThrow();
     expect(() => signer.issue("session", {}, Number.MAX_SAFE_INTEGER + 1)).toThrow();
 
     const expired = signer.issue("hold", { hold: "h-1" }, 1);
+    const expiredPublic = signer.issue("public-details", { session: "s-1" }, 1);
     now += 1_000;
     expect(signer.verify("hold", expired)).toBeNull();
+    expect(signer.verify("public-details", expiredPublic)).toBeNull();
 
     now -= 1_000;
     const future = signRawEnvelopeJson(JSON.stringify({
@@ -81,6 +114,16 @@ describe("GuestBookingTokenSigner", () => {
       exp: Math.floor(now / 1_000) + 301, payload: {},
     }));
     expect(signer.verify("quote", overlongQuote)).toBeNull();
+    const overlongPublicSession = signRawEnvelopeJson(JSON.stringify({
+      v: 1, purpose: "public-session", iat: Math.floor(now / 1_000),
+      exp: Math.floor(now / 1_000) + 901, payload: {},
+    }));
+    expect(signer.verify("public-session", overlongPublicSession)).toBeNull();
+    const overlongPublicQuote = signRawEnvelopeJson(JSON.stringify({
+      v: 1, purpose: "public-quote", iat: Math.floor(now / 1_000),
+      exp: Math.floor(now / 1_000) + 301, payload: {},
+    }));
+    expect(signer.verify("public-quote", overlongPublicQuote)).toBeNull();
   });
 
   test("rejects short secrets, hostile payloads and size/depth/width overflow", () => {
@@ -127,13 +170,15 @@ describe("GuestBookingTokenSigner", () => {
 });
 
 test("real staff and guest signers reject each other's credentials with the same configured secret", async () => {
-  const {Hs256TokenSigner}=await import("../src/contexts/identity");
   const secret="same-configured-secret-for-isolated-test-only-32";
   const staff=new Hs256TokenSigner(secret);
   const guest=new GuestBookingTokenSigner(secret);
-  const token=guest.issue("session",{sessionId:"isolated"},900);
-  expect(await staff.verify(token)).toBeNull();
+  for (const purpose of PURPOSES) {
+    const token = guest.issue(purpose, { sessionId: "isolated" }, MAX_TTL[purpose]);
+    expect(await staff.verify(token)).toBeNull();
+  }
   const staffToken=await staff.issue({userId:"00000000-0000-4000-8000-000000000001",
     tenantId:"00000000-0000-4000-8000-000000000002",scopes:["reservations.booking:write"]});
   expect(guest.verify("session",staffToken)).toBeNull();
+  for (const purpose of PURPOSES) expect(guest.verify(purpose, staffToken)).toBeNull();
 });

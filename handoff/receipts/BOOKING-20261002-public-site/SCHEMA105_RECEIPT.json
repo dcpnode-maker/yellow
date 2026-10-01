@@ -1,0 +1,7 @@
+{
+  "exit_code": 0,
+  "target": "owned canonical yellow_dev/frontier105",
+  "strictCompleteSchema": true,
+  "expectedSha256": "671994b96ccbe402e92d2110fba69f6c5d08b21b06dbdbabb87d39a363555efd",
+  "logSha256": "918cb0049af2664d459642aef6ef6bcfa536b066917604cd3869c0607642cdae"
+}

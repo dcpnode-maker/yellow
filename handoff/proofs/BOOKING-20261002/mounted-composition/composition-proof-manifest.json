@@ -1,0 +1,55 @@
+{
+  "proof": "BOOKING-20261002 mounted invitation-context plus published-site composition",
+  "baseCommit": "7b64ede37a4ded1ffe2e77295f2d3e95b30442be",
+  "worktree": "/workspace/yellow-public-booking-mount-proof",
+  "worktreeState": "detached proof-only checkout; selected src TypeScript candidates, two canonical 105 build-readiness fixtures, and one proof test overlaid; original public-booking app.ts/server.ts unchanged",
+  "candidateAppSha256": "d4b5e07d85972fb936eb70bb08ce29cbc39d928f18f73d5c7b24acab8e65990d",
+  "candidateServerSha256": "e95c3e0af62eba7c60aefe751d9a9aa82b780e94fb3f667b16ff63db01cfd3cc",
+  "selectedSource": {
+    "src/contexts/identity/guest-booking-token.ts": "857aae885ea7001b0b3c4f5f0863a29960e5ed00f7430f0c5d598660fe37c1cb",
+    "src/contexts/identity/index.ts": "7b7192c72ac5da6f62f7ef1147f0ba29b1735329f793a0fdbd596e098a21f2df",
+    "src/contexts/identity/public-booking-site.ts": "9030c4e00665620894fbf1f8a648aafe7cbf3b4855ae891683bb07b4f102d520",
+    "src/contexts/reservations/index.ts": "55f9d5532ea9c9c841e7388e469723b6c1c9adad89c75aa764f7070caf53049d",
+    "src/contexts/reservations/public-booking.ts": "3e6f8678fd8e9c5a04ff8e42917d89d78d1492736cb7f5eaa50737c0d3d29db1",
+    "src/http/public-booking.ts": "b196d4119d302979c0052c5db228e92886dc0fd5ff690305084ce81ddd99345d",
+    "src/http/guest-booking.ts": "6b5283dbf91598ae51928caa564ffafbe96d0d892c1f5df0ab4f22a36652ce7b",
+    "src/kernel/build-info.ts": "517c52b5538d49ad51ccffbdb9b312a16c7a7e7eee9cad80a4ef54e65a262712"
+  },
+  "receivingFixtureInputs": {
+    "source": "/workspace/yellow-public-booking",
+    "tests/build-readiness.test.ts": "9aab9b449f3a7a141f13431d08c182eb4a315e3eff372cfd935aebd91812c8be",
+    "tests/build-readiness.integration.test.ts": "b1e0e25ac7681d23084b6a0ce8a4d1b4ae58989d29b4e1a3fa70343c54fc6e3d",
+    "reason": "Align the proof checkout's test metadata fixture with selected source BuildInfo migration frontier 105; no expectation was relaxed."
+  },
+  "executableProof": {
+    "path": "public-booking-mounted-composition.proof.test.ts",
+    "sha256": "e2e8bd226159e5dab3bb68435a4186593a757c4d19832996c212460267a64509",
+    "result": "2 pass, 0 fail, 33 assertions",
+    "covers": [
+      "Elysia createApp composition with both HTTP APIs",
+      "invitation context and public site session start",
+      "all five storefront commands and staff publication",
+      "operator tenant-bound publication receives signed tenant and actor identity",
+      "invalid staff token rejected before transaction",
+      "staff/public/invitation bearer domains remain separated",
+      "guest and public-site foreign Origins rejected before transactions/site resolution/actions",
+      "staff publish foreign Origin returns 403 before savepoint, authority publish or fixture effects",
+      "unknown path and absent public-site capability return 404"
+    ],
+    "fixtureScope": "Only controlled in-memory Database, authority, and domain-service ports; no PostgreSQL connection, production fixture or server listener."
+  },
+  "checks": {
+    "focusedCommand": "PATH=/workspace/yellow-toolchain:$PATH bun test tests/public-booking-mounted-composition.proof.test.ts",
+    "focusedResult": "2 pass, 0 fail, 33 expect calls",
+    "sourceTypecheckCommand": "PATH=/workspace/yellow-toolchain:$PATH bun x tsc --project /workspace/yellow-coordination/public-booking-proof-20261002/mounted-composition/results/tsconfig-source-only.json --pretty false",
+    "sourceTypecheckResult": "pass",
+    "preAlignmentFullProjectTypecheck": "RED preserved at results/project-typecheck.log; base fixture literal 104 conflicted with selected source BuildInfo literal 105",
+    "fullProjectTypecheckCommand": "PATH=/workspace/yellow-toolchain:$PATH bun run typecheck",
+    "fullProjectTypecheckResult": "pass after overlaying the two exact canonical 105 candidate fixture files",
+    "diffCheck": "pass"
+  },
+  "originBoundary": "The existing withOperatorTenant middleware creates the staff tenant transaction before the publish handler validates Origin. The proof records this; the handler returns 403 before SAVEPOINT/authority.publish or fixture effects. Invalid staff authentication is rejected before any tenant transaction. Guest and public-site foreign-Origin requests are rejected before transaction/site resolution/action calls.",
+  "serverStarted": false,
+  "databaseUsed": false,
+  "credentialsPrinted": false
+}

@@ -14,6 +14,23 @@ export type {
 } from "./token";
 export { GuestBookingTokenSigner } from "./guest-booking-token";
 export { GuestBookingAuthority, GuestBookingAuthorityError, GUEST_BOOKING_ISSUER_SCOPES } from "./guest-booking-authority";
+export {
+  PublicBookingSiteAuthority,
+  PublicBookingSiteAuthorityError,
+  PublicBookingSiteConflictError,
+  PublicBookingSiteError,
+  PublicBookingSiteUnavailableError,
+  PublicBookingSiteValidationError,
+  PUBLIC_BOOKING_PUBLISHER_SCOPES,
+} from "./public-booking-site";
+export type {
+  AuthorizedPublicBookingSite,
+  PublicBookingSiteBinding,
+  PublicBookingRuntimeSql,
+  PublicBookingSiteContext,
+  PublishPublicBookingSiteBody,
+  PublishedPublicBookingSite,
+} from "./public-booking-site";
 export type {
   GuestBookingToken,
   GuestBookingTokenPurpose,

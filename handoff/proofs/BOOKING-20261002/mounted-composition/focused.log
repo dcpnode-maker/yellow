@@ -1,0 +1,10 @@
+bun test v1.3.14 (0d9b296a)
+
+tests/public-booking-mounted-composition.proof.test.ts:
+(pass) assembled mounted booking composition proof > mounts invitation context, public site start and all five storefront commands with separate bearer domains [24.85ms]
+(pass) assembled mounted booking composition proof > denies wrong tokens, invalid staff identity, foreign origins and unknown or unconfigured routes before domain work [8.54ms]
+
+ 2 pass
+ 0 fail
+ 33 expect() calls
+Ran 2 tests across 1 file. [187.00ms]
