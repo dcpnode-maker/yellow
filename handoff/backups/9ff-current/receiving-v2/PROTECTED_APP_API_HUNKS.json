@@ -1,0 +1,61 @@
+{
+  "schema": "yellow-protected-hunks/v1",
+  "source_ids": {
+    "base_commit": "e06e400a57485cc10a8a35c21dcb1e01b5a667d1",
+    "cloud_commit": "9ff27ad8765dc75ebae9e083d4635c7a9b89fa62",
+    "cloud_tree": "4311a79c0c9ffc33877809162b1b38ae1b3c944a",
+    "base_tree": "a5237050fdf81a2d7eea1231318d3ccfb2908e1d"
+  },
+  "files": [
+    {
+      "path": "src/app.ts",
+      "base_git_blob": "99bf98d5a693e8c0c6152f3613588137631327b4",
+      "base_sha256": "efef7ba4b9b26495211197a03f7699525d3a990c5eb301c8a6517fe90e39ee38",
+      "cloud_git_blob": "4800da8403bdca33d695c3422151045a45c3052f",
+      "cloud_sha256": "2f7c545585189f206276a90163d60133c8f5c98acf4a9a149876da83ee04d590",
+      "unified_hunks": "diff --git a/src/app.ts b/src/app.ts\nindex 99bf98d5..4800da84 100644\n--- a/src/app.ts\n+++ b/src/app.ts\n@@ -481,6 +481,9 @@ export function createApp(options: AppOptions = {}) {\n       .post(\"/api/v1/properties/:property/availability:search\", ({ request, params, body, tenantContext }) =>\n         withOperatorTenant(request, (context) => operator.search(context, params.property, body))\n       )\n+      .post(\"/api/v1/crs/availability:search\", ({ request }) =>\n+        withOperatorTenant(request, (context) => operator.searchCrs(context)), { parse: \"none\" }\n+      )\n       .get(\"/api/v1/properties/:property/inventory\", ({ request, params, tenantContext }) =>\n         withOperatorTenant(request, (context) => operator.inventory(context, params.property))\n       )\n",
+      "base_git_mode": "100644",
+      "cloud_git_mode": "100644"
+    },
+    {
+      "path": "src/http/operator.ts",
+      "base_git_blob": "00100d7494536a6fcf4f0c66d6a4daf2102a5980",
+      "base_sha256": "2e59c9cc8dfa4f0319444fc9c1bc826c4ec9e7d9b7cedc5741bb978c2ffa38b8",
+      "cloud_git_blob": "e4f7f3b5da66e15379913f819c903863c81cdfcc",
+      "cloud_sha256": "e0b6e8986b82006749cad6f9f6535fef4c9a14e9973d959a22cc3a7e28d53239",
+      "unified_hunks": "diff --git a/src/http/operator.ts b/src/http/operator.ts\nindex 00100d74..e4f7f3b5 100644\n--- a/src/http/operator.ts\n+++ b/src/http/operator.ts\n@@ -290,11 +290,13 @@ import {\n   type TenantRequestContext,\n   type Tx,\n } from \"../kernel\";\n+import { parseDepartureServicesQuery } from \"./departure-services-query\";\n import {\n   DEFAULT_OPERATOR_RUNTIME_STATUS,\n   PROJECT_BUILD_SNAPSHOT,\n   type OperatorRuntimeStatus,\n } from \"../project-status\";\n+import { readCrsSearchJson, searchStaffCrsOffers, StaffCrsSearchError } from \"./crs-search\";\n \n const AVAILABILITY_SCOPE = \"inventory.availability:read\";\n const CONFIGURATION_READ_SCOPE = \"inventory.configuration:read\";\n@@ -4743,6 +4745,40 @@ export class OperatorHttpApi {\n     });\n   }\n \n+  async searchCrs(context: TenantRequestContext): Promise<Response> {\n+    if (!hasAvailabilityScope(context)) {\n+      return apiError(context.request, 403, \"auth/scope_missing\", \"Forbidden\", \"Availability access is not granted\");\n+    }\n+    try {\n+      const offers = this.#reservationOffers;\n+      const result = await searchStaffCrsOffers(await readCrsSearchJson(context.request), {\n+        hasAvailabilityScope: true,\n+        parseCanonicalSearch: (value) => isCanonicalOfferSearch(value) ? parseOfferSearch(value) : null,\n+        listGrantedProperties: () => listGrantedProperties(context),\n+        searchOffers: offers ? (input) => offers.search(context.tx, input) : null,\n+        serializeOffers: reservationOfferHttpResult,\n+      });\n+      return apiResponse(context.request, result);\n+    } catch (error) {\n+      if (error instanceof StaffCrsSearchError) {\n+        const title = error.status === 403 ? \"Forbidden\" :\n+          error.status === 503 ? \"Service unavailable\" : \"Invalid request\";\n+        return apiError(context.request, error.status, error.code, title, error.detail);\n+      }\n+      if (error instanceof InventoryValidationError || error instanceof ReservationOfferValidationError ||\n+          error instanceof ReservationOfferSearchTooBroadError) {\n+        return apiError(context.request, 400, \"request/invalid\", \"Invalid request\", \"Availability search input is invalid\");\n+      }\n+      if (error instanceof RateEvaluationError &&\n+          error.message === \"booking window must be 0 to 730 property-local days\") {\n+        return apiError(context.request, 400, \"request/booking_window\", \"Stay dates unavailable\",\n+          \"Choose stay dates within the next 730 property-local days\");\n+      }\n+      return apiError(context.request, 503, \"service/unavailable\", \"Service unavailable\",\n+        \"Availability is temporarily unavailable\");\n+    }\n+  }\n+\n   async search(context: TenantRequestContext, propertyNode: string, body: unknown): Promise<Response> {\n     if (!hasAvailabilityScope(context)) {\n       return apiError(context.request, 403, \"auth/scope_missing\", \"Forbidden\", \"Availability access is not granted\");\n@@ -5542,7 +5578,8 @@ export class OperatorHttpApi {\n   }\n \n   async departureServices(context: TenantRequestContext, propertyNode: string, reservationId: string | null): Promise<Response> {\n-    if (!UUID.test(propertyNode) || (reservationId !== null && !UUID.test(reservationId)) || new URL(context.request.url).search.length > 0) {\n+    const query = parseDepartureServicesQuery(context.request, reservationId);\n+    if (!UUID.test(propertyNode) || (reservationId !== null && !UUID.test(reservationId)) || query === null) {\n       return apiError(context.request,400,\"request/invalid\",\"Invalid request\",\"Departure service query is invalid\");\n     }\n     const scope = \"stay-operations.departure-services:read\";\n@@ -5552,7 +5589,7 @@ export class OperatorHttpApi {\n     if (!context.identity.actorId) return this.unauthorized(context.request);\n     const result = await this.#departureServices.list(context.tx,{\n       tenantId:context.tenantId,propertyNode,actorId:context.identity.actorId,\n-    },reservationId);\n+    },reservationId,query.targetRoleId);\n     return apiResponse(context.request,canonicalJson(jsonValue(result)));\n   }\n \n",
+      "base_git_mode": "100644",
+      "cloud_git_mode": "100644"
+    },
+    {
+      "path": "src/contexts/reservations/offers.ts",
+      "base_git_blob": "629c6acb899ee40f6298569459bcfadbf65907aa",
+      "base_sha256": "1efbf191eae857709225e94084debd324e017a615d0dce63d4ed3c8033a1538a",
+      "cloud_git_blob": "75ce148fed49c75b0b7481482d77dc0947c4d742",
+      "cloud_sha256": "f6be07554c3d44198125483f62811450fd097f0c5f7d9915c597dc18707d10fe",
+      "unified_hunks": "diff --git a/src/contexts/reservations/offers.ts b/src/contexts/reservations/offers.ts\nindex 629c6acb..75ce148f 100644\n--- a/src/contexts/reservations/offers.ts\n+++ b/src/contexts/reservations/offers.ts\n@@ -450,16 +450,10 @@ export class ReservationOfferSearchService {\n     })).filter(({ unitTypeCode }) =>\n       input.unitTypeCodes.length === 0 || input.unitTypeCodes.includes(unitTypeCode)\n     );\n-    // The booking workbench needs a bookable representative for each room type,\n-    // not a quote for every physically interchangeable room. Commit still\n-    // arbitrates the selected unit in PostgreSQL, so this is a presentation\n-    // bound rather than an availability promise.\n-    const representedUnitTypes = new Set<string>();\n-    const inventory = availableInventory.filter(({ unitTypeCode }) => {\n-      if (representedUnitTypes.has(unitTypeCode)) return false;\n-      representedUnitTypes.add(unitTypeCode);\n-      return true;\n-    });\n+    // Published offers retain exact physical sellable identity. Siblings may\n+    // have different live blockers or exact quote evidence, so none can stand\n+    // in for another before the bounded pair count and quote resolution.\n+    const inventory = availableInventory;\n     const plans = (await this.#rates.listRatePlans(tx, input.propertyNode)).filter((plan) =>\n       plan.status === \"active\" &&\n       (input.ratePlanCodes.length === 0 || input.ratePlanCodes.includes(plan.code)) &&\n",
+      "base_git_mode": "100644",
+      "cloud_git_mode": "100644"
+    },
+    {
+      "path": "src/contexts/stay-operations/departure-service-coordination.ts",
+      "base_git_blob": "bf39e67c4fec4af9a25862fa9ef0c89c4e4a5e31",
+      "base_sha256": "2167ebb0953027b6015c93a3d36961693cc82d957c167eeec5d9ea53afb55f83",
+      "cloud_git_blob": "90359d9f7598ee25f54cbefca378ec9ca0ed75df",
+      "cloud_sha256": "39f80d399e8cbba116fe43d698338dd51774eb88ba94ea750c426b045c530275",
+      "unified_hunks": "diff --git a/src/contexts/stay-operations/departure-service-coordination.ts b/src/contexts/stay-operations/departure-service-coordination.ts\nindex bf39e67c..90359d9f 100644\n--- a/src/contexts/stay-operations/departure-service-coordination.ts\n+++ b/src/contexts/stay-operations/departure-service-coordination.ts\n@@ -116,7 +116,8 @@ export class DepartureServiceCoordinationService {\n     `;\n     return new Set(rows.map((row) => row.code));\n   }\n-  async #requests(tx: Tx, identity: DepartureServiceIdentity, reservationId: string | null, requestId: string | null = null) {\n+  async #requests(tx: Tx, identity: DepartureServiceIdentity, reservationId: string | null, requestId: string | null = null,\n+    targetRoleId: string | null = null) {\n     const permissions = await this.#permissions(tx, identity);\n     const rows = await tx<{ data: DepartureServiceRequest; expired: boolean; active_stay: boolean }[]>`\n       SELECT jsonb_build_object(\n@@ -141,7 +142,9 @@ export class DepartureServiceCoordinationService {\n         AND (${reservationId}::uuid IS NULL OR r.reservation_id=${reservationId}::uuid)\n         AND (${requestId}::uuid IS NULL OR r.id=${requestId}::uuid)\n         AND (${reservationId}::uuid IS NOT NULL OR r.proposal_status='confirmed')\n-      ORDER BY r.due_at,r.id LIMIT 100\n+        AND (${targetRoleId}::uuid IS NULL OR r.target_role_id=${targetRoleId}::uuid)\n+      ORDER BY CASE WHEN ${reservationId}::uuid IS NULL AND task.status IN ('open','assigned','in_progress') THEN 0 ELSE 1 END,\n+        r.due_at,r.id LIMIT 100\n     `;\n     return rows.map(({ data, expired, active_stay }) => {\n       const eligible: string[] = [];\n@@ -158,11 +161,16 @@ export class DepartureServiceCoordinationService {\n       return Object.freeze({ ...data, eligibleActions: Object.freeze(eligible) });\n     });\n   }\n-  async list(tx: Tx, identity: DepartureServiceIdentity, reservationId: string | null) {\n+  async list(tx: Tx, identity: DepartureServiceIdentity, reservationId: string | null,\n+    targetRoleId: string | null = null) {\n     try {\n       if (reservationId !== null) uuid(reservationId);\n+      if (targetRoleId !== null) {\n+        if (reservationId !== null) return invalid();\n+        uuid(targetRoleId);\n+      }\n       await this.#authority(tx, identity, \"read\");\n-      const requests = await this.#requests(tx, identity, reservationId);\n+      const requests = await this.#requests(tx, identity, reservationId, null, targetRoleId);\n       const roles = await tx<{ roleId: string; name: string }[]>`\n         SELECT DISTINCT duty.id AS \"roleId\",duty.name FROM public.role duty\n         JOIN public.role_permission permission ON permission.role_id=duty.id AND permission.permission_code='stay-operations.departure-services:read'\n",
+      "base_git_mode": "100644",
+      "cloud_git_mode": "100644"
+    }
+  ],
+  "laptop_identity": {
+    "commit": "unobserved",
+    "tree": "unobserved",
+    "blob_records": "unobserved"
+  },
+  "limitations": [
+    "These are committed base-to-cloud hunks only; protected local dirty hunks are not represented.",
+    "No laptop blob identity or byte content was supplied.",
+    "Source presence does not establish migration application."
+  ]
+}

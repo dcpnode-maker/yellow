@@ -1,0 +1,28 @@
+{
+  "job": "HOSTING-20261001-offline-oci-9ff-v1",
+  "started_utc": "2026-10-01T11:37:37.370946+00:00",
+  "source_revision": "9ff27ad8765dc75ebae9e083d4635c7a9b89fa62",
+  "selected_image_id": "sha256:103cafd6ad6ca67c8ba4b41098c09cd325d3ac705e4867707b9f9ec49f9dc1f0",
+  "phase": "completed",
+  "attempt": 1,
+  "automatic_retry": false,
+  "max_seconds": 300,
+  "container_launch": false,
+  "database_mutation": false,
+  "public_route": false,
+  "owned_pid": 950069,
+  "last_exit_code": 0,
+  "finished_utc": "2026-10-01T11:37:47.383439+00:00",
+  "passed": true,
+  "archive_bytes": 201482240,
+  "archive_sha256": "9900ad842139dfa95ba128362af6a5754a4b93500e1f229123501319ce25ef5a",
+  "conversion_result": {
+    "configDigest": "sha256:103cafd6ad6ca67c8ba4b41098c09cd325d3ac705e4867707b9f9ec49f9dc1f0",
+    "indexSha256": "19dd2987598bfff258d15eccbc058f3cf721396a23577069f70b7847f3be5dc7",
+    "layerCount": 11,
+    "manifestDigest": "sha256:843b32dc43df5f7fc5c295c161adb146b4a057ac9d710083218093452362eaeb",
+    "sourceFormat": "docker-save-manifest+oci-metadata",
+    "sourceRevision": "9ff27ad8765dc75ebae9e083d4635c7a9b89fa62"
+  },
+  "independent_verification": "pending"
+}

@@ -1,0 +1,82 @@
+{
+  "observed_utc": "2026-10-01T11:42:46.024648+00:00",
+  "synthetic_referee_only": true,
+  "latest9ff_image_launched": false,
+  "login_reproved_this_order": false,
+  "worker_startup_reproved_this_order": false,
+  "applied_ledger_reaudited_this_order": false,
+  "public_route_verified": false,
+  "requests": [
+    {
+      "path": "/health",
+      "status": 200,
+      "body_bytes": 15,
+      "body_sha256": "a29ee2b15c494311c52521766e44af56a3ad2248e7a8ab465e5206463c13d288"
+    },
+    {
+      "path": "/ready",
+      "status": 200,
+      "body_bytes": 167,
+      "body_sha256": "5b5b8240800ea875560d12f6fa558cf1efbd1212021a7d63d335f30c0f7ad06f",
+      "ready_nonsecret_fields": {
+        "target": "yellow_runtime_database"
+      }
+    },
+    {
+      "path": "/api/v1/me/properties",
+      "status": 401,
+      "body_bytes": 175,
+      "body_sha256": "cb921f0af59d782d0514364df1efea990419c285a22c0412d09ebaf6021eb8d7"
+    },
+    {
+      "path": "/.git/config",
+      "status": 404,
+      "body_bytes": 9,
+      "body_sha256": "920b8d07262e4e924669c0e38ef57e0da66b68c9d387248d83a9aa19be7c96c4"
+    },
+    {
+      "path": "/.env",
+      "status": 404,
+      "body_bytes": 9,
+      "body_sha256": "920b8d07262e4e924669c0e38ef57e0da66b68c9d387248d83a9aa19be7c96c4"
+    },
+    {
+      "path": "/.codex/config.toml",
+      "status": 404,
+      "body_bytes": 9,
+      "body_sha256": "920b8d07262e4e924669c0e38ef57e0da66b68c9d387248d83a9aa19be7c96c4"
+    },
+    {
+      "path": "/src/server.ts",
+      "status": 404,
+      "body_bytes": 9,
+      "body_sha256": "920b8d07262e4e924669c0e38ef57e0da66b68c9d387248d83a9aa19be7c96c4"
+    }
+  ],
+  "containers": [
+    {
+      "ID": "8285d83c127f",
+      "Image": "mirror.gcr.io/library/postgres",
+      "Names": "yellow-catalogue-referee-postgres-1",
+      "State": "running",
+      "Status": "Up 7 hours (healthy)",
+      "Ports": "127.0.0.1:55442->5432/tcp"
+    },
+    {
+      "ID": "fe96ec05f4db",
+      "Image": "yellow-catalogue-referee-app",
+      "Names": "yellow-catalogue-referee-app-1",
+      "State": "running",
+      "Status": "Up 3 hours (healthy)",
+      "Ports": "127.0.0.1:53007->3000/tcp"
+    },
+    {
+      "ID": "74870df90269",
+      "Image": "mirror.gcr.io/valkey/valkey",
+      "Names": "yellow-catalogue-referee-valkey-1",
+      "State": "running",
+      "Status": "Up 9 hours (healthy)",
+      "Ports": "127.0.0.1:56396->6379/tcp"
+    }
+  ]
+}

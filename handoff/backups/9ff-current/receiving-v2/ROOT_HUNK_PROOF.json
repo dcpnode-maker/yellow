@@ -1,0 +1,21 @@
+{
+  "schema": "yellow-root-hunk-verification/v1",
+  "source": {
+    "base_commit": "e06e400a57485cc10a8a35c21dcb1e01b5a667d1",
+    "cloud_commit": "9ff27ad8765dc75ebae9e083d4635c7a9b89fa62",
+    "cloud_tree": "4311a79c0c9ffc33877809162b1b38ae1b3c944a",
+    "base_tree": "a5237050fdf81a2d7eea1231318d3ccfb2908e1d"
+  },
+  "checked_paths": [
+    "src/app.ts",
+    "src/http/operator.ts",
+    "src/contexts/reservations/offers.ts",
+    "src/contexts/stay-operations/departure-service-coordination.ts"
+  ],
+  "exact_diffs": 4,
+  "exact_blob_sha256_checks": 8,
+  "exact_git_mode_checks": 8,
+  "laptop_observations": "unavailable",
+  "source_checkout_clean": true,
+  "passed": true
+}

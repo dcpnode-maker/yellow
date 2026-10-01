@@ -1,0 +1,57 @@
+{
+  "schema": "yellow-receiving-oci-builder-proof/v1",
+  "scope": "offline synthetic converter proof only",
+  "actualImageExportPerformed": false,
+  "actualOciIndexDigest": null,
+  "selectedImage": {
+    "tag": "yellow-managed:9ff27ad8765dc75ebae9e083d4635c7a9b89fa62",
+    "imageId": "sha256:103cafd6ad6ca67c8ba4b41098c09cd325d3ac705e4867707b9f9ec49f9dc1f0",
+    "imageIdSource": "immutable parent-selected Docker inspect",
+    "sourceCommit": "9ff27ad8765dc75ebae9e083d4635c7a9b89fa62",
+    "sourceTree": "4311a79c0c9ffc33877809162b1b38ae1b3c944a",
+    "inspectReportedSizeBytes": 195955407,
+    "orderedRootFsDiffIdCount": 11,
+    "rootFsDiffIdsRecordedIn": "OCI_EXPORT_PLAN.md"
+  },
+  "execution": {
+    "command": "python3 -m unittest -v test_docker_save_to_oci.py",
+    "result": "PASS",
+    "testsPassed": 12,
+    "testsFailed": 0,
+    "coverage": [
+      "Docker-save plain and gzip layer input",
+      "single-image OCI archive input and descriptor revalidation",
+      "malformed non-object index and boolean descriptor-size rejection",
+      "nested index rejection and Docker-manifest precedence when OCI metadata coexists",
+      "foreign-image conversion omits 9ff provenance annotation",
+      "config digest, ordered diff ID and layer-count rejection",
+      "path traversal, duplicate path, archive symlink and multiple-image rejection",
+      "truncated archive and layer digest rejection",
+      "populated and symlink output ownership rejection without overwrite",
+      "failure leaves no published index",
+      "deterministic gzip, manifest and index reconstruction"
+    ],
+    "additionalCheck": "python3 -m py_compile docker_save_to_oci.py test_docker_save_to_oci.py passed"
+  },
+  "artifactSha256": {
+    "docker_save_to_oci.py": "d4b9f325581404c5782ab81ebfedc1ca974a0bb55da24fd1dedabdbe372767f8",
+    "test_docker_save_to_oci.py": "dc10889dceb9f99de8a5139c7a0e9004d75143ee16e09fa880a42466f5186473",
+    "OCI_EXPORT_PLAN.md": "1b615683eb90ec9f2f9de18fdf979a895a4eff235644dabf0e67d0bd74af218a"
+  },
+  "privacy": {
+    "configCopiedAsOriginalBytes": true,
+    "configEnvDecodedOrPrinted": false,
+    "configInspection": "byte-scans top-level JSON and parses only rootfs.diff_ids"
+  },
+  "provenance": {
+    "9ffAnnotationRequiresExactExpectedConfigId": true,
+    "9ffAnnotationRequiresExactOrderedExpectedDiffIds": true,
+    "foreignImageAnnotation": "omitted",
+    "selectedImageContentAttestedByActualArchive": false
+  },
+  "remaining": [
+    "Parent review and actual task-owned Docker-save export are pending.",
+    "Current Docker exporter archive shape has not been observed; unsupported shapes must stop for review.",
+    "No actual OCI blob, manifest or index digest is claimed by this proof."
+  ]
+}

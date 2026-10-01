@@ -1811,3 +1811,13 @@ appears here; dispatch/execution remain unverified.
 
 
 2026-10-01 RELEASE-20261001-restricted-route-handoff: root verified managed9ff imageID/no registryDigest/no app launch; old937 local health+ready200/API401/privatepaths404; officialWorkersAccess supports workers.dev. Exact latest-source/secure-origin/Access/data recovery inputs documented. No public app URL or route/DB mutation; laptop controller.
+
+
+### RELEASE-20261001 receiving closure + exact offline image handoff (artifact-only)
+
+- Controller requested finite protected App/API receiving plan and restricted domain-free route/data recovery contract; laptop remains sole integrator. Pinned source9ff27ad8765dc75ebae9e083d4635c7a9b89fa62/tree4311a79c0c9ffc33877809162b1b38ae1b3c944a; all6 CI36842043047green. Source branch/PR untouched.
+- Root personally reviewed bounded workers' helpers:30pass0fail; independently matched4 protected Git hunks,8blob hashes and8modes. Unknown laptop paths remain unobserved; reported28overlap/89shared counts not reconstructed. No protected whole-file substitution or migration allocation.
+- One existing-image export finished in10seconds, no retry/build/launch/DB mutation. Image/config103cafd6ad6ca67c8ba4b41098c09cd325d3ac705e4867707b9f9ec49f9dc1f0; independently verified offline OCImanifest843b32dc43df5f7fc5c295c161adb146b4a057ac9d710083218093452362eaeb,11orderedlayers, exactopaqueconfig; registry unpublished, image binary stilllocal.
+- Contract: separate Access-restrictedyellow-liveworkers.dev +one fixed HTTPWorkersVPCservice; QUICoutboundUDP7844required, noHTTP2substitute. Dedicated binding/transport/Access notconfigured; phonecoordinator untouched. Exact launch/roles/config binding names supplied; no secrets.
+- Laptop101/102/103sourcebytes/appliedledger, protected sourceclosure/canonicalassets and business/configrestore remain unobserved. Readyexpectedfrontiermetadata is notappliedledgerproof. Current loopback syntheticolder937912app health/ready200, unauthproperty401, sensitivepaths404; notlatest/publiclive/securityscan/login/worker103proof.
+- Root independent proof and nonimplementer launch-contract review retained under handoff/backups/9ff-current/receiving-v2; executable helpers+orders+exactinputmanifest published. No selfmerge/deploy/laptopoverwrite/publicURL claim. Emergencycredits forbidden; laptop1%planstop policy/checkpoints retained.

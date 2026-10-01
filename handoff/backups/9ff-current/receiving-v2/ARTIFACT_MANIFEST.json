@@ -1,0 +1,163 @@
+{
+  "schema": "yellow-receiving-artifact-inputs/v1",
+  "source_revision": "9ff27ad8765dc75ebae9e083d4635c7a9b89fa62",
+  "source_tree": "4311a79c0c9ffc33877809162b1b38ae1b3c944a",
+  "artifact_parent": "2b185119b2384946dc69652d08495d5bebffc79b",
+  "artifact_base_tree": "24fd66405683ea428cba826b9bcd46b39b7d45f9",
+  "files": [
+    {
+      "path": "handoff/backups/9ff-current/receiving-v2/LAPTOP_RECEIVING_AND_HOSTING_CONTRACT.md",
+      "mode": "100644",
+      "bytes": 15373,
+      "sha256": "620931641ac868db0310babc7257d4c94894d3b9cf621a9b8cda936a05c611b9"
+    },
+    {
+      "path": "handoff/backups/9ff-current/receiving-v2/LAUNCH_SPEC_9FF.json",
+      "mode": "100644",
+      "bytes": 3411,
+      "sha256": "2f7a436b9e14f237bb0f0fa94d2c7b7a3286d6adc583dc4a30d679087d0898b1"
+    },
+    {
+      "path": "handoff/backups/9ff-current/receiving-v2/PROTECTED_APP_API_HUNKS.json",
+      "mode": "100644",
+      "bytes": 11829,
+      "sha256": "4bb602fcb685be72da1ed07dcc4c9672dfea0ae955bae13f02dd40c0e892658b"
+    },
+    {
+      "path": "handoff/backups/9ff-current/receiving-v2/RECEIVING_PLAN_9FF.md",
+      "mode": "100644",
+      "bytes": 10441,
+      "sha256": "dc1c50211523ff8482dcbd2b0584c1b184306939ce926c82402d9da60cb702a1"
+    },
+    {
+      "path": "handoff/backups/9ff-current/receiving-v2/receiving_inventory_classifier.py",
+      "mode": "100644",
+      "bytes": 6911,
+      "sha256": "08f5b96f7e628d12f174b9d99f7f14f5baa67baca28399d32cc7915421b80059"
+    },
+    {
+      "path": "handoff/backups/9ff-current/receiving-v2/test_receiving_inventory_classifier.py",
+      "mode": "100644",
+      "bytes": 8503,
+      "sha256": "b151fb2b84e00f83cc6dbc9e05274f6540ee18fa8f695a9fbc15d78924111da4"
+    },
+    {
+      "path": "handoff/backups/9ff-current/receiving-v2/BUILDER_RECEIPT.md",
+      "mode": "100644",
+      "bytes": 4344,
+      "sha256": "32e32f13108487998c47705868b485b1189749da44c4a3195dd2539b18e79eae"
+    },
+    {
+      "path": "handoff/backups/9ff-current/receiving-v2/verify_protected_hunks.py",
+      "mode": "100644",
+      "bytes": 1922,
+      "sha256": "2a04b91132b91af5601587edd14507a75430d173fc6030b35650ef44de6d2172"
+    },
+    {
+      "path": "handoff/backups/9ff-current/receiving-v2/ROOT_HUNK_PROOF.json",
+      "mode": "100644",
+      "bytes": 677,
+      "sha256": "0b8c9c0e9ddf6fe220e4828ccd2564d1966d1d5c9177089a364468b31fb7dde1"
+    },
+    {
+      "path": "handoff/backups/9ff-current/receiving-v2/docker_save_to_oci.py",
+      "mode": "100644",
+      "bytes": 24621,
+      "sha256": "d4b9f325581404c5782ab81ebfedc1ca974a0bb55da24fd1dedabdbe372767f8"
+    },
+    {
+      "path": "handoff/backups/9ff-current/receiving-v2/test_docker_save_to_oci.py",
+      "mode": "100644",
+      "bytes": 12125,
+      "sha256": "dc10889dceb9f99de8a5139c7a0e9004d75143ee16e09fa880a42466f5186473"
+    },
+    {
+      "path": "handoff/backups/9ff-current/receiving-v2/OCI_EXPORT_PLAN.md",
+      "mode": "100644",
+      "bytes": 5762,
+      "sha256": "1b615683eb90ec9f2f9de18fdf979a895a4eff235644dabf0e67d0bd74af218a"
+    },
+    {
+      "path": "handoff/backups/9ff-current/receiving-v2/oci-builder-proof.json",
+      "mode": "100644",
+      "bytes": 2732,
+      "sha256": "e6d0949986fb6da32c754fb4374ef7355f77aaff21d1fe92a878a3103e6affff"
+    },
+    {
+      "path": "handoff/backups/9ff-current/receiving-v2/run_owned_image_export.py",
+      "mode": "100644",
+      "bytes": 6539,
+      "sha256": "d7c9010ce2be671572e401bbe0484c8a3880a26bbd554ac6d39533620ab019e2"
+    },
+    {
+      "path": "handoff/backups/9ff-current/receiving-v2/verify_actual_oci_export.py",
+      "mode": "100644",
+      "bytes": 4117,
+      "sha256": "f215e82abd9535b4c2e3c91db3bfb6e3bec80b97aa47a60886ee950036c7f556"
+    },
+    {
+      "path": "handoff/backups/9ff-current/receiving-v2/OCI_CONTENT_PROOF.json",
+      "mode": "100644",
+      "bytes": 4102,
+      "sha256": "9e4ced68ecd51170f8591fc0cd907e480f2f11b37364457b65b10ac6d7ccfa9a"
+    },
+    {
+      "path": "handoff/backups/9ff-current/receiving-v2/EXPORT_EXECUTION_STATUS.json",
+      "mode": "100644",
+      "bytes": 1171,
+      "sha256": "5cbdb40cac1df391dc4cbb26b61fbfc4dd940eb6a4fd524db4ffc242b3372400"
+    },
+    {
+      "path": "handoff/backups/9ff-current/receiving-v2/SELECTED_IMAGE_METADATA.json",
+      "mode": "100644",
+      "bytes": 1044,
+      "sha256": "1a1974b345cc1327f53676e15bfaef20686b44c75d36a6675aa5894126ee7329"
+    },
+    {
+      "path": "handoff/backups/9ff-current/receiving-v2/CURRENT_SYNTHETIC_RUNTIME.json",
+      "mode": "100644",
+      "bytes": 2401,
+      "sha256": "f3ea275010b3932439b720e8ce21e32015d7bb8d596b606c8f62491f1d3aee3a"
+    },
+    {
+      "path": "handoff/backups/9ff-current/receiving-v2/ENVIRONMENT_CAPABILITY_SNAPSHOT.json",
+      "mode": "100644",
+      "bytes": 558,
+      "sha256": "a1d8f77b26af60886b6d25116a14fbfcb01045daa86288c71c7e37a24854b32e"
+    },
+    {
+      "path": "handoff/backups/9ff-current/receiving-v2/root-helper-tests.log",
+      "mode": "100644",
+      "bytes": 5155,
+      "sha256": "56ca5268e56cec954a547407225964b5c9b83225b0c0fb369c377646db65a964"
+    },
+    {
+      "path": "handoff/backups/9ff-current/receiving-v2/ROOT_RECEIVING_IMAGE_REVIEW.md",
+      "mode": "100644",
+      "bytes": 4264,
+      "sha256": "c81cc9b3c4aa535cdf702f76b0f8293d15377ac44cc5341b25818b98747723d7"
+    },
+    {
+      "path": "handoff/backups/9ff-current/receiving-v2/INDEPENDENT_LAUNCH_REVIEW.md",
+      "mode": "100644",
+      "bytes": 8827,
+      "sha256": "ae4126fb4edad551c657c7703c11cecb98f39815175389b1b74506bdc4c2248f"
+    },
+    {
+      "path": "handoff/orders/RELEASE-20261001-receiving-closure-v2.md",
+      "mode": "100644",
+      "bytes": 2956,
+      "sha256": "33675509a8436c51f12015a17d4d954a253d590804cb6bef5978f92843840730"
+    },
+    {
+      "path": "handoff/LEDGER.md",
+      "mode": "100644",
+      "bytes": 759387,
+      "sha256": "9c6528e26c410f0817731eddd9d3269bc95c84c7f6d442dabc47252ae105166f"
+    }
+  ],
+  "manifest_self_hash_excluded": true,
+  "binary_image_included": false,
+  "secrets_or_business_data_included": false,
+  "source_tree_modified": false
+}
