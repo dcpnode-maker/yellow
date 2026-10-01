@@ -1,0 +1,11 @@
+{
+  "schema": "ngrok-managed-https-reachability/v1",
+  "url": "https://connect.ngrok-agent.com/",
+  "managed_proxy_and_ca_unchanged": true,
+  "agent_started": false,
+  "tunnel_or_oauth_registration_proven": false,
+  "method": "ordinary HTTPS GET through inherited managed client configuration; not ngrok agent session",
+  "http_status": 503,
+  "tls_http_response_received": true,
+  "captured_utc": "2026-10-01T16:55:41.873005+00:00"
+}

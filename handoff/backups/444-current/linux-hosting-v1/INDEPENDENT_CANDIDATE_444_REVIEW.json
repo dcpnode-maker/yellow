@@ -1,0 +1,51 @@
+{
+  "schema": "yellow-independent-candidate-444-review/v1",
+  "result": "code_and_plan_review_pass_for_root_owned_bounded_execution",
+  "scope": "frozen candidate 444 builder, OCI verifier, guard tests, runtime Compose and launch plan",
+  "files": {
+    "build_and_export_candidate.py": "d731eeaf9e3c103a3fac00480f831b27a5da21aa83a6e708f6b4461c10b96858",
+    "verify_candidate_oci.py": "defba6c26ad8503ff34056ccefed668cbbd0ec37ace8b1333df142c64de79691",
+    "test_candidate_guards.py": "9b0342d33288116aebd3768fe454ede75453665a57a4481e260c99a4f1e60115",
+    "candidate-compose.yml": "fc7c69f3cc5019a0de0f64f6fc4e14bf9d34bb6cf239ce71e00d673f347ca75d",
+    "ORDER.md": "f336938b6fdf4aa5d9bd496e898b077ae05071d0fd491801033a7a9b0a5717d7",
+    "RUNTIME_LAUNCH_PLAN.md": "f63624d541ce116fcc3e373c23807ba9f69282579fef6a32b2bce611ee489cfd",
+    "EXISTING_SYNTHETIC_BINDING_METADATA.json": "be76fd696970cd6ae1091109f45f6a20b76fa5b8b6fd53ee4fc5d0556ca9f242"
+  },
+  "verification": {
+    "py_compile": "passed",
+    "unit_test_command": "python3 -m unittest -q test_candidate_guards.py",
+    "unit_tests_passed": 5,
+    "tested_guards": [
+      "opaque OCI config hash and ordered layer proof",
+      "layer mutation, wrong diff ID, extra blob rejection",
+      "symlinked ancestor and oversized index rejection",
+      "pinned source/base proof and build-without-runtime assertions",
+      "public product-equivalence proof consistency"
+    ]
+  },
+  "image_build_design": {
+    "base_source": "b9ba702a074a487feeafa056abb49abcdcf01ba8",
+    "candidate_source": "444072ffdff2b7745345d88f71b603c17e11ace6",
+    "candidate_tree": "2fd5f9b5f55cc3404d81c88385f90c8c17582223",
+    "base_image_id": "sha256:1e522a8ab84af27ddc57d4aef3e7f6a383d254be15225a8c9df1722df87d7bc9",
+    "rootfs_diff_id_count": 11,
+    "method": "network-disabled config-only Dockerfile repackage of locally verified b9 image",
+    "runtime_started_by_builder": false,
+    "config_env_inspected": false
+  },
+  "private_runtime_design": {
+    "database_service_added": false,
+    "network_added": false,
+    "shared_synthetic_network": "yellow-b9-linux-20261001-v2-bridge",
+    "published_host_address": "127.0.0.1:53018",
+    "workers_and_automatic_login": "disabled by explicit environment",
+    "binding_values_read_or_copied_by_reviewer": false,
+    "cleanup_scope": "root-owned exact candidate app only; shared PostgreSQL/network excluded"
+  },
+  "limits": [
+    "No Docker command, database command, runtime launch, application request, network probe, credential read, or image export was performed by this reviewer.",
+    "The mode-0600 binding-file status is documented in the nonsecret metadata/order; reviewer did not inspect its contents or independently stat it.",
+    "No readiness, authenticated-user, public-route, ngrok-connectivity, provider-account/token, or durability claim is made.",
+    "The ngrok plan documents a supported proxy-capable configuration, not actual agent or ingress connectivity."
+  ]
+}

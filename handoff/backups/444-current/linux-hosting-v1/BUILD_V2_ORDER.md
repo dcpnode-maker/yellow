@@ -1,0 +1,9 @@
+# Candidate 444 image/export builder v2
+
+This is a code-only successor to the failed v1 build attempt. V1 remains untouched; its retained private status records stage `metadata-only-repackage`, and its empty private build log is preserved. No candidate proof or successful export was produced by v1.
+
+The corrected builder is `build_and_export_candidate_v2.py`. It creates the Dockerfile under its fresh private context and passes the absolute `<private-v2>/empty-context/Dockerfile` path to `docker build --file`, alongside that context directory. When a private log file is supplied, Docker stdout and stderr both go to that same file descriptor, avoiding lost stderr and pipe backpressure. The log remains mode 0600 inside the mode 0700 private v2 directory; public output contains only safe stage and error-type fields.
+
+V2 uses fresh private output `private-candidate-444-v2`, fresh proof path `CANDIDATE_444_IMAGE_EXPORT_PROOF_V2.json`, a v2 image tag and v2 job label. It retains the exact 444 revision/tree, verified b9 base image ID, 11 ordered rootfs diff IDs, offline config-only repackage method, immutable candidate checks, and pinned public archive converter SHA-256 `d4b9f325581404c5782ab81ebfedc1ca974a0bb55da24fd1dedabdbe372767f8`. It neither deletes nor retags existing images. Root must independently confirm the v2 tag is absent before execution.
+
+The builder is not executed as part of this preparation. Local regressions prove the absolute Dockerfile path and that stdout/stderr share the supplied private log; all test subprocess calls are mocked. Run only after independent review, with the exact source checkout and admission checks described in `ORDER.md`. Runtime launch remains a separate root-owned step and uses the reviewed `candidate-compose.yml` with the immutable image ID from the successful v2 proof.

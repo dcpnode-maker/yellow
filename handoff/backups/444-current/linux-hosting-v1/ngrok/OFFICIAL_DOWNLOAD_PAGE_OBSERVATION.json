@@ -1,0 +1,9 @@
+{
+  "url": "https://ngrok.com/downloads/linux",
+  "final_url": "https://ngrok.com/download/linux",
+  "status": 200,
+  "sha256": "d308f33eba030c9675430f3b80baa74e392c5f8e256364c2150f2115fd3afb40",
+  "bytes": 210186,
+  "official_binary_links": [],
+  "managed_proxy_and_ca_unchanged": true
+}

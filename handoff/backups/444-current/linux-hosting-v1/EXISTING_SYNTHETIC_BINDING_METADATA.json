@@ -1,0 +1,15 @@
+{
+  "pg_container_id": "53b7f6b70ca8faa971d0483c25a40e6b39a05c3fdfbd230f23e8484675d3a050",
+  "pg_image_id": "sha256:c293117fcecda7344b5480222e813b9f673d7abd69b1dd95eff239b768b04f59",
+  "name": "/yellow-b9-linux-20261001-v2-postgres-1",
+  "running": true,
+  "job": "yellow-b9-linux-20261001-v2",
+  "source": "b9ba702a074a487feeafa056abb49abcdcf01ba8",
+  "nonce": "4d32ae1963c807bdded446822aa65670",
+  "shared_synthetic_network": "yellow-b9-linux-20261001-v2-bridge",
+  "runtime_binding_file": "/workspace/yellow-coordination/release-20261001/receiving-b9-linux-v1/database-proof-v2/private-app/runtime.env",
+  "binding_file_present": true,
+  "binding_file_mode": "0600",
+  "binding_values_read_or_copied": false,
+  "context": "existing synthetic103 data; no new DB source or business primary"
+}

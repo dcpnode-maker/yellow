@@ -1,0 +1,5 @@
+# Root execution and independently reviewed guards
+
+Root personally ran 8 image/export guard tests and 4 launch ownership/HTTP guards, all passed. Non-implementer reviewed builder/export/launch code; another non-implementer independently recomputed all11 OCI layers/config/index and459 source-tree product entries. Candidate is an identity-only repackage of already compiled b9 product bytes. Root executed bounded Linux image build/export and app-only loopback launch against the existing synthetic103 PG. No migrations/seed/database creation or business data were used.
+
+Preserved failures: stale converter pin stopped at admission; v1 Dockerfile path failed packaging; v1 HTTP helper name shadow failed acceptance and owned candidate was removed. Narrow corrections and hostile ownership/output-bound tests are retained. V2 actually passed health/ready/UI/assets/anonymous401/source404 and full data/schema owner/ACL fingerprint equality. Failedv1 fingerprint equals verifiedV2 before fingerprint; prior apps remain running. No public route, interactive browser/login, production data recovery, native app or complete PMS/CRM acceptance is asserted.

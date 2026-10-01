@@ -1,0 +1,20 @@
+{
+  "schema": "yellow-failed-candidate-preservation/v1",
+  "v1_failure": {
+    "stage": "private-http-proof",
+    "type": "AttributeError",
+    "reason": "bounded execution failure"
+  },
+  "owned_v1_cleanup_recorded": true,
+  "v1_before_equals_verified_v2_before": true,
+  "v2_before_equals_after": true,
+  "protected_old_services_running_in_v2": [
+    "fe96ec05f4db113a5935c0d7e0f38aa6445b9ca16995c073195e399edcea4599",
+    "8285d83c127f8981d94e10c09fe6fce1bba9c594efe13a70332597eb0e5b5680",
+    "d002232dfdb8ba671ca51fc53ae8657ea72cc361740acd61c91b49e8f5bdca59",
+    "f58e39a497b6dfb39b9d96b07f15378da3a1a13e8896b753ba5abbc82454b5c8"
+  ],
+  "failed_candidate_cid": "3ab0603fc8a2d860c5d14c1b613980af5f63415ecf2fb3dc892c7b4db905574b",
+  "replacement_cid": "5d7fa9269e152eb13af21387b574c72f22f561bded6aa9f7547103a8b466e314",
+  "raw_rows_or_credentials_emitted": false
+}

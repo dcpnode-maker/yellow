@@ -1,0 +1,74 @@
+{
+  "source": "444072ffdff2b7745345d88f71b603c17e11ace6",
+  "run": 36886787199,
+  "attempt": 2,
+  "status": "completed",
+  "conclusion": "failure",
+  "jobs": [
+    {
+      "id": 110467802240,
+      "name": "windows-state",
+      "status": "completed",
+      "conclusion": "failure"
+    },
+    {
+      "id": 110467804560,
+      "name": "quality",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 110467805587,
+      "name": "free-host-arm64",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 110467806141,
+      "name": "container-smoke",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 110467806200,
+      "name": "database",
+      "status": "completed",
+      "conclusion": "failure"
+    },
+    {
+      "id": 110467858289,
+      "name": "local-review",
+      "status": "completed",
+      "conclusion": "success"
+    }
+  ],
+  "database_failure": {
+    "job": 110467806200,
+    "file": "tests/database-acceptance.integration.test.ts",
+    "line": 600,
+    "expected": {
+      "migrations": 100,
+      "permissions": 24
+    },
+    "actual": {
+      "migrations": 103,
+      "permissions": 26
+    },
+    "result": "23 pass / 1 fail / 74 assertions",
+    "feature_files_edited": false
+  },
+  "windows_failure": {
+    "job": 110467802240,
+    "file": "tests/order444-native-review.test.ts",
+    "line": 506,
+    "expected": 7,
+    "actual": null,
+    "signal": "SIGTERM",
+    "timeout": true,
+    "startup_stage": "ORDER444_TEST_STAGE:add-type:start",
+    "elapsed_ms": 8025.45,
+    "child_identity_available": false,
+    "result": "19 pass / 1 fail"
+  },
+  "scope": "LAPTOP owns CI oracle/native startup fixes; cloud pins444 image only; no assertion/deadline waiver"
+}

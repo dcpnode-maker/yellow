@@ -1,0 +1,163 @@
+{
+  "schema": "yellow-candidate-444-image-export-proof/v2",
+  "passed": true,
+  "candidate_source_revision": "444072ffdff2b7745345d88f71b603c17e11ace6",
+  "candidate_source_tree": "2fd5f9b5f55cc3404d81c88385f90c8c17582223",
+  "product_source_base_revision": "b9ba702a074a487feeafa056abb49abcdcf01ba8",
+  "product_source_equivalence_sha256": "7c1c2579ba7541135e3ece429986869974375af8e7275e2fd1ad2b27e40223a8",
+  "product_changes_in_runtime_paths": [],
+  "tests_only_changes_excluded_from_runtime_image": true,
+  "image_method": "FROM verified b9 image with config-only ENV/LABEL instructions; no RUN, source copy, feature edits, or compilation",
+  "base_image_id": "sha256:1e522a8ab84af27ddc57d4aef3e7f6a383d254be15225a8c9df1722df87d7bc9",
+  "candidate_image_id": "sha256:265557572fb06f6699b85fd2732ebcacd12bc5e9299feacbe5ece2f0883dafce",
+  "candidate_tag": "yellow-candidate-runtime:444072ffdff2b7745345d88f71b603c17e11ace6-v2",
+  "platform": "linux/amd64",
+  "user": "bun",
+  "command": [
+    "bun",
+    "run",
+    "start"
+  ],
+  "candidate_revision_label": "444072ffdff2b7745345d88f71b603c17e11ace6",
+  "candidate_build_revision_env_set": "444072ffdff2b7745345d88f71b603c17e11ace6",
+  "source_image_rootfs_diff_ids_equal": true,
+  "base_rootfs_diff_ids": [
+    "sha256:0854555d70acaa318b38ee50bc667cb51ff6bf0757624624c7ff3b6fe17459a0",
+    "sha256:9072d322eb16c6a414861801ae295eb67839e0aeabeab982bea0520b6fccdeaa",
+    "sha256:135be4fad03ab91972ef4eb6846e200938c2dea183881ba5cac3d79648a09737",
+    "sha256:7a415decbb54be30a9369d7466887b96544eedd7b28dbb7ad87dc6381a4b91a0",
+    "sha256:fb0c09554b3fc2d49fda0df4305e80bbd89a17e405ed02b65b79c54fcf6fd637",
+    "sha256:592e878c2cd79244e9ecf582b4688c9fa9c45bb31b1890119e1fb88fae6a6784",
+    "sha256:e51fbaa4439c4e38781cc712ef035b33f5c6f5e3d4dd4d1377552689102b3d84",
+    "sha256:06fca1b110f6a67625050001ccdee537dbe49390d99e394a9899f3c481b97b11",
+    "sha256:2cfbf35b5f39e58c0e271f4e4211192b643e614daf9ed30829ad66c8d210397f",
+    "sha256:c768036e3683227bc2dbbda3c2886a372eeff193f0186ba9d0ed677bbaab4068",
+    "sha256:64022fcc6881f35e088f90d624fbff2525318464faaac9b8f5a730509d6e9805"
+  ],
+  "candidate_rootfs_diff_ids": [
+    "sha256:0854555d70acaa318b38ee50bc667cb51ff6bf0757624624c7ff3b6fe17459a0",
+    "sha256:9072d322eb16c6a414861801ae295eb67839e0aeabeab982bea0520b6fccdeaa",
+    "sha256:135be4fad03ab91972ef4eb6846e200938c2dea183881ba5cac3d79648a09737",
+    "sha256:7a415decbb54be30a9369d7466887b96544eedd7b28dbb7ad87dc6381a4b91a0",
+    "sha256:fb0c09554b3fc2d49fda0df4305e80bbd89a17e405ed02b65b79c54fcf6fd637",
+    "sha256:592e878c2cd79244e9ecf582b4688c9fa9c45bb31b1890119e1fb88fae6a6784",
+    "sha256:e51fbaa4439c4e38781cc712ef035b33f5c6f5e3d4dd4d1377552689102b3d84",
+    "sha256:06fca1b110f6a67625050001ccdee537dbe49390d99e394a9899f3c481b97b11",
+    "sha256:2cfbf35b5f39e58c0e271f4e4211192b643e614daf9ed30829ad66c8d210397f",
+    "sha256:c768036e3683227bc2dbbda3c2886a372eeff193f0186ba9d0ed677bbaab4068",
+    "sha256:64022fcc6881f35e088f90d624fbff2525318464faaac9b8f5a730509d6e9805"
+  ],
+  "b9_content_proof_sha256": "2f800327af873496138e5a0976af67261d250cb05f5be21acfc680d2bb255ef6",
+  "docker_save_sha256": "d0ebe8397c468afabe20e96e00bb24fe9c8e99de027911795b36221f718b2ce3",
+  "docker_save_bytes": 202607104,
+  "conversion_metadata": {
+    "configDigest": "sha256:265557572fb06f6699b85fd2732ebcacd12bc5e9299feacbe5ece2f0883dafce",
+    "indexSha256": "c0484f91a21c06d5d0876cd676265f8f85f666d11c92998f73107ec2a0932d0e",
+    "layerCount": 11,
+    "manifestDigest": "sha256:b49279345112336b02fcf51024ef1f04ee29a5a3b0fad96a9c6c543941fd9160",
+    "sourceFormat": "docker-save-manifest+oci-metadata",
+    "sourceRevision": null
+  },
+  "independent_oci_proof": {
+    "config_bytes_interpreted": false,
+    "config_env_inspected": false,
+    "config_sha256": "265557572fb06f6699b85fd2732ebcacd12bc5e9299feacbe5ece2f0883dafce",
+    "image_id": "sha256:265557572fb06f6699b85fd2732ebcacd12bc5e9299feacbe5ece2f0883dafce",
+    "index_sha256": "c0484f91a21c06d5d0876cd676265f8f85f666d11c92998f73107ec2a0932d0e",
+    "layer_count": 11,
+    "layers": [
+      {
+        "compressed_bytes": 3673371,
+        "compressed_sha256": "278cf7cec561fd505823b644929d1dddb110fb402f2eb212c2869c364b395c13",
+        "diff_id": "sha256:0854555d70acaa318b38ee50bc667cb51ff6bf0757624624c7ff3b6fe17459a0",
+        "ordinal": 0,
+        "uncompressed_bytes": 8609792
+      },
+      {
+        "compressed_bytes": 34384924,
+        "compressed_sha256": "0e98c12e46484e1b311113f1fa7aa577c3ece5399ad2cfa4e48dfeee869d0c7d",
+        "diff_id": "sha256:9072d322eb16c6a414861801ae295eb67839e0aeabeab982bea0520b6fccdeaa",
+        "ordinal": 1,
+        "uncompressed_bytes": 88612352
+      },
+      {
+        "compressed_bytes": 290,
+        "compressed_sha256": "5e8274dc0cfbba469d6952268401453befb979c28dd256d27dc17a8661314e1f",
+        "diff_id": "sha256:135be4fad03ab91972ef4eb6846e200938c2dea183881ba5cac3d79648a09737",
+        "ordinal": 2,
+        "uncompressed_bytes": 3584
+      },
+      {
+        "compressed_bytes": 182,
+        "compressed_sha256": "3ac4bcea2bc21e0dfd2c853d9f8ebfc6524674fa032707dbb0c61c233db2bba6",
+        "diff_id": "sha256:7a415decbb54be30a9369d7466887b96544eedd7b28dbb7ad87dc6381a4b91a0",
+        "ordinal": 3,
+        "uncompressed_bytes": 3072
+      },
+      {
+        "compressed_bytes": 3632922,
+        "compressed_sha256": "31cd4ed77f41293b06ef741a8739c708dfec25064f93feff566d49ab20f500ac",
+        "diff_id": "sha256:fb0c09554b3fc2d49fda0df4305e80bbd89a17e405ed02b65b79c54fcf6fd637",
+        "ordinal": 4,
+        "uncompressed_bytes": 5588992
+      },
+      {
+        "compressed_bytes": 138,
+        "compressed_sha256": "35a7a5350f63fc1492c368fa32a73366d9a202baa1420d00767f8d45d29e7c06",
+        "diff_id": "sha256:592e878c2cd79244e9ecf582b4688c9fa9c45bb31b1890119e1fb88fae6a6784",
+        "ordinal": 5,
+        "uncompressed_bytes": 2560
+      },
+      {
+        "compressed_bytes": 85,
+        "compressed_sha256": "e9f4bc7c19ab4bc4cfd853e309653176f718ca4ca3f4f66c68930a5edb920b15",
+        "diff_id": "sha256:e51fbaa4439c4e38781cc712ef035b33f5c6f5e3d4dd4d1377552689102b3d84",
+        "ordinal": 6,
+        "uncompressed_bytes": 1536
+      },
+      {
+        "compressed_bytes": 21532429,
+        "compressed_sha256": "9c5428de2971c1e01b4cbd8f2530c235b693a8a2970840dfcc079bdf4c30d539",
+        "diff_id": "sha256:06fca1b110f6a67625050001ccdee537dbe49390d99e394a9899f3c481b97b11",
+        "ordinal": 7,
+        "uncompressed_bytes": 91377664
+      },
+      {
+        "compressed_bytes": 11660,
+        "compressed_sha256": "14ea97add5d18a8d863ee0392f00237d149967e33778890d69d41913dedabf7a",
+        "diff_id": "sha256:2cfbf35b5f39e58c0e271f4e4211192b643e614daf9ed30829ad66c8d210397f",
+        "ordinal": 8,
+        "uncompressed_bytes": 32256
+      },
+      {
+        "compressed_bytes": 1145326,
+        "compressed_sha256": "4f906654faa19a2e4c08bd073174d46ee5b058bcefe16520eb01dce4d3c8b793",
+        "diff_id": "sha256:c768036e3683227bc2dbbda3c2886a372eeff193f0186ba9d0ed677bbaab4068",
+        "ordinal": 9,
+        "uncompressed_bytes": 6228480
+      },
+      {
+        "compressed_bytes": 550960,
+        "compressed_sha256": "d747649b87f107f403ef55206b156be18efb153ceac1ebf1870d7d4d5d633b93",
+        "diff_id": "sha256:64022fcc6881f35e088f90d624fbff2525318464faaac9b8f5a730509d6e9805",
+        "ordinal": 10,
+        "uncompressed_bytes": 2108928
+      }
+    ],
+    "manifest_sha256": "b49279345112336b02fcf51024ef1f04ee29a5a3b0fad96a9c6c543941fd9160",
+    "passed": true,
+    "total_uncompressed_layer_bytes": 202569216
+  },
+  "config_env_inspected": false,
+  "runtime_launched": false,
+  "registry_published": false,
+  "public_route_proven": false,
+  "checkout": {
+    "revision": "444072ffdff2b7745345d88f71b603c17e11ace6",
+    "tree": "2fd5f9b5f55cc3404d81c88385f90c8c17582223",
+    "working_tree_clean": true
+  },
+  "build_nonce": "b6410b90486be874373b6a27a69d315cd2314ac4",
+  "job": "RELEASE-20261001-candidate-444-image-repackage-v2",
+  "captured_utc": "2026-10-01T16:43:30.520607+00:00"
+}

@@ -1,0 +1,27 @@
+{
+  "schema": "yellow-independent-ngrok-packet-review-correction/v1",
+  "corrects_prior_review_without_overwrite": "INDEPENDENT_NGROK_PACKET_REVIEW.md",
+  "prior_review_sha256": "a73f966cdf6327155ae3b61f6edc91c25036ad2984d7c6d433b67ba0915a4a89",
+  "result": "stale_state_finding_resolved",
+  "current_file_hashes": {
+    "NGROK_CAPABILITY_OBSERVATION.json": "8085956963dbeb9ea9709663ac0c0502722e0f2dcfd343ce262615a85bf9425f",
+    "SUPPORTED_NGROK_PLAN.md": "2afb96cc9c3c2c170ceaf11a0e1778aeee45a8b1c7c3e1f758aef728453b1da3"
+  },
+  "verification": {
+    "capability_observation_marked_historical_preinstall": true,
+    "superseding_current_proof_files_listed": true,
+    "plan_marks_binary_install_and_local_config_check_completed": true,
+    "remaining_token_binding_and_entitlement_prerequisites_explicit": true,
+    "session_registration_and_oauth_access_still_unverified": true,
+    "public_or_session_url_claimed": false
+  },
+  "evidence_limits": {
+    "host_503_origin_verified": false,
+    "token_bound": false,
+    "agent_session_started": false,
+    "paid_entitlement_verified": false,
+    "oauth_registered_or_enforced": false,
+    "private_agent_files_opened": false,
+    "network_execution_performed": false
+  }
+}

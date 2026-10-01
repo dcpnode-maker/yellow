@@ -1,0 +1,18 @@
+{
+  "schema": "ngrok-official-agent-provenance/v1",
+  "download_page": "https://ngrok.com/download/linux",
+  "archive_url_observed_on_official_page": "https://bin.ngrok.com/c/bNyj1mQVY4c/ngrok-v3-stable-linux-amd64.tgz",
+  "final_download_url": "https://bin.ngrok.com/c/bNyj1mQVY4c/ngrok-v3-stable-linux-amd64.tgz",
+  "http_status": 200,
+  "archive_bytes": 12104579,
+  "archive_sha256": "cec0b4997fcc5f529dfc74bac89050354d11a915f968720600039738fdf330cf",
+  "binary_bytes": 32911522,
+  "binary_sha256": "e4e0f05c3b016699daa3fc4ff03d0870e49f705171d2dac5f16d00c55c10dee5",
+  "version": "ngrok version 3.39.11",
+  "vendor_checksum_or_signature_verified": false,
+  "provenance_basis": "official download page and HTTPS with unchanged inherited proxy/CA; recorded actual content digest",
+  "agent_started": false,
+  "public_endpoint_created": false,
+  "token_or_configuration_read": false,
+  "binary_path": "/workspace/yellow-coordination/release-20261001/ngrok-supported-proxy-v1/private-agent-v1/ngrok"
+}

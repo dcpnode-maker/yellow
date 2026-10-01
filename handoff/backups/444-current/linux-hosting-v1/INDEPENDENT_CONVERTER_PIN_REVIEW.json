@@ -1,0 +1,33 @@
+{
+  "schema": "yellow-independent-converter-pin-review/v1",
+  "result": "corrected_converter_pin_matches_published_bytes",
+  "converter": {
+    "path": "/workspace/yellow-coordination/release-20261001/receiving-b9-linux-v1/docker_save_to_oci.py",
+    "actual_sha256": "d4b9f325581404c5782ab81ebfedc1ca974a0bb55da24fd1dedabdbe372767f8",
+    "computed_git_blob_sha1": "1dbdbf52e5added3f92c3019012b896f24beab9b",
+    "published_manifest_sha256": "1c79caa14fe5b4b3f37736a47165a3a82588235e9de34ca0d6997c08d65df879",
+    "published_manifest_entry_matches_both_hashes": true
+  },
+  "publication": {
+    "receipt_path": "/workspace/yellow-coordination/release-20261001/receiving-b9-linux-v1/publication-inputs-v3/FINAL_PUBLICATION_RECEIPT.json",
+    "published_commit": "a1fbcabf7f2caaeb0e666a281931a557c04f26cc",
+    "all_72_hashes_verified_after_normal_fetch": true
+  },
+  "admission_failure": {
+    "receipt": "ADMISSION_FAILURE_PIN_CORRECTION.json",
+    "stage": "admission",
+    "docker_build_started": false,
+    "private_output_created": false
+  },
+  "current_runner": {
+    "path": "build_and_export_candidate.py",
+    "sha256": "21c6ee07e446a2b3d9acc6257eb81476eb32b96348efc3cbf255b0982a446a93",
+    "corrected_pin_value": "d4b9f325581404c5782ab81ebfedc1ca974a0bb55da24fd1dedabdbe372767f8",
+    "corrected_pin_line": 27
+  },
+  "limits": [
+    "No builder or Docker execution was performed.",
+    "No source code was changed.",
+    "This verifies the pin against the published artifact; it does not validate a later image export."
+  ]
+}

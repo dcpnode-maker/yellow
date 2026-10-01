@@ -1,0 +1,175 @@
+{
+  "config_only_repackage": {
+    "base_image_id": "sha256:1e522a8ab84af27ddc57d4aef3e7f6a383d254be15225a8c9df1722df87d7bc9",
+    "candidate_config_hash_is_image_id": true,
+    "candidate_dockerfile_sha256": "c566effba57fb3f2a65d0df6de7840e6b240a902ac24e4926fbb79c7b9347f73",
+    "candidate_image_id": "sha256:265557572fb06f6699b85fd2732ebcacd12bc5e9299feacbe5ece2f0883dafce",
+    "candidate_image_method": "FROM verified b9 image with config-only ENV/LABEL instructions; no RUN, source copy, feature edits, or compilation",
+    "config_bytes_are_opaque": true,
+    "from_b9_image": true,
+    "oci_revision_annotation_absent": true,
+    "run_copy_add_instructions_present": false
+  },
+  "evidence_hashes": {
+    "B9_OCI_CONTENT_PROOF.json": "2f800327af873496138e5a0976af67261d250cb05f5be21acfc680d2bb255ef6",
+    "CANDIDATE_444_IMAGE_EXPORT_PROOF_V2.json": "87f0960d33e32074fffd8a27ab14ef86b35b9e9f6952b5bb939bada37bb02211",
+    "PRODUCT_SOURCE_EQUIVALENCE_444.json": "7c1c2579ba7541135e3ece429986869974375af8e7275e2fd1ad2b27e40223a8",
+    "candidate_Dockerfile": "c566effba57fb3f2a65d0df6de7840e6b240a902ac24e4926fbb79c7b9347f73",
+    "candidate_config_bytes": "265557572fb06f6699b85fd2732ebcacd12bc5e9299feacbe5ece2f0883dafce",
+    "candidate_index.json": "c0484f91a21c06d5d0876cd676265f8f85f666d11c92998f73107ec2a0932d0e",
+    "candidate_manifest_bytes": "b49279345112336b02fcf51024ef1f04ee29a5a3b0fad96a9c6c543941fd9160",
+    "verify_candidate_oci.py": "defba6c26ad8503ff34056ccefed668cbbd0ec37ace8b1333df142c64de79691"
+  },
+  "independent_verifier": {
+    "command": "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3 verify_candidate_oci.py --layout private-candidate-444-v2/oci-layout --expected-image-id sha256:265557572fb06f6699b85fd2732ebcacd12bc5e9299feacbe5ece2f0883dafce --expected-diff-id sha256:0854555d70acaa318b38ee50bc667cb51ff6bf0757624624c7ff3b6fe17459a0 --expected-diff-id sha256:9072d322eb16c6a414861801ae295eb67839e0aeabeab982bea0520b6fccdeaa --expected-diff-id sha256:135be4fad03ab91972ef4eb6846e200938c2dea183881ba5cac3d79648a09737 --expected-diff-id sha256:7a415decbb54be30a9369d7466887b96544eedd7b28dbb7ad87dc6381a4b91a0 --expected-diff-id sha256:fb0c09554b3fc2d49fda0df4305e80bbd89a17e405ed02b65b79c54fcf6fd637 --expected-diff-id sha256:592e878c2cd79244e9ecf582b4688c9fa9c45bb31b1890119e1fb88fae6a6784 --expected-diff-id sha256:e51fbaa4439c4e38781cc712ef035b33f5c6f5e3d4dd4d1377552689102b3d84 --expected-diff-id sha256:06fca1b110f6a67625050001ccdee537dbe49390d99e394a9899f3c481b97b11 --expected-diff-id sha256:2cfbf35b5f39e58c0e271f4e4211192b643e614daf9ed30829ad66c8d210397f --expected-diff-id sha256:c768036e3683227bc2dbbda3c2886a372eeff193f0186ba9d0ed677bbaab4068 --expected-diff-id sha256:64022fcc6881f35e088f90d624fbff2525318464faaac9b8f5a730509d6e9805",
+    "config_env_inspected": false,
+    "config_interpreted": false,
+    "extra_or_missing_blobs": false,
+    "image_id": "sha256:265557572fb06f6699b85fd2732ebcacd12bc5e9299feacbe5ece2f0883dafce",
+    "index_sha256": "c0484f91a21c06d5d0876cd676265f8f85f666d11c92998f73107ec2a0932d0e",
+    "layer_count": 11,
+    "manifest_digest": "sha256:b49279345112336b02fcf51024ef1f04ee29a5a3b0fad96a9c6c543941fd9160",
+    "passed": true,
+    "stdout_sha256": "cd8b1a7c5f96044f1b406e07cb5a8078db98df73b2e1a53ac1b20e7cd40e9c24",
+    "total_uncompressed_bytes": 202569216
+  },
+  "layers": [
+    {
+      "compressed_blob_byte_identical_to_b9": true,
+      "compressed_bytes": 3673371,
+      "compressed_digest": "sha256:278cf7cec561fd505823b644929d1dddb110fb402f2eb212c2869c364b395c13",
+      "ordinal": 0,
+      "uncompressed_bytes": 8609792,
+      "uncompressed_diff_id": "sha256:0854555d70acaa318b38ee50bc667cb51ff6bf0757624624c7ff3b6fe17459a0"
+    },
+    {
+      "compressed_blob_byte_identical_to_b9": true,
+      "compressed_bytes": 34384924,
+      "compressed_digest": "sha256:0e98c12e46484e1b311113f1fa7aa577c3ece5399ad2cfa4e48dfeee869d0c7d",
+      "ordinal": 1,
+      "uncompressed_bytes": 88612352,
+      "uncompressed_diff_id": "sha256:9072d322eb16c6a414861801ae295eb67839e0aeabeab982bea0520b6fccdeaa"
+    },
+    {
+      "compressed_blob_byte_identical_to_b9": true,
+      "compressed_bytes": 290,
+      "compressed_digest": "sha256:5e8274dc0cfbba469d6952268401453befb979c28dd256d27dc17a8661314e1f",
+      "ordinal": 2,
+      "uncompressed_bytes": 3584,
+      "uncompressed_diff_id": "sha256:135be4fad03ab91972ef4eb6846e200938c2dea183881ba5cac3d79648a09737"
+    },
+    {
+      "compressed_blob_byte_identical_to_b9": true,
+      "compressed_bytes": 182,
+      "compressed_digest": "sha256:3ac4bcea2bc21e0dfd2c853d9f8ebfc6524674fa032707dbb0c61c233db2bba6",
+      "ordinal": 3,
+      "uncompressed_bytes": 3072,
+      "uncompressed_diff_id": "sha256:7a415decbb54be30a9369d7466887b96544eedd7b28dbb7ad87dc6381a4b91a0"
+    },
+    {
+      "compressed_blob_byte_identical_to_b9": true,
+      "compressed_bytes": 3632922,
+      "compressed_digest": "sha256:31cd4ed77f41293b06ef741a8739c708dfec25064f93feff566d49ab20f500ac",
+      "ordinal": 4,
+      "uncompressed_bytes": 5588992,
+      "uncompressed_diff_id": "sha256:fb0c09554b3fc2d49fda0df4305e80bbd89a17e405ed02b65b79c54fcf6fd637"
+    },
+    {
+      "compressed_blob_byte_identical_to_b9": true,
+      "compressed_bytes": 138,
+      "compressed_digest": "sha256:35a7a5350f63fc1492c368fa32a73366d9a202baa1420d00767f8d45d29e7c06",
+      "ordinal": 5,
+      "uncompressed_bytes": 2560,
+      "uncompressed_diff_id": "sha256:592e878c2cd79244e9ecf582b4688c9fa9c45bb31b1890119e1fb88fae6a6784"
+    },
+    {
+      "compressed_blob_byte_identical_to_b9": true,
+      "compressed_bytes": 85,
+      "compressed_digest": "sha256:e9f4bc7c19ab4bc4cfd853e309653176f718ca4ca3f4f66c68930a5edb920b15",
+      "ordinal": 6,
+      "uncompressed_bytes": 1536,
+      "uncompressed_diff_id": "sha256:e51fbaa4439c4e38781cc712ef035b33f5c6f5e3d4dd4d1377552689102b3d84"
+    },
+    {
+      "compressed_blob_byte_identical_to_b9": true,
+      "compressed_bytes": 21532429,
+      "compressed_digest": "sha256:9c5428de2971c1e01b4cbd8f2530c235b693a8a2970840dfcc079bdf4c30d539",
+      "ordinal": 7,
+      "uncompressed_bytes": 91377664,
+      "uncompressed_diff_id": "sha256:06fca1b110f6a67625050001ccdee537dbe49390d99e394a9899f3c481b97b11"
+    },
+    {
+      "compressed_blob_byte_identical_to_b9": true,
+      "compressed_bytes": 11660,
+      "compressed_digest": "sha256:14ea97add5d18a8d863ee0392f00237d149967e33778890d69d41913dedabf7a",
+      "ordinal": 8,
+      "uncompressed_bytes": 32256,
+      "uncompressed_diff_id": "sha256:2cfbf35b5f39e58c0e271f4e4211192b643e614daf9ed30829ad66c8d210397f"
+    },
+    {
+      "compressed_blob_byte_identical_to_b9": true,
+      "compressed_bytes": 1145326,
+      "compressed_digest": "sha256:4f906654faa19a2e4c08bd073174d46ee5b058bcefe16520eb01dce4d3c8b793",
+      "ordinal": 9,
+      "uncompressed_bytes": 6228480,
+      "uncompressed_diff_id": "sha256:c768036e3683227bc2dbbda3c2886a372eeff193f0186ba9d0ed677bbaab4068"
+    },
+    {
+      "compressed_blob_byte_identical_to_b9": true,
+      "compressed_bytes": 550960,
+      "compressed_digest": "sha256:d747649b87f107f403ef55206b156be18efb153ceac1ebf1870d7d4d5d633b93",
+      "ordinal": 10,
+      "uncompressed_bytes": 2108928,
+      "uncompressed_diff_id": "sha256:64022fcc6881f35e088f90d624fbff2525318464faaac9b8f5a730509d6e9805"
+    }
+  ],
+  "limitations": [
+    "No runtime, database, migration, public endpoint, registry, or deployment behavior was exercised.",
+    "Candidate source changes are tests only per the public equivalence proof; the independently compared product Git tree entries are identical across the seven listed paths.",
+    "Candidate image is a config-only repackage of the verified b9 filesystem layers, not a separate source rebuild."
+  ],
+  "product_path_equivalence": {
+    "all_changed_files_match_public_proof": true,
+    "base_and_candidate_checkout_clean": true,
+    "base_git_tree_entries": 459,
+    "candidate_git_tree_entries": 459,
+    "changed_file_count": 8,
+    "changed_files": [
+      "tests/build-readiness.integration.test.ts",
+      "tests/native-fiscal-release-containment.integration.test.ts",
+      "tests/operator-business-day-seal.integration.test.ts",
+      "tests/operator-reservation-travel.integration.test.ts",
+      "tests/order620-today-colleague-demo-path.test.ts",
+      "tests/order687-groups.ui.test.ts",
+      "tests/runtime-dml-authority.integration.test.ts",
+      "tests/yellow-cashier-receivable-workbench.test.ts"
+    ],
+    "different_path_entries": 0,
+    "git_tree_entry_map_sha256": "df4038b1b837af1a68aa7a7209a1bc51205f2c37ffca6d6b81392f572f59c53b",
+    "paths": [
+      "src",
+      "frontend",
+      "migrations",
+      "scripts",
+      "Dockerfile",
+      "package.json",
+      "bun.lock"
+    ],
+    "public_equivalence_proof_sha256": "7c1c2579ba7541135e3ece429986869974375af8e7275e2fd1ad2b27e40223a8"
+  },
+  "result": "PASS_OFFLINE_OCI_AND_PRODUCT_PATH_REVIEW",
+  "reviewed_utc": "2026-10-01T16:52:49.347650+00:00",
+  "schema": "yellow-independent-candidate-444-oci-review/v1",
+  "scope": {
+    "b9_product_base_revision": "b9ba702a074a487feeafa056abb49abcdcf01ba8",
+    "base_image_id": "sha256:1e522a8ab84af27ddc57d4aef3e7f6a383d254be15225a8c9df1722df87d7bc9",
+    "candidate_checkout_clean": true,
+    "candidate_image_id": "sha256:265557572fb06f6699b85fd2732ebcacd12bc5e9299feacbe5ece2f0883dafce",
+    "candidate_revision": "444072ffdff2b7745345d88f71b603c17e11ace6",
+    "candidate_tree": "2fd5f9b5f55cc3404d81c88385f90c8c17582223",
+    "config_env_inspected": false,
+    "docker_used": false,
+    "network_used": false,
+    "runtime_launched": false
+  }
+}

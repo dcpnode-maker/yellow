@@ -1,0 +1,10 @@
+{
+  "passed": false,
+  "stage": "admission",
+  "reason": "stale converter hash",
+  "docker_build_started": false,
+  "private_output_created": false,
+  "published_artifact_revision": "a1fbcabf7f2caaeb0e666a281931a557c04f26cc",
+  "corrected_converter_sha256": "d4b9f325581404c5782ab81ebfedc1ca974a0bb55da24fd1dedabdbe372767f8",
+  "captured_utc": "2026-10-01T16:39:35.177116+00:00"
+}

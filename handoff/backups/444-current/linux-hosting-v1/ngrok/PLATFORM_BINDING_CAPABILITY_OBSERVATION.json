@@ -1,0 +1,38 @@
+{
+  "environment_id": "ccarenv_b64_Y2NhcmVudl9hYjIwZGQ1MmIyZjQ4MTkxYTEzMjc4NjZkNGIzNTA0Ng",
+  "source_config_id": null,
+  "source_config_version_id": null,
+  "spec_revision": "224",
+  "observed_spec_revision": "224",
+  "observations_current": true,
+  "provider": "cloud",
+  "desired_phase": "running",
+  "observed_phase": "running",
+  "failure": null,
+  "connectivity": "connected",
+  "network_policy": {
+    "mode": "unrestricted",
+    "state": "enforced"
+  },
+  "capabilities": [],
+  "secrets": [],
+  "runtime_variables": [],
+  "outbound_identities": [],
+  "callable_environment_operations": [
+    "environment_status"
+  ],
+  "callable_preview_or_port_binding": false,
+  "callable_secret_binding_update": false,
+  "callable_network_configuration_editor": false,
+  "supported_scope_proposal": {
+    "primary": "Register owned authenticated private HTTP origin127.0.0.1:53018 exact444 source as an owner-private native preview; retain normal app login/tenant grants and deny database/sourceports.",
+    "alternative": "Expose a managed dedicated ngrok agent-token file binding and documented proxy-capable connection to defaultproviderconnect.ngrok-agent.com:443 plus existingtrustedCA; keep ingress GoogleOAuth exactemail restriction and no paidfallback."
+  },
+  "review_workflow": {
+    "configuration_draft_prepared": true,
+    "apply_supported": false,
+    "user_authorization_already_exists": true,
+    "mandatory_platform_review_requirement_verified": false,
+    "reason": "No draft/editor/apply/secret/preview registration operation callable; cannot issue a platform review or claim a supported configuration schema."
+  }
+}

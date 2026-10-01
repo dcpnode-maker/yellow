@@ -1,0 +1,170 @@
+{
+  "schema": "yellow-candidate-444-private-runtime/v1",
+  "source": "444072ffdff2b7745345d88f71b603c17e11ace6",
+  "public_route_proven": false,
+  "synthetic_only": true,
+  "business_data_recovery_proven": false,
+  "interactive_login_verified": false,
+  "workers_started": false,
+  "nonce": "4c6bc14f268848955a484920575daf0f",
+  "before_fingerprint": {
+    "data_sha256": "6e3354d0e85239145a1b60138328218b016a7803640374560834744aac9caade",
+    "data_bytes": 117363,
+    "schema_sha256": "a124c55d1a1b4c4dc7e8b43c2f5dff31943ea2df621f6fb2eebf763ac62d8585",
+    "schema_bytes": 1975091,
+    "raw_rows_or_credentials_emitted": false
+  },
+  "shared_synthetic_pg": {
+    "id": "53b7f6b70ca8faa971d0483c25a40e6b39a05c3fdfbd230f23e8484675d3a050",
+    "image": "sha256:c293117fcecda7344b5480222e813b9f673d7abd69b1dd95eff239b768b04f59",
+    "running": true,
+    "ownership_verified": true
+  },
+  "protected_before": {
+    "verified_exact_running_cids": [
+      "fe96ec05f4db113a5935c0d7e0f38aa6445b9ca16995c073195e399edcea4599",
+      "8285d83c127f8981d94e10c09fe6fce1bba9c594efe13a70332597eb0e5b5680",
+      "d002232dfdb8ba671ca51fc53ae8657ea72cc361740acd61c91b49e8f5bdca59",
+      "f58e39a497b6dfb39b9d96b07f15378da3a1a13e8896b753ba5abbc82454b5c8"
+    ]
+  },
+  "runtime": {
+    "id": "5d7fa9269e152eb13af21387b574c72f22f561bded6aa9f7547103a8b466e314",
+    "image": "sha256:265557572fb06f6699b85fd2732ebcacd12bc5e9299feacbe5ece2f0883dafce",
+    "running": true,
+    "loopback_only_port": 53018,
+    "restart": "no",
+    "memory_bytes": 1073741824,
+    "nano_cpus": 1000000000,
+    "source": "444072ffdff2b7745345d88f71b603c17e11ace6",
+    "ownership_verified": true
+  },
+  "http": [
+    {
+      "path": "/health",
+      "status": 200,
+      "bytes": 15,
+      "sha256": "a29ee2b15c494311c52521766e44af56a3ad2248e7a8ab465e5206463c13d288"
+    },
+    {
+      "path": "/ready",
+      "status": 200,
+      "bytes": 167,
+      "sha256": "b984501ae9c0d1dedd9f289e1e2a32c394312fc7ff55e08b18d87f9681fe2bda"
+    },
+    {
+      "path": "/",
+      "status": 200,
+      "bytes": 852,
+      "sha256": "4337e1f69acb586f93f18b339b3c14837a938bfd2f6df812ea735f064654b5c6"
+    },
+    {
+      "path": "/api/v1/me/properties",
+      "status": 401,
+      "bytes": 175,
+      "sha256": "65c778a8e096a8da97a89a6859d098d2d9b100eb3abb1a16ba79cecb371c5b84"
+    },
+    {
+      "path": "/.git/config",
+      "status": 404,
+      "bytes": 9,
+      "sha256": "920b8d07262e4e924669c0e38ef57e0da66b68c9d387248d83a9aa19be7c96c4"
+    },
+    {
+      "path": "/.env",
+      "status": 404,
+      "bytes": 9,
+      "sha256": "920b8d07262e4e924669c0e38ef57e0da66b68c9d387248d83a9aa19be7c96c4"
+    },
+    {
+      "path": "/src/server.ts",
+      "status": 404,
+      "bytes": 9,
+      "sha256": "920b8d07262e4e924669c0e38ef57e0da66b68c9d387248d83a9aa19be7c96c4"
+    },
+    {
+      "path": "/package.json",
+      "status": 404,
+      "bytes": 9,
+      "sha256": "920b8d07262e4e924669c0e38ef57e0da66b68c9d387248d83a9aa19be7c96c4"
+    },
+    {
+      "path": "/handoff/LEDGER.md",
+      "status": 404,
+      "bytes": 9,
+      "sha256": "920b8d07262e4e924669c0e38ef57e0da66b68c9d387248d83a9aa19be7c96c4"
+    }
+  ],
+  "readiness": {
+    "status": "ready",
+    "target": "yellow_runtime_database",
+    "build": {
+      "schemaVersion": 1,
+      "revision": "444072ffdff2b7745345d88f71b603c17e11ace6",
+      "expectedMigrationFrontier": 103
+    }
+  },
+  "compiled_assets": [
+    {
+      "path": "/yellow-next/assets/index-Bcg5hvwy.js",
+      "status": 200,
+      "bytes": 1133,
+      "sha256": "e9a0a10c3651bdb88a80fd43df307881477e541397308486befb2a689a5864bc"
+    },
+    {
+      "path": "/yellow-next/assets/rolldown-runtime-hePW80VL.js",
+      "status": 200,
+      "bytes": 716,
+      "sha256": "580ad8c58061a4dde99bde0a56905e382f0568516ee2f5b84dbfb52085709021"
+    },
+    {
+      "path": "/yellow-next/assets/yellow-app-fcIy6a2a.js",
+      "status": 200,
+      "bytes": 393930,
+      "sha256": "9de6cb44482aad75d39b28418e471b75dca26d56a6a8735f2b9664603ce5d898"
+    },
+    {
+      "path": "/yellow-next/assets/react-runtime-CqoVAshB.js",
+      "status": 200,
+      "bytes": 210629,
+      "sha256": "91f798f4f07596201a2b0d974c125e9b8f06723b1b09c32c44ceb2a9f8a8f2dc"
+    },
+    {
+      "path": "/yellow-next/assets/vendor-CfgmVNC9.js",
+      "status": 200,
+      "bytes": 13644,
+      "sha256": "def004b325205057b4b60539127f110849818e4e018b994e033697ccdcea96c6"
+    },
+    {
+      "path": "/yellow-next/assets/yellow-app-BHbMVcCq.css",
+      "status": 200,
+      "bytes": 2151,
+      "sha256": "a29b795ff0904ccfbcd3ddcd8a0813caa52dc23ba6d2e880a07fa0fb5da452a1"
+    },
+    {
+      "path": "/yellow-next/assets/index-D1zeL5we.css",
+      "status": 200,
+      "bytes": 145295,
+      "sha256": "8c7a72baba49403e8f137d979b23eef3e9f698dae5c6ed21474a31665ba806ca"
+    }
+  ],
+  "after_fingerprint": {
+    "data_sha256": "6e3354d0e85239145a1b60138328218b016a7803640374560834744aac9caade",
+    "data_bytes": 117363,
+    "schema_sha256": "a124c55d1a1b4c4dc7e8b43c2f5dff31943ea2df621f6fb2eebf763ac62d8585",
+    "schema_bytes": 1975091,
+    "raw_rows_or_credentials_emitted": false
+  },
+  "protected_after": {
+    "verified_exact_running_cids": [
+      "fe96ec05f4db113a5935c0d7e0f38aa6445b9ca16995c073195e399edcea4599",
+      "8285d83c127f8981d94e10c09fe6fce1bba9c594efe13a70332597eb0e5b5680",
+      "d002232dfdb8ba671ca51fc53ae8657ea72cc361740acd61c91b49e8f5bdca59",
+      "f58e39a497b6dfb39b9d96b07f15378da3a1a13e8896b753ba5abbc82454b5c8"
+    ]
+  },
+  "database_unchanged": true,
+  "passed": true,
+  "runtime_kept_private": true,
+  "captured_utc": "2026-10-01T16:53:56.055184+00:00"
+}

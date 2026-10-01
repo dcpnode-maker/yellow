@@ -1,0 +1,45 @@
+{
+  "schema": "yellow-independent-ngrok-packet-review/v1",
+  "result": "evidence_boundaries_pass_with_stale_state_documentation_issue",
+  "files": {
+    "OFFICIAL_AGENT_PROVENANCE.json": "4cae331a413209e39e99b4fba77a2a904179c250e236ca9490495e37eea125de",
+    "LOCAL_CONFIG_VALIDATION.json": "c339132cead47a36ad30ab763b46686bfae3931f4e1bae6a5c4c3dac4eb30042",
+    "ngrok-config.template.json": "51da769d350c5567c402f3ef6a07f120c028b4230563853ef29ff0f0546d8617",
+    "MANAGED_HTTPS_AGENT_HOST_CHECK.json": "ae942fbdcf566013ebdda766b6c616e2880e8a08417db09bb678463532ad5b91",
+    "PLATFORM_BINDING_CAPABILITY_OBSERVATION.json": "9b043c95da91bec8a67ce30344ff4226d5326ba0115833a4300e00cf988dab6b",
+    "NGROK_CAPABILITY_OBSERVATION.json": "158815565324dae485f39bd7ba2118442081e1a669503663fc3c11ae7474c038",
+    "OFFICIAL_DOWNLOAD_PAGE_OBSERVATION.json": "0b5b4db7ddf54fe9eb9286a7479e23f60e32805ca44136152e69586dc5c8f212",
+    "OFFICIAL_FIREWALL_DOC_OBSERVATION.json": "4f04d372b336fea5d8f384656c486e5f0bb5276a0816ad49eb6b6af02748489a",
+    "OFFICIAL_OAUTH_DOC_OBSERVATION.json": "3d216abee89aa71389bb231f65a343b3583ebabe3823dc099a8f87d5b6feb312",
+    "NGROK_DOCUMENTED_PROXY_SUPPORT.json": "bec6e5f9b6a318eaaa0165f823dcedeb11a9754a5a791fd5e5e037d631feb7e4",
+    "official-v3-doc-sanitized.md": "b761da925a2f348713369fe9ff686354e3d3524aa1bb0aa3cd8220c386c4b6bb",
+    "official-oauth-action-sanitized.md": "055296d42a3be49660db09e1a77325c99aef1afd545bc1629004de71c120d5d3",
+    "OPERATOR_HANDOFF.md": "abbec0d36d97445b7b49d49345767cf665ffe0677bfb728f582052fb514c8c94",
+    "SUPPORTED_NGROK_PLAN.md": "af334e80654d8f415ef0e66aa536704ba7a15512cf75575875ed498496094974"
+  },
+  "verified_claims_and_limits": {
+    "official_download_provenance_and_actual_digest_recorded": true,
+    "vendor_checksum_or_signature_verified": false,
+    "local_config_check_passed_without_token_or_agent_start": true,
+    "managed_proxy_and_ca_retained_tls_verification_enabled": true,
+    "google_oauth_email_allowlist_prepared_but_not_registered_or_tested": true,
+    "ordinary_agent_host_https_get_status": 503,
+    "agent_session_or_provider_refusal_proven": false,
+    "token_binding_or_account_availability_proven": false,
+    "platform_secret_binding_or_preview_apply_capability_available": false,
+    "public_or_session_url_claimed": false,
+    "paid_fallback_or_tls_bypass_proposed": false
+  },
+  "finding": {
+    "file": "SUPPORTED_NGROK_PLAN.md",
+    "issue": "pre-install no-binary/config-validation statements remain phrased as current despite later successor evidence showing binary installed and local config validation passed",
+    "related_snapshot": "NGROK_CAPABILITY_OBSERVATION.json has existing_binary null without a capture time or superseded marker",
+    "action": "mark earlier state as historical with time/pre-install label or revise current summary while retaining history",
+    "private_or_secret_files_accessed": false
+  },
+  "limits": [
+    "No private-agent-v1 config, log, binary, token, or secret was opened.",
+    "No network, ngrok agent, provider account, OAuth, or tunnel operation was performed.",
+    "No public/session URL, authenticated endpoint, registration, OAuth enforcement, or persistence claim is made."
+  ]
+}

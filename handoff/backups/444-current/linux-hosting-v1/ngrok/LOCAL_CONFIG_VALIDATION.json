@@ -1,0 +1,19 @@
+{
+  "schema": "ngrok-private-config-check/v1",
+  "exit_code": 0,
+  "configuration_valid": true,
+  "configuration_is_no_token_local_validation_only": true,
+  "token_configured": false,
+  "agent_started": false,
+  "public_url_created": false,
+  "managed_proxy_and_ca_consumed_without_printing_or_export": true,
+  "tls_verification_enabled": true,
+  "request_inspection_disabled": true,
+  "local_agent_ui_disabled": true,
+  "edge_oauth": "google",
+  "allowed_email": "dcpnode@gmail.com",
+  "edge_policy_registered_or_tested": false,
+  "app_upstream": "owned loopback53018 only",
+  "validation_log_sha256": "b278dfd694270c668427c8246257c3bf08ada4f382272327ce28435c60d71fa9",
+  "configuration_mode": "0600"
+}

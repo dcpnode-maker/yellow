@@ -1,0 +1,25 @@
+{
+  "token_variable_present": false,
+  "api_key_variable_present": false,
+  "config_variable_present": false,
+  "existing_binary": null,
+  "default_config_present": false,
+  "proxy_presence": true,
+  "managed_ca_presence": true,
+  "secret_values_inspected_or_printed": false,
+  "policy_or_tls_changed": false,
+  "official_doc_url": "https://ngrok.com/docs/gateway/agent/config/v3",
+  "official_doc_status": 200,
+  "official_doc_bytes": 800000,
+  "official_doc_sha256": "784baf710ccfe052305f919a6b91478e77d9d53b1118d419676a54f8ca860d5a",
+  "initial_html_document_truncated_at_read_limit": true,
+  "full_markdown_doc": "NGROK_DOCUMENTED_PROXY_SUPPORT.json",
+  "observation_phase": "historical pre-install presence check",
+  "superseded_by": [
+    "OFFICIAL_AGENT_PROVENANCE.json",
+    "LOCAL_CONFIG_VALIDATION.json",
+    "PLATFORM_BINDING_CAPABILITY_OBSERVATION.json"
+  ],
+  "current_token_bound": false,
+  "current_agent_started": false
+}

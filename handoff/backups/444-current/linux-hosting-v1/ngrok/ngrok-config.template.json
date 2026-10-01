@@ -1,0 +1,53 @@
+{
+  "version": "3",
+  "agent": {
+    "proxy_url": "<inherited managed proxy consumed privately>",
+    "connect_cas": "<existing trusted CA path consumed privately>",
+    "crl_noverify": false,
+    "remote_management": false,
+    "update_check": false,
+    "console_ui": false,
+    "web_addr": false,
+    "inspect_db_size": -1,
+    "connect_timeout": "10s",
+    "log_level": "info",
+    "log_format": "json",
+    "log": "stdout",
+    "authtoken": "<dedicated managed agent token required>"
+  },
+  "endpoints": [
+    {
+      "name": "yellow-private-444",
+      "upstream": {
+        "url": "http://127.0.0.1:53018"
+      },
+      "traffic_policy": {
+        "on_http_request": [
+          {
+            "actions": [
+              {
+                "type": "oauth",
+                "config": {
+                  "provider": "google"
+                }
+              }
+            ]
+          },
+          {
+            "expressions": [
+              "!(actions.ngrok.oauth.identity.email in ['dcpnode@gmail.com'])"
+            ],
+            "actions": [
+              {
+                "type": "deny",
+                "config": {
+                  "status_code": 403
+                }
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ]
+}

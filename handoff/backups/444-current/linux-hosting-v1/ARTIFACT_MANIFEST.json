@@ -1,0 +1,339 @@
+{
+  "schema": "yellow-444-hosting-artifact-manifest/v1",
+  "source_revision": "444072ffdff2b7745345d88f71b603c17e11ace6",
+  "parent_artifact_revision": "a1fbcabf7f2caaeb0e666a281931a557c04f26cc",
+  "base_tree": "0a47cb5ecf564fda63f4058a7b548b8038c95fa3",
+  "artifact_only": true,
+  "no_public_app_url": true,
+  "files": [
+    {
+      "path": "handoff/backups/444-current/linux-hosting-v1/LAPTOP_CLOUD444_HOSTING_HANDOFF.md",
+      "mode": "100644",
+      "bytes": 6943,
+      "sha256": "fcfbb395db1621193d2e6cb4ec5da343b775fe38fc6d3aa2db8c83732af75495",
+      "git_blob": "ed7794b8163aaccf16102cff736536a11daba6c1"
+    },
+    {
+      "path": "handoff/backups/444-current/linux-hosting-v1/ORDER.md",
+      "mode": "100644",
+      "bytes": 6652,
+      "sha256": "f336938b6fdf4aa5d9bd496e898b077ae05071d0fd491801033a7a9b0a5717d7",
+      "git_blob": "8cffa78e389bf6b7fd22f4089ddf4f78048eb74f"
+    },
+    {
+      "path": "handoff/backups/444-current/linux-hosting-v1/BUILD_V2_ORDER.md",
+      "mode": "100644",
+      "bytes": 1837,
+      "sha256": "84a2cba2e5e56592501feb8e9769aecc8619db918e8d08670e5138134384b11e",
+      "git_blob": "04f140df29406072f34226ba961e5c3dc9a21660"
+    },
+    {
+      "path": "handoff/backups/444-current/linux-hosting-v1/RUNTIME_LAUNCH_PLAN.md",
+      "mode": "100644",
+      "bytes": 1728,
+      "sha256": "f63624d541ce116fcc3e373c23807ba9f69282579fef6a32b2bce611ee489cfd",
+      "git_blob": "11b77f2328856a7c33f520529633d159a2dd6a7f"
+    },
+    {
+      "path": "handoff/backups/444-current/linux-hosting-v1/candidate-compose.yml",
+      "mode": "100644",
+      "bytes": 2323,
+      "sha256": "fc7c69f3cc5019a0de0f64f6fc4e14bf9d34bb6cf239ce71e00d673f347ca75d",
+      "git_blob": "fd12186012a2e823493ba5c69414792d8973fcbc"
+    },
+    {
+      "path": "handoff/backups/444-current/linux-hosting-v1/EXISTING_SYNTHETIC_BINDING_METADATA.json",
+      "mode": "100644",
+      "bytes": 794,
+      "sha256": "be76fd696970cd6ae1091109f45f6a20b76fa5b8b6fd53ee4fc5d0556ca9f242",
+      "git_blob": "a6837c91953242fba778d0f1909b67701cab4fd6"
+    },
+    {
+      "path": "handoff/backups/444-current/linux-hosting-v1/ADMISSION_FAILURE_PIN_CORRECTION.json",
+      "mode": "100644",
+      "bytes": 381,
+      "sha256": "ae57ca0b1b6b428e260ad3f12e7ef7a3b2e65846f1762a6246c8987171a38fd8",
+      "git_blob": "72b7e62794270edc7ad217edf617fa8654fdaf44"
+    },
+    {
+      "path": "handoff/backups/444-current/linux-hosting-v1/IMAGE_BUILD_V1_FAILURE.json",
+      "mode": "100644",
+      "bytes": 137,
+      "sha256": "42bc6f8aa2e77f65fe1e05152601fa0e853a1b0ae92ef9d7854a9a2148c1b917",
+      "git_blob": "ef8a23c00eef8a6dbe4902be70c5e6ac7fbdada3"
+    },
+    {
+      "path": "handoff/backups/444-current/linux-hosting-v1/build_and_export_candidate.py",
+      "mode": "100644",
+      "bytes": 15642,
+      "sha256": "21c6ee07e446a2b3d9acc6257eb81476eb32b96348efc3cbf255b0982a446a93",
+      "git_blob": "bf52fb5564f8808fd5df286e6e14720c1a70d918"
+    },
+    {
+      "path": "handoff/backups/444-current/linux-hosting-v1/build_and_export_candidate_v2.py",
+      "mode": "100644",
+      "bytes": 15901,
+      "sha256": "d7ca7b4bcebca9ef49cace94641d6285163c71abcb9e5f3bb920f060480db925",
+      "git_blob": "72d6b7165b8b260023a72607d381ea6e2efef7e1"
+    },
+    {
+      "path": "handoff/backups/444-current/linux-hosting-v1/verify_candidate_oci.py",
+      "mode": "100644",
+      "bytes": 10219,
+      "sha256": "defba6c26ad8503ff34056ccefed668cbbd0ec37ace8b1333df142c64de79691",
+      "git_blob": "84c8e1b65b25ba800770ceedff19af5f52c6ec60"
+    },
+    {
+      "path": "handoff/backups/444-current/linux-hosting-v1/test_candidate_guards.py",
+      "mode": "100644",
+      "bytes": 7247,
+      "sha256": "9b0342d33288116aebd3768fe454ede75453665a57a4481e260c99a4f1e60115",
+      "git_blob": "c77c687558711f50c5a5171b6e6123889c0c44ab"
+    },
+    {
+      "path": "handoff/backups/444-current/linux-hosting-v1/test_candidate_v2_guards.py",
+      "mode": "100644",
+      "bytes": 2618,
+      "sha256": "ebf2471464e99888fbce27db74ca8c5a1d6bd984ff876c42da47b5fb0a69313c",
+      "git_blob": "c5a3f7c55c8d2191e14bd70611b22a4b1c39d4fa"
+    },
+    {
+      "path": "handoff/backups/444-current/linux-hosting-v1/launch_private_candidate.py",
+      "mode": "100644",
+      "bytes": 10309,
+      "sha256": "1f74ba5fa3fb4462401b3864320d0f68e1b2a3eab417c17fa352ab66d8765000",
+      "git_blob": "a243ab486b1c07096ca57fd8f19bcccc61388ec4"
+    },
+    {
+      "path": "handoff/backups/444-current/linux-hosting-v1/launch_private_candidate_v2.py",
+      "mode": "100644",
+      "bytes": 10598,
+      "sha256": "1e80b3483e6d879f12b39d709af5a0f9997ac931f0562920ecf240dfd704f7e7",
+      "git_blob": "24d30de3095f04f6526b5cb0142908918aefaab4"
+    },
+    {
+      "path": "handoff/backups/444-current/linux-hosting-v1/test_launch_candidate_guards.py",
+      "mode": "100644",
+      "bytes": 2475,
+      "sha256": "21e0a714c54ff1a37a85aa889836fdf446697bda8b197ec7664ff11722328850",
+      "git_blob": "55ec8a78d2eecbdecc2f98d163a684e2dbbd73d2"
+    },
+    {
+      "path": "handoff/backups/444-current/linux-hosting-v1/CANDIDATE_444_IMAGE_EXPORT_PROOF_V2.json",
+      "mode": "100644",
+      "bytes": 8055,
+      "sha256": "87f0960d33e32074fffd8a27ab14ef86b35b9e9f6952b5bb939bada37bb02211",
+      "git_blob": "8cfaea38a76058362a8d7ff5c5a74a6de31780b6"
+    },
+    {
+      "path": "handoff/backups/444-current/linux-hosting-v1/ACTUAL_PRIVATE_CANDIDATE_RUNTIME_PROOF.json",
+      "mode": "100644",
+      "bytes": 1912,
+      "sha256": "152c27b45b0a5f9a9bd75bdfc7470111de6645b3faad4476175e1fc19cad46f5",
+      "git_blob": "b7c60c5d04b4ae3f8c637500a859c79524759f6b"
+    },
+    {
+      "path": "handoff/backups/444-current/linux-hosting-v1/ACTUAL_PRIVATE_CANDIDATE_RUNTIME_PROOF_V2.json",
+      "mode": "100644",
+      "bytes": 5616,
+      "sha256": "78e37454d6093a1eeab5eff34e0b511ffa39fa8456964291ec01e334d0353e8b",
+      "git_blob": "f509eac08d5b821c365b18f40226ebdb69f655a2"
+    },
+    {
+      "path": "handoff/backups/444-current/linux-hosting-v1/FAILED_CANDIDATE_PRESERVATION_CHECK.json",
+      "mode": "100644",
+      "bytes": 869,
+      "sha256": "3272e0f096e69459ab4142b349b97e1c5df26de147736520305307e19293915a",
+      "git_blob": "bdb2e68ddbc395789b40b6f0e13aae3291b60657"
+    },
+    {
+      "path": "handoff/backups/444-current/linux-hosting-v1/ACTUAL_EXECUTION_REVIEW.md",
+      "mode": "100644",
+      "bytes": 1153,
+      "sha256": "3ddf84b6eb3fdeff57436e724cb4abd723caee49ad0a562ffcb93f06839c95b3",
+      "git_blob": "94a03ce77a3f56b3406c3b8f55a198a0e6a535d7"
+    },
+    {
+      "path": "handoff/backups/444-current/linux-hosting-v1/CI_444_ATTEMPT2_OBSERVATION.json",
+      "mode": "100644",
+      "bytes": 1771,
+      "sha256": "8cc2be09420f80a1d07367b55b4e3c9a5f92d661a0676cf8a8a070e1c8a8ea95",
+      "git_blob": "c80010a2b14945828bfeb33ad35b85e314a8f500"
+    },
+    {
+      "path": "handoff/backups/444-current/linux-hosting-v1/INDEPENDENT_CANDIDATE_444_REVIEW.md",
+      "mode": "100644",
+      "bytes": 3018,
+      "sha256": "b8d879b4d9566980ee71fd5cd5b91b837a0512bd9dc79b30fe657e6373c6b88d",
+      "git_blob": "bd37a4636b210bd110bfe45e81d0a4e140c5813b"
+    },
+    {
+      "path": "handoff/backups/444-current/linux-hosting-v1/INDEPENDENT_CANDIDATE_444_REVIEW.json",
+      "mode": "100644",
+      "bytes": 2981,
+      "sha256": "606cebee63ea033d3501f2ecb4bea9311ecb453048aa2a162048bbda8dcbc83f",
+      "git_blob": "d6cbcb571e40d2e0d599cbdd672473b27c972088"
+    },
+    {
+      "path": "handoff/backups/444-current/linux-hosting-v1/INDEPENDENT_CONVERTER_PIN_REVIEW.md",
+      "mode": "100644",
+      "bytes": 1001,
+      "sha256": "aa15b8fa0073975d20e0818819163ceb1ed958f6f4c2fc8c906296d8d91765a8",
+      "git_blob": "de1802f8fd492ea369e8115df270dec301d1eceb"
+    },
+    {
+      "path": "handoff/backups/444-current/linux-hosting-v1/INDEPENDENT_CONVERTER_PIN_REVIEW.json",
+      "mode": "100644",
+      "bytes": 1537,
+      "sha256": "0ea1bbb3d9b4ad1a924636d4c0b88ec4f1d38b844491b13b8da9c42990875aa7",
+      "git_blob": "5e7f778f88c4cab2317eeacd56d708429d3d28a6"
+    },
+    {
+      "path": "handoff/backups/444-current/linux-hosting-v1/INDEPENDENT_CANDIDATE_444_OCI_REVIEW.md",
+      "mode": "100644",
+      "bytes": 4164,
+      "sha256": "6653bcf18ed974d94687dc3e170092d9883e568a97860474f7249d457cf517f9",
+      "git_blob": "83d93932e4dc66ac96df1b8404e30290beca5df2"
+    },
+    {
+      "path": "handoff/backups/444-current/linux-hosting-v1/INDEPENDENT_CANDIDATE_444_OCI_REVIEW.json",
+      "mode": "100644",
+      "bytes": 9651,
+      "sha256": "62ee12b56d759c2c90fcbda1ec7b48997ebd696732646976dcd6b0c4c4762492",
+      "git_blob": "924718af5bc735362c16b79491d334d9d1582952"
+    },
+    {
+      "path": "handoff/backups/444-current/linux-hosting-v1/freeze_candidate_packet.py",
+      "mode": "100644",
+      "bytes": 6920,
+      "sha256": "2411b19a83d7348f57c408463ccceeb4d34896fa074fd4a2861fc634d2f4860c",
+      "git_blob": "62dd89d82686c27f62bcd689cb9b6b1a3db7bcf3"
+    },
+    {
+      "path": "handoff/backups/444-current/linux-hosting-v1/ngrok/SUPPORTED_NGROK_PLAN.md",
+      "mode": "100644",
+      "bytes": 4510,
+      "sha256": "2afb96cc9c3c2c170ceaf11a0e1778aeee45a8b1c7c3e1f758aef728453b1da3",
+      "git_blob": "ba84559af72edd85dd1b1898622502eaf3473773"
+    },
+    {
+      "path": "handoff/backups/444-current/linux-hosting-v1/ngrok/OPERATOR_HANDOFF.md",
+      "mode": "100644",
+      "bytes": 4966,
+      "sha256": "abbec0d36d97445b7b49d49345767cf665ffe0677bfb728f582052fb514c8c94",
+      "git_blob": "e9da5309a22a5c5dc8376ab4a2965a55b3925040"
+    },
+    {
+      "path": "handoff/backups/444-current/linux-hosting-v1/ngrok/NGROK_CAPABILITY_OBSERVATION.json",
+      "mode": "100644",
+      "bytes": 938,
+      "sha256": "8085956963dbeb9ea9709663ac0c0502722e0f2dcfd343ce262615a85bf9425f",
+      "git_blob": "15eac943883154d42cec5547b39f4fae9dd4860b"
+    },
+    {
+      "path": "handoff/backups/444-current/linux-hosting-v1/ngrok/NGROK_DOCUMENTED_PROXY_SUPPORT.json",
+      "mode": "100644",
+      "bytes": 13345,
+      "sha256": "bec6e5f9b6a318eaaa0165f823dcedeb11a9754a5a791fd5e5e037d631feb7e4",
+      "git_blob": "7c779ef256963bdc56c510f0ce282148eb231d3b"
+    },
+    {
+      "path": "handoff/backups/444-current/linux-hosting-v1/ngrok/OFFICIAL_DOWNLOAD_PAGE_OBSERVATION.json",
+      "mode": "100644",
+      "bytes": 289,
+      "sha256": "0b5b4db7ddf54fe9eb9286a7479e23f60e32805ca44136152e69586dc5c8f212",
+      "git_blob": "512e14e7d0a7c8d1200df2024dee548c4aa8aaf2"
+    },
+    {
+      "path": "handoff/backups/444-current/linux-hosting-v1/ngrok/OFFICIAL_AGENT_PROVENANCE.json",
+      "mode": "100644",
+      "bytes": 1001,
+      "sha256": "4cae331a413209e39e99b4fba77a2a904179c250e236ca9490495e37eea125de",
+      "git_blob": "9af65e53d2e64c8d80c91491d1320c48afa7dbc9"
+    },
+    {
+      "path": "handoff/backups/444-current/linux-hosting-v1/ngrok/OFFICIAL_OAUTH_DOC_OBSERVATION.json",
+      "mode": "100644",
+      "bytes": 259,
+      "sha256": "3d216abee89aa71389bb231f65a343b3583ebabe3823dc099a8f87d5b6feb312",
+      "git_blob": "7520a338836449f623aa202c761bc133190b81ea"
+    },
+    {
+      "path": "handoff/backups/444-current/linux-hosting-v1/ngrok/OFFICIAL_FIREWALL_DOC_OBSERVATION.json",
+      "mode": "100644",
+      "bytes": 410,
+      "sha256": "4f04d372b336fea5d8f384656c486e5f0bb5276a0816ad49eb6b6af02748489a",
+      "git_blob": "bc77a202660a44993ecdd9d290643fc0b240f64a"
+    },
+    {
+      "path": "handoff/backups/444-current/linux-hosting-v1/ngrok/LOCAL_CONFIG_VALIDATION.json",
+      "mode": "100644",
+      "bytes": 704,
+      "sha256": "c339132cead47a36ad30ab763b46686bfae3931f4e1bae6a5c4c3dac4eb30042",
+      "git_blob": "8529561a6250896097d139905db2b1fd90cd2662"
+    },
+    {
+      "path": "handoff/backups/444-current/linux-hosting-v1/ngrok/ngrok-config.template.json",
+      "mode": "100644",
+      "bytes": 1254,
+      "sha256": "51da769d350c5567c402f3ef6a07f120c028b4230563853ef29ff0f0546d8617",
+      "git_blob": "aaf2d9d17daecaad88acd1e6d6db4852bebeccff"
+    },
+    {
+      "path": "handoff/backups/444-current/linux-hosting-v1/ngrok/MANAGED_HTTPS_AGENT_HOST_CHECK.json",
+      "mode": "100644",
+      "bytes": 435,
+      "sha256": "ae942fbdcf566013ebdda766b6c616e2880e8a08417db09bb678463532ad5b91",
+      "git_blob": "749ad7f6670f5e979eea57fb12ef74998d28d985"
+    },
+    {
+      "path": "handoff/backups/444-current/linux-hosting-v1/ngrok/PLATFORM_BINDING_CAPABILITY_OBSERVATION.json",
+      "mode": "100644",
+      "bytes": 1631,
+      "sha256": "9b043c95da91bec8a67ce30344ff4226d5326ba0115833a4300e00cf988dab6b",
+      "git_blob": "a0bb81538dd15decef252a230a13709799621828"
+    },
+    {
+      "path": "handoff/backups/444-current/linux-hosting-v1/ngrok/INDEPENDENT_NGROK_PACKET_REVIEW.md",
+      "mode": "100644",
+      "bytes": 2302,
+      "sha256": "a73f966cdf6327155ae3b61f6edc91c25036ad2984d7c6d433b67ba0915a4a89",
+      "git_blob": "20b7d9f6f428747d7d9b944b81a2f3dc567ebb01"
+    },
+    {
+      "path": "handoff/backups/444-current/linux-hosting-v1/ngrok/INDEPENDENT_NGROK_PACKET_REVIEW.json",
+      "mode": "100644",
+      "bytes": 3227,
+      "sha256": "26b729f511eda0e2193274b210938ea5d301c126581b1cc211e27229aa61cd17",
+      "git_blob": "c597a91c87f5fa735495d02281cf0d2760b2aa87"
+    },
+    {
+      "path": "handoff/backups/444-current/linux-hosting-v1/ngrok/INDEPENDENT_NGROK_PACKET_REVIEW_CORRECTION.md",
+      "mode": "100644",
+      "bytes": 1266,
+      "sha256": "98fddfc881b7ebee194dde737af22269272922e67030226cb9ffca4b1da1f09d",
+      "git_blob": "d46ba9fb63b16e334608dca383fb6debb06ebc23"
+    },
+    {
+      "path": "handoff/backups/444-current/linux-hosting-v1/ngrok/INDEPENDENT_NGROK_PACKET_REVIEW_CORRECTION.json",
+      "mode": "100644",
+      "bytes": 1225,
+      "sha256": "e9c6313e7faa13babc5a81d7c60611f6d2214bf5b144bab46d26741580d2f69f",
+      "git_blob": "7aa1e715a10ec14415256e39d8ca0bfb59c747bf"
+    },
+    {
+      "path": "handoff/LEDGER.md",
+      "mode": "100644",
+      "bytes": 763900,
+      "sha256": "c424c359686e5552cb00083511a80be3f6d7e298f1af678d58096bb2c2aa458a",
+      "git_blob": "e5192f26b318d8ed03018a06b231d88cf0a85c55"
+    }
+  ],
+  "excluded": [
+    "all managed secret/env/proxy/CA configuration values",
+    "private agent config/log/token/binary",
+    "opaque Docker/OCI binaries/config",
+    "raw PostgreSQL dumps/data/logs",
+    "laptop dirty source/business data"
+  ]
+}

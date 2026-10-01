@@ -1,0 +1,60 @@
+services:
+  app:
+    image: "${YELLOW_CANDIDATE_IMAGE_ID:?root must supply the verified immutable candidate image ID}"
+    platform: linux/amd64
+    container_name: yellow-candidate-444-v1-app
+    pull_policy: never
+    restart: "no"
+    cpus: 1.0
+    mem_limit: 1g
+    ports:
+      - "127.0.0.1:53018:3000"
+    labels:
+      com.yellow.proof.job: RELEASE-20261001-candidate-444-runtime
+      com.yellow.proof.source: 444072ffdff2b7745345d88f71b603c17e11ace6
+      com.yellow.proof.nonce: "${CANDIDATE_444_NONCE:?root must supply a fresh nonsecret ownership nonce}"
+    environment:
+      NODE_ENV: production
+      HOST: "0.0.0.0"
+      PORT: "3000"
+      YELLOW_BUILD_SHA: 444072ffdff2b7745345d88f71b603c17e11ace6
+      YELLOW_OPERATOR_ALLOW_NON_LOOPBACK: "1"
+      YELLOW_OPERATOR_WORKBENCH: "1"
+      YELLOW_LOCAL_REVIEW_PREFILL: "0"
+      YELLOW_LOCAL_REVIEW_TENANT: ""
+      YELLOW_LOCAL_REVIEW_EMAIL: ""
+      YELLOW_LOCAL_REVIEW_PASSWORD: ""
+      YELLOW_HOSTED_DEPOSIT_WORKBENCH: "0"
+      YELLOW_HOSTED_PROVIDER_ONLY: "0"
+      YELLOW_PUBLIC_DEMO_AUTOMATIC_LOGIN: "0"
+      YELLOW_RUNTIME_DATABASE_URL: "postgres://yellow_runtime:${YELLOW_RUNTIME_DATABASE_PASSWORD:?required}@postgres:5432/yellow_dev"
+      YELLOW_EXTENSION_REGISTRAR_DATABASE_URL: "postgres://yellow_extension_registrar:${YELLOW_EXTENSION_REGISTRAR_DATABASE_PASSWORD:?required}@postgres:5432/yellow_dev"
+      YELLOW_TOKEN_SECRET: "${YELLOW_TOKEN_SECRET:?required}"
+      YELLOW_HOLD_EXPIRY_WORKER: "0"
+      YELLOW_AVAILABILITY_PROJECTION_WORKER: "0"
+      YELLOW_PICKUP_TASK_WORKER: "0"
+      YELLOW_RESERVATION_ARRIVAL_ROLL_WORKER: "0"
+      YELLOW_RESERVATION_DEPARTURE_ROLL_WORKER: "0"
+      YELLOW_BUSINESS_DAY_ROLL_WORKER: "0"
+      YELLOW_FISCAL_SUBMISSION_WORKER: "0"
+      YELLOW_HOSTED_DEPOSIT_CALLBACK_SECRET: ""
+      YELLOW_HOSTED_PROVIDER_ORIGIN: "http://127.0.0.1:3001"
+      YELLOW_HOSTED_GUEST_ORIGIN: "http://127.0.0.1:53018"
+    networks:
+      - shared-synthetic
+    healthcheck:
+      test:
+        - CMD
+        - bun
+        - -e
+        - >-
+          const response = await fetch("http://127.0.0.1:3000/health");
+          if (response.status !== 200) process.exit(1);
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+networks:
+  shared-synthetic:
+    external: true
+    name: yellow-b9-linux-20261001-v2-bridge
