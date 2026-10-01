@@ -1,0 +1,82 @@
+{
+  "kind": "final-required-ci-verification",
+  "repository": "dcpnode-maker/yellow",
+  "source": "9ff27ad8765dc75ebae9e083d4635c7a9b89fa62",
+  "tree": "4311a79c0c9ffc33877809162b1b38ae1b3c944a",
+  "sourceCommit": {
+    "sha": "9ff27ad8765dc75ebae9e083d4635c7a9b89fa62",
+    "tree": "4311a79c0c9ffc33877809162b1b38ae1b3c944a",
+    "parents": [
+      "58cd09ad13987bafb6068ab72a753746a555bfa5"
+    ]
+  },
+  "run": {
+    "id": 36842043047,
+    "runNumber": 269,
+    "attempt": 1,
+    "status": "completed",
+    "conclusion": "success",
+    "event": "pull_request",
+    "headSha": "9ff27ad8765dc75ebae9e083d4635c7a9b89fa62"
+  },
+  "pr": {
+    "number": 98,
+    "state": "open",
+    "draft": true,
+    "merged": false,
+    "headRef": "phase-7/release-local-gates-20261001",
+    "headSha": "9ff27ad8765dc75ebae9e083d4635c7a9b89fa62",
+    "baseRef": "codex/live-order611-source-v2",
+    "baseSha": "d708ff29e2e44df74a5c1a12e58a8cf656b14c8d"
+  },
+  "syntheticMerge": {
+    "sha": "0a02522dc90fe2088733d9fba90faac6ef892890",
+    "tree": "4311a79c0c9ffc33877809162b1b38ae1b3c944a",
+    "parents": [
+      "d708ff29e2e44df74a5c1a12e58a8cf656b14c8d",
+      "9ff27ad8765dc75ebae9e083d4635c7a9b89fa62"
+    ],
+    "treeMatchesSource": true
+  },
+  "jobs": [
+    {
+      "id": 110303186925,
+      "name": "quality",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 110303187269,
+      "name": "windows-state",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 110303187485,
+      "name": "local-review",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 110304183573,
+      "name": "container-smoke",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 110304183778,
+      "name": "database",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 110304183876,
+      "name": "free-host-arm64",
+      "status": "completed",
+      "conclusion": "success"
+    }
+  ],
+  "allSixRequiredGatesSucceeded": true,
+  "observedUtc": "2026-10-01 09:52:46 UTC",
+  "verification": "GitHub Actions run endpoint, full six-job list, PR metadata, source commit tree/parent and synthetic merge commit tree/parents were checked. No workflow logs were fetched because no gate failed."
+}

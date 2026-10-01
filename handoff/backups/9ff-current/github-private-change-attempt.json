@@ -1,0 +1,9 @@
+{
+  "observedUtc": "2026-10-01T09:54:39.031954+00:00",
+  "userAuthorizedChange": "Yellow repository public->private",
+  "command": "gh api --method PATCH repos/dcpnode-maker/yellow --field private=true",
+  "exitCode": 1,
+  "credentialsReadPrintedOrPassed": false,
+  "result": "failed",
+  "httpError": "403 forbidden"
+}

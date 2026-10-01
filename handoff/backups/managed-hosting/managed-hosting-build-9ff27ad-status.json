@@ -1,0 +1,58 @@
+{
+  "jobId": "HOSTING-20261001-managed-image-9ff27ad-v1",
+  "state": "succeeded",
+  "source": "9ff27ad8765dc75ebae9e083d4635c7a9b89fa62",
+  "tree": "4311a79c0c9ffc33877809162b1b38ae1b3c944a",
+  "tag": "yellow-managed:9ff27ad8765dc75ebae9e083d4635c7a9b89fa62",
+  "target": "runtime",
+  "sourceArchive": "source-context-9ff27ad.tar",
+  "sourceArchiveSha256": "e1b67fb64117efc211f2dcfac537f58f6b3bcde5a0045f11d3a5fbc10b5c8119",
+  "sourceManifestSha256": "58999763b2b6bf16330e870781c640e539f1c8d2af51a689a49cf80981543be1",
+  "adapterDockerfileSha256": "7140f4c927df646cda538e5167c25292363c08154d8354db5763fc31efe929bb",
+  "pid": 814630,
+  "dockerPid": 814712,
+  "startedUtc": "2026-10-01T09:39:05.353579+00:00",
+  "finishedUtc": "2026-10-01T09:39:07.769831+00:00",
+  "exitCode": 0,
+  "timeoutSeconds": 300,
+  "imageProof": {
+    "imageId": "sha256:103cafd6ad6ca67c8ba4b41098c09cd325d3ac705e4867707b9f9ec49f9dc1f0",
+    "os": "linux",
+    "architecture": "amd64",
+    "revision": "9ff27ad8765dc75ebae9e083d4635c7a9b89fa62",
+    "user": "bun"
+  },
+  "oldAppBefore": {
+    "container": "fe96ec05f4db",
+    "inspect": "fe96ec05f4db113a5935c0d7e0f38aa6445b9ca16995c073195e399edcea4599|sha256:35f7d5d121eec9ae34ad1c991bc40bc6474939610938a29383ecd30b65b63c8f|true|yellow-catalogue-referee-app|{\"3000/tcp\":[{\"HostIp\":\"127.0.0.1\",\"HostPort\":\"53007\"}]}"
+  },
+  "oldAppAfter": {
+    "container": "fe96ec05f4db",
+    "inspect": "fe96ec05f4db113a5935c0d7e0f38aa6445b9ca16995c073195e399edcea4599|sha256:35f7d5d121eec9ae34ad1c991bc40bc6474939610938a29383ecd30b65b63c8f|true|yellow-catalogue-referee-app|{\"3000/tcp\":[{\"HostIp\":\"127.0.0.1\",\"HostPort\":\"53007\"}]}"
+  },
+  "automaticRetry": false,
+  "deployment": false,
+  "databaseWrites": false,
+  "publicRoute": false,
+  "appStart": false,
+  "sourceArchiveBytes": 9953280,
+  "emptyDockerConfig": false,
+  "homeOverridden": false,
+  "inheritedManagedConfigurationPreserved": true,
+  "clearDockerSelectors": [
+    "DOCKER_HOST",
+    "DOCKER_CONTEXT",
+    "DOCKER_TLS",
+    "DOCKER_TLS_VERIFY",
+    "DOCKER_CERT_PATH"
+  ],
+  "dockerEndpoint": "unix:///var/run/docker.sock",
+  "proxyCaSelectorPresent": true,
+  "nativeDockerPlatform": "linux/x86_64",
+  "runnerNativeArchitecture": "amd64",
+  "contextPathCount": 414,
+  "contextBytes": 9618909,
+  "buildLogBytesCaptured": 1796,
+  "buildLogBytesObserved": 1796,
+  "disposition": "managed image built only; root must independently inspect; not deployed or started"
+}

@@ -1,0 +1,26 @@
+{
+  "observedUtc": "2026-10-01T09:41:55.510637+00:00",
+  "reviewer": "Root nonbuilder personally executed actual image audit",
+  "source": "9ff27ad8765dc75ebae9e083d4635c7a9b89fa62",
+  "sourceTree": "4311a79c0c9ffc33877809162b1b38ae1b3c944a",
+  "imageId": "sha256:103cafd6ad6ca67c8ba4b41098c09cd325d3ac705e4867707b9f9ec49f9dc1f0",
+  "platform": "linux/amd64",
+  "runtimeUser": "bun",
+  "bunVersion": "1.3.14",
+  "allRuntimeSourceFilesExactlyMatchGit": true,
+  "runtimeSourceFileCount": 272,
+  "runtimeSourceManifestSha256": "2bc27d310d54525fd4d54ffdb641e1fc895da6e63ffef93f25cb698a454de976",
+  "noSessionCAConfigOrAuthorityFilesAtForbiddenPaths": true,
+  "temporaryAuditContainersNetworkNoneAndRemoved": true,
+  "oldAppIdentityUnchanged": true,
+  "ownedBuildPidsAbsent": true,
+  "databaseWrites": false,
+  "publicRoute": false,
+  "deployment": false,
+  "imageVariant": "Managed build adapter adds only BuildKit CA trust mount to frozen production install. Not a byte-identical canonical CI image claim.",
+  "remaining": [
+    "Controller-accepted latest integrated laptop source",
+    "Secure route/tester restriction",
+    "One authoritative dataset and retained tested off-host recovery"
+  ]
+}

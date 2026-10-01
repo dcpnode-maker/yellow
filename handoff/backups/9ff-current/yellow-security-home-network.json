@@ -1,0 +1,62 @@
+{
+  "recordedUtc": "2026-10-01T09:52:35.810603+00:00",
+  "controllerSession": "01a0ecbc-469b-7671-b1d1-d3e6bab40c98",
+  "yellowSecurityScope": {
+    "allowed": [
+      "Yellow repository visibility/access",
+      "Yellow app/API auth and infrastructure exposure",
+      "Cloudflare app-specific routing/tester restrictions"
+    ],
+    "excluded": [
+      "CompSetStudio and its research/data/config",
+      "Phone coordinator modifications",
+      "Source/App/settings/portfolio changes without separate reviewed order"
+    ]
+  },
+  "daybreakBlue": "No matching callable tool or plugin found by Daybreak Blue and Daybreak searches; no Daybreak scan claim.",
+  "codexSecurity": "Advisory TAC statusunknown; skillsupportingprologue/core references did not load; formal scan preflight unavailable. This is not a denial of routine defensive configuration checks.",
+  "github": {
+    "verifiedVisibility": "public",
+    "repository": "dcpnode-maker/yellow",
+    "metadataPermissionsAdmin": true,
+    "availableConnectedTools": "Metadata reports admin but repository settings mutation is absent; fetch is GET-only. CLI PATCH403. No credential extraction or password login.",
+    "authorizedUserRequest": "Make Yellow private; controller needs a legitimate authenticated admin path. No purchased credits/spending.",
+    "authorizedPrivateAttempt": {
+      "at": "2026-10-01T09:54:39Z",
+      "httpStatus": 403,
+      "exitCode": 1
+    },
+    "readback": "Connected GitHub GET after attempted settings update still reports public/privatefalse"
+  },
+  "homeNetwork": {
+    "separateAuthorizedScope": "Human home JioFiber router -> Ethernet RJ45 -> TendaAC10 WAN; reported100Mbps.",
+    "notObservableFromCloud": "No home VPN/private TCP grant/session. Do not scan cloudloopback as ifhome or inventaccess.",
+    "laptopReadOnlyInputsNeeded": [
+      "Measured upload/download versus confirmed100Mbps plan; active laptop Ethernet vs Wi-Fi",
+      "ExactJio andTenda model/hardware/firmware versions",
+      "Ethernet adapter/linknegotiation onJio-Tenda cable path; all8conductors/Cat5e+",
+      "Currentrouter/AP modes,DHCP ranges,doubleNAT andgateway routes (no passwords)",
+      "2.4/5GHz channel,width,location/clientband/RSSI andcrowding",
+      "Controlled wiredbaseline +sameclient5GHz upload/download/idle+loaded latency/loss"
+    ],
+    "safeInitialPolicy": [
+      "Preserve configuration and ongoing jobs before router changes",
+      "Do not reboot/reset routers, disable firewall, enableDMZ or exposeadmin/SSH",
+      "Do not migrate businessDB or duplicateapp route",
+      "Symmetry/SLA determined by ISPplan; tuning doesnot create leased-linecapacity"
+    ],
+    "confirmedPlanMbps": 100,
+    "confirmedLaptopConnection": "Laptop behind Tenda; wired vs Wi-Fi not yet established; Jio upstream",
+    "measurementsPerformed": false,
+    "upgradeDecision": "Measure direct-Jio/Tenda-wired/Tenda-Wi-Fi and loaded latency first; flag Wi-Fi6 vs faster-plan only if actual bottleneck supports it",
+    "officialReferences": [
+      "https://static.tenda.com.cn/tdeweb/download/AC10/AC10V4.0%20User%20Guide.pdf",
+      "https://static.tenda.com.cn/tdeweb/download/AC10V3.0/AC10V3.0_User%20Guide.pdf",
+      "https://www.tendacn.com/product/support/AC10v60",
+      "https://www.jio.com/help/faq/jiofiber/postpaid-offerings/about-postpaid/what-are-the-key-benefits-of-jiofiber-postpaid-offer/",
+      "https://www.jio.com/business/services/connectivity/internet-leased-line/"
+    ]
+  },
+  "passwordHandling": "User shared password was not stored in this artifact, passed to models/tools, or used. Recommend rotation.",
+  "updatedUtc": "2026-10-01T10:12:43.121274+00:00"
+}

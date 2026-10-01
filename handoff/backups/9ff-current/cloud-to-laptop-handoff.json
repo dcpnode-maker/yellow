@@ -1,0 +1,504 @@
+{
+  "schema": "yellow.cloud-source-handoff.v1",
+  "observedUtc": "2026-10-01T09:22:03.861440+00:00",
+  "sourceSha": "9ff27ad8765dc75ebae9e083d4635c7a9b89fa62",
+  "treeSha": "4311a79c0c9ffc33877809162b1b38ae1b3c944a",
+  "parentSha": "58cd09ad13987bafb6068ab72a753746a555bfa5",
+  "branch": "phase-7/release-local-gates-20261001",
+  "pr": "https://github.com/dcpnode-maker/yellow/pull/98",
+  "draft": true,
+  "merged": false,
+  "controller": "Laptop session01a0ecbc-469b-7671-b1d1-d3e6bab40c98",
+  "exactChangedFilesSince58": [
+    {
+      "path": "tests/operator-workspace-layout.browser.test.ts",
+      "mode": "100644",
+      "sha": "2f6446e3743a8eedc4ba4cfcd0f651ba5a371628",
+      "bytes": 70471,
+      "sha256": "ec9f6cf9ed1b2df9958d1a003171c47df996a469030372987079871b73f318cf"
+    },
+    {
+      "path": "tests/helpers/owned-cdp-proof-lifecycle.ts",
+      "mode": "100644",
+      "sha": "283d514b774107f873c846dc322c0f106efc16d7",
+      "bytes": 5227,
+      "sha256": "763d4106889cad956a9be19bfef6034660c8cec1eb8dd758849709b9435c254b"
+    },
+    {
+      "path": "tests/owned-cdp-proof-lifecycle.test.ts",
+      "mode": "100644",
+      "sha": "2b16ca08b23f71c8cf394d245cd5cd6fa251c9df",
+      "bytes": 3220,
+      "sha256": "644ce18dd2ad5edcaa68fb306c48bb12cf139d62cf4899482b4309d4c5bf024d"
+    },
+    {
+      "path": "handoff/orders/RELEASE-20261001-owned-cdp-lifecycle.md",
+      "mode": "100644",
+      "sha": "53ede8551847e46981ffa2a3a7f29df7471ded2e",
+      "bytes": 3040,
+      "sha256": "22548d6619f23c7330e88e1dcfc44ac7c81368f1e243b82456317ea896640837"
+    },
+    {
+      "path": "handoff/questions/RELEASE-20261001-owned-cdp-lifecycle.md",
+      "mode": "100644",
+      "sha": "ab4c36b3a95fd0cade0b122b2a4a8683c03e1c6f",
+      "bytes": 558,
+      "sha256": "b389fe7c19e2688ed8a0434704a56e06fd2a62e45e8088510db5dcd3c458b080"
+    },
+    {
+      "path": "handoff/reviews/RELEASE-20261001-owned-cdp-lifecycle.md",
+      "mode": "100644",
+      "sha": "c93ec035226d49be7c0154766d392dcef1ac2f4c",
+      "bytes": 3886,
+      "sha256": "5121e8fc30714c55d834e19c0f4520da394f03fe0c39b90ae7457c61f1abb2e3"
+    },
+    {
+      "path": "DECISIONS.log",
+      "mode": "100644",
+      "sha": "3ba34a680a78484cd765ea0830a3d883cc299975",
+      "bytes": 1337909,
+      "sha256": "93e121fc0f0f00be9b8eb08d0ab836b4cc0496c90521caeb89e14ba77eeb571a"
+    },
+    {
+      "path": "handoff/LEDGER.md",
+      "mode": "100644",
+      "sha": "295899b1f5b4536ef32d18b47531bb1b7d36c418",
+      "bytes": 756755,
+      "sha256": "9ebed3856fad4182831b5096ec428c23e9fa1dc085e019a786e0cf61fa182a79"
+    }
+  ],
+  "filesVsLaptopCommittedE06": [
+    ".codex/config.toml",
+    ".github/workflows/ci.yml",
+    "DECISIONS.log",
+    "docker-compose.yml",
+    "docs/CONTRACTS.md",
+    "frontend/yellow/src/workspaces/ReservationWorkspace.tsx",
+    "frontend/yellow/vite.config.ts",
+    "handoff/LEDGER.md",
+    "handoff/orders/CRM-20260930-department-routing-queue.md",
+    "handoff/orders/CRM-20260930-departure-dispatch-queue.md",
+    "handoff/orders/INTEGRATION-20260930-reviewed-yellow-composition.md",
+    "handoff/orders/PMS-20260930-physical-offer-contract.md",
+    "handoff/orders/PMS-CRS-20260930-staff-offer-search.md",
+    "handoff/orders/POLICY-20260930-0bsd-license.md",
+    "handoff/orders/PR-FIX-001-open-pull-request-repairs.md",
+    "handoff/orders/PROFILE-20260930-public-property-evidence.md",
+    "handoff/orders/PROOF-20260930-current100-catalogue.md",
+    "handoff/orders/PROOF-20260930-inherited-fixtures.md",
+    "handoff/orders/RELEASE-20261001-arm64-image-index.md",
+    "handoff/orders/RELEASE-20261001-ci-successor.md",
+    "handoff/orders/RELEASE-20261001-containment-frontier.md",
+    "handoff/orders/RELEASE-20261001-credit-delivery-catalogue.md",
+    "handoff/orders/RELEASE-20261001-local-gates.md",
+    "handoff/orders/RELEASE-20261001-owned-cdp-lifecycle.md",
+    "handoff/orders/RELEASE-20261001-pg18-schema-snapshot.md",
+    "handoff/orders/RELEASE-20261001-series-frontier.md",
+    "handoff/orders/RELEASE-20261001-series-reference.md",
+    "handoff/questions/PROOF-20260930-current100-catalogue.md",
+    "handoff/questions/PROOF-20260930-inherited-fixtures.md",
+    "handoff/questions/RELEASE-20261001-arm64-image-index.md",
+    "handoff/questions/RELEASE-20261001-ci-successor.md",
+    "handoff/questions/RELEASE-20261001-containment-frontier.md",
+    "handoff/questions/RELEASE-20261001-credit-delivery-catalogue.md",
+    "handoff/questions/RELEASE-20261001-local-gates.md",
+    "handoff/questions/RELEASE-20261001-owned-cdp-lifecycle.md",
+    "handoff/questions/RELEASE-20261001-pg18-schema-snapshot.md",
+    "handoff/questions/RELEASE-20261001-series-frontier.md",
+    "handoff/questions/RELEASE-20261001-series-reference.md",
+    "handoff/reviews/CRM-20260930-department-routing-queue.md",
+    "handoff/reviews/CRM-20260930-departure-dispatch-queue.md",
+    "handoff/reviews/INTEGRATION-20260930-reviewed-yellow-composition.md",
+    "handoff/reviews/PMS-20260930-physical-offer-contract.md",
+    "handoff/reviews/PMS-CRS-20260930-staff-offer-search.md",
+    "handoff/reviews/POLICY-20260930-0bsd-license.md",
+    "handoff/reviews/PR-FIX-001.md",
+    "handoff/reviews/PROFILE-20260930-public-property-evidence.md",
+    "handoff/reviews/PROOF-20260930-current100-catalogue.md",
+    "handoff/reviews/PROOF-20260930-inherited-fixtures.md",
+    "handoff/reviews/RELEASE-20261001-arm64-image-index.md",
+    "handoff/reviews/RELEASE-20261001-ci-successor.md",
+    "handoff/reviews/RELEASE-20261001-containment-frontier.md",
+    "handoff/reviews/RELEASE-20261001-credit-delivery-catalogue.md",
+    "handoff/reviews/RELEASE-20261001-local-gates.md",
+    "handoff/reviews/RELEASE-20261001-owned-cdp-lifecycle.md",
+    "handoff/reviews/RELEASE-20261001-pg18-schema-snapshot.md",
+    "handoff/reviews/RELEASE-20261001-series-frontier.md",
+    "handoff/reviews/RELEASE-20261001-series-reference.md",
+    "public/yellow-next/assets/EcosystemHub-CQ8V9z1H.js",
+    "public/yellow-next/assets/EcosystemHub-EDFkSayR.js",
+    "public/yellow-next/assets/FinanceWorkspace-CDi8-L7A.js",
+    "public/yellow-next/assets/FinanceWorkspace-CXh0JO34.js",
+    "public/yellow-next/assets/MarketIntelligenceLab-BCj8VG4l.js",
+    "public/yellow-next/assets/MarketIntelligenceLab-D37DcWhA.js",
+    "public/yellow-next/assets/OperationalHub-D_iEuzyX.js",
+    "public/yellow-next/assets/OperationalHub-DyYEhd6J.js",
+    "public/yellow-next/assets/OptionsDrawer-BJ5GciDZ.js",
+    "public/yellow-next/assets/OptionsDrawer-D-YbGgGk.js",
+    "public/yellow-next/assets/ReservationWorkspace-CuqJRPi9.js",
+    "public/yellow-next/assets/ReservationWorkspace-wSlqY8Me.js",
+    "public/yellow-next/assets/StatusBadge-BVqcWEJO.js",
+    "public/yellow-next/assets/StatusBadge-Dav-a6et.js",
+    "public/yellow-next/assets/index-BSevgplG.js",
+    "public/yellow-next/assets/index-BZRdwTST.js",
+    "public/yellow-next/assets/react-runtime-CR5VJ85Q.js",
+    "public/yellow-next/assets/react-runtime-DRp6H2Fp.js",
+    "public/yellow-next/assets/vendor-CNqRKreC.js",
+    "public/yellow-next/assets/vendor-DD35e0mo.js",
+    "public/yellow-next/assets/yellow-app-C73-485U.js",
+    "public/yellow-next/index.html",
+    "scripts/check-container-image-pins.ts",
+    "scripts/license-check.ts",
+    "scripts/local-review.sh",
+    "scripts/research/property-profile-capture.ts",
+    "scripts/run-order444-native-review-bounded.ps1",
+    "setup.ps1",
+    "setup.sh",
+    "src/app.ts",
+    "src/contexts/distribution/index.ts",
+    "src/contexts/distribution/property-profile-candidate-evidence.ts",
+    "src/contexts/distribution/property-profile-public-capture.ts",
+    "src/contexts/reservations/offers.ts",
+    "src/contexts/stay-operations/departure-service-coordination.ts",
+    "src/http/crs-search.ts",
+    "src/http/departure-services-query.ts",
+    "src/http/operator.ts",
+    "src/kernel/build-info.ts",
+    "tests/build-readiness.integration.test.ts",
+    "tests/build-readiness.test.ts",
+    "tests/cdp-invoke.test.ts",
+    "tests/chromium-path.test.ts",
+    "tests/container-image-pins.test.ts",
+    "tests/crm-20260930-department-routing.integration.test.ts",
+    "tests/crm-20260930-departure-dispatch-queue.integration.test.ts",
+    "tests/crm-20260930-routing-query.test.ts",
+    "tests/database-acceptance.integration.test.ts",
+    "tests/fiscal-retry-readiness.integration.test.ts",
+    "tests/fixtures/india-native-credit-delivery-fixture.ts",
+    "tests/free-host-arm64.test.ts",
+    "tests/helpers/cdp-invoke.ts",
+    "tests/helpers/chromium-path.ts",
+    "tests/helpers/owned-cdp-proof-lifecycle.ts",
+    "tests/india-gst-accommodation-final-component-tax-recording.integration.test.ts",
+    "tests/india-gst-accommodation-quoted-rate-applicability-recording.integration.test.ts",
+    "tests/india-native-credit-delivery-upgrade.integration.test.ts",
+    "tests/india-native-fiscal-series-authority.integration.test.ts",
+    "tests/license-check.test.ts",
+    "tests/migrate.integration.test.ts",
+    "tests/native-fiscal-release-containment.integration.test.ts",
+    "tests/operator-folio-separate-charges-label.intentional-red.test.ts",
+    "tests/operator-invoices.browser.test.ts",
+    "tests/operator-workspace-layout.browser.test.ts",
+    "tests/order444-native-review.test.ts",
+    "tests/order609-reservation-create-edit.browser.test.ts",
+    "tests/order609-reservation-create-edit.test.ts",
+    "tests/order610-reservation-transitions.browser.test.ts",
+    "tests/order610-reservation-transitions.test.ts",
+    "tests/order611-operational-timeline.test.ts",
+    "tests/owned-cdp-proof-lifecycle.test.ts",
+    "tests/pms-20260930-physical-offers.integration.test.ts",
+    "tests/pms-20260930-physical-offers.test.ts",
+    "tests/pms-crs-20260930-staff-search.http.test.ts",
+    "tests/pms-crs-20260930-staff-search.integration.test.ts",
+    "tests/pms-crs-20260930-staff-search.test.ts",
+    "tests/property-profile-candidate-evidence.test.ts",
+    "tests/property-profile-public-capture.test.ts",
+    "tests/release-workflow.test.ts",
+    "tests/reservation-board.integration.test.ts",
+    "tests/reservation-offers.integration.test.ts",
+    "tests/runtime-storage-containment.test.ts",
+    "tests/schema/expected.sql",
+    "tests/setup-current-catalogue-oracle.test.ts",
+    "tests/yellow-ai-speech-consent.test.ts",
+    "tests/yellow-departure-coordination.browser.test.ts",
+    "tests/yellow-frontend-bundle-splitting.test.ts",
+    "tests/yellow-reservation-finance-entry.test.ts"
+  ],
+  "latestDeltaPatch": {
+    "path": "/workspace/yellow-coordination/release-20261001/reviewed-owned-cdp-9ff27ad-from-58cd.patch",
+    "bytes": 40136,
+    "sha256": "12623c6598e0100c1ea0a686c4e2fb87c67ec524f39a53e95724adaf50080b67"
+  },
+  "proof": {
+    "focused": {
+      "path": "/workspace/yellow-coordination/release-20261001/owned-cdp-review-focused.json",
+      "sha256": "ab160d2c2659eac19e423065c516f717ede38c9ec983d3ad7375ae4b835f8634",
+      "result": {
+        "exitCode": 0,
+        "seconds": 15.64,
+        "command": [
+          "bun",
+          "test",
+          "tests/owned-cdp-proof-lifecycle.test.ts",
+          "tests/chromium-path.test.ts",
+          "tests/operator-workspace-layout.browser.test.ts",
+          "tests/native-review-resume.test.ts"
+        ],
+        "sourceBasis": "58cd09ad13987bafb6068ab72a753746a555bfa5",
+        "candidateHashes": {
+          "tests/operator-workspace-layout.browser.test.ts": "ec9f6cf9ed1b2df9958d1a003171c47df996a469030372987079871b73f318cf",
+          "tests/helpers/owned-cdp-proof-lifecycle.ts": "763d4106889cad956a9be19bfef6034660c8cec1eb8dd758849709b9435c254b",
+          "tests/owned-cdp-proof-lifecycle.test.ts": "644ce18dd2ad5edcaa68fb306c48bb12cf139d62cf4899482b4309d4c5bf024d"
+        },
+        "hashesUnchangedAfter": true,
+        "summary": [
+          "[Order459] {\"stage\":\"proof-start\",\"viewportCount\":5}",
+          "[Order459] {\"stage\":\"browser-selected\",\"platform\":\"linux\",\"executable\":\"chromium\"}",
+          "[Order459] {\"stage\":\"devtools-port-wait\",\"profileName\":\"chrome\",\"maxWaitMs\":20000}",
+          "[Order459] {\"stage\":\"devtools-port-ready\",\"port\":40685}",
+          "[Order459] {\"stage\":\"target-created\",\"transportDeadlineMs\":5000}",
+          "[Order459] {\"stage\":\"debugger-connected\",\"timeoutMs\":5000}",
+          "[Order459] {\"stage\":\"viewport-start\",\"width\":1440,\"height\":900,\"skin\":\"ledger\"}",
+          "[Order459] {\"stage\":\"viewport-complete\",\"width\":1440,\"height\":900,\"skin\":\"ledger\"}",
+          "[Order459] {\"stage\":\"viewport-start\",\"width\":1024,\"height\":768,\"skin\":\"orbit\"}",
+          "[Order459] {\"stage\":\"viewport-complete\",\"width\":1024,\"height\":768,\"skin\":\"orbit\"}",
+          "[Order459] {\"stage\":\"viewport-start\",\"width\":375,\"height\":844,\"skin\":\"index\"}",
+          "[Order459] {\"stage\":\"viewport-complete\",\"width\":375,\"height\":844,\"skin\":\"index\"}",
+          "[Order459] {\"stage\":\"viewport-start\",\"width\":390,\"height\":844,\"skin\":\"forced-colors-reduced-motion\"}",
+          "[Order459] {\"stage\":\"viewport-complete\",\"width\":390,\"height\":844,\"skin\":\"forced-colors-reduced-motion\"}",
+          "[Order459] {\"stage\":\"viewport-start\",\"width\":390,\"height\":844,\"skin\":\"font-fallback\"}",
+          "[Order459] {\"stage\":\"viewport-complete\",\"width\":390,\"height\":844,\"skin\":\"font-fallback\"}",
+          "13 pass",
+          "0 fail",
+          "1148 expect() calls",
+          "[owned-subreaper] orphan children reaped: 2"
+        ],
+        "log": "/workspace/yellow-coordination/release-20261001/owned-cdp-review-focused.log",
+        "sha256": "440c59cdf9003ac987be6afbe5c5e800f03b903b6da665962265dc041e664437",
+        "cpuAffinity": [
+          0,
+          1
+        ]
+      }
+    },
+    "standing": {
+      "path": "/workspace/yellow-coordination/release-20261001/owned-cdp-review-standing.json",
+      "sha256": "bd25304443b70a49c4c811b606642db2c9c52ccfea78326676adf6efaa2c2c1a",
+      "result": {
+        "exitCode": 0,
+        "seconds": 63.802,
+        "command": [
+          "bun",
+          "test"
+        ],
+        "sourceBasis": "58cd09ad13987bafb6068ab72a753746a555bfa5",
+        "candidateHashes": {
+          "tests/operator-workspace-layout.browser.test.ts": "ec9f6cf9ed1b2df9958d1a003171c47df996a469030372987079871b73f318cf",
+          "tests/helpers/owned-cdp-proof-lifecycle.ts": "763d4106889cad956a9be19bfef6034660c8cec1eb8dd758849709b9435c254b",
+          "tests/owned-cdp-proof-lifecycle.test.ts": "644ce18dd2ad5edcaa68fb306c48bb12cf139d62cf4899482b4309d4c5bf024d"
+        },
+        "hashesUnchangedAfter": true,
+        "summary": [
+          "[Order459] {\"stage\":\"proof-start\",\"viewportCount\":5}",
+          "[Order459] {\"stage\":\"browser-selected\",\"platform\":\"linux\",\"executable\":\"chromium\"}",
+          "[Order459] {\"stage\":\"devtools-port-wait\",\"profileName\":\"chrome\",\"maxWaitMs\":20000}",
+          "[Order459] {\"stage\":\"devtools-port-ready\",\"port\":36927}",
+          "[Order459] {\"stage\":\"target-created\",\"transportDeadlineMs\":5000}",
+          "[Order459] {\"stage\":\"debugger-connected\",\"timeoutMs\":5000}",
+          "[Order459] {\"stage\":\"viewport-start\",\"width\":1440,\"height\":900,\"skin\":\"ledger\"}",
+          "[Order459] {\"stage\":\"viewport-complete\",\"width\":1440,\"height\":900,\"skin\":\"ledger\"}",
+          "[Order459] {\"stage\":\"viewport-start\",\"width\":1024,\"height\":768,\"skin\":\"orbit\"}",
+          "[Order459] {\"stage\":\"viewport-complete\",\"width\":1024,\"height\":768,\"skin\":\"orbit\"}",
+          "[Order459] {\"stage\":\"viewport-start\",\"width\":375,\"height\":844,\"skin\":\"index\"}",
+          "[Order459] {\"stage\":\"viewport-complete\",\"width\":375,\"height\":844,\"skin\":\"index\"}",
+          "[Order459] {\"stage\":\"viewport-start\",\"width\":390,\"height\":844,\"skin\":\"forced-colors-reduced-motion\"}",
+          "[Order459] {\"stage\":\"viewport-complete\",\"width\":390,\"height\":844,\"skin\":\"forced-colors-reduced-motion\"}",
+          "[Order459] {\"stage\":\"viewport-start\",\"width\":390,\"height\":844,\"skin\":\"font-fallback\"}",
+          "[Order459] {\"stage\":\"viewport-complete\",\"width\":390,\"height\":844,\"skin\":\"font-fallback\"}",
+          "2523 pass",
+          "1580 skip",
+          "0 fail",
+          "44992 expect() calls",
+          "[owned-subreaper] orphan children reaped: 115"
+        ],
+        "log": "/workspace/yellow-coordination/release-20261001/owned-cdp-review-standing.log",
+        "sha256": "c702ff88a3d49a91b4625393ed55cb647d0559f8b90d76bcf512956fcbb9894d"
+      }
+    },
+    "static": {
+      "path": "/workspace/yellow-coordination/release-20261001/owned-cdp-review-static.json",
+      "sha256": "3a61856600dc2114c05f8b29d6a9147f0bef95961c1b98b52b41830c71e160f3",
+      "result": {
+        "exitCode": 0,
+        "seconds": 4.213,
+        "command": [
+          "bun",
+          "run",
+          "typecheck"
+        ],
+        "sourceBasis": "58cd09ad13987bafb6068ab72a753746a555bfa5",
+        "candidateHashes": {
+          "tests/operator-workspace-layout.browser.test.ts": "ec9f6cf9ed1b2df9958d1a003171c47df996a469030372987079871b73f318cf",
+          "tests/helpers/owned-cdp-proof-lifecycle.ts": "763d4106889cad956a9be19bfef6034660c8cec1eb8dd758849709b9435c254b",
+          "tests/owned-cdp-proof-lifecycle.test.ts": "644ce18dd2ad5edcaa68fb306c48bb12cf139d62cf4899482b4309d4c5bf024d"
+        },
+        "hashesUnchangedAfter": true,
+        "summary": [
+          "[owned-subreaper] orphan children reaped: 0"
+        ],
+        "log": "/workspace/yellow-coordination/release-20261001/owned-cdp-review-static.log",
+        "sha256": "03fd7188924c882a90bc41b994605c1d762fa52b5f365c233bd2a7b43649785d"
+      }
+    },
+    "boundaries": {
+      "path": "/workspace/yellow-coordination/release-20261001/owned-cdp-review-boundaries.json",
+      "sha256": "c808a729ccd2bedd29d16e8e2074a2c33227e3db41e6e48ca8cf69ab5e508d92",
+      "result": {
+        "exitCode": 0,
+        "seconds": 1.731,
+        "command": [
+          "bun",
+          "run",
+          "boundaries"
+        ],
+        "sourceBasis": "58cd09ad13987bafb6068ab72a753746a555bfa5",
+        "candidateHashes": {
+          "tests/operator-workspace-layout.browser.test.ts": "ec9f6cf9ed1b2df9958d1a003171c47df996a469030372987079871b73f318cf",
+          "tests/helpers/owned-cdp-proof-lifecycle.ts": "763d4106889cad956a9be19bfef6034660c8cec1eb8dd758849709b9435c254b",
+          "tests/owned-cdp-proof-lifecycle.test.ts": "644ce18dd2ad5edcaa68fb306c48bb12cf139d62cf4899482b4309d4c5bf024d"
+        },
+        "hashesUnchangedAfter": true,
+        "summary": [
+          "[owned-subreaper] orphan children reaped: 0"
+        ],
+        "log": "/workspace/yellow-coordination/release-20261001/owned-cdp-review-boundaries.log",
+        "sha256": "bb038309cba1fc4ed802f51c8f8873ebe47ab538d3208484ab4f89fd466587ef"
+      }
+    },
+    "canonical": {
+      "path": "/workspace/yellow-coordination/release-20261001/owned-cdp-review-canonical.json",
+      "sha256": "a0103b0b762b0023009c806e89287668222f7f12463b0792ef9229e570c4bfea",
+      "result": {
+        "sourceBasis": "58cd09ad13987bafb6068ab72a753746a555bfa5",
+        "order": "RELEASE-20261001-owned-cdp-lifecycle",
+        "stages": [
+          {
+            "stage": "unchanged-setup-11-of-11",
+            "exitCode": 0,
+            "seconds": 5.16,
+            "sanitizedOutput": "owned-cdp-review-canonical-unchanged-setup-11-of-11.sanitized.txt"
+          }
+        ],
+        "independentCatalogue": {
+          "ledger100AllChecksumsMatchFiles": true,
+          "publicTables": 130,
+          "RlsTables": 120,
+          "views": 2,
+          "securityInvokerViews": 2
+        },
+        "retainedSyntheticStateUnchanged": true,
+        "canonical11of11": true,
+        "exactAppRestored": true,
+        "failure": null
+      }
+    },
+    "source-equivalence": {
+      "path": "/workspace/yellow-coordination/release-20261001/owned-cdp-review-source-equivalence.json",
+      "sha256": "faeb580b3c5de22f979c31689cd4e1d3362b202013e83b11d7aff536f13c2234",
+      "result": {
+        "sourceBasis": "58cd09ad13987bafb6068ab72a753746a555bfa5",
+        "existingUITestBodyByteIdenticalAfterRemovingOnlyDiagnosticLines": true,
+        "original120000msBudgetUnchanged": true,
+        "protectedPathsByteIdentical": {
+          "setup.sh": true,
+          "tests/run_invariants.py": true,
+          "tests/seed_fixture.sql": true,
+          "tests/native-review-resume.test.ts": true,
+          "tests/schema/expected.sql": true
+        },
+        "all100MigrationsIdenticalToE06": true,
+        "no0101": true
+      }
+    }
+  },
+  "ci": {
+    "runId": 36842043047,
+    "source": "9ff27ad8765dc75ebae9e083d4635c7a9b89fa62",
+    "state": "completed",
+    "conclusion": "success",
+    "allSixGreen": true,
+    "jobs": [
+      {
+        "id": 110303186925,
+        "name": "quality",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "id": 110303187269,
+        "name": "windows-state",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "id": 110303187485,
+        "name": "local-review",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "id": 110304183573,
+        "name": "container-smoke",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "id": 110304183778,
+        "name": "database",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "id": 110304183876,
+        "name": "free-host-arm64",
+        "status": "completed",
+        "conclusion": "success"
+      }
+    ],
+    "receipt": "ci-36842043047/final-required-ci-verification.json",
+    "rootPersonallyVerifiedAllSix": true
+  },
+  "migration": {
+    "frontier": 100,
+    "last": "0100_housekeeping_transition_timestamp_precision.sql",
+    "all100BytesEqualE06": true,
+    "cloud0101": null,
+    "lastSha256": "f70844b2c8205c286f7f552dd1f8a4a2023645f70dcd00dbdacc7c777b0415d4"
+  },
+  "hosting": {
+    "publicAppURL": null,
+    "latestTesterReleaseVerified": false,
+    "activeCloudSyntheticSource": "937912cc0546bfe7b7cd8b3c082f8ef798c20e5b",
+    "reviewed58ImageBuild": "Historical 300s install timeout retained; managed9ff build succeeded",
+    "laptopPortfolioSource": "Exact reviewed subset not yet supplied; laptop reports isolated API/header/phone proof.",
+    "remaining": [
+      "Laptop-controller accepted integrated latest source including its reviewed local work",
+      "Distinct secure public origin/app binding plus closed-circle tester restriction",
+      "Single authoritative data/config authority and tested retained off-host restore"
+    ],
+    "preparedImage": {
+      "id": "sha256:103cafd6ad6ca67c8ba4b41098c09cd325d3ac705e4867707b9f9ec49f9dc1f0",
+      "source": "9ff27ad8765dc75ebae9e083d4635c7a9b89fa62",
+      "tree": "4311a79c0c9ffc33877809162b1b38ae1b3c944a",
+      "platform": "linux/amd64",
+      "bunVersion": "1.3.14",
+      "runtimeUser": "bun",
+      "all272RuntimeSourceFilesMatchGit": true,
+      "variant": "Reviewed managed BuildKit CA trust adapter; not a canonical CI byte-identity claim",
+      "startedAsApp": false
+    }
+  },
+  "laptopNextSteps": [
+    "Fetch9ff27ad exact history into recovery ref without touching dirty working tree/index.",
+    "Reconcile eight-path release-only delta with protected receiving work; preserve localportfolio files.",
+    "Supply reviewed bounded portfolio patch/input identity when controller-ready.",
+    "Choose and retain latest integrated source/release identity before coordinated tester cutover."
+  ],
+  "noSelfMergeDeployOrBusinessDataMutation": true,
+  "updatedUtc": "2026-10-01T10:12:43.121274+00:00",
+  "productSteeringRetained": {
+    "crm": "One enquiry; evidence-bound whole-stay group draft and displacement; versioned RM approval; explicit escalation retains denial; no inventory promise or inherited approval; limits/delegates/SLA in Settings.",
+    "rms": "Why-this-price what-if waterfall/equalizer previews contribution/downside; historical KPIs unchanged; no guarantee of no harm.",
+    "laptopDesign": "docs/design/RMS-BOOKING-SETTINGS-20261001.md reported local; no cloud App/settings edits."
+  }
+}

@@ -1,0 +1,31 @@
+{
+  "observedUtc": "2026-10-01T09:13:35.212992+00:00",
+  "humanRequirement": "Shared live testing must use the latest integrated build.",
+  "controller": "Laptop session 01a0ecbc-469b-7671-b1d1-d3e6bab40c98",
+  "currentCloudPublishedSource": "58cd09ad13987bafb6068ab72a753746a555bfa5",
+  "currentActiveCloudSyntheticContainerSource": "937912cc0546bfe7b7cd8b3c082f8ef798c20e5b",
+  "currentContainerIsLatestTestingRelease": false,
+  "currentCloudSuccessor": "Eight-path owned CDP lifecycle repair in independent final proof; unpublished.",
+  "laptopPortfolioSource": "Controller reports tested local source; exact bounded diff and input tree not yet supplied to cloud.",
+  "requiredReceivingInputs": [
+    "Reviewed bounded portfolio diff and exact source/input manifest from laptop",
+    "Controller accepted integrated release commit/tree with retained source recovery",
+    "Secure origin binding and distinct authorized tester route",
+    "Single authoritative test dataset with tested retained backup/restore"
+  ],
+  "acceptance": [
+    "All required CI jobs green on exact integrated source",
+    "Runtime image OCI revision equals accepted latest source SHA",
+    "Health/readiness and migration ledger/checksums match accepted source",
+    "Login and authorized Hotel/STR/property/portfolio flows personally tested",
+    "Authorized tester succeeds; unauthorized tester denied"
+  ],
+  "forbidden": [
+    "Label older synthetic container as latest live app",
+    "Overwrite laptop dirty source",
+    "Reuse phone coordinator as app route",
+    "Create competing business database",
+    "Secret transfer through chat",
+    "Self merge or uncoordinated cutover"
+  ]
+}

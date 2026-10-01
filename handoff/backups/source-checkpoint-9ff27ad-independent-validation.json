@@ -1,0 +1,30 @@
+{
+  "schema": "yellow-source-checkpoint-independent-validation/v1",
+  "observedUtc": "2026-10-01T10:07:13.671968+00:00",
+  "reviewer": "Root nonbuilder personally executed verification",
+  "artifactSha256": "642e11aa69f107252da14796710a8b58733792b2deb213c019ce991764ac49f0",
+  "archiveBytes": 744720,
+  "zipExactMembersAndCrc": true,
+  "memberCount": 25,
+  "allManifestDigestsMatch": true,
+  "publicCredentialPatternScan": "passed four explicit patterns; not a comprehensive security scan",
+  "exactPathSets": {
+    "full": 145,
+    "latest": 8
+  },
+  "privateIndexReconstructions": {
+    "full": "4311a79c0c9ffc33877809162b1b38ae1b3c944a",
+    "latest": "4311a79c0c9ffc33877809162b1b38ae1b3c944a"
+  },
+  "allNonMcpSourceBlobMetadataAndHashesMatchGit": true,
+  "guardedEmptyMcpReplacement": true,
+  "oldMcpContentsRead": false,
+  "datedPendingCiSnapshotPreserved": true,
+  "currentCiAllSixGreen": true,
+  "sourceHeadIndexWorktreeRefsUnchanged": true,
+  "artifactPublicationApproved": true,
+  "releaseMerged": false,
+  "laptopIntegrated": false,
+  "deployed": false,
+  "publicationStatus": "ready for artifact-only branch publication"
+}

@@ -1,0 +1,24 @@
+{
+  "observedUtc": "2026-10-01T09:35:57.322344+00:00",
+  "reviewer": "Root nonimplementer",
+  "source": "9ff27ad8765dc75ebae9e083d4635c7a9b89fa62",
+  "tree": "4311a79c0c9ffc33877809162b1b38ae1b3c944a",
+  "archiveSha256": "e1b67fb64117efc211f2dcfac537f58f6b3bcde5a0045f11d3a5fbc10b5c8119",
+  "all413SourceBlobBytesPersonallyMatchedGit": true,
+  "archiveNoCredentialsSettingsTestsOrInstalledDeps": true,
+  "singleAdapterEditBackprojectsExactOriginal": true,
+  "adapterSha256": "7140f4c927df646cda538e5167c25292363c08154d8354db5763fc31efe929bb",
+  "tlsVerificationPreserved": true,
+  "approval": "APPROVED for exactly one bounded300s managed image build; no app start or deployment.",
+  "allExpectedSourcePathsExactlyMatchArchive": true,
+  "runnerSha256": "52ebab191e6c267e0e4f78a103e08d82423cc228b41e489c49e0a40feaab8e09",
+  "runnerReview": {
+    "singleUseGuardBeforeStatusOverwrite": true,
+    "pauseChecksBeforeProcessLaunches": true,
+    "nativeArchitectureNormalizedAndImageBound": true,
+    "managedConfigProxyTLSGuardsPreserved": true,
+    "noHomeOverride": true,
+    "noSourceAppDBOrRouteMutation": true
+  },
+  "approvalUtc": "2026-10-01T09:39:04.809216+00:00"
+}
