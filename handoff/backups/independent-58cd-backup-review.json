@@ -1,0 +1,17 @@
+{
+  "source": "58cd09ad13987bafb6068ab72a753746a555bfa5",
+  "tree": "3448877604d41fd5ec12eceae763010c378cd012",
+  "archiveSha256": "ffb60ece536c6c551332247ba0eb8717eb7eb9db25bf909a336c40caedf20e21",
+  "bytes": 727952,
+  "members": 23,
+  "personallyReviewedBy": "root, non-archive-implementer",
+  "crcPassed": true,
+  "allManifestProofHashesMatched": true,
+  "credentialScanPassed": true,
+  "fullE06PrivateIndexReconstructionMatched": true,
+  "incrementalF610PrivateIndexReconstructionMatched": true,
+  "currentCI": "36834555882 terminal failure; source backup only",
+  "datedArchiveCI": "in_progress at capture; preserved",
+  "notDeployed": true,
+  "notLaptopIntegrated": true
+}
