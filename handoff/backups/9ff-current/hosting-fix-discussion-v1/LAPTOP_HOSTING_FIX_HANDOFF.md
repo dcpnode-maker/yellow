@@ -1,0 +1,33 @@
+# Yellow cloud hosting fix: exact controller handoff
+
+Laptop thread01a0ecbc-469b-7671-b1d1-d3e6bab40c98 remains the only source/controller/integration point. This packet continues published artifact4b68ea9c9f0bd786f494be3ef96185f7beb06cbc, without modifying product source9ff27ad8765dc75ebae9e083d4635c7a9b89fa62 or replacing dirty laptop App/API files. The controller's concrete Wrangler and source-closure replies were read in this thread. There is no callable outbound laptop-thread messaging tool; this exact Git handoff is the coordination result.
+
+## Executed cloud origin
+
+Root personally ran the non-implementer's17/17 guard proof, actual bounded launch, fresh read-only before/after synthetic database proof and independent final runtime/HTTP verification. One app is now running on **VM-local http://127.0.0.1:53009**; this address is not reachable as a public app link.
+
+- Source9ff27ad8765dc75ebae9e083d4635c7a9b89fa62, clean worktree; all six prior CI checks passed in36842043047.
+- Immutable image/config sha256:103cafd6ad6ca67c8ba4b41098c09cd325d3ac705e4867707b9f9ec49f9dc1f0. Exact prior offline OCI manifest843b32dc43df5f7fc5c295c161adb146b4a057ac9d710083218093452362eaeb, not registry-published or backed up offhost as a binary.
+- Containerd002232dfdb8ba671ca51fc53ae8657ea72cc361740acd61c91b49e8f5bdca59; userbun, no mounts, restart=no,1CPU/1GiB; only127.0.0.1:53009→3000, existing external diagnostic network.
+- Existing synthetic yellow_dev authority retained;100 migration hashes and130 table count/digests plus full normalized schema unchanged before/after. Operational/fiscal/demo/provider worker flags0. No new DB, migration, seed, business command or login.
+- Health/ready/UI/asset200, anonymous property access401, five sensitive paths404. Old service CID/revision937912/running state unchanged. These are isolated diagnostics, not latest103, browser visual, authenticated staff, worker or public-route acceptance.
+
+Stop only the new owned origin with `docker --host unix:///var/run/docker.sock stop d002232dfdb8ba671ca51fc53ae8657ea72cc361740acd61c91b49e8f5bdca59`. The runner refuses to overwrite an existing job/token/receipt; restart/recreation needs a newly governed explicit recovery action. The diagnostic token remains private0600 on this VM, not in this packet. No lifetime, deletion recovery or business-data backup promise is made.
+
+## Exact external dependency
+
+Fresh managed status spec183 is current/running/enforced, with **no capabilities, secrets, runtime variables or outbound identities**. Only environment_status is callable. UDP support is not reported; no configuration editor/apply tool or verified UI location/schema is available. The inherited policy/reference routes Internet HTTP/HTTPS through the managed sidecar and exposes no current UDP grant. HTTP unrestricted does not prove QUIC availability. **Supported UDP7844 setup is unavailable to this worker, not proven universally unsupported.** No packet was sent directly to bypass this boundary.
+
+The concrete narrow proposal is `MANAGED_CONNECTOR_CONFIGURATION_PROPOSAL.json`: one outbound IPv4 QUIC/UDP7844 connector to the current official Cloudflare Tunnel endpoints, managed connector-only token file named **yellow-cloudflare-vpc-connector-token**, path variable **YELLOW_CLOUDFLARE_CONNECTOR_TOKEN_FILE**, loopback metrics53010, fixed HTTP origin only. Actual destinations/schema/path/token/tunnelID remain unset. No general/inbound route, HTTP2 fallback, proxy removal, local-policy edits, phone token or laptop OAuth copying is permitted. Retained official VPC evidence and actual help-only parser proof substantiate provider requirements and CLI syntax, not network reachability.
+
+The immediate supported setup step is to obtain the actual managed-environment configuration workflow for this chat and confirm it can express UDP7844 plus secret-file binding. Only that workflow can prepare/apply the concrete rule. [cloud-environment-runtime/SKILL.md](skill://plugin_connector_1p_c5b7d5df5d7081918f2c4be5a633ed5d/cloud-environment-runtime/SKILL.md) explicitly says **“Configuration changes require the environment configuration workflow and its user review.”** No draft has been submitted/applied; this packet is the reviewable intent, not an invented API payload. If that editor exposes only HTTP/TCP, record the unavailable result and do not substitute a prohibited transport.
+
+After that supported path is established, the laptop can reauthorize only required Cloudflare Directory/Tunnel/Access scopes. Account SuperAdministrator authority does not expand its saved OAuth scope: the controller's actual VPC list failed authentication10000, missing connectivity:admin. Keep the Windows-vault credential local. Then create a dedicated VPC tunnel/service and securely bind its connector token; verify QUIC health and VPC loopback-origin compatibility. A separate proposed yellow-live.yellow-dcpnode-1676cc6f.workers.dev must have explicit tester Access allowlist, unauthenticated denial, preview URLs disabled, fixed-origin binding and no debug/database/admin routes. The phone coordinator remains separate and untouched. No Yellow public URL is presently verified.
+
+## Source and data acceptance before latest-app routing
+
+The controller has identified16 standalone closure files and7 protected hunk paths; mode102 depends on accepted101 absent from cloud100, optional header needs separate portfolio/dock closure, and HK discrepancy needs3 existing UI prerequisites. This packet neither copies that closure nor renumbers applied migrations. Use the prior4b receiving plan, exact supplied bytes/digests and independent per-slice review; preserve cloud CRS/departure/schema18 corrections. Readiness expected-frontier metadata cannot replace exact applied filename/checksum ledger proof.
+
+No current authoritative business dataset or its backup has been transferred. Before switching testers to the latest integrated release, retain exact accepted source/configuration in laptop/Git, prove all required canonical build/DB/schema/auth/browser/Access checks and one authoritative database with a tested restore. The synthetic origin is available for the supported transport canary only after its separate authorization/configuration gate; it cannot become a competing business writer.
+
+Safe code/orders/proofs in this packet are published for laptop fetch/recovery. Credential env files, raw private command output, images and business data are excluded. Latest controller plan reading13% remains above its1% global pause threshold; no cloud quota reader or hard billing cap is claimed. Emergency credits, paid hosting, purchase/reset and automatic resume remain forbidden.

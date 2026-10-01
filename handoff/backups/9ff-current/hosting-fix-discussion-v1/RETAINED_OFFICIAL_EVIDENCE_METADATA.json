@@ -1,0 +1,7 @@
+{
+  "source": "retained previous root public-web result; not fresh retrieval",
+  "bytes": 13789,
+  "sha256": "a81bd835b0b48db41afc2fb48918072579a2b7995323cbcc4f5a7a6655e0c927",
+  "fresh_http_attempt": "HTTPError; separate failed-retrieval receipt preserved",
+  "connector_or_udp_probe": false
+}

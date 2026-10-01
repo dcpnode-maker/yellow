@@ -1,0 +1,18 @@
+{
+  "spec_revision": "183",
+  "observations_current": true,
+  "capabilities": [],
+  "secrets": [],
+  "runtime_variables": [],
+  "outbound_identities": [],
+  "udp_readiness_reported": false,
+  "configuration_editor_exposed": false,
+  "provider": "cloud",
+  "connectivity": "connected",
+  "observed_phase": "running",
+  "network_policy": {
+    "mode": "unrestricted",
+    "state": "enforced"
+  },
+  "observation_limit": "HTTP policy readiness does not establish UDP/TCP/VPN availability; no configuration was applied"
+}

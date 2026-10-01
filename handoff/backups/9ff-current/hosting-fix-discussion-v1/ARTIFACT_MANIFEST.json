@@ -1,0 +1,206 @@
+{
+  "schema": "yellow-hosting-fix-artifact-manifest/v1",
+  "source_revision": "9ff27ad8765dc75ebae9e083d4635c7a9b89fa62",
+  "parent_artifact_revision": "4b68ea9c9f0bd786f494be3ef96185f7beb06cbc",
+  "base_tree": "ded9d0624a00c9553c8a8833b4523e26e9dec1ce",
+  "artifact_only": true,
+  "files": [
+    {
+      "path": "handoff/orders/RELEASE-20261001-hosting-fix-discussion-v1.md",
+      "mode": "100644",
+      "bytes": 1739,
+      "sha256": "18b65d64fde0a919e110e3fee12e3c7f1b296e1ee262f30bbda0072c7f8ead4f",
+      "git_blob": "c7b8525596cb9ebb9881ad812d84ef85e85c4e2a"
+    },
+    {
+      "path": "handoff/orders/RELEASE-20261001-synthetic-origin9ff-v1.md",
+      "mode": "100644",
+      "bytes": 2680,
+      "sha256": "810e2d6f1ac9498cea129c86eaedff0b0313ec8f83fc7a9416e348f1ebda0760",
+      "git_blob": "9be2d251f08620c0dc11490c5f717d6a13e83bb0"
+    },
+    {
+      "path": "handoff/reviews/RELEASE-20261001-managed-transport-fix.md",
+      "mode": "100644",
+      "bytes": 4254,
+      "sha256": "439cd8cb06cbdae26e336a83715e64510423435c209c8b251b8d812fb38b945c",
+      "git_blob": "28b87976973d2c2c1a75f2d9fff7d4f775c71cd3"
+    },
+    {
+      "path": "handoff/reviews/RELEASE-20261001-managed-configuration-proposal.md",
+      "mode": "100644",
+      "bytes": 5795,
+      "sha256": "0da8a1aed95ba66762c472e2a31ede78fc4c08a6fe950bf1b3ea7cd60bdc1ffa",
+      "git_blob": "9766936a66b9c82c8213f9f6aacf242a252a7763"
+    },
+    {
+      "path": "handoff/reviews/RELEASE-20261001-synthetic-origin9ff-root.md",
+      "mode": "100644",
+      "bytes": 2682,
+      "sha256": "4cb738362554d4fa789c94d42720bdaffe66d7f8739e8f5169493cf9c36cf054",
+      "git_blob": "8eed483c8a390a664f1a0d294f6b3a692d4ba35d"
+    },
+    {
+      "path": "handoff/reviews/RELEASE-20261001-synthetic-origin9ff-evidence.md",
+      "mode": "100644",
+      "bytes": 2873,
+      "sha256": "07d06176ddae73f434432f81598e90c4c958bf4cd2c427e7182436f89189fcce",
+      "git_blob": "9ef085dc602a2b81615c7387cf316107953e4eac"
+    },
+    {
+      "path": "handoff/backups/9ff-current/hosting-fix-discussion-v1/SYNTHETIC_ORIGIN_LAUNCH_PROOF.json",
+      "mode": "100644",
+      "bytes": 2039,
+      "sha256": "6a0c707ca5f42dec668a0cf2090576eca5ccfeb0deb4abc4ada721d0c34e712f",
+      "git_blob": "81912c37d14263f195e8f05683deb2868745c05d"
+    },
+    {
+      "path": "handoff/backups/9ff-current/hosting-fix-discussion-v1/LAPTOP_HOSTING_FIX_HANDOFF.md",
+      "mode": "100644",
+      "bytes": 6692,
+      "sha256": "9db6da16ee20c773ad81abe61885ba0ce2d7a5d1538d017ea369ab7b4f4d8dce",
+      "git_blob": "7163b33943a79520b16dea93de053b02f8a1e791"
+    },
+    {
+      "path": "handoff/backups/9ff-current/hosting-fix-discussion-v1/CONFIGURATION_REVIEW_REQUEST.md",
+      "mode": "100644",
+      "bytes": 3946,
+      "sha256": "36a5453cd0e2f05223be34980ca001c51ea7d46047eee5449678bbe7c4eebb02",
+      "git_blob": "4f64ff822d8dbf248941ae3e6d9ed55511817b4b"
+    },
+    {
+      "path": "handoff/backups/9ff-current/hosting-fix-discussion-v1/MANAGED_CONNECTOR_CONFIGURATION_PROPOSAL.json",
+      "mode": "100644",
+      "bytes": 3844,
+      "sha256": "51e4be346f467b96dab988662c9f4f7407a063a2a2c92ed32c34e83b9c043139",
+      "git_blob": "7522fa183583065e109dfe7af1f995200d24687b"
+    },
+    {
+      "path": "handoff/backups/9ff-current/hosting-fix-discussion-v1/MANAGED_STATUS_OBSERVATION.json",
+      "mode": "100644",
+      "bytes": 518,
+      "sha256": "0939d3452ea8428fbcfa6dd18efe7be164b45ccafe2b8d5c90eb514a1ee68485",
+      "git_blob": "45a9410ab3a81e156e82eb8c7f1c22059bc856ef"
+    },
+    {
+      "path": "handoff/backups/9ff-current/hosting-fix-discussion-v1/OFFICIAL_TRANSPORT_DOCUMENTATION.json",
+      "mode": "100644",
+      "bytes": 304,
+      "sha256": "a7d48664ced086212ebe8570f2712fcb86e0c47dcc97e345723656c73ca04f8c",
+      "git_blob": "792fa727aea8f678bf447c6f00553f6b90d2af17"
+    },
+    {
+      "path": "handoff/backups/9ff-current/hosting-fix-discussion-v1/RETAINED_OFFICIAL_VPC_EVIDENCE.txt",
+      "mode": "100644",
+      "bytes": 13789,
+      "sha256": "a81bd835b0b48db41afc2fb48918072579a2b7995323cbcc4f5a7a6655e0c927",
+      "git_blob": "7d8a6eeaff530008597000606a17f475fe872470"
+    },
+    {
+      "path": "handoff/backups/9ff-current/hosting-fix-discussion-v1/RETAINED_OFFICIAL_EVIDENCE_METADATA.json",
+      "mode": "100644",
+      "bytes": 295,
+      "sha256": "9bfb9131af209a31b85c8ec3c204870ef8b3c4b335aab7262845f0958bf8153f",
+      "git_blob": "a2755287b1362693de654aa3ea5377ab6851bcac"
+    },
+    {
+      "path": "handoff/backups/9ff-current/hosting-fix-discussion-v1/QUIC_HELP_ONLY_PROOF.json",
+      "mode": "100644",
+      "bytes": 681,
+      "sha256": "142836c7a2aacb1d1e0dcdf3bc91698bfe68d5d857fcc1fb786a414d4064ddb1",
+      "git_blob": "ada73757e21cd62e320818374dff15a6536ff503"
+    },
+    {
+      "path": "handoff/backups/9ff-current/hosting-fix-discussion-v1/BUILDER_RECEIPT.md",
+      "mode": "100644",
+      "bytes": 2423,
+      "sha256": "23673f208621812dc73906e069b6c3e74248d6013f613f8201e0c8a1553b16cf",
+      "git_blob": "cf95a784291ec2f00093a1f15372d808988b36e8"
+    },
+    {
+      "path": "handoff/backups/9ff-current/hosting-fix-discussion-v1/compose.yml",
+      "mode": "100644",
+      "bytes": 2156,
+      "sha256": "6444a5de10d913fed6e467da231e4302430b3e760c35e1a4fab5f2e91a59e3e9",
+      "git_blob": "ad16e09fba4f300bfee014a62bc8c8945c8f8360"
+    },
+    {
+      "path": "handoff/backups/9ff-current/hosting-fix-discussion-v1/run_synthetic_origin.py",
+      "mode": "100644",
+      "bytes": 19904,
+      "sha256": "0dd8b04bb675f2ffac0553c4845492ea2f58465dab157cb62b436f88a3adde2d",
+      "git_blob": "b2595b8b2a6a29313e600f57f9d3b8c6639eaa62"
+    },
+    {
+      "path": "handoff/backups/9ff-current/hosting-fix-discussion-v1/test_synthetic_origin_guards.py",
+      "mode": "100644",
+      "bytes": 7108,
+      "sha256": "c540438f52f975e13ed39e32a9d01fb4420ca57e811c25b01631e7adc706e4a6",
+      "git_blob": "eedbc6d147e3ffbd0be9f99f3c4c02a26f056600"
+    },
+    {
+      "path": "handoff/backups/9ff-current/hosting-fix-discussion-v1/snapshot_synthetic_database.py",
+      "mode": "100644",
+      "bytes": 4644,
+      "sha256": "9ea1fe5ea8fea6b0b885f831730cabd4902ebd768deb01bd168208f4f42bbc90",
+      "git_blob": "ecf7849f8664712a4016867b360866f2c14e60ec"
+    },
+    {
+      "path": "handoff/backups/9ff-current/hosting-fix-discussion-v1/verify_final_origin.py",
+      "mode": "100644",
+      "bytes": 5360,
+      "sha256": "04d59aa64f8710279758e9d5526cb199c44cf72bc1d26e5fb8c86d45d10bfc58",
+      "git_blob": "97b4bdba407f65dd605069e62da32690f2605a99"
+    },
+    {
+      "path": "handoff/backups/9ff-current/hosting-fix-discussion-v1/ROOT_SYNTHETIC_GUARD_TESTS.log",
+      "mode": "100644",
+      "bytes": 2814,
+      "sha256": "0718f4a0dec1b28d0757ad68bbc26e1f7a9990d693547abd045010471cd8a4da",
+      "git_blob": "10deb68a3531735f9e6a35690d7b2ebcf4a096e0"
+    },
+    {
+      "path": "handoff/backups/9ff-current/hosting-fix-discussion-v1/ROOT_FINAL_ORIGIN_PROOF.json",
+      "mode": "100644",
+      "bytes": 3650,
+      "sha256": "b9efca56b7bce9f649254dde4a449547c68993c35493d3438fb5d2f880639227",
+      "git_blob": "18c904b88ab20199f5c35c5c68a454c29a942841"
+    },
+    {
+      "path": "handoff/backups/9ff-current/hosting-fix-discussion-v1/SYNTHETIC_DATABASE_BEFORE.json",
+      "mode": "100644",
+      "bytes": 39115,
+      "sha256": "c270911a0baaae355f176c7bfe1906c50526a50d51d1aca18743b2c0eae32192",
+      "git_blob": "b06b0ebf55cd8ccde054cfa1f96bb451d936b12f"
+    },
+    {
+      "path": "handoff/backups/9ff-current/hosting-fix-discussion-v1/SYNTHETIC_DATABASE_AFTER.json",
+      "mode": "100644",
+      "bytes": 39115,
+      "sha256": "c270911a0baaae355f176c7bfe1906c50526a50d51d1aca18743b2c0eae32192",
+      "git_blob": "b06b0ebf55cd8ccde054cfa1f96bb451d936b12f"
+    },
+    {
+      "path": "handoff/backups/9ff-current/hosting-fix-discussion-v1/freeze_publication.py",
+      "mode": "100644",
+      "bytes": 8286,
+      "sha256": "59c98a2d44d8fd855acf8461893f911b1a67d46be5af3af509d471490f97fca7",
+      "git_blob": "46a3c7e183f2ab2d434e4bbfb0c79d320ab5f360"
+    },
+    {
+      "path": "handoff/LEDGER.md",
+      "mode": "100644",
+      "bytes": 761098,
+      "sha256": "b5da49be9bf88563f6b0fa04e9b6a8c359738f0a7e7e2c4c2eb0639d201b8aa4",
+      "git_blob": "7155f93548da89c6791bd4dc7d8824ff8b75d69f"
+    }
+  ],
+  "excluded": [
+    "token.env and authority credentials",
+    "private command log",
+    "OCI image binaries/config",
+    "business data",
+    "laptop dirty source"
+  ],
+  "no_public_app_url": true
+}

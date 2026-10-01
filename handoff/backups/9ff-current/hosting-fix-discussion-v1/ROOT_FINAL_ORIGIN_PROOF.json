@@ -1,0 +1,104 @@
+{
+  "schema": "yellow-independent-synthetic-origin-verification/v1",
+  "executed_by": "root non-implementer, personally executed",
+  "passed": true,
+  "runtime": {
+    "id": "d002232dfdb8ba671ca51fc53ae8657ea72cc361740acd61c91b49e8f5bdca59",
+    "image": "sha256:103cafd6ad6ca67c8ba4b41098c09cd325d3ac705e4867707b9f9ec49f9dc1f0",
+    "running": true,
+    "user": "bun",
+    "command": [
+      "bun",
+      "run",
+      "start"
+    ],
+    "restart": "no",
+    "ports": {
+      "3000/tcp": [
+        {
+          "HostIp": "127.0.0.1",
+          "HostPort": "53009"
+        }
+      ]
+    },
+    "mounts": [],
+    "network_names": [
+      "yellow-catalogue-referee_default"
+    ]
+  },
+  "source_revision": "9ff27ad8765dc75ebae9e083d4635c7a9b89fa62",
+  "source_worktree_clean": true,
+  "old_service_id": "fe96ec05f4db113a5935c0d7e0f38aa6445b9ca16995c073195e399edcea4599",
+  "old_service_revision": "937912cc0546bfe7b7cd8b3c082f8ef798c20e5b",
+  "old_service_identity_and_running_state_unchanged": true,
+  "explicit_nonsecret_worker_and_demo_flags": {
+    "YELLOW_FISCAL_SUBMISSION_WORKER": "0",
+    "YELLOW_HOLD_EXPIRY_WORKER": "0",
+    "YELLOW_AVAILABILITY_PROJECTION_WORKER": "0",
+    "YELLOW_PICKUP_TASK_WORKER": "0",
+    "YELLOW_RESERVATION_ARRIVAL_ROLL_WORKER": "0",
+    "YELLOW_RESERVATION_DEPARTURE_ROLL_WORKER": "0",
+    "YELLOW_BUSINESS_DAY_ROLL_WORKER": "0",
+    "YELLOW_LOCAL_REVIEW_PREFILL": "0",
+    "YELLOW_PUBLIC_DEMO_AUTOMATIC_LOGIN": "0",
+    "YELLOW_HOSTED_DEPOSIT_WORKBENCH": "0",
+    "YELLOW_HOSTED_PROVIDER_ONLY": "0"
+  },
+  "database": {
+    "target": "yellow_dev synthetic, existing authoritative diagnostic dataset",
+    "before_after_fingerprints_equal": true,
+    "frontier": 100,
+    "migration_hashes_matched": 100,
+    "table_count": 130,
+    "schema_sha256": "b924ed9532046a563df6332881716130deeb2e69dc88341d0123849d61c8edf9",
+    "before_file_sha256": "c270911a0baaae355f176c7bfe1906c50526a50d51d1aca18743b2c0eae32192",
+    "after_file_sha256": "c270911a0baaae355f176c7bfe1906c50526a50d51d1aca18743b2c0eae32192",
+    "schema_normalization": "only the random pg_dump18 restrict/unrestrict token lines",
+    "raw_business_rows_emitted": false,
+    "writes_migrations_seeding_or_new_database_performed": false
+  },
+  "http_proof": {
+    "health": {
+      "status": 200,
+      "body": {
+        "status": "ok"
+      }
+    },
+    "ready": {
+      "status": 200,
+      "target": "yellow_runtime_database",
+      "revision": "9ff27ad8765dc75ebae9e083d4635c7a9b89fa62",
+      "expectedMigrationFrontier": 100
+    },
+    "unauthenticated_properties": {
+      "status": 401
+    },
+    "sensitive_paths": {
+      "/.git/config": 404,
+      "/.env": 404,
+      "/.codex/config.toml": 404,
+      "/src/server.ts": 404,
+      "/src/server.ts.map": 404
+    },
+    "ui": {
+      "status": 200,
+      "content_type": "text/html; charset=utf-8",
+      "body_sha256": "5d75d16ea5e8c444e9904529251b25c9a8f93d45af9d0092d709e41f408b580c",
+      "bytes": 763
+    },
+    "asset": {
+      "path": "/yellow-next/assets/index-BSevgplG.js",
+      "status": 200,
+      "content_type": "text/javascript; charset=utf-8",
+      "sha256": "5bc0b3e0bf02408529841f37583194f5ce95b8303cf1bfe96c92a4b9618adbf1",
+      "bytes": 1130
+    }
+  },
+  "public_url_verified": false,
+  "authenticated_login_or_staff_commands_executed": false,
+  "latest_laptop_101_103_source_integrated": false,
+  "quic_connector_started": false,
+  "instance_restart_or_deletion_recovery_proven": false,
+  "data_or_runtime_secret_backup_verified": false,
+  "stop_command": "docker --host unix:///var/run/docker.sock stop d002232dfdb8ba671ca51fc53ae8657ea72cc361740acd61c91b49e8f5bdca59"
+}

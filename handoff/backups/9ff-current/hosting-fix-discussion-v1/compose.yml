@@ -1,0 +1,56 @@
+services:
+  app:
+    image: sha256:103cafd6ad6ca67c8ba4b41098c09cd325d3ac705e4867707b9f9ec49f9dc1f0
+    platform: linux/amd64
+    container_name: yellow-cloud-synthetic-origin-9ff-20261001
+    user: bun
+    command: ["bun", "run", "start"]
+    restart: "no"
+    mem_limit: 1g
+    cpus: 1.0
+    labels:
+      yellow.synthetic-origin.job: yellow-cloud-synthetic-origin-9ff-20261001
+      yellow.synthetic-origin.source: 9ff27ad8765dc75ebae9e083d4635c7a9b89fa62
+      yellow.synthetic-origin.nonce: "${YELLOW_ORIGIN_NONCE:?required}"
+    ports:
+      - "127.0.0.1:53009:3000"
+    environment:
+      NODE_ENV: production
+      HOST: "0.0.0.0"
+      PORT: "3000"
+      YELLOW_BUILD_SHA: 9ff27ad8765dc75ebae9e083d4635c7a9b89fa62
+      YELLOW_OPERATOR_WORKBENCH: "1"
+      YELLOW_OPERATOR_ALLOW_NON_LOOPBACK: "1"
+      YELLOW_LOCAL_REVIEW_PREFILL: "0"
+      YELLOW_PUBLIC_DEMO_AUTOMATIC_LOGIN: "0"
+      YELLOW_HOSTED_DEPOSIT_WORKBENCH: "0"
+      YELLOW_HOSTED_PROVIDER_ONLY: "0"
+      YELLOW_FISCAL_SUBMISSION_WORKER: "0"
+      YELLOW_HOLD_EXPIRY_WORKER: "0"
+      YELLOW_AVAILABILITY_PROJECTION_WORKER: "0"
+      YELLOW_PICKUP_TASK_WORKER: "0"
+      YELLOW_RESERVATION_ARRIVAL_ROLL_WORKER: "0"
+      YELLOW_RESERVATION_DEPARTURE_ROLL_WORKER: "0"
+      YELLOW_BUSINESS_DAY_ROLL_WORKER: "0"
+      YELLOW_RUNTIME_DATABASE_URL: "postgres://yellow_runtime:${YELLOW_RUNTIME_DATABASE_PASSWORD:?required}@postgres:5432/yellow_dev"
+      YELLOW_EXTENSION_REGISTRAR_DATABASE_URL: "postgres://yellow_extension_registrar:${YELLOW_EXTENSION_REGISTRAR_DATABASE_PASSWORD:?required}@postgres:5432/yellow_dev"
+      YELLOW_TOKEN_SECRET: "${YELLOW_TOKEN_SECRET:?required}"
+    networks:
+      - yellow-catalogue-referee
+    healthcheck:
+      test:
+        - CMD
+        - bun
+        - -e
+        - >-
+          const response = await fetch("http://127.0.0.1:3000/health");
+          const body = await response.json();
+          if (response.status !== 200 || JSON.stringify(body) !== '{"status":"ok"}') process.exit(1);
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+networks:
+  yellow-catalogue-referee:
+    external: true
+    name: yellow-catalogue-referee_default

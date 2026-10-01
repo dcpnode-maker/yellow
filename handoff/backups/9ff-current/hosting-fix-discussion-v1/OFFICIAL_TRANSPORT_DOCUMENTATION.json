@@ -1,0 +1,10 @@
+[
+  {
+    "url": "https://developers.cloudflare.com/workers-vpc/configuration/tunnel/",
+    "error_type": "HTTPError"
+  },
+  {
+    "url": "https://developers.cloudflare.com/cloudflare-one/networks/connectors/cloudflare-tunnel/configure-tunnels/tunnel-with-firewall/",
+    "error_type": "HTTPError"
+  }
+]

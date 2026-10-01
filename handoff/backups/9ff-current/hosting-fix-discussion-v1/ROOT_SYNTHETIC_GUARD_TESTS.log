@@ -1,0 +1,22 @@
+test_accepted_facts_reach_mutation (test_synthetic_origin_guards.AdmissionTests.test_accepted_facts_reach_mutation) ... ok
+test_authority_mode_and_inherited_secret_collision_rejected (test_synthetic_origin_guards.AdmissionTests.test_authority_mode_and_inherited_secret_collision_rejected) ... ok
+test_dirty_source_and_nonfresh_job_rejected_before_mutation (test_synthetic_origin_guards.AdmissionTests.test_dirty_source_and_nonfresh_job_rejected_before_mutation) ... ok
+test_old_container_identity_change_rejected_before_mutation (test_synthetic_origin_guards.AdmissionTests.test_old_container_identity_change_rejected_before_mutation) ... ok
+test_old_container_source_change_rejected_before_mutation (test_synthetic_origin_guards.AdmissionTests.test_old_container_source_change_rejected_before_mutation) ... ok
+test_owned_name_collision_rejected_before_mutation (test_synthetic_origin_guards.AdmissionTests.test_owned_name_collision_rejected_before_mutation) ... ok
+test_published_port_collision_rejected_before_mutation (test_synthetic_origin_guards.AdmissionTests.test_published_port_collision_rejected_before_mutation) ... ok
+test_red_admission_never_enters_cleanup (test_synthetic_origin_guards.AdmissionTests.test_red_admission_never_enters_cleanup) ... ok
+test_red_admission_never_unlinks_preexisting_token_file (test_synthetic_origin_guards.AdmissionTests.test_red_admission_never_unlinks_preexisting_token_file) ... ok
+test_wrong_image_digest_rejected_before_mutation (test_synthetic_origin_guards.AdmissionTests.test_wrong_image_digest_rejected_before_mutation) ... ok
+test_wrong_network_identity_rejected_before_mutation (test_synthetic_origin_guards.AdmissionTests.test_wrong_network_identity_rejected_before_mutation) ... ok
+test_wrong_source_label_rejected_before_mutation (test_synthetic_origin_guards.AdmissionTests.test_wrong_source_label_rejected_before_mutation) ... ok
+test_cleanup_requires_exact_full_cid_name_job_source_and_image (test_synthetic_origin_guards.OwnershipTests.test_cleanup_requires_exact_full_cid_name_job_source_and_image) ... ok
+test_compose_is_single_app_and_exposes_only_the_three_required_bindings (test_synthetic_origin_guards.OwnershipTests.test_compose_is_single_app_and_exposes_only_the_three_required_bindings) ... ok
+test_every_docker_command_selects_the_expected_local_socket (test_synthetic_origin_guards.OwnershipTests.test_every_docker_command_selects_the_expected_local_socket) ... ok
+test_symlink_paths_are_detected (test_synthetic_origin_guards.OwnershipTests.test_symlink_paths_are_detected) ... ok
+test_ui_asset_must_be_same_origin_and_cannot_traverse (test_synthetic_origin_guards.OwnershipTests.test_ui_asset_must_be_same_origin_and_cannot_traverse) ... ok
+
+----------------------------------------------------------------------
+Ran 17 tests in 0.002s
+
+OK

@@ -1,0 +1,53 @@
+{
+  "schema": "yellow-synthetic-origin-proof/v1",
+  "executed": true,
+  "job": "yellow-cloud-synthetic-origin-9ff-20261001",
+  "source_revision": "9ff27ad8765dc75ebae9e083d4635c7a9b89fa62",
+  "image_config_digest": "sha256:103cafd6ad6ca67c8ba4b41098c09cd325d3ac705e4867707b9f9ec49f9dc1f0",
+  "container_id": "d002232dfdb8ba671ca51fc53ae8657ea72cc361740acd61c91b49e8f5bdca59",
+  "container_name": "yellow-cloud-synthetic-origin-9ff-20261001",
+  "ownership_nonce": "869c53e38aa1a38c6792d341c38905be",
+  "network": "yellow-catalogue-referee_default",
+  "published_origin": "http://127.0.0.1:53009",
+  "database_target": "yellow_dev synthetic runtime authority; credentials withheld",
+  "proof": {
+    "health": {
+      "status": 200,
+      "body": {
+        "status": "ok"
+      }
+    },
+    "ready": {
+      "status": 200,
+      "target": "yellow_runtime_database",
+      "revision": "9ff27ad8765dc75ebae9e083d4635c7a9b89fa62",
+      "expectedMigrationFrontier": 100
+    },
+    "unauthenticated_properties": {
+      "status": 401
+    },
+    "sensitive_paths": {
+      "/.git/config": 404,
+      "/.env": 404,
+      "/.codex/config.toml": 404,
+      "/src/server.ts": 404,
+      "/src/server.ts.map": 404
+    },
+    "ui": {
+      "status": 200,
+      "content_type": "text/html; charset=utf-8",
+      "body_sha256": "5d75d16ea5e8c444e9904529251b25c9a8f93d45af9d0092d709e41f408b580c",
+      "bytes": 763
+    },
+    "asset": {
+      "path": "/yellow-next/assets/index-BSevgplG.js",
+      "status": 200,
+      "content_type": "text/javascript; charset=utf-8",
+      "sha256": "5bc0b3e0bf02408529841f37583194f5ce95b8303cf1bfe96c92a4b9618adbf1",
+      "bytes": 1130
+    }
+  },
+  "stop_command": "docker --host unix:///var/run/docker.sock stop d002232dfdb8ba671ca51fc53ae8657ea72cc361740acd61c91b49e8f5bdca59",
+  "private_token_file": "/workspace/yellow-coordination/release-20261001/hosting-fix-discussion-v1/run-9ff-origin-20261001/token.env",
+  "token_file_retention": "retained on this VM for local diagnostic recovery; not an off-VM backup"
+}

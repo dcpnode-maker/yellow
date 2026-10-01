@@ -1,0 +1,63 @@
+{
+  "schema": "yellow-cloud-connector-intent/v1",
+  "provider_configuration_payload": false,
+  "submitted_or_applied": false,
+  "controller_thread": "01a0ecbc-469b-7671-b1d1-d3e6bab40c98",
+  "observed_environment_spec": "178",
+  "supported_configuration_editor_tool_available": false,
+  "udp_support_reported_by_platform": false,
+  "udp_support_conclusion": "unreported, not configured or proven; platform-wide unsupported is not established",
+  "requested_transport": {
+    "protocol": "UDP/QUIC",
+    "outbound_destination_port": 7844,
+    "destination_scope": "Cloudflare Tunnel QUIC edge endpoints only; exact current official destinations must be verified by the configuration workflow",
+    "ipv4_only": true,
+    "general_internet_or_inbound_access_requested": false,
+    "tcp_http2_fallback_allowed": false,
+    "local_policy_file_edit_allowed": false,
+    "proxy_removal_or_direct_route_workaround_allowed": false
+  },
+  "managed_secret_file_binding": {
+    "proposed_name": "yellow-cloudflare-vpc-connector-token",
+    "proposed_path_variable": "YELLOW_CLOUDFLARE_CONNECTOR_TOKEN_FILE",
+    "contents": "dedicated Yellow VPC Tunnel connector token; supplied only through supported secure configuration",
+    "actual_path": null,
+    "actual_tunnel_id": null,
+    "observed_ready": false,
+    "readable_by": "one owned cloudflared connector only",
+    "must_not_reuse": ["phone coordinator token", "laptop OAuth credential vault", "Yellow application token secret"],
+    "secret_value_in_chat_or_git": false
+  },
+  "connector_command_template": [
+    "/workspace/yellow-toolchain/cloudflared-2026.9.3",
+    "tunnel", "--no-autoupdate", "--protocol", "quic", "--edge-ip-version", "4",
+    "--metrics", "127.0.0.1:53010", "run", "--token-file", "<managed path from YELLOW_CLOUDFLARE_CONNECTOR_TOKEN_FILE>"
+  ],
+  "connector_binary_sha256": "77e26d8d900e0b8469f416239d14b5f296525fdf79fee6f511ef55609e3fbac2",
+  "help_only_protocol_parser_proof": true,
+  "connector_started": false,
+  "origin_proposal": {
+    "synthetic_only": true,
+    "source": "9ff27ad8765dc75ebae9e083d4635c7a9b89fa62",
+    "local_url": "http://127.0.0.1:53009",
+    "workers_vpc_target_loopback_compatibility": "not yet verified",
+    "allowed_service_type": "one fixed HTTP service",
+    "database_cache_debug_admin_services": "excluded"
+  },
+  "setup_sequence": [
+    "Managed host configuration workflow must first confirm a supported UDP7844 capability and its exact configuration schema; if unavailable, this proposal cannot be applied here.",
+    "Prepare one narrow UDP7844 destination rule and the named secret-file binding without changing inherited HTTP proxy/trust or existing grants.",
+    "User reviews the concrete draft in the supported environment configuration workflow; no edit/apply tool is exposed to this cloud task.",
+    "Apply only the reviewed supported configuration and wait for current observations/individual binding ready status plus separate UDP grant evidence.",
+    "Only then laptop may reauthorize exact Cloudflare Connectivity Directory/Tunnel/Access needs and create the dedicated tunnel/service/Access policy.",
+    "Securely attach the dedicated token file, check no competing TUNNEL_TOKEN overrides it, then run the owned QUIC connector under a bounded startup/cleanup order.",
+    "Require actual QUIC connector health, fixed-origin reachability and externally authenticated/unauthenticated-denied Access tests before reporting a live URL."
+  ],
+  "laptop_provider_fact": {
+    "account_admin_authority": "controller independently verified SuperAdministrator-AllPrivileges",
+    "saved_cli_connectivity_admin_scope": false,
+    "actual_vpc_service_list_error": "Cloudflare authentication10000",
+    "provider_reauthorization_deferred_until_supported_transport": true
+  },
+  "paid_fallback_or_emergency_credit_spend": false
+}
