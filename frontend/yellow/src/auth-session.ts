@@ -72,6 +72,10 @@ export function createAuthSession(options: Readonly<{ fetch?: Transport; now?: (
   let token: string | null = null;
   let expiresAt = 0;
   let generation = 0;
+  let bootstrapPromise: Promise<AuthSnapshot> | undefined;
+  let logoutPromise: Promise<void> | undefined;
+  const pendingLogins = new Set<Promise<Response>>();
+  const browserHeaders = { "content-type": "application/json", "x-yellow-browser-session": "v1" };
   let timer: ReturnType<typeof setTimeout> | undefined;
   const listeners = new Set<() => void>();
   const notify = () => { for (const listener of listeners) listener(); };
@@ -96,14 +100,18 @@ export function createAuthSession(options: Readonly<{ fetch?: Transport; now?: (
     return parseProperties(await json(response, "Property access could not be verified."));
   }
   async function signIn(credentials: LoginCredentials, requiredPropertyId?: string): Promise<AuthSnapshot> {
+    if (logoutPromise) throw new AuthenticationError("Sign-out is still being completed. Try again.");
     const attempt = ++generation;
     const previousPrincipal = snapshot.principal;
+    const responseAt = now();
     let response: Response;
     try {
-      response = await transport("/api/v1/auth/local:login", {
-        method: "POST", headers: { "content-type": "application/json" },
+      const request = transport("/api/v1/auth/local:login", {
+        method: "POST", headers: browserHeaders, credentials: "same-origin", cache: "no-store",
         body: JSON.stringify({ tenant: credentials.tenant, email: credentials.email, password: credentials.password }),
       });
+      pendingLogins.add(request);
+      try { response = await request; } finally { pendingLogins.delete(request); }
     } catch { throw new AuthenticationError("Sign-in could not reach the server. Try again."); }
     if (!response.ok) throw loginFailure(response.status);
     const candidate = parseLogin(await json(response, "The sign-in response could not be verified."));
@@ -111,7 +119,6 @@ export function createAuthSession(options: Readonly<{ fetch?: Transport; now?: (
     if (previousPrincipal && (candidate.principal.actorId !== previousPrincipal.actorId || candidate.principal.tenantId !== previousPrincipal.tenantId)) {
       throw new AuthenticationError("Sign in with the same account to continue this session.");
     }
-    const responseAt = now();
     let properties: readonly GrantedProperty[];
     try {
       const propertyResponse = await transport("/api/v1/me/properties", {
@@ -134,7 +141,54 @@ export function createAuthSession(options: Readonly<{ fetch?: Transport; now?: (
     stopTimer(); timer = setTimeout(expire, expiresAt - now()); notify();
     return snapshot;
   }
-  return Object.freeze({ session, signIn, grantedProperties,
+  function bootstrap(requiredPropertyId?: string): Promise<AuthSnapshot> {
+    // Only an initial document may resume. Expired in-document work requires credentials.
+    if (snapshot.principal || logoutPromise) return Promise.resolve(snapshot);
+    if (bootstrapPromise) return bootstrapPromise;
+    const attempt = ++generation;
+    const requestAt = now();
+    bootstrapPromise = (async () => {
+      const response = await transport("/api/v1/auth/browser/resume", { method: "POST", headers: browserHeaders,
+        credentials: "same-origin", cache: "no-store", body: "{}" });
+      if (attempt !== generation) throw new AuthenticationError("A newer authentication request has replaced this request.");
+      if (response.status === 401 || response.status === 404) return snapshot;
+      if (!response.ok) throw new AuthenticationError("Session restoration is unavailable. Sign in to continue.", response.status);
+      const candidate = parseLogin(await json(response, "The session response could not be verified."));
+      const propertyResponse = await transport("/api/v1/me/properties", {
+        headers: { authorization: `Bearer ${candidate.token}` }, cache: "no-store",
+      });
+      if (!propertyResponse.ok) throw new AuthenticationError("Property access is unavailable.", propertyResponse.status);
+      const properties = parseProperties(await json(propertyResponse, "Property access could not be verified."));
+      if (attempt !== generation) throw new AuthenticationError("A newer authentication request has replaced this request.");
+      if (requiredPropertyId && !properties.some(property => property.id === requiredPropertyId)) {
+        throw new AuthenticationError("Access to this property is no longer granted. The current work remains locked.");
+      }
+      // Anchor to request start: transport/property latency cannot extend original expiry.
+      expiresAt = requestAt + candidate.expiresInSeconds * 1000;
+      if (now() >= expiresAt) throw new AuthenticationError("The restored session has expired. Sign in to continue.");
+      token = candidate.token;
+      snapshot = Object.freeze({ status: "authenticated", principal: candidate.principal, properties });
+      stopTimer(); timer = setTimeout(expire, expiresAt - now()); notify();
+      return snapshot;
+    })();
+    return bootstrapPromise;
+  }
+  function logout(): Promise<void> {
+    if (logoutPromise) return logoutPromise;
+    ++generation; token = null; stopTimer();
+    // Retain recovery identity and mounted work; a different principal cannot adopt it.
+    snapshot = Object.freeze({ ...snapshot, status: snapshot.principal ? "expired" : "anonymous" });
+    notify();
+    logoutPromise = (async () => {
+      // Older login responses may set cookies. Clear only after all of those settle.
+      await Promise.allSettled([...pendingLogins]);
+      const response = await transport("/api/v1/auth/browser/logout", { method: "POST", headers: browserHeaders,
+        credentials: "same-origin", cache: "no-store", body: "{}" });
+      if (!response.ok) throw new AuthenticationError("Server sign-out could not be confirmed. Try again.", response.status);
+    })().finally(() => { logoutPromise = undefined; });
+    return logoutPromise;
+  }
+  return Object.freeze({ session, signIn, bootstrap, logout, grantedProperties,
     getSnapshot: () => snapshot,
     subscribe(listener: () => void) { listeners.add(listener); return () => { listeners.delete(listener); }; },
     dispose() { ++generation; stopTimer(); token = null; listeners.clear(); },
@@ -144,7 +198,7 @@ export type AuthSession = ReturnType<typeof createAuthSession>;
 export type AuthSessionAccess = Omit<AuthSession, "dispose">;
 const defaultSession = createAuthSession();
 export const reactAuthSession: AuthSessionAccess = Object.freeze({
-  session: defaultSession.session, signIn: defaultSession.signIn, grantedProperties: defaultSession.grantedProperties,
+  session: defaultSession.session, signIn: defaultSession.signIn, bootstrap: defaultSession.bootstrap, logout: defaultSession.logout, grantedProperties: defaultSession.grantedProperties,
   getSnapshot: defaultSession.getSnapshot, subscribe: defaultSession.subscribe,
 });
 

@@ -1,6 +1,7 @@
 import { Elysia } from "elysia";
 import { isIP } from "node:net";
 
+import type { BrowserSessionHttpApi } from "./http/browser-session";
 import { SECURITY_HEADERS } from "./http/security-headers";
 import { ExtensionHttpApi } from "./http/extensions";
 import { operatorAssets, type OperatorHttpApi, type OperatorLocalReviewCredentials } from "./http/operator";
@@ -50,6 +51,7 @@ export interface AppOptions {
   readonly tenantResolver?: TenantResolver;
   readonly extensionRegistry?: ExtensionRegistry;
   readonly operatorApi?: OperatorHttpApi;
+  readonly browserSessionApi?: BrowserSessionHttpApi;
   readonly operatorLocalReviewCredentials?: OperatorLocalReviewCredentials;
   readonly hostedDepositRoutes?: HostedDepositProviderHttpApi;
   readonly hostedDepositSurface?: "guest" | "provider" | "all";
@@ -187,7 +189,7 @@ export function createApp(options: AppOptions = {}) {
       .get("/p/:property/inventory", ({ request }) => operatorAssets.html(options.operatorLocalReviewCredentials, request))
       .get("/p/:property/restrictions", ({ request }) => operatorAssets.html(options.operatorLocalReviewCredentials, request))
       .get("/p/:property/rates", ({ request }) => operatorAssets.html(options.operatorLocalReviewCredentials, request))
-      .get("/p/:property/operations", ({ request }) => operatorAssets.html(options.operatorLocalReviewCredentials, request))
+      .get("/p/:property/operations", ({ request }) => publicOperatorHtml(request))
       .get("/p/:property/housekeeping", ({ request }) => publicOperatorHtml(request))
       .get("/p/:property/housekeeping/tasks/:task", ({ request }) => operatorAssets.html(options.operatorLocalReviewCredentials, request))
       .get("/p/:property/vehicles", ({ request }) => operatorAssets.html(options.operatorLocalReviewCredentials, request))
@@ -228,8 +230,24 @@ export function createApp(options: AppOptions = {}) {
         // credentials.  This route is enabled only for the isolated demo process.
         return operator.publicReadOnlyDemoLogin(request, credentials, publicDemoSourceKey(request, server?.requestIP(request)));
       })
-      .post("/api/v1/auth/local:login", ({ request, body, server }) =>
-        operator.login(request, body, localLoginSourceKey(server?.requestIP(request)))
+      .post("/api/v1/auth/local:login", async ({ request, body, server }) => {
+        const browser = options.browserSessionApi;
+        const peer = server?.requestIP(request);
+        if (request.headers.has("x-yellow-browser-session")) {
+          if (!browser) return new Response("Browser sessions are not configured", { status: 503, headers: { "cache-control": "no-store" } });
+          const denied = browser.admission(request, peer);
+          if (denied) return denied;
+          return browser.captureCredentialLogin(request, await operator.login(request, body, localLoginSourceKey(peer)), peer);
+        }
+        return operator.login(request, body, localLoginSourceKey(peer));
+      })
+      .post("/api/v1/auth/browser/resume", ({ request, body, server }) =>
+        options.browserSessionApi?.resume(request, body, server?.requestIP(request)) ??
+          new Response("Not found", { status: 404, headers: { "cache-control": "no-store" } })
+      )
+      .post("/api/v1/auth/browser/logout", ({ request, body, server }) =>
+        options.browserSessionApi?.logout(request, body, server?.requestIP(request)) ??
+          new Response("Not found", { status: 404, headers: { "cache-control": "no-store" } })
       )
       .post("/api/v1/jarvis:ask", ({ request, body, server }) =>
         options.jarvis

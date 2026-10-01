@@ -1,7 +1,8 @@
 import { SQL } from "bun";
 
 import { createApp } from "./app";
-import { BearerTenantResolver, Hs256TokenSigner, LocalLoginGuard, LocalLoginService } from "./contexts/identity";
+import { BrowserSessionHttpApi, type BrowserSessionOriginPolicy } from "./http/browser-session";
+import { BearerTenantResolver, Hs256TokenSigner, LocalLoginGuard, LocalLoginService, PostgresBrowserSessionIdentityReader } from "./contexts/identity";
 import { PartyProfileService } from "./contexts/crm";
 import { BusinessDayDiscrepancyCarryOperatorService, BusinessDayRollService, BusinessDayRollWorker, BusinessDaySealService, CashierService, ChargeCorrectionService, ChargeService, FolioService, FolioSettlementService, FolioStatementService, FolioTransferService, HostedDepositService, LocalPaymentProvider, OwnerTrustExpenseWorkbenchService, PaymentService, ReceivableService } from "./contexts/financials";
 import { AvailabilityProjectionConsumer, AvailabilityProjectionService, AvailabilityService, HoldExpiryWorker, HoldService, InventoryPolicyService, InventoryService, OperationalBlockService, ReservationOccupancyService, RestrictionService } from "./contexts/inventory";
@@ -97,6 +98,25 @@ function runtimeHostname(): string {
   throw new Error("non-loopback operator binding requires YELLOW_OPERATOR_ALLOW_NON_LOOPBACK=1");
 }
 
+function browserSessionPolicy(): BrowserSessionOriginPolicy | undefined {
+  const configured = Bun.env.YELLOW_BROWSER_SESSION_HTTPS_ORIGINS;
+  const localhostHttpOrigin = Bun.env.YELLOW_BROWSER_SESSION_LOCALHOST_ORIGIN;
+  const proxy = Bun.env.YELLOW_BROWSER_SESSION_ALLOW_LOOPBACK_TLS_PROXY;
+  if (proxy !== undefined && proxy !== "0" && proxy !== "1") throw new Error("Invalid browser-session TLS proxy configuration");
+  if (configured === undefined && localhostHttpOrigin === undefined) {
+    if (proxy === "1") throw new Error("Browser-session TLS proxy requires explicit HTTPS origins");
+    return undefined;
+  }
+  const httpsOrigins = configured === undefined ? [] : configured.split(",");
+  if (proxy === "1" && httpsOrigins.length === 0) throw new Error("Browser-session TLS proxy requires explicit HTTPS origins");
+  if (localhostHttpOrigin !== undefined && (!workbenchEnabled ||
+      !["127.0.0.1", "localhost", "::1"].includes(runtimeHostname()))) {
+    throw new Error("Localhost browser sessions require a loopback operator workbench");
+  }
+  return { httpsOrigins, ...(localhostHttpOrigin === undefined ? {} : { localhostHttpOrigin }),
+    allowLoopbackTlsProxy: proxy === "1" };
+}
+
 function localReviewCredentials(): OperatorLocalReviewCredentials | undefined {
   if (Bun.env.YELLOW_LOCAL_REVIEW_PREFILL !== "1") return undefined;
   if (!workbenchEnabled || hostedProviderOnly) {
@@ -183,6 +203,9 @@ function runtimeApp() {
   const extensionPool = ownSqlPool(new SQL(databaseUrl, { max: 4, prepare: false }));
   const registrarPool = ownSqlPool(new SQL(registrarUrl, { max: 2, prepare: false }));
   const login = new LocalLoginService(loginPool, tokens, new LocalLoginGuard());
+  const browserPolicy = browserSessionPolicy();
+  const browserSessionApi = browserPolicy ? new BrowserSessionHttpApi(tokens,
+    new PostgresBrowserSessionIdentityReader(database), browserPolicy) : undefined;
   const registry = new ExtensionRegistry(extensionPool, registrarPool);
   const approvals = new ApprovalService(events);
   const inventory = new InventoryService(events);
@@ -389,6 +412,7 @@ function runtimeApp() {
     readinessTarget: "yellow_runtime_database",
     database,
     tenantResolver: new BearerTenantResolver(tokens),
+    browserSessionApi,
     operatorApi: new OperatorHttpApi(login, availability, inventory, new PostgresIdempotency(), restrictions, rates, pricing, blocks, policy, holds, projection, runtimeStatus, rateBuilder, reservations, reservationOffers, reservationGuests, reservationLifecycle, reservationSegments, parties, folioStatements, charges, new ReservationBoardService(), new ReservationDetailService(), folios, chargeCorrections, folioTransfers, hostedRuntime?.hostedDeposits, folioSettlements, cashiers, receivables, checkIns, housekeeping, housekeepingSheets, checkoutReadiness, checkouts, vehicleRegister, reservationTravel, pickupTaskDispatch, arrivalRoomCleaning, housekeepingDiscrepancies, vehicleParking, undefined, undefined, businessDayCarry, businessDaySeal, ownerTrustExpenses, {
       submissions: fiscalSubmissions,
       adapters: fiscalSubmissionAdapters,

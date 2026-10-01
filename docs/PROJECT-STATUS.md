@@ -4,7 +4,7 @@
 <!-- current-phase: 7 -->
 <!-- current-task: Codex Yellow — restore requested original UI and integrate CRS CRM RMS booking engine; laptop source and live hosting owner -->
 <!-- current-order-files: handoff/orders/RESOURCE-20261001-root-reference-ui-integration.md;handoff/orders/RESOURCE-20261001-restore-reference-ui.md;handoff/orders/RESOURCE-20261001-react-normal-auth.md -->
-<!-- current-lifecycle: ACTIVE receiving444/frontier103; reviewed41-path original UI and normal credential login integrated. New normal-auth laptop runtime and public hosting validation pending; cloud owns missing public booking adapter. Existing runtime/data preserved -->
+<!-- current-lifecycle: ACTIVE restored original UI/source326/frontier103; fixed Cloudflare endpoint HTTP verified. Reviewed12-path secure browser session continuation admitted; actual PG/public runtime upgrade pending. CRS CRM RMS staff entries and cloud guest booking continue; no production data activation -->
 
 This is the canonical current-state record. It identifies the consolidated source,
 verified behavior, release boundaries and active work. Historical orders, reviews,
@@ -16,6 +16,12 @@ backlog. `state.sh` and `state.ps1` read the machine-readable comments above.
 The laptop receiving branch now integrates the independently reviewed original Yellow presentation and normal-login boundary from the41-path ab0d4ae8 freeze. The prior narrow frontend preview did not preserve the user's approved theme/navigation; this restores its header, workspace dock, ribbons, tables, search and explicit field dictation while retaining current guarded readers and domain commands. Review67/0 plus auth48/0, types, boundaries and compiled-module proof passed. This is source admission, not visual/browser or public-host acceptance.
 
 The catalogue test oracle now matches the actual103-migration frontier and26 permission catalogue, with all130-table/RLS/grant predicates preserved; the isolated PG18 run passed24/0/75 and its owned process stopped. Existing Windows CI startup failure remains unresolved. The current cloud inventory verifies staff CRS offer/hold/commit, departure-task prioritization and rate strategy foundations; public guest booking, group-price escalation and full forecasting remain incomplete. Memory-only document navigation needs session-resume follow-up before claiming the original flow is complete. Map/reports remain explicitly unavailable. No real hotel/guest data or provider activation is introduced.
+
+## Receiving update — 2 October: fixed Cloudflare endpoint and session continuation
+
+The separate fixed Yellow Worker hostname is deployed, forwarding only to the owned laptop's normal-login3184 origin. Actual public proof verified readiness/source326/frontier103, login, exactly two granted synthetic properties, anonymous401, demo404 and20 reviewed served JS/CSS hashes. Worker dispatch ABI correction independently passed16 tests/234 assertions; the phone coordinator was preserved. The underlay remains a temporary tunnel, so the stable public address does not itself guarantee origin uptime.
+
+Root admits the independently reviewed12-path48033072 browser-session overlay: exact configured origin, HttpOnly/Secure/host-only/SameSiteStrict cookie, strict original JWT expiry, active actor through tenant RLS, memory-only resumed bearer and authoritative property-grant reread. Cookie-only ordinary APIs retain401 and existing Bearer authority stays unchanged. Logout clears browser continuation without claiming global token revocation. Operations now receives the same React operator shell, Finance aliases to its existing guarded workspace and microphone permission is limited to self. Actual109/0/796 plus four independent attacks/52 assertions, both types, boundaries and compiled asset execution passed. Real PG/public cookie proof and browser cookie/voice/visual acceptance are separate gates; no browser acceptance claimed. Staff CRS/CRM/RMS visible integration and cloud public guest booking remain active work.
 
 ## Current task
 

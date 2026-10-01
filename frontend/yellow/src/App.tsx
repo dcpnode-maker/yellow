@@ -7292,7 +7292,7 @@ export function App() {
           ? `/p/${propertyId}/today?workspace=ecosystem`
         : part === "market-lab" && internalMarketLabEnabled
           ? `/p/${propertyId}/today?workspace=market-lab`
-        : part === "cashiers"
+        : part === "cashiers" || part === "finance"
           ? `/p/${propertyId}/today?workspace=finance`
         : `/p/${propertyId}/${part}`,
     );

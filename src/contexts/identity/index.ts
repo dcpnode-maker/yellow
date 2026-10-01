@@ -2,6 +2,8 @@ export { hashLocalPassword, isLocalAuthRecord, verifyLocalPassword } from "./pas
 export type { LocalAuthRecord } from "./password";
 export { PropertyModeService, PropertyModeValidationError, PropertyModeAuthorizationError, PropertyModeConflictError, PropertyModeIncoherentError, parsePropertyModeBody } from "./property-mode";
 export type { PropertyMode, PropertyOperatingMode, PropertyModeIdentity, SetPropertyModeInput, SetPropertyModeResult } from "./property-mode";
+export { PostgresBrowserSessionIdentityReader } from "./browser-session";
+export type { ActiveBrowserActor, BrowserSessionIdentityReader } from "./browser-session";
 export { BearerTenantResolver } from "./resolver";
 export { OrgHierarchy } from "./org-hierarchy";
 export type { OrgHierarchyNode, OrgNodeKind } from "./org-hierarchy";
