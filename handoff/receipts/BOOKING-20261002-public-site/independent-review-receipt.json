@@ -1,0 +1,158 @@
+{
+  "reviewer": "/root/guest_booking_security_review",
+  "nonimplementer": true,
+  "written_at_utc": "2026-10-01T20:41:19.370643+00:00",
+  "source_basis": "7b64ede37a4ded1ffe2e77295f2d3e95b30442be",
+  "decision": "canonical0105 authority/schema/frontier accepted; broader feature acceptance partial",
+  "unresolved_security_findings": [],
+  "prototype_only": false,
+  "native": {
+    "receipt": "/workspace/yellow-coordination/public-booking-proof-20261002/native-integration-20261001T202815782617Z.json",
+    "receipt_sha256": "aa2ed3367dc6d5daab863d7971edc412fe17335cc5696b44dbbf71abb52eab07",
+    "log_sha256": "fcd490bc7c8bfd09a997540bfd689c340b04812ced171fffa11935c589d2a5bd",
+    "personally_executed": true,
+    "pass": 15,
+    "fail": 0,
+    "assertions": 115,
+    "seconds": 5.49,
+    "database": "yellow_guest_booking_site_proof"
+  },
+  "guard_refusals": {
+    "missing-runtime": {
+      "receipt": "/workspace/yellow-coordination/public-booking-proof-20261002/missing-runtime-20261001T202828809261Z.json",
+      "receipt_sha256": "fefbf423fad3dfa5da9452f602a34fd31bee26a8215351fca5d9d16e28725899",
+      "log_sha256": "d76211950ef9131605ff4d12f3742a14f56fe5aff012c2dbe94daa651682aaaf",
+      "personally_executed": true,
+      "before_setup": true
+    },
+    "owner-runtime": {
+      "receipt": "/workspace/yellow-coordination/public-booking-proof-20261002/owner-runtime-20261001T202828803456Z.json",
+      "receipt_sha256": "4afd9ef7de75ed8c25a7b7acfe3615901e67a379027bfdf92fa93caa797a9363",
+      "log_sha256": "dc2a7e5b65c7a37f4db09c156fed8f1f4e8bb4db4e7c1298a95c825a86c04d07",
+      "personally_executed": true,
+      "before_setup": true
+    },
+    "mismatched-target": {
+      "receipt": "/workspace/yellow-coordination/public-booking-proof-20261002/mismatched-target-20261001T202828818052Z.json",
+      "receipt_sha256": "3012e04f7ef60f6b7d75e6c11a201835aba25a05f8128dca8ff35863060e52cd",
+      "log_sha256": "16a7404bce67dbfa32cb6fab6e4b73a680b824d8b889a4a5c2e8884dbca15c08",
+      "personally_executed": true,
+      "before_setup": true
+    }
+  },
+  "focused": {
+    "personally_executed": true,
+    "pass": 25,
+    "fail": 0,
+    "assertions": 197
+  },
+  "typecheck": {
+    "personally_executed": true,
+    "exit_code": 0
+  },
+  "boundaries": {
+    "personally_executed": true,
+    "exit_code": 0,
+    "files": 214
+  },
+  "source_sha256": {
+    "handoff/orders/BOOKING-20261002-public-site-flow.md": "2e0d0df4cf41a2be9654109a787b5edae40ab5509ab5774f5da6e170a16d3236",
+    "docs/contracts/PUBLIC-BOOKING-SITE-20261002.md": "3dad2048217d44436914a773bdf92d9b5f00115282f0484e7ff7246935d830c7",
+    "handoff/proposals/BOOKING-20261002-public-site-authority.sql": "d112303852a0cf1b2590f309f4f5b9df7ff0c3e9f9f9e67ce92f2fb8bc8fec92",
+    "src/contexts/identity/public-booking-site.ts": "9030c4e00665620894fbf1f8a648aafe7cbf3b4855ae891683bb07b4f102d520",
+    "src/contexts/identity/guest-booking-token.ts": "857aae885ea7001b0b3c4f5f0863a29960e5ed00f7430f0c5d598660fe37c1cb",
+    "src/contexts/identity/index.ts": "7b7192c72ac5da6f62f7ef1147f0ba29b1735329f793a0fdbd596e098a21f2df",
+    "src/contexts/reservations/public-booking.ts": "3e6f8678fd8e9c5a04ff8e42917d89d78d1492736cb7f5eaa50737c0d3d29db1",
+    "src/contexts/reservations/index.ts": "55f9d5532ea9c9c841e7388e469723b6c1c9adad89c75aa764f7070caf53049d",
+    "src/http/public-booking.ts": "b196d4119d302979c0052c5db228e92886dc0fd5ff690305084ce81ddd99345d",
+    "tests/public-booking-site.test.ts": "a0097d5cf90e2b861b2cc9c20bf9c64a6512b527546181171948e837513ab77f",
+    "tests/public-booking-http.test.ts": "2dba5d599a6c976c3c3c49682e8b9a6f1bce8683904aae8cc6fefb2c099c5785",
+    "tests/public-booking.integration.test.ts": "db43e8573fe2472273188f53d145fd7e47ce390af6d3145dea8db8e0b055ad3a",
+    "tests/guest-booking-token.test.ts": "ae6c8dd851afbc89268cd7c0cc5dbbf65873851cdc716efd2417a27f0b4d7b13",
+    "migrations/0104_guest_booking_authority.sql": "4c41dc4765ecbfe705999c5d5980ea482579403bdc681e468669fd3021c6be4a",
+    "handoff/reviews/BOOKING-20261002-public-site-flow.md": "15e14e28863ce8ca5d75a916b847759aad6fee5dc3e9c9460b6599b5521d31dc",
+    "migrations/0105_public_booking_site.sql": "be9931b96bd6fb3ae06969c956c7050d8aaa8d44199ea0b8990daa02a3522585",
+    "handoff/questions/BOOKING-20261002-public-site-frontier.md": "ffc92b367f1ac7ea3587b2b0cc1d7afd2df1887480601a95269eb1f4e7bba125",
+    "tests/schema/expected.sql": "671994b96ccbe402e92d2110fba69f6c5d08b21b06dbdbabb87d39a363555efd",
+    "src/kernel/build-info.ts": "517c52b5538d49ad51ccffbdb9b312a16c7a7e7eee9cad80a4ef54e65a262712",
+    "setup.sh": "737a30be19be11d32c518c76a345110e8ab9e226c4b21a8baeb365ce9d87ad51",
+    "setup.ps1": "a3c128506c9f3c6db06addaf30a1cd56f7aa81c6144295d2d5519cbdf03cfe73",
+    "scripts/local-review.sh": "c2604cbefdf7890aaeb74a2cfe86f74bc31696214bc170424cadb119ce7ca267",
+    ".github/workflows/ci.yml": "44d3b13bf1f9cbc937ffd1ecf36820fb956d0cea8941ae0ac799cfa09959575a",
+    ".github/workflows/release.yml": "0865e1716ccc27173fd8401fa764a76f993bb556936767a57c8ac05b04501ef5",
+    "tests/build-readiness.test.ts": "9aab9b449f3a7a141f13431d08c182eb4a315e3eff372cfd935aebd91812c8be",
+    "tests/build-readiness.integration.test.ts": "b1e0e25ac7681d23084b6a0ce8a4d1b4ae58989d29b4e1a3fa70343c54fc6e3d",
+    "tests/setup-current-catalogue-oracle.test.ts": "29142dffda324f284d18c89e030ed9ba51f4a17b179dca899e2cc9ca8e544d34",
+    "tests/free-host-arm64.test.ts": "3d2ecb785a237b7b3ba9b590858016b1dfa61d0c1633e02a26d2abb1316362d2",
+    "tests/release-workflow.test.ts": "c7e713c60012a5a01a3b04677fa140fa0895af6c4b0f1fa54daa6c8094100a64",
+    "tests/migrate.integration.test.ts": "5eb3c83dbf5e12a25d79f099b2bfc1a4e42e78b47ddf5f7b39267a89e39516c8"
+  },
+  "runner_sha256": "cd231bf8de93a2dbfb4978c251fedfffb2fc21de98ad5603134e65a376d699b2",
+  "ownership_receipt_sha256": "e35bbad67f8e9bf708f437b83344e8b04f0f5e1e803459509c3b2fa62224d9a7",
+  "proposal_application_receipt_sha256": "2da9fcd0ff1a6159619c6009c38843e7872d89f0c4da2ac00c89ae8dac94652d",
+  "migration0104_byte_identical_to_base": true,
+  "reviewer_feature_test_source_edits": false,
+  "credentials_printed": false,
+  "pending": [
+    "separate mounted App/server composition proof",
+    "full standing and exact-head CI",
+    "laptop receiving integration and guest UI/public acceptance"
+  ],
+  "proof_limits": [
+    "synthetic availability/publication/tax-jurisdiction input ports",
+    "details shortened-envelope source guard inspected; dedicated envelope native case covers quote",
+    "process-local request budgets only",
+    "no public hosting, payment/provider, real business data or complete guest-engine acceptance"
+  ],
+  "prototype_receipt": {
+    "path": "/workspace/yellow-coordination/public-booking-proof-20261002/independent-review-receipt-prototype.json",
+    "sha256": "176f2c82489253b8bfba31c14bebf1757a038b963f48978561ac196d1dbb0217"
+  },
+  "canonical_addendum": {
+    "source_basis": "7b64ede37a4ded1ffe2e77295f2d3e95b30442be",
+    "decision": "canonical0105 authority and strict schema/frontier closure approved",
+    "native": {
+      "personally_executed": true,
+      "pass": 15,
+      "fail": 0,
+      "assertions": 115,
+      "seconds": 4.91,
+      "database": "yellow_guest_booking_site_proof_canonical105",
+      "receipt": "/workspace/yellow-coordination/public-booking-proof-20261002/native-canonical105-20261001T203833409253Z.json",
+      "receipt_sha256": "54738535d6ff27b7932dea1543032fce8cf7c18e6570bbc42f2821a17d029952",
+      "log_sha256": "48314b8058507115ab26aab2c24468182ec71b0dd2585e0d5b0522033465ab50"
+    },
+    "ledger": {
+      "personally_executed": true,
+      "receipt": "/workspace/yellow-coordination/public-booking-proof-20261002/reviewer-canonical105-ledger.json",
+      "receipt_sha256": "7489652ebfbdd61b156381390de34b96c2293259fc714bc28daab19b13d6bdbd"
+    },
+    "strict_schema": {
+      "personally_executed": true,
+      "byte_equal": true,
+      "raw_dump_sha256": "a29838096bb42b594ab3e963e8ed4feaf2e1e181a971013a2b6660861f46c916",
+      "snapshot_sha256": "671994b96ccbe402e92d2110fba69f6c5d08b21b06dbdbabb87d39a363555efd",
+      "normalizer": "normalizeSchemaDump(raw,true)"
+    },
+    "frontier_focused": {
+      "personally_executed": true,
+      "pass": 21,
+      "fail": 0,
+      "assertions": 440
+    },
+    "canonical_setup": {
+      "parent_reported": true,
+      "personally_executed": false,
+      "pass": 11,
+      "fail": 0
+    },
+    "canonical_body_equals_reviewed_proposal": true,
+    "schema_diff": {
+      "added_lines": 242,
+      "removed_lines": 0,
+      "table_acl_changes": false
+    },
+    "runner_sha256": "236391b89f2ad88423de5d01afb88773b00ef7b42c6c16b3debed3e501f80f39",
+    "ownership_receipt_sha256": "024b6c9f7c10477bd68ac56c9da790845c60b0d0fc27e275e48fe76bc0b9afcb"
+  }
+}

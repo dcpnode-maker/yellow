@@ -475,3 +475,18 @@ stale, denied or failed writes emit nothing. This event changes a workspace attr
 not inventory, subscription entitlements, permissions, price, occupancy or an STR
 workflow implementation. Migration103 protects the reserved config path from direct
 runtime edits while preserving unrelated configuration authority.
+
+## BOOKING-20261002 — Published property guest booking
+
+- `booking.site.published`: aggregate org_node/property. Owner command atomically
+  records the version, siteId, active flag, channelCode and allowed plan IDs with
+  property-local business date and staff publisher/correlation. Withdraw is the
+  same versioned publication event with active=false. No guest contact payload.
+- `public_booking.hold_accepted`: aggregate hold, sessionId/siteId/siteVersion,
+  bindingId and financial terms hash; same transaction as canonical tax/hold effects.
+- `public_booking.reservation_confirmed`: aggregate reservation, sessionId/siteId/
+  siteVersion and holdId; same transaction as canonical held commit.
+
+Guest details use existing `party.created`; no duplicate profile event or contact
+data in these new events. No guest/public-provider authority or money arithmetic
+is introduced. See the scoped public-site contract for current admission limits.

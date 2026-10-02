@@ -1,0 +1,35 @@
+--- a/src/app.ts
++++ b/src/app.ts
+@@ -0,0 +1 @@
++import type {PublicBookingHttpApi} from "./http/public-booking";
+@@ -54,0 +56 @@
++  readonly publicBookingRoutes?: PublicBookingHttpApi;
+@@ -184,0 +187,5 @@
++    if (options.publicBookingRoutes) {
++      const booking=options.publicBookingRoutes;
++      app.post("/api/v1/properties/:property/booking-site",({request,params})=>
++        withOperatorTenant(request,context=>booking.publish(context,params.property)),{parse:"none"});
++    }
+@@ -843,0 +851,9 @@
++  if (options.publicBookingRoutes) {
++    const booking=options.publicBookingRoutes;
++    app.post("/api/public/booking/sites/:site/sessions",({request,params})=>booking.start(request,params.site),{parse:"none"})
++      .post("/api/public/booking/storefront/offers",({request})=>booking.handle(request,"offers"),{parse:"none"})
++      .post("/api/public/booking/storefront/quotes",({request})=>booking.handle(request,"quotes"),{parse:"none"})
++      .post("/api/public/booking/storefront/holds",({request})=>booking.handle(request,"holds"),{parse:"none"})
++      .post("/api/public/booking/storefront/details",({request})=>booking.handle(request,"details"),{parse:"none"})
++      .post("/api/public/booking/storefront/reservations",({request})=>booking.handle(request,"reservations"),{parse:"none"});
++  }
+--- a/src/server.ts
++++ b/src/server.ts
+@@ -0,0 +1,2 @@
++import {PublicBookingService} from "./contexts/reservations";
++import {PublicBookingHttpApi} from "./http/public-booking";
+@@ -157,0 +160 @@
++  const bookingDirectoryPool=ownSqlPool(new SQL(databaseUrl,{max:2,prepare:false}));
+@@ -393,0 +397,5 @@
++    publicBookingRoutes: new PublicBookingHttpApi({database,runtimeSql:bookingDirectoryPool,
++      service:new PublicBookingService({tokens:new GuestBookingTokenSigner(required("YELLOW_TOKEN_SECRET")),
++        offers:reservationOffers,quotes:rateBuilder.quote,rates,publication,holds,parties,reservations,
++        attributions:new TaxAttributionPersistenceService({events,idempotency:new PostgresIdempotency()}),
++        idempotency:new PostgresIdempotency(),events})}),

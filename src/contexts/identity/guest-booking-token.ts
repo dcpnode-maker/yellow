@@ -11,12 +11,25 @@ const PURPOSE_MAX_TTL_SECONDS: Readonly<Record<GuestBookingTokenPurpose, number>
   session: 900,
   quote: 300,
   hold: 900,
+  "public-session": 900,
+  "public-quote": 300,
+  "public-hold": 900,
+  "public-details": 900,
 };
-const PURPOSES = new Set(["session", "quote", "hold"]);
+const PURPOSES = new Set<GuestBookingTokenPurpose>([
+  "session", "quote", "hold", "public-session", "public-quote", "public-hold", "public-details",
+]);
 const BASE64URL = /^[A-Za-z0-9_-]+$/;
 const ENVELOPE_KEYS = ["v", "purpose", "iat", "exp", "payload"] as const;
 
-export type GuestBookingTokenPurpose = "session" | "quote" | "hold";
+export type GuestBookingTokenPurpose =
+  | "session"
+  | "quote"
+  | "hold"
+  | "public-session"
+  | "public-quote"
+  | "public-hold"
+  | "public-details";
 
 export interface GuestBookingToken {
   readonly issuedAt: number;

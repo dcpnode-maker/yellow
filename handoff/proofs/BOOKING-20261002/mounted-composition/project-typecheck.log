@@ -1,0 +1,8 @@
+$ tsc --noEmit
+tests/build-readiness.test.ts(294,7): error TS2769: No overload matches this call.
+  The last overload gave the following error.
+    Type '104' is not assignable to type '105'.
+tests/build-readiness.test.ts(296,45): error TS2769: No overload matches this call.
+  The last overload gave the following error.
+    Argument of type '104' is not assignable to parameter of type '105'.
+error: script "typecheck" exited with code 1

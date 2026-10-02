@@ -114,8 +114,8 @@ describe("Order 371 current setup catalogue oracle", () => {
     });
     expect(setup).toContain("[ \"$tables\" = '130' ]");
     for (const entrypoint of [setup, nativeSetup]) {
-      expect(entrypoint).toContain("expected 130 after migrations 1-104");
-      expect(entrypoint).toContain("yellow_test tables: 130 after migrations 1-104");
+      expect(entrypoint).toContain("expected 130 after migrations 1-105");
+      expect(entrypoint).toContain("yellow_test tables: 130 after migrations 1-105");
     }
     expect(setup).not.toContain("expected 116 after migrations 1-64");
     expect(setup).not.toContain("expected 115 after migrations 1-62");

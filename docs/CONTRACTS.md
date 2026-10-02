@@ -4072,3 +4072,12 @@ explicit retry/reconciliation; client selection is neither permission nor public
 Both exposes a same-property preference foundation, not complete STR-specific screens.
 Independent actual PostgreSQL18 proof and direct-runtime guard coverage are recorded
 in the task receipt; interactive/browser acceptance remains a separate requirement.
+
+## Explicitly published guest booking site (BOOKING-20261002)
+
+The independently reviewed backend reuses canonical offer/quote/hold, Party profile
+and reservation commands under a staff-published property site. Public-session
+authority is separate from invitation and staff authentication. See
+[contract](contracts/PUBLIC-BOOKING-SITE-20261002.md). Canonical105 is proved only
+on owned synthetic databases; mounted receiving, guest UI, exact CI and public
+feature admission remain laptop gates. No payment/provider activation.
