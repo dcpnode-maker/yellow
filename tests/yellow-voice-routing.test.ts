@@ -303,10 +303,10 @@ test("renders deterministic PMS workspace reads inside Yellow without navigation
   const crsContinuation = app.slice(app.indexOf("  const continueCrs ="), app.indexOf("  const billingDesk ="));
   const retainedLock = "if (reservationLifecycleBusyRef.current || voiceTransferRecoveryLockedRef.current || propertyModeNavigationLocked) return;";
   expect(crsContinuation).toContain(retainedLock);
-  expect(crsContinuation.indexOf(retainedLock)).toBeLessThan(crsContinuation.indexOf("window.location.assign(href);"));
-  expect(app).toContain('<GuestsWorkspace />');
+  expect(crsContinuation.indexOf(retainedLock)).toBeLessThan(crsContinuation.indexOf("navigateYellow(href);"));
+  expect(app).toContain('<GuestsWorkspace key={route.guest} requestedGuestSearch={route.guest} />');
   expect(app).toContain('<HousekeepingWorkspace onLifecycleBusyChange={setReservationLifecycleFlight} />');
-  expect(app).toContain('<FinanceWorkspace onLifecycleBusyChange={setReservationLifecycleFlight} />');
+  expect(app).toContain('<FinanceWorkspace key={route.financeReservation ?? "cashier"} initialReservationId={route.financeReservation} onLifecycleBusyChange={setReservationLifecycleFlight} />');
   expect(app).toContain('<CommercialWorkspace />');
   expect(app).not.toContain('workflow(targetWorkspace);');
 });

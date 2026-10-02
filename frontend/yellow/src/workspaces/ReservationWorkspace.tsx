@@ -1,4 +1,5 @@
 import { StaffCrsWorkspace } from "./StaffCrsWorkspace";
+import { navigateYellow } from "../workspace-navigation";
 import { readStaffCrsReservationDraft } from "./staff-crs-client";
 import { reservationViewFromSearch } from "../reservation-navigation";
 import { GroupReservationWorkspace } from "./GroupReservationWorkspace";
@@ -13,9 +14,6 @@ import type { ReservationDetail, Stay, CheckoutReadiness, CheckInReadiness, DueI
 type Status = "due_in" | "due_out" | "in_house";
 const routeMatch = /^\/p\/([^/]+)(?:\/res\/([^/]+))?(?:\/[^/]*)?$/.exec(window.location.pathname);
 const propertyId = routeMatch?.[1] ?? "6081b544-22a1-534f-a86d-bb1ae0519e14";
-const pageSearch = new URLSearchParams(window.location.search);
-const requestedGuestSearch = pageSearch.get("guest")?.trim() ?? "";
-const initialGuestSearch = requestedGuestSearch.length >= 2 ? requestedGuestSearch : "";
 const nameOf = (stay: Stay): string => stay.primaryGuestDisplayName ?? stay.primaryPartyName ?? stay.confirmationNo;
 const money = (minor: string, currency: string): string => new Intl.NumberFormat(undefined, { style: "currency", currency, maximumFractionDigits: 0 }).format(Number(BigInt(minor)) / 100);
 const moneyExactMinor = (minor: string, currency: string): string => new Intl.NumberFormat(undefined, { style: "currency", currency }).format(Number(BigInt(minor)) / 100);
@@ -422,7 +420,7 @@ function MovementGrid({
     <section className="movement-workspace" aria-labelledby={headingId}>
       <header className="movement-heading">
         <div>
-          <button type="button" className="back-link" onClick={() => window.location.assign(`/p/${propertyId}/today`)}>Today /</button>
+          <button type="button" className="back-link" onClick={() => navigateYellow(`/p/${propertyId}/today`)}>Today /</button>
           <h1 id={headingId}>{status === "all" ? "Reservations · All states" : `${titleOf(status)} · ${status === "due_in" ? "Due in" : status === "due_out" ? "Due out" : "Occupied"}`} ({visibleRows.length})</h1>
           <p>{visibleRows.length.toLocaleString()} reservations · {rendered.length} rows rendered on demand · live</p>
         </div>
@@ -491,7 +489,7 @@ function MovementGrid({
                 <span role="cell">{movementGuestAttributes(stay, status === "due_out" ? "departure" : "arrival")}</span>
                 <span role="cell"><i className={stay.sellableUnitLabel ? "ready-dot" : "pending-dot"} />{stay.sellableUnitLabel ? "Assigned" : "Pending"}</span>
                 <span role="cell"><em>{operationalStateLabel(state)}</em></span>
-                <span role="cell"><button type="button" className="movement-billing-action" aria-label={`Open cashier and billing for ${stay.confirmationNo}`} onClick={(event) => { event.stopPropagation(); window.location.assign(`/p/${propertyId}/today?workspace=finance&reservation=${encodeURIComponent(stay.reservationId)}`); }} onKeyDown={(event) => event.stopPropagation()}>Cashier</button></span>
+                <span role="cell"><button type="button" className="movement-billing-action" aria-label={`Open cashier and billing for ${stay.confirmationNo}`} onClick={(event) => { event.stopPropagation(); navigateYellow(`/p/${propertyId}/today?workspace=finance&reservation=${encodeURIComponent(stay.reservationId)}`); }} onKeyDown={(event) => event.stopPropagation()}>Cashier</button></span>
               </div>;
             })}
           </div>
@@ -690,7 +688,7 @@ function ReservationWorkspace({
       <section className="reservation-workspace">
         <p className="error">{detail.error.message}</p>
         <button
-          onClick={() => window.location.assign(`/p/${propertyId}/today`)}
+          onClick={() => navigateYellow(`/p/${propertyId}/today`)}
         >
           Back to Today
         </button>
@@ -1178,7 +1176,7 @@ function ReservationWorkspace({
       <button
         className="back-link"
         disabled={lifecyclePosting || operationalPosting || guestAllocationPosting}
-        onClick={() => window.location.assign(`/p/${propertyId}/today`)}
+        onClick={() => navigateYellow(`/p/${propertyId}/today`)}
       >
         ← Back to Today
       </button>
@@ -1230,7 +1228,7 @@ function ReservationWorkspace({
                   disabled={lifecyclePosting || operationalPosting || guestAllocationPosting}
                   key={`${guest.partyId}-${guest.role}`}
                   onClick={() =>
-                    window.location.assign(
+                    navigateYellow(
                       `/p/${propertyId}/guests?guest=${encodeURIComponent(guest.partyId)}`,
                     )
                   }
@@ -1431,7 +1429,7 @@ function ReservationWorkspace({
           ) : (
             <p>No folio is open yet. Arrival preparation can open the primary guest window when the current room and identity gates are ready.</p>
           )}
-          <button type="button" className="reservation-cashier-link" disabled={reservationMutationBusy} onClick={() => window.location.assign(`/p/${propertyId}/today?workspace=finance&reservation=${encodeURIComponent(reservation.reservationId)}`)}>{reservation.status === "in_house" || reservation.status === "due_out" ? "Open cashier · in-house billing" : "Open cashier · pre-arrival billing"}</button>
+          <button type="button" className="reservation-cashier-link" disabled={reservationMutationBusy} onClick={() => navigateYellow(`/p/${propertyId}/today?workspace=finance&reservation=${encodeURIComponent(reservation.reservationId)}`)}>{reservation.status === "in_house" || reservation.status === "due_out" ? "Open cashier · in-house billing" : "Open cashier · pre-arrival billing"}</button>
         </article>
         <article className="detail-card">
           <h2>Alerts & travel</h2>
@@ -1647,7 +1645,7 @@ function ReservationWorkspace({
                 </div> : null}
                 {!ready ? <div className="arrival-resolution-actions">
                   <button type="button" className="yellow-resolve-button" disabled={!onResolveWithYellow || reservationMutationBusy} onClick={() => onResolveWithYellow?.(reservation)}>Resolve with Yellow</button>
-                  {readiness.data?.blockers.includes("dirty_room_override_unauthorized") ? <button type="button" className="quiet" disabled={reservationMutationBusy} onClick={() => window.location.assign(`/p/${propertyId}/housekeeping`)}>Open Housekeeping</button> : null}
+                  {readiness.data?.blockers.includes("dirty_room_override_unauthorized") ? <button type="button" className="quiet" disabled={reservationMutationBusy} onClick={() => navigateYellow(`/p/${propertyId}/housekeeping`)}>Open Housekeeping</button> : null}
                 </div> : null}
                 {canOpenPrimaryFolio ? <section className="arrival-folio-action" aria-label="Primary folio preparation">
                   <strong>Billing window can be prepared now</strong>
@@ -2284,7 +2282,7 @@ function OverwatchCheckoutJourney({
                       </div>
                     ) : <p className="muted">No posting lines.</p>}
                     {!completed && canSettle ? <div className="checkout-action-block"><label className="checkout-confirm"><input type="checkbox" checked={settleConfirmed === statement.folio.id} onChange={(event) => setSettleConfirmed(event.target.checked ? statement.folio.id : null)} /> Confirm settling this zero-balance window</label><button type="button" className="primary" disabled={settleConfirmed !== statement.folio.id || busy !== null} onClick={() => void settleFolio(statement.folio.id)}>{busy === "settle" && settleConfirmed === statement.folio.id ? "Settling…" : "Settle zero-balance window"}</button></div> : null}
-                    {!completed && statement.balanceMinor !== "0" ? <button type="button" className="secondary" onClick={() => window.location.assign(`/p/${propertyId}/today?workspace=finance`)}>Resolve {moneyExactMinor(statement.balanceMinor, statement.folio.currency)} in Finance</button> : null}
+                    {!completed && statement.balanceMinor !== "0" ? <button type="button" className="secondary" onClick={() => navigateYellow(`/p/${propertyId}/today?workspace=finance`)}>Resolve {moneyExactMinor(statement.balanceMinor, statement.folio.currency)} in Finance</button> : null}
                   </article>
                 );
               })}
@@ -3181,7 +3179,7 @@ function ReservationBoardRow({
                   <p className="empty">No folio is open for this reservation.</p>
                 )}
                 <p className="reservation-context-note">{detail.data.reservation.status === "in_house" || detail.data.reservation.status === "due_out" ? "In-house billing context." : "Pre-arrival billing context."} Posting eligibility remains server-authoritative.</p>
-                <button type="button" className="reservation-cashier-link" onClick={() => window.location.assign(`/p/${propertyId}/today?workspace=finance&reservation=${encodeURIComponent(detail.data!.reservation.reservationId)}`)}>Open cashier &amp; billing</button>
+                <button type="button" className="reservation-cashier-link" onClick={() => navigateYellow(`/p/${propertyId}/today?workspace=finance&reservation=${encodeURIComponent(detail.data!.reservation.reservationId)}`)}>Open cashier &amp; billing</button>
                 <p className="reservation-context-note">{detail.data.reservation.notes ?? "No operational note is recorded."}</p>
               </article>
             </div>
@@ -3426,7 +3424,7 @@ function ReservationCreateWorkspace({
       <div className="reservation-create-success">
         <strong>Reservation created</strong>
         <p>Status {created.status} · the canonical reservation board has refreshed.</p>
-        <button type="button" onClick={() => window.location.assign(`/p/${propertyId}/res/${created.reservationId}`)}>Open reservation</button>
+        <button type="button" onClick={() => navigateYellow(`/p/${propertyId}/res/${created.reservationId}`)}>Open reservation</button>
         <button type="button" className="quiet" onClick={onCancel}>Return to reservations</button>
       </div>
     </section>
@@ -3511,6 +3509,11 @@ function ReservationBoardWorkspace({ timezone, onCrsContinue }: Readonly<{ timez
 
 function ReservationBoardContents({ timezone }: Readonly<{ timezone: string }>) {
   const [creating, setCreating] = useState(() => readStaffCrsReservationDraft(window.location.search) !== null);
+  const [draftSearch, setDraftSearch] = useState(window.location.search);
+  useEffect(() => {
+    const sync = () => { setDraftSearch(window.location.search); setCreating(readStaffCrsReservationDraft(window.location.search) !== null); };
+    window.addEventListener("popstate", sync); return () => window.removeEventListener("popstate", sync);
+  }, []);
   const board = useQuery({
     queryKey: ["reservation-board", propertyId],
     queryFn: loadReservationBoard,
@@ -3520,7 +3523,7 @@ function ReservationBoardContents({ timezone }: Readonly<{ timezone: string }>) 
     queryFn: loadGroupBlocks,
   });
   if (creating)
-    return <ReservationCreateWorkspace timezone={timezone} onCancel={() => setCreating(false)} onCreated={async () => { await board.refetch(); }} />;
+    return <ReservationCreateWorkspace key={draftSearch} timezone={timezone} onCancel={() => setCreating(false)} onCreated={async () => { await board.refetch(); }} />;
   if (board.isLoading)
     return (
       <section className="reservation-workspace">
@@ -3552,7 +3555,7 @@ function ReservationBoardContents({ timezone }: Readonly<{ timezone: string }>) 
         status="all"
         lane={board.data}
         timezone={timezone}
-        open={(stay) => window.location.assign(`/p/${propertyId}/res/${stay.reservationId}`)}
+        open={(stay) => navigateYellow(`/p/${propertyId}/res/${stay.reservationId}`)}
       />
     </section>
   );
@@ -3638,7 +3641,7 @@ function GroupBlockWorkbenchPanel({
                     type="button"
                     key={`${group.groupId}-${row.reservationId}`}
                     className="group-block-rooming-row"
-                    onClick={() => window.location.assign(`/p/${propertyId}/res/${row.reservationId}`)}
+                    onClick={() => navigateYellow(`/p/${propertyId}/res/${row.reservationId}`)}
                     aria-label={`Open reservation ${row.confirmationNo} for ${row.primaryGuestDisplayName}`}
                   >
                     <span>
@@ -3667,8 +3670,8 @@ function GroupBlockWorkbenchPanel({
   );
 }
 
-function GuestsWorkspace() {
-  const [query, setQuery] = useState(initialGuestSearch);
+function GuestsWorkspace({ requestedGuestSearch = new URLSearchParams(window.location.search).get("guest")?.trim() ?? "" }: Readonly<{ requestedGuestSearch?: string }> = {}) {
+  const [query, setQuery] = useState(requestedGuestSearch.length >= 2 ? requestedGuestSearch : "");
   const [selectedParty, setSelectedParty] = useState<PartyProfile | null>(null);
   const profiles = useQuery({
     queryKey: ["guest-search", propertyId, query],
@@ -3798,7 +3801,7 @@ function GuestsWorkspace() {
                   </span>
                   <button
                     onClick={() =>
-                      window.location.assign(
+                      navigateYellow(
                         `/p/${propertyId}/res/${stay.reservationId}`,
                       )
                     }
@@ -3838,7 +3841,7 @@ function InlineGuestProfile({ partyId, timezone }: Readonly<{ partyId: string; t
     <div className="yellow-inline-guest-contacts">{profile.contacts.length ? profile.contacts.map((contact) => <small key={`${contact.kind}-${contact.hint}`}>{contact.kind}: {contact.hint}</small>) : <small>No contact hint is recorded.</small>}</div>
     <h5>Stay history</h5>
     {history.isLoading ? <p className="empty">Loading factual stay history…</p> : history.isError ? <p className="error">{history.error.message}</p> : history.data?.reservations?.length ? <ul>{history.data.reservations.map((stay) => <li key={stay.reservationId}>
-      <button type="button" onClick={() => window.location.assign(`/p/${propertyId}/res/${stay.reservationId}`)}><strong>{stay.confirmationNo}</strong><span>{reservationStatusDescription(stay.operationalState ?? stay.status)} · {formatMovementTime(stay.stayFrom, timezone, true)} · {stay.sellableUnitLabel ?? stay.unitTypeLabel ?? "Room pending"}</span></button>
+      <button type="button" onClick={() => navigateYellow(`/p/${propertyId}/res/${stay.reservationId}`)}><strong>{stay.confirmationNo}</strong><span>{reservationStatusDescription(stay.operationalState ?? stay.status)} · {formatMovementTime(stay.stayFrom, timezone, true)} · {stay.sellableUnitLabel ?? stay.unitTypeLabel ?? "Room pending"}</span></button>
     </li>)}</ul> : <p className="empty">No factual stays are returned for this guest profile.</p>}
   </section>;
 }

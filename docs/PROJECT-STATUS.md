@@ -3,13 +3,23 @@
 <!-- status-schema: yellow-project-status/v1 -->
 <!-- current-phase: 7 -->
 <!-- current-task: Codex Yellow — restore requested original UI and integrate CRS CRM RMS booking engine; laptop source and live hosting owner -->
-<!-- current-order-files: handoff/orders/RESOURCE-20261002-root-staff-module-integration.md;handoff/orders/RESOURCE-20261002-staff-module-entries.md;handoff/orders/RESOURCE-20261001-browser-session-resume.md -->
-<!-- current-lifecycle: ACTIVE source3039/frontier103 public normal-login and secure session HTTP proof passed; reviewed staff CRS CRM RMS11 admitted, new runtime/public proof pending; cloud guest booking receiving pending -->
+<!-- current-order-files: handoff/orders/RESOURCE-20261002-smooth-session-navigation.md;handoff/orders/RESOURCE-20261002-root-staff-module-integration.md;handoff/orders/RESOURCE-20261002-staff-module-entries.md;handoff/orders/RESOURCE-20261001-browser-session-resume.md -->
+<!-- current-lifecycle: ACTIVE e27/frontier103 named-VPC public preview accepted; smooth same-property session/navigation source admitted awaiting exact-owner release; cloud guest booking receiving pending -->
 
 This is the canonical current-state record. It identifies the consolidated source,
 verified behavior, release boundaries and active work. Historical orders, reviews,
 decisions and ledger entries remain evidence; their filenames are not an active
 backlog. `state.sh` and `state.ps1` read the machine-readable comments above.
+
+## Receiving update — 2 October: smooth session navigation
+
+The live predecessor e27 now has a verified named VPC connection under the fixed yellow-live-app workers.dev hostname and public real-PG cookie/session proof (16 checks). The detached database, public preview opt-in, original theme, CRS/CRM/RMS entries and guarded staff flows remain the baseline. Domain-free named connection acceptance is recorded in the hosting artifacts; reboot startup and browser visual acceptance remain separate unverified boundaries.
+
+The bounded smooth-session order replaces reloads between supported same-property React workspaces with guarded History navigation. App, AuthenticationGate and QueryClient stay mounted; the URL drives the workspace, reservation, guest lookup, lane and cashier focus. Back/Forward and existing lifecycle, uncertain-transfer, property-mode and group beforeunload protections are retained. Property switches, legacy screens, external/new-tab/download/modifier links retain native navigation. Initial cookie verification shows a neutral Opening Yellow state instead of flashing credentials. No session lifetime, bearer storage, backend, schema, posting or UI-design changes are admitted.
+
+Independent non-implementing source review found no blocking issue; controlled navigation/auth/staff tests, root/frontend strict types, import boundaries and an isolated Vite build passed. The broad unconfigured test run retained its original log: 2615 passed, 1598 skipped, 13 failed. The eleven navigation/source harness assertions were updated without removing destination/lock/authority coverage; the final focused battery passed 115/0 across 17 files, plus both strict type configurations, boundaries and diff checks; two browser fixtures remain failing and need their auth setup/timing reviewed separately; neither is visual acceptance. Browser access cannot currently verify saved permissions; no indirect browser workaround is admitted. Historical 11/11 referee evidence is predecessor provenance, not a fresh source run; the DB-enforced invariant battery must never run against the live fixture.
+
+A version-exact release must stage new source/assets/owner pins, preserve the existing protected JWT/DB/origin settings, and replace only the precisely owned Bun origin and watcher using V7. PostgreSQL and the named connector remain running. Live acceptance, PIDs, rollback lineage and the actual active revision belong in database/root-current-live-runtime.json and durable release receipts; this source note does not pre-claim a cutover.
 
 ## Receiving update — 1 October: requested reference UI
 

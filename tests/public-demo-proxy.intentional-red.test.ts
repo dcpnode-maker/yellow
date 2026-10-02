@@ -93,7 +93,8 @@ test("a selected synthetic guest profile exposes its Party-bound stay history", 
   expect(reservationWorkspace).toContain(
     "guests?guest=${encodeURIComponent(guest.partyId)}",
   );
-  expect(reservationWorkspace).toContain("const initialGuestSearch");
+  expect(reservationWorkspace).toContain('requestedGuestSearch = new URLSearchParams(window.location.search).get("guest")?.trim() ?? ""');
+  expect(yellowApp).toContain('<GuestsWorkspace key={route.guest} requestedGuestSearch={route.guest} />');
   expect(reservationWorkspace).toContain("matchingProfile");
 });
 

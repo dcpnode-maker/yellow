@@ -13,19 +13,19 @@ const token = `header.${btoa(JSON.stringify({ sub: ACTOR, tid: TENANT }))}.test`
 function response(value: unknown) { return new Response(JSON.stringify(value)); }
 function location(pathname: string) { return { pathname, search: "", replace() { throw new Error("SSR must not navigate"); } }; }
 
-test("signed-out real gate renders an accessible normal credential form without evaluating workspace children", () => {
+test("initial gate shows a neutral accessible opening state without exposing credentials or workspace content", () => {
   const auth = createAuthSession({ fetch: async () => { throw new Error("SSR must not authenticate"); } });
   let childRenders = 0;
   function Workspace() { ++childRenders; return createElement("p", null, "Operational data"); }
   try {
     const html = renderToString(createElement(AuthenticationGate, { auth, location: location(`/p/${PROPERTY}/today`) }, createElement(Workspace)));
     expect(childRenders).toBe(0);
-    expect(html).toContain('for="auth-tenant"');
-    expect(html).toContain('for="auth-email"');
-    expect(html).toContain('for="auth-password"');
-    expect(html).toContain('type="password"');
-    expect(html).toContain('autoComplete="current-password"');
-    expect(html).toContain('type="submit"');
+    expect(html).toContain('role="status"');
+    expect(html).toContain('aria-live="polite"');
+    expect(html).toContain("Opening Yellow…");
+    expect(html).not.toContain('for="auth-tenant"');
+    expect(html).not.toContain('type="password"');
+    expect(html).not.toContain('type="submit"');
     expect(html).not.toContain("Operational data");
     expect(html).not.toContain(token);
   } finally { auth.dispose(); }

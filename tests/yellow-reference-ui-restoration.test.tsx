@@ -73,16 +73,16 @@ test("actual guarded App navigation blocks all locks and preserves nested view/f
   const start = appSource.indexOf("  const workflow = (part:");
   const end = appSource.indexOf("  const review = (stay:", start);
   const javascript = new Bun.Transpiler({ loader: "tsx" }).transformSync(appSource.slice(start, end));
-  const make = new Function("reservationLifecycleBusyRef", "voiceTransferRecoveryLockedRef", "propertyModeNavigationLocked", "window", "propertyId", "internalMarketLabEnabled", "reservationViewForDestination", "reservationViewHref", "PopStateEvent", javascript + "\nreturn { workflow, billingDesk, open, openMovementBilling };");
+  const make = new Function("reservationLifecycleBusyRef", "voiceTransferRecoveryLockedRef", "propertyModeNavigationLocked", "window", "navigateYellow", "propertyId", "internalMarketLabEnabled", "reservationViewForDestination", "reservationViewHref", "PopStateEvent", javascript + "\nreturn { workflow, billingDesk, open, openMovementBilling };");
   for (const [lifecycle, transfer, mode] of [[false, false, false], [true, false, false], [false, true, false], [false, false, true]]) {
-    const assigned: string[] = [], pushed: string[] = [], events: string[] = [];
-    const window = { location: { pathname: `/p/${PROPERTY}/reservations`, search: "?view=groups&group=" + GROUP, hash: "#stay", assign: (href: string) => assigned.push(href) }, history: { pushState: (_a: unknown, _b: string, href: string) => pushed.push(href) }, dispatchEvent: (event: { type: string }) => events.push(event.type) };
-    const actions = make({ current: lifecycle }, { current: transfer }, mode, window, PROPERTY, false, reservationViewForDestination, reservationViewHref, class { constructor(readonly type: string) {} });
+    const navigated: string[] = [], pushed: string[] = [], events: string[] = [];
+    const window = { location: { pathname: `/p/${PROPERTY}/reservations`, search: "?view=groups&group=" + GROUP, hash: "#stay" }, history: { pushState: (_a: unknown, _b: string, href: string) => pushed.push(href) }, dispatchEvent: (event: { type: string }) => events.push(event.type) };
+    const actions = make({ current: lifecycle }, { current: transfer }, mode, window, (href: string) => navigated.push(href), PROPERTY, false, reservationViewForDestination, reservationViewHref, class { constructor(readonly type: string) {} });
     actions.workflow("reservations:calendar"); actions.workflow("rates"); actions.billingDesk(); actions.open({ reservationId: RESERVATION }); actions.openMovementBilling({ reservationId: RESERVATION });
-    if (lifecycle || transfer || mode) { expect(assigned).toEqual([]); expect(pushed).toEqual([]); expect(events).toEqual([]); }
+    if (lifecycle || transfer || mode) { expect(navigated).toEqual([]); expect(pushed).toEqual([]); expect(events).toEqual([]); }
     else {
-      expect(pushed).toEqual([`/p/${PROPERTY}/reservations?view=calendar#stay`]); expect(events).toEqual(["popstate"]);
-      expect(assigned).toEqual([`/p/${PROPERTY}/today?workspace=rates`, `/p/${PROPERTY}/today?workspace=finance`, `/p/${PROPERTY}/res/${RESERVATION}`, `/p/${PROPERTY}/today?workspace=finance&reservation=${RESERVATION}`]);
+      expect(pushed).toEqual([]); expect(events).toEqual([]);
+      expect(navigated).toEqual([`/p/${PROPERTY}/reservations?view=calendar#stay`, `/p/${PROPERTY}/today?workspace=rates`, `/p/${PROPERTY}/today?workspace=finance`, `/p/${PROPERTY}/res/${RESERVATION}`, `/p/${PROPERTY}/today?workspace=finance&reservation=${RESERVATION}`]);
     }
   }
   let count = 0; activateWorkspaceDockAction(() => ++count, true); expect(count).toBe(0); activateWorkspaceDockAction(() => ++count, false); expect(count).toBe(1);

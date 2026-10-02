@@ -2,10 +2,12 @@ import { expect, test } from "bun:test";
 
 const app = await Bun.file("frontend/yellow/src/App.tsx").text();
 const css = await Bun.file("frontend/yellow/src/styles.css").text();
+const { readWorkspaceRoute } = await import("../frontend/yellow/src/workspace-navigation");
+const PROPERTY = "6081b544-22a1-534f-a86d-bb1ae0519e14";
 
 test("Settings is a reachable, API-backed progressive disclosure workspace", () => {
-  expect(app).toContain('type WorkspacePart =');
-  expect(app).toContain('"settings"');
+  expect(app).toContain("const route = readWorkspaceRoute(routeHref, internalMarketLabEnabled);");
+  expect(readWorkspaceRoute(`/p/${PROPERTY}/today?workspace=settings`).workspace).toBe("settings");
   expect(app).toContain('workspace=settings');
   expect(app).toContain('function PropertySettingsWorkspace');
   expect(app).toContain('queryKey: ["property-settings", propertyId]');

@@ -2,6 +2,8 @@ import { lazy, Suspense, useEffect, useMemo, useRef, useState, type ComponentPro
 import { useQuery, useQueryClient, type UseQueryResult } from "@tanstack/react-query";
 import { AnimatePresence, motion } from "framer-motion";
 import { OperatorHeader } from "./ui/OperatorHeader";
+import { installWorkspaceNavigation, navigateYellow, readWorkspaceRoute } from "./workspace-navigation";
+import { reactAuthSession } from "./auth-session";
 import { HotelSearch } from "./ui/HotelSearch";
 import { SegmentedRibbon } from "./ui/SegmentedRibbon";
 import { RibbonPanel } from "./ui/RibbonPanel";
@@ -197,8 +199,8 @@ function ReservationCreateWorkspace(props: ComponentProps<typeof LazyReservation
 function ReservationBoardWorkspace(props: ComponentProps<typeof LazyReservationBoardWorkspace>) {
   return <Suspense fallback={<section className="operational-state operational-route-loading"><strong>Opening reservation board…</strong><p>Loading the board only when it is needed.</p></section>}><LazyReservationBoardWorkspace {...props} /></Suspense>;
 }
-function GuestsWorkspace() {
-  return <Suspense fallback={<section className="operational-state operational-route-loading"><strong>Opening guests…</strong><p>Loading guest search only when it is needed.</p></section>}><LazyGuestsWorkspace /></Suspense>;
+function GuestsWorkspace(props: ComponentProps<typeof LazyGuestsWorkspace>) {
+  return <Suspense fallback={<section className="operational-state operational-route-loading"><strong>Opening guests…</strong><p>Loading guest search only when it is needed.</p></section>}><LazyGuestsWorkspace {...props} /></Suspense>;
 }
 function InlineGuestProfile(props: ComponentProps<typeof LazyInlineGuestProfile>) {
   return <Suspense fallback={<section className="operational-state operational-route-loading"><strong>Opening guest profile…</strong><p>Loading the guest profile.</p></section>}><LazyInlineGuestProfile {...props} /></Suspense>;
@@ -217,52 +219,12 @@ const routeMatch = /^\/p\/([^/]+)(?:\/res\/([^/]+))?(?:\/[^/]*)?$/.exec(
 const requestedPropertyId = routeMatch?.[1] ?? DEFAULT_PROPERTY;
 const propertyId = requestedPropertyId;
 configureYellowApi(propertyId);
-const reservationRouteId = routeMatch?.[2] ?? null;
-type WorkspacePart =
-  | "today"
-  | "reservations"
-  | "guests"
-  | "housekeeping"
-  | "operations"
-  | "ecosystem"
-  | "market-lab"
-  | "rates"
-  | "finance"
-  | "settings";
-
 const internalMarketLabEnabled =
   (import.meta as ImportMeta & {
     readonly env?: Readonly<Record<string, string | boolean | undefined>>;
   }).env?.VITE_YELLOW_INTERNAL_MARKET_LAB === "1";
-const requestedWorkspacePart = new URLSearchParams(window.location.search).get(
-  "workspace",
-);
-const routeWorkspacePart = /^\/p\/[^/]+\/(today|reservations|guests|housekeeping|operations|ecosystem)$/.exec(
-  window.location.pathname,
-)?.[1];
-const workspacePart: WorkspacePart =
-  requestedWorkspacePart === "rates" || requestedWorkspacePart === "finance" || requestedWorkspacePart === "settings" || requestedWorkspacePart === "operations" || requestedWorkspacePart === "ecosystem" || (requestedWorkspacePart === "market-lab" && internalMarketLabEnabled)
-    ? requestedWorkspacePart
-    : routeWorkspacePart === "today" ||
-        routeWorkspacePart === "reservations" ||
-        routeWorkspacePart === "guests" ||
-        routeWorkspacePart === "housekeeping" ||
-        routeWorkspacePart === "operations" ||
-        routeWorkspacePart === "ecosystem"
-      ? routeWorkspacePart
-      : "today";
 const statuses = ["due_in", "due_out", "in_house"] as const;
 type Status = (typeof statuses)[number];
-const pageSearch = new URLSearchParams(window.location.search);
-const focusedLane = statuses.find((status) => status === pageSearch.get("lane"));
-const requestedGuestSearch = pageSearch
-  .get("guest")
-  ?.trim();
-const requestedFinanceReservation = pageSearch.get("reservation")?.trim() ?? null;
-const initialGuestSearch =
-  requestedGuestSearch && requestedGuestSearch.length >= 2
-    ? requestedGuestSearch
-    : "";
 type Stay = Readonly<{
   reservationId: string;
   primaryPartyId?: string;
@@ -7070,6 +7032,11 @@ function InlinePerformanceResult({
 }
 
 export function App() {
+  const [routeHref, setRouteHref] = useState(() => window.location.pathname + window.location.search + window.location.hash);
+  const route = readWorkspaceRoute(routeHref, internalMarketLabEnabled);
+  const workspacePart = route.workspace;
+  const reservationRouteId = route.reservationId;
+  const focusedLane = route.lane;
   const queryClient = useQueryClient();
   const initialOverwatch = useRef(restoredOverwatchMemory());
   const [assistant, setAssistant] = useState(initialOverwatch.current.open);
@@ -7140,6 +7107,15 @@ export function App() {
     window.addEventListener("beforeunload", warnBeforeLeaving);
     return () => window.removeEventListener("beforeunload", warnBeforeLeaving);
   }, [propertyModeNavigationLocked]);
+  const propertyModeNavigationLockedRef = useRef(propertyModeNavigationLocked);
+  propertyModeNavigationLockedRef.current = propertyModeNavigationLocked;
+  useEffect(() => installWorkspaceNavigation({
+    propertyId,
+    canNavigate: () => reactAuthSession.getSnapshot().status === "authenticated" &&
+      !reservationLifecycleBusyRef.current && !voiceTransferRecoveryLockedRef.current && !propertyModeNavigationLockedRef.current,
+    onNavigate: setRouteHref,
+  }), []);
+  useEffect(() => { setActiveLane(focusedLane); }, [routeHref]);
   const guardReservationLifecycleFlight = (event: {
     preventDefault: () => void;
     stopPropagation: () => void;
@@ -7279,13 +7255,10 @@ export function App() {
       const path = `/p/${propertyId}/reservations`;
       const alreadyInWorkspace = window.location.pathname === path;
       const href = reservationViewHref(path, alreadyInWorkspace ? window.location.search : "", alreadyInWorkspace ? window.location.hash : "", reservationView);
-      if (alreadyInWorkspace) {
-        window.history.pushState(null, "", href);
-        window.dispatchEvent(new PopStateEvent("popstate"));
-      } else window.location.assign(href);
+      navigateYellow(href);
       return;
     }
-    window.location.assign(
+    navigateYellow(
       part === "rates"
         ? `/p/${propertyId}/today?workspace=rates`
         : part === "settings"
@@ -7302,19 +7275,19 @@ export function App() {
   const continueCrs = (href: string) => {
     if (reservationLifecycleBusyRef.current || voiceTransferRecoveryLockedRef.current || propertyModeNavigationLocked) return;
     if (!/^\/p\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\/reservations\?create=crs&/.test(href)) return;
-    window.location.assign(href);
+    navigateYellow(href);
   };
   const billingDesk = () => {
     if (reservationLifecycleBusyRef.current || voiceTransferRecoveryLockedRef.current || propertyModeNavigationLocked) return;
-    window.location.assign(`/p/${propertyId}/today?workspace=finance`);
+    navigateYellow(`/p/${propertyId}/today?workspace=finance`);
   };
   const open = (stay: Stay) => {
     if (reservationLifecycleBusyRef.current || voiceTransferRecoveryLockedRef.current || propertyModeNavigationLocked) return;
-    window.location.assign(`/p/${propertyId}/res/${stay.reservationId}`);
+    navigateYellow(`/p/${propertyId}/res/${stay.reservationId}`);
   };
   const openMovementBilling = (stay: Stay) => {
     if (reservationLifecycleBusyRef.current || voiceTransferRecoveryLockedRef.current || propertyModeNavigationLocked) return;
-    window.location.assign(`/p/${propertyId}/today?workspace=finance&reservation=${encodeURIComponent(stay.reservationId)}`);
+    navigateYellow(`/p/${propertyId}/today?workspace=finance&reservation=${encodeURIComponent(stay.reservationId)}`);
   };
   const review = (stay: Stay) => {
     if (reservationLifecycleBusyRef.current || voiceTransferRecoveryLockedRef.current || propertyModeNavigationLocked) return;
@@ -7349,7 +7322,7 @@ export function App() {
   };
   const openOperationalTable = (lane: Status | null) => {
     if (reservationLifecycleBusyRef.current || voiceTransferRecoveryLockedRef.current || propertyModeNavigationLocked) return;
-    window.location.assign(lane ? `/p/${propertyId}/today?lane=${lane}` : `/p/${propertyId}/today`);
+    navigateYellow(lane ? `/p/${propertyId}/today?lane=${lane}` : `/p/${propertyId}/today`);
   };
   const cancelSpeech = () => {
     if (!("speechSynthesis" in window)) return;
@@ -8589,7 +8562,7 @@ export function App() {
           detail: "Yellow is opening the server-approved PMS view now.",
           rows: [],
         });
-        window.location.assign(target);
+        navigateYellow(target);
       }
     } catch {
       if (assistantOperationWasSuperseded()) return;
@@ -8895,7 +8868,7 @@ export function App() {
                       {assistantCard.workspace === "reservations" ? (
                         <ReservationBoardWorkspace timezone={selected?.timezone ?? "UTC"} onCrsContinue={continueCrs} />
                       ) : assistantCard.workspace === "guests" ? (
-                        <GuestsWorkspace />
+                        <GuestsWorkspace key={route.guest} requestedGuestSearch={route.guest} />
                       ) : assistantCard.workspace === "housekeeping" ? (
                         <HousekeepingWorkspace onLifecycleBusyChange={setReservationLifecycleFlight} />
                       ) : assistantCard.workspace === "cashiers" ? (
@@ -9070,7 +9043,7 @@ export function App() {
                 internalMarketLabEnabled={internalMarketLabEnabled}
                 onOpenMarketLab={() => workflow("market-lab")}
                 onNavigate={(destination) => {
-                  if (destination.startsWith("/")) window.location.assign(destination);
+                  if (destination.startsWith("/")) navigateYellow(destination);
                   else workflow(destination);
                 }}
               />
@@ -9122,7 +9095,7 @@ export function App() {
                 isLoading: operationalBlocksQuery.isLoading,
                 isError: operationalBlocksQuery.isError,
               }}
-              onOpenReservation={(stay) => window.location.assign(`/p/${propertyId}/res/${stay.reservationId}`)}
+              onOpenReservation={(stay) => navigateYellow(`/p/${propertyId}/res/${stay.reservationId}`)}
               onNavigate={workflow}
             />
           </Suspense>
@@ -9243,7 +9216,7 @@ export function App() {
             <p>FRONT DESK FINANCE</p>
             <button className="selected" onClick={billingDesk}>Cashier & folios</button>
           </aside>
-          <FinanceWorkspace onLifecycleBusyChange={setReservationLifecycleFlight} />
+          <FinanceWorkspace key={route.financeReservation ?? "cashier"} initialReservationId={route.financeReservation} onLifecycleBusyChange={setReservationLifecycleFlight} />
         </main>
         {assistantDock}
       </div>
@@ -9332,7 +9305,7 @@ export function App() {
             </button>
             <button onClick={billingDesk}>Finance</button>
           </aside>
-          <GuestsWorkspace />
+          <GuestsWorkspace key={route.guest} requestedGuestSearch={route.guest} />
         </main>
         {assistantDock}
       </div>
@@ -9505,7 +9478,7 @@ export function App() {
                   key={p.id}
                   role="menuitem"
                   aria-current={p.id === propertyId ? "page" : undefined}
-                  onClick={() => window.location.assign(`/p/${p.id}/today`)}
+                  onClick={() => navigateYellow(`/p/${p.id}/today`)}
                 >
                   <strong>{propertyDisplayName(p)}</strong>
                   <small>{p.timezone}</small>

@@ -45,9 +45,9 @@ test("actual CRS handoff callback preserves each parent lock and rejects nonloca
   const source = await Bun.file(new URL("../frontend/yellow/src/App.tsx", import.meta.url)).text();
   const start = source.indexOf("  const continueCrs = (href:"); const end = source.indexOf("  const billingDesk =", start);
   expect(start).toBeGreaterThan(0); const js = new Bun.Transpiler({ loader: "tsx" }).transformSync(source.slice(start, end));
-  const make = new Function("reservationLifecycleBusyRef", "voiceTransferRecoveryLockedRef", "propertyModeNavigationLocked", "window", js + "\nreturn continueCrs;");
+  const make = new Function("reservationLifecycleBusyRef", "voiceTransferRecoveryLockedRef", "propertyModeNavigationLocked", "navigateYellow", js + "\nreturn continueCrs;");
   for (const locks of [[false, false, false], [true, false, false], [false, true, false], [false, false, true]]) {
-    const calls: string[] = []; const action = make({ current: locks[0] }, { current: locks[1] }, locks[2], { location: { assign: (href: string) => calls.push(href) } });
+    const calls: string[] = []; const action = make({ current: locks[0] }, { current: locks[1] }, locks[2], (href: string) => calls.push(href));
     const href = `/p/${P}/reservations?create=crs&from=2026-10-02`;
     action(href); action("https://outside.invalid/" + href); action(`/p/${P}/reservations?view=crs`);
     expect(calls).toEqual(locks.some(Boolean) ? [] : [href]);

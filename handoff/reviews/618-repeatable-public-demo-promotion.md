@@ -60,3 +60,22 @@ those statements remain accurate for the original Order 618 review date.
 The laptop controller supplied this status on 2026-10-02. This cloud worker did
 not independently probe or change the live endpoint, tunnel, worker or laptop
 database.
+
+## Receiving-source and session-navigation successor — 2026-10-02
+
+The laptop controller later reported the exact active receiving source as
+93bf7f94ce36bbe67404853661ed40f641b5db01 on
+phase-7/resource-receiving-20261001 (draft PR99). The same fixed public URL and
+named tunnel/VPC service above remain in use. This supersedes e27da80 as the
+latest source reference; it does not change the prior Cloudflare deployment ID.
+
+The session/navigation successor retains same-property workspace navigation,
+authentication state and URL history, uses neutral initial cookie verification,
+and keeps the 900-second session lifetime and role/property access controls.
+Controller-reported proof on exact source93bf: focused115/0 and independent102/0,
+types/import boundaries/build passed,16 public real-PostgreSQL checks and22 asset
+hashes passed. The controller says the app and named connector remain running.
+
+Two browser fixtures remain failing or unaccepted; browser visual acceptance and
+restart/reboot recovery remain open. The source and checks above are laptop
+controller evidence, not an independent cloud verification.

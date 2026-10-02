@@ -71,6 +71,13 @@ export function AuthenticationGate({ children, auth = reactAuthSession, location
     setWorkspaceEntered(true);
   }
 
+  if (restoring) return <div className="auth-screen auth-opening" role="status" aria-live="polite">
+    <section className="auth-card">
+      <span className="auth-brand">YELLOW</span>
+      <p>Opening Yellow…</p>
+    </section>
+  </div>;
+
   return <>
     {workspaceEntered ? <div className="auth-workspace" inert={locked ? true : undefined} aria-hidden={locked ? true : undefined}>
       {children}
