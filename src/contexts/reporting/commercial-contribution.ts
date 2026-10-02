@@ -1,5 +1,5 @@
 import type { Tx } from "../../kernel";
-import { CommercialTaxonomyService, resolveCommercialAttribution, type CommercialLeaf } from "./commercial-attribution";
+import { CommercialTaxonomyService, CommercialTaxonomyMissingError, resolveCommercialAttribution, type CommercialLeaf, type CommercialTaxonomy } from "./commercial-attribution";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 
@@ -103,15 +103,19 @@ function freezeMetric(metric: MutableMetric): CommercialContributionMetric {
 }
 
 function leafKey(value: CommercialLeaf): string {
-  return `${value.code}:${value.reason ?? "mapped"}`;
+  return JSON.stringify([value.code, value.reason]);
 }
 
 function sourceKey(source: CommercialLeaf, channel: CommercialLeaf): string {
-  return `${leafKey(source)}|${leafKey(channel)}`;
+  return JSON.stringify([source.code, source.reason, channel.code, channel.reason]);
 }
 
 function compareLabel(a: { label: string; code: string }, b: { label: string; code: string }): number {
   return a.label.localeCompare(b.label) || a.code.localeCompare(b.code);
+}
+
+function recordedUnmappedLeaf(code: string): CommercialLeaf {
+  return Object.freeze({ code: code || "UNMAPPED", label: code ? `${code} · Unmapped` : "Unmapped", reason: code ? "NO_MAPPING" : "MISSING_INPUT" });
 }
 
 export class CommercialContributionService {
@@ -132,7 +136,12 @@ export class CommercialContributionService {
     if (!property || propertyRows.length !== 1) throw new Error("Property contribution scope was not found");
     const window = commercialContributionWindow(property.business_date, input.period ?? "today");
 
-    const taxonomy = await this.#taxonomy.load(tx, input);
+    let taxonomy: CommercialTaxonomy | null;
+    try { taxonomy = await this.#taxonomy.load(tx, input); }
+    catch (error) {
+      if (!(error instanceof CommercialTaxonomyMissingError)) throw error;
+      taxonomy = null;
+    }
     const rows = await tx<StatsRow[]>`
       SELECT unit_type_id::text, market_code, source_code, channel_code,
              sum(rooms_available)::int AS rooms_available,
@@ -163,12 +172,15 @@ export class CommercialContributionService {
 
     for (const row of rows) {
       for (const date of row.recorded_dates) recordedDates.add(date);
-      const attribution = resolveCommercialAttribution(taxonomy, {
+      const attribution = taxonomy ? resolveCommercialAttribution(taxonomy, {
         marketCode: row.market_code,
         sourceCode: row.source_code,
         channelCode: row.channel_code,
         unitTypeId: row.unit_type_id,
-      });
+      }) : {
+        demand: { group: recordedUnmappedLeaf(""), segment: recordedUnmappedLeaf(row.market_code) },
+        distribution: { source: recordedUnmappedLeaf(row.source_code), channelCode: recordedUnmappedLeaf(row.channel_code) },
+      };
       const contribution = Object.freeze({
         roomNights: row.room_nights,
         roomsAvailable: row.rooms_available,

@@ -24,6 +24,22 @@ const id=(n:number)=>`20000000-0000-4000-8000-${String(n).padStart(12,"0")}`;
 const T=id(91001),F=id(91002),P=id(91003),OTHER=id(91004),FP=id(91005),TYPE=id(91006),ACTOR=id(91007),ROLE=id(91008);
 const api=new OperatorHttpApi({} as never),service=new CommercialContributionService();
 const scope="reservations.lifecycle:read";
+
+test("unmapped legacy source/channel pairs cannot collide in aggregation keys",async()=>{
+  const pairs=[["A","B:NO_MAPPING|C","100"],["A:NO_MAPPING|B","C","200"],["","","300"],["UNMAPPED","","400"]];
+  const tx=(async(parts:TemplateStringsArray)=>{
+    const query=parts.join("?");
+    if(query.includes("FROM org_node")) return [{name:"Synthetic",currency:"INR",business_date:"2026-10-03"}];
+    if(query.includes("FROM extension")) return [];
+    if(query.includes("FROM stats_daily")) return pairs.map(([source,channel,amount])=>({unit_type_id:TYPE,market_code:"OTA",source_code:source,channel_code:channel,rooms_available:2,room_nights:1,room_revenue_minor:amount,recorded_dates:["2026-10-03"]}));
+    throw new Error("Unexpected query");
+  }) as unknown as Tx;
+  const value=await service.load(tx,{tenantId:T,propertyNode:P});
+  const sources=value.groups.flatMap(group=>group.segments.flatMap(segment=>segment.sources));
+  expect(sources).toHaveLength(4);
+  expect(sources.map(row=>row.metric.roomRevenueMinor).sort()).toEqual(["100","200","300","400"]);
+  expect(value.total.roomRevenueMinor).toBe("1000");
+});
 test("HTTP malformed/duplicate periods are rejected before any database access; no token scope is forbidden",async()=>{
   const tx=(async()=>{throw new Error("Unexpected query");}) as unknown as Tx;
   const request=(query:string,scopes:readonly string[]=[])=>api.commercialContribution({request:new Request(`http://yellow.test/api/v1/properties/${P}/commercial-contribution${query}`),tenantId:T,identity:{tenantId:T,actorId:ACTOR,scopes},tx},P);
@@ -89,5 +105,16 @@ dbDescribe("business mix actual runtime-role PostgreSQL evidence",()=>{
   test("reporting leaves canonical stats, occupancy, finance and event tables unchanged",async()=>{
     const snapshot=()=>admin`SELECT (SELECT count(*) FROM stats_daily) stats,(SELECT sum(room_revenue_minor)::text FROM stats_daily) revenue,(SELECT count(*) FROM space_occupancy) occupancy,(SELECT count(*) FROM journal) journals,(SELECT count(*) FROM fact_log) facts,(SELECT count(*) FROM outbox) events`;
     const before=await snapshot();await database.withTenantTransaction(T,tx=>service.load(tx,{tenantId:T,propertyNode:P,period:"year"}));expect(await snapshot()).toEqual(before);
+  });
+  test("missing taxonomy retains separate recorded sources without inventing mappings",async()=>{
+    await admin`UPDATE extension SET status='retired' WHERE tenant_id=${T}::uuid AND type='commercial_attribution'`;
+    try {
+      const value=await database.withTenantTransaction(T,tx=>service.load(tx,{tenantId:T,propertyNode:P,period:"today"}));
+      const sources=value.groups.flatMap(group=>group.segments.flatMap(segment=>segment.sources));
+      expect(sources.map(row=>row.source.code).sort()).toEqual(["MMT","WEBSITE"]);
+      expect(sources.every(row=>row.source.reason==="NO_MAPPING"&&row.source.label.endsWith(" · Unmapped"))).toBe(true);
+      expect(value.total.roomRevenueMinor).toBe("9007199254741494");
+      expect(value.window.recordedDays).toBe(1);
+    } finally { await admin`UPDATE extension SET status='active' WHERE tenant_id=${T}::uuid AND type='commercial_attribution'`; }
   });
 });

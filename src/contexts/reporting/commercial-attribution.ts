@@ -5,6 +5,10 @@ const CODE = /^[A-Z0-9][A-Z0-9_.-]{0,31}$/;
 const MAX_LABEL_BYTES = 120;
 const MAX_COLLECTION = 512;
 
+export class CommercialTaxonomyMissingError extends Error {
+  constructor() { super("Active commercial attribution configuration was not found"); }
+}
+
 type JsonRecord = Record<string, unknown>;
 
 export type CommercialNode = Readonly<{ code: string; label: string }>;
@@ -266,7 +270,7 @@ export class CommercialTaxonomyService {
         AND effective @> transaction_timestamp()
       ORDER BY version DESC
       LIMIT 2`;
-    if (rows.length === 0) throw new Error("Active commercial attribution configuration was not found");
+    if (rows.length === 0) throw new CommercialTaxonomyMissingError();
     if (rows.length !== 1 || !rows[0]) throw new Error("Commercial attribution configuration has overlapping active versions");
     return parseCommercialTaxonomy(rows[0].content, rows[0].version);
   }
