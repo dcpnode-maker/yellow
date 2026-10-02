@@ -24,7 +24,7 @@ test("Order 626 group blocks expose a rooming-list pickup drilldown", () => {
 
   expect(workspace).toContain("Rooming list / pickup");
   expect(workspace).toContain("group.roomingList.slice(0, 6)");
-  expect(workspace).toContain("window.location.assign(`/p/${propertyId}/res/${row.reservationId}`)");
+  expect(workspace).toContain("navigateYellow(`/p/${propertyId}/res/${row.reservationId}`)");
   expect(workspace).toContain("Open reservation ${row.confirmationNo}");
 
   expect(css).toContain(".group-block-rooming-list");

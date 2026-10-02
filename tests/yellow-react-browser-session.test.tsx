@@ -127,10 +127,10 @@ test("actual workflow finance and cashiers share existing route and every financ
   const start = source.indexOf("  const workflow = (part:");
   const end = source.indexOf("  const billingDesk =", start);
   const compiled = new Bun.Transpiler({ loader: "tsx" }).transformSync(source.slice(start, end));
-  const make = new Function("reservationLifecycleBusyRef", "voiceTransferRecoveryLockedRef", "propertyModeNavigationLocked", "window", "propertyId", "internalMarketLabEnabled", "reservationViewForDestination", "reservationViewHref", "PopStateEvent", compiled + "\nreturn workflow;");
+  const make = new Function("reservationLifecycleBusyRef", "voiceTransferRecoveryLockedRef", "propertyModeNavigationLocked", "window", "propertyId", "internalMarketLabEnabled", "reservationViewForDestination", "reservationViewHref", "PopStateEvent", "navigateYellow", compiled + "\nreturn workflow;");
   for (const [life, transfer, mode] of [[false, false, false], [true, false, false], [false, true, false], [false, false, true]]) {
     const hrefs: string[] = [];
-    const workflow = make({ current: life }, { current: transfer }, mode, { location: { assign: (href: string) => hrefs.push(href) } }, PROPERTY, false, reservationViewForDestination, reservationViewHref, class {});
+    const workflow = make({ current: life }, { current: transfer }, mode, { location: {} }, PROPERTY, false, reservationViewForDestination, reservationViewHref, class {}, (href: string) => hrefs.push(href));
     workflow("finance"); workflow("cashiers");
     expect(hrefs).toEqual(life || transfer || mode ? [] : [`/p/${PROPERTY}/today?workspace=finance`, `/p/${PROPERTY}/today?workspace=finance`]);
   }

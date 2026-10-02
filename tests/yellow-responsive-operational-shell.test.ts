@@ -6,11 +6,13 @@ const ribbon = await Bun.file("frontend/yellow/src/ui/SegmentedRibbon.tsx").text
 const drawer = await Bun.file("frontend/yellow/src/ui/OptionsDrawer.tsx").text();
 const badge = await Bun.file("frontend/yellow/src/ui/StatusBadge.tsx").text();
 const css = await Bun.file("frontend/yellow/src/styles.css").text();
+const { readWorkspaceRoute } = await import("../frontend/yellow/src/workspace-navigation");
+const PROPERTY = "6081b544-22a1-534f-a86d-bb1ae0519e14";
 
 test("the operational shell is a lazy governed workspace", () => {
   expect(app).toContain('const OperationalHub = lazy(() => import("./workspaces/OperationalHub"))');
-  expect(app).toContain('| "operations"');
-  expect(app).toContain('routeWorkspacePart === "operations"');
+  expect(app).toContain("const route = readWorkspaceRoute(routeHref, internalMarketLabEnabled);");
+  expect(readWorkspaceRoute(`/p/${PROPERTY}/operations`).workspace).toBe("operations");
   expect(app).toContain('if (workspacePart === "operations")');
   expect(app).toContain("<Suspense fallback=");
   expect(app).toContain('onMouseEnter={() => void import("./workspaces/OperationalHub")}');

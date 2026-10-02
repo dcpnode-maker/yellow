@@ -1,6 +1,7 @@
 import { expect, test } from "bun:test";
 
 const app = await Bun.file("frontend/yellow/src/App.tsx").text();
+const workspace = await Bun.file("frontend/yellow/src/workspaces/ReservationWorkspace.tsx").text();
 const styles = await Bun.file("frontend/yellow/src/styles.css").text();
 
 test("uses one filtered reservation board with explicit front-desk state semantics", () => {
@@ -10,11 +11,11 @@ test("uses one filtered reservation board with explicit front-desk state semanti
   expect(app).toContain('if (status === "in_house") return "In house · occupied";');
   expect(app).not.toContain('if (status === "in_house") return "Stayover";');
   expect(app).toContain('if (status === "checked_out") return "Departed history";');
-  expect(app).toContain('placeholder="Search guest, reservation, room, source, rate or travel…"');
-  expect(app).toContain('const query = controlledQuery ?? localQuery;');
-  expect(app).toContain('const visibleRows = useMemo(');
-  expect(app).toContain('filterAndSortMovementRows(rows, query, sorts, query.movementTime, timezone)');
-  expect(app).toContain('const rendered = visibleRows.slice(first, last);');
+  expect(workspace).toContain('placeholder="Search guest, reservation, room, source, rate or travel…"');
+  expect(workspace).toContain('const query = controlledQuery ?? localQuery;');
+  expect(workspace).toContain('const visibleRows = useMemo(');
+  expect(workspace).toContain('filterAndSortMovementRows(rows, query, sorts, query.movementTime, timezone)');
+  expect(workspace).toContain('const rendered = visibleRows.slice(first, last);');
 });
 
 test("expands only current API-backed reservation detail in place", () => {
