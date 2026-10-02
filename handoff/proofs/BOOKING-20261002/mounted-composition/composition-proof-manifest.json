@@ -22,7 +22,7 @@
     "reason": "Align the proof checkout's test metadata fixture with selected source BuildInfo migration frontier 105; no expectation was relaxed."
   },
   "executableProof": {
-    "path": "public-booking-mounted-composition.proof.test.ts",
+    "path": "public-booking-mounted-composition.proof.ts",
     "sha256": "e2e8bd226159e5dab3bb68435a4186593a757c4d19832996c212460267a64509",
     "result": "2 pass, 0 fail, 33 assertions",
     "covers": [

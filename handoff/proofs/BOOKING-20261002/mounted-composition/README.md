@@ -7,7 +7,7 @@ Apply the separate public-site app/server patch first, then the invitation-conte
 ```sh
 git apply --unidiff-zero handoff/patches/BOOKING-20261002-public-site-app-server.patch
 git apply handoff/patches/BOOKING-20261002-context-route.patch
-cp handoff/proofs/BOOKING-20261002/mounted-composition/public-booking-mounted-composition.proof.test.ts tests/public-booking-mounted-composition.proof.test.ts
+cp handoff/proofs/BOOKING-20261002/mounted-composition/public-booking-mounted-composition.proof.ts tests/public-booking-mounted-composition.proof.test.ts
 bun test tests/public-booking-mounted-composition.proof.test.ts
 bun run typecheck
 ```

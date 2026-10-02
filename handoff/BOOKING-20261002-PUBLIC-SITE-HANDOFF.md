@@ -69,3 +69,12 @@ Next operational gap recorded in the original module inventory: CRM enquiry →
 versioned group-price/displacement draft → revenue-manager approval → explicit
 higher-authorized escalation. These commands/approval routing are not claimed
 implemented by this booking packet; controller must choose their exact source/order.
+
+## CI follow-up
+
+The first PR101 CI run failed during Bun test discovery because the executable
+composition-proof file was stored under handoff/ with a `*.test.ts` suffix. The
+quality log reported it could not resolve `../src/app` from that handoff path. The
+source was an artifact-placement error, not a guest-booking assertion failure. The
+proof artifact now uses a non-test suffix in the handoff and its README copies it
+into `tests/` for the documented focused invocation. A successor run is pending.
