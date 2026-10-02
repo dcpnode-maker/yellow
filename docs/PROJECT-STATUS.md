@@ -3,15 +3,21 @@
 <!-- status-schema: yellow-project-status/v1 -->
 <!-- current-phase: 7 -->
 <!-- current-task: Codex Yellow — restore requested original UI and integrate CRS CRM RMS booking engine; laptop source and live hosting owner -->
-<!-- current-order-files: handoff/orders/RESOURCE-20261002-smooth-session-navigation.md;handoff/orders/RESOURCE-20261002-root-staff-module-integration.md;handoff/orders/RESOURCE-20261002-staff-module-entries.md;handoff/orders/RESOURCE-20261001-browser-session-resume.md -->
-<!-- current-lifecycle: ACTIVE e27/frontier103 named-VPC public preview accepted; smooth same-property session/navigation source admitted awaiting exact-owner release; cloud guest booking receiving pending -->
+<!-- current-order-files: handoff/orders/RESOURCE-20261002-live-calendar-and-ecosystem-plan.md;handoff/orders/RESOURCE-20261002-smooth-session-navigation.md -->
+<!-- current-lifecycle: ACTIVE 93bf7f94/frontier103 fixed named-VPC live preview; Calendar v2 source independently accepted awaiting exact-owner admission; ecosystem stages and cloud guest booking receiving pending -->
 
 This is the canonical current-state record. It identifies the consolidated source,
 verified behavior, release boundaries and active work. Historical orders, reviews,
 decisions and ledger entries remain evidence; their filenames are not an active
 backlog. `state.sh` and `state.ps1` read the machine-readable comments above.
 
-## Receiving update — 2 October: smooth session navigation
+## Receiving update — 2 October: live Calendar and ecosystem implementation
+
+Fresh local and public `/ready` independently return source93bf7f94/frontier103, with the detached PostgreSQL2124 and the existing fixed Worker/named VPC connection. Actual public browser restoration succeeded and showed the original theme, hierarchy, staff entries and the Calendar defect: it renders the reservation list/groups. The new bounded Calendar candidate on phase-7/live-ecosystem-20261002 corrects that dispatch without changing the backend or domain commands. It uses 7/14/30 property-local dates and truthful reservation summaries, not inferred room occupancy. Astra accepted the architecture and is independently reviewing frozen source. Root focused28/0 and retained auth/theme/responsive/command/finance30/0 passed; both strict type configurations and210 boundaries passed. Actual 10R and11R executed distinct 3-test jobs successfully against the same hashed compiled calendar module. None of those facts alone admits an unfinished candidate to live.
+
+[LIVE-ECOSYSTEM-20261002.md](LIVE-ECOSYSTEM-20261002.md) retains the wider authorized destination, source foundations and gaps. Full group approval/displacement, enterprise consolidation, room-grid operations, STR owner payouts, profit/forecast RMS, guest booking integration and native device delivery remain staged work. Never report prototype or public research as those completed production capabilities. Browser visual acceptance of the new release, exact asset/runtime proof and immutable rollback lineage will be recorded separately. Astra's first review found midnight-DST and invalid-timezone initialization defects; both were fixed and independently accepted on v2 (42/0/319 plus separate component/query probes,7/7 exact hashes). Root final focused60/0/519 and both strict types/210 boundaries passed. Corrected-source10R4/0 and11R3/0 receipts are retained. Independent source acceptance is recorded in handoff/reviews/RESOURCE-20261002-live-calendar-v2.md; current runtime identity remains owned by the external live receipt.
+
+## Receiving update — 2 October: smooth session navigation (historical source admission)
 
 The live predecessor e27 now has a verified named VPC connection under the fixed yellow-live-app workers.dev hostname and public real-PG cookie/session proof (16 checks). The detached database, public preview opt-in, original theme, CRS/CRM/RMS entries and guarded staff flows remain the baseline. Domain-free named connection acceptance is recorded in the hosting artifacts; reboot startup and browser visual acceptance remain separate unverified boundaries.
 

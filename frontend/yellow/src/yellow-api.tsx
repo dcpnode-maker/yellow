@@ -1035,16 +1035,30 @@ async function loadLane(status: Status): Promise<Lane> {
   });
 }
 async function loadReservationBoard(): Promise<Lane> {
+  return loadReservationBoardRange();
+}
+async function loadReservationCalendarBoard(range: Readonly<{ from: string; to: string; signal?: AbortSignal }>): Promise<Lane> {
+  return loadReservationBoardRange(range);
+}
+async function loadReservationBoardRange(range?: Readonly<{ from: string; to: string; signal?: AbortSignal }>): Promise<Lane> {
   const token = await session();
   return collectReservationBoardPages<Stay>(async (after) => {
     const query = new URLSearchParams({ limit: "100" });
+    if (range) { query.set("from", range.from); query.set("to", range.to); }
     if (after !== null) query.set("after", after);
     const response = await fetch(
       `/api/v1/properties/${propertyId}/reservation-board?${query}`,
-      { headers: { authorization: `Bearer ${token}` } },
+      { headers: { authorization: `Bearer ${token}` }, signal: range?.signal },
     );
     if (!response.ok) throw new Error("Reservations are unavailable.");
-    return response.json() as Promise<Readonly<{ reservations?: Stay[]; nextCursor?: string | null }>>;
+    const value = await response.json() as Readonly<{ reservations?: Stay[]; nextCursor?: string | null }>;
+    if (range && (!value || !Array.isArray(value.reservations) ||
+        !(value.nextCursor === null || typeof value.nextCursor === "string") ||
+        value.reservations.some(row => !row || typeof row.reservationId !== "string" || typeof row.confirmationNo !== "string" || typeof row.status !== "string" ||
+          [row.primaryGuestDisplayName, row.primaryPartyName, row.unitTypeLabel, row.channelCode, row.operationalState, row.stayFrom, row.stayTo].some(field => field != null && typeof field !== "string")))) {
+      throw new Error("Calendar response is incomplete.");
+    }
+    return value;
   });
 }
 async function loadGroupBlocks(): Promise<GroupBlockWorkbench> {
@@ -2952,3 +2966,4 @@ export async function savePropertyOperatingMode(
   }
   return value;
 }
+export { loadReservationCalendarBoard };
