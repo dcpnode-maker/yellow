@@ -639,6 +639,9 @@ export function createApp(options: AppOptions = {}) {
       .get("/api/v1/properties/:property/reservations", ({ request, params, tenantContext }) =>
         withOperatorTenant(request, (context) => operator.reservationLifecycle(context, params.property))
       )
+      .get("/api/v1/properties/:property/reservation-calendar", ({ request, params }) =>
+        withOperatorTenant(request, (context) => operator.reservationCalendar(context, params.property))
+      )
       .get("/api/v1/properties/:property/reservation-board", ({ request, params, tenantContext }) =>
         withOperatorTenant(request, (context) => operator.reservationBoard(context, params.property))
       )

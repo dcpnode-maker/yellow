@@ -3,6 +3,23 @@ import { CommercialTaxonomyService, resolveCommercialAttribution, type Commercia
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 
+export type CommercialContributionPeriod = "today" | "week" | "month" | "quarter" | "year";
+export function isCommercialContributionPeriod(value: unknown): value is CommercialContributionPeriod {
+  return value === "today" || value === "week" || value === "month" || value === "quarter" || value === "year";
+}
+export function commercialContributionWindow(businessDate: string, period: CommercialContributionPeriod) {
+  if (!isCommercialContributionPeriod(period) || !/^\d{4}-\d{2}-\d{2}$/.test(businessDate)) throw new TypeError("Invalid contribution period");
+  const date = new Date(`${businessDate}T00:00:00.000Z`);
+  if (!Number.isFinite(date.getTime()) || date.toISOString().slice(0,10) !== businessDate || date.getUTCFullYear() < 1 || date.getUTCFullYear() > 9998) throw new TypeError("Invalid business date");
+  const from = new Date(date);
+  if (period === "week") from.setUTCDate(from.getUTCDate() - (from.getUTCDay() + 6) % 7);
+  if (period === "month") from.setUTCDate(1);
+  if (period === "quarter") { from.setUTCDate(1); from.setUTCMonth(Math.floor(from.getUTCMonth() / 3) * 3); }
+  if (period === "year") { from.setUTCDate(1); from.setUTCMonth(0); }
+  const to = new Date(date); to.setUTCDate(to.getUTCDate() + 1);
+  return Object.freeze({ period, fromDate: from.toISOString().slice(0,10), toDateExclusive: to.toISOString().slice(0,10), expectedDays: Math.round((to.getTime()-from.getTime()) / 86_400_000) });
+}
+
 type PropertyRow = Readonly<{
   name: string;
   currency: string;
@@ -17,6 +34,7 @@ type StatsRow = Readonly<{
   rooms_available: number;
   room_nights: number;
   room_revenue_minor: string;
+  recorded_dates: string[];
 }>;
 
 export type CommercialContributionMetric = Readonly<{
@@ -47,7 +65,8 @@ export type CommercialContributionGroup = Readonly<{
 }>;
 
 export type CommercialContribution = Readonly<{
-  property: Readonly<{ name: string; businessDate: string; currency: string }>;
+  property: Readonly<{ id: string; name: string; businessDate: string; currency: string }>;
+  window: ReturnType<typeof commercialContributionWindow> & Readonly<{ recordedDays: number }>;
   total: CommercialContributionMetric;
   groups: readonly CommercialContributionGroup[];
   provenance: "stats_daily_commercial_taxonomy";
@@ -98,7 +117,7 @@ function compareLabel(a: { label: string; code: string }, b: { label: string; co
 export class CommercialContributionService {
   readonly #taxonomy = new CommercialTaxonomyService();
 
-  async load(tx: Tx, input: Readonly<{ tenantId: string; propertyNode: string }>): Promise<CommercialContribution> {
+  async load(tx: Tx, input: Readonly<{ tenantId: string; propertyNode: string; period?: CommercialContributionPeriod }>): Promise<CommercialContribution> {
     if (!UUID.test(input.tenantId) || !UUID.test(input.propertyNode)) throw new TypeError("tenantId and propertyNode must be UUIDs");
     const propertyRows = await tx<PropertyRow[]>`
       SELECT name, currency::text AS currency,
@@ -111,23 +130,27 @@ export class CommercialContributionService {
     `;
     const property = propertyRows[0];
     if (!property || propertyRows.length !== 1) throw new Error("Property contribution scope was not found");
+    const window = commercialContributionWindow(property.business_date, input.period ?? "today");
 
     const taxonomy = await this.#taxonomy.load(tx, input);
     const rows = await tx<StatsRow[]>`
       SELECT unit_type_id::text, market_code, source_code, channel_code,
              sum(rooms_available)::int AS rooms_available,
              sum(rooms_sold)::int AS room_nights,
-             sum(room_revenue_minor)::text AS room_revenue_minor
+             sum(room_revenue_minor)::text AS room_revenue_minor,
+             array_agg(DISTINCT business_date::text) AS recorded_dates
       FROM stats_daily
       WHERE tenant_id=${input.tenantId}::uuid
         AND tenant_id=current_setting('app.tenant_id', true)::uuid
         AND property_node=${input.propertyNode}::uuid
-        AND business_date=${property.business_date}::date
+        AND business_date >= ${window.fromDate}::date
+        AND business_date < ${window.toDateExclusive}::date
       GROUP BY unit_type_id, market_code, source_code, channel_code
       ORDER BY market_code, source_code, channel_code, unit_type_id
     `;
 
     const total = emptyMetric();
+    const recordedDates = new Set<string>();
     const groups = new Map<string, {
       leaf: CommercialLeaf;
       metric: MutableMetric;
@@ -139,6 +162,7 @@ export class CommercialContributionService {
     }>();
 
     for (const row of rows) {
+      for (const date of row.recorded_dates) recordedDates.add(date);
       const attribution = resolveCommercialAttribution(taxonomy, {
         marketCode: row.market_code,
         sourceCode: row.source_code,
@@ -200,7 +224,8 @@ export class CommercialContributionService {
       }));
 
     return Object.freeze({
-      property: Object.freeze({ name: property.name, businessDate: property.business_date, currency: property.currency }),
+      property: Object.freeze({ id: input.propertyNode, name: property.name, businessDate: property.business_date, currency: property.currency }),
+      window: Object.freeze({ ...window, recordedDays: recordedDates.size }),
       total: freezeMetric(total),
       groups: Object.freeze(frozenGroups),
       provenance: "stats_daily_commercial_taxonomy",

@@ -123,6 +123,7 @@ import {
 } from "./yellow-api";
 import type { ReservationOperationalFields } from "./yellow-api";
 import { TodayGlassDashboard } from "./workspaces/TodayGlassDashboard";
+import { loadBusinessMix, type BusinessMixPeriod } from "./today-business-mix";
 import {
   propertyLocalDate,
   propertyLocalDateTimeToIso,
@@ -247,58 +248,6 @@ type Stay = Readonly<{
   departureTravel?: Readonly<{ scheduledAt?: string | null; mode?: string | null; carrier?: string | null; serviceNo?: string | null; pickupRequested?: boolean }> | null;
 }>;
 type Lane = Readonly<{ reservations?: readonly Stay[] }>;
-type BusinessMixRow = Readonly<{
-  marketSegmentGroup: string;
-  marketSegment: string;
-  source: string;
-  channel: string;
-  stays: number;
-}>;
-const BUSINESS_HIERARCHY = Object.freeze({
-  markets: Object.freeze({
-    CORP_NEG: Object.freeze({ group: "CORP", segment: "Negotiated corporate" }),
-    CORP: Object.freeze({ group: "CORP", segment: "Corporate transient" }),
-    OTA: Object.freeze({ group: "OTA", segment: "OTA retail" }),
-    WEBSITE: Object.freeze({ group: "WEBSITE", segment: "Brand website" }),
-    DIRECT: Object.freeze({ group: "WEBSITE", segment: "Direct retail" }),
-    MICE: Object.freeze({ group: "GROUPS", segment: "MICE" }),
-    CORP_GROUP: Object.freeze({ group: "GROUPS", segment: "Corporate group" }),
-    SOCIAL: Object.freeze({ group: "GROUPS", segment: "Social group" }),
-    DEFENCE: Object.freeze({ group: "GROUPS", segment: "Defence group" }),
-    INCENTIVE: Object.freeze({ group: "GROUPS", segment: "Incentive group" }),
-    MICE_SOCIAL: Object.freeze({ group: "GROUPS", segment: "Social group" }),
-  }),
-  sources: Object.freeze({
-    BOOKING: Object.freeze({ group: "OTA", label: "Booking.com" }),
-    BOOKING_COM: Object.freeze({ group: "OTA", label: "Booking.com" }),
-    AGODA: Object.freeze({ group: "OTA", label: "Agoda" }),
-    EXPEDIA: Object.freeze({ group: "OTA", label: "Expedia" }),
-    WEBSITE: Object.freeze({ group: "DIRECT", label: "Website" }),
-    DIRECT_WEB: Object.freeze({ group: "DIRECT", label: "Website" }),
-    WALKIN: Object.freeze({ group: "DIRECT", label: "Walk-in" }),
-    PHONE: Object.freeze({ group: "DIRECT", label: "Phone" }),
-    SALES: Object.freeze({ group: "TRAVEL TRADE", label: "Sales office" }),
-    TA: Object.freeze({ group: "TRAVEL TRADE", label: "Travel agent" }),
-  }),
-} as const);
-function commercialCode(value: string | null | undefined): string | null {
-  const normalized = value?.trim().toUpperCase();
-  return normalized && /^[A-Z0-9][A-Z0-9_.-]{0,31}$/u.test(normalized) ? normalized : null;
-}
-function businessMarket(code: string | null): Readonly<{ group: string; segment: string }> {
-  if (code === null) return Object.freeze({ group: "UNMAPPED", segment: "Missing market segment" });
-  return BUSINESS_HIERARCHY.markets[code as keyof typeof BUSINESS_HIERARCHY.markets] ??
-    Object.freeze({ group: "UNMAPPED", segment: code });
-}
-function businessSource(sourceCode: string | null, channelCode: string | null): Readonly<{ group: string; label: string; channel: string }> {
-  const source = sourceCode ?? channelCode;
-  const mapped = source === null ? null : BUSINESS_HIERARCHY.sources[source as keyof typeof BUSINESS_HIERARCHY.sources];
-  return Object.freeze({
-    group: mapped?.group ?? (source === null ? "UNMAPPED" : "UNMAPPED"),
-    label: mapped?.label ?? (source ?? "Missing source"),
-    channel: channelCode ?? "Missing channel",
-  });
-}
 type Property = Readonly<{ id: string; name: string; timezone: string }>;
 type ReservationDetail = Readonly<{
   reservation: Readonly<{
@@ -7214,36 +7163,15 @@ export function App() {
     : inHouseCount !== null && configuredRooms && configuredRooms > 0
       ? Math.round((inHouseCount / configuredRooms) * 100)
       : null;
-  const businessMix = useMemo(() => {
-    const counts = new Map<string, BusinessMixRow>();
-    for (const stay of [
-      ...(dueInQuery.data?.reservations ?? []),
-      ...(dueOutQuery.data?.reservations ?? []),
-      ...(inHouseQuery.data?.reservations ?? []),
-    ]) {
-      const marketCode = commercialCode(stay.marketCode);
-      const sourceCode = commercialCode(stay.sourceCode);
-      const channelCode = commercialCode(stay.channelCode);
-      const market = businessMarket(marketCode);
-      const source = businessSource(sourceCode, channelCode);
-      const key = `${market.group}|${market.segment}|${source.label}|${source.channel}`;
-      const current = counts.get(key) ?? {
-        marketSegmentGroup: market.group,
-        marketSegment: market.segment,
-        source: source.label,
-        channel: source.channel,
-        stays: 0,
-      };
-      counts.set(key, { ...current, stays: current.stays + 1 });
-    }
-    return [...counts.values()]
-      .sort((left, right) => right.stays - left.stays ||
-        left.marketSegmentGroup.localeCompare(right.marketSegmentGroup) ||
-        left.marketSegment.localeCompare(right.marketSegment) ||
-        left.source.localeCompare(right.source) ||
-        left.channel.localeCompare(right.channel))
-      .slice(0, 3);
-  }, [dueInQuery.data?.reservations, dueOutQuery.data?.reservations, inHouseQuery.data?.reservations]);
+  const [businessMixPeriod, setBusinessMixPeriod] = useState<BusinessMixPeriod>("today");
+  const [movementDrawerOpen, setMovementDrawerOpen] = useState(true);
+  const businessMixQuery = useQuery({
+    queryKey: ["today-business-mix", propertyId, businessMixPeriod],
+    queryFn: ({ signal }) => loadBusinessMix(propertyId, businessMixPeriod, signal),
+    enabled: workspacePart === "today",
+  });
+  useEffect(() => { if (activeLane) setMovementDrawerOpen(true); }, [activeLane]);
+  const businessMix = businessMixQuery.isError ? null : businessMixQuery.data ?? null;
   const localGreeting = propertyLocalGreeting(new Date(), selected?.timezone ?? "UTC");
   useEffect(() => {
     rememberOverwatch({ open: assistant, language, turns, reservationQuery: reservationQueryContext ?? undefined });
@@ -7322,7 +7250,8 @@ export function App() {
   };
   const openOperationalTable = (lane: Status | null) => {
     if (reservationLifecycleBusyRef.current || voiceTransferRecoveryLockedRef.current || propertyModeNavigationLocked) return;
-    navigateYellow(lane ? `/p/${propertyId}/today?lane=${lane}` : `/p/${propertyId}/today`);
+    setMovementDrawerOpen(lane !== null);
+    if (lane) navigateYellow(`/p/${propertyId}/today?lane=${lane}`);
   };
   const cancelSpeech = () => {
     if (!("speechSynthesis" in window)) return;
@@ -9508,17 +9437,8 @@ export function App() {
           <p>PROPERTY</p>
           <button onClick={() => workflow("settings")}>Settings &amp; setup</button>
         </aside>
-        <section className={`workspace${activeLane ? " movement-mode" : ""}`}>
-          {activeLane ? (() => {
-            const lane = lanes.find((item) => item.status === activeLane);
-            return <RibbonPanel transitionKey={activeLane}><MovementGrid key={activeLane} status={activeLane} lane={lane?.query.isError ? undefined : lane?.query.data} timezone={selected?.timezone ?? "UTC"} open={open}
-              loading={Boolean(lane?.query.isLoading)} error={lane?.query.isError ? lane.query.error.message : undefined}
-              onBack={() => openOperationalTable(null)} onBilling={openMovementBilling}
-              scopeDescription="Current reservation status · property business-day scope unavailable"
-              navigation={<div className="movement-view-ribbon"><SegmentedRibbon label="Guest movement views" value={activeLane} onChange={openOperationalTable}
-                items={lanes.map(item => ({ key: item.status, label: titleOf(item.status), count: item.query.isLoading || item.query.isError ? null : item.query.data?.reservations?.length ?? null }))} /></div>} />
-            </RibbonPanel>;
-          })() : <><motion.div
+        <section className="workspace">
+          <motion.div
             className="welcome today-welcome"
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
@@ -9543,19 +9463,26 @@ export function App() {
                 { label: "In house", value: inHouseCount, loading: inHouseQuery.isLoading, unavailable: inHouseQuery.isError, glyph: "⌂", onOpen: () => openOperationalTable("in_house") },
               ]}
               businessMix={businessMix}
-              demoSteps={[
-                { label: "Today", title: "Operating pulse", purpose: "Occupancy, revenue and movements from live property reads.", status: "Read-only", onOpen: () => workflow("today") },
-                { label: "Reservations", title: "Board & stay detail", purpose: "Search, open stays, edit lifecycle and guest allocation.", status: "Implemented", onOpen: () => workflow("reservations") },
-                { label: "Arrivals", title: "Guided check-in", purpose: "Open readiness, room assignment and folio preparation with confirmation gates.", status: "Confirmation-gated", onOpen: () => openOperationalTable("due_in") },
-                { label: "Cashier", title: "Folio & posting desk", purpose: "Search guests, open statements, deposits, transfers and governed posting.", status: "Confirmation-gated", onOpen: billingDesk },
-                { label: "Departures", title: "Guided checkout", purpose: "Open due-outs, service coordination and server-owned departure readiness.", status: "Confirmation-gated", onOpen: () => openOperationalTable("due_out") },
-                { label: "Rooms", title: "Housekeeping & operations", purpose: "Room condition, service requests and operational source evidence.", status: "Role-aware", onOpen: () => workflow("operations") },
-                { label: "Overwatch", title: "Multilingual AI assistant", purpose: "Ask Yellow in Indian English/Hindi with explicit confirmation before actions.", status: "Docked assistant", onOpen: () => setAssistant(true) },
-              ]}
+              businessMixPeriod={businessMixPeriod}
+              businessMixLoading={businessMixQuery.isLoading}
+              businessMixError={businessMixQuery.isError ? businessMixQuery.error.message : null}
+              onBusinessMixPeriod={setBusinessMixPeriod}
+              formatMoney={moneyExactMinor}
+              activeMovementIndex={activeLane === "due_out" ? 1 : activeLane === "in_house" ? 2 : 0}
+              movementDrawerOpen={movementDrawerOpen}
+              onMovementDrawerToggle={() => openOperationalTable(movementDrawerOpen ? null : activeLane ?? "due_in")}
+              movementDrawer={(() => {
+                const status = activeLane ?? "due_in";
+                const lane = lanes.find(item => item.status === status);
+                return <MovementGrid key={status} status={status} lane={lane?.query.isError ? undefined : lane?.query.data} timezone={selected?.timezone ?? "UTC"}
+                  open={open} loading={Boolean(lane?.query.isLoading)} error={lane?.query.isError ? lane.query.error.message : undefined}
+                  onBack={() => openOperationalTable(null)} onBilling={openMovementBilling}
+                  scopeDescription="Current reservation status · property business-day scope unavailable" />;
+              })()}
               onOpenPerformance={() => setPerformanceDetailRequestKey((key) => key + 1)}
             />
           </motion.div>
-          {performanceQuery.data ? <PerformancePanel performance={performanceQuery.data} detailRequestKey={performanceDetailRequestKey} summaryVisible={false} /> : performanceQuery.isError ? <p className="error">Operating performance is unavailable. {performanceQuery.error.message}</p> : null}</>}
+          {performanceQuery.data ? <PerformancePanel performance={performanceQuery.data} detailRequestKey={performanceDetailRequestKey} summaryVisible={false} /> : performanceQuery.isError ? <p className="error">Operating performance is unavailable. {performanceQuery.error.message}</p> : null}
         </section>
       </main>
       {assistantDock}

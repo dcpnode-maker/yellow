@@ -3,7 +3,7 @@
 <!-- status-schema: yellow-project-status/v1 -->
 <!-- current-phase: 7 -->
 <!-- current-task: Codex Yellow — restore requested original UI and integrate CRS CRM RMS booking engine; laptop source and live hosting owner -->
-<!-- current-order-files: handoff/orders/RESOURCE-20261002-live-calendar-and-ecosystem-plan.md;handoff/orders/RESOURCE-20261002-smooth-session-navigation.md -->
+<!-- current-order-files: handoff/orders/RESOURCE-20261003-native-hosting-calendar.md;handoff/orders/RESOURCE-20261003-today-movement-mix.md;handoff/orders/RESOURCE-20261002-live-calendar-and-ecosystem-plan.md -->
 <!-- current-lifecycle: ACTIVE 0ffb1288/frontier103 fixed named-VPC live preview; Calendar v2 admitted with public HTTP and bounded browser proof; ecosystem stages and cloud guest booking receiving pending -->
 
 This is the canonical current-state record. It identifies the consolidated source,
@@ -12,6 +12,8 @@ decisions and ledger entries remain evidence; their filenames are not an active
 backlog. `state.sh` and `state.ps1` read the machine-readable comments above.
 
 ## Receiving update — 2 October: live Calendar and ecosystem implementation
+
+3 October source candidate: native Month/Year/Timeline calendar and the annotated Today dashboard request are implemented in the receiving branch. Guest movement precedes six unique KPI cards; its reservation table collapses into an inert, animated drawer with optional user-gesture vibration and reduced-motion support. Source performance reads recorded room nights, exact currency amounts and ADR for property-local Today/Week/Month/Quarter/Year-to-date, with Monday weeks, current grants and explicit recorded-date coverage. Duplicate pulse and demo instructions are removed. No generated history, financial/occupancy writes, schema, dependency, session-policy or tunnel changes. Root isolated runtime-role PostgreSQL proof passed six tests/56 assertions on port55493; root focused UI/calendar checks passed36 tests/218 assertions before the currency repair, then six actual-component tests/38 assertions verified currency-aware bigint display. Independent review and corrected10R compiled/served asset and browser proofs are required before live admission; the authoritative live pointer remains external. CompSet Astra/10R work is a separate product/task and does not alter Yellow.
 
 **Live admission:** implementation revision0ffb1288a9bb6470da2865c83b4f473377d94f04 now runs at the unchanged fixed Worker hostname on Bun24148 with V7 watcher21052. Exact owner/hash, source/assets/config and public readiness were verified. The public real-PG/auth/grants proof passed, including all22 asset hashes and complete date-range board pagination. PostgreSQL2124 and named connector7876 were independently preserved. Actual public browser proof covers the original shell,14/7/30-day Calendar, search, keyboard opening a reservation without sign-in, Back and contained horizontal scroll at390px (page width375, calendar viewport350/scroll2160). Session expiry remains900 seconds; a test session expired normally and a fresh document restored the existing opted-in synthetic preview. This is not native-phone touch or whole-ecosystem acceptance. Desktop/phone-sized screenshots and redacted proof are retained under hosting/live-calendar-release-v1; authoritative runtime/source/owner/rollback record is database/root-current-live-runtime.json. Previous93bf source/runtime/private config and live-pointer receipt remain preserved. This documentation successor does not change deployed product bytes.
 

@@ -13,7 +13,8 @@ test("renders Yellow as an ambient PMS mode instead of a separate assistant moda
   expect(app).toContain("openOperationalTable");
   expect(app).toContain("/today?lane=${lane}");
   expect(app).toContain("<MovementGrid");
-  expect(app).toContain('className={`workspace${activeLane ? " movement-mode" : ""}`}');
+  expect(app).toContain('className="workspace"');
+  expect(app).toContain("movementDrawerOpen={movementDrawerOpen}");
   expect(app).not.toContain("SignalOrb");
   expect(app).not.toContain('className="assistant"');
 });

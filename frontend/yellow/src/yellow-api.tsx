@@ -1,3 +1,4 @@
+import { requestHostingCalendar, type CalendarRead } from "./hosting-calendar-api";
 import { reactAuthSession } from "./auth-session";
 import { collectReservationBoardPages } from "./reservation-board";
 import {
@@ -2967,3 +2968,7 @@ export async function savePropertyOperatingMode(
   return value;
 }
 export { loadReservationCalendarBoard };
+
+export async function loadHostingCalendar(read: CalendarRead) {
+  return requestHostingCalendar(read, await session());
+}

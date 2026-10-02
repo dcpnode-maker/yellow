@@ -3505,7 +3505,7 @@ function ReservationBoardWorkspace({ timezone, onCrsContinue }: Readonly<{ timez
     const sync = () => setView(reservationViewFromSearch(window.location.search));
     window.addEventListener("popstate", sync); return () => window.removeEventListener("popstate", sync);
   }, []);
-  if (view === "calendar") return <ReservationCalendar key={propertyId} propertyId={propertyId} timezone={timezone} onOpen={id => navigateYellow(`/p/${propertyId}/res/${id}`)} />;
+  if (view === "calendar") return <ReservationCalendar key={propertyId} propertyId={propertyId} timezone={timezone} onOpen={(id, calendarPropertyId) => navigateYellow(`/p/${calendarPropertyId ?? propertyId}/res/${id}`)} />;
   return view === "crs" ? <StaffCrsWorkspace key={propertyId} propertyId={propertyId} timezone={timezone} onContinue={onCrsContinue} /> : <ReservationBoardContents timezone={timezone} />;
 }
 

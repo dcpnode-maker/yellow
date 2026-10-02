@@ -1484,7 +1484,29 @@ h1 {
   color: #6c6f64;
   font-size: 12px;
 }
-.today-glass-movement-wrap { position: relative; isolation: isolate; max-width: 720px; margin: 0 auto; }
+.today-glass-movement-wrap { position: relative; isolation: isolate; min-width: 0; margin: 0 0 24px; }
+.today-drawer-toggle { width: 100%; display: flex; justify-content: space-between; align-items: center; min-height: 44px; border: 0; background: transparent; padding: 12px 14px; color: inherit; font: inherit; font-size: 12px; cursor: pointer; }
+.today-drawer-toggle:focus-visible { outline: 2px solid #222; outline-offset: -2px; border-radius: 12px; }
+.today-reservation-drawer { display: grid; grid-template-rows: 0fr; opacity: 0; transition: grid-template-rows 220ms ease, opacity 160ms ease; }
+.today-reservation-drawer.is-open { grid-template-rows: 1fr; opacity: 1; }
+.today-reservation-drawer-body { min-height: 0; min-width: 0; overflow: hidden; }
+.today-reservation-drawer .movement-workspace { min-width: 0; margin: 0; padding: 12px; border: 1px solid #e4e2d7; border-radius: 18px; background: rgba(255,255,255,.94); }
+.today-reservation-drawer .movement-heading h1 { font-size: 18px; }
+.today-reservation-drawer .movement-grid { max-width: 100%; min-width: 0; }
+.today-mix-heading { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; }
+.today-mix-heading h2 { margin: 0; font-size: 16px; }
+.today-mix-heading > span { font-size: 10px; font-weight: 800; letter-spacing: .12em; }
+.today-mix-periods { display: flex !important; flex-wrap: wrap; gap: 4px !important; margin: 12px 0 0; }
+.today-mix-periods button { min-height: 44px; padding: 8px 12px; border: 1px solid #e4e2d7; border-radius: 12px; background: #fff; color: inherit; cursor: pointer; }
+.today-mix-periods button[aria-pressed="true"] { background: var(--yellow, #ffef00); border-color: #d9cc00; font-weight: 750; }
+.today-mix-periods button:focus-visible { outline: 2px solid #222; outline-offset: 2px; }
+.today-mix-scroll { display: block !important; max-width: 100%; overflow-x: auto; }
+.today-mix-scroll table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.today-mix-scroll caption { text-align: left; padding: 10px 0; color: #67685e; }
+.today-mix-scroll th, .today-mix-scroll td { text-align: right; padding: 12px 10px; border-bottom: 1px solid #e7e5db; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.today-mix-scroll th:first-child { text-align: left; white-space: normal; min-width: 130px; }
+.today-mix-scroll th small { display: block; font-weight: 450; margin-top: 4px; color: #67685e; }
+@media (prefers-reduced-motion: reduce) { .today-reservation-drawer, .today-glass-ribbon-pill { transition: none; } }
 .today-glass-ribbon-label { display: block; margin: 0 0 7px 13px; }
 .today-glass-tab-depth {
   position: absolute;

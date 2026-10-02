@@ -10,5 +10,5 @@ test("Order 631 Today glass dashboard surfaces ADR and RevPAR from operating per
   expect(dashboard).toContain("revpar: string | null;");
   expect(dashboard).toContain('label: "ADR"');
   expect(dashboard).toContain('label: "RevPAR"');
-  expect(dashboard).toContain("ADR {averageDailyRate} · RevPAR {revenuePerAvailableRoom}");
+  expect(dashboard).not.toContain('className="today-glass-pulse"');
 });

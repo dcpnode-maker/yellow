@@ -1,4 +1,5 @@
-import { useState, type CSSProperties, type ReactNode } from "react";
+import { type CSSProperties, type ReactNode } from "react";
+import { BUSINESS_MIX_PERIODS, type BusinessMixPeriod, type BusinessMixSnapshot, movementHaptic } from "../today-business-mix";
 
 type MovementSignal = Readonly<{
   label: string;
@@ -7,22 +8,6 @@ type MovementSignal = Readonly<{
   unavailable: boolean;
   glyph: string;
   onOpen: () => void;
-}>;
-
-type DemoStep = Readonly<{
-  label: string;
-  title: string;
-  purpose: string;
-  status: string;
-  onOpen: () => void;
-}>;
-
-type BusinessMixSignal = Readonly<{
-  marketSegmentGroup: string;
-  marketSegment: string;
-  source: string;
-  channel: string;
-  stays: number;
 }>;
 
 type TodayGlassDashboardProps = Readonly<{
@@ -40,8 +25,16 @@ type TodayGlassDashboardProps = Readonly<{
   occupancyVariance?: ReactNode;
   revenueVariance?: ReactNode;
   movements: readonly [MovementSignal, MovementSignal, MovementSignal];
-  businessMix: readonly BusinessMixSignal[];
-  demoSteps: readonly DemoStep[];
+  businessMix: BusinessMixSnapshot | null;
+  businessMixPeriod: BusinessMixPeriod;
+  businessMixLoading: boolean;
+  businessMixError: string | null;
+  onBusinessMixPeriod: (period: BusinessMixPeriod) => void;
+  formatMoney: (minor: string, currency: string) => string;
+  activeMovementIndex: number;
+  movementDrawerOpen: boolean;
+  movementDrawer: ReactNode;
+  onMovementDrawerToggle: () => void;
   onOpenPerformance: () => void;
 }>;
 
@@ -71,10 +64,11 @@ export function TodayGlassDashboard({
   revenueVariance,
   movements,
   businessMix,
-  demoSteps,
+  businessMixPeriod, businessMixLoading, businessMixError, onBusinessMixPeriod, formatMoney,
+  activeMovementIndex, movementDrawerOpen, movementDrawer, onMovementDrawerToggle,
   onOpenPerformance,
 }: TodayGlassDashboardProps) {
-  const [movementIndex, setMovementIndex] = useState(0);
+  const movementIndex = activeMovementIndex;
   const occupancy = metricValue(
     occupancyPercent === null ? null : `${occupancyPercent}%`,
     performanceLoading,
@@ -106,12 +100,40 @@ export function TodayGlassDashboard({
         <p>{propertyName}<small>{localTime} · property local time</small></p>
       </header>
 
-      <div className="today-glass-command" aria-label="Today command summary">
-        <div>
-          <span className="today-glass-command-kicker">PMS command centre</span>
-          <strong>Front desk, cashier and rooms in one live view</strong>
+      <div className="today-glass-movement-wrap">
+        <span className="today-glass-ribbon-label">Guest movement</span>
+        <div className="today-glass-tab-depth" aria-hidden="true"><i /><i /></div>
+        <div
+          className="today-glass-ribbon"
+          role="group"
+          aria-label="Guest movement"
+          style={{ "--today-movement-index": movementIndex } as CSSProperties}
+        >
+          <i className="today-glass-ribbon-pill" aria-hidden="true" />
+          {movements.map((movement, index) => {
+            const rendered = metricValue(movement.value, movement.loading, movement.unavailable);
+            return (
+              <button
+                type="button"
+                key={movement.label}
+                aria-label={`Open ${movement.label.toLowerCase()} table. ${rendered}`}
+                aria-pressed={movementIndex === index}
+                onClick={() => { movementHaptic(); movement.onOpen(); }}
+              >
+                <span aria-hidden="true">{movement.glyph}</span>
+                <small>{movement.label}</small>
+                <strong className={movement.loading || movement.unavailable || movement.value === null ? "is-state" : undefined}>{rendered}</strong>
+              </button>
+            );
+          })}
         </div>
-        <p>Tap any card to open the exact governed workspace. No write action runs from this screen.</p>
+        <button type="button" className="today-drawer-toggle" aria-expanded={movementDrawerOpen} aria-controls="today-reservation-drawer"
+          onClick={() => { movementHaptic(); onMovementDrawerToggle(); }}>
+          {movementDrawerOpen ? "Hide reservations" : "Show reservations"}<span aria-hidden="true">{movementDrawerOpen ? "⌃" : "⌄"}</span>
+        </button>
+        <div className={`today-reservation-drawer${movementDrawerOpen ? " is-open" : ""}`} id="today-reservation-drawer" inert={!movementDrawerOpen} aria-hidden={!movementDrawerOpen}>
+          <div className="today-reservation-drawer-body">{movementDrawer}</div>
+        </div>
       </div>
 
       <div className="today-glass-stat-grid" aria-label="Useful operating stats">
@@ -124,94 +146,22 @@ export function TodayGlassDashboard({
         ))}
       </div>
 
-      <div className="today-glass-stage">
-        <div className="today-glass-depth" aria-hidden="true"><i /><i /></div>
-        <div className="today-glass-pulse">
-          <button
-            type="button"
-            className="today-glass-occupancy"
-            aria-label={`Open operating performance. Occupancy ${occupancy}`}
-            onClick={onOpenPerformance}
-          >
-            <span>Occupancy</span>
-            <strong className={performanceState ? "is-state" : undefined}>{occupancy}</strong>
-            <small>{sold} rooms sold · {available} available</small>
-            {occupancyVariance}
-          </button>
-          <button
-            type="button"
-            className="today-glass-revenue"
-            aria-label={`Open operating performance. Room revenue ${metricValue(roomRevenue, performanceLoading, performanceUnavailable)}`}
-            onClick={onOpenPerformance}
-          >
-            <span>Room revenue</span>
-            <strong className={performanceState ? "is-state" : undefined}>{revenue}</strong>
-            <small>ADR {averageDailyRate} · RevPAR {revenuePerAvailableRoom}</small>
-            {revenueVariance}
-          </button>
+      <section className="today-business-mix" aria-label="Business mix by market segment group, market segment and source" aria-busy={businessMixLoading}>
+        <header className="today-mix-heading"><span>BUSINESS MIX</span><h2>Source performance</h2></header>
+        <div className="today-mix-periods" role="group" aria-label="Business mix period">
+          {BUSINESS_MIX_PERIODS.map(period => <button type="button" key={period} aria-pressed={businessMixPeriod === period} onClick={() => onBusinessMixPeriod(period)}>{period[0]!.toUpperCase() + period.slice(1)}</button>)}
         </div>
-      </div>
-
-      <section className="today-business-mix" aria-label="Business mix by market segment group, market segment and source">
-        <div>
-          <span>BUSINESS MIX</span>
-          <strong>MSG → MS · source · channel</strong>
-        </div>
-        {businessMix.length ? <ul>{businessMix.map((item) => (
-          <li key={`${item.marketSegmentGroup}-${item.marketSegment}-${item.source}-${item.channel}`}>
-            <span>{item.marketSegmentGroup}</span>
-            <strong>{item.stays}</strong>
-            <small>{item.marketSegment} · {item.source} · {item.channel}</small>
-          </li>
-        ))}</ul> : <p>No coded movement rows yet.</p>}
-      </section>
-
-      <div className="today-glass-movement-wrap">
-        <span className="today-glass-ribbon-label">Guest movement</span>
-        <div className="today-glass-tab-depth" aria-hidden="true"><i /><i /></div>
-        <div
-          className="today-glass-ribbon"
-          role="group"
-          aria-label="Open today's complete guest movement tables"
-          style={{ "--today-movement-index": movementIndex } as CSSProperties}
-        >
-          <i className="today-glass-ribbon-pill" aria-hidden="true" />
-          {movements.map((movement, index) => {
-            const rendered = metricValue(movement.value, movement.loading, movement.unavailable);
-            return (
-              <button
-                type="button"
-                key={movement.label}
-                aria-label={`Open ${movement.label.toLowerCase()} table. ${rendered}`}
-                onPointerEnter={() => setMovementIndex(index)}
-                onFocus={() => setMovementIndex(index)}
-                onClick={movement.onOpen}
-              >
-                <span aria-hidden="true">{movement.glyph}</span>
-                <small>{movement.label}</small>
-                <strong className={movement.loading || movement.unavailable || movement.value === null ? "is-state" : undefined}>{rendered}</strong>
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
-      <section className="today-demo-path" aria-labelledby="today-demo-path-title">
-        <div className="today-demo-path-head">
-          <span>COLLEAGUE DEMO PATH</span>
-          <h2 id="today-demo-path-title">Review the implemented PMS flow in order</h2>
-          <p>Each card opens a governed workspace or assistant journey. Dashboard cards navigate only.</p>
-        </div>
-        <div className="today-demo-path-grid">
-          {demoSteps.map((step, index) => (
-            <button type="button" key={step.label} onClick={step.onOpen} aria-label={`Open demo step ${index + 1}: ${step.title}`}>
-              <small>{String(index + 1).padStart(2, "0")} · {step.label}</small>
-              <strong>{step.title}</strong>
-              <span>{step.purpose}</span>
-              <em>{step.status}</em>
-            </button>
-          ))}
-        </div>
+        <p className="today-mix-context">Calendar period to date · week starts Monday · property local dates</p>
+        {businessMixLoading ? <p role="status">Loading source performance…</p> : businessMixError ? <p role="alert">{businessMixError}</p> : businessMix ? <>
+          <p>{businessMix.fromDate} – {businessMix.toDateExclusive} (end excluded) · {businessMix.recordedDays}/{businessMix.expectedDays} dates recorded{businessMix.recordedDays < businessMix.expectedDays ? " · incomplete period evidence" : ""}</p>
+          {businessMix.rows.length ? <div className="today-mix-scroll"><table><caption>Recorded room revenue · {businessMix.currency} · share of room nights</caption>
+            <thead><tr><th scope="col">Source / channel</th><th scope="col">Room nights</th><th scope="col">Revenue</th><th scope="col">ADR</th><th scope="col">Mix</th></tr></thead>
+            <tbody>{businessMix.rows.map((item,index) => <tr key={`${item.marketSegmentGroup}-${item.marketSegment}-${item.source}-${item.channel}-${index}`}>
+              <th scope="row">{item.source}<small>{item.channel} · {item.marketSegmentGroup} → {item.marketSegment}</small></th>
+              <td>{item.roomNights}</td><td>{formatMoney(item.roomRevenueMinor,businessMix.currency)}</td><td>{formatMoney(item.adrMinor,businessMix.currency)}</td><td>{(item.shareBasisPoints / 100).toFixed(2)}%</td>
+            </tr>)}</tbody>
+          </table></div> : <p>No recorded source performance for this period.</p>}
+        </> : <p>Source performance unavailable.</p>}
       </section>
       <p className="today-glass-note">Live hotel data · select a signal for its complete operational view.</p>
     </section>

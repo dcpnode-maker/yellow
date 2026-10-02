@@ -1,6 +1,8 @@
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { loadReservationCalendarBoard, propertyLocalDate } from "../yellow-api";
+import { loadHostingCalendar, loadProperties, propertyLocalDate } from "../yellow-api";
+import { HostingCalendar } from "./HostingCalendar";
+import type { CalendarMode } from "../hosting-calendar";
 import { calendarDateOffset, calendarDayBoundary, calendarDays, calendarGuest, calendarLocalDate, filterCalendarEntries, isCalendarDate, projectCalendar, type CalendarStay } from "../reservation-calendar";
 import { operationalStateLabel } from "../reservation-board";
 import { SegmentedRibbon } from "../ui/SegmentedRibbon";
@@ -34,35 +36,58 @@ export function CalendarTimeline({ stays, start, days, timezone, search, view, l
   </>;
 }
 
-export function ReservationCalendar({ propertyId, timezone, onOpen }: Readonly<{ propertyId: string; timezone: string; onOpen: (id: string) => void }>) {
+export function ReservationCalendar({ propertyId, timezone, onOpen }: Readonly<{ propertyId: string; timezone: string; onOpen: (id: string, propertyId?: string) => void }>) {
   const [start, setStart] = useState(() => { try { return propertyLocalDate(timezone, 0); } catch { return ""; } });
-  const [days, setDays] = useState<7 | 14 | 30>(14);
-  const [search, setSearch] = useState(""); const [view, setView] = useState<CalendarView>("active");
-  const [limit, setLimit] = useState(100);
-  const timezoneValid = useMemo(() => { try { calendarLocalDate("2000-01-01T12:00:00Z", timezone); return true; } catch { return false; } }, [timezone]);
+  const [mode, setMode] = useState<CalendarMode>("month");
+  const [portfolio, setPortfolio] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<readonly string[]>([propertyId]);
+  const grants = useQuery({ queryKey: ["hosting-calendar-grants"], queryFn: loadProperties, retry: false, staleTime: 0 });
+  const properties = grants.data ?? [];
+  const current = properties.find(property => property.id === propertyId);
+  const selected = properties.filter(property => property.id === propertyId || selectedIds.includes(property.id));
+  const scope = mode === "timeline" && portfolio ? selected : current ? [current] : [];
   const range = useMemo(() => {
     if (!isCalendarDate(start)) return null;
-    try {
-      calendarDays(start, days);
-      const from = calendarDayBoundary(start, timezone), to = calendarDayBoundary(calendarDateOffset(start, days), timezone);
-      if (to <= from) return null;
-      return { from, to };
-    } catch { return null; }
-  }, [start, days, timezone]);
-  const board = useQuery({ queryKey: ["reservation-board", propertyId, "calendar", timezone, range?.from, range?.to],
-    queryFn: ({ signal }) => loadReservationCalendarBoard({ ...range!, signal }), enabled: range !== null });
-  const matchingCount = range && board.data && !board.isError ? filterCalendarEntries(projectCalendar(board.data.reservations ?? [], start, days, timezone).entries, search, view).length : 0;
-  const move = (offset: number) => { setStart(calendarDateOffset(start, offset)); setLimit(100); };
-  return <section className="reservation-calendar detail-card" aria-labelledby="reservation-calendar-title">
-    <div className="section-heading"><div><span>RESERVATIONS</span><h2 id="reservation-calendar-title">Calendar</h2></div><button type="button" className="quiet" disabled={!range || board.isFetching} onClick={() => void board.refetch()}>{board.isFetching ? "Refreshing…" : "Refresh"}</button></div>
-    <div className="calendar-controls">
-      <div className="calendar-date-controls"><button type="button" aria-label="Previous date range" disabled={!range} onClick={() => move(-days)}>←</button><button type="button" className="quiet" disabled={!timezoneValid} onClick={() => { setStart(propertyLocalDate(timezone, 0)); setLimit(100); }}>Today</button><button type="button" aria-label="Next date range" disabled={!range} onClick={() => move(days)}>→</button><label>From<input type="date" value={start} onChange={event => { setStart(event.target.value); setLimit(100); }} /></label></div>
-      <SegmentedRibbon label="Calendar date range" items={[{ key: "7", label: "7 days" }, { key: "14", label: "14 days" }, { key: "30", label: "30 days" }]} value={String(days) as "7" | "14" | "30"} onChange={value => { setDays(Number(value) as 7 | 14 | 30); setLimit(100); }} />
-    </div>
-    <div className="calendar-filter-controls"><label>Find a stay<input type="search" placeholder="Guest, confirmation, room type or source" value={search} onChange={event => { setSearch(event.target.value); setLimit(100); }} /></label><label>Show<select value={view} onChange={event => { setView(event.target.value as CalendarView); setLimit(100); }}><option value="active">Stays excluding cancelled / no-show</option><option value="all">All recorded stays</option></select></label></div>
-    {!range ? <p className="error" role="alert">{timezoneValid ? "Choose a valid start date in the property timezone." : "The property timezone is unavailable. Calendar data cannot be displayed."}</p> : board.isPending ? <p className="empty">Loading the stay calendar…</p> : board.isError ? <p className="error" role="alert">{board.error.message} Calendar data is unavailable.</p> : board.data ? <>
-      <CalendarTimeline stays={board.data.reservations ?? []} start={start} days={days} timezone={timezone} search={search} view={view} limit={limit} onOpen={onOpen} />
-      {matchingCount > limit ? <button type="button" className="quiet" onClick={() => setLimit(value => value + 100)}>Show more stays</button> : null}
-    </> : <p className="error">Calendar data is unavailable.</p>}
-  </section>;
+    const from = mode === "year" ? `${start.slice(0, 4)}-01-01` : `${start.slice(0, 7)}-01`;
+    const to = mode === "year" ? `${String(Number(start.slice(0, 4)) + 1).padStart(4, "0")}-01-01`
+      : calendarDateOffset(calendarDateOffset(from, 32).slice(0, 7) + "-01", 0);
+    return isCalendarDate(to) ? { from, to } : null;
+  }, [start, mode]);
+  const scopeKey = scope.map(property => `${property.id}:${property.timezone}`).join(",");
+  const calendar = useQuery({
+    queryKey: ["native-reservation-calendar", propertyId, timezone, mode, range?.from, range?.to, scopeKey],
+    queryFn: async ({ signal }) => {
+      const pages = [];
+      for (let offset = 0; offset < scope.length; offset += 4) {
+        pages.push(...await Promise.all(scope.slice(offset, offset + 4).map(async property => ({ label: property.name,
+          page: await loadHostingCalendar({ propertyId: property.id, timezone: property.timezone, ...range!, signal }) }))));
+      }
+      if (new Set(pages.map(item => item.page.propertyId)).size !== pages.length) throw new Error("Calendar returned duplicate property pages.");
+      return pages;
+    },
+    enabled: range !== null && Boolean(current) && !grants.isError && !grants.isPending,
+    retry: false, staleTime: 0,
+  });
+  const error = !range ? "Choose a valid calendar date." : grants.isError ? "Property access could not be verified."
+    : !grants.isPending && !current ? "Calendar access to this property is not granted." : calendar.isError ? calendar.error.message : null;
+  const loading = grants.isPending || calendar.isPending && Boolean(current);
+  const pages = !error && !loading ? calendar.data : undefined;
+  const open = (id: string) => {
+    const matches = new Set(pages?.flatMap(item => item.page.segments.some(segment => segment.reservationId === id) ? [item.page.propertyId] : []) ?? []);
+    if (matches.size === 1) onOpen(id, [...matches][0]);
+  };
+  return <>
+    {mode === "timeline" && properties.length > 1 && !grants.isError ? <details className="hosting-portfolio-controls">
+      <summary>Properties · {portfolio ? scope.length : 1}</summary>
+      <label><input type="checkbox" checked={portfolio} onChange={event => setPortfolio(event.target.checked)} />Compare selected properties</label>
+      {portfolio ? <div>{properties.map(property => <label key={property.id}><input type="checkbox" checked={property.id === propertyId || selectedIds.includes(property.id)}
+        disabled={property.id === propertyId || !selectedIds.includes(property.id) && selectedIds.length >= 8}
+        onChange={event => setSelectedIds(ids => event.target.checked ? [...ids, property.id] : ids.filter(id => id !== property.id))} />{property.name}</label>)}
+        <p>Choose up to eight granted properties. Each uses its own timezone.</p></div> : null}
+    </details> : null}
+    <HostingCalendar page={pages?.find(item => item.page.propertyId === propertyId)?.page ?? null} startDate={start} mode={mode} timezone={timezone}
+      loading={loading} error={error} onMode={setMode} onDate={setStart} onOpen={open}
+      onRefresh={() => { void grants.refetch(); void calendar.refetch(); }}
+      timelinePages={mode === "timeline" ? pages : undefined} />
+  </>;
 }

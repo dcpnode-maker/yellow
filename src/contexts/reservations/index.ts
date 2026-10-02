@@ -220,3 +220,6 @@ export type {
   RolledDueDeparture,
   RollDueDeparturesInput,
 } from "./departure-roll";
+
+export { ReservationCalendarService, ReservationCalendarConflictError, ReservationCalendarValidationError, reservationCalendarDates, reservationCalendarBoundary } from "./calendar";
+export type { ReservationCalendarPage } from "./calendar";

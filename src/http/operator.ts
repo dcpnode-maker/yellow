@@ -161,7 +161,7 @@ import {
   type RatePricingInput,
   type RateTargetDraft,
 } from "../contexts/rates";
-import { CommercialContributionService, OperatingPerformanceService } from "../contexts/reporting";
+import { CommercialContributionService, isCommercialContributionPeriod, OperatingPerformanceService } from "../contexts/reporting";
 import {
   ReservationCommitService,
   ReservationConflictError,
@@ -185,6 +185,10 @@ import {
   ReservationTravelValidationError,
   ReservationBoardConflictError,
   ReservationBoardService,
+  ReservationCalendarService,
+  ReservationCalendarConflictError,
+  ReservationCalendarValidationError,
+  reservationCalendarDates,
   ReservationBoardValidationError,
   GroupBlockConflictError,
   GroupBlockService,
@@ -2501,6 +2505,7 @@ export class OperatorHttpApi {
   readonly #reservationLifecycle?: ReservationLifecycleOperations;
   readonly #reservationSegments?: ReservationSegmentOperations;
   readonly #reservationBoard?: ReservationBoardOperations;
+  readonly #reservationCalendar = new ReservationCalendarService();
   readonly #groupBlocks: GroupBlockOperations = new GroupBlockService();
   readonly #groupReservations?: GroupReservationOperations;
   readonly #operatingPerformance?: OperatingPerformanceOperations;
@@ -5480,7 +5485,9 @@ export class OperatorHttpApi {
   }
 
   async commercialContribution(context: TenantRequestContext, propertyNode: string): Promise<Response> {
-    if (!UUID.test(propertyNode) || new URL(context.request.url).search.length > 0) {
+    const query = new URL(context.request.url).searchParams;
+    const period = query.get("period") ?? "today";
+    if (!UUID.test(propertyNode) || [...query.keys()].some(key => key !== "period") || query.getAll("period").length > 1 || !isCommercialContributionPeriod(period)) {
       return apiError(context.request, 400, "request/invalid", "Invalid request", "Commercial contribution scope is invalid");
     }
     if (!hasScope(context, RESERVATION_LIFECYCLE_READ_SCOPE)) {
@@ -5490,8 +5497,34 @@ export class OperatorHttpApi {
     if (!grants.some(({ id }) => id === propertyNode)) {
       return apiError(context.request, 403, "auth/property_forbidden", "Forbidden", "Property access is not granted");
     }
-    const contribution = await this.#commercialContribution.load(context.tx, { tenantId: context.tenantId, propertyNode });
+    const contribution = await this.#commercialContribution.load(context.tx, { tenantId: context.tenantId, propertyNode, period });
     return apiResponse(context.request, canonicalJson(jsonValue(contribution)));
+  }
+
+  async reservationCalendar(context: TenantRequestContext, propertyNode: string): Promise<Response> {
+    const query = new URL(context.request.url).searchParams;
+    if (!UUID.test(propertyNode) || [...query.keys()].some(key => key !== "from" && key !== "to") ||
+        query.getAll("from").length !== 1 || query.getAll("to").length !== 1) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Calendar query is invalid");
+    }
+    const fromDate = query.get("from")!, toDateExclusive = query.get("to")!;
+    try { reservationCalendarDates(fromDate, toDateExclusive); }
+    catch { return apiError(context.request, 400, "request/invalid", "Invalid request", "Calendar dates are invalid"); }
+    if (!hasScope(context, RESERVATION_LIFECYCLE_READ_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Reservation access is not granted");
+    }
+    const grants = await listGrantedProperties(context, RESERVATION_LIFECYCLE_READ_SCOPE);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 403, "auth/property_forbidden", "Forbidden", "Property access is not granted");
+    }
+    try {
+      const page = await this.#reservationCalendar.list(context.tx, { tenantId: context.tenantId, propertyNode, fromDate, toDateExclusive });
+      return apiResponse(context.request, canonicalJson(jsonValue(page)));
+    } catch (error) {
+      if (error instanceof ReservationCalendarValidationError) return apiError(context.request, 400, "request/invalid", "Invalid request", error.message);
+      if (error instanceof ReservationCalendarConflictError) return apiError(context.request, 409, "calendar/conflict", "Conflict", error.message);
+      throw error;
+    }
   }
 
   async reservationBoard(context: TenantRequestContext, propertyNode: string): Promise<Response> {

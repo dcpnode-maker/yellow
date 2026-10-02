@@ -5,38 +5,33 @@ const today = readFileSync("frontend/yellow/src/workspaces/TodayGlassDashboard.t
 const app = readFileSync("frontend/yellow/src/App.tsx", "utf8");
 const css = readFileSync("frontend/yellow/src/styles.css", "utf8");
 
-test("today command centre exposes a colleague demo path without write actions", () => {
-  expect(today).toContain("COLLEAGUE DEMO PATH");
-  expect(today).toContain("Review the implemented PMS flow in order");
-  expect(today).toContain("Dashboard cards navigate only.");
-  expect(today).toContain("demoSteps.map");
+test("normal dashboard removes instructional demo clutter without adding write actions", () => {
+  expect(today).not.toContain("COLLEAGUE DEMO PATH");
+  expect(today).not.toContain("Review the implemented PMS flow in order");
+  expect(today).not.toContain("demoSteps.map");
   expect(today).not.toContain("commitCheckIn(");
   expect(today).not.toContain("commitCheckout(");
   expect(today).not.toContain("postFolioCharge(");
 });
 
-test("demo path covers the complete public PMS review sequence", () => {
+test("operational workspaces remain accessible after demo cards are removed", () => {
   for (const expected of [
-    "Operating pulse",
-    "Board & stay detail",
-    "Guided check-in",
-    "Folio & posting desk",
-    "Guided checkout",
-    "Housekeeping & operations",
-    "Multilingual AI assistant",
+    "ReservationDetail",
+    "MovementGrid",
+    "billingDesk",
+    "HousekeepingFloorWorkbench",
+    "setAssistant(true)",
   ]) {
     expect(app).toContain(expected);
   }
   expect(app).toContain('onOpen: () => openOperationalTable("due_in")');
-  expect(app).toContain("onOpen: billingDesk");
-  expect(app).toContain('onOpen: () => setAssistant(true)');
+  expect(app).toContain("onBilling={billingDesk}");
 });
 
-test("demo path is mobile-contained and preserves neon focus affordance", () => {
-  expect(css).toContain(".today-demo-path-grid {");
+test("replacement drawer is mobile-contained and motion-reducible", () => {
+  expect(css).toContain(".today-reservation-drawer");
   expect(css).toContain("overflow-x: auto;");
-  expect(css).toContain("scroll-snap-type: x proximity;");
-  expect(css).toContain("border-color: rgba(117,255,0,.62)");
+  expect(css).toContain(".today-drawer-toggle:focus-visible");
+  expect(css).toContain("prefers-reduced-motion: reduce");
   expect(css).toContain("@media (max-width: 560px)");
-  expect(css).toContain("grid-template-columns: repeat(7, minmax(142px, 76vw));");
 });

@@ -7,21 +7,22 @@ const today = readFileSync(resolve(root, "frontend/yellow/src/workspaces/TodayGl
 const css = readFileSync(resolve(root, "frontend/yellow/src/styles.css"), "utf8");
 
 test("Today first screen exposes useful PMS stats before dense drilldowns", () => {
-  expect(today).toContain("PMS command centre");
-  expect(today).toContain("Front desk, cashier and rooms in one live view");
+  expect(today).toContain('aria-label="Guest movement"');
+  expect(today).toContain('aria-label="Useful operating stats"');
+  expect(today.indexOf('aria-label="Guest movement"')).toBeLessThan(today.indexOf('aria-label="Useful operating stats"'));
   for (const label of ["Occupancy", "Room nights", "Available", "Revenue", "ADR", "RevPAR"]) {
     expect(today).toContain(label);
   }
   expect(today).toContain("Business mix by market segment group, market segment and source");
-  expect(today).toContain("MSG → MS · source · channel");
-  expect(today).toContain("No write action runs from this screen.");
+  expect(today).toContain("Source performance");
   expect(today).toContain("onOpenPerformance");
 });
 
 test("Today first screen keeps movement navigation connected to exact operational tables", () => {
-  expect(today).toContain("Open today's complete guest movement tables");
+  expect(today).toContain('aria-controls="today-reservation-drawer"');
   expect(today).toContain("movement.onOpen");
-  expect(today).toContain("setMovementIndex(index)");
+  expect(today).toContain("movementDrawer");
+  expect(today).toContain("movementHaptic()");
   expect(today).not.toContain("window.location.assign(\"#");
 });
 
