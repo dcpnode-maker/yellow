@@ -75,6 +75,10 @@ implemented by this booking packet; controller must choose their exact source/or
 The first PR101 CI run failed during Bun test discovery because the executable
 composition-proof file was stored under handoff/ with a `*.test.ts` suffix. The
 quality log reported it could not resolve `../src/app` from that handoff path. The
-source was an artifact-placement error, not a guest-booking assertion failure. The
 proof artifact now uses a non-test suffix in the handoff and its README copies it
-into `tests/` for the documented focused invocation. A successor run is pending.
+into `tests/` for the documented focused invocation. Its quality job then passed.
+The database job exposed a stale Order438 readiness fixture that expected newly
+applied migrations only through103 although the admitted candidate is105. The
+fixture now expects immutable104 and105 as the final applied files and labels its
+canonical release case105. No migration, deadline or assertion was waived; exact
+successor CI is pending.

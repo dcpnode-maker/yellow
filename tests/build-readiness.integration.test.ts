@@ -116,6 +116,8 @@ async function ensureCurrentRelease(): Promise<void> {
     "0101_linked_group_runtime_commands.sql",
     "0102_property_operating_mode.sql",
     "0103_property_operating_mode_runtime_guard.sql",
+    "0104_guest_booking_authority.sql",
+    "0105_public_booking_site.sql",
   ]);
   deployment = new SQL(deploymentDatabaseUrl, { max: 1, prepare: false });
   runtime = new SQL(runtimeDatabaseUrl, { max: 1, prepare: false });
@@ -467,7 +469,7 @@ databaseDescribe("Order438 runtime release readiness identity", () => {
     }
   });
 
-  test("accepts only a direct yellow_runtime login against canonical103", async () => {
+  test("accepts only a direct yellow_runtime login against canonical105", async () => {
     await ensureCurrentRelease();
     const [identity] = await deployment!<{ frontier: number; checksum: string; body_sha: string }[]>`
       SELECT (SELECT max(version)::int FROM public.schema_migration) frontier,
