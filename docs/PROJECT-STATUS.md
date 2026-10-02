@@ -4,7 +4,7 @@
 <!-- current-phase: 7 -->
 <!-- current-task: Codex Yellow — restore requested original UI and integrate CRS CRM RMS booking engine; laptop source and live hosting owner -->
 <!-- current-order-files: handoff/orders/RESOURCE-20261002-live-calendar-and-ecosystem-plan.md;handoff/orders/RESOURCE-20261002-smooth-session-navigation.md -->
-<!-- current-lifecycle: ACTIVE 93bf7f94/frontier103 fixed named-VPC live preview; Calendar v2 source independently accepted awaiting exact-owner admission; ecosystem stages and cloud guest booking receiving pending -->
+<!-- current-lifecycle: ACTIVE 0ffb1288/frontier103 fixed named-VPC live preview; Calendar v2 admitted with public HTTP and bounded browser proof; ecosystem stages and cloud guest booking receiving pending -->
 
 This is the canonical current-state record. It identifies the consolidated source,
 verified behavior, release boundaries and active work. Historical orders, reviews,
@@ -12,6 +12,8 @@ decisions and ledger entries remain evidence; their filenames are not an active
 backlog. `state.sh` and `state.ps1` read the machine-readable comments above.
 
 ## Receiving update — 2 October: live Calendar and ecosystem implementation
+
+**Live admission:** implementation revision0ffb1288a9bb6470da2865c83b4f473377d94f04 now runs at the unchanged fixed Worker hostname on Bun24148 with V7 watcher21052. Exact owner/hash, source/assets/config and public readiness were verified. The public real-PG/auth/grants proof passed, including all22 asset hashes and complete date-range board pagination. PostgreSQL2124 and named connector7876 were independently preserved. Actual public browser proof covers the original shell,14/7/30-day Calendar, search, keyboard opening a reservation without sign-in, Back and contained horizontal scroll at390px (page width375, calendar viewport350/scroll2160). Session expiry remains900 seconds; a test session expired normally and a fresh document restored the existing opted-in synthetic preview. This is not native-phone touch or whole-ecosystem acceptance. Desktop/phone-sized screenshots and redacted proof are retained under hosting/live-calendar-release-v1; authoritative runtime/source/owner/rollback record is database/root-current-live-runtime.json. Previous93bf source/runtime/private config and live-pointer receipt remain preserved. This documentation successor does not change deployed product bytes.
 
 Fresh local and public `/ready` independently return source93bf7f94/frontier103, with the detached PostgreSQL2124 and the existing fixed Worker/named VPC connection. Actual public browser restoration succeeded and showed the original theme, hierarchy, staff entries and the Calendar defect: it renders the reservation list/groups. The new bounded Calendar candidate on phase-7/live-ecosystem-20261002 corrects that dispatch without changing the backend or domain commands. It uses 7/14/30 property-local dates and truthful reservation summaries, not inferred room occupancy. Astra accepted the architecture and is independently reviewing frozen source. Root focused28/0 and retained auth/theme/responsive/command/finance30/0 passed; both strict type configurations and210 boundaries passed. Actual 10R and11R executed distinct 3-test jobs successfully against the same hashed compiled calendar module. None of those facts alone admits an unfinished candidate to live.
 

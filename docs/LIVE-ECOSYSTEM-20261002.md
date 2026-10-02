@@ -6,6 +6,8 @@ The original neutral Yellow shell and nested ribbons remain the product interfac
 
 ## First release: stay Calendar
 
+Live implementation revision0ffb1288a9bb6470da2865c83b4f473377d94f04 was admitted on2October with public readiness, all22 served asset hashes, unchanged auth/grants and complete dated board reads. Actual public browser verification passed 14/7/30-day views, search, keyboard reservation opening/Back and390px contained scrolling. This is bounded Calendar web acceptance, not native-app or whole-ecosystem completion. Laptop retained source, predecessor runtime, configuration, rollback and the atomic authoritative live record; fixed public hostname and database/connector owners remained unchanged.
+
 The existing Reservations → Calendar selection previously fell through to the list. The bounded repair renders a 7/14/30-day property-local stay-summary timeline with civil-date stepping, previous/next/Today, search, explicit cancelled/no-show history, clickable reservations and honest error/loading/empty states. Overnight checkout is exclusive; day-use and departure-only boundary markers are explicit. Complete keyset pagination is retained; failed or malformed pages do not produce a complete-looking partial grid.
 
 This is a reservation summary, not a room allocation chart. The board API aggregates segments and returns a final room label: neither historical room assignment nor uninterrupted occupancy can be inferred. Allocation, room moves, split-stay gaps and block overlays require actual segment periods and stable unit IDs. Blank calendar cells do not authorize selling inventory. Server schema, authentication, pricing, money and occupancy commands remain unchanged.
