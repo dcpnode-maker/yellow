@@ -236,6 +236,24 @@ voice, regional, OTA or RMS requirements cannot infer a missing mutation.
 **reservations**: create/commit · get · modify (diff-based) · cancel · reinstate ·
 check_in {segment,space?,keys?} · check_out {settlements[]} · move {to_space} ·
 extend/shorten · group: create/status/allotment/rooming_list(bulk)
+Order687 implements only linked reservation groups, not block allotment or pickup.
+`POST /api/v1/properties/{property}/groups` accepts exactly `{name}` and an
+`Idempotency-Key`; the server generates group ID/code and returns `{group,replayed}`.
+`GET .../groups?limit=1..100&after=uuid` pages property-scoped group headers of
+all kinds, while `GET .../groups/{groupId}?memberLimit=1..100&memberAfter=uuid`
+pages associated reservations. `GET .../groups/{groupId}/candidates?confirmationNo=...`
+resolves one exact property-scoped reservation. `PUT .../groups/{groupId}/members/{reservationId}`
+accepts exactly `{expectedGroupId:null}` plus `Idempotency-Key`, and may only
+attach a currently ungrouped reserved/due-in reservation to a same-property
+`kind=linked` group. The response is `{groupId,reservationId,changed,replayed}`.
+All routes require current lifecycle scope and property grant before replay.
+Linked groups hold no rooms and do not change reservation inventory, price,
+policy, payer, folio or journals. Block status/allotment/pickup writes remain
+unimplemented.
+The narrow runtime `UPDATE(reservation.group_id)` column grant is a direct-SQL
+capability needed by the service; property/status/CAS enforcement resides in
+the command, not a database-wide column policy. Keep this boundary in review
+when any future SQL caller gains runtime access.
 **financials**: postCharge {folio,tx_code,amount,qty} · transfer {lines[],to_folio|account} ·
 adjust {reverses_line,reason} · folio: open_window/get/statement/settle/close ·
 routeRules→Automation CRUD · deposits: request/apply ·
@@ -4028,3 +4046,29 @@ arrays cannot amplify output without bound.
 Output is inspection-only with authority unverified-source-candidate. The CLI
 does not access the network, download media, access a PMS database, create a
 Yellow property, assign ownership, publish a profile or approve reuse rights.
+
+## Property operating mode — RESOURCE-20261001
+
+GET `/api/v1/properties/:property/operating-mode` requires the signed
+`identity.property-mode:read` capability and matching live tenant/actor/property grant.
+It returns exactly `{propertyMode:{propertyNode,mode,version,effectiveAt,
+effectiveBusinessDate,canWrite}}`, no raw config. Missing mode is null/version0/null
+effective fields; configured mode is hotel/str/both with coherent versioned audit and
+property-local date. Incoherent stored config/history fails closed. `canWrite` is a
+live/token capability intersection, not independent write authority. No-store applies.
+
+POST the same path requires `identity.property-mode:write`, JSON with exactly
+`{expectedVersion,mode}`, existing idempotency/correlation headers and no querystring.
+It returns `{propertyMode,changed,replayed}`. A change advances version by1 and writes
+config/fact/outbox/receipt atomically; same-mode no-op retains version and emits no
+effect. Stale/divergent commands return409, malformed input400, unavailable authority403.
+Exact replay retains original outcome and requires live authority after lock waits.
+An outlet scope cannot edit its parent property. No existing role gets automatic grants.
+
+Only `config.workspace.operating_mode` is affected. Existing per-unit vertical profiles,
+sellability, money and permission/entitlement data remain authoritative separately.
+The UI preserves actor/property-scoped exact pending attempts across reload and exposes
+explicit retry/reconciliation; client selection is neither permission nor publication.
+Both exposes a same-property preference foundation, not complete STR-specific screens.
+Independent actual PostgreSQL18 proof and direct-runtime guard coverage are recorded
+in the task receipt; interactive/browser acceptance remains a separate requirement.

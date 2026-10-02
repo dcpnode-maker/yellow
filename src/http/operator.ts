@@ -32,6 +32,12 @@ import {
   PropertyIdentityConflictError,
   PropertyIdentityProfileService,
   PropertyIdentityValidationError,
+  PropertyModeService,
+  PropertyModeValidationError,
+  PropertyModeAuthorizationError,
+  PropertyModeConflictError,
+  PropertyModeIncoherentError,
+  parsePropertyModeBody,
   type LocalLoginInput,
 } from "../contexts/identity";
 import {
@@ -183,6 +189,10 @@ import {
   GroupBlockConflictError,
   GroupBlockService,
   GroupBlockValidationError,
+  GroupReservationService,
+  GroupReservationValidationError,
+  GroupReservationNotFoundError,
+  GroupReservationConflictError,
   ReservationDetailConflictError,
   ReservationDetailNotFoundError,
   ReservationDetailService,
@@ -1971,6 +1981,8 @@ type ReservationSegmentOperations = Pick<ReservationSegmentService,
 type ReservationTravelOperations = Pick<ReservationTravelService, "put">;
 type ReservationBoardOperations = Pick<ReservationBoardService, "list">;
 type GroupBlockOperations = Pick<GroupBlockService, "workbench">;
+
+type GroupReservationOperations = Pick<GroupReservationService, "list" | "detail" | "candidate" | "create" | "attach">;
 type OperatingPerformanceOperations = Pick<OperatingPerformanceService, "load">;
 type CommercialContributionOperations = Pick<CommercialContributionService, "load">;
 type ReservationDetailOperations = Pick<ReservationDetailService, "findById"> &
@@ -2472,6 +2484,7 @@ export class OperatorHttpApi {
   readonly #inventory?: InventoryOperations;
   readonly #idempotency: PostgresIdempotency;
   readonly #propertyProfiles: PropertyIdentityProfileService;
+  readonly #propertyMode: PropertyModeService;
   readonly #restrictions?: RestrictionOperations;
   readonly #rates?: RateOperations;
   readonly #pricing?: PricingOperations;
@@ -2489,6 +2502,7 @@ export class OperatorHttpApi {
   readonly #reservationSegments?: ReservationSegmentOperations;
   readonly #reservationBoard?: ReservationBoardOperations;
   readonly #groupBlocks: GroupBlockOperations = new GroupBlockService();
+  readonly #groupReservations?: GroupReservationOperations;
   readonly #operatingPerformance?: OperatingPerformanceOperations;
   readonly #commercialContribution: CommercialContributionOperations = new CommercialContributionService();
   readonly #reservationDetail?: ReservationDetailOperations;
@@ -2576,6 +2590,7 @@ export class OperatorHttpApi {
     fiscalSubmissions?: FiscalSubmissionOperatorDependencies,
     reservationAlerts?: ReservationAlertOperations,
     operatingPerformance?: OperatingPerformanceOperations,
+    groupReservations?: GroupReservationOperations,
   ) {
     this.#login = login;
     this.#availability = availability;
@@ -2583,6 +2598,7 @@ export class OperatorHttpApi {
     this.#idempotency = idempotency;
     this.#departureServices = new DepartureServiceCoordinationService(idempotency);
     this.#propertyProfiles = new PropertyIdentityProfileService(idempotency);
+    this.#propertyMode = new PropertyModeService(idempotency);
     this.#restrictions = restrictions;
     this.#rates = rates;
     this.#pricing = pricing;
@@ -2597,6 +2613,7 @@ export class OperatorHttpApi {
     this.#reservationGuests = reservationGuests;
     this.#reservationAlerts = reservationAlerts;
     this.#operatingPerformance = operatingPerformance;
+    this.#groupReservations = groupReservations;
     this.#reservationLifecycle = reservationLifecycle;
     this.#reservationSegments = reservationSegments;
     this.#parties = parties;
@@ -2640,6 +2657,10 @@ export class OperatorHttpApi {
   }
 
   failure(request: Request, error: unknown): Response {
+    if (error instanceof PropertyModeAuthorizationError) return apiError(request, 403, "auth/property_mode_forbidden", "Forbidden", "Property mode access is not granted");
+    if (error instanceof PropertyModeValidationError) return apiError(request, 400, "request/invalid", "Invalid request", "Property mode input is invalid");
+    if (error instanceof PropertyModeConflictError) return apiError(request, 409, "identity/property_mode_conflict", "Conflict", "Property mode changed; refresh and try again");
+    if (error instanceof PropertyModeIncoherentError) return this.unavailable(request);
     if (error instanceof DepartureServiceError) {
       const status = error.kind === "invalid" ? 400 : error.kind === "forbidden" ? 403 : error.kind === "not_found" ? 404 : 409;
       return apiError(request, status, `departure-services/${error.kind}`, "Departure coordination", error.message);
@@ -3487,6 +3508,27 @@ export class OperatorHttpApi {
     } catch {
       return apiError(context.request, 503, "service/unavailable", "Service unavailable", "Property access is temporarily unavailable");
     }
+  }
+
+  async propertyOperatingMode(context: TenantRequestContext, propertyNode: string): Promise<Response> {
+    if (!UUID.test(propertyNode) || new URL(context.request.url).search !== "") throw new PropertyModeValidationError();
+    if (!hasScope(context, "identity.property-mode:read")) throw new PropertyModeAuthorizationError();
+    const propertyMode = await this.#propertyMode.get(context.tx, { tenantId: context.tenantId, propertyNode,
+      actorId: context.identity.actorId, tokenCanWrite: hasScope(context, "identity.property-mode:write") });
+    return apiResponse(context.request, { propertyMode });
+  }
+
+  async setPropertyOperatingMode(context: TenantRequestContext, propertyNode: string, body: unknown): Promise<Response> {
+    if (!UUID.test(propertyNode) || new URL(context.request.url).search !== "") throw new PropertyModeValidationError();
+    if (!hasScope(context, "identity.property-mode:write")) throw new PropertyModeAuthorizationError();
+    if (context.request.headers.get("content-type")?.split(";")[0]?.trim().toLowerCase() !== "application/json") throw new PropertyModeValidationError();
+    const parsed = parsePropertyModeBody(body);
+    const idempotencyKey = context.request.headers.get("idempotency-key") ?? "";
+    const requestId = correlationId(context.request);
+    const result = await this.#propertyMode.set(context.tx, { ...parsed, idempotencyKey,
+      envelope: createAuditEnvelope({ tenantId: context.tenantId, propertyNode, actorId: context.identity.actorId,
+        requestId, operation: "property.operating-mode.changed" }) });
+    return apiResponse(context.request, result, 200, { "idempotency-replayed": String(result.replayed), "x-correlation-id": requestId });
   }
 
   async propertyProfile(context: TenantRequestContext, propertyNode: string): Promise<Response> {
@@ -5503,6 +5545,141 @@ export class OperatorHttpApi {
       }
       throw error;
     }
+  }
+
+  async listGroups(context: TenantRequestContext, propertyNode: string): Promise<Response> {
+    const params = new URL(context.request.url).searchParams;
+    const rawLimit = params.get("limit"), after = params.get("after"), rawQuery = params.get("q");
+    const query = rawQuery?.trim() ?? null;
+    if (!UUID.test(propertyNode) || [...params.keys()].some((name) => name !== "limit" && name !== "after" && name !== "q") ||
+        params.getAll("limit").length > 1 || params.getAll("after").length > 1 || params.getAll("q").length > 1 ||
+        (rawLimit !== null && !/^(?:[1-9]|[1-9][0-9]|100)$/.test(rawLimit)) ||
+        (after !== null && !UUID.test(after)) ||
+        (query !== null && (Array.from(query).length < 2 || Array.from(query).length > 100 ||
+          /[\u0000-\u001f\u007f-\u009f]/u.test(rawQuery!) || /[\u0000-\u001f\u007f-\u009f]/u.test(query)))) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Group query is invalid");
+    }
+    if (!hasScope(context, RESERVATION_LIFECYCLE_READ_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Group access is not granted");
+    }
+    const grants = await listGrantedProperties(context, RESERVATION_LIFECYCLE_READ_SCOPE);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 403, "auth/property_forbidden", "Forbidden", "Property access is not granted");
+    }
+    if (!this.#groupReservations) return this.unavailable(context.request);
+    try {
+      const page = await this.#groupReservations.list(context.tx, {
+        tenantId: context.tenantId, propertyNode, limit: rawLimit === null ? 50 : Number(rawLimit), cursor: after, query,
+      });
+      return apiResponse(context.request, canonicalJson(jsonValue(page)));
+    } catch (error) { return this.groupReservationError(context.request, error); }
+  }
+
+  async groupDetail(context: TenantRequestContext, propertyNode: string, groupId: string): Promise<Response> {
+    const params = new URL(context.request.url).searchParams;
+    const rawLimit = params.get("memberLimit"), after = params.get("memberAfter");
+    if (!UUID.test(propertyNode) || !UUID.test(groupId) ||
+        [...params.keys()].some((name) => name !== "memberLimit" && name !== "memberAfter") ||
+        params.getAll("memberLimit").length > 1 || params.getAll("memberAfter").length > 1 ||
+        (rawLimit !== null && !/^(?:[1-9]|[1-9][0-9]|100)$/.test(rawLimit)) ||
+        (after !== null && !UUID.test(after))) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Group detail query is invalid");
+    }
+    if (!hasScope(context, RESERVATION_LIFECYCLE_READ_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Group access is not granted");
+    }
+    const grants = await listGrantedProperties(context, RESERVATION_LIFECYCLE_READ_SCOPE);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 404, "reservations/group_not_found", "Not found", "Group was not found");
+    }
+    if (!this.#groupReservations) return this.unavailable(context.request);
+    try {
+      const detail = await this.#groupReservations.detail(context.tx, { tenantId: context.tenantId,
+        propertyNode, groupId, memberLimit: rawLimit === null ? 50 : Number(rawLimit), memberCursor: after });
+      return apiResponse(context.request, canonicalJson(jsonValue(detail)));
+    } catch (error) { return this.groupReservationError(context.request, error); }
+  }
+
+  async groupCandidate(context: TenantRequestContext, propertyNode: string, groupId: string): Promise<Response> {
+    const params = new URL(context.request.url).searchParams;
+    const confirmationNo = params.get("confirmationNo");
+    if (!UUID.test(propertyNode) || !UUID.test(groupId) || params.size !== 1 ||
+        params.getAll("confirmationNo").length !== 1 || confirmationNo === null ||
+        confirmationNo.length < 1 || confirmationNo.length > 120) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Confirmation query is invalid");
+    }
+    if (!hasScope(context, RESERVATION_LIFECYCLE_READ_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Group access is not granted");
+    }
+    const grants = await listGrantedProperties(context, RESERVATION_LIFECYCLE_READ_SCOPE);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 404, "reservations/group_not_found", "Not found", "Group was not found");
+    }
+    if (!this.#groupReservations) return this.unavailable(context.request);
+    try {
+      const candidate = await this.#groupReservations.candidate(context.tx, {
+        tenantId: context.tenantId, propertyNode, groupId, confirmationNo,
+      });
+      return apiResponse(context.request, canonicalJson({ candidate: jsonValue(candidate) }));
+    } catch (error) { return this.groupReservationError(context.request, error); }
+  }
+
+  async createGroup(context: TenantRequestContext, propertyNode: string, body: unknown): Promise<Response> {
+    const idempotencyKey = context.request.headers.get("idempotency-key");
+    if (!UUID.test(propertyNode) || new URL(context.request.url).search.length > 0 ||
+        !isObject(body) || !exactKeys(body, ["name"]) || typeof body.name !== "string" ||
+        !idempotencyKey || !IDEMPOTENCY_KEY.test(idempotencyKey)) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Group creation input is invalid");
+    }
+    if (!hasScope(context, RESERVATION_LIFECYCLE_WRITE_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Group creation is not granted");
+    }
+    const grants = await listGrantedProperties(context, RESERVATION_LIFECYCLE_WRITE_SCOPE);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 404, "reservations/group_not_found", "Not found", "Property was not found");
+    }
+    if (!this.#groupReservations) return this.unavailable(context.request);
+    try {
+      const result = await this.#groupReservations.create(context.tx, { name: body.name,
+        idempotencyKey, envelope: createAuditEnvelope({ actorId: context.identity.actorId,
+          tenantId: context.tenantId, propertyNode, requestId: correlationId(context.request), operation: "group.created" }) });
+      return apiResponse(context.request, canonicalJson(jsonValue(result)), 201,
+        { "idempotency-replayed": String(result.replayed) });
+    } catch (error) { return this.groupReservationError(context.request, error); }
+  }
+
+  async attachGroupMember(context: TenantRequestContext, propertyNode: string, groupId: string, reservationId: string, body: unknown): Promise<Response> {
+    const idempotencyKey = context.request.headers.get("idempotency-key");
+    if (!UUID.test(propertyNode) || !UUID.test(groupId) || !UUID.test(reservationId) ||
+        new URL(context.request.url).search.length > 0 || !isObject(body) ||
+        !exactKeys(body, ["expectedGroupId"]) || body.expectedGroupId !== null ||
+        !idempotencyKey || !IDEMPOTENCY_KEY.test(idempotencyKey)) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Group member input is invalid");
+    }
+    if (!hasScope(context, RESERVATION_LIFECYCLE_WRITE_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Group member changes are not granted");
+    }
+    const grants = await listGrantedProperties(context, RESERVATION_LIFECYCLE_WRITE_SCOPE);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 404, "reservations/group_not_found", "Not found", "Group was not found");
+    }
+    if (!this.#groupReservations) return this.unavailable(context.request);
+    try {
+      const result = await this.#groupReservations.attach(context.tx, { groupId, reservationId,
+        expectedGroupId: null, idempotencyKey, envelope: createAuditEnvelope({ actorId: context.identity.actorId,
+          tenantId: context.tenantId, propertyNode, requestId: correlationId(context.request), operation: "reservation.group_linked" }) });
+      return apiResponse(context.request, canonicalJson(jsonValue(result)), 200,
+        { "idempotency-replayed": String(result.replayed) });
+    } catch (error) { return this.groupReservationError(context.request, error); }
+  }
+
+  private groupReservationError(request: Request, error: unknown): Response {
+    if (error instanceof GroupReservationValidationError) return apiError(request, 400, "request/invalid", "Invalid request", error.message);
+    if (error instanceof GroupReservationNotFoundError) return apiError(request, 404, "reservations/group_not_found", "Not found", error.message);
+    if (error instanceof GroupReservationConflictError || error instanceof IdempotencyConflictError) {
+      return apiError(request, 409, "reservations/group_conflict", "Conflict", error.message);
+    }
+    throw error;
   }
 
   async checkInReadiness(

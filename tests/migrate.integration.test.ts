@@ -19,6 +19,7 @@ import {
   type MigrationRunResult,
 } from "../scripts/migrate";
 import { normalizeSchemaDump } from "../scripts/schema-drift";
+import { CURRENT_MIGRATION_FRONTIER } from "../src/kernel";
 
 const PROJECT_ROOT = resolve(import.meta.dir, "..");
 const MIGRATE_SCRIPT = resolve(PROJECT_ROOT, "scripts", "migrate.ts");
@@ -2990,6 +2991,9 @@ databaseDescribe("Bun SQL migration runner", () => {
           "0098_property_identity_profile.sql",
           "0099_governed_departure_service_coordination.sql",
           "0100_housekeeping_transition_timestamp_precision.sql",
+          "0101_linked_group_runtime_commands.sql",
+          "0102_property_operating_mode.sql",
+          "0103_property_operating_mode_runtime_guard.sql",
         ]);
 
         const preservedLedger = await sql<Array<{
@@ -3015,7 +3019,7 @@ databaseDescribe("Bun SQL migration runner", () => {
             FROM public.schema_migration
            ORDER BY version
         `;
-        expect(upgradedLedger).toHaveLength(100);
+        expect(upgradedLedger).toHaveLength(CURRENT_MIGRATION_FRONTIER);
 
         const noOpLog: string[] = [];
         const noOp = await runMigrations({
@@ -3024,7 +3028,7 @@ databaseDescribe("Bun SQL migration runner", () => {
           logger: (message) => noOpLog.push(message),
         });
         expect(noOp.appliedFiles).toEqual([]);
-        expect(noOp.discoveredFiles).toBe(100);
+        expect(noOp.discoveredFiles).toBe(CURRENT_MIGRATION_FRONTIER);
         expect(noOp.transactionBackendPids).toEqual([]);
         expect(noOpLog).toHaveLength(1);
         expect(noOpLog[0]).toContain("applied=0 status=no-op");

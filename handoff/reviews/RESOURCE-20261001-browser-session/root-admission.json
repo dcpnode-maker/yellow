@@ -1,0 +1,87 @@
+{
+  "schema": "yellow-root-browser-session-admission/v1",
+  "observedAt": "2026-10-01T18:58:29.342212+00:00",
+  "baseRevision": "326e80c8d936362059496e2aa41d28651a05e386",
+  "freezeSha256": "48033072c9e5ba42f418f3dc5fd0d648c46480b886548b92cf7eae9eb447f3f5",
+  "reviewSha256": "9252147ce9bf0772eb5efcf4f2bb49a1d6c0b7396b155c921d59cb02bad8f925",
+  "patchSha256": "30fd062e2448c652dcb2c3e2fa3aba85efc695502c6ff629e9873d07440106bf",
+  "paths": [
+    {
+      "path": "src/contexts/identity/browser-session.ts",
+      "beforeSha256": null,
+      "afterSha256": "c1be3ff4975267fff3f7495d69c70442899f03cd692a381b1df2b6009a46bedf",
+      "bytes": 1353
+    },
+    {
+      "path": "src/http/browser-session.ts",
+      "beforeSha256": null,
+      "afterSha256": "41f20fa84e4fb19ddb64a2a437d2f4bf9f5d259633f7f4fb72581245e515db46",
+      "bytes": 7448
+    },
+    {
+      "path": "src/app.ts",
+      "beforeSha256": "44af83c348b9ee6984143294ceca24be1e6b7796cece33419ce6fd367de724b6",
+      "afterSha256": "7c5a615126bac8cb05fa97a09607f3a40eeb0e7aa77ab3f1b3a336cb82274dc1",
+      "bytes": 57070
+    },
+    {
+      "path": "src/server.ts",
+      "beforeSha256": "4e01d5040d7ef8758739541eeb9660390e4031d2317c9de20b78734d195c976b",
+      "afterSha256": "c4c7f52d94ec2bd5c82602bba62560a1d350c47fa189af7551442904b2b78bf2",
+      "bytes": 24144
+    },
+    {
+      "path": "frontend/yellow/src/auth-session.ts",
+      "beforeSha256": "eea0c4173c16422d0b4a6a3b0765e7f82ae23cf3df31a701a8084e985d67d388",
+      "afterSha256": "9a2c4d4dd287f5bcbfeae2b7c2c7131e4cab1ad75a59f3ed97597ea79a4d71f2",
+      "bytes": 13267
+    },
+    {
+      "path": "frontend/yellow/src/AuthenticationGate.tsx",
+      "beforeSha256": "4fec7d5b45c5883759be79388a6f1731ae06ba3cab37b237fd8f230da5e4d937",
+      "afterSha256": "d02be072a01a1dea9aa719988874406e1cae7d794d1f21fb0053dbfd423b45bf",
+      "bytes": 6427
+    },
+    {
+      "path": "tests/browser-session-http.test.ts",
+      "beforeSha256": null,
+      "afterSha256": "835f3d4e391be953c72c6ce98881cc1bf800bef9cec7911bbe48ed16b5705c1c",
+      "bytes": 13620
+    },
+    {
+      "path": "tests/browser-session-identity.test.ts",
+      "beforeSha256": null,
+      "afterSha256": "eab30abfa69dcb16d76268bcc37524dcf8b8fff2eb581859d06006e3e780991d",
+      "bytes": 1728
+    },
+    {
+      "path": "tests/yellow-react-browser-session.test.tsx",
+      "beforeSha256": null,
+      "afterSha256": "c09c639dd320b32ea4abb859da0024369453046e8944f86129ecf7c6cd14ba65",
+      "bytes": 10228
+    },
+    {
+      "path": "src/contexts/identity/index.ts",
+      "beforeSha256": "bdd29a78ae077a660206e77ca7e4513432ebc9c02da643fd4fd26462b96a633f",
+      "afterSha256": "8494b6e7bf91a01fdd33d99fbfdcdba266ea47a377444d7e46b7da2ef29398d8",
+      "bytes": 1682
+    },
+    {
+      "path": "src/http/security-headers.ts",
+      "beforeSha256": "5b37aab54a740fa0d2f35e2c26138f6207f627bc68199b679b2d02eb56a9a1e9",
+      "afterSha256": "5cf2c30ef3ebdc44a9fd6aeb0b59d1c42223c39c004516a040825f3dbf5e9a9c",
+      "bytes": 629
+    },
+    {
+      "path": "frontend/yellow/src/App.tsx",
+      "beforeSha256": "3767a193d2496e9605b8fcf3b71505aab1d0042dd828cf7397d47f1f2e311098",
+      "afterSha256": "70d16617fd81e9ce9ecbc6aead959a69095585b928afe6ef093998d66059b8f9",
+      "bytes": 524486
+    }
+  ],
+  "unadmittedTrackedPathsUnchanged": 2615,
+  "servableAssetCount": 21,
+  "assetManifestSha256": "843b1ce0af9bb963860df49f6e18f0ed01bfbc2b0a2d2ca322c61de03e83a8fb",
+  "actualPGProof": "pending",
+  "browserAcceptance": false
+}

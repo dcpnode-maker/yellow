@@ -11,7 +11,7 @@ export const SECURITY_HEADERS = {
     "connect-src 'self'",
     "form-action 'self'",
   ].join("; "),
-  "permissions-policy": "camera=(), geolocation=(), microphone=(), payment=(), usb=()",
+  "permissions-policy": "camera=(), geolocation=(), microphone=(self), payment=(), usb=()",
   "referrer-policy": "strict-origin-when-cross-origin",
   "strict-transport-security": "max-age=63072000; includeSubDomains",
   "x-content-type-options": "nosniff",

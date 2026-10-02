@@ -1553,6 +1553,45 @@ $$;
 
 
 --
+-- Name: assert_property_mode_write_authority(uuid, uuid, uuid); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.assert_property_mode_write_authority(p_tenant_id uuid, p_property_node uuid, p_actor_id uuid) RETURNS void
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'pg_catalog', 'public'
+    AS $$
+DECLARE v_context uuid; v_path public.ltree;
+BEGIN
+  IF session_user <> 'yellow_runtime' OR current_setting('role',true) IS DISTINCT FROM 'app_role'
+     OR current_user <> 'yellow_owner' THEN
+    RAISE EXCEPTION USING ERRCODE='42501',MESSAGE='property mode requires governed runtime app role';
+  END IF;
+  BEGIN v_context:=NULLIF(current_setting('app.tenant_id',true),'')::uuid;
+  EXCEPTION WHEN invalid_text_representation THEN
+    RAISE EXCEPTION USING ERRCODE='42501',MESSAGE='property mode authority unavailable';
+  END;
+  IF p_tenant_id IS NULL OR p_property_node IS NULL OR p_actor_id IS NULL
+     OR v_context IS NULL OR v_context<>p_tenant_id THEN
+    RAISE EXCEPTION USING ERRCODE='42501',MESSAGE='property mode authority unavailable';
+  END IF;
+  -- Property first: intervening revocation may commit while this lock is awaited.
+  SELECT p.path INTO v_path FROM public.org_node p
+   WHERE p.tenant_id=p_tenant_id AND p.id=p_property_node AND p.kind='property' FOR UPDATE;
+  IF NOT FOUND THEN RAISE EXCEPTION USING ERRCODE='42501',MESSAGE='property mode authority unavailable'; END IF;
+  PERFORM 1 FROM public.tenant t
+    JOIN public.app_user actor ON actor.tenant_id=t.id AND actor.id=p_actor_id AND actor.status='active'
+    JOIN public.user_role membership ON membership.tenant_id=actor.tenant_id AND membership.user_id=actor.id
+    JOIN public.role r ON r.tenant_id=membership.tenant_id AND r.id=membership.role_id
+    JOIN public.role_permission permission ON permission.role_id=r.id AND permission.permission_code='identity.property-mode:write'
+    JOIN public.org_node scope ON scope.tenant_id=membership.tenant_id AND scope.id=membership.scope_node AND scope.path @> v_path
+   WHERE t.id=p_tenant_id AND t.status='active'
+   ORDER BY r.id,scope.id LIMIT 1
+   FOR NO KEY UPDATE OF t,actor,membership,r,permission,scope;
+  IF NOT FOUND THEN RAISE EXCEPTION USING ERRCODE='42501',MESSAGE='property mode authority unavailable'; END IF;
+END $$;
+
+
+--
 -- Name: assign_due_in_room(uuid, uuid, uuid, uuid, uuid, tstzrange, uuid, uuid, uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -7132,6 +7171,33 @@ BEGIN
   END IF;
   RETURN NEW;
 END;
+$$;
+
+
+--
+-- Name: guard_property_operating_mode_runtime_write(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.guard_property_operating_mode_runtime_write() RETURNS trigger
+    LANGUAGE plpgsql
+    SET search_path TO 'pg_catalog', 'public'
+    AS $$
+DECLARE
+  v_changed boolean;
+BEGIN
+  IF TG_OP='INSERT' THEN
+    v_changed := (NEW.config #> '{workspace,operating_mode}') IS NOT NULL;
+  ELSE
+    v_changed := (NEW.config #> '{workspace,operating_mode}')
+      IS DISTINCT FROM (OLD.config #> '{workspace,operating_mode}');
+  END IF;
+  IF v_changed AND current_user <> 'yellow_owner'
+     AND (current_user='app_role' OR session_user='yellow_runtime') THEN
+    RAISE EXCEPTION 'property operating mode requires governed capability'
+      USING ERRCODE='42501';
+  END IF;
+  RETURN NEW;
+END
 $$;
 
 
@@ -20362,6 +20428,85 @@ $_$;
 
 
 --
+-- Name: set_property_operating_mode(uuid, uuid, uuid, uuid, integer, text); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.set_property_operating_mode(p_tenant_id uuid, p_property_node uuid, p_actor_id uuid, p_correlation_id uuid, p_expected_version integer, p_mode text) RETURNS TABLE(property_node uuid, mode text, version integer, effective_at timestamp with time zone, effective_business_date date, changed boolean)
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'pg_catalog', 'public', 'pg_temp'
+    AS $_$
+DECLARE
+  v_property public.org_node%ROWTYPE; v_fact public.fact_log%ROWTYPE;
+  v_version integer:=0; v_previous_id uuid; v_previous_mode text;
+  v_current_mode text; v_effective_at timestamptz; v_business_date date;
+  v_now timestamptz:=transaction_timestamp(); v_payload jsonb;
+BEGIN
+  IF p_correlation_id IS NULL OR p_expected_version IS NULL OR p_expected_version<0
+     OR p_mode IS NULL OR p_mode NOT IN ('hotel','str','both') THEN
+    RAISE EXCEPTION USING ERRCODE='22023',MESSAGE='property mode input invalid';
+  END IF;
+  PERFORM public.assert_property_mode_write_authority(p_tenant_id,p_property_node,p_actor_id);
+  SELECT p.* INTO STRICT v_property FROM public.org_node p WHERE p.tenant_id=p_tenant_id AND p.id=p_property_node;
+  IF jsonb_typeof(v_property.config) IS DISTINCT FROM 'object'
+     OR (v_property.config ? 'workspace' AND jsonb_typeof(v_property.config->'workspace') IS DISTINCT FROM 'object')
+     OR ((v_property.config->'workspace') ? 'operating_mode' AND (
+       jsonb_typeof(v_property.config#>'{workspace,operating_mode}') IS DISTINCT FROM 'string'
+       OR v_property.config#>>'{workspace,operating_mode}' NOT IN ('hotel','str','both'))) THEN
+    RAISE EXCEPTION USING ERRCODE='55000',MESSAGE='property mode configuration incoherent';
+  END IF;
+  v_current_mode:=v_property.config#>>'{workspace,operating_mode}';
+  -- Retrieval is by typed tenant/entity/fact keys. JSON is validated in the loop,
+  -- never used as a selectivity predicate; guarded ordering cannot cast malformed data.
+  FOR v_fact IN SELECT f.* FROM public.fact_log f WHERE f.tenant_id=p_tenant_id AND f.entity_type='org_node'
+      AND f.entity_id=p_property_node AND f.fact_type='property.operating-mode.changed'
+      ORDER BY CASE WHEN jsonb_typeof(f.payload->'version')='number' AND (f.payload->>'version') ~ '^[1-9][0-9]{0,9}$'
+        THEN CASE WHEN (f.payload->>'version')::numeric<=2147483647 THEN (f.payload->>'version')::integer END END LOOP
+    IF jsonb_typeof(v_fact.payload->'version') IS DISTINCT FROM 'number'
+       OR (v_fact.payload->>'version') !~ '^[1-9][0-9]{0,9}$'
+       OR (CASE WHEN (v_fact.payload->>'version') ~ '^[1-9][0-9]{0,9}$'
+          THEN (v_fact.payload->>'version')::numeric>2147483647 ELSE false END) THEN
+      RAISE EXCEPTION USING ERRCODE='55000',MESSAGE='property mode history incoherent';
+    END IF;
+    IF v_version=2147483647 OR (v_fact.payload->>'version')::integer<>v_version+1
+       OR v_fact.supersedes IS DISTINCT FROM v_previous_id
+       OR v_fact.actor_id IS NULL OR v_fact.valid_to IS NOT NULL
+       OR v_fact.payload->>'mode' IS NULL OR v_fact.payload->>'mode' NOT IN ('hotel','str','both')
+       OR (v_fact.payload->>'mode') IS NOT DISTINCT FROM v_previous_mode
+       OR v_fact.payload->>'request_id' IS NULL
+       OR (v_fact.payload->>'request_id') !~ '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
+       OR v_fact.business_date IS DISTINCT FROM (v_fact.valid_from AT TIME ZONE v_property.timezone)::date
+       OR v_fact.payload IS DISTINCT FROM jsonb_build_object('version',v_version+1,'previous_mode',v_previous_mode,
+          'mode',v_fact.payload->>'mode','request_id',v_fact.payload->>'request_id') THEN
+      RAISE EXCEPTION USING ERRCODE='55000',MESSAGE='property mode history incoherent';
+    END IF;
+    v_version:=v_version+1; v_previous_id:=v_fact.id; v_previous_mode:=v_fact.payload->>'mode';
+    v_effective_at:=v_fact.valid_from; v_business_date:=v_fact.business_date;
+  END LOOP;
+  IF v_current_mode IS DISTINCT FROM v_previous_mode THEN
+    RAISE EXCEPTION USING ERRCODE='55000',MESSAGE='property mode config/history mismatch';
+  END IF;
+  IF p_expected_version<>v_version THEN RAISE EXCEPTION USING ERRCODE='40001',MESSAGE='property mode version stale'; END IF;
+  IF v_current_mode=p_mode THEN
+    RETURN QUERY SELECT p_property_node,v_current_mode,v_version,v_effective_at,v_business_date,false;
+    RETURN;
+  END IF;
+  IF v_version=2147483647 THEN RAISE EXCEPTION USING ERRCODE='55000',MESSAGE='property mode version exhausted'; END IF;
+  UPDATE public.org_node SET config=jsonb_set(v_property.config,'{workspace}',
+    COALESCE(v_property.config->'workspace','{}'::jsonb)||jsonb_build_object('operating_mode',p_mode),true)
+    WHERE tenant_id=p_tenant_id AND id=p_property_node;
+  v_payload:=jsonb_build_object('version',v_version+1,'previous_mode',v_current_mode,'mode',p_mode,'request_id',p_correlation_id::text);
+  v_business_date:=(v_now AT TIME ZONE v_property.timezone)::date;
+  INSERT INTO public.fact_log(tenant_id,entity_type,entity_id,fact_type,valid_from,business_date,actor_id,payload,supersedes)
+    VALUES(p_tenant_id,'org_node',p_property_node,'property.operating-mode.changed',v_now,v_business_date,p_actor_id,v_payload,v_previous_id);
+  INSERT INTO public.outbox(tenant_id,property_node,business_date,aggregate_type,aggregate_id,event_type,event_version,
+    actor_id,correlation_id,causation_id,payload)
+    VALUES(p_tenant_id,p_property_node,v_business_date,'org_node',p_property_node,'property.operating-mode.changed',1,
+      p_actor_id,p_correlation_id,NULL,jsonb_build_object('version',v_version+1,'previous_mode',v_current_mode,'mode',p_mode));
+  RETURN QUERY SELECT p_property_node,p_mode,v_version+1,v_now,v_business_date,true;
+END $_$;
+
+
+--
 -- Name: transition_arrival_pickup_task(uuid, uuid, uuid, uuid, text, text, uuid, uuid, uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -27282,6 +27427,13 @@ CREATE TRIGGER posting_line_currency BEFORE INSERT ON public.posting_line FOR EA
 
 
 --
+-- Name: org_node property_operating_mode_runtime_write_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER property_operating_mode_runtime_write_guard BEFORE INSERT OR UPDATE OF config ON public.org_node FOR EACH ROW EXECUTE FUNCTION public.guard_property_operating_mode_runtime_write();
+
+
+--
 -- Name: account account_party_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -31777,6 +31929,14 @@ GRANT ALL ON FUNCTION public.assert_property_identity_write_authority(p_tenant_i
 
 
 --
+-- Name: FUNCTION assert_property_mode_write_authority(p_tenant_id uuid, p_property_node uuid, p_actor_id uuid); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.assert_property_mode_write_authority(p_tenant_id uuid, p_property_node uuid, p_actor_id uuid) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.assert_property_mode_write_authority(p_tenant_id uuid, p_property_node uuid, p_actor_id uuid) TO app_role;
+
+
+--
 -- Name: FUNCTION assign_due_in_room(p_tenant uuid, p_property uuid, p_reservation uuid, p_segment uuid, p_expected_unit_type uuid, p_expected_period tstzrange, p_expected_sellable_unit uuid, p_sellable_unit uuid, p_actor uuid); Type: ACL; Schema: public; Owner: -
 --
 
@@ -32125,6 +32285,13 @@ REVOKE ALL ON FUNCTION public.guard_india_native_timing_insert() FROM PUBLIC;
 --
 
 REVOKE ALL ON FUNCTION public.guard_native_valuation_child_insert() FROM PUBLIC;
+
+
+--
+-- Name: FUNCTION guard_property_operating_mode_runtime_write(); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.guard_property_operating_mode_runtime_write() FROM PUBLIC;
 
 
 --
@@ -33155,6 +33322,14 @@ REVOKE ALL ON FUNCTION public.seal_business_day(p_tenant uuid, p_property uuid, 
 
 REVOKE ALL ON FUNCTION public.seal_business_day_audited(p_tenant uuid, p_property uuid, p_date date, p_actor uuid) FROM PUBLIC;
 GRANT ALL ON FUNCTION public.seal_business_day_audited(p_tenant uuid, p_property uuid, p_date date, p_actor uuid) TO app_role;
+
+
+--
+-- Name: FUNCTION set_property_operating_mode(p_tenant_id uuid, p_property_node uuid, p_actor_id uuid, p_correlation_id uuid, p_expected_version integer, p_mode text); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.set_property_operating_mode(p_tenant_id uuid, p_property_node uuid, p_actor_id uuid, p_correlation_id uuid, p_expected_version integer, p_mode text) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.set_property_operating_mode(p_tenant_id uuid, p_property_node uuid, p_actor_id uuid, p_correlation_id uuid, p_expected_version integer, p_mode text) TO app_role;
 
 
 --
@@ -35360,6 +35535,13 @@ GRANT INSERT(primary_party) ON TABLE public.reservation TO app_role;
 
 
 --
+-- Name: COLUMN reservation.group_id; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT UPDATE(group_id) ON TABLE public.reservation TO app_role;
+
+
+--
 -- Name: COLUMN reservation.channel_code; Type: ACL; Schema: public; Owner: -
 --
 
@@ -35448,6 +35630,55 @@ GRANT UPDATE(cancellation_no) ON TABLE public.reservation TO app_role;
 --
 
 GRANT SELECT ON TABLE public.reservation_group TO app_role;
+
+
+--
+-- Name: COLUMN reservation_group.id; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(id) ON TABLE public.reservation_group TO app_role;
+
+
+--
+-- Name: COLUMN reservation_group.tenant_id; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(tenant_id) ON TABLE public.reservation_group TO app_role;
+
+
+--
+-- Name: COLUMN reservation_group.property_node; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(property_node) ON TABLE public.reservation_group TO app_role;
+
+
+--
+-- Name: COLUMN reservation_group.kind; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(kind) ON TABLE public.reservation_group TO app_role;
+
+
+--
+-- Name: COLUMN reservation_group.code; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(code) ON TABLE public.reservation_group TO app_role;
+
+
+--
+-- Name: COLUMN reservation_group.name; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(name) ON TABLE public.reservation_group TO app_role;
+
+
+--
+-- Name: COLUMN reservation_group.status; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(status) ON TABLE public.reservation_group TO app_role;
 
 
 --

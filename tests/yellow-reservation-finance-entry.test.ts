@@ -1,19 +1,20 @@
 import { expect, test } from "bun:test";
 
 const app = await Bun.file("frontend/yellow/src/App.tsx").text();
+const reservationWorkspace = await Bun.file("frontend/yellow/src/workspaces/ReservationWorkspace.tsx").text();
 const css = await Bun.file("frontend/yellow/src/styles.css").text();
 
-function sourceBetween(start: string, end: string): string {
-  const from = app.indexOf(start);
-  const to = app.indexOf(end, from);
+function sourceBetween(source: string, start: string, end: string): string {
+  const from = source.indexOf(start);
+  const to = source.indexOf(end, from);
   if (from < 0 || to < 0) throw new Error(`Missing source boundary: ${start}`);
-  return app.slice(from, to);
+  return source.slice(from, to);
 }
 
 test("reservation detail and the rendered movement board open Finance for the exact reservation with honest context", () => {
   expect(app).toContain('workspace=finance&reservation=${encodeURIComponent(reservation.reservationId)}');
   expect(app).toContain('workspace=finance&reservation=${encodeURIComponent(detail.data!.reservation.reservationId)}');
-  const movementGrid = sourceBetween('function MovementGrid', 'function LegacyReservationWorkspace');
+  const movementGrid = sourceBetween(reservationWorkspace, 'function MovementGrid', 'function ReservationWorkspace(');
   expect(movementGrid).toContain('className="movement-billing-action"');
   expect(movementGrid).toContain('aria-label={`Open cashier and billing for ${stay.confirmationNo}`}');
   expect(movementGrid).toContain('workspace=finance&reservation=${encodeURIComponent(stay.reservationId)}');
@@ -28,7 +29,7 @@ test("reservation detail and the rendered movement board open Finance for the ex
 });
 
 test("opening a no-folio billing window is confirmed, fresh, idempotent and proof-based", () => {
-  const action = sourceBetween('function PrimaryBillingWindowAction', 'function CashierWorkbench');
+  const action = sourceBetween(app, 'function PrimaryBillingWindowAction', 'function CashierWorkbench');
   expect(action).toContain('allowedStatuses = new Set(["reserved", "due_in", "in_house", "due_out"])');
   expect(action).toContain('reservation.folios.length === 0');
   expect(action).toContain('I confirm opening the primary billing window for {confirmationName}.');

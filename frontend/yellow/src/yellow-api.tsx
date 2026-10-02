@@ -1,4 +1,14 @@
+import { reactAuthSession } from "./auth-session";
 import { collectReservationBoardPages } from "./reservation-board";
+import {
+  isPropertyOperatingModeReceiptForAttempt,
+  isPropertyOperatingModeSnapshot,
+  type PropertyOperatingModeAttempt,
+  type PropertyOperatingModeActorScope,
+  type PropertyOperatingMode,
+  type PropertyOperatingModeReceipt,
+  type PropertyOperatingModeSnapshot,
+} from "./property-operating-mode";
 import type {
   VoiceLanguage,
   ReservationQueryContext,
@@ -10,7 +20,6 @@ import type {
 } from "./voice";
 import type { MovementQuery } from "./today-workspace";
 
-const SHOWCASE_PROPERTIES = new Set(["6081b544-22a1-534f-a86d-bb1ae0519e14", "01e4e102-c54f-5205-9542-d84d103084f8"]);
 let propertyId = "";
 export function configureYellowApi(nextPropertyId: string): void { propertyId = nextPropertyId; }
 
@@ -1006,33 +1015,11 @@ type Recognition = {
   onend: (() => void) | null;
 };
 
-let sharedDemoSession: Promise<string> | null = null;
-
 async function session(): Promise<string> {
-  sharedDemoSession ??= (async () => {
-    const r = await fetch("/api/v1/auth/demo:enter", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-    });
-    const body = (await r.json()) as { accessToken?: string };
-    if (!r.ok || !body.accessToken)
-      throw new Error("The shared demo session is unavailable.");
-    return body.accessToken;
-  })();
-  try {
-    return await sharedDemoSession;
-  } catch (error) {
-    sharedDemoSession = null;
-    throw error;
-  }
+  return reactAuthSession.session();
 }
 async function loadProperties(): Promise<readonly Property[]> {
-  const r = await fetch("/api/v1/me/properties", {
-    headers: { authorization: `Bearer ${await session()}` },
-  });
-  if (!r.ok) throw new Error("Property choices are unavailable.");
-  return (((await r.json()) as { properties?: Property[] }).properties ?? [])
-    .filter((property) => SHOWCASE_PROPERTIES.has(property.id));
+  return reactAuthSession.grantedProperties();
 }
 async function loadLane(status: Status): Promise<Lane> {
   const token = await session();
@@ -2880,3 +2867,88 @@ export type { Status, Stay, Lane, Property, ReservationActions, ReservationDetai
 export type { ReservationOperationalFields, ReservationMutableFields };
 export { sameReservationOffer };
 export { session, loadProperties, loadLane, loadReservationBoard, loadGroupBlocks, loadPartyStayHistory, searchPartyProfiles, propertyLocalDate, propertyLocalDateTimeToIso, childAgesFrom, reservationApiError, searchReservationOffers, commitReservation, duplicatePartyEvidence, reservationMatchesCreateReceipt, ReservationCommandRequestError, ReservationLifecycleRequestError, validateReservationActions, validateCancelReservationReceipt, validateReinstateReservationReceipt, idempotencyReplayEvidence, loadHousekeeping, loadHousekeepingTask, isCanonicalInstant, hasExactKeys, isHousekeepingAction, validateHousekeepingTask, housekeepingTaskMatchesProposal, validateHousekeepingTransitionReceipt, housekeepingTaskReflectsAction, housekeepingFailureIsUncertain, transitionHousekeepingTask, loadOperationalBlocks, loadCommercialSnapshot, loadOperatingPerformance, loadPropertySettings, loadCashierSnapshot, loadFolioStatement, exactObject, validDepositStatus, validDepositInstrument, validateDepositWorkbench, depositResponse, loadHostedDepositWorkbench, loadHostedDepositStatus, createHostedDeposit, applyHostedDeposit, validateReceivableTarget, validateReceivablePreview, sameReceivablePreview, receivableResponse, loadReceivableTargets, previewReceivableTransfer, requestReceivableApproval, submitReceivableTransfer, validateFolioChargeReceipt, FolioChargeRequestError, postFolioCharge, isExactTransferMinor, validateFolioTransferEffect, validateFolioTransferPreview, sameTransferPreview, transferReasonIsValid, transferWindowNameIsValid, voiceTransferText, resolveVoiceTransferGroup, receiptMatchesVoiceTransfer, requestFolioTransferPreview, wakeReply, guestHistoryReply, loadReservation, loadCheckInReadiness, loadCheckoutReadiness, commitCheckIn, openPrimaryFolio, loadDueInRoomCandidates, assignDueInRoom, loadArrivalCleaningCandidate, createArrivalCleaningTask, transitionFolioStatus, commitCheckout, cancelReservationLifecycle, reinstateReservationLifecycle, normalizeReservationOperationalValue, modifyReservationOperationalDetails, parseGuestShareBasisPoints, reservationGuestAllocationsMatch, reservationGuestReplacementFromDetail, normaliseGuestLookup, replaceReservationGuests, localReply, workspaceReply, exactStateReply, FolioTransferRequestError, loadDepartureServices, loadDepartureServiceQueue, createDepartureServiceProposal, transitionDepartureService };
+
+export async function propertyOperatingModeActorScope(): Promise<PropertyOperatingModeActorScope> {
+  const token = await session();
+  const payload = token.split(".")[1];
+  if (!payload || typeof atob !== "function") throw new Error("The signed-in session cannot scope pending mode recovery.");
+  try {
+    const claims: unknown = JSON.parse(atob(payload.replace(/-/g, "+").replace(/_/g, "/").padEnd(Math.ceil(payload.length / 4) * 4, "=")));
+    if (typeof claims !== "object" || claims === null || Array.isArray(claims)) throw new Error();
+    const { tid, sub } = claims as { tid?: unknown; sub?: unknown };
+    const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+    if (typeof tid !== "string" || !uuid.test(tid) || typeof sub !== "string" || !uuid.test(sub)) throw new Error();
+    return Object.freeze({ tenantId: tid, actorId: sub });
+  } catch {
+    throw new Error("The signed-in session cannot scope pending mode recovery.");
+  }
+}
+
+export class PropertyOperatingModeRequestError extends Error {
+  constructor(
+    readonly status: number | null,
+    message: string,
+    readonly uncertain: boolean,
+  ) {
+    super(message);
+    this.name = "PropertyOperatingModeRequestError";
+  }
+}
+
+async function propertyOperatingModeError(response: Response, fallback: string): Promise<PropertyOperatingModeRequestError> {
+  let message = fallback;
+  try {
+    const body = await response.json() as { detail?: unknown; title?: unknown };
+    if (typeof body.detail === "string" && body.detail.trim()) message = body.detail;
+    else if (typeof body.title === "string" && body.title.trim()) message = body.title;
+  } catch { /* Keep the bounded fallback. */ }
+  return new PropertyOperatingModeRequestError(response.status, message, response.status >= 500 || response.status === 408);
+}
+
+export async function loadPropertyOperatingMode(propertyNode: string): Promise<PropertyOperatingModeSnapshot> {
+  const response = await fetch("/api/v1/properties/" + encodeURIComponent(propertyNode) + "/operating-mode", {
+    headers: { authorization: "Bearer " + await session() },
+    cache: "no-store",
+  });
+  if (!response.ok) throw await propertyOperatingModeError(response, "Operating mode is unavailable for this property.");
+  let value: unknown;
+  try { value = await response.json(); } catch {
+    throw new PropertyOperatingModeRequestError(response.status, "The server returned an invalid operating-mode response.", false);
+  }
+  if (typeof value !== "object" || value === null || Array.isArray(value) ||
+      Object.keys(value).sort().join(",") !== "propertyMode" ||
+      !isPropertyOperatingModeSnapshot((value as { propertyMode?: unknown }).propertyMode, propertyNode)) {
+    throw new PropertyOperatingModeRequestError(response.status, "The server returned an invalid operating-mode response.", false);
+  }
+  return (value as { propertyMode: PropertyOperatingModeSnapshot }).propertyMode;
+}
+
+export async function savePropertyOperatingMode(
+  propertyNode: string,
+  attempt: PropertyOperatingModeAttempt,
+): Promise<PropertyOperatingModeReceipt> {
+  let response: Response;
+  try {
+    response = await fetch("/api/v1/properties/" + encodeURIComponent(propertyNode) + "/operating-mode", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        authorization: "Bearer " + await session(),
+        "idempotency-key": attempt.idempotencyKey,
+        "x-correlation-id": attempt.correlationId,
+      },
+      body: JSON.stringify({ expectedVersion: attempt.expectedVersion, mode: attempt.mode }),
+    });
+  } catch {
+    throw new PropertyOperatingModeRequestError(null, "The save outcome is uncertain. Retry this exact save to reconcile it.", true);
+  }
+  if (!response.ok) throw await propertyOperatingModeError(response, "The operating mode could not be saved.");
+  let value: unknown;
+  try { value = await response.json(); } catch {
+    throw new PropertyOperatingModeRequestError(response.status, "The save response was incomplete. Retry this exact save to reconcile it.", true);
+  }
+  if (!isPropertyOperatingModeReceiptForAttempt(value, propertyNode, attempt)) {
+    throw new PropertyOperatingModeRequestError(response.status, "The save response was invalid. Retry this exact save to reconcile it.", true);
+  }
+  return value;
+}

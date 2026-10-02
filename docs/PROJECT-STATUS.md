@@ -2,14 +2,42 @@
 
 <!-- status-schema: yellow-project-status/v1 -->
 <!-- current-phase: 7 -->
-<!-- current-task: Codex Yellow — resumed: integrate existing PriceLabs/market pipelines and private staging, then current-line phase closure and the retained build priorities -->
-<!-- current-order-files: handoff/orders/462-pricelabs-intake-and-market-pipeline-integration.md;handoff/orders/460-current-source-single-local-promotion.md;handoff/orders/463-reservation-alert-workflow.md;handoff/orders/461-bounded-irp-sandbox-acceptance.md -->
-<!-- current-lifecycle: ACTIVE goal resumed2026-09-13; preparing selective source through464/frontier91 for exact native validation. Retained native55503 PID2340 running;3000/3001 stopped. September12 recovery, readiness91 and temporary frozen90 staging/owned shutdown are accepted. New-source publication, real PriceLabs intake and local promotion pending -->
+<!-- current-task: Codex Yellow — restore requested original UI and integrate CRS CRM RMS booking engine; laptop source and live hosting owner -->
+<!-- current-order-files: handoff/orders/RESOURCE-20261002-smooth-session-navigation.md;handoff/orders/RESOURCE-20261002-root-staff-module-integration.md;handoff/orders/RESOURCE-20261002-staff-module-entries.md;handoff/orders/RESOURCE-20261001-browser-session-resume.md -->
+<!-- current-lifecycle: ACTIVE e27/frontier103 named-VPC public preview accepted; smooth same-property session/navigation source admitted awaiting exact-owner release; cloud guest booking receiving pending -->
 
 This is the canonical current-state record. It identifies the consolidated source,
 verified behavior, release boundaries and active work. Historical orders, reviews,
 decisions and ledger entries remain evidence; their filenames are not an active
 backlog. `state.sh` and `state.ps1` read the machine-readable comments above.
+
+## Receiving update — 2 October: smooth session navigation
+
+The live predecessor e27 now has a verified named VPC connection under the fixed yellow-live-app workers.dev hostname and public real-PG cookie/session proof (16 checks). The detached database, public preview opt-in, original theme, CRS/CRM/RMS entries and guarded staff flows remain the baseline. Domain-free named connection acceptance is recorded in the hosting artifacts; reboot startup and browser visual acceptance remain separate unverified boundaries.
+
+The bounded smooth-session order replaces reloads between supported same-property React workspaces with guarded History navigation. App, AuthenticationGate and QueryClient stay mounted; the URL drives the workspace, reservation, guest lookup, lane and cashier focus. Back/Forward and existing lifecycle, uncertain-transfer, property-mode and group beforeunload protections are retained. Property switches, legacy screens, external/new-tab/download/modifier links retain native navigation. Initial cookie verification shows a neutral Opening Yellow state instead of flashing credentials. No session lifetime, bearer storage, backend, schema, posting or UI-design changes are admitted.
+
+Independent non-implementing source review found no blocking issue; controlled navigation/auth/staff tests, root/frontend strict types, import boundaries and an isolated Vite build passed. The broad unconfigured test run retained its original log: 2615 passed, 1598 skipped, 13 failed. The eleven navigation/source harness assertions were updated without removing destination/lock/authority coverage; the final focused battery passed 115/0 across 17 files, plus both strict type configurations, boundaries and diff checks; two browser fixtures remain failing and need their auth setup/timing reviewed separately; neither is visual acceptance. Browser access cannot currently verify saved permissions; no indirect browser workaround is admitted. Historical 11/11 referee evidence is predecessor provenance, not a fresh source run; the DB-enforced invariant battery must never run against the live fixture.
+
+A version-exact release must stage new source/assets/owner pins, preserve the existing protected JWT/DB/origin settings, and replace only the precisely owned Bun origin and watcher using V7. PostgreSQL and the named connector remain running. Live acceptance, PIDs, rollback lineage and the actual active revision belong in database/root-current-live-runtime.json and durable release receipts; this source note does not pre-claim a cutover.
+
+## Receiving update — 1 October: requested reference UI
+
+The laptop receiving branch now integrates the independently reviewed original Yellow presentation and normal-login boundary from the41-path ab0d4ae8 freeze. The prior narrow frontend preview did not preserve the user's approved theme/navigation; this restores its header, workspace dock, ribbons, tables, search and explicit field dictation while retaining current guarded readers and domain commands. Review67/0 plus auth48/0, types, boundaries and compiled-module proof passed. This is source admission, not visual/browser or public-host acceptance.
+
+The catalogue test oracle now matches the actual103-migration frontier and26 permission catalogue, with all130-table/RLS/grant predicates preserved; the isolated PG18 run passed24/0/75 and its owned process stopped. Existing Windows CI startup failure remains unresolved. The current cloud inventory verifies staff CRS offer/hold/commit, departure-task prioritization and rate strategy foundations; public guest booking, group-price escalation and full forecasting remain incomplete. Memory-only document navigation needs session-resume follow-up before claiming the original flow is complete. Map/reports remain explicitly unavailable. No real hotel/guest data or provider activation is introduced.
+
+## Receiving update — 2 October: fixed Cloudflare endpoint and session continuation
+
+The separate fixed Yellow Worker hostname is deployed, forwarding only to the owned laptop's normal-login3184 origin. Actual public proof verified readiness/source326/frontier103, login, exactly two granted synthetic properties, anonymous401, demo404 and20 reviewed served JS/CSS hashes. Worker dispatch ABI correction independently passed16 tests/234 assertions; the phone coordinator was preserved. The underlay remains a temporary tunnel, so the stable public address does not itself guarantee origin uptime.
+
+Root admits the independently reviewed12-path48033072 browser-session overlay: exact configured origin, HttpOnly/Secure/host-only/SameSiteStrict cookie, strict original JWT expiry, active actor through tenant RLS, memory-only resumed bearer and authoritative property-grant reread. Cookie-only ordinary APIs retain401 and existing Bearer authority stays unchanged. Logout clears browser continuation without claiming global token revocation. Operations now receives the same React operator shell, Finance aliases to its existing guarded workspace and microphone permission is limited to self. Actual109/0/796 plus four independent attacks/52 assertions, both types, boundaries and compiled asset execution passed. Real PG/public cookie proof and browser cookie/voice/visual acceptance are separate gates; no browser acceptance claimed. Staff CRS/CRM/RMS visible integration and cloud public guest booking remain active work.
+
+## Receiving update — 2 October: staff CRS, CRM and RMS entries
+
+Actual3039 public HTTP/PG proof passed the14 normal-login/browser-session/authority checks and all20 served JS/CSS hashes; this is distinct from browser cookie storage, visual, touch or voice acceptance. The laptop origin was recovered after it stopped while its Cloudflare tunnel remained connected; cause remains unverified. Source3039 is the currently served build at admission time.
+
+The exact11-path staff entry slice is independently reviewed:154/0/1130 plus11 hostile tests/53 assertions, both types, boundaries and compiled18-module/59-link execution. CRS reads one to four freshly granted properties and transfers only a draft into the unchanged canonical guest/fresh-offer/confirmation/commit workflow. CRM opens existing Guests/profiles and Department tasks. RMS exposes existing server models, quotes and recorded economics. Original theme, hierarchy, financial commands and session authority remain preserved. Whole CRM/group escalation, autonomous forecasting and public guest booking remain partial/pending; no completion relabel. A new runtime and public proof must pass before promotion. Recovery supervisor source integrity correction is still under independent review and not yet enabled.
 
 ## Current task
 

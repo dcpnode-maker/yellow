@@ -1,6 +1,18 @@
 import { lazy, Suspense, useEffect, useMemo, useRef, useState, type ComponentProps } from "react";
 import { useQuery, useQueryClient, type UseQueryResult } from "@tanstack/react-query";
 import { AnimatePresence, motion } from "framer-motion";
+import { OperatorHeader } from "./ui/OperatorHeader";
+import { installWorkspaceNavigation, navigateYellow, readWorkspaceRoute } from "./workspace-navigation";
+import { reactAuthSession } from "./auth-session";
+import { HotelSearch } from "./ui/HotelSearch";
+import { SegmentedRibbon } from "./ui/SegmentedRibbon";
+import { RibbonPanel } from "./ui/RibbonPanel";
+import { MovementTableControls, useMovementTable } from "./ui/MovementTableControls";
+import { TableColumnMenu } from "./ui/TableColumnMenu";
+import { CopyCellButton } from "./ui/CopyCellButton";
+import { tableColumnSort } from "./table-query";
+import { reservationViewForDestination, reservationViewHref } from "./reservation-navigation";
+import { HousekeepingFloorWorkbench } from "./workspaces/HousekeepingFloorWorkbench";
 import {
   arrivalCleaningAttendantIntent,
   cashierChargeConfirmationIntent,
@@ -153,6 +165,8 @@ import {
 // import App.tsx.
 export { resolveVoiceTransferSource, validateFolioTransferReceipt, previewMatchesFolioTransferDraft, submitFolioTransfer };
 
+const LazyPropertyOperatingModeCard = lazy(() => import("./ui/PropertyOperatingModeCard").then(module => ({ default: module.PropertyOperatingModeCard })));
+const StaffRmsWorkspace = lazy(() => import("./workspaces/StaffRmsWorkspace").then(module => ({ default: module.StaffRmsWorkspace })));
 const OperationalHub = lazy(() => import("./workspaces/OperationalHub"));
 const EcosystemHub = lazy(() => import("./workspaces/EcosystemHub"));
 const MarketIntelligenceLab = lazy(() => import("./workspaces/MarketIntelligenceLab"));
@@ -185,8 +199,8 @@ function ReservationCreateWorkspace(props: ComponentProps<typeof LazyReservation
 function ReservationBoardWorkspace(props: ComponentProps<typeof LazyReservationBoardWorkspace>) {
   return <Suspense fallback={<section className="operational-state operational-route-loading"><strong>Opening reservation board…</strong><p>Loading the board only when it is needed.</p></section>}><LazyReservationBoardWorkspace {...props} /></Suspense>;
 }
-function GuestsWorkspace() {
-  return <Suspense fallback={<section className="operational-state operational-route-loading"><strong>Opening guests…</strong><p>Loading guest search only when it is needed.</p></section>}><LazyGuestsWorkspace /></Suspense>;
+function GuestsWorkspace(props: ComponentProps<typeof LazyGuestsWorkspace>) {
+  return <Suspense fallback={<section className="operational-state operational-route-loading"><strong>Opening guests…</strong><p>Loading guest search only when it is needed.</p></section>}><LazyGuestsWorkspace {...props} /></Suspense>;
 }
 function InlineGuestProfile(props: ComponentProps<typeof LazyInlineGuestProfile>) {
   return <Suspense fallback={<section className="operational-state operational-route-loading"><strong>Opening guest profile…</strong><p>Loading the guest profile.</p></section>}><LazyInlineGuestProfile {...props} /></Suspense>;
@@ -205,52 +219,12 @@ const routeMatch = /^\/p\/([^/]+)(?:\/res\/([^/]+))?(?:\/[^/]*)?$/.exec(
 const requestedPropertyId = routeMatch?.[1] ?? DEFAULT_PROPERTY;
 const propertyId = requestedPropertyId;
 configureYellowApi(propertyId);
-const reservationRouteId = routeMatch?.[2] ?? null;
-type WorkspacePart =
-  | "today"
-  | "reservations"
-  | "guests"
-  | "housekeeping"
-  | "operations"
-  | "ecosystem"
-  | "market-lab"
-  | "rates"
-  | "finance"
-  | "settings";
-
 const internalMarketLabEnabled =
   (import.meta as ImportMeta & {
     readonly env?: Readonly<Record<string, string | boolean | undefined>>;
   }).env?.VITE_YELLOW_INTERNAL_MARKET_LAB === "1";
-const requestedWorkspacePart = new URLSearchParams(window.location.search).get(
-  "workspace",
-);
-const routeWorkspacePart = /^\/p\/[^/]+\/(today|reservations|guests|housekeeping|operations|ecosystem)$/.exec(
-  window.location.pathname,
-)?.[1];
-const workspacePart: WorkspacePart =
-  requestedWorkspacePart === "rates" || requestedWorkspacePart === "finance" || requestedWorkspacePart === "settings" || requestedWorkspacePart === "operations" || requestedWorkspacePart === "ecosystem" || (requestedWorkspacePart === "market-lab" && internalMarketLabEnabled)
-    ? requestedWorkspacePart
-    : routeWorkspacePart === "today" ||
-        routeWorkspacePart === "reservations" ||
-        routeWorkspacePart === "guests" ||
-        routeWorkspacePart === "housekeeping" ||
-        routeWorkspacePart === "operations" ||
-        routeWorkspacePart === "ecosystem"
-      ? routeWorkspacePart
-      : "today";
 const statuses = ["due_in", "due_out", "in_house"] as const;
 type Status = (typeof statuses)[number];
-const pageSearch = new URLSearchParams(window.location.search);
-const focusedLane = statuses.find((status) => status === pageSearch.get("lane"));
-const requestedGuestSearch = pageSearch
-  .get("guest")
-  ?.trim();
-const requestedFinanceReservation = pageSearch.get("reservation")?.trim() ?? null;
-const initialGuestSearch =
-  requestedGuestSearch && requestedGuestSearch.length >= 2
-    ? requestedGuestSearch
-    : "";
 type Stay = Readonly<{
   reservationId: string;
   primaryPartyId?: string;
@@ -2791,166 +2765,94 @@ function formatMovementTime(
 }
 
 function MovementGrid({
-  status,
-  lane,
-  timezone,
-  open,
-  headingId = "movement-heading",
-  query: controlledQuery,
-  onQueryChange,
+  status, lane, timezone, open, headingId = "movement-heading",
+  query: controlledQuery, onQueryChange, onBack, onBilling, loading = false, error, navigation, scopeDescription,
 }: Readonly<{
-  status: Status | "all";
-  lane?: Lane;
-  timezone: string;
-  open: (stay: Stay) => void;
-  headingId?: string;
-  query?: MovementQuery;
-  onQueryChange?: (query: MovementQuery) => void;
+  status: Status | "all"; lane?: Lane; timezone: string; open: (stay: Stay) => void;
+  headingId?: string; query?: MovementQuery; onQueryChange?: (query: MovementQuery) => void;
+  onBack?: () => void; onBilling?: (stay: Stay) => void; loading?: boolean; error?: string; navigation?: React.ReactNode;
+  scopeDescription?: string;
 }>) {
-  const [localQuery, setLocalQuery] = useState<MovementQuery>(() => createMovementQuery(
-    status === "due_out" ? "departure" : "arrival",
-    { sorts: [{ key: status === "due_in" ? "eta" : "guest", direction: "asc" }, ...(status === "due_in" ? [{ key: "guest" as const, direction: "asc" as const }] : [])] },
-  ));
-  const query = controlledQuery ?? localQuery;
-  const updateQuery = (updates: Partial<MovementQuery>) => {
-    const next = createMovementQuery(updates.movementTime ?? query.movementTime, { ...query, ...updates });
-    if (onQueryChange) onQueryChange(next);
-    else setLocalQuery(next);
-  };
-  const { search, source, roomType, ratePlan, dateFrom, dateTo, assignment, state: stateFilter, minAdults, children, travel, pickup } = query;
-  const primarySort = query.sorts[0]?.key ?? "eta";
-  const primaryDirection = query.sorts[0]?.direction ?? "asc";
-  const secondarySort = query.sorts[1]?.key ?? primarySort;
-  const [filtersOpen, setFiltersOpen] = useState(false);
-  const [sortOpen, setSortOpen] = useState(false);
-  useEffect(() => {
-    if (!filtersOpen && !sortOpen) return;
-    const dismissPopover = (event: KeyboardEvent) => {
-      if (event.key !== "Escape") return;
-      setFiltersOpen(false);
-      setSortOpen(false);
-    };
-    window.addEventListener("keydown", dismissPopover);
-    return () => window.removeEventListener("keydown", dismissPopover);
-  }, [filtersOpen, sortOpen]);
+  const rows = lane?.reservations ?? [];
+  const { query, updateQuery, tableQuery, changeTable, columns, selectedColumns, setColumns, visibleColumns, visibleRows } = useMovementTable({ status, rows, timezone, controlledQuery, onQueryChange });
+  const columnValues = useMemo(() => new Map(columns.map(column => [column.key, rows.map(column.value)])), [columns, rows]);
   const [scrollTop, setScrollTop] = useState(0);
   const scrollViewport = useRef<HTMLDivElement | null>(null);
+  const [viewportHeight, setViewportHeight] = useState(() => Math.min(598, Math.max(270, window.innerHeight - 320)));
+  useEffect(() => {
+    const resize = () => setViewportHeight(Math.min(598, Math.max(270, window.innerHeight - 320)));
+    window.addEventListener("resize", resize);
+    return () => window.removeEventListener("resize", resize);
+  }, []);
   const resetGridScroll = () => {
     setScrollTop(0);
     if (scrollViewport.current) scrollViewport.current.scrollTop = 0;
   };
-  const rows = lane?.reservations ?? [];
-  const sources = useMemo(() => [...new Set(rows.map((row) => row.channelCode).filter((item): item is string => Boolean(item)))].sort(), [rows]);
-  const roomTypes = useMemo(() => [...new Set(rows.map((row) => row.unitTypeLabel).filter((item): item is string => Boolean(item)))].sort(), [rows]);
-  const ratePlans = useMemo(() => [...new Set(rows.map((row) => row.ratePlanLabel).filter((item): item is string => Boolean(item)))].sort(), [rows]);
-  const states = useMemo(() => [...new Set(rows.map((row) => row.operationalState ?? row.status).filter(Boolean))].sort((left, right) => operationalStateLabel(left).localeCompare(operationalStateLabel(right))), [rows]);
-  const sorts = query.sorts;
-  const visibleRows = useMemo(
-    () => filterAndSortMovementRows(rows, query, sorts, query.movementTime, timezone),
-    [query, rows, sorts, timezone],
-  );
+  useEffect(() => { resetGridScroll(); }, [status]);
   const rowHeight = 54;
-  const headerHeight = 36;
-  const viewportHeight = 598;
-  const overscan = 8;
+  const headerHeight = 48;
   const rowScrollTop = Math.max(0, scrollTop - headerHeight);
-  const first = Math.max(0, Math.floor(rowScrollTop / rowHeight) - overscan);
-  const last = Math.min(visibleRows.length, Math.ceil((rowScrollTop + viewportHeight) / rowHeight) + overscan);
+  const first = Math.max(0, Math.floor(rowScrollTop / rowHeight) - 8);
+  const last = Math.min(visibleRows.length, Math.ceil((rowScrollTop + viewportHeight) / rowHeight) + 8);
   const rendered = visibleRows.slice(first, last);
-  const filterCount = Number(Boolean(source)) + Number(Boolean(roomType)) + Number(Boolean(ratePlan)) + Number(Boolean(dateFrom)) + Number(Boolean(dateTo)) + Number(assignment !== "all") + Number(Boolean(stateFilter)) + Number(Boolean(search.trim())) + Number(minAdults !== null) + Number(children !== "all") + Number(travel !== "all") + Number(pickup !== "all");
-  const sortOptions: readonly Readonly<{ key: MovementSortKey; label: string }>[] = [
-    { key: "eta", label: status === "due_out" ? "Departure time" : status === "all" ? "Arrival date" : "ETA" },
-    { key: "guest", label: "Guest" },
-    { key: "confirmation", label: "Reservation" },
-    { key: "nights", label: "Nights" },
-    { key: "room", label: "Room" },
-    { key: "source", label: "Source" },
-    { key: "rate", label: "Rate plan" },
-    { key: "adults", label: "Adults" },
-    { key: "children", label: "Children" },
-  ];
-  return (
-    <section className="movement-workspace" aria-labelledby={headingId}>
-      <header className="movement-heading">
-        <div>
-          <button type="button" className="back-link" onClick={() => window.location.assign(`/p/${propertyId}/today`)}>Today /</button>
-          <h1 id={headingId}>{status === "all" ? "Reservations · All states" : `${titleOf(status)} · ${status === "due_in" ? "Due in" : status === "due_out" ? "Due out" : "Occupied"}`} ({visibleRows.length})</h1>
-          <p>{visibleRows.length.toLocaleString()} reservations · {rendered.length} rows rendered on demand · live</p>
-        </div>
-      </header>
-      <div className="movement-toolbar">
-        <label className="movement-search"><span>⌕</span><input value={search} onChange={(event) => { updateQuery({ search: event.target.value }); resetGridScroll(); }} placeholder="Search guest, reservation, room, source, rate or travel…" /></label>
-        <div className="movement-tool-wrap">
-          <button type="button" className={filtersOpen ? "active" : undefined} onClick={() => { setFiltersOpen((value) => !value); setSortOpen(false); }}>Advanced filter{filterCount ? ` (${filterCount})` : ""}⌄</button>
-          {filtersOpen ? <div className="movement-popover" role="dialog" aria-label="Advanced movement filters">
-            <div className="movement-popover-head"><strong>Match all rules</strong><button type="button" aria-label="Close advanced filters" onClick={() => setFiltersOpen(false)}>Close</button></div>
-            {status === "all" ? <label>Operational state<select value={stateFilter} onChange={(event) => { updateQuery({ state: event.target.value }); resetGridScroll(); }}><option value="">Any state</option>{states.map((item) => <option key={item} value={item}>{operationalStateDescription(item)}</option>)}</select></label> : null}
-            <label>Source<select value={source} onChange={(event) => { updateQuery({ source: event.target.value }); resetGridScroll(); }}><option value="">Any source</option>{sources.map((item) => <option key={item} value={item}>{item}</option>)}</select></label>
-            <label>Room type<select value={roomType} onChange={(event) => { updateQuery({ roomType: event.target.value }); resetGridScroll(); }}><option value="">Any room type</option>{roomTypes.map((item) => <option key={item} value={item}>{item}</option>)}</select></label>
-            <label>Rate plan<select value={ratePlan} onChange={(event) => { updateQuery({ ratePlan: event.target.value }); resetGridScroll(); }}><option value="">Any rate plan</option>{ratePlans.map((item) => <option key={item} value={item}>{item}</option>)}</select></label>
-            <label>{query.movementTime === "departure" ? "Departure from" : "Arrival from"}<input type="date" value={dateFrom} onChange={(event) => { updateQuery({ dateFrom: event.target.value }); resetGridScroll(); }} /></label>
-            <label>{query.movementTime === "departure" ? "Departure to" : "Arrival to"}<input type="date" value={dateTo} min={dateFrom || undefined} onChange={(event) => { updateQuery({ dateTo: event.target.value }); resetGridScroll(); }} /></label>
-            <label>Room assignment<select value={assignment} onChange={(event) => { updateQuery({ assignment: event.target.value as MovementQuery["assignment"] }); resetGridScroll(); }}><option value="all">Any</option><option value="assigned">Assigned</option><option value="unassigned">Unassigned</option></select></label>
-            <label>Minimum adults<input aria-label="Minimum adults" type="number" min="1" max="20" inputMode="numeric" value={minAdults ?? ""} onChange={(event) => { const value = event.target.value; const parsed = Number(value); updateQuery({ minAdults: value === "" || !Number.isSafeInteger(parsed) || parsed < 1 || parsed > 20 ? null : parsed }); resetGridScroll(); }} /></label>
-            <label>Children<select value={children} onChange={(event) => { updateQuery({ children: event.target.value as MovementQuery["children"] }); resetGridScroll(); }}><option value="all">Any</option><option value="present">With children</option><option value="absent">0 children recorded</option></select></label>
-            <label>{query.movementTime === "departure" ? "Departure travel" : "Arrival travel"}<select value={travel} onChange={(event) => { updateQuery({ travel: event.target.value as MovementQuery["travel"] }); resetGridScroll(); }}><option value="all">Any</option><option value="recorded">Travel recorded</option><option value="not_recorded">Travel not recorded</option></select></label>
-            <label>Pickup<select value={pickup} onChange={(event) => { updateQuery({ pickup: event.target.value as MovementQuery["pickup"] }); resetGridScroll(); }}><option value="all">Any</option><option value="requested">Pickup requested</option><option value="not_recorded">No pickup recorded</option></select></label>
-            <button type="button" onClick={() => { updateQuery(createMovementQuery(query.movementTime)); resetGridScroll(); }}>Clear filters</button>
-            <button type="button" className="movement-popover-done" onClick={() => setFiltersOpen(false)}>Done</button>
-          </div> : null}
-        </div>
-        <div className="movement-tool-wrap">
-          <button type="button" className={sortOpen ? "active" : undefined} onClick={() => { setSortOpen((value) => !value); setFiltersOpen(false); }}>Advanced sort (2)⌄</button>
-          {sortOpen ? <div className="movement-popover" role="dialog" aria-label="Advanced movement sorting">
-            <div className="movement-popover-head"><strong>Sort levels</strong><button type="button" aria-label="Close advanced sorting" onClick={() => setSortOpen(false)}>Close</button></div>
-            <label>1<select value={primarySort} onChange={(event) => { const key = event.target.value as MovementSortKey; updateQuery({ sorts: [{ key, direction: primaryDirection }, ...(secondarySort !== key ? [{ key: secondarySort, direction: "asc" as const }] : [])] }); resetGridScroll(); }}>{sortOptions.map((item) => <option value={item.key} key={item.key}>{item.label}</option>)}</select></label>
-            <label>Direction<select value={primaryDirection} onChange={(event) => { updateQuery({ sorts: [{ key: primarySort, direction: event.target.value as "asc" | "desc" }, ...(secondarySort !== primarySort ? [{ key: secondarySort, direction: "asc" as const }] : [])] }); resetGridScroll(); }}><option value="asc">Ascending</option><option value="desc">Descending</option></select></label>
-            <label>2<select value={secondarySort} onChange={(event) => { const key = event.target.value as MovementSortKey; updateQuery({ sorts: [{ key: primarySort, direction: primaryDirection }, ...(key !== primarySort ? [{ key, direction: "asc" as const }] : [])] }); resetGridScroll(); }}>{sortOptions.map((item) => <option value={item.key} key={item.key}>{item.label}</option>)}</select></label>
-            <button type="button" className="movement-popover-done" onClick={() => setSortOpen(false)}>Done</button>
-          </div> : null}
-        </div>
-        <span className="movement-density">Compact density</span>
+  const gridStyle = { gridTemplateColumns: [...visibleColumns.map(column => `${column.width}px`), "104px"].join(" "), minWidth: visibleColumns.reduce((total, column) => total + column.width, 104) };
+  return <section className="movement-workspace" aria-labelledby={headingId} aria-busy={loading}>
+    <header className="movement-heading">
+      <div>
+        <button type="button" className="back-link" onClick={onBack ?? (() => window.location.assign(`/p/${propertyId}/today`))}>Today /</button>
+        <h1 id={headingId}>{status === "all" ? "Reservations" : "Guest movements"}</h1>
+        <p>{loading ? "Loading reservations…" : error ? "Reservations unavailable" : `${visibleRows.length.toLocaleString()} ${status === "all" ? "reservations · all states" : status === "due_in" ? "arrivals" : status === "due_out" ? "departures" : "in-house reservations"}`}</p>
+        {scopeDescription ? <small>{scopeDescription}</small> : null}
       </div>
-      <div className="movement-grid" role="table" aria-rowcount={visibleRows.length + 1}>
-        <div ref={scrollViewport} className="movement-grid-scroll" style={{ height: viewportHeight }} onScroll={(event) => setScrollTop(event.currentTarget.scrollTop)}>
-          <div className="movement-grid-head movement-grid-row" role="row">
-            {[status === "due_out" ? "Departure" : status === "all" ? "Arrival" : "ETA", "Guest", "Reservation", "Nights", "Room type", "Assigned room", "Source", "Rate plan", "Guests / travel", "Readiness", "Status", "Billing"].map((heading) => <span role="columnheader" key={heading}>{heading} ↕</span>)}
+    </header>
+    {navigation}
+    {!loading && !error ? <MovementTableControls label={status === "all" ? "Reservations" : status === "due_in" ? "Arrivals" : status === "due_out" ? "Departures" : "In-house reservations"}
+      rows={rows} count={visibleRows.length} columns={columns} selectedColumns={selectedColumns}
+      onColumnsChange={setColumns} query={query} onQueryChange={updates => { updateQuery(updates); resetGridScroll(); }}
+      tableQuery={tableQuery} onTableChange={next => { changeTable(next); resetGridScroll(); }} /> : null}
+    {loading ? <p role="status" className="empty">Loading this movement view…</p> : error ? <p role="alert" className="error">{error}</p> : <>
+      <div className="movement-grid movement-adaptive-grid" role="table" aria-label={status === "all" ? "Reservations" : "Guest movements"} aria-rowcount={visibleRows.length + 1} aria-colcount={visibleColumns.length + 1}>
+        <div ref={scrollViewport} className="movement-grid-scroll" style={{ height: viewportHeight }} onScroll={event => setScrollTop(event.currentTarget.scrollTop)}>
+          <div className="movement-grid-head movement-grid-row" role="row" style={gridStyle}>
+            {visibleColumns.map(column => <span role="columnheader" key={`${status}:${column.key}`} aria-sort={tableQuery.sorts[0]?.column === column.key ? tableColumnSort(tableQuery, column.key) : "none"}>
+              <TableColumnMenu column={column} query={tableQuery} onChange={next => { changeTable(next); resetGridScroll(); }} values={columnValues.get(column.key)} />
+            </span>)}
+            <span role="columnheader">Billing</span>
           </div>
-          <div className="movement-grid-space" style={{ height: visibleRows.length * rowHeight }}>
+          <div className="movement-grid-space" style={{ height: visibleRows.length * rowHeight, minWidth: gridStyle.minWidth }}>
             {rendered.map((stay, offset) => {
               const rowIndex = first + offset;
-              const timeValue = status === "due_out"
-                ? stay.stayTo
-                : stay.arrivalTravel?.scheduledAt ?? stay.stayFrom;
-              const state = stay.operationalState ?? stay.status;
-              return <div className="movement-grid-row movement-data-row" role="row" aria-rowindex={rowIndex + 2} data-row-index={rowIndex} tabIndex={0} key={stay.reservationId} style={{ transform: `translateY(${rowIndex * rowHeight}px)` }} onClick={() => open(stay)} onKeyDown={(event) => {
-                if (event.key === "Enter" || event.key === " ") { event.preventDefault(); open(stay); return; }
-                if (event.key !== "ArrowDown" && event.key !== "ArrowUp") return;
-                event.preventDefault();
-                const next = Math.max(0, Math.min(visibleRows.length - 1, rowIndex + (event.key === "ArrowDown" ? 1 : -1)));
-                if (scrollViewport.current) scrollViewport.current.scrollTop = headerHeight + next * rowHeight;
-                window.requestAnimationFrame(() => document.querySelector<HTMLElement>(`[data-row-index="${next}"]`)?.focus());
-              }}>
-                <span role="cell">{formatMovementTime(timeValue, timezone, status === "all")}</span>
-                <span role="cell" className="movement-guest"><strong>{nameOf(stay)}</strong><small className="movement-mobile-attribute">{movementGuestAttributes(stay, status === "due_out" ? "departure" : "arrival")}</small><aside className="movement-preview"><small>Reservation preview</small><b>{nameOf(stay)}</b><span>{stay.confirmationNo} · {movementNights(stay)} night{movementNights(stay) === 1 ? "" : "s"}</span><span>{stay.unitTypeLabel ?? "Room type pending"} · {stay.sellableUnitLabel ?? "room unassigned"}</span><span>{stay.ratePlanLabel ?? "Rate plan unavailable"} · {stay.channelCode ?? "Source unavailable"}</span><span>{movementGuestAttributes(stay, status === "due_out" ? "departure" : "arrival")}</span><span>{stay.sellableUnitLabel ? "Room assigned" : "Room assignment pending"}</span></aside></span>
-                <span role="cell">{stay.confirmationNo}</span>
-                <span role="cell">{movementNights(stay)}</span>
-                <span role="cell">{stay.unitTypeLabel ?? "—"}</span>
-                <span role="cell">{stay.sellableUnitLabel ?? "—"}</span>
-                <span role="cell">{stay.channelCode ?? "—"}</span>
-                <span role="cell">{stay.ratePlanLabel ?? "—"}</span>
-                <span role="cell">{movementGuestAttributes(stay, status === "due_out" ? "departure" : "arrival")}</span>
-                <span role="cell"><i className={stay.sellableUnitLabel ? "ready-dot" : "pending-dot"} />{stay.sellableUnitLabel ? "Assigned" : "Pending"}</span>
-                <span role="cell"><em>{operationalStateLabel(state)}</em></span>
-                <span role="cell"><button type="button" className="movement-billing-action" aria-label={`Open cashier and billing for ${stay.confirmationNo}`} onClick={(event) => { event.stopPropagation(); window.location.assign(`/p/${propertyId}/today?workspace=finance&reservation=${encodeURIComponent(stay.reservationId)}`); }} onKeyDown={(event) => event.stopPropagation()}>Cashier</button></span>
+              return <div className="movement-grid-row movement-data-row" role="row" aria-rowindex={rowIndex + 2} data-row-index={rowIndex} tabIndex={0} key={stay.reservationId}
+                style={{ ...gridStyle, transform: `translateY(${rowIndex * rowHeight}px)` }}
+                onClick={() => open(stay)} onKeyDown={event => {
+                  if (event.key === "Enter" || event.key === " ") { event.preventDefault(); open(stay); return; }
+                  if (event.key !== "ArrowDown" && event.key !== "ArrowUp") return;
+                  event.preventDefault();
+                  const next = Math.max(0, Math.min(visibleRows.length - 1, rowIndex + (event.key === "ArrowDown" ? 1 : -1)));
+                  if (scrollViewport.current) scrollViewport.current.scrollTop = headerHeight + next * rowHeight;
+                  window.requestAnimationFrame(() => scrollViewport.current?.querySelector<HTMLElement>(`[data-row-index="${next}"]`)?.focus());
+                }}>
+                {visibleColumns.map(column => <span role="cell" key={column.key} className={`movement-copy-cell${column.key === "guest" ? " movement-guest" : ""}`}
+                  title={column.key === "room" && !stay.sellableUnitLabel ? "Room unassigned. Assignment does not establish room readiness." : String(column.value(stay) ?? "")}>
+                  {column.key === "guest" ? <><strong>{nameOf(stay)}</strong><aside className="movement-preview">
+                    <small>Reservation preview</small><b>{nameOf(stay)}</b><span>{stay.confirmationNo} · {movementNights(stay)} nights</span>
+                    <span>{stay.unitTypeLabel ?? "Room type not recorded"} · {stay.sellableUnitLabel ?? "Room unassigned"}</span>
+                    <span>{stay.ratePlanLabel ?? "Rate plan not recorded"}</span>
+                    <span>Channel: {stay.channelCode ?? "Not recorded"} · Source: {stay.sourceCode ?? "Not recorded"} · Market: {stay.marketCode ?? "Not recorded"}</span>
+                    <span>{movementGuestAttributes(stay, query.movementTime)}</span>
+                  </aside></> : column.key === "status" ? <em>{column.value(stay)}</em> : column.key === "room" ? stay.sellableUnitLabel ?? "Unassigned" : String(column.value(stay) ?? "—")}
+                  <CopyCellButton label={column.label} value={column.key === "guest" ? nameOf(stay) : column.key === "room" ? stay.sellableUnitLabel ?? "Unassigned" : String(column.value(stay) ?? "—")} />
+                </span>)}
+                <span role="cell"><button type="button" className="movement-billing-action" aria-label={`Open cashier and billing for ${stay.confirmationNo}`} onClick={event => { event.stopPropagation(); onBilling?.(stay); }} onKeyDown={event => event.stopPropagation()}>Cashier</button></span>
               </div>;
             })}
           </div>
         </div>
       </div>
-      <footer className="movement-footer"><span>Rows rendered on demand — {visibleRows.length.toLocaleString()} total · {RESERVATION_BOARD_CAPABILITIES.filters.length} structured filters</span><span>Enter opens reservation · ↑ ↓ navigate</span></footer>
-    </section>
-  );
+      {!visibleRows.length ? <p className="empty" role="status">No reservations match this view. Clear filters or change the movement view.</p> : null}
+    </>}
+    {!loading && !error ? <footer className="movement-footer"><span>{visibleRows.length.toLocaleString()} reservations · {selectedColumns.length} visible columns</span><span>Enter opens reservation · ↑ ↓ navigate · Scroll sideways for more fields</span></footer> : null}
+  </section>;
 }
 
 /* Order584 extracted reservation/check-in/board/create route family; executable implementation is lazy-loaded from workspaces/ReservationWorkspace.tsx.
@@ -5428,6 +5330,7 @@ function HousekeepingWorkspace({
   const [proposal, setProposal] = useState<HousekeepingActionProposal | null>(null);
   const [confirmed, setConfirmed] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [floorRefreshGeneration, setFloorRefreshGeneration] = useState(0);
   const [result, setResult] = useState<string | null>(null);
   const prepare = (task: HousekeepingTask, action: HousekeepingTaskAction) => {
     setProposal(Object.freeze({ task, action, key: `yellow-housekeeping-${crypto.randomUUID()}` }));
@@ -5471,6 +5374,7 @@ function HousekeepingWorkspace({
         setResult(`${detail} Current task truth was refreshed and the stale proposal was cleared.`);
       }
     } finally {
+      setFloorRefreshGeneration((current) => current + 1);
       setBusy(false);
       onLifecycleBusyChange(false);
     }
@@ -5517,25 +5421,17 @@ function HousekeepingWorkspace({
         {Object.entries(counts).map(([condition, count]) => (
           <div key={condition}>
             <strong>{count}</strong>
-            <span>{condition}</span>
+            <span>{condition} · loaded</span>
           </div>
         ))}
       </div>
       <div className="housekeeping-grid">
         <article className="detail-card">
-          <h2>Room conditions</h2>
-          <div className="room-grid">
-            {rooms.map((room) => (
-              <div key={room.spaceId} className={`room-tile ${room.condition}`}>
-                <strong>{room.code}</strong>
-                <span>Floor {room.floor}</span>
-                <small>{room.condition}</small>
-              </div>
-            ))}
-          </div>
+          <HousekeepingFloorWorkbench key={propertyId} propertyId={propertyId} getToken={session}
+            disabled={busy} refreshGeneration={floorRefreshGeneration} onPrepare={prepare} />
         </article>
         <article className="detail-card">
-          <h2>Current tasks</h2>
+          <h2>Loaded current tasks</h2>
           {tasks.length ? (
             <ul>
               {tasks.map((task) => (
@@ -5728,6 +5624,7 @@ function CommercialWorkspace() {
           <p>Start with the hotel’s current setup, then open the existing governed configuration only for the exact change you want to review.</p>
         </div>
       </div>
+      <Suspense fallback={<p role="status">Loading RMS evidence controls…</p>}><StaffRmsWorkspace key={propertyId} propertyId={propertyId} snapshot={query.data} /></Suspense>
       <div className="commercial-steps" aria-label="Commercial configuration overview">
         <article><span>01 · Inventory</span><strong>{inventory.unitTypes.length} room types · {inventory.spaces.length} rooms</strong><p>{inventory.sellableUnits.length} sellable units are currently configured.</p><button onClick={() => window.location.assign(`/p/${propertyId}/inventory`)}>Review rooms & inventory</button></article>
         <article><span>02 · Policies</span><strong>{policies.length} reusable policies</strong><p>{policies.slice(0, 3).map((policy) => policy.name).join(" · ") || "No policies configured"}</p><button onClick={() => window.location.assign(`/p/${propertyId}/rates?legacy=1#policies`)}>Review policies</button></article>
@@ -5742,7 +5639,16 @@ function CommercialWorkspace() {
   );
 }
 
-function PropertySettingsWorkspace({ property }: Readonly<{ property: Property | undefined }>) {
+function PropertySettingsWorkspace({ property, onNavigationLockChange }: Readonly<{ property: Property | undefined; onNavigationLockChange: (locked: boolean) => void }>) {
+  return <>
+    <Suspense fallback={<section className="property-mode-card" aria-label="Property operating mode"><p role="status">Loading property mode controls…</p></section>}>
+      <LazyPropertyOperatingModeCard key={propertyId} propertyId={propertyId} onNavigationLockChange={onNavigationLockChange} />
+    </Suspense>
+    <PropertySettingsSummary property={property} />
+  </>;
+}
+
+function PropertySettingsSummary({ property }: Readonly<{ property: Property | undefined }>) {
   const query = useQuery<PropertySettingsSnapshot, Error>({
     queryKey: ["property-settings", propertyId],
     queryFn: loadPropertySettings,
@@ -7126,6 +7032,11 @@ function InlinePerformanceResult({
 }
 
 export function App() {
+  const [routeHref, setRouteHref] = useState(() => window.location.pathname + window.location.search + window.location.hash);
+  const route = readWorkspaceRoute(routeHref, internalMarketLabEnabled);
+  const workspacePart = route.workspace;
+  const reservationRouteId = route.reservationId;
+  const focusedLane = route.lane;
   const queryClient = useQueryClient();
   const initialOverwatch = useRef(restoredOverwatchMemory());
   const [assistant, setAssistant] = useState(initialOverwatch.current.open);
@@ -7152,6 +7063,7 @@ export function App() {
   const [cashierChargeProposal, setCashierChargeProposal] = useState<CashierChargeProposal | null>(null);
   const [voiceBillWindowTransferProposal, setVoiceBillWindowTransferProposal] = useState<VoiceBillWindowTransferProposal | null>(null);
   const [voiceTransferRecoveryLocked, setVoiceTransferRecoveryLocked] = useState(false);
+  const [propertyModeNavigationLocked, setPropertyModeNavigationLocked] = useState(false);
   const voiceTransferRecoveryLockedRef = useRef(false);
   const setVoiceBillWindowTransfer = (proposal: VoiceBillWindowTransferProposal | null) => {
     const locked = Boolean(proposal?.postingAttempted);
@@ -7186,13 +7098,31 @@ export function App() {
     },
     [],
   );
+  useEffect(() => {
+    if (!propertyModeNavigationLocked) return;
+    const warnBeforeLeaving = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+      event.returnValue = "";
+    };
+    window.addEventListener("beforeunload", warnBeforeLeaving);
+    return () => window.removeEventListener("beforeunload", warnBeforeLeaving);
+  }, [propertyModeNavigationLocked]);
+  const propertyModeNavigationLockedRef = useRef(propertyModeNavigationLocked);
+  propertyModeNavigationLockedRef.current = propertyModeNavigationLocked;
+  useEffect(() => installWorkspaceNavigation({
+    propertyId,
+    canNavigate: () => reactAuthSession.getSnapshot().status === "authenticated" &&
+      !reservationLifecycleBusyRef.current && !voiceTransferRecoveryLockedRef.current && !propertyModeNavigationLockedRef.current,
+    onNavigate: setRouteHref,
+  }), []);
+  useEffect(() => { setActiveLane(focusedLane); }, [routeHref]);
   const guardReservationLifecycleFlight = (event: {
     preventDefault: () => void;
     stopPropagation: () => void;
     target?: EventTarget | null;
   }) => {
-    if (!reservationLifecycleBusyRef.current && !voiceTransferRecoveryLockedRef.current) return;
-    if (event.target instanceof Element && event.target.closest('[data-lifecycle-recovery="true"]')) return;
+    if (!reservationLifecycleBusyRef.current && !voiceTransferRecoveryLockedRef.current && !propertyModeNavigationLocked) return;
+    if (event.target instanceof Element && event.target.closest('[data-lifecycle-recovery="true"], [data-property-mode-recovery="true"]')) return;
     event.preventDefault();
     event.stopPropagation();
   };
@@ -7319,8 +7249,16 @@ export function App() {
     rememberOverwatch({ open: assistant, language, turns, reservationQuery: reservationQueryContext ?? undefined });
   }, [assistant, language, reservationQueryContext, turns]);
   const workflow = (part: string) => {
-    if (reservationLifecycleBusyRef.current || voiceTransferRecoveryLockedRef.current) return;
-    window.location.assign(
+    if (reservationLifecycleBusyRef.current || voiceTransferRecoveryLockedRef.current || propertyModeNavigationLocked) return;
+    const reservationView = reservationViewForDestination(part);
+    if (reservationView !== null) {
+      const path = `/p/${propertyId}/reservations`;
+      const alreadyInWorkspace = window.location.pathname === path;
+      const href = reservationViewHref(path, alreadyInWorkspace ? window.location.search : "", alreadyInWorkspace ? window.location.hash : "", reservationView);
+      navigateYellow(href);
+      return;
+    }
+    navigateYellow(
       part === "rates"
         ? `/p/${propertyId}/today?workspace=rates`
         : part === "settings"
@@ -7329,21 +7267,30 @@ export function App() {
           ? `/p/${propertyId}/today?workspace=ecosystem`
         : part === "market-lab" && internalMarketLabEnabled
           ? `/p/${propertyId}/today?workspace=market-lab`
-        : part === "cashiers"
+        : part === "cashiers" || part === "finance"
           ? `/p/${propertyId}/today?workspace=finance`
         : `/p/${propertyId}/${part}`,
     );
   };
+  const continueCrs = (href: string) => {
+    if (reservationLifecycleBusyRef.current || voiceTransferRecoveryLockedRef.current || propertyModeNavigationLocked) return;
+    if (!/^\/p\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\/reservations\?create=crs&/.test(href)) return;
+    navigateYellow(href);
+  };
   const billingDesk = () => {
-    if (reservationLifecycleBusyRef.current || voiceTransferRecoveryLockedRef.current) return;
-    window.location.assign(`/p/${propertyId}/today?workspace=finance`);
+    if (reservationLifecycleBusyRef.current || voiceTransferRecoveryLockedRef.current || propertyModeNavigationLocked) return;
+    navigateYellow(`/p/${propertyId}/today?workspace=finance`);
   };
   const open = (stay: Stay) => {
-    if (reservationLifecycleBusyRef.current || voiceTransferRecoveryLockedRef.current) return;
-    window.location.assign(`/p/${propertyId}/res/${stay.reservationId}`);
+    if (reservationLifecycleBusyRef.current || voiceTransferRecoveryLockedRef.current || propertyModeNavigationLocked) return;
+    navigateYellow(`/p/${propertyId}/res/${stay.reservationId}`);
+  };
+  const openMovementBilling = (stay: Stay) => {
+    if (reservationLifecycleBusyRef.current || voiceTransferRecoveryLockedRef.current || propertyModeNavigationLocked) return;
+    navigateYellow(`/p/${propertyId}/today?workspace=finance&reservation=${encodeURIComponent(stay.reservationId)}`);
   };
   const review = (stay: Stay) => {
-    if (reservationLifecycleBusyRef.current || voiceTransferRecoveryLockedRef.current) return;
+    if (reservationLifecycleBusyRef.current || voiceTransferRecoveryLockedRef.current || propertyModeNavigationLocked) return;
     setAssistant(true);
     setAssistantCard({
       eyebrow: "LIVE ARRIVAL FLOW",
@@ -7373,8 +7320,10 @@ export function App() {
     setAssistant(true);
     void ask(request);
   };
-  const openOperationalTable = (lane: Status) =>
-    window.location.assign(`/p/${propertyId}/today?lane=${lane}`);
+  const openOperationalTable = (lane: Status | null) => {
+    if (reservationLifecycleBusyRef.current || voiceTransferRecoveryLockedRef.current || propertyModeNavigationLocked) return;
+    navigateYellow(lane ? `/p/${propertyId}/today?lane=${lane}` : `/p/${propertyId}/today`);
+  };
   const cancelSpeech = () => {
     if (!("speechSynthesis" in window)) return;
     try {
@@ -8613,7 +8562,7 @@ export function App() {
           detail: "Yellow is opening the server-approved PMS view now.",
           rows: [],
         });
-        window.location.assign(target);
+        navigateYellow(target);
       }
     } catch {
       if (assistantOperationWasSuperseded()) return;
@@ -8887,6 +8836,7 @@ export function App() {
                         </>
                       ) : (
                         <MovementGrid
+                          onBack={() => workflow("today")} onBilling={openMovementBilling}
                           status={assistantCard.movement.status}
                           lane={assistantCard.movement.lane}
                           timezone={selected?.timezone ?? "UTC"}
@@ -8916,9 +8866,9 @@ export function App() {
                   {assistantCard.workspace ? (
                     <div className="yellow-inline-workspace">
                       {assistantCard.workspace === "reservations" ? (
-                        <ReservationBoardWorkspace timezone={selected?.timezone ?? "UTC"} />
+                        <ReservationBoardWorkspace timezone={selected?.timezone ?? "UTC"} onCrsContinue={continueCrs} />
                       ) : assistantCard.workspace === "guests" ? (
-                        <GuestsWorkspace />
+                        <GuestsWorkspace key={route.guest} requestedGuestSearch={route.guest} />
                       ) : assistantCard.workspace === "housekeeping" ? (
                         <HousekeepingWorkspace onLifecycleBusyChange={setReservationLifecycleFlight} />
                       ) : assistantCard.workspace === "cashiers" ? (
@@ -9058,7 +9008,8 @@ export function App() {
   if (workspacePart === "ecosystem" || workspacePart === "market-lab")
     return (
       <div className={shellClassName} aria-busy={reservationLifecycleBusy ? true : undefined} onClickCapture={guardReservationLifecycleFlight} onSubmitCapture={guardReservationLifecycleFlight}>
-        <header className="topbar">
+        <OperatorHeader workspace={reservationRouteId ? "reservations" : workspacePart} propertyId={propertyId} propertyName={propertyDisplayName(selected)} onNavigate={workflow} onBilling={billingDesk} locked={reservationLifecycleBusy || voiceTransferRecoveryLocked || propertyModeNavigationLocked} internalMarketLabEnabled={internalMarketLabEnabled}>
+          <HotelSearch key={propertyId} propertyId={propertyId} timezone={selected?.timezone ?? "UTC"} locked={reservationLifecycleBusy || voiceTransferRecoveryLocked || propertyModeNavigationLocked} />
           <a className="brand" href={`/p/${propertyId}/today`}>Y<span>Yellow<br /><small>Hotel Operations</small></span></a>
           <nav>
             <button onClick={() => workflow("today")}>Today</button>
@@ -9069,7 +9020,7 @@ export function App() {
             <button className={workspacePart === "ecosystem" ? "active" : undefined} onClick={() => workflow("ecosystem")}>Ecosystem</button>
           </nav>
           <a className="client-preview" href="/client/locanda-homes" target="_blank" rel="noreferrer">Preview client site ↗</a>
-        </header>
+        </OperatorHeader>
         <main>
           <aside>
             <p>WORKSPACE</p>
@@ -9092,7 +9043,7 @@ export function App() {
                 internalMarketLabEnabled={internalMarketLabEnabled}
                 onOpenMarketLab={() => workflow("market-lab")}
                 onNavigate={(destination) => {
-                  if (destination.startsWith("/")) window.location.assign(destination);
+                  if (destination.startsWith("/")) navigateYellow(destination);
                   else workflow(destination);
                 }}
               />
@@ -9105,7 +9056,8 @@ export function App() {
   if (workspacePart === "operations")
     return (
       <div className={shellClassName} aria-busy={reservationLifecycleBusy ? true : undefined} onClickCapture={guardReservationLifecycleFlight} onSubmitCapture={guardReservationLifecycleFlight}>
-        <header className="topbar">
+        <OperatorHeader workspace={reservationRouteId ? "reservations" : workspacePart} propertyId={propertyId} propertyName={propertyDisplayName(selected)} onNavigate={workflow} onBilling={billingDesk} locked={reservationLifecycleBusy || voiceTransferRecoveryLocked || propertyModeNavigationLocked} internalMarketLabEnabled={internalMarketLabEnabled}>
+          <HotelSearch key={propertyId} propertyId={propertyId} timezone={selected?.timezone ?? "UTC"} locked={reservationLifecycleBusy || voiceTransferRecoveryLocked || propertyModeNavigationLocked} />
           <a className="brand" href={`/p/${propertyId}/today`}>Y<span>Yellow<br /><small>Hotel Operations</small></span></a>
           <nav>
             <button onMouseEnter={() => void import("./workspaces/OperationalHub")} onFocus={() => void import("./workspaces/OperationalHub")} onClick={() => workflow("today")}>Today</button>
@@ -9117,7 +9069,7 @@ export function App() {
             <button onMouseEnter={() => void import("./workspaces/EcosystemHub")} onFocus={() => void import("./workspaces/EcosystemHub")} onClick={() => workflow("ecosystem")}>Ecosystem</button>
           </nav>
           <a className="client-preview" href="/client/locanda-homes" target="_blank" rel="noreferrer">Preview client site ↗</a>
-        </header>
+        </OperatorHeader>
         <main>
           <aside>
             <p>WORKSPACE</p>
@@ -9143,7 +9095,7 @@ export function App() {
                 isLoading: operationalBlocksQuery.isLoading,
                 isError: operationalBlocksQuery.isError,
               }}
-              onOpenReservation={(stay) => window.location.assign(`/p/${propertyId}/res/${stay.reservationId}`)}
+              onOpenReservation={(stay) => navigateYellow(`/p/${propertyId}/res/${stay.reservationId}`)}
               onNavigate={workflow}
             />
           </Suspense>
@@ -9154,7 +9106,8 @@ export function App() {
   if (workspacePart === "housekeeping")
     return (
       <div className={shellClassName} aria-busy={reservationLifecycleBusy || undefined} onClickCapture={guardReservationLifecycleFlight} onSubmitCapture={guardReservationLifecycleFlight}>
-        <header className="topbar">
+        <OperatorHeader workspace={reservationRouteId ? "reservations" : workspacePart} propertyId={propertyId} propertyName={propertyDisplayName(selected)} onNavigate={workflow} onBilling={billingDesk} locked={reservationLifecycleBusy || voiceTransferRecoveryLocked || propertyModeNavigationLocked} internalMarketLabEnabled={internalMarketLabEnabled}>
+          <HotelSearch key={propertyId} propertyId={propertyId} timezone={selected?.timezone ?? "UTC"} locked={reservationLifecycleBusy || voiceTransferRecoveryLocked || propertyModeNavigationLocked} />
           <a className="brand" href={`/p/${propertyId}/today`}>
             Y
             <span>
@@ -9182,7 +9135,7 @@ export function App() {
           >
             Preview client site ↗
           </a>
-        </header>
+        </OperatorHeader>
         <main>
           <aside>
             <p>WORKSPACE</p>
@@ -9206,7 +9159,8 @@ export function App() {
   if (workspacePart === "settings")
     return (
       <div className={shellClassName} aria-busy={reservationLifecycleBusy ? true : undefined} onClickCapture={guardReservationLifecycleFlight} onSubmitCapture={guardReservationLifecycleFlight}>
-        <header className="topbar">
+        <OperatorHeader workspace={reservationRouteId ? "reservations" : workspacePart} propertyId={propertyId} propertyName={propertyDisplayName(selected)} onNavigate={workflow} onBilling={billingDesk} locked={reservationLifecycleBusy || voiceTransferRecoveryLocked || propertyModeNavigationLocked} internalMarketLabEnabled={internalMarketLabEnabled}>
+          <HotelSearch key={propertyId} propertyId={propertyId} timezone={selected?.timezone ?? "UTC"} locked={reservationLifecycleBusy || voiceTransferRecoveryLocked || propertyModeNavigationLocked} />
           <a className="brand" href={`/p/${propertyId}/today`}>Y<span>Yellow<br /><small>Hotel Operations</small></span></a>
           <nav>
             <button onClick={() => workflow("today")}>Today</button>
@@ -9218,7 +9172,7 @@ export function App() {
           </nav>
           <MobileSettingsShortcut />
           <a className="client-preview" href="/client/locanda-homes" target="_blank" rel="noreferrer">Preview client site ↗</a>
-        </header>
+        </OperatorHeader>
         <main>
           <aside>
             <p>WORKSPACE</p>
@@ -9231,7 +9185,7 @@ export function App() {
             <button className="selected" onClick={() => workflow("settings")}>Settings & setup</button>
             <button onClick={() => workflow("rates")}>Rates & distribution</button>
           </aside>
-          <PropertySettingsWorkspace property={selected} />
+          <PropertySettingsWorkspace property={selected} onNavigationLockChange={setPropertyModeNavigationLocked} />
         </main>
         {assistantDock}
       </div>
@@ -9239,7 +9193,8 @@ export function App() {
   if (workspacePart === "finance")
     return (
       <div className={shellClassName} aria-busy={reservationLifecycleBusy || undefined} onClickCapture={guardReservationLifecycleFlight} onSubmitCapture={guardReservationLifecycleFlight}>
-        <header className="topbar">
+        <OperatorHeader workspace={reservationRouteId ? "reservations" : workspacePart} propertyId={propertyId} propertyName={propertyDisplayName(selected)} onNavigate={workflow} onBilling={billingDesk} locked={reservationLifecycleBusy || voiceTransferRecoveryLocked || propertyModeNavigationLocked} internalMarketLabEnabled={internalMarketLabEnabled}>
+          <HotelSearch key={propertyId} propertyId={propertyId} timezone={selected?.timezone ?? "UTC"} locked={reservationLifecycleBusy || voiceTransferRecoveryLocked || propertyModeNavigationLocked} />
           <a className="brand" href={`/p/${propertyId}/today`}>Y<span>Yellow<br /><small>Hotel Operations</small></span></a>
           <nav>
             <button onClick={() => workflow("today")}>Today</button>
@@ -9249,7 +9204,7 @@ export function App() {
             <button className="active" onClick={billingDesk}>Finance</button>
           </nav>
           <a className="client-preview" href="/client/locanda-homes" target="_blank" rel="noreferrer">Preview client site ↗</a>
-        </header>
+        </OperatorHeader>
         <main>
           <aside>
             <p>WORKSPACE</p>
@@ -9261,7 +9216,7 @@ export function App() {
             <p>FRONT DESK FINANCE</p>
             <button className="selected" onClick={billingDesk}>Cashier & folios</button>
           </aside>
-          <FinanceWorkspace onLifecycleBusyChange={setReservationLifecycleFlight} />
+          <FinanceWorkspace key={route.financeReservation ?? "cashier"} initialReservationId={route.financeReservation} onLifecycleBusyChange={setReservationLifecycleFlight} />
         </main>
         {assistantDock}
       </div>
@@ -9269,7 +9224,8 @@ export function App() {
   if (workspacePart === "rates")
     return (
       <div className={shellClassName} aria-busy={reservationLifecycleBusy || undefined} onClickCapture={guardReservationLifecycleFlight} onSubmitCapture={guardReservationLifecycleFlight}>
-        <header className="topbar">
+        <OperatorHeader workspace={reservationRouteId ? "reservations" : workspacePart} propertyId={propertyId} propertyName={propertyDisplayName(selected)} onNavigate={workflow} onBilling={billingDesk} locked={reservationLifecycleBusy || voiceTransferRecoveryLocked || propertyModeNavigationLocked} internalMarketLabEnabled={internalMarketLabEnabled}>
+          <HotelSearch key={propertyId} propertyId={propertyId} timezone={selected?.timezone ?? "UTC"} locked={reservationLifecycleBusy || voiceTransferRecoveryLocked || propertyModeNavigationLocked} />
           <a className="brand" href={`/p/${propertyId}/today`}>Y<span>Yellow<br /><small>Hotel Operations</small></span></a>
           <nav>
             <button onClick={() => workflow("today")}>Today</button>
@@ -9280,7 +9236,7 @@ export function App() {
             <button onClick={billingDesk}>Finance</button>
           </nav>
           <a className="client-preview" href="/client/locanda-homes" target="_blank" rel="noreferrer">Preview client site ↗</a>
-        </header>
+        </OperatorHeader>
         <main>
           <aside>
             <p>WORKSPACE</p>
@@ -9302,7 +9258,8 @@ export function App() {
   if (workspacePart === "guests")
     return (
       <div className={shellClassName} aria-busy={reservationLifecycleBusy || undefined} onClickCapture={guardReservationLifecycleFlight} onSubmitCapture={guardReservationLifecycleFlight}>
-        <header className="topbar">
+        <OperatorHeader workspace={reservationRouteId ? "reservations" : workspacePart} propertyId={propertyId} propertyName={propertyDisplayName(selected)} onNavigate={workflow} onBilling={billingDesk} locked={reservationLifecycleBusy || voiceTransferRecoveryLocked || propertyModeNavigationLocked} internalMarketLabEnabled={internalMarketLabEnabled}>
+          <HotelSearch key={propertyId} propertyId={propertyId} timezone={selected?.timezone ?? "UTC"} locked={reservationLifecycleBusy || voiceTransferRecoveryLocked || propertyModeNavigationLocked} />
           <a className="brand" href={`/p/${propertyId}/today`}>
             Y
             <span>
@@ -9332,7 +9289,7 @@ export function App() {
           >
             Preview client site ↗
           </a>
-        </header>
+        </OperatorHeader>
         <main>
           <aside>
             <p>WORKSPACE</p>
@@ -9348,7 +9305,7 @@ export function App() {
             </button>
             <button onClick={billingDesk}>Finance</button>
           </aside>
-          <GuestsWorkspace />
+          <GuestsWorkspace key={route.guest} requestedGuestSearch={route.guest} />
         </main>
         {assistantDock}
       </div>
@@ -9356,7 +9313,8 @@ export function App() {
   if (workspacePart === "reservations")
     return (
       <div className={shellClassName} aria-busy={reservationLifecycleBusy || undefined} onClickCapture={guardReservationLifecycleFlight} onSubmitCapture={guardReservationLifecycleFlight}>
-        <header className="topbar">
+        <OperatorHeader workspace={reservationRouteId ? "reservations" : workspacePart} propertyId={propertyId} propertyName={propertyDisplayName(selected)} onNavigate={workflow} onBilling={billingDesk} locked={reservationLifecycleBusy || voiceTransferRecoveryLocked || propertyModeNavigationLocked} internalMarketLabEnabled={internalMarketLabEnabled}>
+          <HotelSearch key={propertyId} propertyId={propertyId} timezone={selected?.timezone ?? "UTC"} locked={reservationLifecycleBusy || voiceTransferRecoveryLocked || propertyModeNavigationLocked} />
           <a className="brand" href={`/p/${propertyId}/today`}>
             Y
             <span>
@@ -9384,7 +9342,7 @@ export function App() {
           >
             Preview client site ↗
           </a>
-        </header>
+        </OperatorHeader>
         <main>
           <aside>
             <p>WORKSPACE</p>
@@ -9400,7 +9358,7 @@ export function App() {
               Housekeeping
             </button>
           </aside>
-          <ReservationBoardWorkspace timezone={selected?.timezone ?? "UTC"} />
+          <ReservationBoardWorkspace timezone={selected?.timezone ?? "UTC"} onCrsContinue={continueCrs} />
         </main>
         {assistantDock}
       </div>
@@ -9408,7 +9366,8 @@ export function App() {
   if (reservationRouteId)
     return (
       <div className={shellClassName} aria-busy={reservationLifecycleBusy || undefined} onClickCapture={guardReservationLifecycleFlight} onSubmitCapture={guardReservationLifecycleFlight}>
-        <header className="topbar">
+        <OperatorHeader workspace={reservationRouteId ? "reservations" : workspacePart} propertyId={propertyId} propertyName={propertyDisplayName(selected)} onNavigate={workflow} onBilling={billingDesk} locked={reservationLifecycleBusy || voiceTransferRecoveryLocked || propertyModeNavigationLocked} internalMarketLabEnabled={internalMarketLabEnabled}>
+          <HotelSearch key={propertyId} propertyId={propertyId} timezone={selected?.timezone ?? "UTC"} locked={reservationLifecycleBusy || voiceTransferRecoveryLocked || propertyModeNavigationLocked} />
           <a className="brand" href={`/p/${propertyId}/today`}>
             Y
             <span>
@@ -9435,7 +9394,7 @@ export function App() {
           >
             Preview client site ↗
           </a>
-        </header>
+        </OperatorHeader>
         <main>
           <aside>
             <p>WORKSPACE</p>
@@ -9464,7 +9423,8 @@ export function App() {
     );
   return (
     <div className={shellClassName} aria-busy={reservationLifecycleBusy || undefined} onClickCapture={guardReservationLifecycleFlight} onSubmitCapture={guardReservationLifecycleFlight}>
-      <header className="topbar">
+      <OperatorHeader workspace={reservationRouteId ? "reservations" : workspacePart} propertyId={propertyId} propertyName={propertyDisplayName(selected)} onNavigate={workflow} onBilling={billingDesk} locked={reservationLifecycleBusy || voiceTransferRecoveryLocked || propertyModeNavigationLocked} internalMarketLabEnabled={internalMarketLabEnabled}>
+          <HotelSearch key={propertyId} propertyId={propertyId} timezone={selected?.timezone ?? "UTC"} locked={reservationLifecycleBusy || voiceTransferRecoveryLocked || propertyModeNavigationLocked} />
         <a className="brand" href={`/p/${propertyId}/today`}>
           Y
           <span>
@@ -9518,7 +9478,7 @@ export function App() {
                   key={p.id}
                   role="menuitem"
                   aria-current={p.id === propertyId ? "page" : undefined}
-                  onClick={() => window.location.assign(`/p/${p.id}/today`)}
+                  onClick={() => navigateYellow(`/p/${p.id}/today`)}
                 >
                   <strong>{propertyDisplayName(p)}</strong>
                   <small>{p.timezone}</small>
@@ -9527,7 +9487,7 @@ export function App() {
             </div>
           ) : null}
         </div>
-      </header>
+      </OperatorHeader>
       <main>
         <aside>
           <p>WORKSPACE</p>
@@ -9551,7 +9511,13 @@ export function App() {
         <section className={`workspace${activeLane ? " movement-mode" : ""}`}>
           {activeLane ? (() => {
             const lane = lanes.find((item) => item.status === activeLane);
-            return lane?.query.isLoading ? <div className="skeleton" /> : lane?.query.isError ? <p className="error">{lane.query.error.message}</p> : <MovementGrid status={activeLane} lane={lane?.query.data} timezone={selected?.timezone ?? "UTC"} open={open} />;
+            return <RibbonPanel transitionKey={activeLane}><MovementGrid key={activeLane} status={activeLane} lane={lane?.query.isError ? undefined : lane?.query.data} timezone={selected?.timezone ?? "UTC"} open={open}
+              loading={Boolean(lane?.query.isLoading)} error={lane?.query.isError ? lane.query.error.message : undefined}
+              onBack={() => openOperationalTable(null)} onBilling={openMovementBilling}
+              scopeDescription="Current reservation status · property business-day scope unavailable"
+              navigation={<div className="movement-view-ribbon"><SegmentedRibbon label="Guest movement views" value={activeLane} onChange={openOperationalTable}
+                items={lanes.map(item => ({ key: item.status, label: titleOf(item.status), count: item.query.isLoading || item.query.isError ? null : item.query.data?.reservations?.length ?? null }))} /></div>} />
+            </RibbonPanel>;
           })() : <><motion.div
             className="welcome today-welcome"
             initial={{ opacity: 0, y: 10 }}
@@ -9584,7 +9550,7 @@ export function App() {
                 { label: "Cashier", title: "Folio & posting desk", purpose: "Search guests, open statements, deposits, transfers and governed posting.", status: "Confirmation-gated", onOpen: billingDesk },
                 { label: "Departures", title: "Guided checkout", purpose: "Open due-outs, service coordination and server-owned departure readiness.", status: "Confirmation-gated", onOpen: () => openOperationalTable("due_out") },
                 { label: "Rooms", title: "Housekeeping & operations", purpose: "Room condition, service requests and operational source evidence.", status: "Role-aware", onOpen: () => workflow("operations") },
-                { label: "Overwatch", title: "Multilingual AI assistant", purpose: "Ask Yellow in Indian English/Hindi with explicit confirmation before actions.", status: "Docked assistant", onOpen: () => setAssistantOpen(true) },
+                { label: "Overwatch", title: "Multilingual AI assistant", purpose: "Ask Yellow in Indian English/Hindi with explicit confirmation before actions.", status: "Docked assistant", onOpen: () => setAssistant(true) },
               ]}
               onOpenPerformance={() => setPerformanceDetailRequestKey((key) => key + 1)}
             />

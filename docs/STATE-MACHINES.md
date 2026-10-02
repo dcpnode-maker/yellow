@@ -213,6 +213,13 @@ statuses re-sync `availability_projection` deltas. Cutoff & wash run as Automati
 (action `wash_release`) emitting block.rooms_released. Pickup = reservation created
 with `group_id` (consumes allotment before house inventory when `deducts`).
 
+Order687 `kind=linked` is a separate association only: a named group starts in
+`tentative` with no allotment, cutoff, payer or master folio. A reserved/due-in
+reservation with null `group_id` may be linked once using an exact expected-null
+compare-and-set; reassignment and unlink are not enabled. Its booked inventory,
+price, policy and financial state remain with the individual reservation. This
+command is not a block status transition or room pickup.
+
 ## 6. Hold — active → consumed (segment created; occupancy transfers slot_ref) |
 expired (sweep) | released. Offline lease pool: client keeps N active `offline_lease`
 holds while online; offline walk-ins may consume ONLY those (v2 §5.1).

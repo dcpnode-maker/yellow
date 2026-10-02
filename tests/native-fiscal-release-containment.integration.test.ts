@@ -166,7 +166,7 @@ databaseDescribe("Order439 released native fiscal authority is contained", () =>
     await withDatabase(async (url, sql, runtimeUrl) => {
       const migration = await runMigrations({ databaseUrl: url, logger: () => undefined });
       expect(migration.appliedFiles).toHaveLength(CURRENT_MIGRATION_FRONTIER);
-      expect(migration.appliedFiles.at(-1)).toBe("0100_housekeeping_transition_timestamp_precision.sql");
+      expect(migration.appliedFiles.at(-1)).toBe("0103_property_operating_mode_runtime_guard.sql");
       const before = await census(sql);
       expect(before[0]?.tables).toBe(130);
       await assertContained(sql, runtimeUrl);

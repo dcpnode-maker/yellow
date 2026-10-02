@@ -39,6 +39,7 @@ const INSERT_COLUMNS = Object.freeze({
   rate_plan: ["cancellation_policy", "code", "currency", "deposit_policy", "guarantee_policy", "market_code", "name", "property_node", "source_code", "tax_inclusive", "tenant_id"],
   rate_price: ["dow_mask", "pricing", "rate_plan_id", "stay_dates", "tenant_id", "unit_type_id"],
   reservation: ["channel_code", "confirmation_no", "currency", "guarantee_policy", "id", "market_code", "primary_party", "property_node", "source_code", "status", "tenant_id"],
+  reservation_group: ["code", "id", "kind", "name", "property_node", "status", "tenant_id"],
   reservation_guest: ["party_id", "reservation_id", "role", "share_pct", "tenant_id"],
   reservation_segment: ["adults", "children", "id", "period", "price_override", "rate_plan_id", "reservation_id", "sellable_unit_id", "seq", "status", "tenant_id", "unit_type_id"],
   restriction: ["channel_code", "kind", "rate_plan_id", "scope_node", "source", "stay_dates", "tenant_id", "unit_type_id", "value"],
@@ -57,7 +58,7 @@ const UPDATE_COLUMNS = Object.freeze({
   ooo_oos: ["period"],
   org_node: ["config"],
   rate_price: ["superseded_by"],
-  reservation: ["cancel_reason", "cancellation_no", "cancelled_at", "eta", "etd", "market_code", "notes", "origin_code", "source_code", "status"],
+  reservation: ["cancel_reason", "cancellation_no", "cancelled_at", "eta", "etd", "group_id", "market_code", "notes", "origin_code", "source_code", "status"],
   reservation_guest: ["role", "share_pct"],
   reservation_segment: ["period", "status"],
 } as const);
@@ -98,6 +99,7 @@ const CALLER_SOURCES = Object.freeze<Record<string, string>>({
   "rate_price:UPDATE": "src/contexts/rates/pricing.ts",
   "reservation:INSERT": "src/contexts/reservations/commit.ts",
   "reservation:UPDATE": "src/contexts/reservations/lifecycle.ts",
+  "reservation_group:INSERT": "src/contexts/reservations/groups.ts",
   "reservation_guest:DELETE": "src/contexts/reservations/guests.ts",
   "reservation_guest:INSERT": "src/contexts/reservations/commit.ts",
   "reservation_guest:UPDATE": "src/contexts/reservations/guests.ts",
@@ -117,6 +119,7 @@ const RESIDUAL_CAPABILITY_OWNERS = Object.freeze({
   financial_folio_opening: ["account:INSERT", "folio:INSERT"],
   financial_posting: ["journal:INSERT", "posting_line:INSERT"],
   hold_lifecycle: ["hold:UPDATE"],
+  linked_group_creation: ["reservation_group:INSERT"],
   inventory_policy_and_projection: ["availability_projection:DELETE", "availability_projection:INSERT", "org_node:UPDATE"],
   operational_block_lifecycle: ["ooo_oos:INSERT", "ooo_oos:UPDATE"],
   reservation_guest_replacement: ["reservation_guest:DELETE", "reservation_guest:INSERT", "reservation_guest:UPDATE"],
@@ -171,6 +174,10 @@ describe("Order 150 committed production caller map", () => {
       expect(new RegExp(`\\b${verb}\\s+${table}\\b`, "m").test(content)).toBe(true);
     }
 
+    // Order687/migration101 retains a separate, column-specific group association caller.
+    const groupSource = await Bun.file(new URL("../src/contexts/reservations/groups.ts", import.meta.url)).text();
+    expect(groupSource).toMatch(/\bUPDATE\s+reservation\s+SET\s+group_id\s*=/);
+
     const namedResiduals = Object.values(RESIDUAL_CAPABILITY_OWNERS).flat().sort();
     expect(new Set(namedResiduals).size).toBe(namedResiduals.length);
     expect(namedResiduals).toEqual([
@@ -189,6 +196,7 @@ describe("Order 150 committed production caller map", () => {
       "org_node:UPDATE",
       "posting_line:INSERT",
       "reservation:UPDATE",
+      "reservation_group:INSERT",
       "reservation_guest:DELETE",
       "reservation_guest:INSERT",
       "reservation_guest:UPDATE",

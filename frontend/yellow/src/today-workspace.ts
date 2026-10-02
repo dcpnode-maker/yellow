@@ -3,7 +3,7 @@ export type Variance = Readonly<{
   percent: number;
 }>;
 
-export type MovementSortKey = "eta" | "guest" | "confirmation" | "nights" | "room" | "source" | "rate" | "adults" | "children";
+export type MovementSortKey = "eta" | "guest" | "confirmation" | "nights" | "room" | "source" | "rate" | "adults" | "children" | "arrival" | "departure" | "roomType" | "sourceCode" | "marketCode" | "status" | "roomTypeCode" | "rateCode";
 export type MovementSort = Readonly<{ key: MovementSortKey; direction: "asc" | "desc" }>;
 export type RecordedPresence = "all" | "present" | "absent";
 export type TravelEvidence = "all" | "recorded" | "not_recorded";
@@ -31,7 +31,7 @@ export const RESERVATION_BOARD_CAPABILITIES = Object.freeze({
     "minAdults", "children", "travel", "pickup",
   ] as const),
   sorts: Object.freeze([
-    "eta", "guest", "confirmation", "nights", "room", "source", "rate", "adults", "children",
+    "eta", "guest", "confirmation", "nights", "room", "source", "rate", "adults", "children", "arrival", "departure", "roomType", "sourceCode", "marketCode", "status", "roomTypeCode", "rateCode",
   ] as const satisfies readonly MovementSortKey[]),
 });
 
@@ -70,8 +70,12 @@ export type MovementRowLike = Readonly<{
   stayTo?: string;
   sellableUnitLabel?: string | null;
   unitTypeLabel?: string | null;
+  unitTypeCode?: string | null;
+  ratePlanCode?: string | null;
   ratePlanLabel?: string | null;
   channelCode?: string;
+  sourceCode?: string | null;
+  marketCode?: string | null;
   status?: string;
   operationalState?: string;
   adults?: number;
@@ -134,6 +138,14 @@ function value(row: MovementRowLike, key: MovementSortKey, movementTime: "arriva
   if (key === "nights") return nights(row);
   if (key === "room") return row.sellableUnitLabel ?? row.unitTypeLabel ?? "";
   if (key === "source") return row.channelCode ?? "";
+  if (key === "arrival") return row.stayFrom ?? "";
+  if (key === "departure") return row.stayTo ?? "";
+  if (key === "roomType") return row.unitTypeLabel ?? "";
+  if (key === "roomTypeCode") return row.unitTypeCode ?? "";
+  if (key === "rateCode") return row.ratePlanCode ?? "";
+  if (key === "sourceCode") return row.sourceCode ?? "";
+  if (key === "marketCode") return row.marketCode ?? "";
+  if (key === "status") return row.operationalState ?? row.status ?? "";
   if (key === "adults") return row.adults ?? -1;
   if (key === "children") return row.children ?? -1;
   return row.ratePlanLabel ?? "";

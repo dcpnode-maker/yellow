@@ -1120,7 +1120,7 @@ jobs:
           READY_FILE="$proof_directory/readiness.json" bun -e '
             const body = await Bun.file(process.env.READY_FILE!).json();
             if (body.status !== "ready" || body.build?.revision !== process.env.YELLOW_BUILD_SHA
-                || body.build?.expectedMigrationFrontier !== 100
+                || body.build?.expectedMigrationFrontier !== 103
                 || body.target !== "yellow_runtime_database") process.exit(1);
           '
 

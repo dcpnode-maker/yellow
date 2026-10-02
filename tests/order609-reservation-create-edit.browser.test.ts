@@ -5,6 +5,12 @@ import { tmpdir } from "node:os";
 import { extname, resolve } from "node:path";
 import { invokeCdp } from "./helpers/cdp-invoke";
 import { resolveChromiumPath } from "./helpers/chromium-path";
+import { Hs256TokenSigner } from "../src/contexts/identity";
+
+const fixtureActor = "b2836978-73fe-58f9-b808-8b58cceac1c4";
+const fixtureTenant = "6d9b7ce2-2d14-5576-b8c3-80f06501a603";
+const fixtureCredentials = { tenant: "synthetic-browser-fixture", email: "fixture@yellow.example.invalid", password: "test-only" };
+const fixtureTokens = new Hs256TokenSigner("synthetic-browser-fixture-only-secret-0001");
 
 const repository = resolve(import.meta.dir, "..");
 const browserPath = resolveChromiumPath();
@@ -16,7 +22,8 @@ const ratePlanId = "00000000-0000-4000-8000-000000000611";
 const reservationId = "00000000-0000-4000-8000-000000000612";
 const route = `/p/${propertyId}/reservations`;
 const readOnlyPostPaths = new Set([
-  "/api/v1/auth/demo:enter",
+  "/api/v1/auth/local:login",
+  "/api/v1/auth/browser/resume",
   `/api/v1/properties/${propertyId}/parties:search`,
   `/api/v1/properties/${propertyId}/availability:search`,
 ]);
@@ -72,6 +79,7 @@ test("Order609 real reservation create route is confirmation-gated and contained
   const profile = resolve(temporary, "chrome-profile");
   const requestRecords: RequestRecord[] = [];
   let mutationCount = 0;
+  let fixtureToken = "";
   let currentStay = { from: "", to: "" };
   let availabilityRace = false;
   let availabilityRaceRequest = 0;
@@ -117,12 +125,24 @@ test("Order609 real reservation create route is confirmation-gated and contained
       async fetch(request) {
         const url = new URL(request.url);
         requestRecords.push({ method: request.method, path: url.pathname });
+        if (url.pathname.startsWith("/api/") && !url.pathname.startsWith("/api/v1/auth/") &&
+            request.headers.get("authorization") !== `Bearer ${fixtureToken}`) return json({ error: "synthetic_bearer_required" }, 401);
         if (request.method === "POST" && mutationPaths.has(url.pathname)) {
           mutationCount += 1;
           return json({ reservation: { reservationId, confirmationNo: "YEL-609", status: "reserved" } });
         }
-        if (url.pathname === "/api/v1/auth/demo:enter" && request.method === "POST")
-          return json({ accessToken: "synthetic-order609-browser-token" });
+        if (url.pathname === "/api/v1/auth/browser/resume" && request.method === "POST")
+          return json({ error: "browser_session_unauthenticated" }, 401);
+        if (url.pathname === "/api/v1/auth/local:login" && request.method === "POST") {
+          const supplied = await request.json() as Record<string, unknown>;
+          if (request.headers.get("x-yellow-browser-session") !== "v1" || Object.keys(supplied).length !== 3 ||
+              Object.entries(fixtureCredentials).some(([key, value]) => supplied[key] !== value)) return json({ error: "invalid_synthetic_credentials" }, 401);
+          fixtureToken = await fixtureTokens.issue({ userId: fixtureActor, tenantId: fixtureTenant,
+            scopes: ["reservations.lifecycle:read", "reservations.lifecycle:write", "inventory.availability:read", "crm.party:read"] });
+          return json({ accessToken: fixtureToken, tokenType: "Bearer", expiresInSeconds: 900,
+            user: { id: fixtureActor, displayName: "Synthetic browser fixture" } });
+        }
+
         if (url.pathname === "/api/v1/me/properties" && request.method === "GET")
           return json({ properties: [{ id: propertyId, name: "Locanda London", timezone: "UTC" }] });
         if (url.pathname === `/api/v1/properties/${propertyId}/reservation-board` && request.method === "GET")
@@ -252,6 +272,18 @@ test("Order609 real reservation create route is confirmation-gated and contained
       releaseSecondAvailability = undefined;
       await send("Emulation.setDeviceMetricsOverride", { width, height: 1000, deviceScaleFactor: 1, mobile: width < 600 });
       await send("Page.navigate", { url: `http://127.0.0.1:${server.port}${route}` });
+      await until("Boolean(document.querySelector('#auth-password')) && !document.querySelector('.auth-card form button[type=submit]').disabled", "explicit credential sign-in");
+      await evaluate(`(() => {
+      const credentials = ${JSON.stringify(fixtureCredentials)};
+      for (const [name, value] of Object.entries(credentials)) {
+        const input = document.querySelector('#auth-' + name);
+        Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(input, value);
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+        input.dispatchEvent(new Event('change', { bubbles: true }));
+      }
+      document.querySelector('.auth-card form').requestSubmit();
+    })()`);
+
       await until("document.readyState==='complete'&&!!document.querySelector('.reservation-board-next')", `${width}px reservation board`);
       await evaluate(`document.querySelector('.reservation-board-actions button').click()`);
       await until("!!document.querySelector('.reservation-create-next')", `${width}px real create workspace`);

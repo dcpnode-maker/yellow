@@ -9,7 +9,7 @@ import {
   IndiaGstSection14RateSelectionService,
   resolveIndiaGstSection14PaymentProviso,
 } from "../src/contexts/tax-fiscal";
-import { PostgresIdempotency, type Tx } from "../src/kernel";
+import { CURRENT_MIGRATION_FRONTIER, PostgresIdempotency, type Tx } from "../src/kernel";
 import {
   ATTRIBUTION,FOLIO,HOLD,LINEAGE,PROPERTY,RESERVATION,SEGMENT,SELLABLE,TENANT,fixture,
 } from "./india-gst-accommodation-quoted-rate-applicability.test";
@@ -233,7 +233,7 @@ databaseDescribe("Order 400 fresh PostgreSQL catalogue and authority", () => {
   const runtimeDb = new SQL(runtimeDatabaseUrl!, { max: 2, prepare: false });
   afterAll(async () => { await runtimeDb.close(); await db.close(); });
 
-  test("fresh catalogue is exactly 100/130/120/120/29/2", async () => {
+  test("fresh catalogue is exactly 103/130/120/120/29/2", async () => {
     const rows = await db<Array<{ migrations:number; tables:number; rls:number; policies:number; forced:number; views:number }>>`
       SELECT
         (SELECT count(*)::int FROM schema_migration) migrations,
@@ -245,7 +245,7 @@ databaseDescribe("Order 400 fresh PostgreSQL catalogue and authority", () => {
           WHERE n.nspname='public' AND c.relkind='r' AND c.relforcerowsecurity) forced,
         (SELECT count(*)::int FROM pg_views WHERE schemaname='public') views
     `;
-    expect(rows).toEqual([{ migrations:100, tables:130, rls:120, policies:120, forced:29, views:2 }]);
+    expect(rows).toEqual([{ migrations:CURRENT_MIGRATION_FRONTIER, tables:130, rls:120, policies:120, forced:29, views:2 }]);
   });
 
   test("all three tables are forced-RLS, tenant-leading and app-role SELECT-only", async () => {

@@ -94,6 +94,9 @@ payment, IRN/registration, cancellation or provider activity from configuration.
 → quote versioning, direct-booking cache invalidation, distribution ARI
 
 **reservations** · reservation.confirmed {segments[{unit_type,period,rate_plan}],channel} · .modified {diff} · .cancelled {reason,penalty_journal?} · .no_show · .checked_in {segment_id,space_id,primary_folio_id,room_condition,dirty_room_override_used,dirty_room_override_reason?,statutory_adapter_key?,identity_evidence_required,identity_evidence_satisfied} · .checked_out · .reinstated · .due_in/.due_out · segment.moved {from_space,to_space} · group.status_changed {deducts_delta} · block.rooms_released
+Order687 adds `group.created {group_id,kind:'linked',code,name}` and
+`reservation.group_linked {group_id,reservation_id}` in the same transaction as
+their persisted row and fact. Neither event denotes held rooms or pickup.
 → folio automations, HK task generation, statutory scheduler, stats, ARI, messaging
 
 `reservation.due_in` is the minimized evidence that one coherent parent changed from
@@ -459,3 +462,16 @@ version, previous/current task status and bounded outcome. Propose and withdraw 
 operational work exists. Task changes, facts and outbox commit in one transaction;
 publication uses the kernel's canonical outbox sequencing advisory lock. No guest contact,
 free-text allegation, image, monetary value or physical-room inference is published.
+
+### Property operating mode (RESOURCE-20261001)
+
+`property.operating-mode.changed` version1 is emitted only by a genuine governed
+property mode change. Aggregate `org_node`, aggregate/property identifier and
+actor/correlation/business date are envelope fields. Payload is exactly
+`{version,previous_mode,mode}`; modes are `hotel|str|both`, previous mode may be null.
+The matching insert-only fact additionally records `request_id` and supersedes the
+prior mode fact. Config, fact, outbox and command receipt commit atomically. No-op,
+stale, denied or failed writes emit nothing. This event changes a workspace attribute,
+not inventory, subscription entitlements, permissions, price, occupancy or an STR
+workflow implementation. Migration103 protects the reserved config path from direct
+runtime edits while preserving unrelated configuration authority.

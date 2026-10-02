@@ -2,6 +2,8 @@ import { expect, test } from "bun:test";
 
 const app = await Bun.file("frontend/yellow/src/App.tsx").text();
 const css = await Bun.file("frontend/yellow/src/styles.css").text();
+const { readWorkspaceRoute } = await import("../frontend/yellow/src/workspace-navigation");
+const PROPERTY = "6081b544-22a1-534f-a86d-bb1ae0519e14";
 
 test("the mobile finance workbench reads cashier state and posts only through the governed charge endpoint", () => {
   expect(app).toContain('queryKey: ["cashier-snapshot", propertyId]');
@@ -44,7 +46,8 @@ test("the mobile finance workbench reads cashier state and posts only through th
   expect(app).toContain("No folio windows exist for this reservation.");
   expect(app).toContain("A governed folio window must be opened before charges can be reviewed or posted.");
   expect(app).not.toContain("{row.quantity} × {row.amountMinor}");
-  expect(app).toContain("<FinanceWorkspace onLifecycleBusyChange={setReservationLifecycleFlight} />");
+  expect(app).toContain('<FinanceWorkspace key={route.financeReservation ?? "cashier"} initialReservationId={route.financeReservation} onLifecycleBusyChange={setReservationLifecycleFlight} />');
+  expect(readWorkspaceRoute(`/p/${PROPERTY}/today?workspace=finance&reservation=reservation-123`)).toMatchObject({ workspace: "finance", financeReservation: "reservation-123" });
   expect(app).toContain("Split bill windows");
   expect(app).toContain("No partial amount split");
   expect(app).toContain("No server-returned complete charge groups are available in this window.");

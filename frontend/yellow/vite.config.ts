@@ -11,13 +11,16 @@ export default defineConfig({
     emptyOutDir: true,
     target: "es2022",
     rolldownOptions: {
+      preserveEntrySignatures: "allow-extension",
       output: {
+        strictExecutionOrder: true,
         codeSplitting: {
           groups: [
             {
               name: "yellow-app",
               test: /frontend[\\/]yellow[\\/]src[\\/]App\.tsx$/,
               priority: 30,
+              includeDependenciesRecursively: false,
             },
             {
               name: "react-runtime",
