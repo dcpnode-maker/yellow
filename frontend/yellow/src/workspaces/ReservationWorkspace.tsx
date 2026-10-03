@@ -1,3 +1,4 @@
+import { StaffPartyReadWorkbench } from "./StaffPartyReadWorkbench";
 import { StaffCrsWorkspace } from "./StaffCrsWorkspace";
 import { StaffGroupBlockWorkbench } from "./StaffGroupBlockWorkbench";
 import { ReservationCalendar } from "./ReservationCalendar";
@@ -3557,179 +3558,13 @@ function ReservationBoardContents({ timezone }: Readonly<{ timezone: string }>) 
 }
 
 function GuestsWorkspace({ requestedGuestSearch = new URLSearchParams(window.location.search).get("guest")?.trim() ?? "" }: Readonly<{ requestedGuestSearch?: string }> = {}) {
-  const [query, setQuery] = useState(requestedGuestSearch.length >= 2 ? requestedGuestSearch : "");
-  const [selectedParty, setSelectedParty] = useState<PartyProfile | null>(null);
-  const profiles = useQuery({
-    queryKey: ["guest-search", propertyId, query],
-    queryFn: () => searchPartyProfiles(query),
-    enabled: query.trim().length >= 2,
-  });
-  const history = useQuery({
-    queryKey: ["guest-stay-history", propertyId, selectedParty?.partyId],
-    queryFn: () => loadPartyStayHistory(selectedParty!.partyId),
-    enabled: selectedParty !== null,
-  });
-  useEffect(() => {
-    if (
-      !requestedGuestSearch ||
-      query !== requestedGuestSearch ||
-      selectedParty ||
-      !profiles.data
-    ) {
-      return;
-    }
-    const requestedName = requestedGuestSearch.toLocaleLowerCase();
-    const matchingProfile = profiles.data.find(
-      (profile) => profile.partyId === requestedGuestSearch || profile.displayName.toLocaleLowerCase() === requestedName,
-    );
-    if (matchingProfile) setSelectedParty(matchingProfile);
-  }, [profiles.data, query, selectedParty]);
-  return (
-    <section className="reservation-workspace">
-      <div className="reservation-hero board-hero">
-        <div>
-          <span className="state">GUEST RELATIONSHIPS</span>
-          <h1>Guests</h1>
-          <p>
-            Find a guest, open their profile and review their stay history.
-            Contact hints, when configured, remain masked by the server.
-          </p>
-        </div>
-      </div>
-      <form
-        className="guest-search"
-        onSubmit={(event) => {
-          event.preventDefault();
-          void profiles.refetch();
-        }}
-      >
-        <label>
-          Find a guest
-          <input
-            value={query}
-            minLength={2}
-            onChange={(event) => setQuery(event.target.value)}
-            placeholder="Enter at least two characters"
-          />
-        </label>
-        <button type="submit">Search</button>
-      </form>
-      {query.trim().length < 2 ? (
-        <p className="empty">Enter at least two characters to search guest profiles.</p>
-      ) : profiles.isLoading ? (
-        <p className="empty">Searching guest profiles…</p>
-      ) : profiles.isError ? (
-        <p className="error">{profiles.error.message}</p>
-      ) : (
-        <div className="guest-results">
-          {profiles.data?.length ? (
-            profiles.data.map((profile) => (
-              <button
-                className="guest-result"
-                key={profile.partyId}
-                onClick={() => setSelectedParty(profile)}
-              >
-                <span className="state">
-                  {profile.kind} · {profile.status}
-                </span>
-                <h2>{profile.displayName}</h2>
-                <p>{profile.roles.join(" · ")}</p>
-                {profile.contacts.length ? (
-                  <small>
-                    {profile.contacts
-                      .map((contact) => `${contact.kind}: ${contact.hint}`)
-                      .join(" · ")}
-                  </small>
-                ) : (
-                  <small>No contact hint is recorded.</small>
-                )}
-                <strong className="guest-open">Open profile →</strong>
-              </button>
-            ))
-          ) : (
-            <p className="empty">No guest profile matches this search.</p>
-          )}
-        </div>
-      )}
-      {selectedParty ? (
-        <section
-          className="guest-profile"
-          aria-label={`${selectedParty.displayName} profile`}
-        >
-          <header>
-            <div>
-              <span className="state">GUEST PROFILE</span>
-              <h2>{selectedParty.displayName}</h2>
-              <p>
-                {selectedParty.roles.join(" · ")} · {selectedParty.status}
-              </p>
-            </div>
-            <button onClick={() => setSelectedParty(null)}>
-              Close profile
-            </button>
-          </header>
-          <h3>Stay history</h3>
-          {history.isLoading ? (
-            <p className="empty">Loading factual stay history…</p>
-          ) : history.isError ? (
-            <p className="error">{history.error.message}</p>
-          ) : history.data?.reservations?.length ? (
-            <ul className="guest-history">
-              {history.data.reservations.map((stay) => (
-                <li key={stay.reservationId}>
-                  <strong>{stay.confirmationNo}</strong>
-                  <span>
-                    {stay.status.replace("_", " ")} ·{" "}
-                    {stay.sellableUnitLabel ??
-                      stay.unitTypeLabel ??
-                      "Room to assign"}{" "}
-                    · {stay.ratePlanLabel ?? "Public rate"}
-                  </span>
-                  <button
-                    onClick={() =>
-                      navigateYellow(
-                        `/p/${propertyId}/res/${stay.reservationId}`,
-                      )
-                    }
-                  >
-                    Open stay
-                  </button>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p className="empty">
-              No factual stays are returned for this guest profile.
-            </p>
-          )}
-        </section>
-      ) : null}
-    </section>
-  );
+  const currentPropertyId = /^\/p\/([^/]+)/.exec(window.location.pathname)?.[1] ?? propertyId;
+  return <StaffPartyReadWorkbench propertyId={currentPropertyId} requestedGuestSearch={requestedGuestSearch} />;
 }
 
 function InlineGuestProfile({ partyId, timezone }: Readonly<{ partyId: string; timezone: string }>) {
-  const profiles = useQuery({
-    queryKey: ["yellow-inline-guest-profile", propertyId, partyId],
-    queryFn: () => searchPartyProfiles(partyId),
-  });
-  const profile = profiles.data?.find((item) => item.partyId === partyId) ?? null;
-  const history = useQuery({
-    queryKey: ["yellow-inline-guest-history", propertyId, partyId],
-    queryFn: () => loadPartyStayHistory(partyId),
-    enabled: profile !== null,
-  });
-  if (profiles.isLoading) return <p className="empty">Loading the canonical guest profile…</p>;
-  if (profiles.isError) return <p className="error">{profiles.error.message}</p>;
-  if (!profile) return <p className="empty">The requested Party profile is not available in this property.</p>;
-  return <section className="yellow-inline-guest" aria-label={`${profile.displayName} guest history`}>
-    <header><div><span>GUEST PROFILE</span><h4>{profile.displayName}</h4><p>{profile.roles.join(" · ")} · {profile.status}</p></div></header>
-    <div className="yellow-inline-guest-contacts">{profile.contacts.length ? profile.contacts.map((contact) => <small key={`${contact.kind}-${contact.hint}`}>{contact.kind}: {contact.hint}</small>) : <small>No contact hint is recorded.</small>}</div>
-    <h5>Stay history</h5>
-    {history.isLoading ? <p className="empty">Loading factual stay history…</p> : history.isError ? <p className="error">{history.error.message}</p> : history.data?.reservations?.length ? <ul>{history.data.reservations.map((stay) => <li key={stay.reservationId}>
-      <button type="button" onClick={() => navigateYellow(`/p/${propertyId}/res/${stay.reservationId}`)}><strong>{stay.confirmationNo}</strong><span>{reservationStatusDescription(stay.operationalState ?? stay.status)} · {formatMovementTime(stay.stayFrom, timezone, true)} · {stay.sellableUnitLabel ?? stay.unitTypeLabel ?? "Room pending"}</span></button>
-    </li>)}</ul> : <p className="empty">No factual stays are returned for this guest profile.</p>}
-  </section>;
+  const currentPropertyId = /^\/p\/([^/]+)/.exec(window.location.pathname)?.[1] ?? propertyId;
+  return <StaffPartyReadWorkbench propertyId={currentPropertyId} partyId={partyId} timezone={timezone} />;
 }
 
 export { ReservationWorkspace, OverwatchCheckInJourney, OverwatchCheckoutJourney, ReservationCreateWorkspace, ReservationBoardWorkspace, GuestsWorkspace, InlineGuestProfile };
