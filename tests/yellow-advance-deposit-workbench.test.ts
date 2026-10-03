@@ -1,17 +1,18 @@
 import { expect, test } from "bun:test";
 import { resolve } from "node:path";
 
-const app = await Bun.file("frontend/yellow/src/App.tsx").text();
+const finance = await Bun.file("frontend/yellow/src/workspaces/FinanceWorkspace.tsx").text();
+const api = await Bun.file("frontend/yellow/src/yellow-api.tsx").text();
 const css = await Bun.file("frontend/yellow/src/styles.css").text();
 
-function between(start: string, end: string): string {
-  const from = app.indexOf(start); const to = app.indexOf(end, from);
+function between(source: string, start: string, end: string): string {
+  const from = source.indexOf(start); const to = source.indexOf(end, from);
   if (from < 0 || to < 0) throw new Error(`missing ${start}`);
-  return app.slice(from, to);
+  return source.slice(from, to);
 }
 
 test("advance deposits use only the accepted read model and never render payment secrets", () => {
-  const helpers = between("type HostedDepositState", "const EXACT_MINOR");
+  const helpers = between(api, "type HostedDepositState", "export const EXACT_MINOR");
   expect(helpers).toContain('`/api/v1/properties/${propertyId}/folios/${encodeURIComponent(folioId)}/hosted-deposits`');
   expect(helpers).toContain('`/api/v1/properties/${propertyId}/hosted-deposits/${encodeURIComponent(requestId)}`');
   expect(helpers).toContain('exactObject(value, ["instrumentId", "kind", "brand", "last4", "expiry", "psp"])');
@@ -22,7 +23,7 @@ test("advance deposits use only the accepted read model and never render payment
 });
 
 test("request and application are separately confirmed, freshly preflighted, idempotent and reconciled", () => {
-  const workbench = between("function AdvanceDepositWorkbench", "function CashierWorkbench");
+  const workbench = between(finance, "function AdvanceDepositWorkbench", "function CashierWorkbench");
   expect(workbench).toContain('queryKey: ["cashier-hosted-deposits", propertyId, folioId]');
   expect(workbench).toContain('const [freshReservation, freshStatement, freshWorkbench] = await Promise.all');
   expect(workbench).toContain("const currentFolio = freshReservation.reservation.folios.find");
@@ -48,12 +49,12 @@ test("request and application are separately confirmed, freshly preflighted, ide
   expect(workbench).toContain("running.current = false;");
 });
 
-test("the mounted cashier route retains a responsive, masked-instrument deposit workbench", () => {
-  expect(app).toContain("<AdvanceDepositWorkbench reservation={visibleReservationDetail!.reservation} statement={folio.data}");
-  expect(app).toContain('aria-label="Advance deposits"');
-  expect(app).toContain("No advance deposits.");
-  expect(app).toContain("No eligible masked instruments are available for this open folio.");
-  expect(app).toContain("Open guest deposit page");
+test("the active cashier source retains responsive, masked-instrument deposit controls (static contract)", () => {
+  expect(finance).toContain("<AdvanceDepositWorkbench reservation={visibleReservationDetail!.reservation} statement={folio.data}");
+  expect(finance).toContain('aria-label="Advance deposits"');
+  expect(finance).toContain("No advance deposits.");
+  expect(finance).toContain("No eligible masked instruments are available for this open folio.");
+  expect(finance).toContain("Open guest deposit page");
   expect(css).toContain(".cashier-deposit-workbench {");
   expect(css).toContain(".deposit-status-list button,.deposit-request-fields button,.deposit-proposal button,.deposit-one-time a { min-height: 44px;");
   expect(css).toContain(".deposit-instruments { grid-template-columns: 1fr; }");
