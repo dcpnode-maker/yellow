@@ -357,3 +357,76 @@ describe("Order578 hosted-deposit read HTTP boundary", () => {
     )).status).toBe(503);
   });
 });
+
+describe("CASHIER-HANDOFF-05 guest HTML and status route fixtures", () => {
+  function fixture() {
+    let statusReads = 0;
+    let forbiddenEffects = 0;
+    const status = {
+      propertyName: "Synthetic guest page", folioReference: "SYNTHETIC-ONLY",
+      amountMinor: "1000", currency: "INR", expiresAt: "2030-01-01T00:00:00Z",
+      state: "ready", capturedMinor: "0", appliedMinor: "0", remainingMinor: "0", generation: 1,
+    };
+    const hosted = new Proxy({
+      async status() { statusReads++; return status; },
+    }, { get(target, name) {
+      if (name === "status") return target.status;
+      return () => { forbiddenEffects++; throw new Error("Fixture financial effects forbidden"); };
+    } }) as unknown as HostedDepositService;
+    const payments = new Proxy({}, { get() {
+      return () => { forbiddenEffects++; throw new Error("Fixture payment effects forbidden"); };
+    } }) as PaymentService;
+    const api = new HostedDepositProviderHttpApi({ hostedDeposits: hosted, payments,
+      callbackSecret: SECRET, sendCallback: async () => {
+        forbiddenEffects++; throw new Error("Fixture provider transport forbidden");
+      } });
+    return { api, status, reads: () => statusReads, effects: () => forbiddenEffects };
+  }
+  const paths = ["/pay/synthetic-opaque-fixture", "/assets/guest.js", "/assets/guest.css",
+    "/api/public/hosted-deposits/synthetic-opaque-fixture"];
+
+  test("CASHIER-HANDOFF-05 enabled guest factory serves HTML/assets and separate safe status JSON", async () => {
+    const f = fixture();
+    const app = createApp({ hostedDepositRoutes: f.api, hostedDepositSurface: "guest" });
+    const responses = await Promise.all(paths.map(path => app.handle(new Request("http://127.0.0.1:3000" + path))));
+    expect(responses.map(response => response.status)).toEqual([200, 200, 200, 200]);
+    expect(responses.map(response => response.headers.get("content-type"))).toEqual([
+      "text/html; charset=utf-8", "text/javascript; charset=utf-8", "text/css; charset=utf-8",
+      "application/json; charset=utf-8",
+    ]);
+    expect(await responses[0]!.text()).toContain("<main data-hosted-deposit-status");
+    expect(await responses[1]!.text()).toContain('credentials: "omit"');
+    expect(await responses[2]!.text()).toContain(".card");
+    expect(await responses[3]!.json()).toEqual(f.status);
+    for (const response of responses) {
+      expect(response.headers.get("cache-control")).toBe("no-store, max-age=0");
+      expect(response.headers.get("referrer-policy")).toBe("no-referrer");
+    }
+    expect(f.reads()).toBe(1);
+    expect(f.effects()).toBe(0);
+  });
+
+  test("CASHIER-HANDOFF-05 disabled factory keeps guest HTML/assets/status unmounted", async () => {
+    const app = createApp();
+    for (const path of paths) {
+      const response = await app.handle(new Request("http://127.0.0.1:3000" + path));
+      expect(response.status).toBe(404);
+      expect(await response.text()).not.toContain("<main data-hosted-deposit-status");
+    }
+  });
+
+  test("CASHIER-HANDOFF-05 provider-only factory never mounts guest routes or reads guest status", async () => {
+    const f = fixture();
+    const app = createApp({ hostedDepositRoutes: f.api, hostedDepositSurface: "provider" });
+    for (const path of paths) {
+      const response = await app.handle(new Request("http://127.0.0.1:3000" + path));
+      expect(response.status).toBe(404);
+      expect(await response.text()).not.toContain("<main data-hosted-deposit-status");
+    }
+    const provider = await app.handle(new Request("http://127.0.0.1:3000/provider/pay"));
+    expect(provider.status).toBe(200);
+    expect(provider.headers.get("content-type")).toBe("text/html; charset=utf-8");
+    expect(f.reads()).toBe(0);
+    expect(f.effects()).toBe(0);
+  });
+});
