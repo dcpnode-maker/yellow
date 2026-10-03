@@ -1,5 +1,7 @@
 # Existing inventory page: researched relationship view admission
 
+Admission clarification before source edits: the exact accepted component test's external prototype-projector path must be changed to the admitted repository-local inventory-relationships-model.mjs path; all21 scenarios and budgets remain unchanged. Record that single parent-authored portability delta separately from the frozen candidate. The structural model must match its existing frozen research bytes. Parent's actual-page proof then exercises the admitted model/routes/fences, rather than depending on any machine-local research directory.
+
 Founder requests completion of the accepted hotel/STR research screens and flows, preserving Yellow's original theme/navigation. Existing40-vendor catalogue/prototype,10R frozen RB02 contract map and Astra INVENTORY-INTEGRATION-GUIDANCE-20261003.md are source references. This order is the successor to the independently accepted pure presentation v1 and its mobile-density v2. Require exact accepted v2 freeze before copying product bytes; do not edit either immutable candidate.
 
 ## Exclusive parent scope

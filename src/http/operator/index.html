@@ -7,6 +7,7 @@
 <title>Yellow · Hotel Operations</title>
 <link rel="stylesheet" href="/assets/operator.css">
 <link rel="stylesheet" href="/assets/operator-interfaces.css">
+<link rel="stylesheet" href="/assets/operator-inventory-relationships.css">
 <script src="/assets/operator.js" defer></script>
 <script src="/assets/operator-interfaces.js" defer></script>
 <script src="/assets/operator-layouts.js" defer></script>
@@ -1232,9 +1233,9 @@
 <button class="quiet" id="refresh-inventory" type="button">Refresh</button>
 </div>
 <div class="metric-grid" id="inventory-metrics" aria-live="polite">
-<div class="metric"><strong id="unit-type-count">—</strong><span>Room types</span></div>
-<div class="metric"><strong id="space-count">—</strong><span>Physical spaces</span></div>
-<div class="metric"><strong id="sellable-count">—</strong><span>Sellable units</span></div>
+<div class="metric"><strong id="unit-type-count">—</strong><span>Returned room types</span></div>
+<div class="metric"><strong id="space-count">—</strong><span>Returned physical spaces</span></div>
+<div class="metric"><strong id="sellable-count">—</strong><span>Returned sellable units</span></div>
 </div>
 <section class="card projection-panel" aria-labelledby="projection-heading">
 <div class="panel-heading">
@@ -1253,20 +1254,9 @@
 <p class="form-message" role="status" aria-live="polite"></p>
 </form>
 </section>
-<div class="inventory-columns">
-<section class="inventory-panel card" aria-labelledby="unit-types-heading">
-<h3 id="unit-types-heading">Room types</h3>
-<div class="inventory-list" id="unit-type-list"></div>
+<section class="inventory-panel card" id="inventory-relationships-mount" aria-label="Configured rooms and units">
+<p>Returned inventory has not been verified.</p>
 </section>
-<section class="inventory-panel card" aria-labelledby="spaces-heading">
-<h3 id="spaces-heading">Physical spaces</h3>
-<div class="inventory-list" id="space-list"></div>
-</section>
-<section class="inventory-panel card" aria-labelledby="sellables-heading">
-<h3 id="sellables-heading">Sellable units</h3>
-<div class="inventory-list" id="sellable-list"></div>
-</section>
-</div>
 <form class="card bulk-room-form" id="bulk-room-form">
 <div class="bulk-room-heading">
 <div>

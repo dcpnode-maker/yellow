@@ -4,6 +4,12 @@
  let operator = null;
  let activeView = "today";
  let inventoryData = { unitTypes: [], spaces: [], sellableUnits: [] };
+ let inventoryGeneration = 0;
+ let inventorySnapshotContext = null;
+ let inventoryRelationshipModel = null;
+ let inventoryModules = null;
+ let inventoryModulesPromise = null;
+ let inventoryModuleAttempt = 0;
  let propertiesData = [];
  let invoiceWorkbench = null;
  let invoiceWorkbenchProperty = "";
@@ -446,9 +452,7 @@
  const managementJourneyControls = document.querySelectorAll("[data-journey-view]");
  const refreshInventory = $("#refresh-inventory");
  const inventoryStatus = $("#inventory-status");
- const unitTypeList = $("#unit-type-list");
- const spaceList = $("#space-list");
- const sellableList = $("#sellable-list");
+ const inventoryRelationshipsMount = $("#inventory-relationships-mount");
  const unitTypeCount = $("#unit-type-count");
  const spaceCount = $("#space-count");
  const sellableCount = $("#sellable-count");
@@ -922,6 +926,7 @@
    const demoResponse = await fetch("/api/v1/auth/demo:enter", { method:"POST", headers:{ "content-type":"application/json" } });
    const demoBody = await demoResponse.json().catch(() => null);
    if (demoResponse.ok && demoBody?.accessToken) {
+    clearInventoryEvidence("Session changed. Refresh inventory to verify this session's configuration.");
     accessToken = demoBody.accessToken;
     operator = demoBody.user;
     return request(path, { ...fetchOptions, yellowDemoRetried:true });
@@ -944,6 +949,7 @@
  if (loginForm.dispatchEvent(event)) loginForm.elements.password.value = "";
  }
   function showLogin() {
+ clearInventoryEvidence("Returned inventory has not been verified.");
  resetInvoiceWorkbench();
  closeReservationPickupTaskDetail({ history: false, restoreFocus: false });
  accessToken = "";
@@ -6141,22 +6147,73 @@ function checkoutHousekeepingCompletionActionIsCurrent(origin, section, action) 
   select.append(option);
  }
  }
+  function currentInventoryContext(context) {
+ return context && context.generation === inventoryGeneration && context.property === propertySelect.value && context.token === accessToken;
+ }
+  function clearInventoryEvidence(message = "Returned inventory has not been verified.") {
+ inventoryGeneration += 1;
+ inventorySnapshotContext = null; inventoryRelationshipModel = null;
+ inventoryData = { unitTypes: [], spaces: [], sellableUnits: [] };
+ inventoryRelationshipsMount.replaceChildren(node("p", "", message));
+ projectionSummary.textContent = "Projection status has not been verified for this context.";
+ unitTypeCount.textContent = spaceCount.textContent = sellableCount.textContent = "—";
+ for (const select of [sellableUnitType, sellableSpace, bulkRoomUnitType, operationalBlockSpace, restrictionUnitType, priceUnitType, currentPriceUnitType]) {
+  select.replaceChildren(); select.disabled = true;
+ }
+ bulkRoomForm.querySelector("button[type=submit]").disabled = true;
+ restrictionForm.querySelector("button[type=submit]").disabled = true;
+ // Read options are cleared; original pending command keys/bodies are not changed.
+ }
+  function beginInventoryRead() {
+ clearInventoryEvidence("Loading returned inventory…");
+ return { property: propertySelect.value, token: accessToken, generation: inventoryGeneration };
+ }
+  async function loadInventoryModules() {
+ if (inventoryModules) return inventoryModules;
+ if (!inventoryModulesPromise) {
+  const attempt = inventoryModuleAttempt;
+  const pending = Promise.all([
+   import(`/assets/operator-inventory-relationships.js?attempt=${attempt}`),
+   import(`/assets/operator-inventory-relationships-model.js?attempt=${attempt}`),
+  ]).then(([view, model]) => ({ render: view.createInventoryRelationshipsView, build: model.buildInventoryRelationships }));
+  inventoryModulesPromise = pending;
+  pending.catch(() => { if (inventoryModulesPromise === pending) { inventoryModulesPromise = null; inventoryModuleAttempt += 1; } });
+ }
+ inventoryModules = await inventoryModulesPromise;
+ return inventoryModules;
+ }
+  function inventoryTenantMetadata(token) {
+ // Local consistency metadata only. Signature and grants are verified by the API.
+ try {
+  const encoded = token.split(".")[1];
+  const claims = JSON.parse(atob(encoded.replaceAll("-", "+").replaceAll("_", "/")));
+  if (canonicalUuid(claims.tid)) return claims.tid;
+ } catch { /* No row is used to invent missing session scope. */ }
+ throw new Error("Inventory session metadata is unavailable. Sign in again before refreshing configuration.");
+ }
+  async function admitInventory(data, context) {
+ if (!currentInventoryContext(context)) return false;
+ const modules = await loadInventoryModules();
+ if (!currentInventoryContext(context)) return false;
+ const model = modules.build(data, { propertyId: context.property, tenantId: inventoryTenantMetadata(context.token) });
+ if (!currentInventoryContext(context)) return false;
+ inventoryData = data; inventorySnapshotContext = context; inventoryRelationshipModel = model;
+ return true;
+ }
+  function inventoryReadFailed(context, error) {
+ if (!currentInventoryContext(context)) return;
+ clearInventoryEvidence("Inventory is unavailable. Refresh to verify returned configuration.");
+ inventoryStatus.textContent = error instanceof Error ? error.message : "Inventory could not be verified";
+ }
   function renderInventory() {
+ if (!currentInventoryContext(inventorySnapshotContext) || !inventoryModules || !inventoryRelationshipModel) return;
  unitTypeCount.textContent = String(inventoryData.unitTypes.length);
  spaceCount.textContent = String(inventoryData.spaces.length);
  sellableCount.textContent = String(inventoryData.sellableUnits.length);
- unitTypeList.replaceChildren(...inventoryData.unitTypes.map((item) =>
-  inventoryItem(item.name, `${item.baseOccupancy} base · ${item.maxOccupancy} max`, item.code)
- ));
- spaceList.replaceChildren(...inventoryData.spaces.map((item) =>
-  inventoryItem(`Space ${item.code}`, item.floor ? `Floor ${item.floor}` : "Floor not set", item.status)
- ));
- sellableList.replaceChildren(...inventoryData.sellableUnits.map((item) =>
-  inventoryItem(item.name, item.spaces.map((space) => space.code).join(", "), item.unitTypeCode)
- ));
- if (inventoryData.unitTypes.length === 0) emptyList(unitTypeList, "No room types yet.");
- if (inventoryData.spaces.length === 0) emptyList(spaceList, "No physical spaces yet.");
- if (inventoryData.sellableUnits.length === 0) emptyList(sellableList, "No sellable units yet.");
+ const view = inventoryModules.render(document, inventoryRelationshipModel);
+ // Existing returned-record metrics already show these counts once on this page.
+ view.querySelector(".inventory-relationships__counts").hidden = true;
+ inventoryRelationshipsMount.replaceChildren(view);
  populateSelect(sellableUnitType, inventoryData.unitTypes, "room type", (item) => `${item.code} · ${item.name}`);
  populateSelect(sellableSpace, inventoryData.spaces, "physical space", (item) => item.code);
  populateSelect(bulkRoomUnitType, inventoryData.unitTypes.filter(({ profileKey }) => profileKey === "hotel"),
@@ -6211,14 +6268,16 @@ function checkoutHousekeepingCompletionActionIsCurrent(origin, section, action) 
   async function loadInventory() {
  const property = propertySelect.value;
  if (!property) return;
+ const context = beginInventoryRead();
  inventoryStatus.textContent = "Loading live inventory…";
  try {
-  inventoryData = await request(`/api/v1/properties/${enc(property)}/inventory`);
+  const data = await request(`/api/v1/properties/${enc(property)}/inventory`);
+  if (!await admitInventory(data, context)) return;
   renderInventory();
-  inventoryStatus.textContent = "Inventory is current from tenant-scoped PostgreSQL.";
-  await loadProjectionStatus();
+  inventoryStatus.textContent = "Returned configuration is verified for this property and session; availability is not evaluated.";
+  await loadProjectionStatus(context);
  } catch (error) {
-  inventoryStatus.textContent = error instanceof Error ? error.message : "Inventory could not be loaded";
+  inventoryReadFailed(context, error);
  }
  }
   function renderProjectionStatus(status) {
@@ -6226,13 +6285,16 @@ function checkoutHousekeepingCompletionActionIsCurrent(origin, section, action) 
   ? `${status.fromDate} → ${status.toDate} (end not included) · ${status.rows} rows · ${status.unitTypes} room types · updated ${new Date(status.updatedAt).toLocaleString()}`
   : "No projection horizon exists yet. Choose exact dates below when this hotel is ready.";
  }
-  async function loadProjectionStatus() {
- const property = propertySelect.value;
+  async function loadProjectionStatus(context = { property: propertySelect.value, token: accessToken, generation: inventoryGeneration }) {
+ const property = context.property;
  if (!property) return;
  projectionSummary.textContent = "Loading projection status…";
  try {
-  renderProjectionStatus(await request(`/api/v1/properties/${enc(property)}/availability-projection`));
+  const status = await request(`/api/v1/properties/${enc(property)}/availability-projection`);
+  if (!currentInventoryContext(context)) return;
+  renderProjectionStatus(status);
  } catch (error) {
+  if (!currentInventoryContext(context)) return;
   projectionSummary.textContent = error instanceof Error ? error.message : "Projection status could not be loaded";
  }
  }
@@ -6264,25 +6326,29 @@ function checkoutHousekeepingCompletionActionIsCurrent(origin, section, action) 
   async function loadOperationalBlocks() {
  const property = propertySelect.value;
  if (!property) return;
+ const context = beginInventoryRead();
  operationalBlockStatus.textContent = "Loading active operational causes…";
  try {
   const [blocks, inventory] = await Promise.all([
   request(`/api/v1/properties/${enc(property)}/operational-blocks`),
   request(`/api/v1/properties/${enc(property)}/inventory`),
-  loadInventoryPolicy(),
+  loadInventoryPolicy(context),
   ]);
+  if (!await admitInventory(inventory, context)) return;
   operationalBlocksData = blocks.operationalBlocks;
-  inventoryData = inventory;
   renderOperationalBlocks();
   operationalBlockStatus.textContent = "Operational causes are current from tenant-scoped PostgreSQL.";
  } catch (error) {
+  if (!currentInventoryContext(context)) return;
+  inventoryReadFailed(context, error);
   operationalBlockStatus.textContent = error instanceof Error ? error.message : "Operational causes could not be loaded";
  }
  }
-  async function loadInventoryPolicy() {
+  async function loadInventoryPolicy(context = { property: propertySelect.value, token: accessToken, generation: inventoryGeneration }) {
  const property = propertySelect.value;
  if (!property) return;
  const body = await request(`/api/v1/properties/${enc(property)}/inventory-policy`);
+ if (!currentInventoryContext(context)) return;
  inventoryPolicyData = body.inventoryPolicy;
  oosSellability.value = inventoryPolicyData.oosSellability;
  formMessage(oosPolicyForm, `Current PostgreSQL policy: ${inventoryPolicyData.oosSellability === "allowed" ? "allowed with warning" : "blocked from sale"}.`);
@@ -6336,22 +6402,27 @@ function checkoutHousekeepingCompletionActionIsCurrent(origin, section, action) 
   restrictionUnitType.append(new Option(`${item.code} · ${item.name}`, item.id));
  }
  if ([...restrictionUnitType.options].some(({ value }) => value === current)) restrictionUnitType.value = current;
+ restrictionUnitType.disabled = false;
+ restrictionForm.querySelector("button[type=submit]").disabled = false;
  }
   async function loadRestrictions() {
  const property = propertySelect.value;
  if (!property) return;
+ const context = beginInventoryRead();
  restrictionStatus.textContent = "Loading live restrictions…";
  try {
   const [restrictionBody, inventoryBody] = await Promise.all([
   request(`/api/v1/properties/${enc(property)}/restrictions`),
   request(`/api/v1/properties/${enc(property)}/inventory`),
   ]);
+  if (!await admitInventory(inventoryBody, context)) return;
   restrictionsData = restrictionBody.restrictions;
-  inventoryData = inventoryBody;
   populateRestrictionUnitTypes();
   renderRestrictions();
   restrictionStatus.textContent = "Restrictions are current from tenant-scoped PostgreSQL.";
  } catch (error) {
+  if (!currentInventoryContext(context)) return;
+  inventoryReadFailed(context, error);
   restrictionStatus.textContent = error instanceof Error ? error.message : "Restrictions could not be loaded";
  }
  }
@@ -7561,19 +7632,23 @@ function checkoutHousekeepingCompletionActionIsCurrent(origin, section, action) 
   async function loadRates() {
  const property = propertySelect.value;
  if (!property) return;
+ const context = beginInventoryRead();
  ratesStatus.textContent = "Loading live rate configuration…";
  try {
   const [rates, inventory] = await Promise.all([
   request(`/api/v1/properties/${enc(property)}/rate-configuration`),
   request(`/api/v1/properties/${enc(property)}/inventory`),
   ]);
+  if (!await admitInventory(inventory, context)) return;
   rateData = rates;
-  inventoryData = inventory;
   renderInventory();
   renderRates();
   await loadRateBuilder();
+  if (!currentInventoryContext(context)) return;
   ratesStatus.textContent = "Policies and plans are current from tenant-scoped PostgreSQL.";
  } catch (error) {
+  if (!currentInventoryContext(context)) return;
+  inventoryReadFailed(context, error);
   ratesStatus.textContent = error instanceof Error ? error.message : "Rate configuration could not be loaded";
  }
  }
@@ -11729,6 +11804,7 @@ function vehicleReturnPathFromState(state, property) {
    password: fields.get("password"),
   }),
   });
+  clearInventoryEvidence("Session changed. Returned inventory has not been verified.");
   accessToken = body.accessToken;
   operator = body.user;
   restoreLocalLoginDefaults();
@@ -11736,6 +11812,7 @@ function vehicleReturnPathFromState(state, property) {
   showWorkbench();
   setLoginMessage("");
  } catch (error) {
+  clearInventoryEvidence("Returned inventory has not been verified.");
   accessToken = "";
   restoreLocalLoginDefaults();
   setLoginMessage(error instanceof Error ? error.message : "Sign-in failed", true);
@@ -11750,12 +11827,14 @@ function vehicleReturnPathFromState(state, property) {
    setLoginMessage("Opening the shared demo…");
    try {
     const body = await request("/api/v1/auth/demo:enter", { method: "POST" });
+    clearInventoryEvidence("Session changed. Returned inventory has not been verified.");
     accessToken = body.accessToken;
     operator = body.user;
     await loadProperties();
     showWorkbench();
     setLoginMessage("");
    } catch (error) {
+    clearInventoryEvidence("Returned inventory has not been verified.");
     accessToken = "";
     setLoginMessage(error instanceof Error ? error.message : "Demo entry failed", true);
    } finally {
@@ -12102,6 +12181,7 @@ function vehicleReturnPathFromState(state, property) {
   return;
  }
  if (!reservationCreatePanel.hidden) closeReservationCreate({ history: false, force: true });
+ clearInventoryEvidence("Property changed. Returned inventory has not been verified.");
  resetInvoiceWorkbench();
  closeReservationPickupTaskDetail({ history: false, restoreFocus: false });
  clearHousekeepingTaskDetailState();
@@ -12822,6 +12902,10 @@ housekeepingSheetDate.addEventListener("change", () => {
  });
  restrictionForm.addEventListener("submit", async (event) => {
  event.preventDefault();
+ if (!currentInventoryContext(inventorySnapshotContext) || restrictionUnitType.disabled) {
+  formMessage(restrictionForm, "Refresh and verify this property's inventory before choosing a restriction scope.", true);
+  return;
+ }
  const fields = new FormData(restrictionForm);
  const kind = String(fields.get("kind"));
  const valued = ["min_los", "max_los", "min_adv", "max_adv"].includes(kind);
