@@ -61,7 +61,7 @@ export function HousekeepingFloorWorkbench({ propertyId, timezone, getToken, dis
     setStale(false); client.invalidateScope();
   };
   const accessChanged = (cause: unknown) => cause instanceof HousekeepingFloorRequestError &&
-    (cause.scopeChanged || cause.status === 401 || cause.status === 403);
+    (cause.scopeChanged || cause.status === 401 || cause.status === 403 || cause.status === 404);
 
   const refresh = useCallback(async (keepPrior: boolean) => {
     const current = ++generation.current;

@@ -57,7 +57,7 @@ let mode='ok', detailChanged=false, delayed=[];
 window.fetch=async(input,init)=>{
  const url=String(input);calls.push({url,method:init?.method||'GET'});
  const code=url.includes('/synthetic-b/')?'202':'101';
- if(mode==='revoked'||mode==='unauthorized')return new Response('{}',{status:mode==='revoked'?403:401});
+ if(mode==='revoked'||mode==='unauthorized'||mode==='propertyDenied'||(mode==='detailDenied'&&url.includes('/tasks/')))return new Response('{}',{status:mode==='revoked'?403:mode==='unauthorized'?401:404});
  if(mode==='failed')return new Response('{}',{status:500});
  if(mode==='held' && url.includes('/conditions')) return new Promise(resolve=>delayed.push(()=>resolve(new Response(JSON.stringify({rooms:rooms(code),nextCursor:null})))));
  if(url.includes('/conditions'))return new Response(JSON.stringify({rooms:mode==='disappeared'?rooms(code).slice(1):rooms(code),nextCursor:mode==='partial'?'opaque-next':null}));
@@ -129,6 +129,13 @@ const render=extra=>{props={...props,...extra};flushSync(()=>root.render(<Housek
  mode='ok';click('Refresh');await wait(()=>body().includes('2 rooms with recorded condition loaded'));await selectRoom();
  mode='revoked';click('Refresh');await wait(()=>body().includes('(403)'));
  assert(!panel()&&!body().includes('Room 202'),'revoked snapshot hidden');checks.push('403 revocation clears all panel evidence');
+ mode='ok';click('Refresh');await wait(()=>body().includes('2 rooms with recorded condition loaded'));await selectRoom();
+ await keyboard('.hk-progress-task summary',' ');assert(panel().querySelector('.hk-progress-task details').open,'404 setup retains expanded room details');
+ mode='propertyDenied';click('Refresh');await wait(()=>body().includes('(404)'));
+ assert(!panel()&&!document.querySelector('.hk-floor-drawer')&&!body().includes('Room 202')&&!document.querySelector('.hk-floor-cube'),'404 refresh clears all room and task evidence');checks.push('404 property denial clears selected drawer and expanded details');
+ mode='ok';click('Refresh');await wait(()=>body().includes('2 rooms with recorded condition loaded'));await selectRoom();await selectTask();
+ const beforeDeniedPrepare=prepares.length;mode='detailDenied';click('Start cleaning');await wait(()=>body().includes('(404)'));
+ assert(!panel()&&!document.querySelector('.hk-floor-drawer')&&!body().includes('Room 202')&&prepares.length===beforeDeniedPrepare,'404 detail clears evidence without preparing an action');checks.push('404 task-detail denial clears evidence without dispatch');
  flushSync(()=>root.unmount());assert(![...timers.values()].some(t=>t.ms===15000),'clock teardown');checks.push('unmount clears interval');
  const result=document.createElement('pre');result.id='proof';result.textContent=JSON.stringify({passed:true,checks});document.body.replaceChildren(result);
 })().catch(error=>{const failureBody=body();root.unmount();const result=document.createElement('pre');result.id='proof';result.textContent=JSON.stringify({passed:false,error:String(error),checks,body:failureBody.slice(0,1200)});document.body.replaceChildren(result);});
@@ -184,6 +191,6 @@ const render=extra=>{props={...props,...extra};flushSync(()=>root.render(<Housek
       await writeFile(resolve(proof,"receipt.json"),JSON.stringify(evidence,null,2));
     } finally { await terminateOwnedProcess(child,send?()=>send!('Browser.close'):undefined);socket?.close(); }
     expect(evidence.passed, JSON.stringify(evidence)).toBe(true);
-    expect(evidence.checks).toHaveLength(21);
+    expect(evidence.checks).toHaveLength(23);
   } finally { server.stop(true); }
 }, 30_000);
