@@ -26,15 +26,17 @@ describe("Order 623 Opera-style group block workbench", () => {
   test("React demo surface shows the PMS group block module instead of hiding the gap", () => {
     const api = read("frontend/yellow/src/yellow-api.tsx");
     const workspace = read("frontend/yellow/src/workspaces/ReservationWorkspace.tsx");
+    const caller = read("frontend/yellow/src/workspaces/StaffGroupBlockWorkbench.tsx");
+    const presentation = read("frontend/yellow/src/workspaces/StaffGroupBlockEvidenceCard.mjs");
     const styles = read("frontend/yellow/src/styles.css");
 
     expect(api).toContain("async function loadGroupBlocks");
     expect(api).toContain("/api/v1/properties/${propertyId}/group-blocks");
-    expect(workspace).toContain("Opera-style group blocks");
-    expect(workspace).toContain("GROUP RESERVATIONS · BLOCK MANAGEMENT");
-    expect(workspace).toContain("blocked</small>");
-    expect(workspace).toContain("picked up</small>");
-    expect(workspace).toContain("cutoffState");
+    expect(workspace).toContain("<StaffGroupBlockWorkbench key={propertyId} propertyId={propertyId}");
+    expect(caller).toContain("GROUP RESERVATIONS · BLOCK MANAGEMENT");
+    expect(presentation).toContain("Blocked room nights");
+    expect(presentation).toContain("Picked-up room nights");
+    expect(presentation).toContain("cutoffState");
     expect(styles).toContain(".group-block-workbench");
     expect(styles).toContain(".group-block-allotment");
   });

@@ -1,4 +1,5 @@
 import { StaffCrsWorkspace } from "./StaffCrsWorkspace";
+import { StaffGroupBlockWorkbench } from "./StaffGroupBlockWorkbench";
 import { ReservationCalendar } from "./ReservationCalendar";
 import { navigateYellow } from "../workspace-navigation";
 import { readStaffCrsReservationDraft } from "./staff-crs-client";
@@ -3520,10 +3521,6 @@ function ReservationBoardContents({ timezone }: Readonly<{ timezone: string }>) 
     queryKey: ["reservation-board", propertyId],
     queryFn: loadReservationBoard,
   });
-  const groupBlocks = useQuery({
-    queryKey: ["group-blocks", propertyId],
-    queryFn: loadGroupBlocks,
-  });
   if (creating)
     return <ReservationCreateWorkspace key={draftSearch} timezone={timezone} onCancel={() => setCreating(false)} onCreated={async () => { await board.refetch(); }} />;
   if (board.isLoading)
@@ -3548,126 +3545,13 @@ function ReservationBoardContents({ timezone }: Readonly<{ timezone: string }>) 
     <section className="reservation-board-next">
       <div className="reservation-board-actions"><button type="button" onClick={() => setCreating(true)}>New reservation</button></div>
       <GroupReservationWorkspace key={propertyId} propertyId={propertyId} />
-      <GroupBlockWorkbenchPanel
-        loading={groupBlocks.isLoading}
-        error={groupBlocks.isError ? groupBlocks.error.message : null}
-        groups={groupBlocks.data?.groups ?? []}
-      />
+      <StaffGroupBlockWorkbench key={propertyId} propertyId={propertyId} />
       <MovementGrid
         status="all"
         lane={board.data}
         timezone={timezone}
         open={(stay) => navigateYellow(`/p/${propertyId}/res/${stay.reservationId}`)}
       />
-    </section>
-  );
-}
-
-function GroupBlockWorkbenchPanel({
-  loading,
-  error,
-  groups,
-}: Readonly<{
-  loading: boolean;
-  error: string | null;
-  groups: Awaited<ReturnType<typeof loadGroupBlocks>>["groups"];
-}>) {
-  const totals = groups.reduce((acc, group) => ({
-    blocked: acc.blocked + group.blockedRooms,
-    pickedUp: acc.pickedUp + group.pickedUpRooms,
-    remaining: acc.remaining + group.remainingRooms,
-  }), { blocked: 0, pickedUp: 0, remaining: 0 });
-  return (
-    <section className="group-block-workbench" aria-labelledby="group-block-workbench-title">
-      <header>
-        <div>
-          <span className="state">GROUP RESERVATIONS · BLOCK MANAGEMENT</span>
-          <h2 id="group-block-workbench-title">Opera-style group blocks</h2>
-          <p>Read-only group header, allotment, pickup, cutoff/wash and master-folio evidence from Yellow’s PMS tables.</p>
-        </div>
-        <div className="group-block-totals" aria-label="Group block totals">
-          <span><strong>{totals.blocked}</strong><small>blocked</small></span>
-          <span><strong>{totals.pickedUp}</strong><small>picked up</small></span>
-          <span><strong>{totals.remaining}</strong><small>remaining</small></span>
-        </div>
-      </header>
-      {loading ? <p className="empty">Loading group block workbench…</p> : null}
-      {error ? <p className="error" role="alert">{error}</p> : null}
-      {!loading && !error && groups.length === 0 ? (
-        <p className="empty">No group blocks are configured for this property yet. The module is ready for MICE, social, corporate and travel-trade block data.</p>
-      ) : null}
-      <div className="group-block-list">
-        {groups.map((group) => {
-          const visibleAllotment = group.allotment.slice(0, 8);
-          const visibleRoomingList = group.roomingList.slice(0, 6);
-          return (
-            <article className="group-block-card" key={group.groupId} data-cutoff-state={group.cutoffState}>
-              <div className="group-block-card-head">
-                <div>
-                  <span className="state">{group.code} · {group.status}{group.statusDeductsInventory ? " · deducting" : " · non-deducting"}</span>
-                  <h3>{group.name ?? group.code}</h3>
-                  <p>{group.accountPartyName ?? "No company/agent linked"} · {group.arrivalDate ?? "No dates"} → {group.departureDate ?? "No dates"}</p>
-                </div>
-                <strong>{group.pickupPercent}% pickup</strong>
-              </div>
-              <dl className="group-block-metrics">
-                <div><dt>Blocked</dt><dd>{group.blockedRooms}</dd></div>
-                <div><dt>Picked up</dt><dd>{group.pickedUpRooms}</dd></div>
-                <div><dt>Remaining</dt><dd>{group.remainingRooms}</dd></div>
-                <div><dt>Cutoff</dt><dd>{group.cutoffDate ?? "Not set"} · {group.cutoffState.replaceAll("_", " ")}</dd></div>
-                <div><dt>Master folio</dt><dd>{group.masterFolioNo ?? "Not linked"}{group.masterFolioStatus ? ` · ${group.masterFolioStatus}` : ""}</dd></div>
-                <div><dt>Wash</dt><dd>{group.washSchedule === null ? "No schedule" : "Schedule configured"}</dd></div>
-              </dl>
-              <div className="group-block-allotment" role="table" aria-label={`${group.code} allotment`}>
-                <div role="row" className="group-block-allotment-head"><span>Room type</span><span>Date</span><span>Block</span><span>Pickup</span><span>Left</span></div>
-                {visibleAllotment.map((row) => (
-                  <div role="row" key={`${group.groupId}-${row.unitTypeId}-${row.stayDate}`}>
-                    <span>{row.unitTypeCode}<small>{row.unitTypeName}</small></span>
-                    <span>{row.stayDate}</span>
-                    <span>{row.blocked}</span>
-                    <span>{row.pickedUp}</span>
-                    <span>{row.remaining}</span>
-                  </div>
-                ))}
-              </div>
-              {group.allotment.length > visibleAllotment.length ? <small className="group-block-more">Showing first {visibleAllotment.length} of {group.allotment.length} allotment rows.</small> : null}
-              <div className="group-block-rooming-list" aria-label={`${group.code} rooming list pickup`}>
-                <div className="group-block-section-title">
-                  <strong>Rooming list / pickup</strong>
-                  <small>{group.roomingList.length} reservation{group.roomingList.length === 1 ? "" : "s"} linked to this block</small>
-                </div>
-                {visibleRoomingList.length === 0 ? (
-                  <p className="empty">No reservations have picked up this block yet.</p>
-                ) : visibleRoomingList.map((row) => (
-                  <button
-                    type="button"
-                    key={`${group.groupId}-${row.reservationId}`}
-                    className="group-block-rooming-row"
-                    onClick={() => navigateYellow(`/p/${propertyId}/res/${row.reservationId}`)}
-                    aria-label={`Open reservation ${row.confirmationNo} for ${row.primaryGuestDisplayName}`}
-                  >
-                    <span>
-                      <strong>{row.primaryGuestDisplayName}</strong>
-                      <small>{row.confirmationNo} · {row.status.replaceAll("_", " ")}</small>
-                    </span>
-                    <span>
-                      <strong>{row.unitTypeCode ?? "Room type"}</strong>
-                      <small>{row.unitTypeName ?? "Not assigned"} · {row.pickedUpNights} night{row.pickedUpNights === 1 ? "" : "s"}</small>
-                    </span>
-                    <span>
-                      <strong>{row.stayFrom.slice(0, 10)}</strong>
-                      <small>to {row.stayTo.slice(0, 10)}</small>
-                    </span>
-                  </button>
-                ))}
-                {group.roomingList.length > visibleRoomingList.length ? (
-                  <small className="group-block-more">Showing first {visibleRoomingList.length} of {group.roomingList.length} picked-up reservations.</small>
-                ) : null}
-              </div>
-            </article>
-          );
-        })}
-      </div>
     </section>
   );
 }

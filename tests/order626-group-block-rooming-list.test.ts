@@ -5,6 +5,8 @@ const service = readFileSync("src/contexts/reservations/group-blocks.ts", "utf8"
 const operator = readFileSync("src/http/operator.ts", "utf8");
 const api = readFileSync("frontend/yellow/src/yellow-api.tsx", "utf8");
 const workspace = readFileSync("frontend/yellow/src/workspaces/ReservationWorkspace.tsx", "utf8");
+const caller = readFileSync("frontend/yellow/src/workspaces/StaffGroupBlockWorkbench.tsx", "utf8");
+const presentation = readFileSync("frontend/yellow/src/workspaces/StaffGroupBlockEvidenceCard.mjs", "utf8");
 const css = readFileSync("frontend/yellow/src/styles.css", "utf8");
 
 test("Order 626 group blocks expose a rooming-list pickup drilldown", () => {
@@ -22,10 +24,10 @@ test("Order 626 group blocks expose a rooming-list pickup drilldown", () => {
   expect(api).toContain("type GroupBlockRoomingListRow");
   expect(api).toContain("roomingList: readonly GroupBlockRoomingListRow[]");
 
-  expect(workspace).toContain("Rooming list / pickup");
-  expect(workspace).toContain("group.roomingList.slice(0, 6)");
-  expect(workspace).toContain("navigateYellow(`/p/${propertyId}/res/${row.reservationId}`)");
-  expect(workspace).toContain("Open reservation ${row.confirmationNo}");
+  expect(workspace).toContain("<StaffGroupBlockWorkbench key={propertyId} propertyId={propertyId}");
+  expect(presentation).toContain("group.roomingList.map((row, index)");
+  expect(caller).toContain("href={`/p/${propertyId}/res/${row.reservationId}`}");
+  expect(caller).toContain("Open reservation ${row.confirmationNo}");
 
   expect(css).toContain(".group-block-rooming-list");
   expect(css).toContain(".group-block-rooming-row");
