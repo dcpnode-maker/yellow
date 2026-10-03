@@ -365,6 +365,13 @@
  const trustInboxRefresh = $("#trust-inbox-refresh");
  const trustApprovalInbox = $("#trust-approval-inbox");
  const trustInboxMore = $("#trust-inbox-more");
+ const trustAccountEvidence = $("#trust-account-evidence");
+ const trustAccountDetails = $("#trust-account-details");
+ const trustAccountMore = $("#trust-account-more");
+ let trustModules = null, trustModulesPromise = null, trustScope = null;
+ let trustAccountCursor = null, trustAccountCursors = [], trustApprovalCursors = [];
+ let trustAccountRead = 0, trustInboxRead = 0, trustPreviewRead = 0;
+ let trustSessionEpoch = 0, trustFinanceEpoch = 0, trustWorkbenchRead = 0;
  let trustAccounts = [], trustPreviewData = null, trustApprovals = [], trustApprovalCursor = null;
  let trustRequestGeneration = 0;
  const trustMutationKeys = new Map();
@@ -10069,69 +10076,195 @@ function vehicleReturnPathFromState(state, property) {
   if (!reason || bytes > 500) throw new Error("Enter a clear business reason of 1–500 UTF-8 bytes.");
   return { account, accountId: account.accountReference, amountMinor: trustMinorFromDisplay(trustAmount.value, account.currency), reason };
  }
+ function trustContext() { return { generation: trustSessionEpoch, financeEpoch: trustFinanceEpoch, draftGeneration: trustRequestGeneration, property: propertySelect.value, token: accessToken, principal: operator, view: activeView }; }
+ function trustScopeCurrent() {
+  if (!trustScope || activeView !== "trust" || trustScope.property !== propertySelect.value || trustScope.token !== accessToken || trustScope.principal !== operator || !accessToken || !operator) { clearTrustEvidence(); return false; }
+  return true;
+ }
+ function trustReadCurrent(context) { return trustScopeCurrent() && trustModules.ownerTrustReadIsCurrent(context, trustContext()); }
+ function trustSessionCurrent(context) { return trustScopeCurrent() && trustModules.ownerTrustReadSameSession(context, trustContext()); }
+ function trustPreviewCurrent(context, read) { return trustReadCurrent(context) && context.draftGeneration === trustRequestGeneration && read === trustPreviewRead; }
+ async function ensureTrustModules() {
+  if (!trustModulesPromise) trustModulesPromise = Promise.all([
+   import("/assets/operator-owner-trust-account-evidence.js"), import("/assets/operator-owner-trust-expense-preview-evidence.js"),
+   import("/assets/operator-owner-trust-approval-evidence.js"), import("/assets/operator-owner-trust-workbench-read.js")
+  ]).then(modules => { trustModules = Object.assign({}, ...modules); return trustModules; }).catch(error => { trustModulesPromise = null; throw error; });
+  return trustModulesPromise;
+ }
+ function trustPropertyLabel() { return propertiesData.find(item => item.id === propertySelect.value)?.name || propertySelect.value; }
+ function trustEvidenceProps() { return { propertyNode: propertySelect.value, propertyLabel: trustPropertyLabel(), readIdentity: String(trustRequestGeneration) + ":" + trustAccountRead + ":" + trustInboxRead + ":" + trustPreviewRead }; }
+ function clearTrustAccounts() {
+  trustAccounts = []; trustAccountCursor = null; trustAccountCursors = []; trustAccountRead += 1;
+  trustAccount.replaceChildren(new Option("Refresh authorized accounts", ""));
+  for (const control of [trustAccount, trustAmount, trustReason, trustPreviewAction]) control.disabled = true;
+  trustAccountMore.hidden = true; trustAccountMore.disabled = false; trustAccountDetails.open = false;
+  trustAccountEvidence.replaceChildren(); clearTrustPreview();
+ }
+ function clearTrustInbox() { if (trustPreviewData?.approvalId) clearTrustPreview("Approval request unavailable · preview again"); trustApprovals = []; trustApprovalCursor = null; trustApprovalCursors = []; trustInboxRead += 1; trustInboxMore.hidden = true; trustInboxMore.disabled = false; trustApprovalInbox.replaceChildren(); }
+ function clearTrustEvidence() {
+  trustRequestGeneration += 1; trustSessionEpoch += 1; trustFinanceEpoch += 1; trustWorkbenchRead += 1; trustScope = null; clearTrustAccounts(); clearTrustInbox(); trustPreviewRead += 1;
+  trustWorkbench.setAttribute("aria-busy", "false"); trustRefresh.disabled = false; trustInboxRefresh.disabled = false;
+ }
+ function revokeTrustFinance() {
+  trustFinanceEpoch += 1; trustRequestGeneration += 1; clearTrustAccounts(); clearTrustInbox();
+  trustWorkbench.setAttribute("aria-busy", "false"); trustRefresh.disabled = false; trustInboxRefresh.disabled = false;
+ }
+ async function trustReadRequest(context, url, options = {}) {
+  if (!trustReadCurrent(context)) throw new Error("Owner trust read changed; refresh");
+  const response = await fetch(url, { ...options, headers: { "content-type": "application/json", authorization: "Bearer " + context.token } });
+  let body; try { body = await response.json(); } catch { body = null; }
+  if (!trustReadCurrent(context)) throw new Error("Owner trust read changed; refresh");
+  if (!response.ok) { const error = new Error("Owner trust read unavailable (" + response.status + "). Refresh to verify access."); error.status = response.status; error.denial = trustModules.classifyOwnerTrustReadFailure(response.status, body); throw error; }
+  return body;
+ }
+ async function trustReadFailure(context, lane, error) {
+  if (!trustReadCurrent(context)) return "stale";
+  if (error?.status === 401) { clearTrustEvidence(); trustMessage.textContent = "Session unavailable. Sign in and refresh."; return "session-denied"; }
+  if (error?.status === 403 || error?.status === 404) {
+   // Membership in /me/properties is never a finance-role admission.
+   revokeTrustFinance();
+   const classification = error.denial?.kind;
+   trustMessage.textContent = classification === "scope-missing" ? "Owner finance role unavailable. Refresh accounts or independently refresh the checker inbox." : classification === "property-forbidden" ? "Owner finance property access unavailable. Refresh to recover." : "Owner finance access could not be verified. Refresh accounts or independently refresh the checker inbox.";
+   trustMessage.classList.add("error");
+   return "finance-denied";
+  }
+  if (lane === "accounts") { clearTrustAccounts(); trustAccountEvidence.replaceChildren(trustModules.renderOwnerTrustAccountEvidence(document, { state: "unavailable" })); }
+  if (lane === "inbox") { clearTrustInbox(); trustApprovalInbox.replaceChildren(trustModules.renderOwnerTrustApprovalEvidence(document, { state: "unavailable" })); }
+  if (lane === "preview") clearTrustPreview("Preview unavailable");
+  trustMessage.textContent = error instanceof Error ? error.message : "Owner trust evidence unavailable. Refresh.";
+  trustMessage.classList.add("error");
+  return "unavailable";
+ }
+ function renderTrustAccounts() {
+  const selected = trustAccount.value;
+  trustAccount.replaceChildren(new Option(trustAccounts.length ? "Choose an owner trust account" : "No authorized accounts in this page", ""), ...trustAccounts.map(account => new Option(account.accountLabel + " · " + account.ownerLabel + " · " + account.currency, account.accountReference)));
+  if (trustAccounts.some(account => account.accountReference === selected)) trustAccount.value = selected;
+  for (const control of [trustAccount, trustAmount, trustReason, trustPreviewAction]) control.disabled = !trustAccounts.some(account => account.canPost === true);
+  trustAccountMore.hidden = trustAccountCursor === null; trustAccountMore.disabled = false;
+  trustAccountDetails.open = false;
+  trustAccountEvidence.replaceChildren(trustModules.renderOwnerTrustAccountEvidence(document, { state: "ready", ...trustEvidenceProps(), page: { accounts: trustAccounts, nextCursor: trustAccountCursor }, selectedAccountReference: trustAccount.value || null, formattedBalances: Object.fromEntries(trustAccounts.map(account => [account.accountReference, trustMoney(account.availableBalanceMinor, account.currency)])) }));
+ }
+ async function loadTrustAccounts({ append = false } = {}) {
+  if (!trustScopeCurrent() || !trustModules) return;
+  const context = trustContext(), read = ++trustAccountRead, after = append ? trustAccountCursor : null;
+  if (append && after === null) return;
+  clearTrustPreview("Accounts refreshing"); trustAccountMore.disabled = true;
+  for (const control of [trustAccount, trustAmount, trustReason, trustPreviewAction]) control.disabled = true;
+  if (!append) { trustAccounts = []; trustAccountCursor = null; trustAccountCursors = []; trustAccount.replaceChildren(new Option("Loading authorized accounts", "")); trustAccountDetails.open = false; trustAccountEvidence.replaceChildren(trustModules.renderOwnerTrustAccountEvidence(document, { state: "loading" })); }
+  try {
+   const result = await trustReadRequest(context, "/api/v1/properties/" + enc(context.property) + "/trust/accounts?limit=50" + (after === null ? "" : "&after=" + enc(after)));
+   if (!trustReadCurrent(context) || read !== trustAccountRead) return;
+   const page = trustModules.parseOwnerTrustAccounts(result);
+   trustAccounts = [...trustModules.appendOwnerTrustPage(append ? trustAccounts : [], page.accounts, account => account.accountReference, trustAccountCursors, after, page.nextCursor)];
+   if (after !== null) trustAccountCursors.push(after); trustAccountCursor = page.nextCursor; renderTrustAccounts();
+   trustMessage.textContent = trustAccounts.length ? "Choose an account and preview one exact expense." : "No authorized accounts in this returned page.";
+   return "admitted";
+  } catch (error) { if (read === trustAccountRead) return await trustReadFailure(context, "accounts", error); return "stale"; }
+  finally { if (trustReadCurrent(context) && read === trustAccountRead) trustAccountMore.disabled = false; }
+ }
+
  function trustIsCurrent(generation, property, identity = null) {
-  if (generation !== trustRequestGeneration || activeView !== "trust" || property !== propertySelect.value) return false;
+  if (!trustScopeCurrent() || generation !== trustRequestGeneration || activeView !== "trust" || property !== propertySelect.value) return false;
   if (identity === null) return true;
-  try { const draft = trustDraft(); return `${draft.accountId}:${draft.amountMinor}:${draft.reason}` === identity; } catch { return false; }
+  try { const draft = trustDraft(); return draft.account.canPost === true && draft.accountId + ":" + draft.amountMinor + ":" + draft.reason === identity; } catch { return false; }
  }
  function clearTrustPreview(message = "Preview required") {
-  trustPreviewData = null;
-  trustPreviewTitle.textContent = "No preview yet";
-  trustPreviewFacts.replaceChildren(...[
-   ["Available before", "—"], ["Expense", "—"], ["Projected available", "—"], ["Governed next step", message],
-  ].map(([term, detail]) => { const row = node("div"); row.append(node("dt", "", term), node("dd", "", detail)); return row; }));
-  trustRequestApproval.disabled = true; trustPost.disabled = true;
+  if (trustScope && (trustScope.token !== accessToken || trustScope.principal !== operator || trustScope.property !== propertySelect.value || activeView !== "trust")) { clearTrustEvidence(); return; }
+  trustPreviewRead += 1; trustPreviewData = null; trustPreviewTitle.textContent = "No preview yet";
+  trustPreviewFacts.replaceChildren(node("p", "muted", message)); trustRequestApproval.disabled = true; trustPost.disabled = true;
  }
  function renderTrustPreview(result, draft) {
-  trustPreviewData = { ...result, identity: `${draft.accountId}:${draft.amountMinor}:${draft.reason}`, reason: draft.reason, canPost: result.canPost === true || (result.approvalRequired !== true && draft.account.canPost === true) };
-  trustPreviewTitle.textContent = `${draft.account.accountLabel} · ${result.approvalRequired ? "Approval required" : "Ready to post"}`;
-  const next = result.approvalRequired ? "Request a different-user approval" : "Deliberately post this expense";
-  trustPreviewFacts.replaceChildren(...[
-   ["Available before", trustMoney(result.availableBalanceMinor, result.currency)],
-   ["Expense", trustMoney(result.amountMinor, result.currency)],
-   ["Projected available", trustMoney(result.projectedBalanceMinor, result.currency)],
-   ["Governed next step", next],
-  ].map(([term, detail]) => { const row = node("div"); row.append(node("dt", "", term), node("dd", "", detail)); return row; }));
+  if (!trustScopeCurrent() || draft.account.canPost !== true || result.accountReference !== draft.accountId || result.amountMinor !== draft.amountMinor || result.currency !== draft.account.currency) throw new Error("Preview does not match the current exact draft");
+  trustPreviewData = { ...result, identity: draft.accountId + ":" + draft.amountMinor + ":" + draft.reason, reason: draft.reason, canPost: result.approvalRequired !== true && draft.account.canPost === true };
+  trustPreviewTitle.textContent = "Expense preview";
+  trustPreviewFacts.replaceChildren(trustModules.renderOwnerTrustExpensePreviewEvidence(document, { state: "ready", ...trustEvidenceProps(), draftIdentity: trustPreviewData.identity, preview: result, draft: { accountReference: draft.accountId, amountMinor: draft.amountMinor, reason: draft.reason }, formattedAmounts: { before: trustMoney(result.availableBalanceMinor, result.currency), expense: trustMoney(result.amountMinor, result.currency), projected: trustMoney(result.projectedBalanceMinor, result.currency) } }));
   trustRequestApproval.disabled = result.approvalRequired !== true || draft.account.canPost !== true;
   trustPost.disabled = result.approvalRequired === true || draft.account.canPost !== true;
  }
  function renderTrustInbox() {
-  if (!trustApprovals.length) { trustApprovalInbox.replaceChildren(node("p", "muted", "No approval requests are available in this bounded page.")); return; }
-  trustApprovalInbox.replaceChildren(...trustApprovals.map((approval) => {
-   const row = node("article", "trust-approval-row"); row.dataset.status = approval.status;
-   const copy = node("div", "trust-approval-copy");
-   copy.append(node("strong", "", `${approval.accountLabel || "Owner trust"} · ${trustMoney(approval.amountMinor, approval.currency)}`), node("span", "approval-state", approval.status), node("p", "", approval.reason));
-   const meta = [`Owner ${approval.ownerLabel || "authorized account"}`, `Requested by ${approval.requesterLabel || "operator"}`, new Date(approval.requestedAt).toLocaleString()];
-   if (approval.decidedAt) meta.push(`Decided ${new Date(approval.decidedAt).toLocaleString()}`);
-   copy.append(node("small", "", meta.join(" · ")));
+  const evidence = trustModules.renderOwnerTrustApprovalEvidence(document, { state: "ready", ...trustEvidenceProps(), page: { approvals: trustApprovals, nextCursor: trustApprovalCursor }, formattedAmounts: Object.fromEntries(trustApprovals.map(approval => [approval.approvalId, { before: trustMoney(approval.availableBalanceMinor, approval.currency), expense: trustMoney(approval.amountMinor, approval.currency), projected: trustMoney(approval.projectedBalanceMinor, approval.currency) }])) });
+  const rows = evidence.querySelectorAll("article");
+  trustApprovals.forEach((approval, index) => {
    const actions = node("div", "trust-approval-actions");
    if (approval.canDecide) for (const action of ["approve", "reject"]) { const button = node("button", action === "approve" ? "secondary" : "quiet", action === "approve" ? "Approve exact request" : "Reject"); button.type = "button"; button.addEventListener("click", () => void decideTrustApproval(approval, action, button)); actions.append(button); }
-   if (approval.canPost) { const button = node("button", "primary", "Use approved request"); button.type = "button"; button.addEventListener("click", () => { let account = trustAccounts.find((item) => item.accountReference === approval.accountReference); if (!account) { account = { accountReference:approval.accountReference, accountLabel:approval.accountLabel, ownerLabel:approval.ownerLabel, currency:approval.currency, availableBalanceMinor:approval.availableBalanceMinor, canPost:true }; trustAccounts.push(account); trustAccount.append(new Option(`${account.accountLabel} · ${account.ownerLabel} · ${account.currency}`, account.accountReference)); } trustAccount.value = approval.accountReference; trustAmount.value = trustDisplayFromMinor(approval.amountMinor, approval.currency); trustReason.value = approval.reason; renderTrustPreview({ ...approval, approvalRequired:true }, { account, accountId:approval.accountReference, amountMinor:approval.amountMinor, reason:approval.reason }); trustPreviewData.approvalId = approval.approvalId; trustPost.disabled = false; trustExpenseForm.scrollIntoView({ block: "start" }); trustPost.focus({ preventScroll: true }); }); actions.append(button); }
-   row.append(copy, actions); return row;
-  }));
+   if (approval.canPost) { const button = node("button", "primary", "Use approved request"); button.type = "button"; button.addEventListener("click", () => void useTrustApprovedRequest(approval)); actions.append(button); }
+
+   rows[index]?.append(actions);
+  });
+  trustApprovalInbox.replaceChildren(evidence);
+ }
+ async function useTrustApprovedRequest(approval) {
+  clearTrustPreview("Verify the approved request with a current preview");
+  if (!trustScopeCurrent() || !trustModules) return;
+  const current = trustApprovals.find(row => row.approvalId === approval.approvalId), account = trustAccounts.find(row => row.accountReference === approval.accountReference);
+  if (current !== approval || approval.status !== "approved" || approval.canPost !== true || !account || account.canPost !== true || account.currency !== approval.currency) { trustMessage.textContent = "A current authorized account and request are required. Refresh owner trust."; return; }
+  trustAccount.value = account.accountReference; trustAmount.value = trustDisplayFromMinor(approval.amountMinor, approval.currency); trustReason.value = approval.reason;
+  const context = trustContext(), read = ++trustPreviewRead, inboxRead = trustInboxRead, accountRead = trustAccountRead;
+  const draft = trustDraft(), identity = draft.accountId + ":" + draft.amountMinor + ":" + draft.reason;
+  if (draft.amountMinor !== approval.amountMinor || draft.reason !== approval.reason) { trustMessage.textContent = "The exact approved draft could not be restored. Refresh."; return; }
+  trustPreviewAction.disabled = true;
+  trustPreviewFacts.replaceChildren(trustModules.renderOwnerTrustExpensePreviewEvidence(document, { state: "loading" }));
+  try {
+   const value = await trustReadRequest(context, "/api/v1/properties/" + enc(context.property) + "/trust/accounts/" + enc(account.accountReference) + "/preview", { method: "POST", body: JSON.stringify({ amountMinor: draft.amountMinor, reason: draft.reason }) });
+   if (!trustPreviewCurrent(context, read) || !trustIsCurrent(context.draftGeneration, context.property, identity)) return;
+   if (inboxRead !== trustInboxRead || accountRead !== trustAccountRead || trustApprovals.find(row => row.approvalId === approval.approvalId) !== approval || trustAccounts.find(row => row.accountReference === account.accountReference) !== account) throw new Error("Request or account changed. Refresh before continuing.");
+   const result = trustModules.parseOwnerTrustPreview(value);
+   if (result.approvalRequired !== true || result.accountReference !== account.accountReference || result.amountMinor !== approval.amountMinor || result.currency !== approval.currency) throw new Error("Current preview does not match the approved request. Refresh.");
+   renderTrustPreview(result, draft); trustPreviewData.approvalId = approval.approvalId; trustPreviewData.canPost = true;
+   trustRequestApproval.disabled = true; trustPost.disabled = false; trustMessage.textContent = "Current preview loaded for this exact approved request. Server checks remain authoritative.";
+   trustExpenseForm.scrollIntoView({ block: "start" }); trustPost.focus({ preventScroll: true });
+  } catch (error) { if (read === trustPreviewRead) await trustReadFailure(context, "preview", error); }
+  finally { if (trustPreviewCurrent(context, read)) trustPreviewAction.disabled = !trustAccounts.some(row => row.canPost === true); }
  }
  async function loadTrustApprovals({ append = false } = {}) {
-  const generation = trustRequestGeneration, property = propertySelect.value, after = append && trustApprovalCursor ? `&after=${enc(trustApprovalCursor)}` : "";
-  try { const result = await request(`/api/v1/properties/${enc(property)}/trust/approval-requests?limit=50${after}`); if (!trustIsCurrent(generation, property)) return;
-   trustApprovals = append ? [...trustApprovals, ...(result.approvals || []).filter((item) => !trustApprovals.some((old) => old.approvalId === item.approvalId))] : (result.approvals || []); trustApprovalCursor = result.nextCursor || null; trustInboxMore.hidden = !trustApprovalCursor; renderTrustInbox();
-  } catch (error) { if (trustIsCurrent(generation, property)) trustApprovalInbox.replaceChildren(node("p", "form-message error", error instanceof Error ? error.message : "Approval inbox unavailable.")); }
+  if (!trustScopeCurrent() || !trustModules) return;
+  if (trustPreviewData?.approvalId) clearTrustPreview("Approval requests refreshing · preview again");
+  const context = trustContext(), read = ++trustInboxRead, after = append ? trustApprovalCursor : null;
+  if (append && after === null) return;
+  trustInboxMore.disabled = true; trustInboxRefresh.disabled = true;
+  if (!append) { trustApprovals = []; trustApprovalCursor = null; trustApprovalCursors = []; trustApprovalInbox.replaceChildren(trustModules.renderOwnerTrustApprovalEvidence(document, { state: "loading" })); }
+  else for (const button of trustApprovalInbox.querySelectorAll("button")) button.disabled = true;
+  try {
+   const result = await trustReadRequest(context, "/api/v1/properties/" + enc(context.property) + "/trust/approval-requests?limit=50" + (after === null ? "" : "&after=" + enc(after)));
+   if (!trustReadCurrent(context) || read !== trustInboxRead) return;
+   const page = trustModules.parseOwnerTrustApprovals(result);
+   trustApprovals = [...trustModules.appendOwnerTrustPage(append ? trustApprovals : [], page.approvals, approval => approval.approvalId, trustApprovalCursors, after, page.nextCursor)];
+   if (after !== null) trustApprovalCursors.push(after); trustApprovalCursor = page.nextCursor; trustInboxMore.hidden = trustApprovalCursor === null; trustInboxMore.disabled = false; renderTrustInbox();
+  } catch (error) { if (read === trustInboxRead) await trustReadFailure(context, "inbox", error); }
+  finally { if (trustReadCurrent(context) && read === trustInboxRead) trustInboxRefresh.disabled = false; }
  }
  async function loadTrustWorkbench({ focus = false } = {}) {
-  const generation = ++trustRequestGeneration, property = propertySelect.value; trustWorkbench.setAttribute("aria-busy", "true"); trustRefresh.disabled = true; trustMessage.classList.remove("error"); clearTrustPreview();
-  trustAccount.disabled = true; trustAmount.disabled = true; trustReason.disabled = true; trustPreviewAction.disabled = true; trustMessage.textContent = "Loading authorized owner trust accounts…";
-  try { const result = await request(`/api/v1/properties/${enc(property)}/trust/accounts?limit=50`); if (!trustIsCurrent(generation, property)) return;
-   trustAccounts = Array.isArray(result.accounts) ? result.accounts : []; trustAccount.replaceChildren(new Option(trustAccounts.length ? "Choose an owner trust account" : "No authorized owner trust accounts", ""), ...trustAccounts.map((account) => new Option(`${account.accountLabel} · ${account.ownerLabel} · ${account.currency}`, account.accountReference)));
-   trustAccount.disabled = !trustAccounts.length; trustAmount.disabled = !trustAccounts.length; trustReason.disabled = !trustAccounts.length; trustPreviewAction.disabled = !trustAccounts.length; trustMessage.textContent = trustAccounts.length ? "Choose an account and preview one exact expense." : "No owner trust accounts are available for this property.";
-   trustApprovals = []; trustApprovalCursor = null; await loadTrustApprovals(); if (focus) trustAccount.focus({ preventScroll: true });
-  } catch (error) { if (trustIsCurrent(generation, property)) { trustAccounts = []; trustMessage.textContent = error instanceof Error ? error.message : "Owner trust workbench unavailable."; trustMessage.classList.add("error"); } }
-  finally { if (trustIsCurrent(generation, property)) { trustWorkbench.setAttribute("aria-busy", "false"); trustRefresh.disabled = false; } }
+  clearTrustEvidence(); trustScope = trustContext(); const context = trustContext(), operation = ++trustWorkbenchRead;
+  trustWorkbench.setAttribute("aria-busy", "true"); trustRefresh.disabled = true; trustMessage.classList.remove("error"); trustMessage.textContent = "Loading scoped owner trust evidence…";
+  try {
+   await ensureTrustModules(); if (!trustReadCurrent(context)) return;
+   const grants = await trustReadRequest(context, "/api/v1/me/properties"); if (!trustReadCurrent(context)) return;
+   if (!trustModules.hasOwnerTrustPropertyGrant(grants, context.property)) throw Object.assign(new Error("Property access unavailable"), { status: 404 });
+   const accounts = loadTrustAccounts(), inbox = loadTrustApprovals();
+   const accountOutcome = await accounts;
+   if (accountOutcome === "finance-denied" && operation === trustWorkbenchRead && trustSessionCurrent(context)) {
+    // This is a fresh native inbox continuation of the user's explicit refresh.
+    // Pre-denial inbox responses have already lost their finance epoch/ticket.
+    await loadTrustApprovals();
+   } else await inbox;
+   if (focus && operation === trustWorkbenchRead && trustSessionCurrent(context) && !trustAccount.disabled) trustAccount.focus({ preventScroll: true });
+  } catch (error) { if (trustModules && operation === trustWorkbenchRead && trustSessionCurrent(context)) { clearTrustEvidence(); trustMessage.textContent = "Owner trust access could not be verified. Refresh to recover."; } else if (!trustModules && operation === trustWorkbenchRead) { clearTrustEvidence(); trustMessage.textContent = "Owner trust display unavailable. Refresh to recover."; } }
+  finally { if (operation === trustWorkbenchRead && trustSessionCurrent(context)) { trustWorkbench.setAttribute("aria-busy", "false"); trustRefresh.disabled = false; } }
  }
  async function previewTrustExpense(event) {
-  event.preventDefault(); let draft; try { draft = trustDraft(); } catch (error) { trustMessage.textContent = error.message; trustMessage.classList.add("error"); return; }
-  const generation = ++trustRequestGeneration, property = propertySelect.value, identity = `${draft.accountId}:${draft.amountMinor}:${draft.reason}`; trustPreviewAction.disabled = true; trustMessage.classList.remove("error"); trustMessage.textContent = "Checking authoritative trust availability…";
-  try { const result = await request(`/api/v1/properties/${enc(property)}/trust/accounts/${enc(draft.accountId)}/preview`, { method: "POST", body: JSON.stringify({ amountMinor: draft.amountMinor, reason: draft.reason }) }); if (!trustIsCurrent(generation, property, identity)) return; renderTrustPreview(result, draft); trustMessage.textContent = "Authoritative preview loaded. Review it before continuing.";
-  } catch (error) { if (trustIsCurrent(generation, property, identity)) { clearTrustPreview("Preview unavailable"); trustMessage.textContent = error instanceof Error ? error.message : "Preview unavailable."; trustMessage.classList.add("error"); } }
-  finally { if (trustIsCurrent(generation, property, identity)) trustPreviewAction.disabled = false; }
+  event.preventDefault(); if (!trustScopeCurrent() || !trustModules) return;
+  clearTrustPreview("Checking the exact draft…"); let draft;
+  try { draft = trustDraft(); if (draft.account.canPost !== true) throw new Error("Account expense route unavailable"); }
+  catch (error) { trustMessage.textContent = error.message; trustMessage.classList.add("error"); return; }
+  const context = trustContext(), read = ++trustPreviewRead, identity = draft.accountId + ":" + draft.amountMinor + ":" + draft.reason;
+  trustPreviewAction.disabled = true; trustMessage.classList.remove("error"); trustMessage.textContent = "Checking authoritative trust availability…";
+  trustPreviewFacts.replaceChildren(trustModules.renderOwnerTrustExpensePreviewEvidence(document, { state: "loading" }));
+  try {
+   const value = await trustReadRequest(context, "/api/v1/properties/" + enc(context.property) + "/trust/accounts/" + enc(draft.accountId) + "/preview", { method: "POST", body: JSON.stringify({ amountMinor: draft.amountMinor, reason: draft.reason }) });
+   if (!trustPreviewCurrent(context, read) || !trustIsCurrent(context.draftGeneration, context.property, identity)) return;
+   renderTrustPreview(trustModules.parseOwnerTrustPreview(value), draft); trustMessage.textContent = "Exact preview loaded. Review before continuing.";
+  } catch (error) { if (read === trustPreviewRead) await trustReadFailure(context, "preview", error); }
+  finally { if (trustPreviewCurrent(context, read)) trustPreviewAction.disabled = !trustAccounts.some(account => account.canPost === true); }
  }
  async function requestTrustApproval() {
   let draft; try { draft = trustDraft(); } catch (error) { trustMessage.textContent = error.message; return; } const preview = trustPreviewData;
@@ -10252,7 +10385,7 @@ function vehicleReturnPathFromState(state, property) {
   vehicleRegisterGeneration += 1;
   vehicleDetailRequestGeneration += 1;
  }
- if (previousView === "trust" && activeView !== "trust") { trustRequestGeneration += 1; clearTrustPreview(); }
+ if (previousView === "trust" && activeView !== "trust") clearTrustEvidence();
  todayView.hidden = activeView !== "today";
  housekeepingView.hidden = activeView !== "housekeeping";
  vehiclesView.hidden = activeView !== "vehicles";
@@ -12288,11 +12421,13 @@ function vehicleReturnPathFromState(state, property) {
  trustRefresh.addEventListener("click", () => void loadTrustWorkbench({ focus: true }));
  trustInboxRefresh.addEventListener("click", () => void loadTrustApprovals());
  trustInboxMore.addEventListener("click", () => void loadTrustApprovals({ append: true }));
+ trustAccountMore.addEventListener("click", () => void loadTrustAccounts({ append: true }));
+ for (const mount of [trustExpenseForm, trustApprovalInbox]) for (const type of ["click", "submit"]) mount.addEventListener(type, event => { if (!trustScopeCurrent()) { event.preventDefault(); event.stopImmediatePropagation(); } }, true);
  trustExpenseForm.addEventListener("submit", (event) => void previewTrustExpense(event));
  trustRequestApproval.addEventListener("click", () => void requestTrustApproval());
  trustPost.addEventListener("click", () => void postTrustExpense());
  for (const control of [trustAccount, trustAmount, trustReason]) control.addEventListener("input", () => {
-  trustRequestGeneration += 1; clearTrustPreview("Inputs changed · preview again"); trustMessage.classList.remove("error"); trustMessage.textContent = "Inputs changed. Refresh the authoritative preview before continuing.";
+  trustRequestGeneration += 1; clearTrustPreview("Inputs changed · preview again"); trustPreviewAction.disabled = !trustAccounts.some(account => account.canPost === true); trustMessage.classList.remove("error"); trustMessage.textContent = "Inputs changed. Refresh the authoritative preview before continuing.";
  });
  for (const control of managementJourneyControls) control.addEventListener("click", () => {
   if (control.dataset.journeyView !== "reservations" && !reservationCreatePanel.hidden && !closeReservationCreate({ history: false })) return;
@@ -13571,4 +13706,3 @@ housekeepingSheetDate.addEventListener("change", () => {
  } else { jarvisListening.textContent = "Voice input is unavailable in this browser"; jarvisMic.setAttribute("aria-label", "Voice input is unavailable in this browser"); jarvisMic.disabled = true; }
  if ("speechSynthesis" in window) window.speechSynthesis.addEventListener?.("voiceschanged", updateJarvisVoiceStatus); updateJarvisVoiceStatus();
 })();
-

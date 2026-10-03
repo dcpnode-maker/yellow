@@ -5,6 +5,7 @@ const GUEST_FILES = {
   html: new URL("../src/http/guest/index.html", import.meta.url),
   script: new URL("../src/http/guest/guest.js", import.meta.url),
   css: new URL("../src/http/guest/guest.css", import.meta.url),
+  money: new URL("../frontend/yellow/src/money-exact-minor.mjs", import.meta.url),
 };
 
 const PROVIDER_FILES = {
@@ -20,7 +21,7 @@ const SENSITIVE_FIELD = /<(?:input|textarea|select)\b[^>]*(?:pan|card|cvv|cvc|vp
 const INLINE_EXECUTABLE = /<style\b|<script\b(?![^>]*\bsrc\s*=)/i;
 const EXTERNAL_ASSET = /\b(?:src|href)\s*=\s*["'](?:https?:)?\/\//i;
 
-async function readSurface(files: typeof GUEST_FILES) {
+async function readSurface(files: Pick<typeof GUEST_FILES, "html" | "script" | "css">) {
   return {
     html: await Bun.file(files.html).text(),
     script: await Bun.file(files.script).text(),
@@ -42,7 +43,13 @@ test("Order193 P5: guest surface is token-only, server-truth-only and browser-st
   expect(html).not.toMatch(INLINE_EXECUTABLE);
   expect(html).not.toMatch(EXTERNAL_ASSET);
 
-  for (const source of [html, script]) {
+  const money = await Bun.file(GUEST_FILES.money).text();
+  expect(html).toContain('<script src="/assets/guest.js" type="module">');
+  expect(script).toContain('import { guestDepositAmountDisplay } from "./money-exact-minor.mjs"');
+  expect(money).toContain('export function moneyExactMinor');
+  expect(money).toContain('export function guestDepositAmountDisplay');
+  expect(money).not.toMatch(/\bfetch\s*\(|XMLHttpRequest|WebSocket|sendBeacon/);
+  for (const source of [html, script, money]) {
     expect(source).not.toMatch(PERSISTENCE_OR_CREDENTIAL_AUTHORITY);
     expect(source).not.toMatch(DANGEROUS_DOM);
   }

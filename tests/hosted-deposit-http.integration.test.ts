@@ -385,6 +385,37 @@ describe("CASHIER-HANDOFF-05 guest HTML and status route fixtures", () => {
   const paths = ["/pay/synthetic-opaque-fixture", "/assets/guest.js", "/assets/guest.css",
     "/api/public/hosted-deposits/synthetic-opaque-fixture"];
 
+  test("GUEST-DEPOSIT-DISPLAY-09 exact module uses the existing guest gate and asset headers", async () => {
+    const modulePath = "/assets/money-exact-minor.mjs";
+    const expected = await Bun.file(new URL("../frontend/yellow/src/money-exact-minor.mjs", import.meta.url)).bytes();
+    for (const surface of ["guest", "all"] as const) {
+      const f = fixture();
+      const app = createApp({ hostedDepositRoutes: f.api, hostedDepositSurface: surface });
+      const module = await app.handle(new Request("http://127.0.0.1:3000" + modulePath));
+      const script = await app.handle(new Request("http://127.0.0.1:3000/assets/guest.js"));
+      expect(module.status).toBe(200);
+      expect(module.headers.get("content-type")).toBe("text/javascript; charset=utf-8");
+      for (const header of ["content-security-policy", "cache-control", "pragma", "referrer-policy",
+        "cross-origin-resource-policy", "x-content-type-options", "x-frame-options"]) {
+        expect(module.headers.get(header)).toBe(script.headers.get(header));
+      }
+      expect(module.headers.get("cache-control")).toBe("no-store, max-age=0");
+      expect(new Uint8Array(await module.arrayBuffer())).toEqual(expected);
+      expect(await script.text()).toContain('from "./money-exact-minor.mjs"');
+      const html = await app.handle(new Request("http://127.0.0.1:3000/pay/synthetic-opaque-fixture"));
+      expect(await html.text()).toContain('<script src="/assets/guest.js" type="module">');
+      const response = await app.handle(new Request("http://127.0.0.1:3000/api/public/hosted-deposits/synthetic-opaque-fixture"));
+      expect(await response.json()).toEqual(f.status);
+      expect(f.reads()).toBe(1); expect(f.effects()).toBe(0);
+      expect((await app.handle(new Request("http://127.0.0.1:3000/assets/arbitrary.mjs"))).status).toBe(404);
+    }
+    const f = fixture();
+    for (const app of [createApp(), createApp({ hostedDepositRoutes: f.api, hostedDepositSurface: "provider" })]) {
+      for (const path of [...paths, modulePath]) expect((await app.handle(new Request("http://127.0.0.1:3000" + path))).status).toBe(404);
+    }
+    expect(f.reads()).toBe(0); expect(f.effects()).toBe(0);
+  });
+
   test("CASHIER-HANDOFF-05 enabled guest factory serves HTML/assets and separate safe status JSON", async () => {
     const f = fixture();
     const app = createApp({ hostedDepositRoutes: f.api, hostedDepositSurface: "guest" });

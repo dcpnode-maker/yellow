@@ -16,11 +16,7 @@ test("actual advance workbench preserves formatted evidence, context and same-ke
   if (!chrome) throw new Error("Owned Chromium required for advance caller acceptance");
   const root = resolve(import.meta.dir, "..");
   const proof = await mkdtemp(resolve(root, ".advance-caller-proof-"));
-  const source = await readFile(resolve(root, "frontend/yellow/src/workspaces/FinanceWorkspace.tsx"), "utf8");
-  const formatterStart = source.indexOf("function moneyExactMinor(");
-  const formatterEnd = source.indexOf("function CashierGroupIcon", formatterStart);
-  if (formatterStart < 0 || formatterEnd < 0) throw new Error("Existing currency formatter required");
-  const formatter = source.slice(formatterStart, formatterEnd);
+  const formatter = 'import { moneyExactMinor } from ' + JSON.stringify(resolve(root, "frontend/yellow/src/money-exact-minor.mjs")) + ';';
   const uuid = (n: number) => `00000000-0000-4000-8000-${String(n).padStart(12, "0")}`;
   const property = uuid(1);
   const reservation = (other = false) => ({
@@ -149,7 +145,7 @@ const geometry=label=>{for(const node of cards()){const list=node.querySelector(
       const same = (kind: string) => { const list = posts.filter(post => post.kind === kind); return list.length === 2 && list[0]!.key === list[1]!.key && JSON.stringify(list[0]!.body) === JSON.stringify(list[1]!.body) && list[0]!.path === list[1]!.path; };
       return Response.json({ reads: reads.length, unexpected, applyPosts: posts.filter(post => post.kind === "apply").length, createPosts: posts.filter(post => post.kind === "create").length, applyEffects, createEffects, applySameKeyBody: same("apply"), createSameKeyBody: same("create"), guestPageGets, guestStatusReads, forbiddenGuestEffects });
     }
-    if (path.startsWith("/pay/") || path.startsWith("/assets/guest.") || path.startsWith("/api/public/hosted-deposits/")) {
+    if (path.startsWith("/pay/") || path.startsWith("/assets/guest.") || path === "/assets/money-exact-minor.mjs" || path.startsWith("/api/public/hosted-deposits/")) {
       if (request.method !== "GET") { forbiddenGuestEffects++; return new Response("Forbidden fixture effect", { status: 405 }); }
       if (path.startsWith("/pay/")) guestPageGets++;
       return guestApp.handle(request);

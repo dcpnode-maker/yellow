@@ -262,6 +262,7 @@ export const providerSecurity = Object.freeze({ MAX_CALLBACK_BYTES, CALLBACK_PAT
 const GUEST_ASSETS = {
   html: new URL("./guest/index.html", import.meta.url), css: new URL("./guest/guest.css", import.meta.url),
   js: new URL("./guest/guest.js", import.meta.url),
+  money: new URL("../../frontend/yellow/src/money-exact-minor.mjs", import.meta.url),
 } as const;
 const PROVIDER_ASSETS = {
   html: new URL("./provider/index.html", import.meta.url), css: new URL("./provider/provider.css", import.meta.url),
@@ -276,6 +277,7 @@ export const hostedDepositAssets = Object.freeze({
   guestHtml: () => asset(GUEST_ASSETS.html, "text/html; charset=utf-8"),
   guestCss: () => asset(GUEST_ASSETS.css, "text/css; charset=utf-8"),
   guestJs: () => asset(GUEST_ASSETS.js, "text/javascript; charset=utf-8"),
+  guestMoney: () => asset(GUEST_ASSETS.money, "text/javascript; charset=utf-8"),
   providerHtml: (contentSecurityPolicy?: string) => asset(PROVIDER_ASSETS.html, "text/html; charset=utf-8", contentSecurityPolicy),
   providerCss: () => asset(PROVIDER_ASSETS.css, "text/css; charset=utf-8"),
   providerJs: () => asset(PROVIDER_ASSETS.js, "text/javascript; charset=utf-8"),

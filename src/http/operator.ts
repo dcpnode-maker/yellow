@@ -7743,6 +7743,13 @@ export class OperatorHttpApi {
 }
 
 const ASSET_URLS = {
+  ownerTrustAccountEvidenceJs: new URL("./operator/owner-trust-account-evidence.mjs", import.meta.url),
+  ownerTrustAccountEvidenceCss: new URL("./operator/owner-trust-account-evidence.css", import.meta.url),
+  ownerTrustExpensePreviewEvidenceJs: new URL("./operator/owner-trust-expense-preview-evidence.mjs", import.meta.url),
+  ownerTrustExpensePreviewEvidenceCss: new URL("./operator/owner-trust-expense-preview-evidence.css", import.meta.url),
+  ownerTrustApprovalEvidenceJs: new URL("./operator/owner-trust-approval-evidence.mjs", import.meta.url),
+  ownerTrustApprovalEvidenceCss: new URL("./operator/owner-trust-approval-evidence.css", import.meta.url),
+  ownerTrustWorkbenchReadJs: new URL("./operator/owner-trust-workbench-read.mjs", import.meta.url),
   html: new URL("./operator/index.html", import.meta.url),
   css: new URL("./operator/operator.css", import.meta.url),
   js: new URL("./operator/operator.js", import.meta.url),
@@ -7830,6 +7837,13 @@ export const operatorAssets = Object.freeze({
       ? localReviewHtml(credentials)
       : assetResponse(ASSET_URLS.html, "text/html; charset=utf-8");
   },
+  ownerTrustAccountEvidenceJs(): Response { return assetResponse(ASSET_URLS.ownerTrustAccountEvidenceJs, "text/javascript; charset=utf-8"); },
+  ownerTrustAccountEvidenceCss(): Response { return assetResponse(ASSET_URLS.ownerTrustAccountEvidenceCss, "text/css; charset=utf-8"); },
+  ownerTrustExpensePreviewEvidenceJs(): Response { return assetResponse(ASSET_URLS.ownerTrustExpensePreviewEvidenceJs, "text/javascript; charset=utf-8"); },
+  ownerTrustExpensePreviewEvidenceCss(): Response { return assetResponse(ASSET_URLS.ownerTrustExpensePreviewEvidenceCss, "text/css; charset=utf-8"); },
+  ownerTrustApprovalEvidenceJs(): Response { return assetResponse(ASSET_URLS.ownerTrustApprovalEvidenceJs, "text/javascript; charset=utf-8"); },
+  ownerTrustApprovalEvidenceCss(): Response { return assetResponse(ASSET_URLS.ownerTrustApprovalEvidenceCss, "text/css; charset=utf-8"); },
+  ownerTrustWorkbenchReadJs(): Response { return assetResponse(ASSET_URLS.ownerTrustWorkbenchReadJs, "text/javascript; charset=utf-8"); },
   css(): Response { return assetResponse(ASSET_URLS.css, "text/css; charset=utf-8"); },
   js(): Response { return assetResponse(ASSET_URLS.js, "text/javascript; charset=utf-8"); },
   inventoryRelationshipsJs(): Response { return assetResponse(ASSET_URLS.inventoryRelationshipsJs, "text/javascript; charset=utf-8"); },

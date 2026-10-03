@@ -24,16 +24,13 @@ test('mounted advance card preserves actual validated evidence under Yellow them
   const chrome=resolveChromiumPath();if(!chrome)throw new Error('Owned Chromium required');
   const root=resolve(import.meta.dir,'..'),proof=await mkdtemp(resolve(root,'.advance-evidence-proof-'));
   const entry=resolve(proof,'fixture.tsx');
-  const financeSource=await readFile(resolve(root,'frontend/yellow/src/workspaces/FinanceWorkspace.tsx'),'utf8');
-  const formatterSource=financeSource.slice(financeSource.indexOf('function moneyExactMinor('),financeSource.indexOf('function CashierGroupIcon('));
-  if(!formatterSource.startsWith('function moneyExactMinor('))throw new Error('Exact existing formatter unavailable');
-  await writeFile(resolve(proof,'existing-moneyExactMinor.ts'),formatterSource);
+  const formatterSource = 'import { moneyExactMinor } from ' + JSON.stringify(resolve(root,'frontend/yellow/src/money-exact-minor.mjs')) + ';';
   await writeFile(entry,`
 import React from 'react';import {createRoot} from 'react-dom/client';import {flushSync} from 'react-dom';
 import ${JSON.stringify(resolve(root,'frontend/yellow/src/styles.css'))};
 import {StaffAdvanceEvidenceCard as Card} from ${JSON.stringify(resolve(root,'frontend/yellow/src/workspaces/StaffAdvanceEvidenceCard.tsx'))};
 import {validDepositStatus} from ${JSON.stringify(resolve(root,'frontend/yellow/src/yellow-api.tsx'))};
-// Exact existing helper bytes, extracted into this isolated proof only.
+// Actual shared production export; no independent fixture formatter.
 ${formatterSource}
 const NativeNumberFormat=Intl.NumberFormat;
 const formatRecord=(deposit,locale='en-US')=>{

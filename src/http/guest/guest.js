@@ -1,3 +1,5 @@
+import { guestDepositAmountDisplay } from "./money-exact-minor.mjs";
+
 (() => {
   "use strict";
   const parts = location.pathname.split("/").filter(Boolean);
@@ -24,7 +26,7 @@
       const value = await response.json();
       if (current !== generation.value || token !== parts[1]) return;
       text("property", String(value.propertyName)); text("folio", String(value.folioReference));
-      text("amount", `${value.currency} ${value.amountMinor}`); text("expiry", new Date(value.expiresAt).toLocaleString());
+      text("amount", guestDepositAmountDisplay(value.amountMinor, value.currency)); text("expiry", new Date(value.expiresAt).toLocaleString());
       list.hidden = false; message.textContent = value.state === "captured" ? "Deposit received." :
         value.state === "ready" || value.state === "processing" ? "Details verified by Yellow." : `This link is ${value.state}.`;
       button.disabled = value.state !== "ready" && value.state !== "processing";

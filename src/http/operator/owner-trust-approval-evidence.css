@@ -1,0 +1,34 @@
+.owner-approval-evidence {
+  container-type: inline-size;
+  min-width: 0;
+  max-width: 100%;
+  color: var(--ink);
+  font: inherit;
+  line-height: 1.5;
+}
+.owner-approval-evidence :is(h3,h4,p,dt,dd,summary) { overflow-wrap: anywhere; }
+.owner-approval-evidence h3 { margin: 0 0 .5rem; font-size: 1.125em; }
+.owner-approval-evidence h4 { margin: 0; font-size: 1em; }
+.owner-approval-evidence :is(.owner-approval-evidence__context,.owner-approval-evidence__coverage,.owner-approval-evidence__note,.owner-approval-evidence__owner) { margin: .4rem 0; }
+.owner-approval-evidence__note { color: var(--muted); }
+.owner-approval-evidence__list { min-width: 0; display: grid; gap: .75rem; margin-block: .75rem; }
+.owner-approval-evidence__request { min-width: 0; max-width: 100%; padding: .75rem; border: 1px solid var(--line); border-radius: var(--card-radius,8px); background: var(--card); }
+.owner-approval-evidence__selection { margin: .25rem 0; font-weight: 600; }
+.owner-approval-evidence dl.owner-approval-evidence__facts { display: grid; gap: .5rem; min-width: 0; margin: .5rem 0; }
+.owner-approval-evidence__fact { min-width: 0; display: grid; grid-template-columns: minmax(0,1fr); gap: .15rem; }
+.owner-approval-evidence__fact dt { min-width: 0; font-size: .875em; color: var(--muted); }
+.owner-approval-evidence__fact dd { min-width: 0; margin: 0; font-variant-numeric: tabular-nums; }
+.owner-approval-evidence__route { margin: .4rem 0; }
+.owner-approval-evidence__details { min-width: 0; max-width: 100%; }
+.owner-approval-evidence__details > summary { min-height: 44px; padding-block: .5rem; box-sizing: border-box; align-content: center; cursor: pointer; }
+.owner-approval-evidence__details > summary:focus-visible { outline: 3px solid var(--focus,var(--accent)); outline-offset: 2px; }
+.owner-approval-evidence__notice { padding: .75rem; border: 1px solid var(--line); border-radius: var(--card-radius,8px); }
+.owner-approval-evidence__page-details { margin-block-start: .5rem; }
+@container (min-width: 600px) {
+  .owner-approval-evidence__fact { grid-template-columns: minmax(0,1fr) minmax(0,1.5fr); gap: 1rem; }
+}
+@media (forced-colors: active) {
+  .owner-approval-evidence__details > summary:focus-visible { outline-color: Highlight; }
+}
+
+.owner-approval-evidence.card { padding: .75rem; box-sizing: border-box; }
