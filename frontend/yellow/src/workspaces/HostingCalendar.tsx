@@ -35,7 +35,7 @@ export type HostingCalendarProps = Readonly<{
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const MONTH_NAMES = new Intl.DateTimeFormat("en", { month: "long", timeZone: "UTC" });
 const HUMAN_DATE = new Intl.DateTimeFormat("en", { month: "long", day: "numeric", year: "numeric", timeZone: "UTC" });
-const dayLabel = (date: string) => HUMAN_DATE.format(new Date(`${date}T12:00:00Z`));
+const dayLabel = (date: string) => isCalendarDate(date) ? HUMAN_DATE.format(new Date(`${date}T12:00:00Z`)) : "Date unavailable";
 const monthTitle = (date: string) => MONTH_NAMES.format(new Date(`${date.slice(0, 7)}-01T12:00:00Z`));
 const monthIndex = (date: string) => Number(date.slice(5, 7)) - 1;
 const monthStart = (date: string) => `${date.slice(0, 7)}-01`;
@@ -348,7 +348,7 @@ export function HostingCalendar({
   const completeCoverage = Boolean(validDate && page && projectionRows.length && !allInvalid.length && !timelineIdentityInvalid && !error && !loading);
   const effectiveIncomplete = !completeCoverage;
   const pageForPanel = mode === "timeline" ? null : page;
-  const heading = mode === "year" ? startDate.slice(0, 4) : mode === "timeline" ? `${monthTitle(firstOfMonth)} · selected properties` : monthTitle(firstOfMonth);
+  const heading = mode === "year" ? startDate.slice(0, 4) : mode === "timeline" ? `${monthTitle(firstOfMonth)} ${firstOfMonth.slice(0, 4)} · selected properties` : `${monthTitle(firstOfMonth)} ${firstOfMonth.slice(0, 4)}`;
   const pickDate = (date: string) => {
     setSelectedDate(date);
     setRange(current => selectCalendarRange(current, date));

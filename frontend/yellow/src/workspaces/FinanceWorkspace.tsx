@@ -5,6 +5,7 @@ import { createStaffAdvanceEvidenceCard } from "./StaffAdvanceEvidenceCard.mjs";
 import { hostedDepositHandoffPath } from "../hosted-deposit-handoff";
 import { moneyExactMinor } from "../money-exact-minor.mjs";
 import "./advance-evidence.css";
+import "./billing-layout.css";
 import type {
   ReservationDetail, Stay, Lane, FolioStatement, FolioChargeOption, FolioChargeGroup, FolioTransferGroup, FolioTransferPreview, FolioTransferDraft, FolioTransferReceipt, FolioTransferAttempt, ReceivableTarget, ReceivablePreview, ReceivableApprovalReceipt, HostedDepositWorkbench, HostedDepositLink, HostedDepositStatus, DepositDraft, DepositAttempt, CashierSnapshot
 } from "../yellow-api";
@@ -982,14 +983,14 @@ function CashierWorkbench({
     }
   };
   return (
-    <section className="commercial-workspace">
+    <section className="commercial-workspace billing-workspace" data-has-reservation={Boolean(selectedReservationId)} data-has-folio={Boolean(selectedFolioId)}>
       <div className="reservation-hero board-hero">
-        <div><span className="state">FRONT DESK FINANCE</span><h1>Cashier & folios</h1><p>Select an authoritative stay, then review its immutable folio before preparing a charge. Yellow never invents transaction codes or bypasses a confirmation.</p></div>
+        <div><span className="state">CASHIERING</span><h1>Billing</h1><p>Find a guest or room, open their bill, and choose an action.</p></div>
       </div>
       <div className="cashier-workbench">
         <article className="cashier-panel">
-          <span className="state">01 · SELECT STAY</span>
-          <h2>Find any reservation or bill</h2>
+          <span className="state">GUEST SEARCH</span>
+          <h2>Find a guest or bill</h2>
           <form className="cashier-unified-search" onSubmit={(event) => { event.preventDefault(); if (matchingStays.length === 0) void openFolioReference(); }}>
           <label className="cashier-search">Search guest, reservation, room, source, channel or folio
             <input
@@ -1022,8 +1023,8 @@ function CashierWorkbench({
           )}
         </article>
         <article className="cashier-panel">
-          <span className="state">02 · OPEN WINDOW</span>
-          <h2>Server-owned folios</h2>
+          <span className="state">SELECTED RESERVATION</span>
+          <h2>Billing windows</h2>
           {!selectedReservationId ? <p className="empty">Select a stay to load its folio windows.</p> : !visibleReservationDetail && detail.isLoading ? <p className="empty">Loading governed folio windows…</p> : !visibleReservationDetail ? <p className="error">{detail.error?.message ?? "The current reservation record is unavailable."}</p> : (
             <>
               {reservationDetailRefreshUnavailable ? <p className="cashier-detail-refresh-warning" role="status"><strong>The latest reservation refresh is unavailable.</strong> The last confirmed reservation record remains visible only for same-key recovery; Yellow will require a fresh authoritative preflight before it sends any command.</p> : null}
@@ -1047,14 +1048,15 @@ function CashierWorkbench({
           )}
         </article>
         <article className="cashier-panel cashier-posting">
-          <span className="state">03 · REVIEW &amp; PREPARE</span>
-          <h2>Folio posting</h2>
+          <span className="state">BILL DETAILS</span>
+          <h2>Transactions &amp; balance</h2>
           {!selectedFolioId ? <p className="empty">{visibleReservationDetail?.reservation.folios.length === 0 ? "A folio window is required before any charge can be prepared." : "Select a folio window to review its statement."}</p> : folio.isLoading ? <p className="empty">Loading immutable statement…</p> : !folio.data ? <p className="error">{folio.error?.message ?? "Folio is unavailable."}</p> : <>
             {folio.isError ? <p className="error">The latest folio refresh failed. The last authoritative statement remains visible{receivableAttemptUncertain ? "; use the highlighted recovery control to reconcile the retained attempt." : "."}</p> : null}
             <p className="cashier-balance">Balance <strong>{money(folio.data.balanceMinor, folio.data.folio.currency)}</strong> · Window {folio.data.folio.windowNo}</p>
             {folio.data.siblingWindows.length > 1 ? <div className="cashier-window-tabs" aria-label="Folio windows">{folio.data.siblingWindows.map((window) => <button type="button" key={window.id} className={window.id === folio.data?.folio.id ? "active" : undefined} onClick={() => selectFolio(window.id)}>Window {window.windowNo}<small>{money(window.balanceMinor, folio.data!.folio.currency)}</small></button>)}</div> : null}
             {postingClasses.length > 1 ? <div className="cashier-posting-tabs" aria-label="Posting classes"><button type="button" className={postingClass === "all" ? "active" : undefined} onClick={() => setPostingClass("all")}>All postings ({folio.data.rows.length})</button>{postingClasses.map((kind) => <button type="button" key={kind} className={postingClass === kind ? "active" : undefined} onClick={() => setPostingClass(kind)}>{kind.replaceAll("_", " ")} ({folio.data!.rows.filter((row) => row.kind === kind).length})</button>)}</div> : null}
             <div className="cashier-ledger" aria-label="Immutable folio postings">{visiblePostingRows.map((row) => <div key={row.lineId}><strong>{row.txCode}</strong><span>{row.description ?? row.kind} · {money(row.amountMinor, folio.data!.folio.currency)} · quantity {row.quantity}</span><small>{row.businessDate} · running balance {money(row.runningBalanceMinor, folio.data!.folio.currency)}</small></div>)}{visiblePostingRows.length === 0 ? <p className="empty">No postings match this statement view.</p> : null}</div>
+            <BillingActionDisclosure attention={posting || Boolean(postError)} title="Add a charge">
             <form className="cashier-charge-form" onSubmit={(event) => { event.preventDefault(); void postCharge(); }}>
               <fieldset className="cashier-charge-picker" disabled={!folio.data.chargeAvailability.allowed || posting || depositLocked}>
                 <legend>Charge class</legend>
@@ -1068,7 +1070,8 @@ function CashierWorkbench({
               <label className="cashier-confirm"><input type="checkbox" checked={confirmed} onChange={(event) => setConfirmed(event.target.checked)} disabled={!canPost || posting || depositLocked} /> I confirm the selected class, amount and folio window. Post this immutable charge.</label>
               {postError ? <p className="error">{postError}</p> : null}
               <button type="submit" disabled={!canPost || !confirmed || posting || depositLocked}>{posting ? "Posting governed charge…" : "Post confirmed charge"}</button>
-            </form>
+            </form></BillingActionDisclosure>
+            <BillingActionDisclosure attention={allocationLocked || Boolean(allocationError)} title="Transfer charges between billing windows">
             <section className="cashier-bill-allocation" aria-labelledby="cashier-bill-allocation-heading" data-lifecycle-recovery={allocationUncertainAttempt ? "true" : undefined}>
               <div className="cashier-bill-allocation-heading">
                 <div><span>COMPLETE-GROUP ROUTING</span><h3 id="cashier-bill-allocation-heading">Split bill windows</h3></div>
@@ -1128,6 +1131,7 @@ function CashierWorkbench({
               {allocationMessage ? <p className="cashier-allocation-message" role="status">{allocationMessage}</p> : null}
               <button type="button" className="cashier-allocation-commit" disabled={allocationBusy || (allocationUncertainAttempt === null && (!allocationPreview || !allocationConfirmed))} onClick={() => void reconcileBillWindowAllocation()}>{allocationUncertainAttempt ? "Retry same transfer and reconcile" : allocationBusy ? "Reconciling governed transfer…" : "Confirm balanced bill-window transfer"}</button>
             </section>
+            </BillingActionDisclosure><BillingActionDisclosure attention={receivableBusy || receivableAttemptUncertain || Boolean(receivableError)} title="Company / direct billing">
             <section className="cashier-receivable" aria-labelledby="cashier-receivable-heading">
               <div className="cashier-receivable-heading">
                 <div><span>ACCOUNT-OWNED SETTLEMENT</span><h3 id="cashier-receivable-heading">Direct billing / Post Master</h3></div>
@@ -1196,15 +1200,26 @@ function CashierWorkbench({
                 </form>
               )}
             </section>
-            <AdvanceDepositWorkbench reservation={visibleReservationDetail!.reservation} statement={folio.data} acquireMutationLease={acquireDepositMutationLease} releaseMutationLease={releaseDepositMutationLease} onStatementReconciled={(refreshed) => queryClient.setQueryData(["cashier-folio-statement", propertyId, refreshed.folio.id], refreshed)} />
+            </BillingActionDisclosure><BillingActionDisclosure attention={depositLocked} title="Advance deposits">
+            <AdvanceDepositWorkbench reservation={visibleReservationDetail!.reservation} statement={folio.data} acquireMutationLease={acquireDepositMutationLease} releaseMutationLease={releaseDepositMutationLease} onStatementReconciled={(refreshed) => queryClient.setQueryData(["cashier-folio-statement", propertyId, refreshed.folio.id], refreshed)} /></BillingActionDisclosure>
           </>}
         </article>
       </div>
-      <article className="detail-card commercial-plans"><div className="section-heading"><div><span>SERVER-OWNED DRAWERS</span><h2>Cash custody readiness</h2></div></div>{drawers.length ? <ul>{drawers.map((drawer) => <li key={drawer.drawerId}><strong>{drawer.name} · {drawer.code}</strong><span>{drawer.currency} · {drawer.session ? `session ${drawer.session.status ?? "active"}` : "no active session"}</span><small>{drawer.canOpen ? "Open" : "Open unavailable"} · {drawer.canCount ? "Count" : "Count unavailable"} · {drawer.canClose ? "Close" : "Close unavailable"}{drawer.supervised ? " · supervised" : ""}</small></li>)}</ul> : <div className="cashier-drawer-empty"><span className="cashier-status neutral">Cash drawer not configured</span><p>Cash custody controls are unavailable. Governed room, service and non-cash folio charges can still be posted above.</p></div>}</article>
+      <details className="billing-custody"><summary>Cash drawer &amp; shift status</summary><article className="detail-card commercial-plans"><div className="section-heading"><div><span>CASH CUSTODY</span><h2>Cash custody readiness</h2></div></div>{drawers.length ? <ul>{drawers.map((drawer) => <li key={drawer.drawerId}><strong>{drawer.name} · {drawer.code}</strong><span>{drawer.currency} · {drawer.session ? `session ${drawer.session.status ?? "active"}` : "no active session"}</span><small>{drawer.canOpen ? "Open" : "Open unavailable"} · {drawer.canCount ? "Count" : "Count unavailable"} · {drawer.canClose ? "Close" : "Close unavailable"}{drawer.supervised ? " · supervised" : ""}</small></li>)}</ul> : <div className="cashier-drawer-empty"><span className="cashier-status neutral">Cash drawer not configured</span><p>Cash custody controls are unavailable. Governed room, service and non-cash folio charges can still be posted above.</p></div>}</article></details>
       <p className="commercial-note">Charges and direct billing use their canonical financial endpoints, stable operation keys, server-owned catalogues and separate visible confirmations. Corrections, payment settlement and fiscal documents remain distinct governed actions.</p>
     </section>
   );
 }
 
+
+function BillingActionDisclosure({ attention, title, children }: { attention: boolean; title: string; children: import("react").ReactNode }) {
+  const disclosure = useRef<HTMLDetailsElement>(null);
+  useEffect(() => {
+    if (attention && disclosure.current) disclosure.current.open = true;
+  }, [attention]);
+  return <details className="billing-action" ref={disclosure} onToggle={(event) => {
+    if (attention && !event.currentTarget.open) event.currentTarget.open = true;
+  }}><summary>{title}</summary>{children}</details>;
+}
 
 export { FinanceWorkspace, PrimaryBillingWindowAction, AdvanceDepositWorkbench, CashierWorkbench };

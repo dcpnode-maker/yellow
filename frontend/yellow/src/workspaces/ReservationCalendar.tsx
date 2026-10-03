@@ -68,7 +68,7 @@ export function ReservationCalendar({ propertyId, timezone, onOpen }: Readonly<{
     enabled: range !== null && Boolean(current) && !grants.isError && !grants.isPending,
     retry: false, staleTime: 0,
   });
-  const error = !range ? "Choose a valid calendar date." : grants.isError ? "Property access could not be verified."
+  const error = !range ? "The property timezone is unavailable. Choose a valid calendar date after the timezone is restored." : grants.isError ? "Property access could not be verified."
     : !grants.isPending && !current ? "Calendar access to this property is not granted." : calendar.isError ? calendar.error.message : null;
   const loading = grants.isPending || calendar.isPending && Boolean(current);
   const pages = !error && !loading ? calendar.data : undefined;

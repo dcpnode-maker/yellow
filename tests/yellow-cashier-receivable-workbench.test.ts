@@ -1,6 +1,6 @@
 import { expect, test } from "bun:test";
 
-const app = `${await Bun.file("frontend/yellow/src/workspaces/FinanceWorkspace.tsx").text()}\n${await Bun.file("frontend/yellow/src/yellow-api.tsx").text()}`;
+const app = `${await Bun.file("frontend/yellow/src/workspaces/FinanceWorkspace.tsx").text()}\n${await Bun.file("frontend/yellow/src/yellow-api.tsx").text()}\n${await Bun.file("frontend/yellow/src/money-exact-minor.mjs").text()}`;
 const shell = await Bun.file("frontend/yellow/src/App.tsx").text();
 const css = await Bun.file("frontend/yellow/src/styles.css").text();
 

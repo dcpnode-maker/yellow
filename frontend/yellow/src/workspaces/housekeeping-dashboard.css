@@ -1,0 +1,27 @@
+.hk-task-dashboard { min-width: 0; display: grid; gap: 16px; }
+.hk-dashboard-summary { display: flex; flex-wrap: wrap; gap: 12px; }
+.hk-dashboard-summary > div { flex: 1 1 120px; display: grid; gap: 4px; padding: 14px 18px; border: 1px solid var(--line, #d5dcd6); border-radius: 12px; background: var(--surface, transparent); }
+.hk-dashboard-summary strong { font-size: 1.6rem; }
+.hk-dashboard-summary span { text-transform: capitalize; }
+.hk-dashboard-tasks { min-width: 0; }
+.hk-dashboard-tasks h2 { margin-top: 0; }
+.hk-dashboard-filters { display: flex; flex-wrap: wrap; align-items: end; gap: 12px; margin-top: 18px; }
+.hk-dashboard-filters label { flex: 1 1 140px; min-width: 0; display: grid; gap: 6px; font-size: .875rem; }
+.hk-dashboard-filters .hk-dashboard-search { flex: 2 1 260px; }
+.hk-dashboard-filters input, .hk-dashboard-filters select { width: 100%; min-width: 0; min-height: 44px; padding: 8px 10px; color: inherit; background: var(--surface, transparent); border: 1px solid var(--line, #d5dcd6); border-radius: 8px; font: inherit; }
+.hk-dashboard-filters button, .hk-dashboard-row-actions button { min-height: 44px; white-space: normal; }
+.hk-dashboard-row-count { margin: 16px 0 10px; }
+.hk-dashboard-table-scroll { width: 100%; overflow-x: auto; border: 1px solid var(--line, #d5dcd6); border-radius: 10px; }
+.hk-dashboard-table-scroll table { width: 100%; border-collapse: collapse; text-align: left; }
+.hk-dashboard-table-scroll caption { padding: 12px; text-align: left; }
+.hk-dashboard-table-scroll th, .hk-dashboard-table-scroll td { padding: 12px; border-top: 1px solid var(--line, #d5dcd6); vertical-align: middle; overflow-wrap: anywhere; }
+.hk-dashboard-table-scroll thead { background: var(--surface, transparent); }
+.hk-dashboard-table-scroll thead th { white-space: nowrap; }
+.hk-dashboard-table-scroll th:first-child { min-width: 90px; }
+.hk-dashboard-row-actions { display: flex; flex-wrap: wrap; gap: 8px; min-width: 130px; }
+.hk-dashboard-floor { margin-top: 16px; min-width: 0; }
+.hk-dashboard-floor > summary { min-height: 44px; padding: 12px; cursor: pointer; font-weight: 600; }
+.hk-dashboard-floor .detail-card { margin-top: 12px; }
+.hk-dashboard-confirmation { margin-top: 16px; }
+.hk-task-dashboard :focus-visible, .hk-dashboard-floor > summary:focus-visible { outline: 2px solid currentColor; outline-offset: 3px; }
+@media (max-width: 600px) { .hk-dashboard-filters label { flex-basis: calc(50% - 12px); } .hk-dashboard-filters .hk-dashboard-search { flex-basis: 100%; } .hk-dashboard-table-scroll table { min-width: 760px; } }

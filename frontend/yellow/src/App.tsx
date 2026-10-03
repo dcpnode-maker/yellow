@@ -13,6 +13,7 @@ import { CopyCellButton } from "./ui/CopyCellButton";
 import { tableColumnSort } from "./table-query";
 import { reservationViewForDestination, reservationViewHref } from "./reservation-navigation";
 import { HousekeepingFloorWorkbench } from "./workspaces/HousekeepingFloorWorkbench";
+import { HousekeepingTaskDashboard } from "./workspaces/HousekeepingTaskDashboard";
 import {
   arrivalCleaningAttendantIntent,
   cashierChargeConfirmationIntent,
@@ -5349,13 +5350,6 @@ function HousekeepingWorkspace({
       </section>
     );
   const { rooms, tasks } = query.data;
-  const counts = rooms.reduce<Record<string, number>>(
-    (current, room) => ({
-      ...current,
-      [room.condition]: (current[room.condition] ?? 0) + 1,
-    }),
-    {},
-  );
   return (
     <section className="reservation-workspace">
       <div className="reservation-hero board-hero">
@@ -5368,44 +5362,9 @@ function HousekeepingWorkspace({
           </p>
         </div>
       </div>
-      <div className="condition-summary">
-        {Object.entries(counts).map(([condition, count]) => (
-          <div key={condition}>
-            <strong>{count}</strong>
-            <span>{condition} · loaded</span>
-          </div>
-        ))}
-      </div>
-      <div className="housekeeping-grid">
-        <article className="detail-card">
-          <HousekeepingFloorWorkbench key={propertyId} propertyId={propertyId} timezone={timezone} getToken={session}
-            disabled={busy} refreshGeneration={floorRefreshGeneration} onPrepare={prepare} />
-        </article>
-        <article className="detail-card">
-          <h2>Loaded current tasks</h2>
-          {tasks.length ? (
-            <ul>
-              {tasks.map((task) => (
-                <li key={task.taskId}>
-                  <strong>
-                    Room {task.spaceCode} · {task.taskStatus}
-                  </strong>
-                  <span>
-                    Floor {task.floor} · priority {task.priority} ·{" "}
-                    {task.roomCondition}
-                    {task.assigned ? " · assigned" : " · unassigned"}
-                  </span>
-                  {task.allowedActions.map((action) => (
-                    <button className="housekeeping-task-action" key={action} type="button" onClick={() => prepare(task, action)}>
-                      {housekeepingActionCopy(action).button}
-                    </button>
-                  ))}
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p>No current tasks are listed.</p>
-          )}
+      <HousekeepingTaskDashboard rooms={rooms} tasks={tasks} disabled={busy}
+        actionLabel={(action) => housekeepingActionCopy(action).button} onPrepare={prepare} />
+      {proposal || result ? <article className="detail-card hk-dashboard-confirmation">
           {proposal ? <section className="housekeeping-action-proposal" aria-label="Housekeeping action proposal">
             <span>HOUSEKEEPING ACTION PROPOSAL</span>
             <h3>{housekeepingActionCopy(proposal.action).button} · Room {proposal.task.spaceCode}</h3>
@@ -5422,8 +5381,14 @@ function HousekeepingWorkspace({
             </div>
           </section> : null}
           {result ? <p role="status" className={result.includes("authoritative") ? "success" : "error"}>{result}</p> : null}
+      </article> : null}
+      <details className="hk-dashboard-floor">
+        <summary>Floor and room view</summary>
+        <article className="detail-card">
+          <HousekeepingFloorWorkbench key={propertyId} propertyId={propertyId} timezone={timezone} getToken={session}
+            disabled={busy} refreshGeneration={floorRefreshGeneration} onPrepare={prepare} />
         </article>
-      </div>
+      </details>
     </section>
   );
 }
@@ -7180,6 +7145,10 @@ export function App() {
   }, [assistant, language, reservationQueryContext, turns]);
   const workflow = (part: string) => {
     if (reservationLifecycleBusyRef.current || voiceTransferRecoveryLockedRef.current || propertyModeNavigationLocked) return;
+    if (part === "operations:tasks") {
+      navigateYellow(`/p/${propertyId}/operations?view=tasks`);
+      return;
+    }
     const reservationView = reservationViewForDestination(part);
     if (reservationView !== null) {
       const path = `/p/${propertyId}/reservations`;
@@ -9017,6 +8986,7 @@ export function App() {
           </aside>
           <Suspense fallback={<section className="operational-state operational-route-loading"><strong>Opening operations…</strong><p>Loading the workspace only when it is needed.</p></section>}>
             <OperationalHub
+              initialView={new URLSearchParams(route.search).get("view") === "tasks" ? "tasks" : "rooms"}
               propertyName={selected?.name ?? "Current property"}
               arrivals={{ data: dueInQuery.data?.reservations, isLoading: dueInQuery.isLoading, isError: dueInQuery.isError }}
               departures={{ data: dueOutQuery.data?.reservations, isLoading: dueOutQuery.isLoading, isError: dueOutQuery.isError }}

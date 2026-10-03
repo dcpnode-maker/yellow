@@ -4,7 +4,10 @@ import { StaffGroupBlockWorkbench } from "./StaffGroupBlockWorkbench";
 import { ReservationCalendar } from "./ReservationCalendar";
 import { navigateYellow } from "../workspace-navigation";
 import { readStaffCrsReservationDraft } from "./staff-crs-client";
-import { reservationViewFromSearch } from "../reservation-navigation";
+import { reservationViewFromSearch, reservationViewHref, reservationGroupFromSearch } from "../reservation-navigation";
+import { loadGroups, searchGroups } from "../group-reservations-api";
+import { filterGroupSearchRows } from "./reservation-search";
+import "./reservation-search.css";
 import { GroupReservationWorkspace } from "./GroupReservationWorkspace";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -348,6 +351,7 @@ function MovementGrid({
   headingId = "movement-heading",
   query: controlledQuery,
   onQueryChange,
+  searchBoard = false,
 }: Readonly<{
   status: Status | "all";
   lane?: Lane;
@@ -356,6 +360,7 @@ function MovementGrid({
   headingId?: string;
   query?: MovementQuery;
   onQueryChange?: (query: MovementQuery) => void;
+  searchBoard?: boolean;
 }>) {
   const [localQuery, setLocalQuery] = useState<MovementQuery>(() => createMovementQuery(
     status === "due_out" ? "departure" : "arrival",
@@ -428,18 +433,24 @@ function MovementGrid({
           <p>{visibleRows.length.toLocaleString()} reservations · {rendered.length} rows rendered on demand · live</p>
         </div>
       </header>
+      {searchBoard ? <div className="reservation-search-filters">
+        <label>Reservation status<select value={stateFilter} onChange={(event) => { updateQuery({ state: event.target.value }); resetGridScroll(); }}><option value="">Any state</option>{states.map((item) => <option key={item} value={item}>{operationalStateDescription(item)}</option>)}</select></label>
+        <label>Source<select value={source} onChange={(event) => { updateQuery({ source: event.target.value }); resetGridScroll(); }}><option value="">Any source</option>{sources.map((item) => <option key={item} value={item}>{item}</option>)}</select></label>
+        <label>Arrival from<input type="date" value={dateFrom} onChange={(event) => { updateQuery({ dateFrom: event.target.value }); resetGridScroll(); }} /></label>
+        <label>Arrival to<input type="date" value={dateTo} min={dateFrom || undefined} onChange={(event) => { updateQuery({ dateTo: event.target.value }); resetGridScroll(); }} /></label>
+      </div> : null}
       <div className="movement-toolbar">
-        <label className="movement-search"><span>⌕</span><input value={search} onChange={(event) => { updateQuery({ search: event.target.value }); resetGridScroll(); }} placeholder="Search guest, reservation, room, source, rate or travel…" /></label>
+        <label className="movement-search"><span aria-hidden="true">⌕</span><input aria-label="Search reservations" value={search} onChange={(event) => { updateQuery({ search: event.target.value }); resetGridScroll(); }} placeholder="Search guest, reservation, room, source, rate or travel…" /></label>
         <div className="movement-tool-wrap">
           <button type="button" className={filtersOpen ? "active" : undefined} onClick={() => { setFiltersOpen((value) => !value); setSortOpen(false); }}>Advanced filter{filterCount ? ` (${filterCount})` : ""}⌄</button>
           {filtersOpen ? <div className="movement-popover" role="dialog" aria-label="Advanced movement filters">
             <div className="movement-popover-head"><strong>Match all rules</strong><button type="button" aria-label="Close advanced filters" onClick={() => setFiltersOpen(false)}>Close</button></div>
-            {status === "all" ? <label>Operational state<select value={stateFilter} onChange={(event) => { updateQuery({ state: event.target.value }); resetGridScroll(); }}><option value="">Any state</option>{states.map((item) => <option key={item} value={item}>{operationalStateDescription(item)}</option>)}</select></label> : null}
-            <label>Source<select value={source} onChange={(event) => { updateQuery({ source: event.target.value }); resetGridScroll(); }}><option value="">Any source</option>{sources.map((item) => <option key={item} value={item}>{item}</option>)}</select></label>
+            {status === "all" && !searchBoard ? <label>Operational state<select value={stateFilter} onChange={(event) => { updateQuery({ state: event.target.value }); resetGridScroll(); }}><option value="">Any state</option>{states.map((item) => <option key={item} value={item}>{operationalStateDescription(item)}</option>)}</select></label> : null}
+            {!searchBoard ? <label>Source<select value={source} onChange={(event) => { updateQuery({ source: event.target.value }); resetGridScroll(); }}><option value="">Any source</option>{sources.map((item) => <option key={item} value={item}>{item}</option>)}</select></label> : null}
             <label>Room type<select value={roomType} onChange={(event) => { updateQuery({ roomType: event.target.value }); resetGridScroll(); }}><option value="">Any room type</option>{roomTypes.map((item) => <option key={item} value={item}>{item}</option>)}</select></label>
             <label>Rate plan<select value={ratePlan} onChange={(event) => { updateQuery({ ratePlan: event.target.value }); resetGridScroll(); }}><option value="">Any rate plan</option>{ratePlans.map((item) => <option key={item} value={item}>{item}</option>)}</select></label>
-            <label>{query.movementTime === "departure" ? "Departure from" : "Arrival from"}<input type="date" value={dateFrom} onChange={(event) => { updateQuery({ dateFrom: event.target.value }); resetGridScroll(); }} /></label>
-            <label>{query.movementTime === "departure" ? "Departure to" : "Arrival to"}<input type="date" value={dateTo} min={dateFrom || undefined} onChange={(event) => { updateQuery({ dateTo: event.target.value }); resetGridScroll(); }} /></label>
+            {!searchBoard ? <><label>{query.movementTime === "departure" ? "Departure from" : "Arrival from"}<input type="date" value={dateFrom} onChange={(event) => { updateQuery({ dateFrom: event.target.value }); resetGridScroll(); }} /></label>
+            <label>{query.movementTime === "departure" ? "Departure to" : "Arrival to"}<input type="date" value={dateTo} min={dateFrom || undefined} onChange={(event) => { updateQuery({ dateTo: event.target.value }); resetGridScroll(); }} /></label></> : null}
             <label>Room assignment<select value={assignment} onChange={(event) => { updateQuery({ assignment: event.target.value as MovementQuery["assignment"] }); resetGridScroll(); }}><option value="all">Any</option><option value="assigned">Assigned</option><option value="unassigned">Unassigned</option></select></label>
             <label>Minimum adults<input aria-label="Minimum adults" type="number" min="1" max="20" inputMode="numeric" value={minAdults ?? ""} onChange={(event) => { const value = event.target.value; const parsed = Number(value); updateQuery({ minAdults: value === "" || !Number.isSafeInteger(parsed) || parsed < 1 || parsed > 20 ? null : parsed }); resetGridScroll(); }} /></label>
             <label>Children<select value={children} onChange={(event) => { updateQuery({ children: event.target.value as MovementQuery["children"] }); resetGridScroll(); }}><option value="all">Any</option><option value="present">With children</option><option value="absent">0 children recorded</option></select></label>
@@ -461,8 +472,8 @@ function MovementGrid({
         </div>
         <span className="movement-density">Compact density</span>
       </div>
-      <div className="movement-grid" role="table" aria-rowcount={visibleRows.length + 1}>
-        <div ref={scrollViewport} className="movement-grid-scroll" style={{ height: viewportHeight }} onScroll={(event) => setScrollTop(event.currentTarget.scrollTop)}>
+      <div className="movement-grid" role="table" aria-label="Reservation search results" aria-rowcount={visibleRows.length + 1}>
+        <div ref={scrollViewport} className="movement-grid-scroll" tabIndex={0} aria-label="Scrollable reservation results" style={{ height: viewportHeight }} onScroll={(event) => setScrollTop(event.currentTarget.scrollTop)}>
           <div className="movement-grid-head movement-grid-row" role="row">
             {[status === "due_out" ? "Departure" : status === "all" ? "Arrival" : "ETA", "Guest", "Reservation", "Nights", "Room type", "Assigned room", "Source", "Rate plan", "Guests / travel", "Readiness", "Status", "Billing"].map((heading) => <span role="columnheader" key={heading}>{heading} ↕</span>)}
           </div>
@@ -3508,10 +3519,45 @@ function ReservationBoardWorkspace({ timezone, onCrsContinue }: Readonly<{ timez
     window.addEventListener("popstate", sync); return () => window.removeEventListener("popstate", sync);
   }, []);
   if (view === "calendar") return <ReservationCalendar key={propertyId} propertyId={propertyId} timezone={timezone} onOpen={(id, calendarPropertyId) => navigateYellow(`/p/${calendarPropertyId ?? propertyId}/res/${id}`)} />;
-  return view === "crs" ? <StaffCrsWorkspace key={propertyId} propertyId={propertyId} timezone={timezone} onContinue={onCrsContinue} /> : <ReservationBoardContents timezone={timezone} />;
+  return view === "crs" ? <StaffCrsWorkspace key={propertyId} propertyId={propertyId} timezone={timezone} onContinue={onCrsContinue} /> : <ReservationBoardContents timezone={timezone} view={view} />;
 }
 
-function ReservationBoardContents({ timezone }: Readonly<{ timezone: string }>) {
+function ReservationGroupSearchBoard() {
+  const [phrase, setPhrase] = useState("");
+  const [search, setSearch] = useState("");
+  const [status, setStatus] = useState("");
+  const [kind, setKind] = useState("");
+  const [managementOpen, setManagementOpen] = useState(() => reservationGroupFromSearch(window.location.search) !== undefined);
+  useEffect(() => {
+    const sync = () => { if (reservationGroupFromSearch(window.location.search) !== undefined) setManagementOpen(true); };
+    window.addEventListener("popstate", sync); return () => window.removeEventListener("popstate", sync);
+  }, []);
+  const groups = useQuery({ queryKey: ["reservation-group-search", propertyId, search], queryFn: () => search ? searchGroups(propertyId, search) : loadGroups(propertyId) });
+  const rows = groups.data?.groups ?? [];
+  const statuses = [...new Set(rows.map((row) => row.status))].sort();
+  const kinds = [...new Set(rows.map((row) => row.kind))].sort();
+  const visible = filterGroupSearchRows(rows, status, kind);
+  return <section className="reservation-group-search" aria-labelledby="reservation-group-search-title">
+    <h1 id="reservation-group-search-title">Group reservations</h1>
+    <form className="reservation-group-search-controls" onSubmit={(event) => { event.preventDefault(); const next = phrase.trim(); if (next === search) void groups.refetch(); else { setStatus(""); setKind(""); setSearch(next); } }}>
+      <label>Search groups<input value={phrase} maxLength={120} placeholder="Group name or code" onChange={(event) => setPhrase(event.target.value)} /></label>
+      <button type="submit" aria-label="Search group reservations" disabled={groups.isFetching}>Search</button>
+      <label>Group status<select value={status} onChange={(event) => setStatus(event.target.value)}><option value="">Any status</option>{statuses.map((value) => <option key={value}>{value}</option>)}</select></label>
+      <label>Group kind<select value={kind} onChange={(event) => setKind(event.target.value)}><option value="">Any kind</option>{kinds.map((value) => <option key={value}>{value}</option>)}</select></label>
+    </form>
+    {groups.isError ? <p className="error" role="alert">{groups.error.message}</p> : groups.isLoading ? <p role="status">Loading groups…</p> : <>
+      <div className="reservation-group-results" tabIndex={0} role="region" aria-label="Scrollable group search results"><table><caption>{visible.length} matching groups in the returned page</caption><thead><tr><th scope="col">Group</th><th scope="col">Code</th><th scope="col">Kind</th><th scope="col">Status</th><th scope="col">Members</th></tr></thead><tbody>{visible.map((row) => <tr key={row.groupId}><td><button type="button" onClick={() => { const href = new URL(reservationViewHref(window.location.pathname, window.location.search, window.location.hash, "groups"), "https://yellow.invalid"); href.searchParams.set("group", row.groupId); navigateYellow(`${href.pathname}${href.search}${href.hash}`); }}>{row.name}</button></td><td>{row.code}</td><td>{row.kind}</td><td>{row.status}</td><td>{row.memberCount}</td></tr>)}</tbody></table></div>
+      {!visible.length ? <p role="status">No matching groups in the returned page.</p> : null}
+      {groups.data?.nextCursor ? <p>More groups exist. Refine the search or use Load more groups in group management.</p> : null}
+    </>}
+    <details className="reservation-group-management" open={managementOpen} onToggle={(event) => setManagementOpen(event.currentTarget.open)}>
+      <summary onClick={(event) => { if (managementOpen && !window.dispatchEvent(new Event("beforeunload", { cancelable: true }))) event.preventDefault(); }}>Group management and room blocks</summary>
+      {managementOpen ? <><GroupReservationWorkspace key={propertyId} propertyId={propertyId} /><StaffGroupBlockWorkbench key={propertyId} propertyId={propertyId} /></> : null}
+    </details>
+  </section>;
+}
+
+function ReservationBoardContents({ timezone, view }: Readonly<{ timezone: string; view: "list" | "groups" }>) {
   const [creating, setCreating] = useState(() => readStaffCrsReservationDraft(window.location.search) !== null);
   const [draftSearch, setDraftSearch] = useState(window.location.search);
   useEffect(() => {
@@ -3521,38 +3567,23 @@ function ReservationBoardContents({ timezone }: Readonly<{ timezone: string }>) 
   const board = useQuery({
     queryKey: ["reservation-board", propertyId],
     queryFn: loadReservationBoard,
+    enabled: view === "list" || creating,
   });
   if (creating)
     return <ReservationCreateWorkspace key={draftSearch} timezone={timezone} onCancel={() => setCreating(false)} onCreated={async () => { await board.refetch(); }} />;
-  if (board.isLoading)
-    return (
-      <section className="reservation-workspace">
-        <p className="empty">Loading reservations…</p>
-      </section>
-    );
-  if (board.isError)
-    return (
-      <section className="reservation-workspace">
-        <p className="error">{board.error.message}</p>
-      </section>
-    );
-  if (!board.data)
-    return (
-      <section className="reservation-workspace">
-        <p className="error">Reservation details are unavailable.</p>
-      </section>
-    );
   return (
-    <section className="reservation-board-next">
-      <div className="reservation-board-actions"><button type="button" onClick={() => setCreating(true)}>New reservation</button></div>
-      <GroupReservationWorkspace key={propertyId} propertyId={propertyId} />
-      <StaffGroupBlockWorkbench key={propertyId} propertyId={propertyId} />
-      <MovementGrid
+    <section className="reservation-board-next reservation-search-board">
+      <div className="reservation-search-actions">
+        <label>Reservation type<select value={view} onChange={(event) => navigateYellow(reservationViewHref(window.location.pathname, window.location.search, window.location.hash, event.target.value === "groups" ? "groups" : "list"))}><option value="list">Individual</option><option value="groups">Group</option></select></label>
+        <button type="button" onClick={() => { if (view === "groups" && !window.dispatchEvent(new Event("beforeunload", { cancelable: true }))) return; setCreating(true); }}>Create new reservation</button>
+      </div>
+      {view === "groups" ? <ReservationGroupSearchBoard /> : board.isLoading ? <p className="empty" role="status">Loading reservations…</p> : board.isError ? <p className="error" role="alert">{board.error.message}</p> : !board.data ? <p className="error">Reservation details are unavailable.</p> : <MovementGrid
         status="all"
+        searchBoard
         lane={board.data}
         timezone={timezone}
         open={(stay) => navigateYellow(`/p/${propertyId}/res/${stay.reservationId}`)}
-      />
+      />}
     </section>
   );
 }

@@ -2,6 +2,7 @@ import { expect, test } from "bun:test";
 
 const app = await Bun.file("frontend/yellow/src/App.tsx").text();
 const styles = await Bun.file("frontend/yellow/src/styles.css").text();
+const dashboard = await Bun.file("frontend/yellow/src/workspaces/HousekeepingTaskDashboard.tsx").text();
 
 test("exposes the governed housekeeping transition only through current task truth", () => {
   for (const marker of [
@@ -29,11 +30,11 @@ test("manual housekeeping actions remain proposal then separate confirmation", (
     "I confirm the physical housekeeping statement above.",
     "Confirm housekeeping action",
     "Physical cleaning is never inferred",
-    "allowedActions.map",
   ]) expect(app).toContain(marker);
+  expect(dashboard).toContain("allowedActions.map");
   expect(styles).toContain(".housekeeping-action-proposal");
   expect(styles).toContain(".housekeeping-task-action { min-height: 44px;");
-  expect(app).toContain('className="housekeeping-task-action"');
+  expect(dashboard).toContain('className="housekeeping-task-action"');
   expect(styles).toContain(".housekeeping-action-proposal .proposal-actions button { min-height: 44px;");
   expect(styles).toContain(".housekeeping-action-proposal .confirmation { min-height: 44px;");
   expect(app).toContain("A granted operator records the staff declaration");

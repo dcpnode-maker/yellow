@@ -2,14 +2,24 @@
 
 <!-- status-schema: yellow-project-status/v1 -->
 <!-- current-phase: 7 -->
+<!-- current-order-files: handoff/orders/RESOURCE-20261004-founder-ui-release-53.md;handoff/orders/RESOURCE-20261004-founder-ui-restoration-50.md;handoff/orders/RESOURCE-20261004-billing-hk-layout-51.md;handoff/orders/RESOURCE-20261004-department-task-table-52.md -->
+<!-- current-lifecycle: ACTIVE reviewed migration-free UI53 source admission; live8bd until exact runtime release; full ecosystem and founder manual UAT remain pending -->
 <!-- current-task: Codex Yellow — restore requested original UI and integrate CRS CRM RMS booking engine; laptop source and live hosting owner -->
-<!-- current-order-files: handoff/orders/RESOURCE-20261003-housekeeping-property-revocation.md;handoff/orders/RESOURCE-20261003-housekeeping-progressive-disclosure.md;handoff/orders/RESOURCE-20261003-research-flow-preview-release.md;handoff/orders/RESOURCE-20261003-arrival-advance-return-acceptance.md;handoff/orders/RESOURCE-20261003-pms-research-flow-integration.md;handoff/orders/RESOURCE-20261003-native-hosting-calendar.md;handoff/orders/RESOURCE-20261003-today-movement-mix.md;handoff/orders/RESOURCE-20261002-live-calendar-and-ecosystem-plan.md -->
-<!-- current-lifecycle: ACTIVE selected-room housekeeping5d855ba5/frontier103 fixed named-VPC live preview;404 property-denial correction publicly verified;10R inventory presentation candidate active; full ecosystem stages and founder manual UAT remain pending -->
+<!-- historical-order-files: handoff/orders/RESOURCE-20261003-housekeeping-property-revocation.md;handoff/orders/RESOURCE-20261003-housekeeping-progressive-disclosure.md;handoff/orders/RESOURCE-20261003-research-flow-preview-release.md;handoff/orders/RESOURCE-20261003-arrival-advance-return-acceptance.md;handoff/orders/RESOURCE-20261003-pms-research-flow-integration.md;handoff/orders/RESOURCE-20261003-native-hosting-calendar.md;handoff/orders/RESOURCE-20261003-today-movement-mix.md;handoff/orders/RESOURCE-20261002-live-calendar-and-ecosystem-plan.md -->
+<!-- historical-lifecycle: ACTIVE selected-room housekeeping5d855ba5/frontier103 fixed named-VPC live preview;404 property-denial correction publicly verified;10R inventory presentation candidate active; full ecosystem stages and founder manual UAT remain pending -->
 
 This is the canonical current-state record. It identifies the consolidated source,
 verified behavior, release boundaries and active work. Historical orders, reviews,
 decisions and ledger entries remain evidence; their filenames are not an active
 backlog. `state.sh` and `state.ps1` read the machine-readable comments above.
+
+## Receiving update - 4 October: founder UI restoration53
+
+Reviewed source restores neon-green Month/Year/Timeline calendar presentation, a searchable Individual/Group reservation entry with the existing Create new reservation flow, simpler Billing guest/window/statement layout, one Housekeeping task dashboard with same-page floors, and CRM Department tasks opening the existing role-visible service queue as a filtered table. Exact historical calendar pixels were unavailable; no pixel identity is claimed. Unknown calendar dates remain neutral; no rates or sellability are inferred.
+
+Root personally executed final combined focused/retained tests (83 passed), separate billing layout tests (3 passed), actual full App reservation desktop/mobile browser test (1 passed, 39 assertions) and mounted department-table test (1 passed, 16 interaction checks). Both strict types, 211 boundaries and production build passed. Independent non-author billing review reproduced and corrected a collapsing transfer preview, then personally reran visible previews and retained same-key recovery at 1440/390/320px. Financial/housekeeping/department handlers, authority and request bodies remain unchanged; no migration or production fixture was run.
+
+Source acceptance is separate from runtime admission: external root-current-live-runtime.json and versioned release53 receipts identify actual revision, processes, served-byte proof and retained predecessor. No physical phone compile of this successor or production guest notification is claimed. Department tasks currently cover luggage, minibar, inspection and escalation; general CRM tasks and friendly returned labels remain future work. Lost and Found reservation/history/media/notification intent is recorded, but its backend/private guest view/dispatch are not built. Pending App4, guest-booking, check-in and RMS candidates are excluded; the full researched ecosystem remains incomplete.
 
 ## Receiving update — 2 October: live Calendar and ecosystem implementation
 
