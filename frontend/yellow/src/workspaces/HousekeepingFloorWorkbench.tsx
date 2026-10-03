@@ -47,6 +47,7 @@ export function HousekeepingFloorWorkbench({ propertyId, timezone, getToken, dis
   const floorChosen = useRef(false);
   const disabledRef = useRef(disabled);
   const selectedSpaceRef = useRef(selectedSpace);
+  const roomButtons = useRef(new Map<string, HTMLButtonElement>());
   disabledRef.current = disabled;
   selectedSpaceRef.current = selectedSpace;
   // Hide a previous property's evidence in the render that precedes effect cleanup.
@@ -130,9 +131,6 @@ export function HousekeepingFloorWorkbench({ propertyId, timezone, getToken, dis
     {snapshot.tasksMayBeIncomplete ? <p className="hk-floor-note" role="status">200 current tasks are loaded. The API has no task cursor, so task matches may be incomplete.</p> : null}
     <p className="hk-floor-count" aria-live="polite">{hasSnapshot ? <>{displayRooms.length} rooms with recorded condition loaded{snapshot.exhausted ? " · condition list exhausted" : " · more rooms may be available"}; {displayTasks.length} current tasks loaded.</> : "Room condition coverage and current tasks have not been verified."}</p>
     {loading && !hasSnapshot ? <p>Loading room conditions…</p> : null}
-    {hasSnapshot ? <HousekeepingProgressPanel snapshot={{ rooms: displayRooms, tasks: displayTasks,
-      nextCursor: cursor, stale: stale || loading || loadingMore, tasksMayBeIncomplete: snapshot.tasksMayBeIncomplete }}
-      now={now} timezone={timezone} /> : null}
     {!loading && hasSnapshot && visibleFloors.length === 0 ? <p>No rooms with recorded conditions are in this result.</p> : null}
     <div className="hk-floor-layout">
       <nav className="hk-floor-nav" aria-label="Housekeeping floors">
@@ -145,6 +143,7 @@ export function HousekeepingFloorWorkbench({ propertyId, timezone, getToken, dis
       <div className="hk-floor-room-area">
         {visibleFloors.filter((group) => group.floor === selectedFloor).map((group) => <section key={group.floor === null ? "room-floor:null" : `room-floor:${group.floor}`} aria-label={group.label}>
           <h3>{group.label}</h3><div className="hk-floor-cubes">{group.rooms.map((room) => <button key={room.spaceId} type="button" className={`hk-floor-cube is-${room.condition}`}
+            ref={(node) => { if (node) roomButtons.current.set(room.spaceId, node); else roomButtons.current.delete(room.spaceId); }}
             aria-pressed={selectedSpace === room.spaceId} disabled={disabled || loading} onClick={() => chooseRoom(room)}>
             <strong>{room.code}</strong><span>{room.condition}</span><small>Recorded {room.updatedAt}</small>
             {displayTasks.filter((task) => task.spaceId === room.spaceId).length ? <small>{displayTasks.filter((task) => task.spaceId === room.spaceId).length} loaded task(s)</small> : <small>No task in loaded results</small>}
@@ -153,19 +152,16 @@ export function HousekeepingFloorWorkbench({ propertyId, timezone, getToken, dis
       </div>
     </div>
     {selectedRoom ? <aside className="hk-floor-drawer" aria-label={`Room ${selectedRoom.code} details`}>
-      <button type="button" className="hk-floor-back" disabled={disabled || loading} onClick={() => { detailGeneration.current++; selectedSpaceRef.current = null; setSelectedSpace(null); setDetailTask(null); setDetailError(null); }}>Back to floors</button>
+      <button type="button" className="hk-floor-back" disabled={disabled || loading} onClick={() => { roomButtons.current.get(selectedRoom.spaceId)?.focus(); detailGeneration.current++; selectedSpaceRef.current = null; setSelectedSpace(null); setDetailTask(null); setDetailError(null); }}>Back to floors</button>
       <h3>Room {selectedRoom.code}</h3><p>{selectedRoom.floor === null ? "Floor not recorded" : `Floor ${selectedRoom.floor}`} · {selectedRoom.condition}</p>
-      <p>Condition recorded at <time dateTime={selectedRoom.updatedAt}>{selectedRoom.updatedAt}</time></p>
-      {selectedTasks.length === 0 ? <p>No task in loaded results for this room.</p> : <ul>{selectedTasks.map((listedTask) => {
-        const task = detailTask?.taskId === listedTask.taskId ? detailTask : listedTask;
-        return <li key={task.taskId}>
-        <button type="button" className="hk-floor-task-select" disabled={disabled || loading || detailLoading} aria-pressed={detailTask?.taskId === task.taskId} onClick={() => { setDetailTask(task); setDetailError(null); }}>
-          Task {task.taskId} · {task.taskStatus} · priority {task.priority}
-        </button>
-        {detailTask?.taskId === task.taskId ? <div className="hk-floor-task-detail"><p>Room evidence: {task.roomCondition} · {task.roomUpdatedAt}</p><p>{task.assigned ? "Assigned" : "Unassigned"}{task.dueAt ? ` · due ${task.dueAt}` : ""}</p>
+      <HousekeepingProgressPanel key={selectedRoom.spaceId} snapshot={{ rooms: [selectedRoom],
+        tasks: selectedTasks.map((task) => detailTask?.taskId === task.taskId ? detailTask : task),
+        nextCursor: cursor, stale: stale || loading || loadingMore || Boolean(detailError), tasksMayBeIncomplete: snapshot.tasksMayBeIncomplete }}
+        now={now} timezone={timezone} selectedTaskId={detailTask?.taskId} disabled={disabled || loading || detailLoading}
+        onSelectTask={(task) => { setDetailTask(task); setDetailError(null); }}
+        renderTaskControls={(task) => <div className="hk-floor-task-detail">
           {task.allowedActions.length ? task.allowedActions.map((action) => <button key={action} type="button" disabled={disabled || loading || detailLoading || stale} onClick={() => void prepare(task, action)}>{action === "start" ? "Start cleaning" : action === "complete" ? "Mark physically clean" : "Verify inspected"}</button>) : <p>No action is currently allowed for this task.</p>}
-        </div> : null}
-      </li>; })}</ul>}
+        </div>} />
       {detailError ? <p className="hk-floor-alert" role="alert">{detailError}</p> : null}
     </aside> : null}
   </section>;

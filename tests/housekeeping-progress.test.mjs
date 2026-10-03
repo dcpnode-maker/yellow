@@ -109,3 +109,23 @@ test('invalid clock produces recovery presentation without retaining room or tas
   const tree = Panel({ snapshot: snapshot(), now: null, timezone: 'UTC' });
   assert.equal(tree.props.role, 'alert'); assert.match(allText(tree), /unavailable/); assert.doesNotMatch(allText(tree), /101|in_progress/);
 });
+
+test('selected-room presentation keeps exact task identity in collapsed Details and delegates selection only', () => {
+  let selected;
+  const tree = Panel({ snapshot: snapshot(), now: NOW, timezone: 'Asia/Kolkata', onSelectTask: value => { selected = value; } });
+  const find = (node, tag) => node && typeof node === 'object' ? node.tag === tag ? node : node.children.map(child => find(child, tag)).find(Boolean) : undefined;
+  const button = find(tree, 'button');
+  assert.match(allText(button), /Task 1 · Cleaning in progress/); assert.doesNotMatch(allText(button), /00000000|in_progress/);
+  button.props.onClick(); assert.equal(selected.taskId, TASK); assert.deepEqual(selected.allowedActions, ['complete']);
+  assert.equal(find(tree, 'details').props.open, undefined);
+  assert.match(allText(tree), /Task reference:.*recorded stage in_progress/);
+  assert.equal(tags(tree).includes('h4'), false);
+});
+
+test('selected partial stale evidence and missing timezone warnings remain outside collapsed Details', () => {
+  const tree = Panel({ snapshot: snapshot({ stale: true, tasksMayBeIncomplete: true, nextCursor: 'next' }), now: NOW, timezone: '', onSelectTask() {} });
+  const visibleText = node => node == null ? '' : typeof node !== 'object' ? String(node) : node.tag === 'details' ? '' : node.children.map(visibleText).join(' ');
+  const text = visibleText(tree);
+  assert.match(text, /Snapshot is stale/); assert.match(text, /timezone is unavailable/); assert.match(text, /More condition pages remain/); assert.match(text, /200-task limit/);
+  assert.doesNotMatch(text, /Cleaning in progress|3:30 PM|in_progress/);
+});

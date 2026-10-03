@@ -5,4 +5,7 @@
 .hk-progress-task { display:grid; gap:.3rem; overflow-wrap:anywhere; }
 .hk-progress-task small { color:var(--muted); }
 .hk-progress-task time { font-variant-numeric:tabular-nums; }
+.hk-progress-details summary { min-height:44px; display:list-item; align-content:center; cursor:pointer; color:var(--ink); }
+.hk-progress-details summary:focus-visible { outline:2px solid var(--ink); outline-offset:3px; }
+.hk-progress-details[open] { padding-bottom:.5rem; }
 @media(max-width:700px) { .hk-progress-room { padding:.65rem; } }
