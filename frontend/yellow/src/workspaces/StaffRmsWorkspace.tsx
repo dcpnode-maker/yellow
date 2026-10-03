@@ -1,8 +1,12 @@
-import { useEffect, useRef, useState } from "react";
+import { createElement, useEffect, useRef, useState } from "react";
 import { reactAuthSession } from "../auth-session";
 import { propertyLocalDate } from "../yellow-api";
 import { SegmentedRibbon } from "../ui/SegmentedRibbon";
 import { createStaffRmsClient, type StaffRateBuilder, type StaffRateQuote, type StaffEconomics } from "./staff-rms-client";
+import { createStaffRmsEvidencePanel } from "./StaffRmsEvidencePanel.mjs";
+import "./rms-evidence.css";
+
+const StaffRmsEvidencePanel = createStaffRmsEvidencePanel(createElement);
 
 type View = "models" | "quote" | "economics";
 export function StaffRmsWorkspace({ propertyId, snapshot }: Readonly<{ propertyId: string; snapshot: Readonly<{
@@ -75,16 +79,12 @@ export function StaffRmsWorkspace({ propertyId, snapshot }: Readonly<{ propertyI
     </div> : null}
     <button type="button" disabled={busy || view !== "economics" && !plan || view === "quote" && (!unit || !arrival || !departure)} onClick={() => void read()}>{busy ? "Reading…" : view === "models" ? "Read model catalogue" : view === "quote" ? "Resolve current quote" : "Read recorded economics"}</button>
     {error ? <p className="error" role="alert">{error}</p> : null}
-    {builder ? <><p>{builder.modelDraftCount} model drafts · {builder.targetDraftCount} target drafts · {builder.releaseCount} releases returned</p>
-      <ul>{builder.catalogue.map(model => <li key={model.key}><strong>{model.label}</strong><span>{model.description}</span><small>{model.key} v{model.version} · {model.capabilities.join(" · ")}</small></li>)}</ul>
-      {!builder.releaseCount ? <p className="empty">No release evidence returned for this plan.</p> : null}</> : null}
-    {quote ? <><h3>Server result: {quote.state}</h3>{quote.reason === null ? null : <p>{quote.reason}</p>}<ul>{Object.entries(quote.components).map(([key, amount]) => <li key={key}><strong>{key}</strong><span>{amount === null ? "Not returned" : `${amount} ${quote.currency} minor units`}</span></li>)}</ul>
-      <p>Tax assignment: {quote.taxAssignmentState ?? "Not returned"}. Quote evidence: {quote.quoteHash ?? "Not returned"}.</p></> : null}
-    {economics ? <><p>{economics.name} · Business date {economics.businessDate} · {economics.currency}</p>
-      <ul><li>Room nights: {economics.roomNights} · Rooms available: {economics.roomsAvailable}</li><li>Occupancy: {economics.occupancyBasisPoints} basis points</li>
-        <li>Room revenue: {economics.roomRevenueMinor} minor units</li><li>ADR: {economics.adrMinor} minor units · RevPAR: {economics.revparMinor} minor units</li></ul>
-      <small>Recorded stats_daily_commercial_taxonomy evidence.</small></> : null}
+    {(view === "models" && builder || view === "quote" && quote || view === "economics" && economics) ?
+      <StaffRmsEvidencePanel view={view} evidenceState="current" builder={builder} quote={quote} economics={economics}
+        contextLabel={view === "economics" ? "Property-level recorded evidence" :
+          `Property ${propertyId} · ${snapshot.ratePlans.find(item => item.id === plan)?.code ?? plan} · ${snapshot.ratePlans.find(item => item.id === plan)?.name ?? plan}${view === "quote" ?
+            ` · ${snapshot.inventory.sellableUnits.find(item => item.id === unit)?.name ?? unit} · ${arrival} → ${departure} · Adults ${adults} · ${ages === "" ? "No children" : `Child ages ${ages}`} · Channel ${channel}` : ""}`} /> : null}
     {!snapshot.ratePlans.length && view !== "economics" ? <p className="empty">No configured rate plan returned.</p> : null}
-    <p className="commercial-note">Read-only server evidence. This surface does not publish rates, execute release authoring commands, or infer forecasts, commissions, costs or net profit. Quotes are not reservation promises.</p>
+    {!(view === "models" ? builder : view === "quote" ? quote : economics) ? <p className="commercial-note">Read-only server evidence. Choose a view and use its read control.</p> : null}
   </article>;
 }

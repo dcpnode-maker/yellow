@@ -57,7 +57,7 @@ test("actual staff components render current controls and explicit authority lim
   const crs = renderToString(createElement(imports[1].StaffCrsWorkspace, { propertyId: P, timezone: "Asia/Riyadh", onContinue() {} }));
   for (const text of ["Staff CRS", "CRS", "Granted properties", "Search granted properties", "canonical guest", "explicit confirmation"]) expect(crs).toContain(text);
   const rms = renderToString(createElement(imports[2].StaffRmsWorkspace, { propertyId: P, snapshot: { ratePlans: [], inventory: { sellableUnits: [] } } }));
-  for (const text of ["Staff RMS", "Rate models", "Quote resolver", "Recorded economics", "No configured rate plan", "does not publish rates"]) expect(rms).toContain(text);
+  for (const text of ["Staff RMS", "Rate models", "Quote resolver", "Recorded economics", "No configured rate plan", "Read-only server evidence"]) expect(rms).toContain(text);
 }));
 
 test("actual asynchronous CRS selection dereferences the latest parent guard and discards edited or revoked property drafts", async () => {
