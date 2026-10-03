@@ -5261,8 +5261,10 @@ function housekeepingActionCopy(action: HousekeepingTaskAction): Readonly<{ butt
 }
 
 function HousekeepingWorkspace({
+  timezone,
   onLifecycleBusyChange,
 }: Readonly<{
+  timezone: string;
   onLifecycleBusyChange: (busy: boolean) => void;
 }>) {
   const queryClient = useQueryClient();
@@ -5376,7 +5378,7 @@ function HousekeepingWorkspace({
       </div>
       <div className="housekeeping-grid">
         <article className="detail-card">
-          <HousekeepingFloorWorkbench key={propertyId} propertyId={propertyId} getToken={session}
+          <HousekeepingFloorWorkbench key={propertyId} propertyId={propertyId} timezone={timezone} getToken={session}
             disabled={busy} refreshGeneration={floorRefreshGeneration} onPrepare={prepare} />
         </article>
         <article className="detail-card">
@@ -8799,7 +8801,7 @@ export function App() {
                       ) : assistantCard.workspace === "guests" ? (
                         <GuestsWorkspace key={route.guest} requestedGuestSearch={route.guest} />
                       ) : assistantCard.workspace === "housekeeping" ? (
-                        <HousekeepingWorkspace onLifecycleBusyChange={setReservationLifecycleFlight} />
+                        <HousekeepingWorkspace timezone={selected?.timezone ?? ""} onLifecycleBusyChange={setReservationLifecycleFlight} />
                       ) : assistantCard.workspace === "cashiers" ? (
                         <FinanceWorkspace
                           key={assistantCard.cashierReservationId ?? "cashiers"}
@@ -9080,7 +9082,7 @@ export function App() {
               Housekeeping
             </button>
           </aside>
-          <HousekeepingWorkspace onLifecycleBusyChange={setReservationLifecycleFlight} />
+          <HousekeepingWorkspace timezone={selected?.timezone ?? ""} onLifecycleBusyChange={setReservationLifecycleFlight} />
         </main>
         {assistantDock}
       </div>

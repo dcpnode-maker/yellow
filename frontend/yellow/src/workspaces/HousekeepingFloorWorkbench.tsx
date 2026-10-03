@@ -1,17 +1,28 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { createElement, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { appendConditionPage, makeFloorSnapshot, type HousekeepingAction, type HousekeepingTaskRow, type RoomConditionRow } from "../housekeeping-floor-model";
 import { createHousekeepingFloorClient, HousekeepingFloorRequestError, type HousekeepingFloorClient, type TokenProvider } from "./housekeeping-floor-client";
 import "./housekeeping-floor.css";
+import { createHousekeepingProgressPanel } from "./HousekeepingProgressPanel.mjs";
+import "./housekeeping-progress.css";
+
+const HousekeepingProgressPanel = createHousekeepingProgressPanel(createElement);
 
 export type HousekeepingFloorWorkbenchProps = Readonly<{
   propertyId: string;
+  timezone: string;
   getToken: TokenProvider;
   disabled?: boolean;
   refreshGeneration?: number;
   onPrepare: (task: HousekeepingTaskRow, action: HousekeepingAction) => void;
 }>;
 
-export function HousekeepingFloorWorkbench({ propertyId, getToken, disabled = false, refreshGeneration = 0, onPrepare }: HousekeepingFloorWorkbenchProps) {
+export function HousekeepingFloorWorkbench({ propertyId, timezone, getToken, disabled = false, refreshGeneration = 0, onPrepare }: HousekeepingFloorWorkbenchProps) {
+  const [now, setNow] = useState(() => new Date().toISOString());
+  useEffect(() => {
+    setNow(new Date().toISOString());
+    const timer = setInterval(() => setNow(new Date().toISOString()), 15_000);
+    return () => clearInterval(timer);
+  }, []);
   const client = useMemo(() => createHousekeepingFloorClient({ propertyId, getToken }), [propertyId, getToken]);
   const [rooms, setRooms] = useState<readonly RoomConditionRow[]>([]);
   const [tasks, setTasks] = useState<readonly HousekeepingTaskRow[]>([]);
@@ -119,6 +130,9 @@ export function HousekeepingFloorWorkbench({ propertyId, getToken, disabled = fa
     {snapshot.tasksMayBeIncomplete ? <p className="hk-floor-note" role="status">200 current tasks are loaded. The API has no task cursor, so task matches may be incomplete.</p> : null}
     <p className="hk-floor-count" aria-live="polite">{hasSnapshot ? <>{displayRooms.length} rooms with recorded condition loaded{snapshot.exhausted ? " · condition list exhausted" : " · more rooms may be available"}; {displayTasks.length} current tasks loaded.</> : "Room condition coverage and current tasks have not been verified."}</p>
     {loading && !hasSnapshot ? <p>Loading room conditions…</p> : null}
+    {hasSnapshot ? <HousekeepingProgressPanel snapshot={{ rooms: displayRooms, tasks: displayTasks,
+      nextCursor: cursor, stale: stale || loading || loadingMore, tasksMayBeIncomplete: snapshot.tasksMayBeIncomplete }}
+      now={now} timezone={timezone} /> : null}
     {!loading && hasSnapshot && visibleFloors.length === 0 ? <p>No rooms with recorded conditions are in this result.</p> : null}
     <div className="hk-floor-layout">
       <nav className="hk-floor-nav" aria-label="Housekeeping floors">
