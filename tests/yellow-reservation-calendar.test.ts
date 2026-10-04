@@ -50,7 +50,10 @@ test("clips long summaries and distinguishes invalid evidence, identity and hist
 test("actual board range reader sends every range/cursor and abort signal without changing legacy reads", async () => {
   const source = await Bun.file(new URL("../frontend/yellow/src/yellow-api.tsx", import.meta.url)).text();
   const block = source.slice(source.indexOf("async function loadReservationBoard()"), source.indexOf("async function loadGroupBlocks()"));
-  const script = new Bun.Transpiler({ loader: "tsx" }).transformSync(block);
+  // The composition also declares a journey reader in this slice. Its module
+  // export modifier is not valid inside Function; keep its body and both legacy
+  // readers intact, and bind/test only the legacy reader functions below.
+  const script = new Bun.Transpiler({ loader: "tsx" }).transformSync(block.replace("export async function loadReservationJourney(", "async function loadReservationJourney("));
   const calls: { url: string; signal: AbortSignal | undefined }[] = [];
   const signal = new AbortController().signal;
   const replies = [{ reservations: [stay("one", "2026-10-02T14:00:00Z", "2026-10-03T10:00:00Z")], nextCursor: "page2" }, { reservations: [], nextCursor: null }];
@@ -67,7 +70,7 @@ test("actual board range reader sends every range/cursor and abort signal withou
 });
 test("calendar reader fails closed for malformed or failed later pages", async () => {
   const source = await Bun.file(new URL("../frontend/yellow/src/yellow-api.tsx", import.meta.url)).text();
-  const script = new Bun.Transpiler({ loader: "tsx" }).transformSync(source.slice(source.indexOf("async function loadReservationBoard()"), source.indexOf("async function loadGroupBlocks()")));
+  const script = new Bun.Transpiler({ loader: "tsx" }).transformSync(source.slice(source.indexOf("async function loadReservationBoard()"), source.indexOf("async function loadGroupBlocks()")).replace("export async function loadReservationJourney(", "async function loadReservationJourney("));
   const make = new Function("session", "collectReservationBoardPages", "fetch", "propertyId", script + "\nreturn loadReservationCalendarBoard;");
   for (const malformed of [{}, { reservations: {}, nextCursor: null }, { reservations: [null], nextCursor: null }, { reservations: [], nextCursor: 7 }]) {
     const reader = make(async () => "fixture", collectReservationBoardPages, async () => ({ ok: true, json: async () => malformed }), "fixture-property");

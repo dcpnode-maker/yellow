@@ -28,10 +28,12 @@ export {
 export {
   ReservationBoardConflictError,
   ReservationBoardService,
+  RESERVATION_JOURNEY_STAGES,
   ReservationBoardValidationError,
 } from "./board";
 export type {
   ReservationBoardInput,
+  ReservationJourneyStage,
   ReservationOperationalState,
   ReservationBoardPage,
   ReservationBoardRow,

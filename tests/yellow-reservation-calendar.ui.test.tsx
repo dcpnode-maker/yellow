@@ -26,16 +26,22 @@ test("invalid property timezone renders an explicit error without an initializat
     expect(html).toContain("The property timezone is unavailable"); expect(html).toContain('disabled=""');
   } finally { client.clear(); }
 });
-test("actual Calendar route selects the component and uses existing guarded navigation", async () => {
-  const source = await Bun.file(new URL("../frontend/yellow/src/workspaces/ReservationWorkspace.tsx", import.meta.url)).text();
-  const start = source.indexOf("function ReservationBoardWorkspace("); const end = source.indexOf("function ReservationBoardContents(", start);
-  const script = new Bun.Transpiler({ loader: "tsx", tsconfig: { compilerOptions: { jsx: "react", jsxFactory: "createElement" } } }).transformSync(source.slice(start, end));
-  const make = new Function("createElement", "useState", "useEffect", "reservationViewFromSearch", "window", "propertyId", "ReservationCalendar", "StaffCrsWorkspace", "ReservationBoardContents", "navigateYellow", script + "\nreturn ReservationBoardWorkspace;");
-  for (const view of ["calendar", "crs", "list", "groups"]) {
-    const calls: string[] = []; const crs = () => null, list = () => null;
-    const component = make(createElement, (get: () => unknown) => [get(), () => {}], () => {}, () => view, { location: { search: "?view=" + view } }, "property", ReservationCalendar, crs, list, (url: string) => calls.push(url));
-    const result = component({ timezone: "UTC", onCrsContinue() {} });
-    expect(result.type).toBe(view === "calendar" ? ReservationCalendar : view === "crs" ? crs : list);
-    if (view === "calendar") { result.props.onOpen("one"); expect(calls).toEqual(["/p/property/res/one"]); }
-  }
-});
+test("actual mounted reservation routes retain Calendar, CRS, Individual, Groups and guarded Calendar Open reservation", async () => {
+  const { fileURLToPath } = await import("node:url");
+  const proof = process.env.YELLOW_ORDER754_ROUTING_PROOF_DIR ?? fileURLToPath(new URL("../../proof/retained-routing", import.meta.url));
+  const child = Bun.spawn([process.execPath, "test", import.meta.dir + "/order754-original-reservation-screen.test.tsx"], {
+    cwd: import.meta.dir + "/..", windowsHide: true, stdout: "pipe", stderr: "pipe",
+    env: { ...process.env, YELLOW_ORDER754_ROUTING_ONLY: "1", YELLOW_ORDER754_PROOF_DIR: proof },
+  });
+  const output = Promise.all([new Response(child.stdout).text(), new Response(child.stderr).text()]);
+  const status = await child.exited;
+  const text = (await output).join("\n");
+  if (status !== 0) throw new Error("Mounted calendar routing proof failed:\n" + text);
+  expect(status).toBe(0);
+  expect(text).toContain("1 pass");
+  const receipt = await Bun.file(proof + "/observations.json").json();
+  expect(receipt.actualFullApp).toBe(true);
+  expect(receipt.browserExitVerified).toBe(true);
+  expect(receipt.writes).toEqual([]);
+  expect(receipt.errors).toEqual([]);
+}, 45000);

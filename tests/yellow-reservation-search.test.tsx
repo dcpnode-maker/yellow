@@ -5,13 +5,14 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { filterGroupSearchRows } from "../frontend/yellow/src/workspaces/reservation-search";
 
 const P = "6081b544-22a1-534f-a86d-bb1ae0519e14";
-Object.defineProperty(globalThis, "window", { configurable: true, value: { location: { pathname: `/p/${P}/reservations`, search: "", hash: "" } } });
+Object.defineProperty(globalThis, "window", { configurable: true, value: { innerHeight: 900, location: { pathname: `/p/${P}/reservations`, search: "", hash: "" } } });
 const { ReservationBoardWorkspace } = await import("../frontend/yellow/src/workspaces/ReservationWorkspace");
 const rows = [{ reservationId: "one", confirmationNo: "Y-101", primaryGuestDisplayName: "A <script> guest", status: "due_in", operationalState: "expected_arrival", stayFrom: "2026-10-02T14:00:00Z", stayTo: "2026-10-04T10:00:00Z", unitTypeLabel: "Villa", channelCode: "airbnb" }];
 function render(search: string) {
   window.location.search = search;
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   client.setQueryData(["reservation-board", P], { reservations: rows });
+  client.setQueryData(["reservation-journey", P, "arrival"], { reservations: rows, businessDate: "2026-09-17" });
   client.setQueryData(["reservation-group-search", P, ""], { groups: [{ groupId: "00000000-0000-4000-8000-000000000004", name: "Synthetic group <script>", code: "GRP-1", kind: "linked", status: "active", memberCount: 2, roomsHeldByGroup: false }], nextCursor: "more" });
   try { return renderToString(createElement(QueryClientProvider, { client }, createElement(ReservationBoardWorkspace, { timezone: "UTC", onCrsContinue() {} }))); }
   finally { client.clear(); }
@@ -20,8 +21,20 @@ test("actual Individual board opens to search and returned rows without mounting
   const html = render("");
   expect(html).toContain("Y-101"); expect(html).toContain("A &lt;script&gt; guest");
   expect(html).not.toContain('class="group-reservation-workspace"'); expect(html).not.toContain("Create linked group");
-  expect(html).toContain("Create new reservation"); expect(html).toContain("Reservation type");
-  expect(html).toContain("Reservation status"); expect(html).toContain("Arrival from"); expect(html).toContain("Arrival to"); expect(html).toContain("Any source");
+  expect(html).toContain('aria-label="New reservation"');
+  for (const label of ["Individual", "Groups", "Calendar", "Pre-arrival", "Arrival", "In house", "Departure", "Post departure", "All reservations"]) expect(html).toContain(label);
+  expect(html).toContain('aria-label="Reservation phases"');
+  expect(html).toContain("Business date 2026-09-17");
+  for (const control of ['aria-label="Search Arrival"', "Dictate Search Arrival", "Reset table controls", 'aria-label="Filter"', 'aria-label="Sort', 'aria-label="Columns']) expect(html).toContain(control);
+  expect(html).not.toContain("<script>");
+});
+test("explicit All keeps the legacy board cache and shared search without inventing a business date", () => {
+  const html = render("?stage=all");
+  expect(html).toContain("Y-101"); expect(html).toContain("A &lt;script&gt; guest");
+  expect(html).toContain('aria-label="Search All reservations"');
+  expect(html).toContain("All recorded reservations");
+  expect(html).not.toContain("Business date 2026-09-17");
+  expect(html).not.toContain("Create linked group");
 });
 test("Groups selects a group search board without mislabelling individual rows as groups", () => {
   const html = render("?view=groups");

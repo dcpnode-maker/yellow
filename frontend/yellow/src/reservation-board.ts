@@ -1,7 +1,35 @@
 export type ReservationBoardPage<T> = Readonly<{
   reservations?: readonly T[];
   nextCursor?: string | null;
+  businessDate?: string | null;
 }>;
+export const RESERVATION_JOURNEY_STAGES = ["pre_arrival", "arrival", "in_house", "departure", "post_departure"] as const;
+export type ReservationJourneyStage = (typeof RESERVATION_JOURNEY_STAGES)[number];
+
+/** A phase is meaningful only against the same persisted property day on every page. */
+export async function collectReservationJourneyPages<T>(
+  fetchPage: (after: string | null) => Promise<ReservationBoardPage<T>>,
+  maximumPages = 50,
+): Promise<Readonly<{ reservations: readonly T[]; businessDate: string }>> {
+  let businessDate: string | null = null;
+  const result = await collectReservationBoardPages(async after => {
+    const page = await fetchPage(after);
+    if (!page || !Array.isArray(page.reservations) ||
+        !(page.nextCursor === null || typeof page.nextCursor === "string")) {
+      throw new Error("The reservation phase response is incomplete.");
+    }
+    const day = page.businessDate;
+    if (typeof day !== "string" || !/^[1-9]\d{3}-\d{2}-\d{2}$/.test(day) ||
+        !Number.isFinite(Date.parse(day + "T00:00:00Z")) ||
+        new Date(day + "T00:00:00Z").toISOString().slice(0, 10) !== day) {
+      throw new Error("No open property business day is available for this phase view.");
+    }
+    if (businessDate !== null && businessDate !== day) throw new Error("The property business day changed while loading. Refresh this phase view.");
+    businessDate = day;
+    return page;
+  }, maximumPages);
+  return Object.freeze({ ...result, businessDate: businessDate! });
+}
 
 export function operationalStateLabel(state: string): string {
   if (state === "due_in") return "Expected arrival";

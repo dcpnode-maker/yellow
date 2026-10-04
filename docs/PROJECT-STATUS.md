@@ -2,8 +2,10 @@
 
 <!-- status-schema: yellow-project-status/v1 -->
 <!-- current-phase: 7 -->
-<!-- current-order-files: handoff/orders/RESOURCE-20261004-founder-ui-release-53.md;handoff/orders/RESOURCE-20261004-founder-ui-restoration-50.md;handoff/orders/RESOURCE-20261004-billing-hk-layout-51.md;handoff/orders/RESOURCE-20261004-department-task-table-52.md -->
-<!-- current-lifecycle: ACTIVE reviewed migration-free UI53 source admission; live8bd until exact runtime release; full ecosystem and founder manual UAT remain pending -->
+<!-- current-order-files: handoff/orders/RESOURCE-20261004-reservation-calendar-admission-59.md;handoff/orders/RESOURCE-20261004-original-reservation-restoration-54.md;handoff/orders/RESOURCE-20261004-airbnb-calendar-presentation-57.md -->
+<!-- current-lifecycle: ACTIVE reviewed reservation/calendar59 source admission; exact runtime release and founder manual UAT separate; full ecosystem unfinished -->
+<!-- historical-order-files: handoff/orders/RESOURCE-20261004-founder-ui-release-53.md;handoff/orders/RESOURCE-20261004-founder-ui-restoration-50.md;handoff/orders/RESOURCE-20261004-billing-hk-layout-51.md;handoff/orders/RESOURCE-20261004-department-task-table-52.md -->
+<!-- historical-lifecycle: ACTIVE reviewed migration-free UI53 source admission; live8bd until exact runtime release; full ecosystem and founder manual UAT remain pending -->
 <!-- current-task: Codex Yellow — restore requested original UI and integrate CRS CRM RMS booking engine; laptop source and live hosting owner -->
 <!-- historical-order-files: handoff/orders/RESOURCE-20261003-housekeeping-property-revocation.md;handoff/orders/RESOURCE-20261003-housekeeping-progressive-disclosure.md;handoff/orders/RESOURCE-20261003-research-flow-preview-release.md;handoff/orders/RESOURCE-20261003-arrival-advance-return-acceptance.md;handoff/orders/RESOURCE-20261003-pms-research-flow-integration.md;handoff/orders/RESOURCE-20261003-native-hosting-calendar.md;handoff/orders/RESOURCE-20261003-today-movement-mix.md;handoff/orders/RESOURCE-20261002-live-calendar-and-ecosystem-plan.md -->
 <!-- historical-lifecycle: ACTIVE selected-room housekeeping5d855ba5/frontier103 fixed named-VPC live preview;404 property-denial correction publicly verified;10R inventory presentation candidate active; full ecosystem stages and founder manual UAT remain pending -->
@@ -12,6 +14,16 @@ This is the canonical current-state record. It identifies the consolidated sourc
 verified behavior, release boundaries and active work. Historical orders, reviews,
 decisions and ledger entries remain evidence; their filenames are not an active
 backlog. `state.sh` and `state.ps1` read the machine-readable comments above.
+
+## Receiving update - 4 October: original reservation and host calendar59
+
+Reviewed source restores the original Individual/Groups/Calendar ribbon, six reservation phases, searchable table and existing create/draft/recovery flow. Unit cards now open the screenshot-guided neon-green List/Month/Year calendar, continuous month grids, booked-stay spans, local date/range sheets and Today. Portfolio Timeline remains separate and role-visible. Unknown prices, availability, policies, notes and publication/media stay unknown; this release adds no calendar mutations or fabricated quote/sellability. No singleton room count is treated as STR mode.
+
+Root personally executed the exact combined source:67 focused/retained tests across three processes,4 retained calendar tests including an actual App routing child, and separate full App reservation/calendar proofs(106/159 assertions). Root/frontend/explicit strict test typing,211 boundaries and Vite562 passed. Independent Astra review reproduced focused18/110 and actual mounted calendar1/159 and examined the supplied reference states. Source-native API/auth/domain/financial commands remain preserved except the separately reviewed54 journey read addition.
+
+The exact54 read addition passed root's isolated native55v2 proof:14 groups/51 synthetic reservations,103 immutable migrations,166 expected/actual comparisons, real runtime RLS/bearer/property grants, timezone/DST, cursor/rollover/race and legacy compatibility. Data/role digests and owned shutdown were checked and independently accepted by Astra. Failed55v1 is retained; no old/live/V9 cluster was reused. This is read acceptance, not production booking or financial write acceptance.
+
+Source admission and runtime publication remain separate. The authoritative external root-current-live-runtime.json and versioned release59 receipts identify the actual source/process/assets; c1b7 remains the predecessor until transition/public verification succeeds. Founder manual live UAT and physical phone acceptance remain pending. The58 real unit/rate read foundation is a separate candidate, excluded here. Full writable calendar, Lost and Found/private guest/media/notification, pending booking/check-in/RMS and the complete researched PMS destination remain active unfinished scope.
 
 ## Receiving update - 4 October: founder UI restoration53
 

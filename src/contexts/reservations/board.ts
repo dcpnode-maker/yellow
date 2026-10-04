@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import type { Tx } from "../../kernel";
 import { RESERVATION_STATUSES, type ReservationStatus } from "./state-machine";
 
@@ -7,12 +8,20 @@ const CURRENCY = /^[A-Z]{3}$/;
 const CURSOR = /^[A-Za-z0-9_-]{1,512}$/;
 const MAX_RANGE_MS = 366 * 24 * 60 * 60 * 1_000;
 
+export const RESERVATION_JOURNEY_STAGES = Object.freeze(["pre_arrival", "arrival", "in_house", "departure", "post_departure"] as const);
+export type ReservationJourneyStage = (typeof RESERVATION_JOURNEY_STAGES)[number];
+function isCanonicalDate(value: string): boolean {
+  return /^[1-9]\d{3}-\d{2}-\d{2}$/.test(value) && Number.isFinite(Date.parse(value + "T00:00:00Z")) &&
+    new Date(value + "T00:00:00Z").toISOString().slice(0, 10) === value;
+}
+
 export interface ReservationBoardInput {
   readonly tenantId: string;
   readonly propertyNode: string;
   /** Read-only Party-history filter. The property scope remains mandatory. */
   readonly partyId?: string;
   readonly status?: ReservationStatus;
+  readonly stage?: ReservationJourneyStage;
   readonly from?: Date;
   readonly to?: Date;
   readonly after?: string;
@@ -63,13 +72,12 @@ export interface ReservationBoardDepartureTravel {
 export interface ReservationBoardPage {
   readonly reservations: readonly ReservationBoardRow[];
   readonly nextCursor: string | null;
+  /** Present only on stage reads; legacy board response remains compatible. */
+  readonly businessDate?: string;
 }
 
-interface CursorPayload {
-  readonly v: 1;
-  readonly createdAt: string;
-  readonly id: string;
-}
+type CursorPayload = Readonly<{ v: 1; createdAt: string; id: string }> |
+  Readonly<{ v: 2; createdAt: string; id: string; stage: ReservationJourneyStage; businessDate: string; query: string }>;
 
 interface BoardSqlRow {
   readonly id: string;
@@ -138,15 +146,17 @@ function decodeCursor(value: string): CursorPayload {
   try {
     const parsed: unknown = JSON.parse(decodeBase64Url(value));
     if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed) ||
-        Object.getPrototypeOf(parsed) !== Object.prototype ||
-        Object.keys(parsed).length !== 3 ||
-        (parsed as Record<string, unknown>).v !== 1 ||
-        typeof (parsed as Record<string, unknown>).createdAt !== "string" ||
-        !isCanonicalInstant((parsed as Record<string, unknown>).createdAt as string) ||
-        typeof (parsed as Record<string, unknown>).id !== "string" ||
-        !UUID.test((parsed as Record<string, unknown>).id as string)) {
-      throw new Error("shape");
-    }
+        Object.getPrototypeOf(parsed) !== Object.prototype) throw new Error("shape");
+    const fields = parsed as Record<string, unknown>;
+    if (typeof fields.createdAt !== "string" || !isCanonicalInstant(fields.createdAt) ||
+        typeof fields.id !== "string" || !UUID.test(fields.id)) throw new Error("position");
+    if (fields.v === 1) {
+      if (Object.keys(fields).length !== 3) throw new Error("legacy shape");
+    } else if (fields.v === 2) {
+      if (Object.keys(fields).length !== 6 || !RESERVATION_JOURNEY_STAGES.includes(fields.stage as ReservationJourneyStage) ||
+          typeof fields.businessDate !== "string" || !isCanonicalDate(fields.businessDate) ||
+          typeof fields.query !== "string" || !/^[0-9a-f]{64}$/.test(fields.query)) throw new Error("stage shape");
+    } else throw new Error("version");
     const cursor = parsed as unknown as CursorPayload;
     if (encodeCursor(cursor) !== value) throw new Error("non-canonical");
     return cursor;
@@ -161,7 +171,7 @@ function validate(input: ReservationBoardInput) {
       Object.getOwnPropertySymbols(input).length > 0) {
     throw new ReservationBoardValidationError("Reservation board input must be a plain object");
   }
-  const allowed = new Set(["tenantId", "propertyNode", "partyId", "status", "from", "to", "after", "limit"]);
+  const allowed = new Set(["tenantId", "propertyNode", "partyId", "status", "stage", "from", "to", "after", "limit"]);
   if (Object.getOwnPropertyNames(input).some((key) => !allowed.has(key)) ||
       !UUID.test(input.tenantId) || !UUID.test(input.propertyNode) ||
       (input.partyId !== undefined && !UUID.test(input.partyId))) {
@@ -170,6 +180,8 @@ function validate(input: ReservationBoardInput) {
   if (input.status !== undefined && !RESERVATION_STATUSES.includes(input.status)) {
     throw new ReservationBoardValidationError("status is invalid");
   }
+  if (input.stage !== undefined && !RESERVATION_JOURNEY_STAGES.includes(input.stage)) throw new ReservationBoardValidationError("stage is invalid");
+  if (input.stage !== undefined && input.status !== undefined) throw new ReservationBoardValidationError("stage and status cannot be combined");
   if ((input.from === undefined) !== (input.to === undefined)) {
     throw new ReservationBoardValidationError("from and to must be supplied together");
   }
@@ -187,6 +199,7 @@ function validate(input: ReservationBoardInput) {
     propertyNode: input.propertyNode,
     partyId: input.partyId ?? null,
     status: input.status ?? null,
+    stage: input.stage ?? null,
     from: input.from?.toISOString() ?? null,
     to: input.to?.toISOString() ?? null,
     after: input.after === undefined ? null : decodeCursor(input.after),
@@ -317,10 +330,41 @@ function departureTravel(row: BoardSqlRow): ReservationBoardDepartureTravel | nu
 export class ReservationBoardService {
   async list(tx: Tx, input: ReservationBoardInput): Promise<ReservationBoardPage> {
     const page = validate(input);
+    // Context binding, not authorization: RLS and HTTP grants remain mandatory.
+    const query = createHash("sha256").update(JSON.stringify({
+      tenantId: page.tenantId, propertyNode: page.propertyNode, partyId: page.partyId,
+      status: page.status, stage: page.stage, from: page.from, to: page.to,
+    })).digest("hex");
+    if (page.after && (page.stage === null ? page.after.v !== 1 :
+        page.after.v !== 2 || page.after.stage !== page.stage || page.after.query !== query)) {
+      throw new ReservationBoardValidationError("Reservation board cursor belongs to another query");
+    }
+    let businessDate: string | undefined;
+    if (page.stage !== null) {
+      const dayRows = await tx<Array<{ business_date: string | null }>>`
+        SELECT to_char(MAX(day.business_date), 'YYYY-MM-DD') AS business_date
+        FROM org_node AS property
+        LEFT JOIN business_day AS day ON day.tenant_id = property.tenant_id
+          AND day.property_node = property.id AND day.sealed_at IS NULL
+        WHERE property.tenant_id = ${page.tenantId}::uuid
+          AND property.tenant_id = current_setting('app.tenant_id', true)::uuid
+          AND property.id = ${page.propertyNode}::uuid AND property.kind = 'property'
+      `;
+      const day = dayRows[0]?.business_date;
+      if (dayRows.length !== 1 || typeof day !== "string" || !isCanonicalDate(day)) {
+        throw new ReservationBoardConflictError("No open property business day is available for journey phases");
+      }
+      businessDate = day;
+      if (page.after?.v === 2 && page.after.businessDate !== businessDate) {
+        throw new ReservationBoardValidationError("Reservation board cursor belongs to another business date");
+      }
+    }
     const rows = await tx<BoardSqlRow[]>`
       WITH property_context AS MATERIALIZED (
         SELECT property.id, property.timezone, transaction_timestamp() AS as_of,
-               (transaction_timestamp() AT TIME ZONE property.timezone)::date AS business_date
+               CASE WHEN ${page.stage}::text IS NULL
+                 THEN (transaction_timestamp() AT TIME ZONE property.timezone)::date
+                 ELSE ${businessDate ?? null}::date END AS business_date
         FROM org_node AS property
         WHERE property.tenant_id = ${page.tenantId}::uuid
           AND property.tenant_id = current_setting('app.tenant_id', true)::uuid
@@ -332,6 +376,12 @@ export class ReservationBoardService {
                reservation.market_code, reservation.source_code, reservation.created_at
         FROM reservation
         JOIN property_context ON property_context.id = reservation.property_node
+        LEFT JOIN LATERAL (
+          SELECT min(lower(segment.period)) AS stay_from, max(upper(segment.period)) AS stay_to
+          FROM reservation_segment AS segment
+          WHERE segment.tenant_id = reservation.tenant_id AND segment.reservation_id = reservation.id
+            AND segment.status <> 'cancelled'
+        ) AS stage_stay ON ${page.stage}::text IS NOT NULL
         WHERE reservation.tenant_id = ${page.tenantId}::uuid
           AND reservation.tenant_id = current_setting('app.tenant_id', true)::uuid
           AND reservation.property_node = ${page.propertyNode}::uuid
@@ -342,6 +392,36 @@ export class ReservationBoardService {
               AND guest.party_id = ${page.partyId}::uuid
           ))
           AND (${page.status}::text IS NULL OR reservation.status = ${page.status}::text)
+          AND (${page.stage}::text IS NULL OR (
+            (${page.stage}::text = 'pre_arrival' AND reservation.status IN ('reserved','due_in','waitlist')
+              AND (stage_stay.stay_from AT TIME ZONE property_context.timezone)::date > property_context.business_date)
+            OR (${page.stage}::text = 'arrival' AND (
+              (reservation.status IN ('reserved','due_in')
+                AND (stage_stay.stay_from AT TIME ZONE property_context.timezone)::date = property_context.business_date)
+              OR (reservation.status IN ('in_house','due_out')
+                AND (stage_stay.stay_from AT TIME ZONE property_context.timezone)::date <= property_context.business_date
+                AND (stage_stay.stay_to AT TIME ZONE property_context.timezone)::date >= property_context.business_date
+                AND EXISTS (SELECT 1 FROM fact_log AS checkin_fact
+                  WHERE checkin_fact.tenant_id = reservation.tenant_id
+                    AND checkin_fact.entity_type = 'reservation' AND checkin_fact.entity_id = reservation.id
+                    AND checkin_fact.fact_type = 'reservation.checked_in'
+                    AND checkin_fact.business_date = property_context.business_date
+                    AND NOT EXISTS (SELECT 1 FROM fact_log AS successor WHERE successor.tenant_id = checkin_fact.tenant_id
+                      AND successor.entity_type = checkin_fact.entity_type AND successor.entity_id = checkin_fact.entity_id
+                      AND successor.supersedes = checkin_fact.id))
+                AND NOT EXISTS (SELECT 1 FROM fact_log AS checkout_fact
+                  WHERE checkout_fact.tenant_id = reservation.tenant_id
+                    AND checkout_fact.entity_type = 'reservation' AND checkout_fact.entity_id = reservation.id
+                    AND checkout_fact.fact_type = 'reservation.checked_out'
+                    AND NOT EXISTS (SELECT 1 FROM fact_log AS successor WHERE successor.tenant_id = checkout_fact.tenant_id
+                      AND successor.entity_type = checkout_fact.entity_type AND successor.entity_id = checkout_fact.entity_id
+                      AND successor.supersedes = checkout_fact.id)))
+            ))
+            OR (${page.stage}::text = 'in_house' AND reservation.status IN ('in_house','due_out'))
+            OR (${page.stage}::text = 'departure' AND reservation.status IN ('in_house','due_out')
+              AND (stage_stay.stay_to AT TIME ZONE property_context.timezone)::date = property_context.business_date)
+            OR (${page.stage}::text = 'post_departure' AND reservation.status = 'checked_out')
+          ))
           AND (${page.after?.createdAt ?? null}::timestamptz IS NULL OR
                (reservation.created_at, reservation.id) <
                (${page.after?.createdAt ?? null}::timestamptz, ${page.after?.id ?? null}::uuid))
@@ -410,7 +490,8 @@ export class ReservationBoardService {
                    )
                )
                  AND (summary.stay_from_instant AT TIME ZONE property_context.timezone)::date <= property_context.business_date
-                 AND summary.stay_to_instant > property_context.as_of
+                 AND (CASE WHEN ${page.stage}::text IS NULL THEN summary.stay_to_instant > property_context.as_of
+                      ELSE (summary.stay_to_instant AT TIME ZONE property_context.timezone)::date >= property_context.business_date END)
                  THEN 'checked_in_today'
                WHEN page.status = 'in_house'
                  AND (summary.stay_from_instant AT TIME ZONE property_context.timezone)::date < property_context.business_date
@@ -518,7 +599,10 @@ export class ReservationBoardService {
     const last = visible.at(-1);
     return Object.freeze({
       reservations: Object.freeze(visible),
-      nextCursor: hasMore && last ? encodeCursor({ v: 1, createdAt: last.createdAt, id: last.reservationId }) : null,
+      nextCursor: hasMore && last ? encodeCursor(page.stage === null ?
+        { v: 1, createdAt: last.createdAt, id: last.reservationId } :
+        { v: 2, createdAt: last.createdAt, id: last.reservationId, stage: page.stage, businessDate: businessDate!, query }) : null,
+      ...(businessDate === undefined ? {} : { businessDate }),
     });
   }
 }

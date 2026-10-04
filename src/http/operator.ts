@@ -185,6 +185,7 @@ import {
   ReservationTravelValidationError,
   ReservationBoardConflictError,
   ReservationBoardService,
+  RESERVATION_JOURNEY_STAGES,
   ReservationCalendarService,
   ReservationCalendarConflictError,
   ReservationCalendarValidationError,
@@ -741,6 +742,7 @@ function reservationBoardJson(page: ReservationBoardPage): JsonValue {
       departureTravel: reservation.departureTravel,
     })),
     nextCursor: page.nextCursor,
+    ...(page.businessDate === undefined ? {} : { businessDate: page.businessDate }),
   });
 }
 
@@ -1589,6 +1591,7 @@ function confirmationQuery(request: Request): string | null {
 }
 
 function reservationBoardQuery(request: Request): {
+  stage?: (typeof RESERVATION_JOURNEY_STAGES)[number];
   partyId?: string;
   status?: (typeof RESERVATION_STATUSES)[number];
   from?: Date;
@@ -1597,9 +1600,12 @@ function reservationBoardQuery(request: Request): {
   limit?: number;
 } | null {
   const query = new URL(request.url).searchParams;
-  const allowed = ["partyId", "status", "from", "to", "after", "limit"];
+  const allowed = ["partyId", "status", "stage", "from", "to", "after", "limit"];
   if ([...query.keys()].some((key) => !allowed.includes(key)) ||
       allowed.some((key) => query.getAll(key).length > 1)) return null;
+  const rawStage = query.get("stage");
+  const stage = rawStage === null ? undefined : RESERVATION_JOURNEY_STAGES.find(candidate => candidate === rawStage);
+  if (rawStage !== null && (stage === undefined || query.has("status"))) return null;
   const rawStatus = query.get("status");
   const partyId = query.get("partyId");
   if (partyId !== null && !UUID.test(partyId)) return null;
@@ -1619,6 +1625,7 @@ function reservationBoardQuery(request: Request): {
   const rawLimit = query.get("limit");
   if (rawLimit !== null && !/^(?:[1-9]|[1-9][0-9]|100)$/.test(rawLimit)) return null;
   return Object.freeze({
+    ...(stage === undefined ? {} : { stage }),
     ...(partyId === null ? {} : { partyId }),
     ...(status === undefined ? {} : { status }),
     ...(from === undefined || from === null ? {} : { from }),
@@ -5543,12 +5550,22 @@ export class OperatorHttpApi {
     if (!grants.some(({ id }) => id === propertyNode)) {
       return apiError(context.request, 403, "auth/property_forbidden", "Forbidden", "Property access is not granted");
     }
-    const page = await this.#reservationBoard.list(context.tx, {
-      tenantId: context.tenantId,
-      propertyNode,
-      ...query,
-    });
-    return apiResponse(context.request, canonicalJson(reservationBoardJson(page)));
+    try {
+      const page = await this.#reservationBoard.list(context.tx, {
+        tenantId: context.tenantId,
+        propertyNode,
+        ...query,
+      });
+      return apiResponse(context.request, canonicalJson(reservationBoardJson(page)));
+    } catch (error) {
+      if (error instanceof ReservationBoardConflictError) {
+        return apiError(context.request, 409, "reservations/read_conflict", "Conflict", "The reservation phase or stored data is unavailable");
+      }
+      if (error instanceof ReservationBoardValidationError) {
+        return apiError(context.request, 400, "request/invalid", "Invalid request", "Reservation board query or cursor is invalid");
+      }
+      throw error;
+    }
   }
 
   async groupBlocks(context: TenantRequestContext, propertyNode: string): Promise<Response> {

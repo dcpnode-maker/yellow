@@ -1,6 +1,6 @@
 import { requestHostingCalendar, type CalendarRead } from "./hosting-calendar-api";
 import { reactAuthSession } from "./auth-session";
-import { collectReservationBoardPages } from "./reservation-board";
+import { collectReservationBoardPages, collectReservationJourneyPages, RESERVATION_JOURNEY_STAGES, type ReservationJourneyStage } from "./reservation-board";
 import {
   isPropertyOperatingModeReceiptForAttempt,
   isPropertyOperatingModeSnapshot,
@@ -22,7 +22,11 @@ import type {
 import type { MovementQuery } from "./today-workspace";
 
 let propertyId = "";
-export function configureYellowApi(nextPropertyId: string): void { propertyId = nextPropertyId; }
+let journeyPropertyGeneration = 0;
+export function configureYellowApi(nextPropertyId: string): void {
+  if (propertyId !== nextPropertyId) journeyPropertyGeneration += 1;
+  propertyId = nextPropertyId;
+}
 
 function browserLanguageSuggestion(): VoiceLanguage | null {
   const languages = typeof navigator === "undefined" ? [] : navigator.languages ?? [];
@@ -1037,6 +1041,58 @@ async function loadLane(status: Status): Promise<Lane> {
 }
 async function loadReservationBoard(): Promise<Lane> {
   return loadReservationBoardRange();
+}
+export async function loadReservationJourney(stage: ReservationJourneyStage): Promise<Readonly<{ reservations: readonly Stay[]; businessDate: string }>> {
+  if (!RESERVATION_JOURNEY_STAGES.includes(stage)) throw new TypeError("Invalid reservation stage");
+  const capturedProperty = propertyId;
+  const generation = journeyPropertyGeneration;
+  const snapshot = reactAuthSession.getSnapshot();
+  const assertCurrent = () => {
+    if (generation !== journeyPropertyGeneration || propertyId !== capturedProperty ||
+        reactAuthSession.getSnapshot() !== snapshot || snapshot.status !== "authenticated" ||
+        !snapshot.properties.some(property => property.id === capturedProperty)) {
+      throw new Error("The reservation session or property changed. Reload this phase view.");
+    }
+  };
+  assertCurrent();
+  const token = await session();
+  assertCurrent();
+  const checkSession = async () => {
+    const currentToken = await session();
+    assertCurrent();
+    if (currentToken !== token) throw new Error("The reservation session changed. Reload this phase view.");
+  };
+  return collectReservationJourneyPages<Stay>(async after => {
+    await checkSession();
+    assertCurrent();
+    const query = new URLSearchParams({ stage, limit: "100" });
+    if (after !== null) query.set("after", after);
+    const response = await fetch(`/api/v1/properties/${capturedProperty}/reservation-board?${query}`, {
+      cache: "no-store", headers: { authorization: `Bearer ${token}` },
+    });
+    await checkSession();
+    assertCurrent();
+    if (!response.ok) {
+      const error = await reservationApiError(response, "This reservation phase is unavailable.");
+      await checkSession();
+      assertCurrent();
+      throw error;
+    }
+    const value = await response.json() as unknown;
+    await checkSession();
+    assertCurrent();
+    if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error("The reservation phase response is incomplete.");
+    const page = value as { reservations?: unknown; nextCursor?: string | null; businessDate?: string | null };
+    if (!Array.isArray(page.reservations) || page.reservations.some(row =>
+      !row || typeof row !== "object" || Array.isArray(row) ||
+      typeof row.reservationId !== "string" || !/^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/.test(row.reservationId) ||
+      typeof row.confirmationNo !== "string" || typeof row.status !== "string" ||
+      [row.primaryGuestDisplayName, row.primaryPartyName, row.unitTypeLabel, row.ratePlanLabel, row.channelCode,
+        row.operationalState, row.stayFrom, row.stayTo].some(field => field != null && typeof field !== "string"))) {
+      throw new Error("The reservation phase response is incomplete.");
+    }
+    return { reservations: page.reservations as Stay[], nextCursor: page.nextCursor, businessDate: page.businessDate };
+  });
 }
 async function loadReservationCalendarBoard(range: Readonly<{ from: string; to: string; signal?: AbortSignal }>): Promise<Lane> {
   return loadReservationBoardRange(range);
