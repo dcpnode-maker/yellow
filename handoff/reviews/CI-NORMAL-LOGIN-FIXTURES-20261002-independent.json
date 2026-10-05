@@ -1,0 +1,84 @@
+{
+  "status": "PASS independent review; root may admit exact four-test patch; browser CI still required",
+  "patchSha256": "a4ef1682e2790582fd9b5e73145841f8b98a6e0d5425a382fb754762954cd2d6",
+  "authorReceiptSha256": "aae3323627c05c5a61d7bb275f1e2a66c03a90f7844ada4d0924d18c8df2e0d7",
+  "scope": [
+    {
+      "path": "tests/order609-reservation-create-edit.browser.test.ts",
+      "beforeSha256": "d1bdf85135b2e8dfab7a0b6434784503e4e8e5b7d1bc986120a31385b659138d",
+      "afterSha256": "269977976f6199af7f247941f31e80892141c7ee7f18b41d37783500f24253a5",
+      "exactByteBackprojection": true,
+      "completeOriginalExpectAssertionsPreserved": 16,
+      "documentedFixtureOracleExceptions": 0,
+      "allBudgetsSleepsAndExistingSkipCountsExact": true
+    },
+    {
+      "path": "tests/yellow-ai-speech-consent.test.ts",
+      "beforeSha256": "34a12a3c3e2b23f9b27e51c3dbbdd5f8aafbe95d3733da6fb366f6bce8a3fb5a",
+      "afterSha256": "13b8b5458b29f2ca3e5306648cfec1f95e3c77660f2d47170e6a433514916749",
+      "exactByteBackprojection": true,
+      "completeOriginalExpectAssertionsPreserved": 28,
+      "documentedFixtureOracleExceptions": 0,
+      "allBudgetsSleepsAndExistingSkipCountsExact": true
+    },
+    {
+      "path": "tests/yellow-departure-coordination.browser.test.ts",
+      "beforeSha256": "ac0ad143922554b58e119d92c6761b9835201feb504c897f33edc9dbe55717aa",
+      "afterSha256": "dc76befac24da23e99f315d7ca5908eb9fbc87e175cf61508af6b7202249dbc5",
+      "exactByteBackprojection": true,
+      "completeOriginalExpectAssertionsPreserved": 15,
+      "documentedFixtureOracleExceptions": 1,
+      "allBudgetsSleepsAndExistingSkipCountsExact": true
+    },
+    {
+      "path": "tests/yellow-responsive-operational-shell.test.ts",
+      "beforeSha256": "d716b866961b902d62e73c88db4cec4e76e0b9facbd8809c7a4ef523721222d7",
+      "afterSha256": "938579a033ff17567a9ccdc2a0531ac6cdea128ae967e8bb542b2df1cb8a06fd",
+      "exactByteBackprojection": true,
+      "completeOriginalExpectAssertionsPreserved": 43,
+      "documentedFixtureOracleExceptions": 1,
+      "allBudgetsSleepsAndExistingSkipCountsExact": true
+    }
+  ],
+  "protectedPinsVerified": 111,
+  "strictImportedClosureExit": 0,
+  "assertionScanner": "complete statements with balanced parentheses and quoted-string handling; diff independently inspected",
+  "browserExecution": false,
+  "candidateRuntimeWrites": false,
+  "findings": [],
+  "limits": [
+    "Browser/CDP/headless not run; external CI must verify mounted flows",
+    "Synthetic fixture endpoints are test-only and do not exercise production password service/RBAC",
+    "No guessed diagnosis for truncated original CI error; native timeout unchanged"
+  ],
+  "responsiveSourceTests": {
+    "pass": 5,
+    "fail": 0,
+    "assertions": 43,
+    "files": 1
+  },
+  "patchCheckExit": 0,
+  "normalAuthContract": {
+    "explicitCredentialForm": true,
+    "exactSyntheticTenantEmailPassword": true,
+    "signedFullJwt": "existing Hs256TokenSigner.issue actor+tenant; existing900s TTL; full tokenType/user response",
+    "initialBrowserResume": "401, never authenticates or falls back to demo",
+    "ordinaryApiAuthority": "fixture rejects absent/mismatched memory Bearer; no production backend changes",
+    "grantedProperties": "existing scoped UUID/name/timezone list, verified before staff document mount",
+    "productionSecurityCoverage": "not claimed by a client fixture; existing production source and migrations remain pinned"
+  },
+  "sourceReview": {
+    "mutationConfirmation": "all original complete expect statements, command counting and confirmation controls exact",
+    "geometryAndSpeechConsent": "all original expressions/data/budgets exact except documented route and immediate-scroll source oracle",
+    "unchangedProductionNativeMigrationPins": 111,
+    "noNewSkipsOrExtendedDeadlines": true
+  },
+  "proofHashes": {
+    "static-review.json": "1e4eb3d27017307ff0ef4fd27df5f3cc2134663c57ed7fbe87754b1568eef6f3",
+    "static-review.log": "45137f82921ea0c761b4ceb4ec28339213554b43999bbaf82a168d6357b2eda1",
+    "strict-imported-closure.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "responsive-source-proof.log": "4cf58fb0339b1e075d083375fa7a45f4d563320a893bd158d8cea42e5fe88711",
+    "patch-check.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "originalReviewerFailure": "static-review-first.log: installed compiler distribution has no typescript/lib/typescript.js AST module; switched verifier to readonly existing tsc.exe and independent complete-statement scanner, no dependency/source edits"
+}

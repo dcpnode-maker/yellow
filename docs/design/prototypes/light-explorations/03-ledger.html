@@ -1,0 +1,326 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Yellow · Ledger reservation record</title>
+  <style>
+    @font-face {
+      font-family: Urbanist;
+      src: url('../../../../src/http/operator/vendor/urbanist-v1.330/Urbanist[ital,wght].woff2') format('woff2');
+      font-weight: 100 900;
+      font-display: swap;
+    }
+    :root {
+      --white: #ffffff;
+      --canvas: #f5f6fa;
+      --ink: #19213b;
+      --muted: #687086;
+      --line: #d8dbe7;
+      --line-strong: #b9bdd1;
+      --peri: #5b5eb5;
+      --peri-deep: #41448f;
+      --peri-wash: #e9eafe;
+      --blue-wash: #eef5ff;
+      --amber: #9b5f12;
+      --amber-wash: #fff2d8;
+      --green: #236b53;
+      --focus: #b14526;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; min-height: 100%; background: var(--canvas); color: var(--ink); }
+    body { font: 14px/1.42 Urbanist, Arial, sans-serif; }
+    button, input { font: inherit; }
+    button, a { cursor: pointer; }
+    a { color: inherit; }
+    :focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+    .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+    .shell {
+      width: min(100%, 1440px); height: 100vh; min-height: 760px; margin: 0 auto;
+      display: grid; grid-template-rows: 66px minmax(0, 1fr) 54px; background: var(--white);
+      border-left: 1px solid var(--line); border-right: 1px solid var(--line);
+    }
+    .command {
+      display: grid; grid-template-columns: 230px minmax(320px, 1fr) auto; align-items: center;
+      border-bottom: 1px solid var(--line-strong); background: var(--white);
+    }
+    .wordmark { height: 100%; display: flex; align-items: center; gap: 12px; padding: 0 20px; border-right: 1px solid var(--line); font-weight: 850; letter-spacing: -.02em; font-size: 18px; }
+    .wordmark span:first-child { display: grid; place-items: center; width: 27px; height: 27px; color: white; background: var(--peri); font-size: 15px; }
+    .module-nav { display: flex; align-items: stretch; height: 100%; padding-left: 10px; }
+    .module-nav a { position: relative; display: flex; align-items: center; padding: 0 14px; text-decoration: none; color: var(--muted); font-weight: 650; }
+    .module-nav a[aria-current="page"] { color: var(--peri-deep); }
+    .module-nav a[aria-current="page"]::after { content: ""; position: absolute; height: 3px; left: 14px; right: 14px; bottom: 0; background: var(--peri); }
+    .command-meta { display: flex; align-items: center; gap: 16px; padding-right: 18px; white-space: nowrap; }
+    .property { padding: 7px 10px; background: var(--canvas); border: 1px solid var(--line); font-weight: 650; }
+    .concept { color: var(--muted); font-size: 13px; }
+    .reset { color: var(--peri-deep); font-weight: 700; text-underline-offset: 4px; }
+    .workspace { min-height: 0; display: grid; grid-template-columns: 318px minmax(0, 1fr) 350px; }
+    .master, .record, .folio { min-width: 0; min-height: 0; }
+    .master { border-right: 1px solid var(--line-strong); display: grid; grid-template-rows: auto auto 1fr; background: #fafbfc; }
+    .master-head { padding: 18px 18px 11px; display: flex; align-items: end; justify-content: space-between; }
+    .master-head h1 { margin: 0; font-size: 22px; line-height: 1; letter-spacing: -.025em; }
+    .count { color: var(--muted); font-variant-numeric: tabular-nums; }
+    .search { padding: 0 18px 14px; }
+    .search-box { position: relative; }
+    .search svg { position: absolute; left: 11px; top: 12px; width: 18px; height: 18px; color: var(--muted); pointer-events: none; }
+    .search input { width: 100%; height: 42px; padding: 8px 11px 8px 38px; border: 1px solid var(--line-strong); border-radius: 0; background: var(--white); color: var(--ink); }
+    .reservations { overflow: hidden; border-top: 1px solid var(--line); }
+    .reservation {
+      min-height: 92px; padding: 13px 16px 12px 18px; border: 0; border-bottom: 1px solid var(--line);
+      background: transparent; color: var(--ink); width: 100%; text-align: left; display: grid;
+      grid-template-columns: 40px 1fr auto; gap: 10px; align-items: start;
+    }
+    .reservation:hover { background: var(--blue-wash); }
+    .reservation.active { background: var(--peri-wash); box-shadow: inset 4px 0 var(--peri); }
+    .date-tile { color: var(--muted); text-align: center; line-height: 1.15; font-variant-numeric: tabular-nums; }
+    .date-tile strong { display: block; color: var(--ink); font-size: 20px; }
+    .guest strong { display: block; font-size: 15px; font-weight: 780; }
+    .guest span { display: block; margin-top: 3px; color: var(--muted); }
+    .guest small { display: block; margin-top: 7px; color: var(--peri-deep); font-size: 13px; font-weight: 700; }
+    .state { padding: 3px 6px; border: 1px solid var(--line-strong); color: var(--muted); font-size: 12px; font-weight: 750; text-transform: uppercase; letter-spacing: .04em; }
+    .state.due { color: var(--green); border-color: #8fb5a7; }
+    .record { display: grid; grid-template-rows: auto 48px minmax(0, 1fr); background: var(--white); }
+    .record-head { min-height: 112px; padding: 20px 24px 16px; display: grid; grid-template-columns: 1fr auto; border-bottom: 1px solid var(--line); }
+    .record-head .overline { color: var(--peri-deep); font-size: 13px; font-weight: 800; letter-spacing: .09em; text-transform: uppercase; }
+    .record-head h2 { margin: 7px 0 3px; font-size: 31px; line-height: 1; letter-spacing: -.035em; }
+    .subline { color: var(--muted); }
+    .record-id { text-align: right; font-variant-numeric: tabular-nums; }
+    .record-id strong { display: block; font-size: 15px; }
+    .record-id span { display: block; color: var(--muted); margin-top: 4px; }
+    .tabs { display: flex; align-items: stretch; gap: 3px; padding: 0 20px; border-bottom: 1px solid var(--line); }
+    .tab { position: relative; min-width: 84px; border: 0; background: transparent; color: var(--muted); font-weight: 700; }
+    .tab.active { color: var(--peri-deep); }
+    .tab.active::after { content: ""; position: absolute; left: 10px; right: 10px; bottom: -1px; height: 3px; background: var(--peri); }
+    .record-body { min-height: 0; overflow: hidden; padding: 18px 24px 20px; }
+    .notice { display: grid; grid-template-columns: auto 1fr auto; gap: 12px; align-items: center; padding: 12px 14px; border: 1px solid #dec18e; background: var(--amber-wash); color: #70450d; }
+    .notice svg { width: 20px; height: 20px; }
+    .notice strong { display: block; }
+    .notice span { font-size: 13px; }
+    .notice a { font-weight: 750; text-underline-offset: 3px; }
+    .facts { display: grid; grid-template-columns: repeat(4, 1fr); border: 1px solid var(--line); border-top: 0; }
+    .fact { min-height: 72px; padding: 11px 12px; border-right: 1px solid var(--line); }
+    .fact:last-child { border-right: 0; }
+    .fact span { display: block; color: var(--muted); font-size: 13px; }
+    .fact strong { display: block; margin-top: 5px; font-size: 15px; font-variant-numeric: tabular-nums; }
+    .section { margin-top: 19px; }
+    .section-title { display: flex; align-items: baseline; justify-content: space-between; padding-bottom: 7px; border-bottom: 1px solid var(--line-strong); }
+    .section-title h3 { margin: 0; font-size: 15px; letter-spacing: .015em; }
+    .section-title span { color: var(--muted); font-size: 13px; }
+    .stay-grid { display: grid; grid-template-columns: 1.25fr .85fr; gap: 22px; padding-top: 12px; }
+    .room-line { display: flex; gap: 13px; align-items: center; }
+    .room-number { width: 48px; height: 48px; display: grid; place-items: center; background: var(--ink); color: white; font-weight: 850; font-size: 16px; }
+    .room-line strong { display: block; }
+    .room-line span { display: block; color: var(--muted); margin-top: 2px; }
+    .room-line .room-number { display: grid; place-items: center; color: #ffffff; margin-top: 0; }
+    .data-list { margin: 0; display: grid; grid-template-columns: 1fr auto; row-gap: 7px; }
+    .data-list dt { color: var(--muted); }
+    .data-list dd { margin: 0; font-weight: 700; text-align: right; }
+    .timeline { display: grid; grid-template-columns: repeat(3, 1fr); padding-top: 13px; }
+    .event { position: relative; padding: 12px 14px 0 18px; border-top: 1px solid var(--line-strong); }
+    .event::before { content: ""; position: absolute; top: -5px; left: 0; width: 9px; height: 9px; background: var(--white); border: 2px solid var(--peri); }
+    .event strong { display: block; font-size: 13px; }
+    .event span { display: block; margin-top: 3px; color: var(--muted); font-size: 13px; }
+    .folio { position: relative; border-left: 1px solid var(--line-strong); padding: 18px; background: #fcfcfe; display: flex; flex-direction: column; overflow: hidden; }
+    .folio-head { display: flex; justify-content: space-between; align-items: start; padding-bottom: 13px; border-bottom: 1px solid var(--line-strong); }
+    .folio-head h2 { margin: 0; font-size: 21px; }
+    .folio-head span { display: block; color: var(--muted); margin-top: 3px; font-size: 13px; }
+    .currency { text-align: right; font-weight: 750; font-size: 13px; }
+    .balance { display: flex; justify-content: space-between; align-items: end; padding: 17px 0; border-bottom: 1px solid var(--line); }
+    .balance span { color: var(--muted); }
+    .balance strong { font-size: 29px; line-height: 1; letter-spacing: -.03em; font-variant-numeric: tabular-nums; }
+    .charges { width: 100%; border-collapse: collapse; table-layout: fixed; font-variant-numeric: tabular-nums; }
+    .charges caption { text-align: left; padding: 14px 0 7px; font-weight: 800; }
+    .charges th { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .05em; font-weight: 700; }
+    .charges th, .charges td { padding: 8px 0; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
+    .charges th:nth-child(1), .charges td:nth-child(1) { width: 48px; }
+    .charges th:last-child, .charges td:last-child { width: 72px; text-align: right; }
+    .charges td:nth-child(2) { padding-right: 8px; }
+    .charges small { display: block; color: var(--muted); font-size: 12px; }
+    .settlement { margin-top: 15px; padding: 12px; border: 1px solid var(--line); background: var(--white); }
+    .settlement-head { display: flex; justify-content: space-between; margin-bottom: 8px; }
+    .settlement-head strong { font-size: 13px; letter-spacing: .04em; text-transform: uppercase; }
+    .settlement-head span { color: var(--green); font-weight: 750; }
+    .payment-row { display: flex; justify-content: space-between; color: var(--muted); }
+    .payment-row b { color: var(--ink); }
+    .folio-actions { margin-top: auto; padding-top: 14px; }
+    .audit-button { width: 100%; min-height: 46px; border: 1px solid var(--peri); background: var(--white); color: var(--peri-deep); font-weight: 800; transition: background-color .2s ease, color .2s ease; }
+    .audit-button:hover { background: var(--peri); color: white; }
+    .audit-note { margin: 7px 0 0; color: var(--muted); font-size: 12px; text-align: center; }
+    .audit-tray { position: absolute; z-index: 4; left: 18px; right: 18px; bottom: 85px; padding: 14px; border: 1px solid var(--peri-deep); background: var(--peri-wash); box-shadow: 0 8px 24px rgba(25,33,59,.14); opacity: 0; pointer-events: none; transform: translateY(8px); transition: opacity .2s ease, transform .2s ease; }
+    .audit-open .audit-tray { opacity: 1; pointer-events: auto; transform: translateY(0); }
+    .audit-tray strong { display: block; margin-bottom: 5px; }
+    .audit-tray p { margin: 0; color: #3f4570; }
+    .audit-tray code { font: inherit; font-weight: 750; }
+    .statusbar { display: grid; grid-template-columns: 318px 1fr 350px; border-top: 1px solid var(--line-strong); background: var(--ink); color: white; }
+    .statusbar > div { display: flex; align-items: center; padding: 0 18px; border-right: 1px solid #3d4560; }
+    .statusbar > div:last-child { border-right: 0; }
+    .queue-status { justify-content: space-between; }
+    .queue-status strong { font-variant-numeric: tabular-nums; }
+    .ops-status { color: #cbd0e6; gap: 20px; }
+    .ops-status strong { color: white; }
+    .demo-status { color: #cfd1ff; font-weight: 700; }
+    @media (max-width: 1080px) {
+      .shell { height: auto; min-height: 100vh; display: block; }
+      .command { min-height: 66px; grid-template-columns: 210px 1fr; }
+      .module-nav { overflow-x: auto; }
+      .command-meta { grid-column: 1 / -1; min-height: 46px; justify-content: end; padding: 0 16px; border-top: 1px solid var(--line); }
+      .workspace { grid-template-columns: 300px 1fr; }
+      .folio { grid-column: 1 / -1; border-left: 0; border-top: 1px solid var(--line-strong); min-height: 650px; }
+      .master, .record { min-height: 760px; }
+      .statusbar { grid-template-columns: 300px 1fr; min-height: 54px; }
+      .demo-status { grid-column: 1 / -1; min-height: 48px; }
+    }
+    @media (max-width: 720px) {
+      body { font-size: 16px; }
+      .command { display: block; }
+      .wordmark { min-height: 60px; border-right: 0; border-bottom: 1px solid var(--line); }
+      .module-nav { min-height: 52px; }
+      .module-nav a { flex: 0 0 auto; }
+      .concept, .property { display: none; }
+      .workspace { display: block; }
+      .master, .record { min-height: 0; }
+      .reservations { overflow: visible; }
+      .reservation:nth-child(n+5) { display: none; }
+      .record-head { padding: 20px 18px; }
+      .record-body { padding: 18px; overflow: visible; }
+      .facts { grid-template-columns: repeat(2, 1fr); }
+      .fact:nth-child(2) { border-right: 0; }
+      .fact:nth-child(-n+2) { border-bottom: 1px solid var(--line); }
+      .stay-grid { grid-template-columns: 1fr; }
+      .timeline { grid-template-columns: 1fr; gap: 18px; }
+      .folio { min-height: 640px; }
+      .statusbar { display: block; }
+      .statusbar > div { min-height: 52px; border-right: 0; border-bottom: 1px solid #3d4560; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell" id="ledger">
+    <header class="command">
+      <div class="wordmark"><span aria-hidden="true">Y</span><span>Yellow Ledger</span></div>
+      <nav class="module-nav" aria-label="Primary modules">
+        <a href="#" aria-current="page">Reservations</a><a href="#">Rooms</a><a href="#">Guests</a><a href="#">Finance</a><a href="#">Reports</a>
+      </nav>
+      <div class="command-meta"><span class="property">The Marlowe · London</span><span class="concept">Concept 03 · fictional data</span><a class="reset" href="#" data-demo-reset>Reset</a></div>
+    </header>
+
+    <main class="workspace">
+      <aside class="master" aria-labelledby="reservation-list-title">
+        <div class="master-head"><h1 id="reservation-list-title">Arrivals</h1><span class="count">28 today</span></div>
+        <form class="search" role="search">
+          <label class="sr-only" for="reservation-search">Search reservations</label>
+          <div class="search-box"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="m16 16 5 5" stroke="currentColor" stroke-width="1.7"/></svg><input id="reservation-search" type="search" placeholder="Search name or reference"></div>
+        </form>
+        <div class="reservations" aria-label="Today's reservation queue">
+          <button class="reservation active" type="button" aria-current="true"><span class="date-tile">SEP<strong>08</strong></span><span class="guest"><strong>Maya Chen</strong><span>3 nights · King courtyard</span><small>Direct · YL-84219</small></span><span class="state due">Due</span></button>
+          <button class="reservation" type="button"><span class="date-tile">SEP<strong>08</strong></span><span class="guest"><strong>Omar Haddad</strong><span>1 night · Terrace suite</span><small>GDS · YL-84244</small></span><span class="state">16:10</span></button>
+          <button class="reservation" type="button"><span class="date-tile">SEP<strong>08</strong></span><span class="guest"><strong>Sofia Martins</strong><span>4 nights · Twin garden</span><small>Web · YL-84261</small></span><span class="state">17:30</span></button>
+          <button class="reservation" type="button"><span class="date-tile">SEP<strong>08</strong></span><span class="guest"><strong>Noah Williams</strong><span>2 nights · King street</span><small>Agent · YL-84277</small></span><span class="state">18:05</span></button>
+          <button class="reservation" type="button"><span class="date-tile">SEP<strong>08</strong></span><span class="guest"><strong>Amina Bello</strong><span>5 nights · Studio</span><small>Direct · YL-84283</small></span><span class="state">21:40</span></button>
+          <button class="reservation" type="button"><span class="date-tile">SEP<strong>08</strong></span><span class="guest"><strong>Louis Bernard</strong><span>2 nights · King courtyard</span><small>Web · YL-84288</small></span><span class="state">22:15</span></button>
+        </div>
+      </aside>
+
+      <section class="record" aria-labelledby="guest-title">
+        <header class="record-head">
+          <div><span class="overline">Arriving today · returning guest</span><h2 id="guest-title">Maya Chen</h2><span class="subline">maya.chen@example.test · +44 7700 900 428</span></div>
+          <div class="record-id"><strong>YL-84219</strong><span>Confirmed · Direct</span><span>Created 21 Aug</span></div>
+        </header>
+        <nav class="tabs" aria-label="Reservation record sections"><button class="tab active" type="button" aria-current="page">Stay</button><button class="tab" type="button">Guest</button><button class="tab" type="button">Notes</button><button class="tab" type="button">History</button></nav>
+        <div class="record-body">
+          <div class="notice">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 22 20H2Z" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M12 9v5m0 3v.1" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+            <div><strong>Arrival document outstanding</strong><span>Passport details can be completed at reception; do not request by unsecured message.</span></div><a href="#guest-title">Review</a>
+          </div>
+          <div class="facts">
+            <div class="fact"><span>Arrival</span><strong>Tue 08 Sep · 15:00</strong></div><div class="fact"><span>Departure</span><strong>Fri 11 Sep · 11:00</strong></div><div class="fact"><span>Guests</span><strong>2 adults</strong></div><div class="fact"><span>Value</span><strong>GBP 1,372.00</strong></div>
+          </div>
+
+          <section class="section" aria-labelledby="stay-title">
+            <div class="section-title"><h3 id="stay-title">Stay &amp; allocation</h3><span>3 nights</span></div>
+            <div class="stay-grid">
+              <div class="room-line"><span class="room-number">412</span><div><strong>King courtyard · fourth floor</strong><span>Inspected 13:48 · quiet stair preference matched</span></div></div>
+              <dl class="data-list"><dt>Rate plan</dt><dd>Flexible breakfast</dd><dt>Occupancy</dt><dd>2 adults</dd><dt>Guarantee</dt><dd>Token on file</dd></dl>
+            </div>
+          </section>
+
+          <section class="section" aria-labelledby="service-title">
+            <div class="section-title"><h3 id="service-title">Service timeline</h3><span>Local hotel time</span></div>
+            <div class="timeline">
+              <div class="event"><strong>13:48 · Room inspected</strong><span>Marta Silva · Housekeeping</span></div>
+              <div class="event"><strong>14:05 · Welcome staged</strong><span>Still water, chamomile, no lilies</span></div>
+              <div class="event"><strong>15:00 · Arrival window</strong><span>Reception handoff ready</span></div>
+            </div>
+          </section>
+
+          <section class="section" aria-labelledby="preference-title">
+            <div class="section-title"><h3 id="preference-title">Known preferences</h3><span>From 2 prior stays</span></div>
+            <div class="stay-grid"><p style="margin:0">Quiet room away from lift. Chamomile tea after 18:00. Prefers a printed folio at departure.</p><dl class="data-list"><dt>Language</dt><dd>English</dd><dt>Consent</dt><dd>Service only</dd></dl></div>
+          </section>
+        </div>
+      </section>
+
+      <aside class="folio" aria-labelledby="folio-title">
+        <header class="folio-head"><div><h2 id="folio-title">Folio 1 of 1</h2><span>Guest account · private</span></div><div class="currency">GBP<br>incl. VAT</div></header>
+        <div class="balance"><span>Balance due</span><strong>£1,012.00</strong></div>
+        <table class="charges">
+          <caption>Posted &amp; scheduled charges</caption>
+          <thead><tr><th>Date</th><th>Description</th><th>Amount</th></tr></thead>
+          <tbody>
+            <tr><td>08 Sep</td><td>Room · night 1<small>Flexible breakfast</small></td><td>£420.00</td></tr>
+            <tr><td>09 Sep</td><td>Room · night 2<small>Scheduled</small></td><td>£420.00</td></tr>
+            <tr><td>10 Sep</td><td>Room · night 3<small>Scheduled</small></td><td>£420.00</td></tr>
+            <tr><td>08 Sep</td><td>City levy<small>2 guests × 3 nights</small></td><td>£112.00</td></tr>
+          </tbody>
+        </table>
+        <section class="settlement" aria-label="Payment summary">
+          <div class="settlement-head"><strong>Settlement</strong><span>Guaranteed</span></div>
+          <div class="payment-row"><span>Deposit · 21 Aug</span><b>−£360.00</b></div>
+          <div class="payment-row"><span>Token</span><b>•••• 4281</b></div>
+        </section>
+        <div class="audit-tray" id="audit-tray" role="status">
+          <strong>Charge lineage · preview</strong>
+          <p><code>£420.00</code> derives from “Flexible breakfast” for 08 Sep. Posted by reservation confirmation at 21 Aug, 10:32. This view is fictional and read-only.</p>
+        </div>
+        <div class="folio-actions">
+          <button class="audit-button" type="button" data-demo-action aria-expanded="false" aria-controls="audit-tray">Inspect charge lineage</button>
+          <p class="audit-note">Local demonstration only · no posting or payment action</p>
+        </div>
+      </aside>
+    </main>
+
+    <footer class="statusbar">
+      <div class="queue-status"><span>Arrival queue</span><strong>7 ready · 3 exceptions</strong></div>
+      <div class="ops-status"><span><strong>Business date</strong> 08 Sep 2026</span><span><strong>Desk</strong> London 01</span><span><strong>Operator</strong> AR</span></div>
+      <div class="demo-status" aria-live="polite">Folio in read-only overview</div>
+    </footer>
+  </div>
+  <script>
+    (() => {
+      const root = document.getElementById('ledger');
+      const action = root.querySelector('[data-demo-action]');
+      const reset = root.querySelector('[data-demo-reset]');
+      const status = root.querySelector('.demo-status');
+      window.demoState = 'initial';
+      const restore = () => {
+        root.classList.remove('audit-open');
+        action.setAttribute('aria-expanded', 'false');
+        action.textContent = 'Inspect charge lineage';
+        status.textContent = 'Folio in read-only overview';
+        window.demoState = 'initial';
+      };
+      action.addEventListener('click', () => {
+        root.classList.add('audit-open');
+        action.setAttribute('aria-expanded', 'true');
+        action.textContent = 'Charge lineage open';
+        status.textContent = 'Audit preview open · no live mutation';
+        window.demoState = 'changed';
+      });
+      reset.addEventListener('click', (event) => { event.preventDefault(); restore(); });
+    })();
+  </script>
+</body>
+</html>
