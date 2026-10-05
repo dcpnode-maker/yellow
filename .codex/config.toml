@@ -1,0 +1,4 @@
+# Codex CLI project config for Yellow. The project intentionally declares no
+# auto-launched MCP servers. Add a server only through a separately reviewed
+# order with exact package provenance and credential scope.
+[mcp_servers]
