@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "id": "order745-proof-demo",
+  "workspace": "D:/Yellow/temp/order745/workspace",
+  "orderPath": "D:/Yellow/temp/order745/order.md",
+  "prompt": "Implement a simple greeter function in src/greeter.ts and export greet(name: string): string.",
+  "writePaths": [
+    "src/greeter.ts"
+  ],
+  "checkPaths": [
+    "tests/greeter.test.ts"
+  ],
+  "timeoutSeconds": 120,
+  "engine": "antigravity"
+}

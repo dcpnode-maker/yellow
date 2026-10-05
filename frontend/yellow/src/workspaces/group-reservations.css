@@ -1,0 +1,26 @@
+.group-reservation-workspace { color: #202b37; }
+.group-reservation-workspace header p { max-width: 70ch; color: #5d6772; }
+.group-reservation-workspace button, .group-reservation-workspace input { min-height: 44px; font: inherit; }
+.group-reservation-workspace button { cursor: pointer; border: 1px solid #b9c4cc; border-radius: 8px; padding: .55rem .8rem; background: #fff; color: #263949; }
+.group-reservation-workspace button:disabled { cursor: not-allowed; opacity: .58; }
+.group-reservation-workspace button:focus-visible, .group-reservation-workspace input:focus-visible { outline: 3px solid #497da8; outline-offset: 2px; }
+.group-reservation-workspace label { display: grid; gap: .35rem; font-weight: 600; }
+.group-reservation-workspace input { box-sizing: border-box; width: 100%; border: 1px solid #b9c4cc; border-radius: 8px; padding: .55rem .65rem; background: #fff; color: #202b37; }
+.group-create, .group-add-member { display: flex; flex-wrap: wrap; align-items: end; gap: .75rem; padding: 1rem; border: 1px solid #d6dfe5; border-radius: 10px; background: #f8fafb; }
+.group-create label, .group-add-member label { flex: 1 1 18rem; }
+.group-layout { display: grid; grid-template-columns: minmax(15rem, 20rem) minmax(0, 1fr); gap: 1rem; margin-top: 1rem; }
+.group-layout aside, .group-detail { border: 1px solid #d6dfe5; border-radius: 10px; background: #fff; padding: 1rem; }
+.group-reservation-workspace .group-layout aside p { font-family: inherit; font-size: 13px; line-height: 1.5; letter-spacing: normal; text-transform: none; color: #5d6772; }
+.group-layout aside { display: grid; align-content: start; gap: .5rem; }
+.group-layout aside button { display: grid; text-align: left; gap: .3rem; }
+.group-layout aside button.selected { border-color: #497da8; background: #edf5fb; }
+.group-layout aside small { color: #5d6772; font-size: .82rem; line-height: 1.35; }
+.group-detail h3 { margin: 0 0 .4rem; }
+.group-detail h4 { margin: 1.2rem 0 .6rem; }
+.group-detail ul { list-style: none; padding: 0; margin: 0; display: grid; gap: .4rem; }
+.group-detail li { display: flex; flex-wrap: wrap; justify-content: space-between; gap: .4rem; padding: .65rem; border: 1px solid #e0e6e9; border-radius: 8px; }
+.group-detail li a { color: #245a81; text-decoration: underline; }
+.group-candidate { display: grid; gap: .4rem; width: 100%; border-top: 1px solid #d6dfe5; padding-top: .75rem; }
+.group-candidate button { justify-self: start; }
+.group-error { border-left: 3px solid #ae3434; padding: .7rem; background: #fff5f5; }
+@media (max-width: 700px) { .group-layout { grid-template-columns: 1fr; } .group-create button, .group-add-member button { width: 100%; } }

@@ -1,0 +1,31 @@
+@import "cesium/Build/Cesium/Widgets/widgets.css";
+.god-eye-workspace{width:100%;min-width:0;padding:22px;box-sizing:border-box;color:#25292d;font-family:inherit}
+.god-eye-heading{display:flex;justify-content:space-between;align-items:center;gap:16px;margin-bottom:18px}
+.god-eye-heading h1{font-size:24px;letter-spacing:-.6px;margin:0 0 5px;font-weight:650}
+.god-eye-heading p{margin:0;color:#70767d;font-size:13px}
+.god-eye-workspace button,.god-eye-workspace input{font-family:inherit;font-size:13px;font-weight:500;line-height:1.4}
+.god-eye-workspace button{min-height:38px;padding:7px 12px;border:1px solid transparent;border-radius:8px;background:#f4f5f6;color:#30353b;display:inline-flex;align-items:center;justify-content:center;gap:7px;cursor:pointer;white-space:nowrap}
+.god-eye-workspace button:disabled{opacity:.5;cursor:default}
+.god-eye-workspace button:focus-visible,.god-eye-workspace input:focus-visible{outline:2px solid #377deb;outline-offset:2px}
+.god-eye-workspace button:hover:not(:disabled){background:#e9ecef}
+.god-eye-view-ribbon,.god-eye-tool-group{display:flex;align-items:center;gap:4px}
+.god-eye-view-ribbon{padding:4px;border-radius:24px;background:#e9ebed}
+.god-eye-view-ribbon button{border-radius:20px;background:transparent;padding:7px 15px}
+.god-eye-workspace button[aria-pressed=true]{background:#fff;box-shadow:0 1px 4px #1b25351a}
+.god-eye-tools{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.god-eye-search{display:flex;align-items:center;gap:8px;padding:4px 4px 4px 12px;border:1px solid #dde1e5;border-radius:11px;max-width:390px;flex:1;min-width:190px;background:#fff}
+.god-eye-search input{border:0;outline:0;min-width:0;flex:1;background:transparent;padding:5px 0;color:#30353b}
+.god-eye-status{min-height:18px;font-size:12px;line-height:1.5;color:#6c737b;padding:9px 0}
+.god-eye-canvas-wrap{height:clamp(390px,65vh,820px);position:relative;overflow:hidden;border:1px solid #dbe0e4;border-radius:14px;background:#e9edf0;isolation:isolate}
+.god-eye-canvas{position:absolute;inset:0}
+.god-eye-canvas .cesium-widget{width:100%;height:100%}
+.god-eye-canvas canvas{width:100%;height:100%;display:block;touch-action:none}
+.god-eye-canvas .cesium-credit-textContainer{font-size:10px;background:#ffffffde;color:#30353b}
+.god-eye-attribution{position:absolute;bottom:0;right:0;background:#ffffffed;padding:4px 8px;font-size:10px;line-height:1.3;z-index:2}
+.god-eye-attribution a{color:#334152;text-decoration:underline}
+.god-eye-loading{position:absolute;inset:0;display:grid;place-items:center;background:#f0f2f5e0;font-size:14px}
+.god-eye-error{position:absolute;top:12px;left:12px;right:12px;display:flex;gap:12px;align-items:center;justify-content:space-between;background:#fff4e9;border:1px solid #ead2b6;border-radius:10px;padding:10px 12px;font-size:13px;z-index:3}
+.god-eye-footnotes{font-size:12px;color:#727981;line-height:1.5;padding:6px 0}
+.god-eye-footnotes p{margin:7px 0}.god-eye-footnotes summary{cursor:pointer;color:#48525e;font-weight:550;min-height:30px;padding:5px 0}
+.god-eye-footnotes a{color:#335ea8}.god-eye-workspace>.overture-map-workspace{padding:0}
+@media(max-width:700px){.god-eye-workspace{padding:14px 12px}.god-eye-heading{align-items:flex-start;flex-direction:column;gap:12px}.god-eye-heading h1{font-size:22px}.god-eye-view-ribbon{width:100%;box-sizing:border-box}.god-eye-view-ribbon button{flex:1;min-height:44px}.god-eye-tools{flex-direction:column;align-items:stretch;gap:8px}.god-eye-search{max-width:none;min-width:0}.god-eye-search input{font-size:16px}.god-eye-workspace button{min-height:44px}.god-eye-tool-group{justify-content:space-between;gap:3px}.god-eye-tool-group button{padding:7px 9px}.god-eye-canvas-wrap{height:55vh;min-height:350px}.god-eye-error{flex-direction:column;align-items:stretch}.god-eye-status{font-size:12px}}

@@ -1,0 +1,18 @@
+.reservation-checkin-dialog {
+  width: min(42rem, calc(100vw - 2rem));
+  max-height: calc(100dvh - 2rem);
+  box-sizing: border-box;
+  padding: clamp(1rem, 3vw, 1.5rem);
+  border: 1px solid var(--reference-line, #deded7);
+  border-radius: 1.25rem;
+  background: var(--reference-canvas, #fafaf7);
+  color: inherit;
+  overflow: auto;
+}
+.reservation-checkin-dialog::backdrop { background: rgb(15 20 25 / 35%); }
+.reservation-checkin-dialog > header { display: flex; align-items: start; justify-content: space-between; gap: 1rem; }
+.reservation-checkin-dialog > header > button { flex-shrink: 0; white-space: nowrap; min-width: 4rem; }
+.reservation-checkin-dialog button { min-height: 44px; }
+.reservation-checkin-dialog input[type="search"] { width: 100%; box-sizing: border-box; min-height: 44px; }
+.reservation-checkin-dialog .overwatch-journey { max-width: 100%; overflow-wrap: anywhere; }
+.reservation-checkin-dialog h2 { margin: .3rem 0 1rem; }
