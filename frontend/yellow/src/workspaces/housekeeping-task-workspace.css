@@ -1,0 +1,21 @@
+.hk-task-workspace { --ink:var(--reference-ink); --muted:var(--reference-muted); --line:var(--reference-line); --card:var(--reference-paper); --surface-subtle:var(--reference-soft); --accent:var(--reference-ink); display:grid; gap:1rem; min-width:0; color:var(--ink); }
+.hk-task-workspace .hk-floor-drawer { display:block; }
+.hk-task-workspace .hk-floor-drawer p { font:inherit; letter-spacing:normal; margin:.5rem 0; color:var(--muted); }
+.hk-task-workspace > header p { color:var(--muted); max-width:70ch; }
+.hk-task-confirm,.hk-task-receipt,.hk-task-locked,.hk-task-limits { padding:1rem; border:1px solid var(--line); border-radius:18px; background:var(--card); overflow-wrap:anywhere; min-width:0; }
+.hk-task-confirm h2,.hk-task-receipt h2 { margin-top:0; }
+.hk-task-confirm label { display:flex; align-items:center; gap:.75rem; min-height:44px; padding:.5rem 0; cursor:pointer; }
+.hk-task-confirm input { flex:none; width:1.25rem; height:1.25rem; accent-color:var(--accent); }
+.hk-task-workspace button,.hk-task-workspace summary { min-height:44px; padding:.65rem .85rem; cursor:pointer; }
+.hk-task-workspace button { color:var(--ink); background:var(--surface-subtle); border:1px solid var(--line); border-radius:12px; font:inherit; white-space:normal; }
+.hk-task-workspace button:disabled { cursor:default; opacity:.65; }
+.hk-task-workspace :focus-visible { outline:2px solid var(--accent); outline-offset:3px; }
+.hk-task-actions { display:flex; flex-wrap:wrap; gap:.75rem; }
+.hk-task-warning,.hk-task-message { color:var(--muted); }
+@media(max-width:700px) { .hk-task-actions { display:grid; } .hk-task-confirm { padding:.75rem; } }
+
+/* Current App grids must shrink the task track instead of clipping enlarged text. */
+.hk-task-workspace { grid-template-columns:minmax(0,1fr); }
+
+/* The current-owner delegation action remains a 44px touch target. */
+.hk-task-owner-delegate { min-height: 44px; min-width: 44px; }

@@ -1,0 +1,245 @@
+/* frontend/yellow/src/ui/movement-ribbon.css */
+.movement-view-ribbon {
+  padding: 6px 0 10px;
+}
+
+.yellow-next .movement-date-scope {
+  display: flex;
+  flex-wrap: wrap;
+  align-items:  center;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.yellow-next .movement-date-scope button {
+  appearance: none;
+  color: #343a32;
+  font: inherit;
+  cursor: pointer;
+  background: #f5f6f4;
+  border: 1px solid #dfe1df;
+  border-radius: 12px;
+  min-width: 44px;
+  min-height: 44px;
+  margin: 0;
+  padding: 8px 12px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.yellow-next .movement-date-scope button[aria-pressed="true"] {
+  background: #fff;
+  border-color: #b6bbae;
+  box-shadow: 0 1px 3px #17200d12;
+}
+
+.yellow-next .movement-date-scope button:hover {
+  background: #fff;
+}
+
+.yellow-next .movement-date-scope button:focus-visible {
+  outline: 2px solid #7b8500;
+  outline-offset: 2px;
+}
+
+.yellow-next .movement-date-scope button:disabled {
+  opacity: .55;
+  cursor: wait;
+}
+
+.yellow-next .movement-date-scope .movement-date-refresh {
+  padding: 6px;
+  font-size: 22px;
+  line-height: 1;
+}
+
+@media (max-width: 700px) {
+  .yellow-next .movement-view-ribbon .segmented-ribbon {
+    display: flex;
+    box-sizing: border-box;
+    width: 100%;
+    min-width: 0;
+  }
+
+  .yellow-next .movement-view-ribbon .segmented-ribbon button {
+    flex: 1 1 0;
+    gap: 4px;
+    min-width: 0;
+    min-height: 44px;
+    padding: 0 5px;
+    font-size: 12px;
+  }
+
+  .yellow-next .movement-view-ribbon .segmented-ribbon small {
+    min-width: 16px;
+    padding: 2px 3px;
+    font-size: 10px;
+  }
+}
+
+/* frontend/yellow/src/workspaces/department-task-table.css */
+.department-task-dashboard {
+  min-width: 0;
+}
+
+.department-task-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items:  end;
+  gap: 12px;
+  margin: 18px 0;
+}
+
+.department-task-filters label {
+  display: grid;
+  flex: 140px;
+  gap: 6px;
+  min-width: 0;
+  font-size: .875rem;
+}
+
+.department-task-filters .department-task-search {
+  flex: 2 260px;
+}
+
+.department-task-filters input, .department-task-filters select {
+  font: inherit;
+  color: inherit;
+  border: 1px solid var(--reference-line, #d5dcd6);
+  background: none;
+  border-radius: 8px;
+  width: 100%;
+  min-width: 0;
+  min-height: 44px;
+  padding: 8px 10px;
+}
+
+.department-task-filters button {
+  min-height: 44px;
+}
+
+.department-task-scroll {
+  overflow-x: auto;
+  border: 1px solid var(--reference-line, #d5dcd6);
+  border-radius: 10px;
+  width: 100%;
+}
+
+.department-task-scroll table {
+  border-collapse: collapse;
+  text-align: left;
+  width: 100%;
+  min-width: 1050px;
+}
+
+.department-task-scroll caption {
+  text-align: left;
+  padding: 12px;
+}
+
+.department-task-scroll th, .department-task-scroll td {
+  border-top: 1px solid var(--reference-line, #d5dcd6);
+  vertical-align: top;
+  overflow-wrap: anywhere;
+  padding: 12px;
+}
+
+.department-task-scroll thead th {
+  white-space: nowrap;
+}
+
+.department-task-scroll th:first-child {
+  min-width: 140px;
+}
+
+.department-task-scroll td:nth-child(2) {
+  min-width: 130px;
+}
+
+.department-task-scroll .status-badge {
+  white-space: nowrap;
+}
+
+.department-task-detail {
+  min-width: 180px;
+}
+
+.department-task-detail > summary {
+  cursor: pointer;
+  min-height: 44px;
+  padding: 10px 0;
+}
+
+.department-task-detail .departure-queue-actions {
+  flex-wrap: wrap;
+}
+
+.department-task-detail .departure-queue-actions button {
+  min-height: 44px;
+}
+
+.department-task-selected {
+  display: grid;
+  border: 1px solid var(--reference-line, #d5dcd6);
+  background: color-mix(in srgb, var(--reference-surface, #fff) 88%, var(--reference-line, #d5dcd6));
+  border-radius: 10px;
+  gap: 12px;
+  margin: 18px 0;
+  padding: 16px;
+}
+
+.department-task-selected > header {
+  display: flex;
+  justify-content: space-between;
+  align-items:  start;
+  gap: 12px;
+}
+
+.department-task-selected h3 {
+  margin: 4px 0 0;
+}
+
+.department-task-selected dl {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 190px), 1fr));
+  gap: 10px 18px;
+  margin: 0;
+}
+
+.department-task-selected dl div {
+  min-width: 0;
+}
+
+.department-task-selected dt {
+  opacity: .72;
+  font-size: .78rem;
+}
+
+.department-task-selected dd {
+  overflow-wrap: anywhere;
+  margin: 3px 0 0;
+}
+
+.department-task-open-reservation {
+  justify-self: start;
+  min-height: 44px;
+}
+
+.department-task-reservation-unavailable, .department-task-selected-hint, .department-task-coverage {
+  font-size: .875rem;
+}
+
+.department-task-dashboard :focus-visible {
+  outline: 2px solid;
+  outline-offset: 3px;
+}
+
+@media (max-width: 600px) {
+  .department-task-filters label {
+    flex-basis: calc(50% - 12px);
+  }
+
+  .department-task-filters .department-task-search {
+    flex-basis: 100%;
+  }
+}
