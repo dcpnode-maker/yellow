@@ -1,0 +1,239 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="color-scheme" content="light">
+  <meta name="theme-color" content="#f4f1e8">
+  <title>Yellow Continuum — Design prototype</title>
+  <link rel="stylesheet" href="./continuum.css">
+  <script defer src="./continuum.js"></script>
+</head>
+<body>
+  <div id="app" data-scene="arrival">
+    <aside class="rail" aria-label="Prototype context">
+      <div class="brand-mark" aria-label="Yellow">Y<span></span></div>
+      <div class="rail-track" aria-hidden="true">
+        <i class="is-live"></i><i></i><i></i><i></i><i></i>
+      </div>
+      <div class="rail-time"><span>14</span><small>32</small></div>
+    </aside>
+
+    <header class="topbar">
+      <div class="property-lockup">
+        <span class="property-sigil" aria-hidden="true"><i></i><i></i><i></i></span>
+        <span><strong>The Aster</strong><small>Mumbai · Monday, 7 September</small></span>
+      </div>
+      <div class="prototype-notice">Prototype <b>·</b> Sample data</div>
+      <div class="live-status"><i aria-hidden="true"></i><span>Front desk</span><strong>12 arrivals</strong></div>
+    </header>
+
+    <main class="stage-shell">
+      <div class="ambient-grid" aria-hidden="true"></div>
+      <section class="hero-copy">
+        <div id="hero-kicker">Arrival continuum · 01</div>
+        <h1 id="hero-title">Every arrival has<br><em>a trajectory.</em></h1>
+        <p id="hero-copy">See the guest, the room, and the work ahead as one connected journey.</p>
+      </section>
+
+      <div class="stage" aria-live="polite">
+        <section class="scene scene-arrival" data-panel="arrival" aria-label="Arrival selection">
+          <div class="arrival-orbit" aria-hidden="true">
+            <div class="orbit orbit-a"></div><div class="orbit orbit-b"></div>
+            <div class="now-axis"><span>Now</span></div>
+            <i class="orbit-dot dot-a"></i><i class="orbit-dot dot-b"></i><i class="orbit-dot dot-c"></i>
+          </div>
+          <div class="arrival-summary">
+            <span>Next 90 minutes</span><strong>04</strong><small>arrivals · 9 guests</small>
+          </div>
+          <div id="guest-queue" class="guest-queue">
+            <button class="arrival-card is-focus" type="button" data-go="guest" aria-label="Open Priya Sharma guest context">
+              <span class="arrival-time">15:20 <i>in 48 min</i></span>
+              <span class="arrival-identity"><b>PS</b><span><strong>Priya Sharma</strong><small>Deluxe King · 3 nights</small></span></span>
+              <span class="arrival-signal warning"><i></i>Preparation incomplete</span>
+              <span class="card-arrow" aria-hidden="true">↗</span>
+            </button>
+            <div class="arrival-card ghost-card">
+              <span class="arrival-time">15:05 <i>pickup</i></span>
+              <span class="arrival-identity"><b>JM</b><span><strong>Jonas Müller</strong><small>Premier Twin · 2 nights</small></span></span>
+              <span class="arrival-signal muted"><i></i>In transit</span>
+            </div>
+            <div class="arrival-card ghost-card late-card">
+              <span class="arrival-time">15:35 <i>flight delayed</i></span>
+              <span class="arrival-identity"><b>AN</b><span><strong>Aanya Nair</strong><small>Garden Suite · 1 night</small></span></span>
+              <span class="arrival-signal warning"><i></i>ETA changed</span>
+            </div>
+          </div>
+          <div class="continuum-thread arrival-thread" aria-hidden="true"><span></span></div>
+        </section>
+
+        <section class="scene scene-guest" data-panel="guest" aria-label="Guest context">
+          <div class="guest-workbench">
+            <form class="guest-form" autocomplete="off">
+              <div class="form-heading">
+                <span><small>Guest details</small><strong>Complete the pre-arrival record</strong></span>
+                <span class="source-badge">Partial OTA booking</span>
+              </div>
+              <div class="field-grid">
+                <label class="field"><span>Full name</span><input id="guest-fullname" name="guest-fullname" value="Priya Sharma"></label>
+                <label class="field"><span>Email</span><input id="guest-email" name="guest-email" type="email" placeholder="Not provided by OTA"></label>
+                <label class="field"><span>Phone</span><input id="guest-phone" name="guest-phone" type="tel" placeholder="Not provided by OTA"></label>
+                <label class="field"><span>Nationality</span><input id="guest-nationality" name="guest-nationality" placeholder="Needs staff review"></label>
+                <label class="field field-wide"><span>Guest request</span><textarea id="guest-request" name="guest-request" rows="2">Quiet room, away from the lift. Walk-in shower if available.</textarea></label>
+              </div>
+              <div class="form-actions">
+                <button id="save-guest-draft" class="secondary-action" type="button">Save sample draft</button>
+                <button id="demo-id-capture" class="secondary-action" type="button">Preview ID capture</button>
+                <span id="draft-status" role="status">Sample draft · stored only in this page</span>
+              </div>
+            </form>
+            <aside class="guest-dossier" aria-label="Sample stay context">
+              <div class="guest-dossier-head">
+                <div class="guest-core"><span>PS</span><i></i></div>
+                <span><small id="dossier-name">Priya Sharma</small><strong>Third stay</strong><em>2 prior stays at The Aster</em></span>
+              </div>
+              <dl class="context-records">
+                <div><dt>Arrival</dt><dd>15:20 · airport pickup noted</dd></div>
+                <div><dt>Pre-arrival form</dt><dd><span id="guest-completeness">Incomplete · 3 fields missing</span></dd></div>
+                <div><dt>Guarantee</dt><dd>Due today · 18:00</dd></div>
+                <div><dt>Room preference</dt><dd>Quiet side · walk-in shower</dd></div>
+              </dl>
+              <p>No reminder has been sent. Deadline actions remain staff-controlled.</p>
+              <button class="primary-action" type="button" data-go="rooms"><span>Explore room options</span><i aria-hidden="true">→</i></button>
+            </aside>
+          </div>
+        </section>
+
+        <section class="scene scene-rooms" data-panel="rooms" aria-label="Spatial room match">
+          <div class="roomfield-header">
+            <span><small>Spatial room match</small><strong><span id="selected-room-label">Room 608</span> · <span data-fit-label>best fit</span></strong></span>
+            <span class="model-note"><i></i>Illustrative room reasoning</span>
+          </div>
+          <div id="roomfield" aria-label="Room candidates">
+            <div class="floor-label floor-six">06 <span>north wing</span></div>
+            <div class="floor-label floor-five">06 <span>courtyard wing</span></div>
+            <button class="room is-selected" type="button" data-room="608" aria-pressed="true">
+              <span class="room-glow"></span><span class="room-plan" aria-hidden="true"><i class="bed"></i><i class="bath"></i><i class="window"></i></span><span class="room-no" data-room-title>608</span><span data-room-status>Inspected · ready</span><b>Quiet · walk-in shower</b>
+            </button>
+            <button class="room" type="button" data-room="610" aria-pressed="false">
+              <span class="room-glow"></span><span class="room-plan" aria-hidden="true"><i class="bed"></i><i class="bath"></i><i class="window"></i></span><span class="room-no" data-room-title>610</span><span data-room-status>Inspected · ready</span><b>Near lift · standard bath</b>
+            </button>
+            <button class="room" type="button" data-room="612" aria-pressed="false">
+              <span class="room-glow"></span><span class="room-plan" aria-hidden="true"><i class="bed"></i><i class="bath"></i><i class="window"></i></span><span class="room-no" data-room-title>612</span><span data-room-status>Inspected · ready</span><b>North corner</b>
+            </button>
+            <button class="room" type="button" data-room="614" aria-pressed="false">
+              <span class="room-glow"></span><span class="room-plan" aria-hidden="true"><i class="bed"></i><i class="bath"></i><i class="window"></i></span><span class="room-no" data-room-title>614</span><span data-room-status>Housekeeping</span><b>Not ready</b>
+            </button>
+            <button class="room" type="button" data-room="601" aria-pressed="false">
+              <span class="room-glow"></span><span class="room-plan" aria-hidden="true"><i class="bed"></i><i class="bath"></i><i class="window"></i></span><span class="room-no" data-room-title>601</span><span data-room-status>Inspected · ready</span><b>Courtyard view</b>
+            </button>
+            <button class="room" type="button" data-room="603" aria-pressed="false">
+              <span class="room-glow"></span><span class="room-plan" aria-hidden="true"><i class="bed"></i><i class="bath"></i><i class="window"></i></span><span class="room-no" data-room-title>603</span><span data-room-status>Inspected · ready</span><b>Courtyard</b>
+            </button>
+            <button class="room" type="button" data-room="605" aria-pressed="false">
+              <span class="room-glow"></span><span class="room-plan" aria-hidden="true"><i class="bed"></i><i class="bath"></i><i class="window"></i></span><span class="room-no" data-room-title>605</span><span data-room-status>Housekeeping</span><b>Not ready</b>
+            </button>
+            <button class="room" type="button" data-room="607" aria-pressed="false">
+              <span class="room-glow"></span><span class="room-plan" aria-hidden="true"><i class="bed"></i><i class="bath"></i><i class="window"></i></span><span class="room-no" data-room-title>607</span><span data-room-status>Housekeeping</span><b>Not ready</b>
+            </button>
+            <div class="guest-beacon" aria-hidden="true"><span>PS</span><i></i></div>
+          </div>
+          <div class="room-mobile-summary"><span>Chosen for Priya</span><strong>Room <b data-selected-room>608</b></strong><small>Ready now · quiet-side match</small></div>
+          <button class="primary-action room-continue" type="button" data-go="review"><span>Review room <b data-selected-room>608</b></span><i aria-hidden="true">→</i></button>
+        </section>
+
+        <section class="scene scene-review" data-panel="review" aria-label="Simulated check-in review">
+          <div class="review-banner"><span>Simulated review</span><strong>No check-in will be submitted</strong></div>
+          <div class="review-ribbon" aria-label="Review steps">
+            <div class="review-step is-current"><i>01</i><span><small>Identity</small><strong>Staff review pending</strong></span><b>→</b></div>
+            <div class="review-step is-complete"><i>02</i><span><small>Stay</small><strong>Room <span data-selected-room>608</span> · sample selection</strong></span><b>✓</b></div>
+            <div class="review-step"><i>03</i><span><small>Registration</small><strong>Sample fields incomplete</strong></span><b>·</b></div>
+            <div class="review-step"><i>04</i><span><small>Key</small><strong>Not issued</strong></span><b>·</b></div>
+          </div>
+          <div class="review-guest">
+            <span class="review-avatar">PS</span>
+            <span><small>Guest journey</small><strong>Priya Sharma</strong><em>2 guests · Deluxe King</em></span>
+          </div>
+          <div class="review-room"><small>Selected room</small><strong data-selected-room>608</strong><span>06 · quiet floor</span></div>
+          <button class="primary-action review-continue" type="button" data-go="handoff"><span>Preview service handoff</span><i aria-hidden="true">→</i></button>
+          <div class="continuum-thread review-thread" aria-hidden="true"><span></span></div>
+        </section>
+
+        <section class="scene scene-handoff" data-panel="handoff" aria-label="Illustrative service handoff">
+          <div class="handoff-heading"><span class="eyebrow">Illustrative handoff · nothing dispatched</span><h2>The arrival becomes<br><em>a shared rhythm.</em></h2></div>
+          <div class="handoff-map">
+            <div class="handoff-origin"><span>PS</span><strong>Priya</strong><small>Room <b data-selected-room>608</b></small></div>
+            <div class="service-line line-one"><i></i></div><div class="service-line line-two"><i></i></div><div class="service-line line-three"><i></i></div>
+            <div class="service-node service-front"><i>FD</i><span><small>Front desk</small><strong>Review key &amp; details</strong><em>Illustrative</em></span></div>
+            <div class="service-node service-bell"><i>BD</i><span><small>Bell desk</small><strong>Luggage to room</strong><em>Illustrative</em></span></div>
+            <div class="service-node service-transfer"><i>GR</i><span><small>Guest relations</small><strong>Welcome-back amenity</strong><em>Illustrative</em></span></div>
+          </div>
+          <div class="handoff-foot"><span><i></i>All states shown are fictional</span><button type="button" data-go="arrival">Replay from arrival <b>↗</b></button></div>
+        </section>
+      </div>
+    </main>
+
+    <aside class="inspector" aria-label="Journey evidence">
+      <div class="inspector-head">
+        <span class="inspector-label">Preparation</span>
+        <button id="motion-replay" type="button" aria-label="Replay scene motion"><span aria-hidden="true">↻</span> Replay</button>
+      </div>
+      <div class="guest-token" aria-label="Current guest">
+        <span class="token-avatar" id="guest-initials">PS</span>
+        <span><small>Journey in focus</small><strong id="guest-name">Priya Sharma</strong><em id="guest-stay">2 guests · 3 nights</em></span>
+        <i aria-hidden="true"></i>
+      </div>
+      <div class="inspector-copy">
+        <span class="sequence-no">01 / 05</span>
+        <h2 id="inspector-title">Arrival signal</h2>
+        <p id="inspector-copy">Priya is eight minutes away. Her known stay context is ready to inspect.</p>
+      </div>
+      <section id="check-progress" class="check-progress" aria-labelledby="check-progress-title">
+        <div class="check-progress-head">
+          <span><small>Preparation</small><strong id="check-progress-title">Sample checks</strong></span>
+          <button id="run-checks" type="button">Preview checks</button>
+        </div>
+        <ul id="check-list">
+          <li data-check="details"><i></i><span><strong>Guest details</strong><small>Awaiting preview</small></span></li>
+          <li data-check="guarantee"><i></i><span><strong>Guarantee deadline</strong><small>Awaiting preview</small></span></li>
+          <li data-check="room"><i></i><span><strong>Room readiness</strong><small>Awaiting preview</small></span></li>
+        </ul>
+        <p id="check-status" role="status">Demonstration only · no booking changed</p>
+      </section>
+      <ul id="evidence-list" class="evidence-list">
+        <li><i class="evidence-dot yellow"></i><span><strong>15:20 arrival</strong><small>Travel detail · sample record</small></span></li>
+        <li><i class="evidence-dot cyan"></i><span><strong>Deluxe King</strong><small>Reservation · 2 guests</small></span></li>
+        <li><i class="evidence-dot soft"></i><span><strong>Returning guest</strong><small>2 prior stays · sample record</small></span></li>
+      </ul>
+      <div class="inspector-foot"><span>Known facts</span><span>Sources visible</span><span>No prediction</span></div>
+    </aside>
+
+    <nav id="journey" class="journey" aria-label="Guest journey">
+      <button id="back-step" class="edge-control" type="button" aria-label="Previous journey step"><span aria-hidden="true">←</span><small>Back</small></button>
+      <div class="journey-steps">
+        <button type="button" data-step="arrival" aria-current="step"><i>01</i><span>Arrival</span></button>
+        <button type="button" data-step="guest"><i>02</i><span>Guest</span></button>
+        <button type="button" data-step="rooms"><i>03</i><span>Room</span></button>
+        <button type="button" data-step="review"><i>04</i><span>Review</span></button>
+        <button type="button" data-step="handoff"><i>05</i><span>Handoff</span></button>
+      </div>
+      <button id="next-step" class="edge-control next" type="button" aria-label="Next journey step"><small>Next</small><span aria-hidden="true">→</span></button>
+    </nav>
+
+    <dialog id="id-review" class="id-review" aria-labelledby="id-review-title" aria-describedby="id-confidence-note">
+      <div class="id-review-head">
+        <span><small>Demo extraction · no camera or image upload</small><strong id="id-review-title">Review candidate ID fields</strong></span>
+        <button id="close-id" type="button" aria-label="Close sample ID review">×</button>
+      </div>
+      <div class="sample-id-card" aria-hidden="true"><span>IDENTITY SAMPLE</span><b>PS</b><i>Not a real document</i></div>
+      <div class="id-fields">
+        <label class="field"><span>Candidate name</span><input id="id-name" value="PRIYA SHARMA"></label>
+        <label class="field"><span>Candidate nationality</span><input id="id-nationality" value="IND"></label>
+      </div>
+      <p id="id-confidence-note">The sample has an uncertain nationality field. Staff must compare the source and correct every field before confirmation. This does not establish identity.</p>
+      <label class="confirmation-check"><input id="id-review-confirm" type="checkbox"><span>I checked these sample fields</span></label>
+      <div class="dialog-actions"><button id="confirm-id" class="primary-action" type="button"><span>Confirm sample fields</span><i aria-hidden="true">→</i></button></div>
+    </dialog>
+  </div>
+</body>
+</html>

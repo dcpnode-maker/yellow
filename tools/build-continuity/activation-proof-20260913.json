@@ -1,0 +1,41 @@
+{
+  "date": "2026-09-13",
+  "scope": "Public synthetic tasks only. Not a Yellow app or release acceptance.",
+  "antigravity": {
+    "version": "1.2.2",
+    "model": "gemini-3.8-flash-low",
+    "entitlement": "existing Google AI Pro, included quota; not new free credits",
+    "extra_ai_credits": "off (observed in /config)",
+    "quota_before_call": {
+      "weekly_remaining_percent": 100,
+      "five_hour_remaining_percent": 100
+    },
+    "conversation_id": "e7fde5da-a278-4f6d-9b65-699d5d63d8da",
+    "status": "SUCCESS",
+    "duration_seconds": 3.7324872,
+    "num_turns": 1,
+    "usage": {
+      "input_tokens": 13199,
+      "output_tokens": 622,
+      "thinking_tokens": 543,
+      "cache_read_tokens": 0,
+      "total_tokens": 13821
+    },
+    "response": "def unique_names(values):\n    seen = set()\n    result = []\n    for item in values:\n        stripped = item.strip()\n        if not stripped:\n            continue\n        key = stripped.casefold()\n        if key not in seen:\n            seen.add(key)\n            result.append(stripped)\n    return result\n",
+    "command_caveat": "--disable-slash-commands made --mode plan ineffective; strict explicit deny rules covered all seven documented permission namespaces. Do not claim plan mode was active."
+  },
+  "freemodels": {
+    "url": "https://freemodels.pro/",
+    "transport": "Public site's chat endpoint, no account or key sent",
+    "requested_model": "claude-sonnet-5",
+    "response_model_field": "nvidia/nemotron-3-super-120b-a12b",
+    "response_id": "chatcmpl-63a7325f-2036-40cb-9c6b-e499ce39288d",
+    "first_http": 200,
+    "first_output_accepted": false,
+    "reason": "Model label mismatch; generated JSON code string contained escaped newline text. No model identity validation.",
+    "second_http": 429,
+    "second_seconds": 4.8197097,
+    "status": "Quota-blocked; no further requests, no account or route rotation.",
+    "approved_use": "Non-sensitive experiments only; not configured as an automatic build provider."
+  }
+}

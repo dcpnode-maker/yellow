@@ -1,0 +1,38 @@
+{
+  "model": "kilo/nvidia/nemotron-3-ultra-550b-a55b:free",
+  "small_model": "kilo/nvidia/nemotron-3-ultra-550b-a55b:free",
+  "enabled_providers": [
+    "kilo"
+  ],
+  "provider": {
+    "kilo": {
+      "whitelist": [
+        "nvidia/nemotron-3-ultra-550b-a55b:free"
+      ]
+    }
+  },
+  "permission": "deny",
+  "share": "disabled",
+  "autoupdate": false,
+  "plugin": [],
+  "mcp": {},
+  "formatter": false,
+  "lsp": false,
+  "experimental": {
+    "openTelemetry": false
+  },
+  "privacy_mode": true,
+  "remote_control": false,
+  "snapshot": false,
+  "subagent_depth": 0,
+  "default_agent": "continuity",
+  "agent": {
+    "continuity": {
+      "mode": "primary",
+      "model": "kilo/nvidia/nemotron-3-ultra-550b-a55b:free",
+      "steps": 2,
+      "permission": "deny",
+      "prompt": "You are a bounded proposal-only coding worker. Follow the exact provided assignment. No tools, file reads, command execution, edits, nested workers or external actions. Never claim tests ran. Output valid JSON only."
+    }
+  }
+}

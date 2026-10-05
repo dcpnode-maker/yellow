@@ -1,0 +1,69 @@
+{
+  "schema": "yellow-continuity-omniroute-provider-pool/v1",
+  "updated": "2026-09-13",
+  "gateway": {
+    "package": "omniroute",
+    "version": "3.8.50",
+    "activation": "pending_authenticated_free_account_proof",
+    "default_enabled": false,
+    "model_requests_authorized": false
+  },
+  "pools": [
+    {
+      "id": "openrouter-public-free",
+      "provider": "OpenRouter",
+      "official_api": "https://openrouter.ai/api/v1",
+      "activation": "pending_authenticated_free_account_proof",
+      "free_only": true,
+      "models": [
+        "cohere/north-mini-code:free",
+        "nvidia/nemotron-3-ultra-550b-a55b:free",
+        "openrouter/free"
+      ],
+      "verification": "Recheck the current catalog and zero prompt/completion price immediately before activation. Do not enable fallbacks to paid models."
+    },
+    {
+      "id": "groq-free",
+      "provider": "Groq",
+      "activation": "pending_authenticated_free_account_proof",
+      "free_only": true,
+      "models": ["openai/gpt-oss-120b"],
+      "verification": "Confirm account, API key, current free quota and terms before adding an official API connection."
+    },
+    {
+      "id": "alibaba-model-studio-singapore",
+      "provider": "Alibaba Model Studio",
+      "activation": "pending_authenticated_free_account_proof",
+      "free_only": true,
+      "models": [],
+      "verification": "Eligible Singapore International models have a 90-day new-user quota. Enable Free Quota Only and verify a chosen model's quota before adding a key."
+    },
+    {
+      "id": "nvidia-nim",
+      "provider": "NVIDIA NIM",
+      "activation": "pending_authenticated_free_account_proof",
+      "free_only": true,
+      "models": ["Nemotron 3 Super"],
+      "verification": "Verify current official endpoint availability and terms before activation; the live UI displayed retirement date '10/02/26' (date format was not resolved)."
+    },
+    {
+      "id": "native-account-tools",
+      "provider": "Kilo, Gemini CLI, Qwen Code",
+      "activation": "separate_native_authentication_required",
+      "free_only": false,
+      "models": [],
+      "verification": "These native account-authenticated tools are not an OmniRoute OAuth proxy pool. Kilo email and Terms submission remains blocked pending explicit founder approval."
+    }
+  ],
+  "prohibited": [
+    "keyless provider routing",
+    "provider purchase or paid fallback",
+    "plugin installation or loading",
+    "cookie or session import",
+    "browser automation",
+    "account rotation",
+    "MITM or TLS interception",
+    "public tunnel",
+    "provider model request before activation proof"
+  ]
+}

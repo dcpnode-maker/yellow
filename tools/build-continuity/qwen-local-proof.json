@@ -1,0 +1,44 @@
+{
+  "status": "runtime_verified_coding_acceptance_failed",
+  "later_attempt": {
+    "completed_at_utc": "2026-09-13T18:10:36.2616207Z",
+    "model_pulled": true,
+    "native_windows_no_wsl": true,
+    "done": true,
+    "executed_acceptance_checks_passed": 20,
+    "executed_acceptance_checks_failed": 2,
+    "seconds_including_load": 13.4306951,
+    "free_ram_gib_after_response": 4.5469970703125,
+    "response_path": "D:\\Yellow\\runtime\\qwen-worker\\53a38cc7c81040c0a0a84e0cab19eeb7\\response.json",
+    "acceptance": "Rejected: non-string list entries raise AttributeError instead of required TypeError. Not admitted for unsupervised coding.",
+    "source": "def unique_names(values):\n    if not isinstance(values, list):\n        raise TypeError(\"unique_names requires a list of strings\")\n    seen = set()\n    result = []\n    for value in values:\n        stripped = value.strip()\n        if not stripped:\n            continue\n        lowercased = stripped.casefold()\n        if lowercased in seen:\n            continue\n        seen.add(lowercased)\n        result.append(stripped)\n    return result\n"
+  },
+  "observed": {
+    "timestamp_local": "2026-09-13",
+    "free_ram_gib": 3.29,
+    "required_free_ram_gib": 4.0,
+    "free_model_volume_gib": 7.72,
+    "ollama_process_before": false,
+    "port_11434_occupied_before": false,
+    "download_attempted": false,
+    "task_attempted": false
+  },
+  "model": "qwen3.5:2b-q4_K_M",
+  "host": "127.0.0.1:11434",
+  "constraints": {
+    "context_length": 2048,
+    "num_parallel": 1,
+    "max_loaded_models": 1,
+    "max_queue": 2,
+    "keep_alive": 0,
+    "num_thread": 2,
+    "num_gpu": 0,
+    "think": false,
+    "request_timeout_seconds": 90
+  },
+  "result": {
+    "source": null,
+    "validation": null,
+    "failure": "Preflight refused execution because free RAM was 3.29 GiB, below the required 4 GiB floor."
+  }
+}

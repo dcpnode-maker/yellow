@@ -1,0 +1,347 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Yellow · Meridian room assignment</title>
+  <style>
+    @font-face {
+      font-family: Urbanist;
+      src: url('../../../../src/http/operator/vendor/urbanist-v1.330/Urbanist[ital,wght].woff2') format('woff2');
+      font-weight: 100 900;
+      font-display: swap;
+    }
+    :root {
+      --cream: #f3f1e8;
+      --surface: #fbfaf5;
+      --ink: #173236;
+      --muted: #68797a;
+      --line: #b9cbc8;
+      --teal: #287f7b;
+      --teal-deep: #145c5a;
+      --teal-wash: #d9ece8;
+      --ice: #e8f2f0;
+      --ochre: #bb7940;
+      --occupied: #cdd5d2;
+      --focus: #81411d;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; min-height: 100%; background: var(--cream); color: var(--ink); }
+    body { font: 16px/1.45 Urbanist, Arial, sans-serif; }
+    button, select, input { font: inherit; }
+    button, a, select, input { cursor: pointer; }
+    a { color: inherit; }
+    :focus-visible { outline: 3px solid var(--focus); outline-offset: 3px; }
+    .app {
+      width: min(100%, 1440px);
+      min-height: 100vh;
+      margin: 0 auto;
+      display: grid;
+      grid-template-rows: 68px minmax(0, 1fr) 62px;
+      background: var(--cream);
+    }
+    .topbar {
+      display: grid; grid-template-columns: 240px 1fr auto; align-items: center;
+      padding: 0 28px; border-bottom: 1px solid var(--line); background: rgba(251,250,245,.8);
+    }
+    .brand { display: flex; align-items: center; gap: 10px; font-weight: 800; letter-spacing: .02em; }
+    .brand svg { width: 27px; height: 27px; }
+    .crumb { justify-self: center; color: var(--muted); font-size: 14px; }
+    .crumb strong { color: var(--ink); }
+    .meta { display: flex; align-items: center; gap: 18px; font-size: 13px; }
+    .concept { padding: 6px 10px; border: 1px solid var(--line); border-radius: 999px; font-weight: 700; }
+    .reset { text-underline-offset: 4px; }
+    .workbench { min-height: 0; display: grid; grid-template-columns: 92px minmax(0, 1fr) 342px; }
+    .floor-nav {
+      border-right: 1px solid var(--line); padding: 22px 14px;
+      display: flex; flex-direction: column; align-items: center; gap: 10px;
+      background: #eeece3;
+    }
+    .floor-nav h2 { margin: 0 0 8px; font-size: 12px; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+    .floor-btn {
+      width: 52px; height: 52px; border: 1px solid transparent; border-radius: 50%;
+      background: transparent; color: var(--muted); font-weight: 700;
+    }
+    .floor-btn:hover { background: var(--surface); }
+    .floor-btn.active { background: var(--ink); color: white; border-color: var(--ink); }
+    .floor-note { margin-top: auto; writing-mode: vertical-rl; color: var(--muted); font-size: 12px; letter-spacing: .08em; }
+    .map-shell { min-width: 0; min-height: 0; padding: 22px 24px 12px; display: grid; grid-template-rows: auto minmax(0, 1fr); }
+    .map-heading { display: flex; align-items: end; justify-content: space-between; gap: 22px; padding: 0 8px 10px; }
+    .map-heading p { margin: 0 0 4px; color: var(--teal-deep); font-size: 12px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
+    .map-heading h1 { margin: 0; font-size: 27px; font-weight: 650; letter-spacing: -.02em; }
+    .legend { display: flex; flex-wrap: wrap; justify-content: end; gap: 15px; color: var(--muted); font-size: 13px; }
+    .legend span { display: flex; align-items: center; gap: 6px; }
+    .swatch { width: 12px; height: 12px; display: inline-block; border: 1px solid var(--line); }
+    .swatch.available { background: var(--teal-wash); }
+    .swatch.occupied { background: var(--occupied); }
+    .swatch.service { background: #eadcc8; }
+    .map-stage {
+      min-height: 0; position: relative; overflow: hidden; border: 1px solid var(--line);
+      border-radius: 2px 34px 2px 2px; background:
+        linear-gradient(rgba(40,127,123,.045) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(40,127,123,.045) 1px, transparent 1px),
+        var(--surface);
+      background-size: 24px 24px;
+    }
+    .north { position: absolute; top: 18px; left: 20px; z-index: 2; display: grid; place-items: center; width: 42px; height: 62px; color: var(--teal-deep); font-size: 12px; font-weight: 800; }
+    .north svg { width: 24px; height: 35px; }
+    .plan { width: 100%; height: 100%; min-height: 590px; display: block; }
+    .slab { fill: #dbe5e1; stroke: #79908d; stroke-width: 1.5; }
+    .slab-side { fill: #9fb5b0; stroke: #79908d; stroke-width: 1.5; }
+    .corridor { fill: #f4e7d2; stroke: #aa957a; stroke-width: 1.3; }
+    .room { cursor: default; }
+    .room .top { fill: var(--teal-wash); stroke: #618984; stroke-width: 1.5; transition: fill .2s ease; }
+    .room .front { fill: #a4c6c0; stroke: #618984; stroke-width: 1.3; }
+    .room .side { fill: #bed9d4; stroke: #618984; stroke-width: 1.3; }
+    .room.occupied .top { fill: #d5dad7; stroke: #87928f; }
+    .room.occupied .front { fill: #adb6b2; stroke: #87928f; }
+    .room.occupied .side { fill: #c1c8c5; stroke: #87928f; }
+    .room.service .top { fill: #eadcc8; stroke: #a98d69; }
+    .room.service .front { fill: #c9ad87; stroke: #a98d69; }
+    .room.service .side { fill: #dcc5a5; stroke: #a98d69; }
+    .room.candidate .top { stroke: var(--ochre); stroke-width: 4; }
+    .room.preview .top { fill: #8fc8bd; stroke: var(--teal-deep); stroke-width: 4; }
+    .room.preview .front, .room.preview .side { fill: #5b9e95; stroke: var(--teal-deep); }
+    .wall { fill: none; stroke: var(--ink); stroke-width: 4; stroke-linecap: square; opacity: .72; }
+    .interior { fill: none; stroke: #50706d; stroke-width: 1.6; }
+    .bed { fill: #fffdf7; stroke: #6f8985; stroke-width: 1.2; }
+    .room-label { fill: var(--ink); font: 700 15px Urbanist, Arial, sans-serif; text-anchor: middle; pointer-events: none; }
+    .room-state { fill: var(--muted); font: 600 10px Urbanist, Arial, sans-serif; letter-spacing: .08em; text-anchor: middle; pointer-events: none; }
+    .axis-note { fill: var(--muted); font: 600 11px Urbanist, Arial, sans-serif; letter-spacing: .06em; }
+    .assignment {
+      min-width: 0; border-left: 1px solid var(--line); background: var(--surface);
+      padding: 24px 26px; display: flex; flex-direction: column;
+    }
+    .assignment .overline { color: var(--teal-deep); font-size: 12px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
+    .assignment h2 { margin: 8px 0 3px; font-size: 26px; line-height: 1.1; letter-spacing: -.03em; }
+    .stay { color: var(--muted); font-size: 14px; }
+    .guest-spec { margin: 20px 0; padding: 15px 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+    .guest-spec dl { display: grid; grid-template-columns: 1fr auto; gap: 9px; margin: 0; font-size: 14px; }
+    .guest-spec dt { color: var(--muted); }
+    .guest-spec dd { margin: 0; font-weight: 700; }
+    .field { margin-bottom: 16px; }
+    .field label, .checks legend { display: block; margin-bottom: 6px; font-size: 13px; font-weight: 750; }
+    select { width: 100%; min-height: 44px; padding: 8px 36px 8px 11px; border: 1px solid var(--line); border-radius: 3px; color: var(--ink); background: white; }
+    fieldset { border: 0; margin: 0 0 16px; padding: 0; }
+    .check { min-height: 38px; display: flex; align-items: center; gap: 9px; font-size: 14px; }
+    .check input { width: 18px; height: 18px; accent-color: var(--teal-deep); }
+    .reason {
+      padding: 13px 14px; border-left: 3px solid var(--ochre); background: #f4eadb;
+      color: #5f4937; font-size: 13px;
+    }
+    .assignment-actions { margin-top: auto; }
+    .preview-button {
+      width: 100%; min-height: 48px; border: 0; border-radius: 3px; background: var(--teal-deep);
+      color: white; font-weight: 800; transition: background-color .2s ease;
+    }
+    .preview-button:hover { background: #0d4947; }
+    .microcopy { margin: 9px 0 0; color: var(--muted); font-size: 12px; }
+    .footer {
+      display: grid; grid-template-columns: 92px 1fr 342px; border-top: 1px solid var(--line); background: var(--surface);
+    }
+    .footer > div { display: flex; align-items: center; min-width: 0; }
+    .floor-total { justify-content: center; border-right: 1px solid var(--line); font-weight: 800; }
+    .flow { padding: 0 25px; gap: 10px; color: var(--muted); font-size: 13px; }
+    .flow strong { color: var(--ink); }
+    .flow-line { flex: 1; height: 1px; background: var(--line); }
+    .result { padding: 0 26px; border-left: 1px solid var(--line); color: var(--teal-deep); font-weight: 750; font-size: 13px; }
+    @media (max-width: 1000px) {
+      .app { display: block; }
+      .topbar { min-height: 68px; grid-template-columns: 1fr auto; }
+      .crumb { display: none; }
+      .workbench { grid-template-columns: 72px 1fr; }
+      .assignment { grid-column: 1 / -1; border-left: 0; border-top: 1px solid var(--line); }
+      .plan { min-height: 570px; }
+      .footer { grid-template-columns: 72px 1fr; min-height: 62px; }
+      .result { grid-column: 1 / -1; min-height: 52px; border: 0; border-top: 1px solid var(--line); }
+    }
+    @media (max-width: 650px) {
+      .topbar { padding: 0 16px; }
+      .concept { display: none; }
+      .workbench { display: block; }
+      .floor-nav { border-right: 0; border-bottom: 1px solid var(--line); flex-direction: row; overflow-x: auto; padding: 10px 16px; }
+      .floor-nav h2, .floor-note { display: none; }
+      .floor-btn { flex: 0 0 48px; width: 48px; height: 48px; }
+      .map-shell { padding: 16px 10px; }
+      .map-heading { display: block; }
+      .legend { justify-content: start; margin-top: 10px; }
+      .map-stage { overflow: hidden; }
+      .plan { min-width: 0; min-height: 390px; }
+      .assignment { padding: 24px 18px; }
+      .footer { display: block; }
+      .footer > div { min-height: 54px; padding: 0 18px; border-bottom: 1px solid var(--line); }
+      .floor-total { display: none !important; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app" id="meridian">
+    <header class="topbar">
+      <div class="brand">
+        <svg viewBox="0 0 32 32" aria-hidden="true"><path d="M16 2 29 9.5v13L16 30 3 22.5v-13Z" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="m3 9.5 13 7.7 13-7.7M16 17.2V30" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>
+        <span>Yellow Meridian</span>
+      </div>
+      <div class="crumb">Rooms <span aria-hidden="true">/</span> <strong>Fourth floor assignment</strong></div>
+      <div class="meta"><span class="concept">Concept 02 · fictional data</span><a href="#" class="reset" data-demo-reset>Reset view</a></div>
+    </header>
+
+    <main class="workbench">
+      <nav class="floor-nav" aria-label="Choose floor">
+        <h2>Level</h2>
+        <button class="floor-btn" type="button" aria-label="View floor 6">06</button>
+        <button class="floor-btn" type="button" aria-label="View floor 5">05</button>
+        <button class="floor-btn active" type="button" aria-label="Floor 4, current" aria-current="page">04</button>
+        <button class="floor-btn" type="button" aria-label="View floor 3">03</button>
+        <button class="floor-btn" type="button" aria-label="View floor 2">02</button>
+        <span class="floor-note">The Marlowe · west wing</span>
+      </nav>
+
+      <section class="map-shell" aria-labelledby="map-title">
+        <div class="map-heading">
+          <div><p>Spatial assignment workbench</p><h1 id="map-title">Fourth floor · west wing</h1></div>
+          <div class="legend" aria-label="Room status legend">
+            <span><i class="swatch available"></i>Available</span>
+            <span><i class="swatch occupied"></i>Occupied</span>
+            <span><i class="swatch service"></i>Service</span>
+          </div>
+        </div>
+        <div class="map-stage">
+          <div class="north" aria-hidden="true"><svg viewBox="0 0 24 36"><path d="M12 2 18 18l-6-3-6 3Z" fill="currentColor"/><path d="M12 14v19" stroke="currentColor"/><text x="12" y="35" text-anchor="middle" font-size="8" fill="currentColor">N</text></svg></div>
+          <svg class="plan" viewBox="0 0 880 650" role="img" aria-labelledby="floor-title floor-desc">
+            <title id="floor-title">Isometric fourth-floor room plan</title>
+            <desc id="floor-desc">Architectural cutaway showing seven rooms around a central corridor. Room 407 is the proposed available assignment for Priya Shah.</desc>
+            <polygon class="slab-side" points="95,490 470,582 800,407 800,438 470,616 95,522"/>
+            <polygon class="slab" points="95,490 430,309 800,407 470,582"/>
+            <polygon class="corridor" points="206,480 437,355 690,425 458,550"/>
+            <text class="axis-note" x="387" y="475" transform="rotate(-28 387 475)">GUEST CORRIDOR · LIFT →</text>
+
+            <g class="room occupied" id="room401">
+              <polygon class="front" points="111,355 273,395 273,422 111,382"/>
+              <polygon class="side" points="273,395 352,353 352,380 273,422"/>
+              <polygon class="top" points="111,355 190,313 352,353 273,395"/>
+              <path class="wall" d="M114 353 190 313 349 352"/>
+              <polygon class="bed" points="161,345 210,331 260,343 210,358"/>
+              <text class="room-label" x="233" y="370">401</text><text class="room-state" x="233" y="384">OCCUPIED</text>
+            </g>
+            <g class="room" id="room403">
+              <polygon class="front" points="197,309 357,348 357,375 197,336"/>
+              <polygon class="side" points="357,348 438,304 438,331 357,375"/>
+              <polygon class="top" points="197,309 278,265 438,304 357,348"/>
+              <path class="wall" d="M200 307 278 265 435 303"/>
+              <polygon class="bed" points="248,299 296,285 346,297 297,312"/>
+              <text class="room-label" x="318" y="322">403</text><text class="room-state" x="318" y="336">AVAILABLE</text>
+            </g>
+            <g class="room occupied" id="room405">
+              <polygon class="front" points="284,261 444,300 444,327 284,288"/>
+              <polygon class="side" points="444,300 526,256 526,283 444,327"/>
+              <polygon class="top" points="284,261 366,217 526,256 444,300"/>
+              <path class="wall" d="M287 259 366 217 523 255"/>
+              <polygon class="bed" points="334,251 383,237 433,249 384,264"/>
+              <text class="room-label" x="405" y="274">405</text><text class="room-state" x="405" y="288">OCCUPIED</text>
+            </g>
+            <g class="room candidate" id="room407">
+              <polygon class="front" points="372,213 532,252 532,279 372,240"/>
+              <polygon class="side" points="532,252 614,208 614,235 532,279"/>
+              <polygon class="top" points="372,213 454,169 614,208 532,252"/>
+              <path class="wall" d="M375 211 454 169 611 207"/>
+              <polygon class="bed" points="423,203 471,189 521,201 472,216"/>
+              <path class="interior" d="m550 216 23 6m-15-18v27"/>
+              <text class="room-label" x="492" y="226">407</text><text class="room-state" x="492" y="240">QUIET · AVAILABLE</text>
+            </g>
+
+            <g class="room service" id="linen">
+              <polygon class="front" points="523,364 646,394 646,421 523,391"/>
+              <polygon class="side" points="646,394 719,355 719,382 646,421"/>
+              <polygon class="top" points="523,364 596,325 719,355 646,394"/>
+              <path class="wall" d="M526 362 596 325 716 354"/>
+              <text class="room-label" x="621" y="373">Linen</text><text class="room-state" x="621" y="387">SERVICE</text>
+            </g>
+            <g class="room occupied" id="room406">
+              <polygon class="front" points="604,405 766,445 766,472 604,432"/>
+              <polygon class="side" points="766,445 844,403 844,430 766,472"/>
+              <polygon class="top" points="604,405 682,363 844,403 766,445"/>
+              <path class="wall" d="M607 403 682 363 841 402"/>
+              <polygon class="bed" points="655,395 703,381 753,393 704,408"/>
+              <text class="room-label" x="725" y="419">406</text><text class="room-state" x="725" y="433">OCCUPIED</text>
+            </g>
+            <g class="room" id="room404">
+              <polygon class="front" points="520,451 680,490 680,517 520,478"/>
+              <polygon class="side" points="680,490 758,448 758,475 680,517"/>
+              <polygon class="top" points="520,451 598,409 758,448 680,490"/>
+              <path class="wall" d="M523 449 598 409 755 447"/>
+              <polygon class="bed" points="570,441 619,427 669,439 620,454"/>
+              <text class="room-label" x="639" y="465">404</text><text class="room-state" x="639" y="479">AVAILABLE</text>
+            </g>
+            <g class="room occupied" id="room402">
+              <polygon class="front" points="434,498 594,537 594,564 434,525"/>
+              <polygon class="side" points="594,537 672,495 672,522 594,564"/>
+              <polygon class="top" points="434,498 512,456 672,495 594,537"/>
+              <path class="wall" d="M437 496 512 456 669 494"/>
+              <polygon class="bed" points="484,488 533,474 583,486 534,501"/>
+              <text class="room-label" x="553" y="512">402</text><text class="room-state" x="553" y="526">OCCUPIED</text>
+            </g>
+
+            <path d="M116 483 452 568 783 393" fill="none" stroke="#173236" stroke-width="2" opacity=".45"/>
+            <path d="M426 309 452 568" fill="none" stroke="#79908d" stroke-width="1" stroke-dasharray="5 7"/>
+            <text class="axis-note" x="110" y="548">COURTYARD ELEVATION · 12.4 M</text>
+          </svg>
+        </div>
+      </section>
+
+      <aside class="assignment" aria-labelledby="assignment-title">
+        <span class="overline">Next arrival · 15:20</span>
+        <h2 id="assignment-title">Priya Shah</h2>
+        <span class="stay">Returning guest · 3 nights · direct</span>
+        <div class="guest-spec">
+          <dl><dt>Booked type</dt><dd>King courtyard</dd><dt>Preference</dt><dd>Quiet, high floor</dd><dt>Previous stay</dt><dd>Room 407</dd><dt>ETA confidence</dt><dd>High</dd></dl>
+        </div>
+        <div class="field">
+          <label for="room-choice">Proposed room</label>
+          <select id="room-choice" aria-describedby="room-reason"><option selected>407 · King courtyard</option><option>404 · King street</option><option>403 · King courtyard</option></select>
+        </div>
+        <fieldset class="checks">
+          <legend>Assignment checks</legend>
+          <label class="check"><input type="checkbox" checked> Match recorded quiet-zone preference</label>
+          <label class="check"><input type="checkbox" checked> Hold welcome amenity for arrival</label>
+        </fieldset>
+        <div class="reason" id="room-reason"><strong>Why 407:</strong> same room as June, away from the lift and linen store; inspection completed at 13:48.</div>
+        <div class="assignment-actions">
+          <button class="preview-button" type="button" data-demo-action aria-expanded="false" aria-controls="assignment-result">Preview assignment to 407</button>
+          <p class="microcopy">Simulation only. This prototype never writes an assignment.</p>
+        </div>
+      </aside>
+    </main>
+
+    <footer class="footer">
+      <div class="floor-total">04</div>
+      <div class="flow"><strong>West wing</strong><span>3 available</span><span class="flow-line"></span><span>2 inspected</span><span>1 blocked</span></div>
+      <div class="result" id="assignment-result" aria-live="polite">Room 407 is ready for review</div>
+    </footer>
+  </div>
+  <script>
+    (() => {
+      const room = document.getElementById('room407');
+      const action = document.querySelector('[data-demo-action]');
+      const reset = document.querySelector('[data-demo-reset]');
+      const result = document.querySelector('.result');
+      window.demoState = 'initial';
+      const restore = () => {
+        room.classList.remove('preview');
+        action.textContent = 'Preview assignment to 407';
+        result.textContent = 'Room 407 is ready for review';
+        window.demoState = 'initial';
+      };
+      action.addEventListener('click', () => {
+        room.classList.add('preview');
+        action.textContent = 'Assignment previewed';
+        result.textContent = 'Preview: Priya Shah → 407 · no live change';
+        window.demoState = 'changed';
+      });
+      reset.addEventListener('click', (event) => { event.preventDefault(); restore(); });
+    })();
+  </script>
+</body>
+</html>

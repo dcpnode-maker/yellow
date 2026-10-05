@@ -1,0 +1,35 @@
+{
+  "privacy": {
+    "usageStatisticsEnabled": false
+  },
+  "telemetry": {
+    "enabled": false,
+    "logPrompts": false
+  },
+  "billing": {
+    "overageStrategy": "never"
+  },
+  "security": {
+    "auth": {
+      "selectedType": "oauth-personal",
+      "enforcedType": "oauth-personal"
+    }
+  },
+  "model": {
+    "maxSessionTurns": 1
+  },
+  "tools": {
+    "core": []
+  },
+  "mcpServers": {},
+  "hooksConfig": {
+    "enabled": false
+  },
+  "general": {
+    "sessionRetention": {
+      "enabled": true,
+      "maxAge": "7d",
+      "maxCount": 20
+    }
+  }
+}

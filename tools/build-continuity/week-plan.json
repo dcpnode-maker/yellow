@@ -1,0 +1,29 @@
+{
+  "schema": "yellow-build-week-queue/v1",
+  "prepared": "2026-09-13",
+  "window": {"from": "2026-09-14", "through": "2026-09-20", "is_completion_forecast": false},
+  "automatic_goal": "paused_user_resume_required",
+  "paid_fallback": false,
+  "future_phase_admission": "Card completion is not phase completion. W12-W16 each require independently verified exit of every preceding required phase and a newly admitted exact-scope order; dependencies alone do not admit execution.",
+  "max_parallel_cloud_proposals": 2,
+  "local_model_parallel_with_two_cloud_workers": false,
+  "phase_priority": [11, 13, 17],
+  "tasks": [
+    {"id":"W01","order":"460/Q285","lane":"spark","status":"source_integrated_native_pending","depends_on":[],"outputs":[".yellow/evidence/order460/market92-local-review-grant-native.test.ts"],"acceptance":"12 source tests pass across Q285/Q286; opt-in native proof still required"},
+    {"id":"W02","order":"460/Q286","lane":"kilo-free","status":"source_tests_passed","depends_on":[],"outputs":[".yellow/evidence/order460/market92-metadata-preservation.test.ts"],"acceptance":"7 pure verifier tests pass; no database action"},
+    {"id":"W03","order":"460/Q285","lane":"independent-coordinator","status":"queued_native_gate","depends_on":["W01"],"outputs":[],"acceptance":"Exact admitted isolated native proof, rollback/idempotence/lock and unchanged public state; failure receipts retained"},
+    {"id":"W04","order":"460/Q283","lane":"spark","status":"queued_inspect_current_delta","depends_on":[],"outputs":[".yellow/evidence/order460/current-runtime-41415-maintenance-20260913.ps1",".yellow/evidence/order460/current-runtime-41415-maintenance-20260913.test.ts"],"acceptance":"Fix only remaining null-launch cleanup/resume evidence gaps; synthetic proof; no runtime action"},
+    {"id":"W05","order":"460/Q283","lane":"gemini-included","status":"queued_inspect_current_delta","depends_on":[],"outputs":[".yellow/evidence/order460/receiving-serving-market92-recovery-migrate-20260913.test.ts"],"acceptance":"Disjoint exact recovery/failure fixtures; no change to frozen SQL or deadlines"},
+    {"id":"W06","order":"460/Q283","lane":"independent-coordinator","status":"queued_review_gate","depends_on":["W04","W05"],"outputs":[],"acceptance":"Personal executable proof of all four actions and fail-closed post92 behavior; no error-string cleanup inference"},
+    {"id":"W07","order":"460/Q287","lane":"spark","status":"queued_dependency","depends_on":["W03","W06"],"outputs":[".yellow/evidence/order460/current-runtime-market92-activation-20260913.ps1",".yellow/evidence/order460/current-runtime-market92-activation-20260913.test.ts"],"acceptance":"Inert exact-source composition, one-shot artifacts and saved credential/six-worker preservation; no implicit launch"},
+    {"id":"W08","order":"460/Q287","lane":"independent-coordinator","status":"queued_native_gate","depends_on":["W07","W02"],"outputs":[],"acceptance":"Separately admitted actual recovery/migration/registration evidence, exactly five metadata rows, complete preservation, no provider or fiscal activation"},
+    {"id":"W09","order":"460/Q287","lane":"coordinator","status":"queued_release_gate","depends_on":["W08"],"outputs":[],"acceptance":"Current-source read-only smoke/invoice/auth checks, canonical referee and release evidence; no persistent preview while resource-saving request stands"},
+    {"id":"W10","order":"471 and preserved Phase7 orders","lane":"astra-for-scope_then-spark","status":"requires_exact_remaining_order_scope","depends_on":["W09"],"outputs":[],"acceptance":"Preserve frozen source; identify and execute genuinely unfinished fiscal work only, not a full rebuild/review"},
+    {"id":"W11","order":"Phase7 exit","lane":"independent-coordinator","status":"queued_phase_gate","depends_on":["W10"],"outputs":[],"acceptance":"Named executable proof for every remaining Phase7 DoD and required integration; no fabricated percentage"},
+    {"id":"W12","order":"new scoped Phase8 order required","lane":"spark_and_gemini","status":"future_scope_not_admitted","depends_on":["W11"],"outputs":[],"acceptance":"Statutory adapters and ZATCA prerequisite work only after phase admission; credentials/certification remain separate"},
+    {"id":"W13","order":"new scoped Phase9 order required","lane":"spark_and_kilo","status":"future_scope_not_admitted","depends_on":["W12"],"outputs":[],"acceptance":"OTA inbound idempotency/ARI convergence; preserve tenant and booking authorities; sandbox access required where applicable"},
+    {"id":"W14","order":"new scoped Phase10 order required","lane":"spark_and_gemini","status":"future_scope_not_admitted","depends_on":["W13"],"outputs":[],"acceptance":"Required PWA/operator functionality and access gates; no unsolicited UI theme redesign"},
+    {"id":"W15","order":"Phase11 Groups and Blocks","lane":"spark_with_independent_high_risk_proof","status":"future_scope_not_admitted","depends_on":["W14"],"outputs":[],"acceptance":"Founder priority11; exact group/block/pickup/rooming-list scopes authored after prerequisites"},
+    {"id":"W16","order":"Phase12 then13 then17","lane":"astra-for-boundaries_spark-and-gemini-for-code","status":"future_scope_not_admitted","depends_on":["W15"],"outputs":[],"acceptance":"Preserve Phase12 gate, then authorized Voice commands, then Events/Outlets/interfaces. Not a promise of all three finishing this week."}
+  ]
+}

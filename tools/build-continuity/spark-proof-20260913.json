@@ -1,0 +1,9 @@
+{
+  "model": "gpt-5.3-codex-spark",
+  "entitlement": "existing Codex Pro Spark allowance; not a free API or new credits",
+  "thread_id": "01a09be6-113e-7cb3-a53b-4da018a87007",
+  "status": "turn.completed",
+  "usage": {"input_tokens": 8754, "output_tokens": 441, "reasoning_output_tokens": 335},
+  "scope": "One synthetic proposal, no tools, read-only sandbox, ephemeral, user config ignored, exact model, no fallback",
+  "source": "def unique_names(values):\n    if not isinstance(values, list):\n        raise TypeError(\"values must be a list\")\n    seen = set()\n    result = []\n    for value in values:\n        if not isinstance(value, str):\n            raise TypeError(\"all elements must be strings\")\n        stripped = value.strip()\n        if not stripped:\n            continue\n        key = stripped.casefold()\n        if key not in seen:\n            seen.add(key)\n            result.append(stripped)\n    return result"
+}

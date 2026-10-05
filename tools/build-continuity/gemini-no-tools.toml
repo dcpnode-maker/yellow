@@ -1,0 +1,5 @@
+[[rule]]
+toolName = "*"
+decision = "deny"
+priority = 999
+denyMessage = "Yellow free workers return proposals only; all tool execution is disabled."
