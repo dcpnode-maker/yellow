@@ -1,0 +1,7 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Local payment simulator</title><link rel="stylesheet" href="/assets/provider.css"></head><body><main>
+<p class="badge">Synthetic provider · no real money</p><h1>Complete deposit</h1><section aria-live="polite"><p id="summary">Verifying signed handoff…</p>
+<form id="actions" method="post" action="/api/provider/local-deposit/outcome" hidden><input id="handoff" name="handoff" type="hidden">
+<button type="submit" name="outcome" value="approve" data-outcome="approve">Approve</button><button type="submit" name="outcome" value="decline" data-outcome="decline">Decline</button>
+<button type="submit" name="outcome" value="cancel" data-outcome="cancel">Cancel</button><button type="submit" name="outcome" value="timeout" data-outcome="timeout">Simulate timeout</button></form></section>
+</main><script src="/assets/provider.js" defer></script></body></html>

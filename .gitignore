@@ -1,0 +1,16 @@
+node_modules/
+.env
+.env.*
+!.env.example
+.yellow/runtime-database-authority.env
+.yellow/runtime-database-authority.*.tmp
+dist/
+*.log
+.DS_Store
+postgres-data/
+coverage/
+
+# DECISIONS.log is the project's canonical decision record, not log output.
+# The *.log glob above would exclude it; .gitattributes gives it merge=union
+# precisely because it is meant to be tracked and appended by two agents. See D-70.
+!DECISIONS.log

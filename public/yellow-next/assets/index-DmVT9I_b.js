@@ -1,0 +1,1 @@
+import{t as e}from"./yellow-CO2m_mpe.js";e();

@@ -1,0 +1,112 @@
+[
+  {
+    "path": "assets/App-CQ_dqYhM.js",
+    "sha256": "363ecfef582141e3e853268b8f95ea53ff87a2627a3b69f729a07c58a7183248",
+    "bytes": 146
+  },
+  {
+    "path": "assets/EcosystemHub-DhczJJLA.js",
+    "sha256": "f3d1788f665de3ca335021080f04b8ac61f0873b2436059739ffd4e7d1468d1b",
+    "bytes": 43226
+  },
+  {
+    "path": "assets/FinanceWorkspace-BsNdiFTn.js",
+    "sha256": "ecef52b8672ff9135e4576e5260b0f6c73a7dbb3918380e7a08bdd38c1648d05",
+    "bytes": 58543
+  },
+  {
+    "path": "assets/index-CJ8BJWsG.js",
+    "sha256": "0ced0281ac538acb16ae9f3baa80d67d7b0c9839e1242adcf42be054eac8c487",
+    "bytes": 45
+  },
+  {
+    "path": "assets/MarketIntelligenceLab-BTanCRdG.js",
+    "sha256": "fd66563ca635a1230a8474bf8c3827aebc3f7fa2a390724072c8d66771b88974",
+    "bytes": 10086
+  },
+  {
+    "path": "assets/OperationalHub-DLME2t9R.js",
+    "sha256": "2146ee32772e37102b443f45871d1b14af4ef9f5401c8409e95db5d3bf63a2d1",
+    "bytes": 16480
+  },
+  {
+    "path": "assets/OptionsDrawer-BHLqSNu4.js",
+    "sha256": "380c1721ca4acca19d04e789f777c5f311771be7cafc4730555fc3689481e0db",
+    "bytes": 1665
+  },
+  {
+    "path": "assets/PropertyOperatingModeCard-Dn4OgjIf.js",
+    "sha256": "d05391805ded38aeb69acaafce41bda315605be520da4b67668cbe4949adf7c8",
+    "bytes": 8792
+  },
+  {
+    "path": "assets/react-runtime-eCBuSmuH.js",
+    "sha256": "8857226d0c01c6c3543be7b1af6a2fd81ab2e9ec89a27497d23508792e3a6493",
+    "bytes": 218840
+  },
+  {
+    "path": "assets/ReservationWorkspace-e-xGb8IN.js",
+    "sha256": "8f85c1a43dfcdee1390b486236ecc4fdf8cce5008867ff45fffb4cd56304c854",
+    "bytes": 155816
+  },
+  {
+    "path": "assets/ReservationWorkspace-GJ2ReXAQ.css",
+    "sha256": "c5091fa136d2f7f80cb6ff91867f504bcc4b27db09cc4c7596f1d367f390a562",
+    "bytes": 2375
+  },
+  {
+    "path": "assets/rolldown-runtime-8BhlS34s.js",
+    "sha256": "1cb5c6ead7e29370203f12e2d5cdf50ec1f02dd70ee2d050d909afbf2406f6b1",
+    "bytes": 807
+  },
+  {
+    "path": "assets/staff-crs-client-Ba4fIDmf.js",
+    "sha256": "919548b2b982b4b6a629265daef6463d754d110681042cb05db4be6aa132f352",
+    "bytes": 7523
+  },
+  {
+    "path": "assets/StaffRmsWorkspace-tgjtkU8o.js",
+    "sha256": "98690795f88dee3af048c477eeff510b9e620454f32db7b34dee05d2e8e586d1",
+    "bytes": 10338
+  },
+  {
+    "path": "assets/StatusBadge-CWLkGu-v.js",
+    "sha256": "b8c7e14885a6af92fcef1a9596f3e000864272a2de35453489c063b412d924d3",
+    "bytes": 387
+  },
+  {
+    "path": "assets/TodayGlassDashboard-BlB1BxHD.css",
+    "sha256": "5d74f5250cff008d07960ebd71ec3ba27a46721baafe42f5d745742406f959e7",
+    "bytes": 43860
+  },
+  {
+    "path": "assets/TodayGlassDashboard-Cer9x3VY.js",
+    "sha256": "1e0cb977d91631bce18b644f43d7a58366e4e3c5c6b6f29414856cc65ae50383",
+    "bytes": 200396
+  },
+  {
+    "path": "assets/vendor-BeoTU2to.js",
+    "sha256": "de6bac9792f8a73b41856349c3d59e300b91e84f44c95cf84a53e03feaeac623",
+    "bytes": 179497
+  },
+  {
+    "path": "assets/yellow-app-fuA8td8W.js",
+    "sha256": "36f3af6b677e09ed3c0ef0ac55dd61235c4680173c2a9dfb32d83f8e0bd52197",
+    "bytes": 116484
+  },
+  {
+    "path": "assets/yellow-CZ7Pyw5Q.js",
+    "sha256": "63b7c24922768fb9f058913732aa98d6e3452f9589de44c8ac44010c0ba34572",
+    "bytes": 13725
+  },
+  {
+    "path": "assets/yellow-Y5fgVUv3.css",
+    "sha256": "2c9de61b75f2a95c09ea2635c43d3948ea17ccdd9c6c8fb3fd37091ae9ef1faa",
+    "bytes": 172949
+  },
+  {
+    "path": "index.html",
+    "sha256": "9bedd951a53e71b9674fe4c4796394bf29f07ba455d62931f0749dfba5f16c5e",
+    "bytes": 760
+  }
+]
