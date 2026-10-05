@@ -1,0 +1,36 @@
+{
+  "propertyId": "6081b544-22a1-534f-a86d-bb1ae0519e14",
+  "prefix": "L3R-FOL-",
+  "idempotencyKey": "order562-public-l3r-fol-20260921-v1",
+  "correlationId": "56250000-0000-4000-8000-000000000001",
+  "first": {
+    "status": 201,
+    "replayed": false
+  },
+  "replay": {
+    "status": 201,
+    "replayed": true,
+    "byteIdentical": true
+  },
+  "response": {
+    "created": true,
+    "fiscal": false,
+    "kind": "folio",
+    "nextNo": "1",
+    "prefix": "L3R-FOL-",
+    "propertyNode": "6081b544-22a1-534f-a86d-bb1ae0519e14",
+    "seriesId": "e5785f11-dae4-4eaf-ad43-15c37a68b7bd",
+    "tenantId": "6d9b7ce2-2d14-5576-b8c3-80f06501a603"
+  },
+  "effects": {
+    "documentSeries": 1,
+    "configuredFacts": 1,
+    "configuredEvents": 1,
+    "completedReceipts": 1,
+    "consumerAcknowledgements": 2,
+    "consumerNames": [
+      "arrival-pickup-task",
+      "availability-projection"
+    ]
+  }
+}

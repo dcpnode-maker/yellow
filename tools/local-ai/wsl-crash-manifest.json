@@ -1,0 +1,24 @@
+{
+  "recorded_at": "2026-09-22T11:50:00+05:30",
+  "finding": "Both text reports contain a fatal local machine-check exception with Processor Context Corrupt; sustained unattended CPU inference remains disallowed until bounded stability proof passes.",
+  "files": [
+    {
+      "path": "C:\\Users\\astha\\AppData\\Local\\Temp\\wsl-crashes\\kernel-panic-1789845108-{1f5a93bd-65f9-45fd-b985-c52676d11fd9}.txt",
+      "bytes": 4136,
+      "last_write_time": "2026-09-20T00:41:48.3032305+05:30",
+      "sha256": "58618C9FA5CCD0CC9314A9840951BA868F1BE0292E0E39E1AB9756A187EFC897"
+    },
+    {
+      "path": "C:\\Users\\astha\\AppData\\Local\\Temp\\wsl-crashes\\kernel-panic-1789852834-{954179a9-6343-48e2-90f2-f0e31a410981}.txt",
+      "bytes": 4076,
+      "last_write_time": "2026-09-20T02:50:34.1182070+05:30",
+      "sha256": "B02C3AE8648342FB9B5D0D750B3CF17195CFAAE8A43BE773B79CFC485B8D4E74"
+    },
+    {
+      "path": "C:\\Users\\astha\\AppData\\Local\\Temp\\wsl-crashes\\wsl-crash-1789861382-1-_usr_local_bin_bun-11.dmp",
+      "bytes": 0,
+      "last_write_time": "2026-09-20T05:13:03.8050645+05:30",
+      "sha256": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855"
+    }
+  ]
+}

@@ -1,0 +1,20 @@
+{
+  "migration": 97,
+  "tenantId": "6d9b7ce2-2d14-5576-b8c3-80f06501a603",
+  "propertyId": "6081b544-22a1-534f-a86d-bb1ae0519e14",
+  "actorId": "9f90d3e9-94f9-54de-95ec-35bd00b99b15",
+  "roleId": "05802175-9b05-5a8d-8596-bccfbe36e99f",
+  "permission": "financials.folio-series:configure",
+  "first": {
+    "created": true,
+    "grantCount": 1,
+    "membershipCount": 9,
+    "rolePermissionCount": 66
+  },
+  "replay": {
+    "created": false,
+    "grantCount": 1,
+    "membershipCount": 9,
+    "rolePermissionCount": 66
+  }
+}

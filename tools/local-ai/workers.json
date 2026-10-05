@@ -1,0 +1,43 @@
+{
+  "workers": [
+    {
+      "id": "oneplus-10r",
+      "physical_ram_gib": 12,
+      "inference_port": 8080,
+      "laptop_port": 11435,
+      "ssh_port": 8022,
+      "ssh_host": null,
+      "ssh_user": null,
+      "execution_role": "micro-proposal-and-classification-only",
+      "status": "independently-accepted-supervised-proposal-worker",
+      "acceptance_review": "handoff/reviews/595-local-yellow-inference-orchestration.md#r4-scope--evidence-reviewed"
+    },
+    {
+      "id": "oneplus-11r",
+      "physical_ram_gib": 14.86,
+      "measured_physical_ram_bytes": 15957577728,
+      "inference_port": 8080,
+      "laptop_port": 11436,
+      "ssh_port": 8022,
+      "ssh_host": "127.0.0.1",
+      "ssh_user": "u0_a411",
+      "adb_ssh_forward_port": 18022,
+      "device_model": "CPH2487",
+      "inference_model": "Qwen3-4B-Q4_K_M.gguf",
+      "execution_role": "proposal-and-reasoning-only",
+      "status": "independently-accepted-supervised-proposal-worker",
+      "acceptance_review": "handoff/reviews/595-local-yellow-inference-orchestration.md#r13-review--oneplus-11r-inference-and-boot-source-acceptance-2026-09-22",
+      "reboot_delivery_verified": false
+    },
+    {
+      "id": "oneplus-nord5",
+      "physical_ram_gib": 16,
+      "inference_port": 8080,
+      "laptop_port": 11437,
+      "ssh_port": 8022,
+      "ssh_host": null,
+      "ssh_user": null,
+      "status": "awaiting-pairing"
+    }
+  ]
+}

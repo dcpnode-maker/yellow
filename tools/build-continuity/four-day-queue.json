@@ -1,0 +1,56 @@
+{
+  "schema": 1,
+  "order": "handoff/orders/608-four-day-zero-codex-worker-queue.md",
+  "writer_limit": 1,
+  "days": [
+    {
+      "day": 1,
+      "goal": "Close the public baseline and design exact PMS05 orders.",
+      "tasks": [
+        {"id":"D1-01","lane":"independent-review","state":"running","risk":"release","depends_on":[],"order":"handoff/orders/605-public-overwatch-departure-candidate-release.md","writes":[],"validation":["public guarded browser","130-table read-only postflight"]},
+        {"id":"D1-02","lane":"omni-free","state":"prepared","risk":"read-only","depends_on":["D1-01"],"order":"handoff/orders/608-four-day-zero-codex-worker-queue.md","writes":[],"validation":["receipt","source hash","coordinator spot-check"]},
+        {"id":"D1-03","lane":"local-11r","state":"waiting-endpoint","risk":"read-only","depends_on":[],"order":"handoff/orders/608-four-day-zero-codex-worker-queue.md","writes":[],"validation":["thermal/auth gate","receipt"]},
+        {"id":"D1-04","lane":"local-10r","state":"waiting-endpoint","risk":"read-only","depends_on":[],"order":"handoff/orders/608-four-day-zero-codex-worker-queue.md","writes":[],"validation":["thermal/auth gate","receipt"]},
+        {"id":"D1-05","lane":"codex-coordinator","state":"blocked-dependency","risk":"architecture","depends_on":["D1-02","D1-03","D1-04"],"order":"handoff/orders/608-four-day-zero-codex-worker-queue.md","writes":["handoff/orders"],"validation":["scope and tier review"]},
+        {"id":"D1-06A","lane":"spark","state":"prepared-unlaunched","risk":"routine-code","depends_on":["D1-05"],"order":"handoff/orders/609-reservation-lifecycle-create-edit-surface.md","writes":["isolated-candidate:create-edit"],"validation":["focused tests","typecheck","browser"]},
+        {"id":"D1-06B","lane":"spark","state":"prepared-unlaunched","risk":"routine-code","depends_on":["D1-06A"],"order":"handoff/orders/610-reservation-cancel-reinstate-no-show-surface.md","writes":["isolated-candidate:state-actions"],"validation":["focused tests","typecheck","browser"]}
+      ]
+    },
+    {
+      "day": 2,
+      "goal": "Implement and prove the scoped reservation lifecycle slice.",
+      "tasks": [
+        {"id":"D2-01","lane":"spark","state":"blocked-dependency","risk":"routine-code","depends_on":["D1-06A"],"order":"handoff/orders/609-reservation-lifecycle-create-edit-surface.md","writes":["isolated-candidate:create-edit"],"validation":["focused tests","typecheck","boundaries","240/375/1440 browser"]},
+        {"id":"D2-02","lane":"spark","state":"blocked-dependency","risk":"state-transition","depends_on":["D2-01","D1-06B"],"order":"handoff/orders/610-reservation-cancel-reinstate-no-show-surface.md","writes":["isolated-candidate:state-actions"],"validation":["state matrix","replay/conflict proof"]},
+        {"id":"D2-03","lane":"omni-free","state":"blocked-dependency","risk":"read-only","depends_on":["D2-02"],"order":"handoff/orders/608-four-day-zero-codex-worker-queue.md","writes":[],"validation":["diff receipt","coordinator verification"]},
+        {"id":"D2-04","lane":"local-phones","state":"blocked-dependency","risk":"read-only","depends_on":["D2-02"],"order":"handoff/orders/608-four-day-zero-codex-worker-queue.md","writes":[],"validation":["two bounded receipts"]},
+        {"id":"D2-05","lane":"codex-coordinator","state":"blocked-dependency","risk":"integration","depends_on":["D2-03","D2-04"],"order":"handoff/orders/610-reservation-cancel-reinstate-no-show-surface.md","writes":["integration-candidate"],"validation":["diff review","focused tests","typecheck","boundaries","build"]},
+        {"id":"D2-06","lane":"native-test","state":"blocked-dependency","risk":"read-only","depends_on":["D2-05"],"order":"handoff/orders/610-reservation-cancel-reinstate-no-show-surface.md","writes":[],"validation":["240/375/1440 browser","mutation guard"]}
+      ]
+    },
+    {
+      "day": 3,
+      "goal": "Deliver shared operational context and complete cashier reads.",
+      "tasks": [
+        {"id":"D3-01","lane":"codex-coordinator","state":"blocked-dependency","risk":"architecture","depends_on":["D2-06"],"order":"handoff/orders/611-shared-entity-operational-timeline.md","writes":["handoff/orders"],"validation":["identity and scope review"]},
+        {"id":"D3-02","lane":"spark","state":"blocked-dependency","risk":"routine-code","depends_on":["D3-01"],"order":"handoff/orders/611-shared-entity-operational-timeline.md","writes":["isolated-candidate:timeline"],"validation":["focused tests","mobile browser"]},
+        {"id":"D3-03","lane":"codex-coordinator","state":"blocked-dependency","risk":"architecture","depends_on":["D3-01"],"order":"handoff/orders/612-complete-cashier-search-read-workbench.md","writes":["handoff/orders"],"validation":["finance read-only boundary review"]},
+        {"id":"D3-04","lane":"spark","state":"blocked-dependency","risk":"routine-code","depends_on":["D3-03","D3-02"],"order":"handoff/orders/612-complete-cashier-search-read-workbench.md","writes":["isolated-candidate:cashier-read"],"validation":["focused tests","pagination","375px browser"]},
+        {"id":"D3-05","lane":"free-review-swarm","state":"blocked-dependency","risk":"read-only","depends_on":["D3-04"],"order":"handoff/orders/608-four-day-zero-codex-worker-queue.md","writes":[],"validation":["receipts","native spot-check"]},
+        {"id":"D3-06","lane":"native-test","state":"blocked-dependency","risk":"read-only","depends_on":["D3-05"],"order":"handoff/orders/613-four-day-ai-mobile-acceptance.md","writes":[],"validation":["a11y","performance","forced colours","reduced motion"]}
+      ]
+    },
+    {
+      "day": 4,
+      "goal": "Close AI parity, cumulative gates and one traceable public release.",
+      "tasks": [
+        {"id":"D4-01","lane":"omni-free","state":"blocked-dependency","risk":"read-only","depends_on":["D3-06"],"order":"handoff/orders/608-four-day-zero-codex-worker-queue.md","writes":[],"validation":["manual/Overwatch parity matrix"]},
+        {"id":"D4-02","lane":"native-test","state":"blocked-dependency","risk":"read-only","depends_on":["D3-06"],"order":"handoff/orders/613-four-day-ai-mobile-acceptance.md","writes":[],"validation":["en-IN","speech consent","interrupt/fallback"]},
+        {"id":"D4-03","lane":"native-test","state":"blocked-dependency","risk":"operational-proof","depends_on":["D4-01","D4-02"],"order":"handoff/orders/613-four-day-ai-mobile-acceptance.md","writes":[],"validation":["named journey pack","exact DB effects"]},
+        {"id":"D4-04","lane":"codex-coordinator","state":"blocked-dependency","risk":"integration","depends_on":["D4-03"],"order":"handoff/orders/614-four-day-candidate-integration-and-public-release.md","writes":[],"validation":["full suite","typecheck","boundaries","licence","audit","schema","referee 11/11"]},
+        {"id":"D4-05","lane":"independent-review","state":"blocked-dependency","risk":"high","depends_on":["D4-04"],"order":"handoff/orders/614-four-day-candidate-integration-and-public-release.md","writes":["handoff/reviews"],"validation":["reviewer-executed proof"]},
+        {"id":"D4-06","lane":"release-owner","state":"blocked-dependency","risk":"release","depends_on":["D4-05"],"order":"handoff/orders/614-four-day-candidate-integration-and-public-release.md","writes":["immutable-release-source"],"validation":["public byte parity","guarded browser","postflight fingerprint"]}
+      ]
+    }
+  ]
+}

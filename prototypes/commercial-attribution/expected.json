@@ -1,0 +1,28 @@
+{
+  "propertyDay": [
+    {
+      "property": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1",
+      "date": "2026-09-20",
+      "currency": "SAR",
+      "roomsAvailable": "100",
+      "roomNights": "4.000000000",
+      "revenueMinor": "240000",
+      "occupancyPct": "4.0000",
+      "adrMinor": "60000.0000",
+      "revparMinor": "2400.0000"
+    }
+  ],
+  "demand": {
+    "CORP": "1.000000000",
+    "OTA": "1.000000000",
+    "GROUPS": "1.000000000",
+    "UNMAPPED": "1.000000000"
+  },
+  "revenue": {
+    "grossRoom": "300000",
+    "reversal": "-60000",
+    "netRoom": "240000",
+    "taxExcluded": "18000",
+    "unallocatedFnb": "25000"
+  }
+}
