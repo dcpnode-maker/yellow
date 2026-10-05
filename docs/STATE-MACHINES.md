@@ -1,0 +1,58 @@
+# STATE-MACHINES.md — canonical lifecycles (guards + emitted events)
+
+Statuses live on head tables; every transition also appends `fact_log` + `outbox`.
+Transition tables are exhaustive — anything not listed is rejected with `invalid_transition`.
+
+## 1. Reservation (`reservation.status`)
+
+| From | To | Guard | Emits |
+|---|---|---|---|
+| quote | reserved | availability confirmed via choke-point write of holds→segments; payment/guarantee per policy | reservation.confirmed |
+| reserved | due_in | business_date == arrival date (roll job) | reservation.due_in |
+| reserved/due_in | cancelled | within policy or override(approval); releases occupancy | reservation.cancelled |
+| due_in | in_house | check-in: id verified per statutory need; folio window ≥1 open; unit assigned & condition ∈ {clean,inspected} or `checkin.dirty_room` permission; keys optional | reservation.checked_in |
+| due_in | no_show | day-roll for the arrival date; guarantee policy drives no-show journal | reservation.no_show |
+| in_house | due_out | business_date == departure date | reservation.due_out |
+| in_house/due_out | checked_out | ALL folio windows settled (balance 0) or transfer-to-AR with permission; occupancy period trimmed to now | reservation.checked_out |
+| cancelled/no_show | reserved | reinstate: availability re-check passes | reservation.reinstated |
+
+Segment moves: never edit `period`/unit on a live segment for a room move — close the
+segment (`departed`, trim period) and open the next `seq` (new occupancy via choke).
+Extensions/shortenings on the SAME unit: release + re-record inside one transaction.
+
+## 2. Folio (`folio.status`) — open → settled (balance 0, no future automations) → closed
+(after doc issued; reopening forbidden — corrections post to a new folio window).
+
+## 3. Business day — open → **sealed** via `seal_business_day()`.
+**Roll ≠ seal.** The day ROLLS automatically: a scheduler opens the next business_day
+row at the property-local cutoff and emits `day.rolled` — it never waits for the prior
+day's seal. Operations always target the current OPEN day; multiple unsealed days may
+coexist (surfaced as a close-backlog alert, never an operational block).
+SEAL is the asynchronous financial finalisation. Pre-seal validation checklist
+(surfaced continuously as the readiness dashboard): no unresolved due_in/due_out for
+the date · no open cashier_session · no unresolved discrepancies · outbox lag <
+threshold · interface queues drained. A blocking discrepancy may be **carried forward**
+to the open day via approval_request (emits `discrepancy.carried`) so a seal is never
+hostage to absent staff. Post-seal: only adjustment/correction journals (DB-enforced).
+Emits business_day.sealed.
+
+## 4. Task — open → assigned → in_progress → done → verified (HK inspection) ;
+any → cancelled. HK: verifying a `housekeeping` task sets `unit_condition`
+dirty→clean→inspected. Emits task.status_changed (+ unit.condition_changed).
+
+## 5. Block (`reservation_group`, kind=block) — statuses come from `block_status_def`
+(tenant config); the ONLY semantic the engine reads is `deducts`. Transitions between
+statuses re-sync `availability_projection` deltas. Cutoff & wash run as Automations
+(action `wash_release`) emitting block.rooms_released. Pickup = reservation created
+with `group_id` (consumes allotment before house inventory when `deducts`).
+
+## 6. Hold — active → consumed (segment created; occupancy transfers slot_ref) |
+expired (sweep) | released. Offline lease pool: client keeps N active `offline_lease`
+holds while online; offline walk-ins may consume ONLY those (v2 §5.1).
+
+## 7. Payment — auth → incremental_auth* → capture | void ; capture → refund*.
+Every phase change lands a `payment` row + journal on success (card_clearing legs).
+
+## 8. Document (fiscal) — draft → issued (number+hash assigned, series advanced,
+prev_hash chained) → cleared|rejected (fiscal_submission) ; issued→void only where
+jurisdiction permits, else credit-note document. Emits document.issued / .cleared.
