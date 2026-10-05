@@ -1,0 +1,17 @@
+# Advance evidence: formatter-preserving pure successor
+
+The founder authorizes researched hotel/STR screens and connected flows using10R. Astra independently accepted pureV1 at freeze fec526a4b0918b13f236d1610c112c05d2354016157e5c0f051d8720a468a7f8. Its raw minor-unit evidence is not a direct FinanceWorkspace replacement. This order authorizes a new isolated immutable V2 candidate, preserving V1 and reviewer artifacts. The laptop remains financial/shared-fixture owner.
+
+## Sole writer and exact scope
+
+After the laptop pins the issued receiving commit,10R is the sole product writer. New candidate root: journey-v2/10r/advance-evidence-presentation-v2. Start from the issued commit plus the exact accepted five-path V1 patch. Allowed paths are the same five paths in RESOURCE-20261003-advance-evidence-presentation.md, plus external scoped proof/guidance/freeze manifests. No receiving edits, FinanceWorkspace/yellow-api/formatter changes, commands, query cache, native financial fixture, authentication, installs, live/phone/provider actions or nested delegation. No overwriting any V1 source, proof, review or freeze.
+
+## Declarative display contract
+
+Add one optional complete Readonly formattedAmounts string object with keys requested, captured, applied and remaining. These are caller-provided display strings, produced in future composition by the unchanged existing moneyExactMinor(amountMinor,currency). The card performs no formatting, arithmetic, parsing or callback invocation. When the complete object is supplied, render each exact corresponding string in its existing metric row, preserving Unicode signs, separators, symbols and spacing. Escape as ordinary React text. Do not infer precision or display the misleading precision-not-supplied note for formatted mode. Keep exact currency and four raw minor strings in collapsed Details as evidence. Raw mode retains accepted V1 behavior. Unavailable/absent record suppress all formatted values, action and references even if supplied. Stale remains historical. A changed display object is included in the disclosure-reset identity. No change to the six request states or action/freshness ownership.
+
+## Proof and handoff
+
+Retain every meaningful V1 scenario and layout/effect check. Add formatted mode checks using the exact unchanged FinanceWorkspace moneyExactMinor implementation extracted only into the isolated synthetic proof, pinning its original source slice. Include zero, huge safe minor strings, supported differing currency precision, locale separators/signs and hostile caller text; compare rendered values byte-for-byte to the existing helper outputs. Test all six states at375px and doubled text under the actual theme, and disclosure reset when only formatted display changes. Keep raw mode, unavailable suppression and action no-invocation behavior. Do not create a new money helper or assert invalid financial DTOs are accepted. Explain parent composition of the exact matching apply button and preserved stale/recovery controls; caller/financial acceptance is still separate.
+
+Run focused component proof, strict/root/frontend types and boundaries in isolation. Preserve failed evidence; freeze exact source/patch/artifacts and stop writing. Astra reviews the exact frozen successor. This order is pure presentation, not production deposit capture, folio posting, permission acceptance, live integration, physical10R execution or full18-part completion.
