@@ -1,0 +1,91 @@
+# Order 315 — Management-demo workspace local refresh
+
+**Status:** APPROVED-LOCALLY-D873
+**Phase:** 7 — Tax engine and India IRP (local presentation refresh)
+**Branch:** `phase-7/management-demo-workspace-local`
+**Base:** `13b8d60` (complete Order314 governance head)
+**Risk tier:** 3 — replacement of the sole founder-visible local app; fresh independent non-operating verification mandatory
+
+## Outcome
+
+Build exact complete Order314 and replace only the sole loopback port-3000 application
+container so the management demo visibly names every already-built workspace. Preserve
+the approved Order311 database, two properties, provider, Valkey, credentials, status
+snapshot and all business truth, and retain the prior exact app container/image for
+immediate rollback.
+
+## Exact scope
+
+- this order plus append-only decision, ledger, plan, roadmap and fresh review evidence;
+- build one exact image from clean candidate `13b8d60`;
+- record pre-change app identity, topology, health, asset hashes and read-only database
+  digest without printing secrets;
+- stop and rename only `yellow-order311-app`, then start one replacement container on
+  the same network, exact loopback port and existing in-memory environment;
+- retain the stopped prior app container/image as rollback;
+- verify health, one-click protected login, exactly two properties, exact
+  Order310/311/91/P7 status, twelve workspace routes per property, preview copy,
+  accessibility bind, closed obsolete ports and unchanged database digest;
+- fresh independent non-operating Tier-3 review performs only read-only inspection.
+
+## Forbidden
+
+No second UI local or staging bind; no provider/PostgreSQL/Valkey/network/volume restart
+or replacement; no schema/migration/seed/data/credential/environment-value change; no
+status/review/phase advance; no business mutation; no secret output; no public bind,
+merge, push, production deploy or rollback deletion.
+
+## Rollback
+
+If the replacement fails health or acceptance, remove only the failed new app container,
+restore the retained prior app container name and start it on its original exact port.
+Do not touch database or companion services.
+
+## Required proof
+
+1. Clean exact source candidate and image identity are recorded.
+2. Only the app container changes and port3000 continuity is restored promptly.
+3. Login, two properties, 24/24 routes, status and Order314 preview pass.
+4. Database/catalogue/business counts, credentials, companion identities and obsolete
+   closed ports remain unchanged.
+5. Fresh independent non-operating Tier3 reviewer approves or records exact findings.
+
+## Definition of done
+
+- [x] Exact image is built from clean Order314.
+- [x] Guarded app-only cutover and acceptance pass.
+- [x] Prior app rollback is retained and companions/data are unchanged.
+- [x] Fresh non-operating Tier3 review approves.
+
+## Builder evidence — D872
+
+- Exact source `13b8d601fd714e97a3425ec040675dc29bbd197e` built image
+  `sha256:7fa43d0d93293cfeb1a823036e083f43adcb4a2b41751079c6e89c5191e51289`.
+- `yellow-order315-app` is healthy with zero restarts on only
+  `127.0.0.1:3000`; the prior app remains stopped as
+  `yellow-order311-app-rollback-d864` with its image intact.
+- PostgreSQL, provider and Valkey remained running with zero restarts. Ports 3002,
+  3123 and 3188 remain closed.
+- Browser-personal one-click protected login, exactly two properties, exact
+  Order310/current311/review91/phase7 status, Simple preview, collapsed disclosure,
+  Advanced direct controls and zero console errors pass. The verified tab was marked
+  as the deliverable.
+- All 24 property/workspace HTML routes return 200 with `no-store`. Served CSS and JS
+  hashes are respectively `E2B988E51FF9A713345504350ED4DDE824B85775E942A0CFCF59EBED5CFE6276`
+  and `6D4015B4A2CB46C4C5695DCAD0B984D6D183D51B3451937EB53421CF15A6FDDE`.
+- Read-only database truth is unchanged: 59 migrations, 110 base tables, 2 views,
+  100 policies, 2 properties, party8/contact0/party-role8/fact75/outbox22.
+- Fresh independent non-operating Tier3 review remains mandatory; this builder record
+  does not claim approval, phase completion, merge, push or deployment.
+
+## Fresh independent review — D873
+
+A non-implementing Tier3 reviewer personally inspected the exact runtime, rollback,
+companions, database digest, routes, assets and protected login. After first recording
+the absence of a connected browser as an explicit evidence gap, the reviewer opened
+and claimed the sole app tab and personally executed the live Simple disclosure,
+ARIA/focus collapse, Advanced and Expert controls, return-to-Simple and browser-console
+proof. The reviewer reports zero errors or warnings and **APPROVES** exact candidate
+`d08eff4430517ebaeefb0a2ad3d46b2e8969c2d1` with no remaining finding. Approval is
+local and presentation-only; it does not advance phase/review/status truth or grant
+public, merge, push, production, rollback-deletion or application-complete authority.
