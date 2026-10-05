@@ -1,0 +1,35 @@
+
+import React from 'react';
+import {createRoot} from 'react-dom/client';
+import {flushSync} from 'react-dom';
+import {HousekeepingTaskDashboard} from "C:\\Users\\astha\\yellow-recovery-20261004\\order72-onto69-candidate-final\\frontend\\yellow\\src\\workspaces\\HousekeepingTaskDashboard.tsx";
+import "C:\\Users\\astha\\yellow-recovery-20261004\\order72-onto69-candidate-final\\frontend\\yellow\\src\\styles.css";
+import "C:\\Users\\astha\\yellow-recovery-20261004\\order72-onto69-candidate-final\\frontend\\yellow\\src\\ui\\reference-theme.css";
+const base={"taskId":"task-one","spaceId":"room-one","spaceCode":"101","floor":"1","roomCondition":"dirty","roomUpdatedAt":"2026-10-04T00:00:00Z","taskStatus":"assigned","priority":0,"assigned":true,"dueAt":null,"completedAt":null,"allowedActions":["start"]}, rooms=[{"spaceId":"room-one","code":"101","floor":"1","condition":"dirty","updatedAt":"2026-10-04T00:00:00Z"}];
+const rows=[base,{...base,taskId:'task-two',spaceId:'room-two',spaceCode:'202',floor:'2',taskStatus:'in_progress',roomCondition:'pickup',priority:3,assigned:false,allowedActions:['complete']},{...base,taskId:'task-three',spaceId:'room-three',spaceCode:'303',floor:null,taskStatus:'done',roomCondition:'clean',priority:2,allowedActions:['verify']},{...base,taskId:'task-four',spaceId:'room-four',spaceCode:'404',floor:'missing',taskStatus:'verified',roomCondition:'inspected',priority:4,allowedActions:[]}];
+const checks=[],prepares=[];const root=createRoot(document.getElementById('root'));
+const assert=(ok,message)=>{if(!ok)throw Error(message)};
+const tick=()=>new Promise(resolve=>setTimeout(resolve,15));
+const render=(props={})=>flushSync(()=>root.render(<div className="yellow-next"><main className="reservation-workspace"><h1>Housekeeping</h1><HousekeepingTaskDashboard rooms={rooms} tasks={rows} disabled={false} actionLabel={action=>'Prepare '+action} onPrepare={(task,action)=>prepares.push({task,action})} {...props}/></main></div>));
+const ids=()=>[...document.querySelectorAll('tbody tr')].map(node=>node.dataset.taskId);
+const field=text=>[...document.querySelectorAll('label')].find(node=>node.firstChild.textContent===text)?.querySelector('select,input');
+const set=async(name,value)=>{const node=field(name);assert(node,'field '+name);Object.getOwnPropertyDescriptor(node instanceof HTMLSelectElement?HTMLSelectElement.prototype:HTMLInputElement.prototype,'value').set.call(node,value);node.dispatchEvent(new Event(node instanceof HTMLSelectElement?'change':'input',{bubbles:true}));await tick()};
+const clear=async()=>{[...document.querySelectorAll('button')].find(node=>node.textContent==='Clear filters').click();await tick()};
+(async()=>{
+ render();assert(ids().join(',')==='task-one,task-two,task-three,task-four','all returned rows');assert(document.querySelectorAll('table').length===1,'one table');checks.push('initial rows and single semantic table');
+ await set('Task status','in_progress');assert(ids().join(',')==='task-two','status filters actual tbody');checks.push('status filter');await clear();
+ await set('Room condition','clean');assert(ids().join(',')==='task-three','condition filters actual tbody');checks.push('condition filter');await clear();
+ await set('Floor','floor:2');assert(ids().join(',')==='task-two','floor filters actual tbody');checks.push('floor filter');await clear();
+ await set('Floor','missing');assert(ids().join(',')==='task-three','null floor distinct');await set('Floor','floor:missing');assert(ids().join(',')==='task-four','actual string distinct');checks.push('null floor and literal collision isolated');await clear();
+ await set('Assignment','false');assert(ids().join(',')==='task-two','unassigned filter');checks.push('assignment filter');await clear();
+ await set('Priority','0');assert(ids().join(',')==='task-one','zero priority filters actual tbody');checks.push('actual priority including zero');await clear();
+ await set('Search loaded tasks',' ROOM-TWO ');assert(ids().join(',')==='task-two','search returned space ID');checks.push('trimmed case insensitive field search');await clear();
+ await set('Task status','in_progress');await set('Floor','floor:2');await set('Assignment','false');await set('Priority','3');await set('Search loaded tasks','202');assert(ids().join(',')==='task-two','combined filters');checks.push('combined filter conjunction');
+ document.querySelector('tbody button').click();assert(prepares.length===1&&prepares[0].task===rows[1]&&prepares[0].action==='complete','exact object callback');checks.push('exact task identity and allowed action callback');
+ render({disabled:true});assert(document.querySelector('tbody button').disabled,'busy disabled');document.querySelector('tbody button').click();assert(prepares.length===1,'disabled cannot prepare');checks.push('busy action fence');render();
+ await set('Room condition','clean');assert(ids().length===0&&document.body.textContent.includes('No loaded tasks match'),'combined empty result');assert(!document.body.textContent.includes('No current tasks are listed.'),'match empty distinct');checks.push('filtered empty evidence');await clear();
+ await set('Search loaded tasks','fake staff name');assert(ids().length===0,'no invented name search');checks.push('unsupported staff names absent');await clear();
+ assert(document.querySelector('[data-task-id="task-four"]').textContent.includes('No action returned'),'no synthetic actions');checks.push('no action returned preserved');
+ render({tasks:[]});assert(ids().length===0&&document.body.textContent.includes('No current tasks are listed.'),'empty returned list');checks.push('empty returned task state');render();await clear();
+ window.dashboardProof={passed:true,checks};
+})().catch(error=>window.dashboardProof={passed:false,error:String(error),checks,body:document.body.textContent.slice(0,1600)});

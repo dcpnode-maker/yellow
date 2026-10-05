@@ -1,0 +1,21 @@
+.department-task-dashboard { min-width: 0; }
+.department-task-filters { display: flex; flex-wrap: wrap; gap: 12px; align-items: end; margin: 18px 0; }
+.department-task-filters label { display: grid; gap: 6px; flex: 1 1 140px; min-width: 0; font-size: .875rem; }
+.department-task-filters .department-task-search { flex: 2 1 260px; }
+.department-task-filters input, .department-task-filters select { min-width: 0; width: 100%; min-height: 44px; padding: 8px 10px; font: inherit; color: inherit; background: transparent; border: 1px solid var(--reference-line, #d5dcd6); border-radius: 8px; }
+.department-task-filters button { min-height: 44px; }
+.department-task-scroll { width: 100%; overflow-x: auto; border: 1px solid var(--reference-line, #d5dcd6); border-radius: 10px; }
+.department-task-scroll table { width: 100%; min-width: 1050px; border-collapse: collapse; text-align: left; }
+.department-task-scroll caption { padding: 12px; text-align: left; }
+.department-task-scroll th, .department-task-scroll td { padding: 12px; border-top: 1px solid var(--reference-line, #d5dcd6); vertical-align: top; overflow-wrap: anywhere; }
+.department-task-scroll thead th { white-space: nowrap; }
+.department-task-scroll th:first-child { min-width: 140px; }
+.department-task-scroll td:nth-child(2) { min-width: 130px; }
+.department-task-scroll .status-badge { white-space: nowrap; }
+.department-task-detail { min-width: 180px; }
+.department-task-detail > summary { min-height: 44px; padding: 10px 0; cursor: pointer; }
+.department-task-detail .departure-queue-actions { flex-wrap: wrap; }
+.department-task-detail .departure-queue-actions button { min-height: 44px; }
+.department-task-coverage { font-size: .875rem; }
+.department-task-dashboard :focus-visible { outline: 2px solid currentColor; outline-offset: 3px; }
+@media (max-width: 600px) { .department-task-filters label { flex-basis: calc(50% - 12px); } .department-task-filters .department-task-search { flex-basis: 100%; } }

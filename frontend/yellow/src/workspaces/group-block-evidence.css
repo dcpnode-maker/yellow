@@ -1,0 +1,25 @@
+.group-evidence { container-type:inline-size; min-width:0; max-width:100%; color:var(--ink,#141414); font-size:1rem; line-height:1.5; }
+.group-evidence :is(h3,p,dt,dd,summary,caption,th,td,a) { overflow-wrap:anywhere; }
+.group-evidence h3 { margin:0 0 .5rem; font-size:1rem; }
+.group-evidence__note { margin:.4rem 0; color:var(--muted,#62625c); }
+.group-evidence__name,.group-evidence__state { margin:.4rem 0; font-weight:750; }
+.group-evidence dl.group-evidence__metrics { display:grid; grid-template-columns:minmax(0,1fr); gap:0; margin:.75rem 0; font-size:1rem; }
+.group-evidence__row { min-width:0; display:grid; grid-template-columns:minmax(0,1fr); gap:.15rem; padding:.5rem 0; border-block-end:1px solid var(--line,#deded9); }
+.group-evidence dd { margin:0; font-variant-numeric:tabular-nums; }
+.group-evidence dt { font-size:.875rem; }
+.group-evidence__alert { padding:.65rem; border:1px solid var(--line,#deded9); border-radius:12px; background:var(--surface-subtle,#f7f7f4); }
+.group-evidence__details summary { min-height:44px; align-content:center; cursor:pointer; }
+.group-evidence__details summary:focus-visible { outline:3px solid var(--focus,#383830); outline-offset:2px; }
+.group-evidence table.group-evidence__table { display:table; width:100%; max-width:100%; table-layout:fixed; border-collapse:collapse; margin:.75rem 0 1rem; font-size:1rem; }
+.group-evidence__table caption { text-align:start; font-weight:750; padding:.5rem 0; }
+.group-evidence table.group-evidence__table :is(th,td) { text-align:start; padding:.35rem 0; vertical-align:top; border-block-end:1px solid var(--line,#deded9); }
+.group-evidence table.group-evidence__table th { width:40%; font-size:.875rem; font-weight:500; }
+.group-evidence table.group-evidence__table td { font-variant-numeric:tabular-nums; }
+.group-evidence__references p { font-size:.875rem; }
+@container (min-width:600px) { .group-evidence__row { grid-template-columns:minmax(0,1fr) minmax(0,1.5fr); gap:1rem; } }
+@container (max-width:599px) {
+  .group-evidence table.group-evidence__table tr { display:grid; grid-template-columns:minmax(0,1fr); }
+  .group-evidence table.group-evidence__table :is(th,td) { display:block; width:auto; border:0; padding:.15rem 0; }
+  .group-evidence table.group-evidence__table td { border-block-end:1px solid var(--line,#deded9); padding-block-end:.5rem; }
+}
+@media (forced-colors:active) { .group-evidence__details summary:focus-visible { outline-color:Highlight; } }
