@@ -1,0 +1,136 @@
+{
+  "schema": "yellow-staff-module-entries-artifact/v1",
+  "baseFreezeSha256": "48033072c9e5ba42f418f3dc5fd0d648c46480b886548b92cf7eae9eb447f3f5",
+  "status": "implemented artifact-only; independent review required before integration",
+  "allowedPaths": [
+    {
+      "path": "frontend/yellow/src/ui/OperatorHeader.tsx",
+      "beforeSha256": "7bd8dc1ebf77323e9ee9bee4b8d59204d3c319b62a865f96cf0ffc8a87f6e4ab",
+      "afterSha256": "724c8404c72490aa22b5f7627bf7bc657b8d59a24cb835ec36604249e9140101",
+      "bytes": 20444
+    },
+    {
+      "path": "frontend/yellow/src/reservation-navigation.ts",
+      "beforeSha256": "060b4d987e7224ac5600120e54325cacad6e7a53e8f49ea642086b56330bf026",
+      "afterSha256": "0c4bce53c40637b1d8e4ea7f34da882dc6815dbb1e91596272706439000f64ec",
+      "bytes": 1912
+    },
+    {
+      "path": "frontend/yellow/src/workspaces/ReservationWorkspace.tsx",
+      "beforeSha256": "ec123ef6f45405f7266283f56d65f36c7618e7ce611ab041825b2e20110af203",
+      "afterSha256": "8c4c20613d94eacb5c196b64902120b91fd2659124a3b408fda33c25bd417364",
+      "bytes": 228215
+    },
+    {
+      "path": "frontend/yellow/src/App.tsx",
+      "beforeSha256": "70d16617fd81e9ce9ecbc6aead959a69095585b928afe6ef093998d66059b8f9",
+      "afterSha256": "ed49db9cddc44a99c4217686e05cc002f5b9465dbd449f7f1e272b0f0d8796d2",
+      "bytes": 525188
+    },
+    {
+      "path": "frontend/yellow/src/workspaces/StaffCrsWorkspace.tsx",
+      "beforeSha256": null,
+      "afterSha256": "3a52618f950857854851e408cc663945882d692723b8aeeff650ca06bd6fffde",
+      "bytes": 6977
+    },
+    {
+      "path": "frontend/yellow/src/workspaces/staff-crs-client.ts",
+      "beforeSha256": null,
+      "afterSha256": "2429da525a2cf7ee5dea57c8cabd204c41b4720495a6a91e83de07a129b0b946",
+      "bytes": 14015
+    },
+    {
+      "path": "frontend/yellow/src/workspaces/StaffRmsWorkspace.tsx",
+      "beforeSha256": null,
+      "afterSha256": "42bd1e36d2133e93a3c5ba1c90515b62732050ce482900893a4db4a6219c6d06",
+      "bytes": 8544
+    },
+    {
+      "path": "frontend/yellow/src/workspaces/staff-rms-client.ts",
+      "beforeSha256": null,
+      "afterSha256": "574a47ea016675c8daa14092cf8832bfd8b30bfad582a027f14dd159ccdc6262",
+      "bytes": 7512
+    },
+    {
+      "path": "tests/staff-module-navigation.ui.test.tsx",
+      "beforeSha256": null,
+      "afterSha256": "a16177a0745e326f5b0986c8303e0ba3e6b0e97d36a30a47f6216a424ea946af",
+      "bytes": 9292
+    },
+    {
+      "path": "tests/staff-crs-client.test.ts",
+      "beforeSha256": null,
+      "afterSha256": "5b4e4084da140419b59e773a37d3753a69cac32c9179f64ef9ae6ecdf173bf0c",
+      "bytes": 5746
+    },
+    {
+      "path": "tests/staff-rms-client.test.ts",
+      "beforeSha256": null,
+      "afterSha256": "3f42eba2b40c74943305af130138b00b79491462a1d06e0cd9f30d6a88661798",
+      "bytes": 5817
+    }
+  ],
+  "sourcePatchSha256": "06e41fcc6eddaaecb3094d6d2c69fa92f14b5fd5d24351983c014dbf371f1383",
+  "orderSha256": "cff353580916c7550b255f61ee20370e5f2b6a4a9d72aaa3020122cf5382d2e0",
+  "editLedgerSha256": "60aedee5f5457aaf74804417ac009fee36576dd0c63a63bb5312b4dc8ce64412",
+  "protectedBackprojectionSha256": "c297a81b2c07419d75f306d31338ee02edba2c6fb4ae1aa43e20d77c198fc560",
+  "unadmittedSourceFilesExact": 2617,
+  "proof": {
+    "tests": {
+      "pass": 154,
+      "fail": 0,
+      "assertions": 1130,
+      "files": 24
+    },
+    "rootTypesExit": 0,
+    "frontendTypesExit": 0,
+    "boundariesFiles": 210,
+    "build": "PASS",
+    "bundleVM": {
+      "corrected": {
+        "entryName": "index-CJ8BJWsG.js",
+        "beforeSelectionReads": [],
+        "afterSelectionReads": [
+          "/p/01e4e102-c54f-5205-9542-d84d103084f8/today",
+          "/p/01e4e102-c54f-5205-9542-d84d103084f8/today"
+        ],
+        "selectedProperty": "01e4e102-c54f-5205-9542-d84d103084f8",
+        "staticModulesLinked": 18,
+        "staticLinksResolved": 59,
+        "anonymousFetches": 0,
+        "actualReactRuntimeWithSyntheticRenderSink": true,
+        "browserAcceptance": false
+      }
+    },
+    "logHashes": {
+      "combined-final.log": "bae4bf51a805be640d64baa6dc925c4fae2b01065aaab258376f64cd1ca6da46",
+      "root-types-final.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "frontend-types-final.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "boundaries.log": "378c6919f3f1c5bfda3fa705bd104e3fcf9df224493b64770f0cba5fd91dd967",
+      "vite-final.log": "29511637b7093928e251668ee0f2764e5f96cfaaa52c8a4ce913d12c6e35d1e8",
+      "bundle-execution-proof.json": "ed27fef1eeb2be759de6754ae19a056aadac649ef7afc8dd23a5f77ed03de7bb",
+      "patch-application-proof.json": "c3ce040b63fb521d8eb174d5c2ed2767663f60b6d121b14173f367144abec407"
+    },
+    "browserAcceptance": "BLOCKED: saved browser permissions could not be verified; no bypass"
+  },
+  "servableAssetCount": 22,
+  "servableAssetManifestSha256": "a1105a0cf70adb5c53c30380bff3da8c558740dc8d3c52a77c16920a419b42a2",
+  "dist": "E:\\YellowWorkspace\\Data\\BuildArtifacts\\yellow-receiving-build-20261001-v1\\frontend\\staff-crs-crm-rms-entry-proposal\\vite-dist-final",
+  "authority": {
+    "CRS": "existing canonical multi-property search; fresh me/properties and memory bearer; all grants/scope enforced by unchanged backend",
+    "reservation": "URL carries readonly proposal/reference only; canonical guest, fresh search, explicit confirmation, further refresh and same-key commit body exact",
+    "CRM": "existing Guests and Department tasks routes/role-visible controls; no priority field invented",
+    "RMS": "existing rate-read catalogue/quote and reservation.lifecycle:read recorded contribution; no authoring commands/forecast/provider calls",
+    "auth": "cookie480 auth/security source exact; no tokens in JS persistent storage or demo fallback"
+  },
+  "limits": [
+    "Booking engine contract/navigation still pending; no guessed URL",
+    "Ecosystem preview/planned statuses unchanged",
+    "Map/Reports availability unchanged",
+    "No browser visual/touch/microphone acceptance claimed",
+    "No candidate/canonical/DB/runtime/public/dependency/device/Git edits"
+  ],
+  "originalFailures": [
+    "root-types-first.log new clients imported document-bound TSX API; exact pure clock/offer closure received in admitted client path instead"
+  ]
+}

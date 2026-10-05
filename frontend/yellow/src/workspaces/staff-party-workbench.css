@@ -1,0 +1,5 @@
+.staff-party-detail > header { flex-wrap:wrap; align-items:flex-start; gap:.5rem; }
+.staff-party-detail > header :is(h2,h4) { min-width:0; margin:.25rem 0; font-size:1.125rem; overflow-wrap:anywhere; }
+.staff-party-detail .reservation-board-actions { min-width:0; max-width:100%; flex-wrap:wrap; }
+.staff-party-detail .reservation-board-actions button { max-width:100%; min-height:44px; overflow-wrap:anywhere; }
+.staff-party-detail .guest-history :is(li,strong,span,button) { min-width:0; overflow-wrap:anywhere; }
