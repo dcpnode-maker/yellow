@@ -1,0 +1,1 @@
+import{t as e}from"./yellow-D3qzSX4D.js";e();

@@ -1,0 +1,73 @@
+{
+  "status": "independent_frozen_review_passed",
+  "freezeSha256": "ab0d4ae8bbaa1cab4cd3f1251683706fabf745178a5ff0b8f681c50ba501cc31",
+  "combinedPatchSha256": "316b3841f88d82cc26bd609cab1fa2821da2a1ad8139237eb4e87d010d3ec47d",
+  "sourcePaths": 41,
+  "staticReviewSha256": "8177e76499c91b174eb461867a5fa154ca38c4a8e5eaf4db17e5fb117071accc",
+  "restorationTests": {
+    "pass": 67,
+    "fail": 0,
+    "assertions": 479,
+    "files": 12
+  },
+  "authSafetyTests": {
+    "pass": 48,
+    "fail": 0,
+    "assertions": 351,
+    "files": 9
+  },
+  "rootTypesExit": 0,
+  "frontendTypesExit": 0,
+  "boundariesFiles": 209,
+  "patchCheckExit": 0,
+  "compiledVM": {
+    "modules": 17,
+    "links": 57,
+    "preselectionReads": 0,
+    "anonymousFetches": 0,
+    "chosenPropertyCapture": true
+  },
+  "sourceReview": "38 restoration edits and 3 test corrections reverse exactly; all API readers/domain workspaces/auth source protected; 2575 tracked candidate files unchanged",
+  "findings": [],
+  "limits": [
+    "No browser visual acceptance",
+    "Memory auth requires re-sign-in on full navigation/reload/new-tab",
+    "Map and Reports remain explicitly unavailable",
+    "Current business-day scope unavailable; no invented data",
+    "CRS/RMS/CRM current declared capability statuses unchanged"
+  ],
+  "retainedReviewerHarnessFailures": [
+    "review-initial-encoding-red.log: explicit UTF-8 fixed in reviewer script only",
+    "bundle-missing-node-vm-flag-red.log: reran exact script with required --experimental-vm-modules"
+  ],
+  "logs": [
+    {
+      "name": "focused-independent.log",
+      "sha256": "3abff7f20fd9593d7fa3df55078fc9c02b0fc0cb365581883cfa32fbcf3c85b1"
+    },
+    {
+      "name": "auth-independent.log",
+      "sha256": "f9e0cb03740d8b6e73a8af58618dbcf6bb8589b7246160cfb46976eebea819e1"
+    },
+    {
+      "name": "root-types-independent.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "frontend-types-independent.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "boundaries-independent.log",
+      "sha256": "55c435214ac9e8b00ba496b6b2633d390c3a70a5b811e5bab0ab838a3e7561af"
+    },
+    {
+      "name": "patch-check-independent.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "bundle-independent-green.log",
+      "sha256": "3b18202127fc21027e3a4fe6efbf2c52605c837323c5cde7becff3176e01d99f"
+    }
+  ]
+}
