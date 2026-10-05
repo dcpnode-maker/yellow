@@ -1,0 +1,58 @@
+{
+  "schema": "yellow-ci-canonical-scopes-root-independent-review/v1",
+  "status": "PASS source and nonbrowser proof; external browser CI remains required",
+  "implementationFreezeSha256": "caa53ddde477058261e6babad61f08744c598a2f729f7e9b88c647b80b2068c7",
+  "patchSha256": "f2d71d1c967c3e6951d7a3d4f79c4cd94032df69234dfac69f854ce8b8846db4",
+  "scope": [
+    {
+      "path": "tests/order609-reservation-create-edit.browser.test.ts",
+      "beforeSha256": "269977976f6199af7f247941f31e80892141c7ee7f18b41d37783500f24253a5",
+      "afterSha256": "70ccbf18938daf35ef2ad6ad816469db7d30a4ff35635bab9f38a0ca0f8722ae",
+      "bytes": 23477,
+      "exactByteBackprojection": true
+    },
+    {
+      "path": "tests/yellow-ai-speech-consent.test.ts",
+      "beforeSha256": "13b8b5458b29f2ca3e5306648cfec1f95e3c77660f2d47170e6a433514916749",
+      "afterSha256": "280058000e17360e58653d4a62a079fa479285b7ac39eae3830d59a1f6de3d9b",
+      "bytes": 18146,
+      "exactByteBackprojection": true
+    },
+    {
+      "path": "tests/yellow-departure-coordination.browser.test.ts",
+      "beforeSha256": "dc76befac24da23e99f315d7ca5908eb9fbc87e175cf61508af6b7202249dbc5",
+      "afterSha256": "f84979ebe8f29c6873d6b8a083d2cad4f239101c40839d470f45068bb9462223",
+      "bytes": 21458,
+      "exactByteBackprojection": true
+    },
+    {
+      "path": "tests/yellow-voice-routing.test.ts",
+      "beforeSha256": "591621de01bfa08c06795bdde4a2f0634cd655f1a3f78e27a3dcc14673ce9f2a",
+      "afterSha256": "b086bc62581063b835eb30ab37912d589bb1088841854ce9f068e1cf5ae534d7",
+      "bytes": 34383,
+      "exactByteBackprojection": true
+    },
+    {
+      "path": "tests/browser-normal-login-scopes.test.ts",
+      "beforeSha256": null,
+      "afterSha256": "6451526270fd0bf3ca1ea5cca197758cba3ed9f6906bf97d0265c25a0c981ca6",
+      "bytes": 3087,
+      "exactByteBackprojection": false
+    }
+  ],
+  "rootReviewed": "Full patch, all five tests, actual canonical operator lifecycle constants; three browser fixture changes are six scope-string replacements only; existing waits, deadlines, assertions and UI predicates retained by exact backprojection.",
+  "rootExecuted": {
+    "command": "bun test tests/browser-normal-login-scopes.test.ts tests/yellow-voice-routing.test.ts",
+    "cwd": "frontend/ci-canonical-scopes-proposal/source-overlay",
+    "pass": 44,
+    "fail": 0,
+    "assertions": 351,
+    "productionCredentials": false,
+    "browserExecuted": false
+  },
+  "findings": [],
+  "limits": [
+    "External browser CI must still execute real mounted confirmation, consent, navigation and responsive checks.",
+    "No runtime/database/auth-production behavior changes admitted."
+  ]
+}
