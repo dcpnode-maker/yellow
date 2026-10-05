@@ -1,0 +1,56 @@
+{
+  "schema": "yellow-ci-normal-login-fixtures-admission/v1",
+  "appliedAtUtc": "2026-10-01T20:02:34.1087106Z",
+  "baseHead": "eb6559be5ebdd9299ab3ca5a18a132ca6ab24cc7",
+  "expectedHead": "eb6559be5ebdd9299ab3ca5a18a132ca6ab24cc7",
+  "patchSha256": "a4ef1682e2790582fd9b5e73145841f8b98a6e0d5425a382fb754762954cd2d6",
+  "authorReceiptSha256": "aae3323627c05c5a61d7bb275f1e2a66c03a90f7844ada4d0924d18c8df2e0d7",
+  "independentReceiptSha256": "3a8db3c5aeb0ac2b22bb6bde2d3b35fb3ed4e39d679601b151c46c1dd5bd21fb",
+  "sourceFreezeSha256": "cb0fc790e82fcbcabccbdd6ee8e7999f7311d00f7ffb7f0d20caea6bef209f79",
+  "scriptSha256": "a7fe4e6a461258f25030c6bf9cd5e130270ddd07d76f77f9fbd21ffcc30aad79",
+  "tests": [
+    {
+      "path": "tests/order609-reservation-create-edit.browser.test.ts",
+      "beforeSha256": "d1bdf85135b2e8dfab7a0b6434784503e4e8e5b7d1bc986120a31385b659138d",
+      "afterSha256": "269977976f6199af7f247941f31e80892141c7ee7f18b41d37783500f24253a5",
+      "bytes": 23475,
+      "exactBackprojection": true
+    },
+    {
+      "path": "tests/yellow-ai-speech-consent.test.ts",
+      "beforeSha256": "34a12a3c3e2b23f9b27e51c3dbbdd5f8aafbe95d3733da6fb366f6bce8a3fb5a",
+      "afterSha256": "13b8b5458b29f2ca3e5306648cfec1f95e3c77660f2d47170e6a433514916749",
+      "bytes": 18144,
+      "exactBackprojection": true
+    },
+    {
+      "path": "tests/yellow-departure-coordination.browser.test.ts",
+      "beforeSha256": "ac0ad143922554b58e119d92c6761b9835201feb504c897f33edc9dbe55717aa",
+      "afterSha256": "dc76befac24da23e99f315d7ca5908eb9fbc87e175cf61508af6b7202249dbc5",
+      "bytes": 21456,
+      "exactBackprojection": true
+    },
+    {
+      "path": "tests/yellow-responsive-operational-shell.test.ts",
+      "beforeSha256": "d716b866961b902d62e73c88db4cec4e76e0b9facbd8809c7a4ef523721222d7",
+      "afterSha256": "938579a033ff17567a9ccdc2a0531ac6cdea128ae967e8bb542b2df1cb8a06fd",
+      "bytes": 3330,
+      "exactBackprojection": true
+    }
+  ],
+  "protectedTrackedFiles": 2641,
+  "protectedTrackedDigestBefore": "e405292b2debf027d42ba0f7c1f33eaf7df1eaa32fed66aaa96f1d92ebe4b27c",
+  "allOtherTrackedBytesVerifiedExact": true,
+  "declaredNewPaths": [
+    "handoff/orders/RESOURCE-20261002-ci-normal-login-fixtures-admission.md",
+    "handoff/receipts/CI-NORMAL-LOGIN-FIXTURES-20261002-admission.json",
+    "handoff/reviews/CI-NORMAL-LOGIN-FIXTURES-20261002-independent.json"
+  ],
+  "orderSha256": "a24ae0c857971ee7dda9c3f107a2f3a32cdf1af79db7fce0398de59f6c214339",
+  "copiedReviewSha256": "3a8db3c5aeb0ac2b22bb6bde2d3b35fb3ed4e39d679601b151c46c1dd5bd21fb",
+  "verification": "Reviewed exact after-bytes; git apply --check; all other current tracked bytes compared before/after; index/HEAD untouched",
+  "productAuthThemeNativeMigrationsPreserved": true,
+  "browserExecution": false,
+  "stageCommitPushRuntimeDbDeviceActions": false,
+  "acceptance": "External browser CI remains pending; no mounted-flow acceptance claimed"
+}

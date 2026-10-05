@@ -1,0 +1,13 @@
+.movement-view-ribbon { padding: 6px 0 10px; }
+.yellow-next .movement-date-scope { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+.yellow-next .movement-date-scope button { appearance: none; min-height: 44px; min-width: 44px; margin: 0; padding: 8px 12px; border: 1px solid #dfe1df; border-radius: 12px; background: #f5f6f4; color: #343a32; font: inherit; font-size: 12px; font-weight: 600; cursor: pointer; }
+.yellow-next .movement-date-scope button[aria-pressed="true"] { background: #fff; border-color: #b6bbae; box-shadow: 0 1px 3px #17200d12; }
+.yellow-next .movement-date-scope button:hover { background: #fff; }
+.yellow-next .movement-date-scope button:focus-visible { outline: 2px solid #7b8500; outline-offset: 2px; }
+.yellow-next .movement-date-scope button:disabled { opacity: .55; cursor: wait; }
+.yellow-next .movement-date-scope .movement-date-refresh { padding: 6px; font-size: 22px; line-height: 1; }
+@media (max-width: 700px) {
+  .yellow-next .movement-view-ribbon .segmented-ribbon { display: flex; width: 100%; min-width: 0; box-sizing: border-box; }
+  .yellow-next .movement-view-ribbon .segmented-ribbon button { flex: 1 1 0; min-width: 0; min-height: 44px; padding: 0 5px; gap: 4px; font-size: 12px; }
+  .yellow-next .movement-view-ribbon .segmented-ribbon small { min-width: 16px; padding: 2px 3px; font-size: 10px; }
+}

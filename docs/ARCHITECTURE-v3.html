@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mother of All PMS – Complete Future-Ready Technical Architecture · Zero-Cost Full-Stack Edition</title>
+<style>
+  :root {
+    --bg: #0f1419;
+    --card: #1a2332;
+    --border: #2d3a4f;
+    --accent: #3b82f6;
+    --accent2: #10b981;
+    --accent3: #f59e0b;
+    --text: #e2e8f0;
+    --muted: #94a3b8;
+    --highlight: #38bdf8;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+  }
+  .container { max-width: 1400px; margin: 0 auto; padding: 40px 24px; }
+  header {
+    text-align: center;
+    padding: 48px 24px 32px;
+    background: linear-gradient(180deg, #1e293b 0%, var(--bg) 100%);
+    border-bottom: 1px solid var(--border);
+  }
+  header h1 {
+    font-size: 2.35rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    margin-bottom: 12px;
+    background: linear-gradient(90deg, #38bdf8, #10b981);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  header p { color: var(--muted); font-size: 1.1rem; max-width: 900px; margin: 0 auto; }
+  .badge {
+    display: inline-block;
+    background: rgba(16, 185, 129, 0.15);
+    color: #34d399;
+    padding: 6px 14px;
+    border-radius: 999px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    margin: 8px 4px;
+    border: 1px solid rgba(16, 185, 129, 0.3);
+  }
+  h2 {
+    font-size: 1.55rem;
+    margin: 48px 0 18px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid var(--accent);
+    color: #f1f5f9;
+  }
+  h3 { font-size: 1.2rem; margin: 28px 0 12px; color: var(--highlight); }
+  h4 { font-size: 1.05rem; margin: 16px 0 8px; color: #cbd5e1; }
+  p, li { color: var(--text); margin-bottom: 10px; }
+  ul { padding-left: 22px; margin-bottom: 16px; }
+  li { margin-bottom: 6px; }
+  .diagram-wrapper {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 28px 16px;
+    margin: 28px 0;
+    overflow-x: auto;
+  }
+  .diagram {
+    font-family: 'Cascadia Code', 'Fira Code', 'Consolas', monospace;
+    font-size: 12.5px;
+    line-height: 1.32;
+    white-space: pre;
+    color: #e2e8f0;
+    min-width: 1180px;
+  }
+  .layer-title { color: #38bdf8; font-weight: 700; }
+  .future { color: #a78bfa; }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 18px;
+    margin: 22px 0;
+  }
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+  }
+  .card h4 { margin-top: 0; color: var(--accent2); }
+  .card.future-card h4 { color: #c4b5fd; }
+  .why {
+    background: rgba(59, 130, 246, 0.08);
+    border-left: 4px solid var(--accent);
+    padding: 14px 18px;
+    margin: 14px 0;
+    border-radius: 0 8px 8px 0;
+  }
+  .best {
+    background: rgba(16, 185, 129, 0.08);
+    border-left: 4px solid var(--accent2);
+    padding: 14px 18px;
+    margin: 14px 0;
+    border-radius: 0 8px 8px 0;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 20px 0;
+    font-size: 0.93rem;
+  }
+  th, td {
+    border: 1px solid var(--border);
+    padding: 11px 13px;
+    text-align: left;
+  }
+  th { background: #1e293b; color: #93c5fd; }
+  tr:nth-child(even) { background: rgba(255,255,255,0.02); }
+  .footer {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--muted);
+    font-size: 0.9rem;
+    border-top: 1px solid var(--border);
+    margin-top: 60px;
+  }
+  .update-note {
+    background: rgba(245, 158, 11, 0.1);
+    border: 1px solid rgba(245, 158, 11, 0.3);
+    border-radius: 10px;
+    padding: 16px 20px;
+    margin: 24px 0;
+    font-size: 0.95rem;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Mother of All PMS</h1>
+  <p>Complete Future-Ready Technical Architecture</p>
+  <p style="margin-top:8px;font-size:1rem;">Rank #1 in Speed • Efficiency • Cost • Reliability • Completeness • User Experience • Future Adaptability</p>
+  <div>
+    <span class="badge">Platform Run Cost ₹0–4,000/mo</span>
+    <span class="badge">One Subscription = Entire Hotel Business</span>
+    <span class="badge">Ready ASAP after simple onboarding</span>
+    <span class="badge">MCP + RAG + AI Agent + Voice Native</span>
+    <span class="badge">Designed for every future possibility</span>
+  </div>
+</header>
+
+<div class="container">
+
+  <div class="update-note">
+    <strong>Zero-Cost Full-Stack Edition (13 Aug 2026):</strong> This version keeps every layer of the architecture and engineers the cost out instead of cutting services. Changes: PostgreSQL is authoritative for inventory (Valkey is a disposable read projection); the event backbone is the transactional outbox relayed into NATS JetStream (Kafka semantics in one 15&nbsp;MB binary); Night Audit is replaced by Continuous Day-Close with a hard <code>books_closed</code> seal; fiscal documents are built in-house for the first two jurisdictions (ZATCA + India IRP, free government APIs) with the buy trigger at jurisdiction #3; distribution goes direct to Booking.com + Expedia (free connectivity) with RateGain/SiteMinder plug-compatible for long-tail; the AI layer runs free by default (Whisper.cpp, Piper, pgvector, local LLM) behind a model gateway with Claude as a paid tenant tier; and all seven client surfaces ship from one PWA codebase. Marina/campground assets remain deferred as Vertical Profiles. New sections 10–13 cover the zero-cost map, surfaces, INR cost and maintenance doctrine.
+  </div>
+
+  <h2>1. Complete System Architecture Diagram</h2>
+  <p>Full system including core operational layers and every future-ready capability. Designed so new capabilities can be activated with minimal friction.</p>
+
+  <div class="diagram-wrapper">
+    <div class="diagram">
+<span class="layer-title">┌──────────────────────────────────────────────────────────────────────────────────────────────────────────────┐</span>
+<span class="layer-title">│                                      CLIENT + EXPERIENCE LAYER                                               │</span>
+<span class="layer-title">│  Web App • Staff Mobile • Guest Mobile • Desktop (Tauri) • Kiosk • Partner Portal • Voice — One PWA, 7 Faces │</span>
+<span class="layer-title">└───────────────────────────────────────────────┬──────────────────────────────────────────────────────────────┘</span>
+                                                │
+                                                ▼
+<span class="layer-title">┌──────────────────────────────────────────────────────────────────────────────────────────────────────────────┐</span>
+<span class="layer-title">│                               EDGE + API GATEWAY + AI AGENT LAYER                                            │</span>
+<span class="layer-title">│  Cloudflare Free CDN  →  Caddy Gateway (Auth, Rate Limit, Auto-HTTPS, REST/GraphQL/gRPC)                     │</span>
+<span class="layer-title">│  AI Orchestrator (TS + MCP)  •  Whisper.cpp STT  •  Piper TTS  •  Conversation Memory (Postgres)             │</span>
+<span class="layer-title">│  RAG on pgvector (Procedures, Policies, Training)  •  Real-time State  •  PMS Ships Its Own MCP Server       │</span>
+<span class="layer-title">└───────────────────────────────────────────────┬──────────────────────────────────────────────────────────────┘</span>
+                                                │
+                                                ▼
+<span class="layer-title">┌──────────────────────────────────────────────────────────────────────────────────────────────────────────────┐</span>
+<span class="layer-title">│                                  CORE DOMAIN SERVICES                                                        │</span>
+<span class="layer-title">│  Reservation  •  Inventory & Availability (PG-Authoritative + Valkey Projection + Composite Slots)  •  CRM   │</span>
+<span class="layer-title">│  Cashiering & Folio (Account-owned)  •  Rooms & Housekeeping  •  Accounts Receivable  •  Rate & Yield        │</span>
+<span class="layer-title">│  Continuous Day-Close  •  Groups / Blocks & Sales & Catering  •  Membership / Loyalty                        │</span>
+<span class="layer-title">│  Configuration & Rules Engine  •  Statutory Registration  •  Native Hotel Finance                            │</span>
+<span class="layer-title">└───────────────────────────────────────────────┬──────────────────────────────────────────────────────────────┘</span>
+                                                │
+          ┌─────────────────────────────────────┼─────────────────────────────────────┐
+          │                                     │                                     │
+          ▼                                     ▼                                     ▼
+<span class="layer-title">┌──────────────────────────┐    ┌──────────────────────────────┐    ┌────────────────────────────────────────┐</span>
+<span class="layer-title">│     DATA LAYER           │    │     EVENT BACKBONE           │    │     FUTURE-READY CAPABILITY LAYERS     │</span>
+<span class="layer-title">│  pgvector (Embeddings)   │    │                              │    │                                        │</span>
+<span class="layer-title">│  PostgreSQL (Authority)  │    │  Transactional Outbox        │    │  Agent-Ready Public Surface            │</span>
+<span class="layer-title">│  Valkey (Hot Projection) │    │  NATS JetStream Relay        │    │  Omnichannel + Agentic Messaging      │</span>
+<span class="layer-title">│  PG-FTS + pg_trgm Search │    │  Materialized Projections    │    │  Digital Keys + Wallet                │</span>
+<span class="layer-title">│  Event Store / Fact Log  │    │  (CQRS Read Models)          │    │  Living Guest Intelligence Graph     │</span>
+<span class="layer-title">│  (Bitemporal insert-only)│    │                              │    │  Attribute-Based Selling & Packaging  │</span>
+<span class="layer-title">└──────────────────────────┘    └──────────────────────────────┘    │  Predictive Task & Labour Engine      │</span>
+<span class="layer-title">                                                                    │  IoT / Sensor + Predictive Maint.     │</span>
+<span class="layer-title">                                                                    │  Robotics Task Interface              │</span>
+<span class="layer-title">                                                                    │  Sustainability / Resource Tracking  │</span>
+<span class="layer-title">                                                                    │  Data Sovereignty Controls            │</span>
+<span class="layer-title">                                                                    │  Digital Identity / Credentials       │</span>
+<span class="layer-title">                                                                    └────────────────────────────────────────┘</span>
+                                                │
+                                                ▼
+<span class="layer-title">┌──────────────────────────────────────────────────────────────────────────────────────────────────────────────┐</span>
+<span class="layer-title">│                              INTEROPERABILITY ADAPTERS (Isolated)                                            │</span>
+<span class="layer-title">│  Direct OTA: Booking.com + Expedia (free)  •  RateGain / SiteMinder (plug-in)  •  UPI Zero-MDR + PSP Tokens  │</span>
+<span class="layer-title">│  POS / Key / Phone / Hardware  •  Fiscal In-House: ZATCA + India IRP  •  Statutory Registration Adapters     │</span>
+<span class="layer-title">│  GDS  •  Other PMS Bridges  •  Extension Registry  •  QuickBooks / Xero / Tally / SAP bridges                │</span>
+<span class="layer-title">└──────────────────────────────────────────────────────────────────────────────────────────────────────────────┘</span>
+                                                │
+                                                ▼
+<span class="layer-title">┌──────────────────────────────────────────────────────────────────────────────────────────────────────────────┐</span>
+<span class="layer-title">│                                         EXTERNAL WORLD                                                       │</span>
+<span class="layer-title">│  RateGain • SiteMinder • OTAs • GDS • Payment Gateways • Legacy Systems • POS • Keys • Robots • Sensors      │</span>
+<span class="layer-title">│  AI Travel Agents • Digital Identity Providers • Wallet Providers • Fiscal Authorities • Accounting Systems  │</span>
+<span class="layer-title">└──────────────────────────────────────────────────────────────────────────────────────────────────────────────┘</span>
+    </div>
+  </div>
+
+  <h2>2. Core Domain Model Decisions (Locked)</h2>
+
+  <h3>2.1 Folio Ownership</h3>
+  <p><strong>Folio is owned by an Account</strong> (Guest, Company, House, Outlet, Event, Trust, etc.). A Reservation links to one or more Folios; it does not own them. Billing windows are folios that share an owner.</p>
+  <div class="why"><strong>Why:</strong> Required for house accounts, walk-in POS charges, banquet/event billing, deposits taken before a booking exists, and group masters that outlive individual stays. Confirmed by multiple modern systems.</div>
+
+  <h3>2.2 Composite Inventory</h3>
+  <p><strong>Space</strong> (physical) → <strong>SellableUnit</strong> (configuration of one or more Spaces) → <strong>Slot</strong> (SellableUnit × time interval). Mutual exclusivity enforced by a <code>space_occupancy</code> projection with partial exclusion constraint.</p>
+  <div class="why"><strong>Why:</strong> Correctly handles dorm beds vs private rooms, connecting suites, and keeps the model open for future verticals without core rewrites.</div>
+
+  <h3>2.3 BillingAutomation</h3>
+  <p>Static routing is generalised into a <strong>BillingAutomation</strong> (trigger + condition + action). Routing, fixed charges, deposit schedules, conditional transfers and payment plans are instances of one mechanism.</p>
+
+  <h3>2.4 Insert-only Fact Log</h3>
+  <p>One insert-only temporal pattern serves ledger corrections, rate/reservation corrections, and configuration versioning. “Current” is always derived via query; never stored via UPDATE. Every fact carries both <strong>valid-time</strong> (when it is true in the business) and <strong>recorded-at</strong> (when the system learned it), so retroactive corrections and forward-dated changes are the same operation.</p>
+
+  <h3>2.5 Tenancy</h3>
+  <p>Two tiers only: <strong>Shared schema + RLS</strong> (default) and <strong>Dedicated database</strong> (regulatory or contractual isolation). Schema-per-tenant is dropped.</p>
+
+  <h3>2.6 Fiscal Strategy</h3>
+  <p>Build the tax <strong>calculation</strong> engine (value-banded, per-night/person/room, capped nights, category-banded, compounding, exemptions). Build fiscal <strong>document issuance in-house for the first two jurisdictions</strong> — ZATCA (Saudi) and India IRP, both free government APIs — behind the unchanged <code>FiscalDocumentProvider</code> interface supporting the five global mandate patterns. <strong>Buy trigger: jurisdiction #3</strong>, where a provider’s multi-country maintenance beats ours. Statutory guest registration remains in-house (no provider aggregates it).</p>
+
+  <h3>2.7 Inventory Authority &amp; Single Choke Point</h3>
+  <p><strong>PostgreSQL is authoritative for every sellability decision.</strong> Valkey holds a read projection, invalidated by event, and is never consulted to approve a booking — a stale projection can only show a room that turns out to be gone (recoverable), never create a double-booking. <code>space_occupancy</code> is written only by one <code>SECURITY DEFINER</code> function; direct table access is revoked from the application role, and a CI test asserts that direct writes fail.</p>
+  <div class="why"><strong>Why:</strong> Two sources of truth for the one invariant that must never break is a correctness failure waiting for a concurrency edge case — and a bypassed write path would disable double-booking protection while the constraint still looked healthy.</div>
+
+  <h3>2.8 Inventory System of Record (per property)</h3>
+  <p><code>inventory_authority</code> is a per-property, per-channel setting: <strong>PMS-authoritative</strong> (reservation ingestion does not alter upstream availability; the PMS pushes counts) or <strong>CRS-authoritative</strong> (the CRS derives availability; PMS pushes are suppressed and allocation is consumed). Both modes still write <code>space_occupancy</code> locally — physical integrity is never delegated, only commercial availability.</p>
+
+  <h2>3. Key Bounded Contexts & Capabilities</h2>
+
+  <div class="grid">
+    <div class="card">
+      <h4>Reservation & Groups</h4>
+      <p>Full lifecycle, multi-room, multi-segment, shares, linked parties. Unified <code>ReservationGroup</code> (kind = linked | block | share) replaces separate master/block/share hierarchies.</p>
+    </div>
+    <div class="card">
+      <h4>Inventory & Availability</h4>
+      <p>Composite slots, Postgres-authoritative writes with Valkey read projection, space_occupancy exclusion constraint, overbooking limits per service/date range, restrictions, holds, real-time ARI push.</p>
+    </div>
+    <div class="card">
+      <h4>Profile / CRM</h4>
+      <p>Guest, Company, Agent, Source, Group, Vendor, Contact. <strong>Owner and Agent are first-class party types</strong>. Relationships, preferences, memberships, consent, stay history, duplicate detection & merge.</p>
+    </div>
+    <div class="card">
+      <h4>Financials (Native Hotel Finance)</h4>
+      <p>Account-owned folios, posting engine, immutable postings, BillingAutomations, payments (tokenised), deposits, AR, cashier sessions, continuous day-close, trial balance, owner statements. Strong native module so most hotels do not need a second finance system. Clean export/sync to QuickBooks, Xero, SAP, etc.</p>
+    </div>
+    <div class="card">
+      <h4>Rooms & Housekeeping</h4>
+      <p>Condition + occupancy axes, task sheets with credit weighting, mobile attendant, discrepancies, work orders, queue management.</p>
+    </div>
+    <div class="card">
+      <h4>Groups, Events & Banquets</h4>
+      <p>Blocks, wash schedules, rooming lists, function space, BEOs, event billing to master folio.</p>
+    </div>
+    <div class="card">
+      <h4>Statutory Registration</h4>
+      <p>Distinct concern supporting country-specific formats, deadlines and transports (Italy Alloggiati 168-char, Portugal SIBA, India Form C, Croatia eVisitor, etc.).</p>
+    </div>
+    <div class="card">
+      <h4>Tax & Compliance</h4>
+      <p>Rules-driven tax calculation engine. Fiscal documents via provider interface. USALI 12th Edition as baseline revenue classification and statistical schema.</p>
+    </div>
+    <div class="card">
+      <h4>Distribution</h4>
+      <p>Direct Booking.com + Expedia adapters primary (free connectivity partner APIs; certification is calendar, not cash). RateGain UNO / SiteMinder plug-compatible behind the same interface for long-tail expansion. GDS connectors, direct booking engine, aggregation layer for channel granularity differences.</p>
+    </div>
+    <div class="card">
+      <h4>Ancillary Operations</h4>
+      <p>Native support for charging, tasking and guest billing for Spa/Salon, Retail outlets, Concierge, Bell Desk, Valet/Parking. Deep specialised scheduling may start as integration; money and guest record stay in the PMS.</p>
+    </div>
+  </div>
+
+  <h2>4. Vertical Scope & Profiles</h2>
+  <p><strong>v1 commercial scope:</strong> Hotels, Hostels, Serviced Apartments, Short-Term Rentals.</p>
+  <p>Inventory units carry typed attributes and constraint predicates via <strong>Vertical Profiles</strong>. The architecture remains open so Marina, Campground or RV support can be added later as profiles without core rewrites. Full marina/campground geometry and vessel matching are explicitly deferred.</p>
+
+  <h2>5. Trust Accounting</h2>
+  <p>Not a new subsystem. Composed from existing primitives: Account with role = trust, BillingAutomation rule for owner/fee split, reconciliation report, and payout integration.</p>
+
+  <h2>6. Future-Ready Capability Layers (All in the Architecture — Free Paths Named)</h2>
+  <div class="grid">
+    <div class="card future-card"><h4>Agent-Ready Public Surface</h4><p>Structured real-time APIs and content for external AI travel agents. <em>v1 — the PMS ships its own MCP server, a thin mapping over the public API.</em></p></div>
+    <div class="card future-card"><h4>Omnichannel + Agentic Messaging</h4><p>Unified inbox; AI Agent can act, not only reply. <em>v1-lite — inbox as Task + Document views; email + WhatsApp free-window inbound; agent actions via MCP tools.</em></p></div>
+    <div class="card future-card"><h4>Digital Keys + Wallet</h4><p>Apple/Google Wallet + NFC, linked to reservation and access control. <em>Designed — Grant primitive ready; gated by lock-vendor certification, not by us.</em></p></div>
+    <div class="card future-card"><h4>Living Guest Intelligence Graph</h4><p>Continuously updating unified guest profile for ambient personalization. <em>v1-lite — a Projection over Party + fact_log history; profile timeline ships early.</em></p></div>
+    <div class="card future-card"><h4>Attribute-Based Selling</h4><p>Rich attributes and dynamic packaging beyond classic room types. <em>v1 — AttributeSchema + SellableUnit are already core primitives.</em></p></div>
+    <div class="card future-card"><h4>Predictive Task & Labour</h4><p>AI-driven assignment of housekeeping and service tasks. <em>Designed — AssignmentStrategy interface ships v1; OR-Tools sidecar and ML attach later.</em></p></div>
+    <div class="card future-card"><h4>IoT / Predictive Maintenance</h4><p>Sensor ingestion and automatic work-order generation. <em>Designed — Mosquitto MQTT ingest → Automation → work-order Tasks when hardware exists.</em></p></div>
+    <div class="card future-card"><h4>Robotics Task Interface</h4><p>Clean API for robots to receive and complete tasks. <em>Designed — robots are Task assignees with Grants; the API exists by construction.</em></p></div>
+    <div class="card future-card"><h4>Sustainability Tracking</h4><p>Energy, water, waste and carbon proxies. <em>Designed — a Projection over metered postings once meters report.</em></p></div>
+    <div class="card future-card"><h4>Data Sovereignty</h4><p>Residency controls while allowing controlled group intelligence. <em>v1 — tenancy tier + residency dimension; a legal requirement, not roadmap.</em></p></div>
+    <div class="card future-card"><h4>Digital Identity</h4><p>Verifiable credentials for faster, trusted check-in. <em>Designed — Grant + verification Extension; ecosystem-gated.</em></p></div>
+    <div class="card future-card"><h4>Voice Native</h4><p>Hands-free front desk and guest commands. <em>v1 — Whisper.cpp + Piper as a thin input method over the command palette; restored to launch by free tech.</em></p></div>
+  </div>
+
+  <h2>7. Design Principles (Standing)</h2>
+  <ul>
+    <li><strong>Reuse</strong> — prefer instances of existing primitives over new mechanisms.</li>
+    <li><strong>Data, not code</strong> — behaviour expressed as schema-validated configuration wherever possible.</li>
+    <li><strong>Single choke point</strong> — every path that must preserve an invariant flows through one place.</li>
+    <li><strong>Insert-only temporal model</strong> — one pattern for ledger, rates, reservations and configuration versioning.</li>
+    <li><strong>Extension Registry</strong> — one lifecycle mechanism for vertical profiles, tax jurisdictions, statutory adapters, fiscal providers and future plugins. Content stays typed per type.</li>
+    <li><strong>One precious datastore</strong> — PostgreSQL is the only stateful system whose loss matters; Valkey, NATS, search indexes and dashboards are derived and disposable, rebuilt from Postgres by script.</li>
+    <li><strong>Seven surfaces, one codebase</strong> — every client surface is a mode (route + role Grant + display mode) of a single PWA, not a separate product.</li>
+    <li><strong>Model gateway</strong> — AI features run local-first (Whisper.cpp, Piper, pgvector, quantised open-weight LLM) with Claude as a per-tenant paid tier behind the same interface; customer revenue funds frontier quality.</li>
+    <li><strong>Maintenance is automated, or it doesn’t ship</strong> — pinned compose file, Renovate PRs, daily contract tests, dashboards-as-code, weekly restore-proof. Founder budget: 2–4 hours/month.</li>
+    <li><strong>Lowest cost to build, run and maintain</strong> — buy what changes frequently (fiscal documents — from jurisdiction #3), build what is core and slow-changing (tax calculation, hotel finance, inventory integrity).</li>
+    <li><strong>Rank #1 experience</strong> — staff feel proud and fast; guests feel delighted.</li>
+  </ul>
+
+  <h2>8. Onboarding Promise</h2>
+  <p>After a simple guided flow (property details → rooms → rates → taxes → users → connect distribution), the hotel is live and can sell rooms, check guests in/out, process payments, run housekeeping and generate folios. Advanced and future-ready capabilities are already present in the architecture and can be activated when ready.</p>
+
+  <h2>9. Rank #1 Summary</h2>
+  <table>
+    <thead>
+      <tr><th>Dimension</th><th>How achieved</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>Speed / Latency</td><td>Valkey read projections over Postgres-authoritative writes, edge caching, event-driven design, CQRS, isolated adapters</td></tr>
+      <tr><td>Efficiency & Cost</td><td>₹0–4,000/mo full-stack run cost, insert-only reuse, data-driven config, two-tier tenancy, free government/partner APIs with in-house adapters</td></tr>
+      <tr><td>Reliability</td><td>Transactional outbox, exclusion constraints, immutable postings, verified backups with weekly restore-proof, replica promote runbook, offline hold-pool, full audit trail</td></tr>
+      <tr><td>Completeness</td><td>Full operational depth + native hotel finance + ancillaries + statutory + future-ready layers</td></tr>
+      <tr><td>User Experience</td><td>Keyboard-first, voice + AI Agent, beautiful and fast interfaces</td></tr>
+      <tr><td>Future Adaptability</td><td>Vertical Profiles, Extension Registry, clean provider interfaces</td></tr>
+      <tr><td>Profit Margins</td><td>Lowest run cost + highest customer value = maximum sustainable margins</td></tr>
+    </tbody>
+  </table>
+
+
+  <h2>10. Zero-Cost Implementation Map</h2>
+  <p>Every service from the diagram, its free implementation, and why maintenance stays near zero. Nothing is dropped; the cost is engineered out.</p>
+  <table>
+    <thead><tr><th>Service</th><th>Free implementation</th><th>Why maintenance ≈ 0</th></tr></thead>
+    <tbody>
+      <tr><td>Hot cache</td><td><strong>Valkey</strong> (BSD-3, self-hosted)</td><td>Disposable projection — reads fall back to Postgres; rebuild is a script. Never authoritative.</td></tr>
+      <tr><td>Event bus</td><td><strong>NATS JetStream</strong> (Apache-2.0)</td><td>Single ~15&nbsp;MB binary, ~64&nbsp;MB RAM, replay + offsets. Outbox remains source of truth; JetStream is rebuildable transport.</td></tr>
+      <tr><td>Search</td><td><strong>PG-FTS + pg_trgm</strong> now; <strong>Meilisearch</strong> (MIT) at the relevance-tuning trigger</td><td>FTS lives inside the precious datastore — zero extra ops; Meilisearch index is derived.</td></tr>
+      <tr><td>CDN / TLS / WAF / DNS</td><td><strong>Cloudflare Free</strong></td><td>Managed by Cloudflare; nothing to run.</td></tr>
+      <tr><td>Gateway</td><td><strong>Caddy</strong> (Apache-2.0)</td><td>~30 lines of config; certificates renew themselves.</td></tr>
+      <tr><td>Replica / HA</td><td><strong>PG streaming replication</strong> to the second founder tenancy; one-command promote runbook</td><td>Manual promotion beats failover machinery for two people — no split-brain risk. RTO 2–5 min.</td></tr>
+      <tr><td>Speech-to-text</td><td><strong>Whisper.cpp</strong> (MIT) on CPU</td><td>A static model file; no service, no per-minute fees.</td></tr>
+      <tr><td>Text-to-speech</td><td><strong>Piper</strong> (MIT), multilingual CPU voices</td><td>A binary and voice files.</td></tr>
+      <tr><td>RAG / vectors</td><td><strong>pgvector</strong> + local embedding model</td><td>Inside Postgres — indexed, backed up, restored with everything else.</td></tr>
+      <tr><td>LLM</td><td><strong>Quantised open-weight model</strong> via llama.cpp behind the model gateway</td><td>Local by default; Claude API is a per-tenant paid tier through the same interface.</td></tr>
+      <tr><td>Agent surface</td><td><strong>Our own MCP server</strong></td><td>Generated over the same public API contracts the UI uses — external AI agents are day-one clients.</td></tr>
+      <tr><td>Observability</td><td><strong>Prometheus + Grafana + Loki</strong> (dashboards as code), <strong>Uptime Kuma</strong>, <strong>GlitchTip</strong></td><td>Provisioned from the repo; rebuildable; alerts to both phones.</td></tr>
+      <tr><td>Analytics</td><td><strong>DuckDB</strong> on Parquet; <strong>ClickHouse</strong> (Apache-2.0) at the volume trigger</td><td>DuckDB is embedded — no server at all until triggered.</td></tr>
+      <tr><td>CI/CD</td><td><strong>GitHub Actions + self-hosted runner</strong>; <strong>Kamal</strong> blue-green deploys</td><td>Runner is one systemd service; unlimited minutes; deploys blip seconds.</td></tr>
+      <tr><td>Channels</td><td><strong>Direct Booking.com + Expedia adapters</strong> (free partner APIs)</td><td>Daily contract tests against sandboxes turn upstream changes into a CI email, not an outage.</td></tr>
+      <tr><td>Fiscal</td><td><strong>In-house ZATCA + India IRP</strong> (free government APIs)</td><td>Two jurisdictions, schema-versioned, contract-tested. Buy at #3.</td></tr>
+      <tr><td>Payments (India)</td><td><strong>UPI — zero-MDR by mandate</strong>; PSP orchestration + network tokens for cards</td><td>Card interchange is the one true percentage floor.</td></tr>
+      <tr><td>Backups</td><td><strong>pgBackRest → R2/B2 free tier</strong>, weekly scripted restore</td><td>The restore proves the backup. The one non-negotiable ritual.</td></tr>
+      <tr><td>Compute</td><td><strong>Oracle Cloud Always Free</strong> — 4 ARM cores / 24&nbsp;GB / 200&nbsp;GB split into primary + app VMs; replica on the second founder’s tenancy (PAYG conversion at $0 usage)</td><td>The DR posture (PITR + replica + offline hold-pool) was designed to survive exactly the failure modes a free tier can produce. The ₹4,000/mo Hetzner box is the optional “reliability dinner” after first revenue.</td></tr>
+    </tbody>
+  </table>
+  <div class="best"><strong>Yes — the OPERA alternative can launch on Oracle’s free tier.</strong> The joke costs nothing extra; the engineering underneath it is serious.</div>
+
+  <h2>11. Seven Surfaces, One Codebase</h2>
+  <div class="grid">
+    <div class="card"><h4>Web App</h4><p>The PWA itself — front desk, manager, admin. Keyboard-first, dense grids, command palette; Rank-1 UX targets unchanged.</p></div>
+    <div class="card"><h4>Staff Mobile</h4><p>Same PWA installed via manifest; housekeeping and task views are routes gated by role Grant.</p></div>
+    <div class="card"><h4>Guest Mobile</h4><p>Same PWA, guest Grant scope: booking, folio, requests, messages, digital key when the lock vendor lands.</p></div>
+    <div class="card"><h4>Front-Desk Desktop</h4><p>PWA, or a <strong>Tauri</strong> (MIT) wrapper where native key-encoder/peripheral access is required — a build target, not a second app.</p></div>
+    <div class="card"><h4>Kiosk</h4><p>Chromium kiosk mode on any tablet the hotel buys (their capex); kiosk Grant scope shows the check-in flow only.</p></div>
+    <div class="card"><h4>Partner Portal</h4><p>A route + partner Grant scope over the same public API. No separate product.</p></div>
+    <div class="card"><h4>Voice</h4><p>Web audio → Whisper.cpp → intent → the same command-palette actions → Piper reply. A thin input method over an API-first system.</p></div>
+  </div>
+  <p>What was priced as months of build across five extra surfaces collapses to routes, role grants and two wrappers — because API-first means every surface is a client of the same contract. <strong>The scope returns; the cost does not.</strong></p>
+
+  <h2>12. Cost in INR (₹95/USD)</h2>
+  <table>
+    <thead><tr><th>Line</th><th>Monthly</th><th>Note</th></tr></thead>
+    <tbody>
+      <tr><td>Compute — full stack (primary + app + replica)</td><td><strong>₹0</strong></td><td>Oracle Always Free × two founder tenancies.</td></tr>
+      <tr><td>Cache, events, search, AI, observability, CI, deploys</td><td><strong>₹0</strong></td><td>All self-hosted OSS per §10 — derived and disposable.</td></tr>
+      <tr><td>CDN / TLS / DNS / WAF · Offsite backups · OTA / fiscal / UPI connectivity</td><td><strong>₹0</strong></td><td>Cloudflare Free · R2/B2 free tier · free partner and government APIs.</td></tr>
+      <tr><td>Optional “reliability dinner”</td><td>₹0 or ~₹4,000</td><td>One Hetzner box when free-tier comfort runs out. Either is safe under the DR posture.</td></tr>
+      <tr><td colspan="3"><strong>Irreducible floors — honesty section</strong></td></tr>
+      <tr><td>Domain + DNS</td><td>~₹85</td><td>~₹1,000/year.</td></tr>
+      <tr><td>Transactional email beyond free tier</td><td>~₹9 / 1,000</td><td>Deliverability is not self-hostable.</td></tr>
+      <tr><td>Business-initiated WhatsApp</td><td>paise/msg</td><td>Guest-initiated window is free.</td></tr>
+      <tr><td>Card interchange</td><td>~2% of card volume</td><td>Set by the networks; UPI removes it domestically. Priced into the product.</td></tr>
+      <tr><td>Claude (two dev seats)</td><td>~₹38,000</td><td>The one meaningful line — build capacity, not infrastructure.</td></tr>
+    </tbody>
+  </table>
+  <div class="why"><strong>Platform run cost: ₹0–4,000/month with every service from the diagram running</strong> — versus ₹95,000–2.4 lakh for the managed version of the same diagram. A ~97–100% reduction with zero services dropped. Per-property infrastructure at 500 properties stays below a cup of chai.</div>
+
+  <h2>13. Reliability, Maintenance &amp; Spend Triggers</h2>
+  <ul>
+    <li><strong>One compose file</strong> defines the entire stack — reproducible anywhere in minutes, which is itself the DR plan.</li>
+    <li><strong>Renovate</strong> opens version-bump PRs; daily CI contract tests against OTA and fiscal sandboxes gate every merge.</li>
+    <li><strong>pgBackRest</strong> continuous archiving offsite; <strong>weekly scripted restore</strong> proves the backup is real.</li>
+    <li><strong>Streaming replica + one-command promote runbook</strong> — deliberate manual promotion; no split-brain machinery. RTO 2–5 minutes.</li>
+    <li><strong>Unattended security upgrades</strong>; Uptime Kuma + healthchecks.io alert both phones.</li>
+    <li><strong>Everything non-Postgres is disposable</strong> — kill-and-rebuild scripts exist and are drilled monthly.</li>
+    <li>Founder time budget: <strong>2–4 hours/month</strong>. A component that breaks the budget is replaced or removed — price is not a defence.</li>
+  </ul>
+  <h3>Spend-Money Triggers (each observable, none speculative)</h3>
+  <ul>
+    <li><strong>₹4k Hetzner box</strong> — when free-tier comfort runs out after first revenue.</li>
+    <li><strong>Managed Postgres</strong> — when founder ops time on the database exceeds budget two months running.</li>
+    <li><strong>Fiscal provider</strong> — jurisdiction #3.</li>
+    <li><strong>Channel manager plug-in</strong> — long-tail OTA expansion beyond the direct 2–3.</li>
+    <li><strong>Claude tenant tier</strong> — funded by the AI premium price, never by us.</li>
+    <li><strong>ClickHouse cluster</strong> — when a DuckDB report crosses seconds.</li>
+    <li><strong>Second app instance / automated failover</strong> — first enterprise SLA contract.</li>
+  </ul>
+  <div class="best"><strong>Standing order:</strong> Booking.com and Expedia connectivity certification are free but calendar-gated — the applications start now, because they gate the first property selling on OTA inventory.</div>
+
+</div>
+
+<div class="footer">
+  Mother of All PMS – Complete Future-Ready Technical Architecture<br>
+  Zero-Cost Full-Stack Edition · Every service retained, cost engineered out · 13 August 2026<br>
+  Rank #1 in Speed • Efficiency • Cost • Reliability • Completeness • User Experience • Future Adaptability<br>
+  One Subscription = Entire Hotel Business • Ready ASAP • Designed for Every Possibility
+</div>
+
+</body>
+</html>
