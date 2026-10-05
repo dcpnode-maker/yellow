@@ -1,0 +1,13 @@
+import type { OwnerTrustAccountView, OwnerTrustApprovalView, OwnerTrustExpensePreview } from '../../contexts/financials/index';
+export type OwnerTrustAccountPage = Readonly<{ accounts: readonly OwnerTrustAccountView[]; nextCursor: string|null }>;
+export type OwnerTrustApprovalPage = Readonly<{ approvals: readonly OwnerTrustApprovalView[]; nextCursor: string|null }>;
+export type OwnerTrustReadContext = Readonly<{ generation:number; financeEpoch:number; draftGeneration:number; property:string; token:string; principal:unknown; view:string }>;
+export type OwnerTrustReadFailure = Readonly<{ status:number; kind:'session-denied'|'scope-missing'|'property-forbidden'|'unverified-denial'|'unavailable'; suppliedType:string|null }>;
+export function parseOwnerTrustAccounts(value:unknown):OwnerTrustAccountPage;
+export function parseOwnerTrustApprovals(value:unknown):OwnerTrustApprovalPage;
+export function parseOwnerTrustPreview(value:unknown):OwnerTrustExpensePreview;
+export function hasOwnerTrustPropertyGrant(value:unknown, property:string):boolean;
+export function appendOwnerTrustPage<T>(before:readonly T[], next:readonly T[], identity:(row:T)=>string, used:readonly string[], requested:string|null, following:string|null):readonly T[];
+export function ownerTrustReadIsCurrent(captured:OwnerTrustReadContext, current:OwnerTrustReadContext):boolean;
+export function ownerTrustReadSameSession(captured:OwnerTrustReadContext, current:OwnerTrustReadContext):boolean;
+export function classifyOwnerTrustReadFailure(status:number, body:unknown):OwnerTrustReadFailure;
