@@ -1,0 +1,66 @@
+{
+  "schema": "yellow-ci-canonical-scopes-admission/v1",
+  "baseHead": "a22290e42c481651efc9fb65e54ab78b32c28817",
+  "appliedAtUtc": "2026-10-01T20:48:12.6476814Z",
+  "implementationFreezeSha256": "caa53ddde477058261e6babad61f08744c598a2f729f7e9b88c647b80b2068c7",
+  "patchSha256": "f2d71d1c967c3e6951d7a3d4f79c4cd94032df69234dfac69f854ce8b8846db4",
+  "independentReviewSha256": "b8a2f9c4790eb3e41ae0b602c01ebfef7f85ea9eee4b9c48afc64248b07693a0",
+  "orderSha256": "d90c0792d6bbd0ce4757e008b4580a1606972df82344f016ec2960193e23de79",
+  "tests": [
+    {
+      "path": "tests/order609-reservation-create-edit.browser.test.ts",
+      "beforeSha256": "269977976f6199af7f247941f31e80892141c7ee7f18b41d37783500f24253a5",
+      "afterSha256": "70ccbf18938daf35ef2ad6ad816469db7d30a4ff35635bab9f38a0ca0f8722ae",
+      "bytes": 23477,
+      "exactByteBackprojection": true
+    },
+    {
+      "path": "tests/yellow-ai-speech-consent.test.ts",
+      "beforeSha256": "13b8b5458b29f2ca3e5306648cfec1f95e3c77660f2d47170e6a433514916749",
+      "afterSha256": "280058000e17360e58653d4a62a079fa479285b7ac39eae3830d59a1f6de3d9b",
+      "bytes": 18146,
+      "exactByteBackprojection": true
+    },
+    {
+      "path": "tests/yellow-departure-coordination.browser.test.ts",
+      "beforeSha256": "dc76befac24da23e99f315d7ca5908eb9fbc87e175cf61508af6b7202249dbc5",
+      "afterSha256": "f84979ebe8f29c6873d6b8a083d2cad4f239101c40839d470f45068bb9462223",
+      "bytes": 21458,
+      "exactByteBackprojection": true
+    },
+    {
+      "path": "tests/yellow-voice-routing.test.ts",
+      "beforeSha256": "591621de01bfa08c06795bdde4a2f0634cd655f1a3f78e27a3dcc14673ce9f2a",
+      "afterSha256": "b086bc62581063b835eb30ab37912d589bb1088841854ce9f068e1cf5ae534d7",
+      "bytes": 34383,
+      "exactByteBackprojection": true
+    },
+    {
+      "path": "tests/browser-normal-login-scopes.test.ts",
+      "beforeSha256": null,
+      "afterSha256": "6451526270fd0bf3ca1ea5cca197758cba3ed9f6906bf97d0265c25a0c981ca6",
+      "bytes": 3087,
+      "exactByteBackprojection": false
+    }
+  ],
+  "declaredPaths": [
+    "tests/order609-reservation-create-edit.browser.test.ts",
+    "tests/yellow-ai-speech-consent.test.ts",
+    "tests/yellow-departure-coordination.browser.test.ts",
+    "tests/yellow-voice-routing.test.ts",
+    "tests/browser-normal-login-scopes.test.ts",
+    "handoff/orders/RESOURCE-20261002-ci-canonical-scopes.md",
+    "handoff/reviews/CI-CANONICAL-SCOPES-20261002-independent.json",
+    "handoff/receipts/CI-CANONICAL-SCOPES-20261002-admission.json"
+  ],
+  "protectedCatalogueSha256": "4dd189c9ee9c74dd1ae254767f8575f799deeebe0d53dfb5894504a7dee57343",
+  "protectedTrackedFiles": 2644,
+  "allOtherTrackedBytesVerifiedExact": true,
+  "fourExactByteBackprojections": true,
+  "admissionControllerSha256": "b8ef9256cc3901b899ac3d06449149a7b66f8aa27fa84233f3a2bab1f672a317",
+  "commonControllerSha256": "403a169faa68ce32738d44834246b32b33ad3fca90e68d0c36ccdf5d6d85beaf",
+  "productAuthThemeScopesNativeMigrationsPreserved": true,
+  "browserExecuted": false,
+  "gitStageCommitPush": false,
+  "runtimeDbDeviceActions": false
+}
