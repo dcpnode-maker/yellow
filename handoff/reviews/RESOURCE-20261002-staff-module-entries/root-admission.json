@@ -1,0 +1,95 @@
+{
+  "schema": "yellow-staff-module-entries-root-admission/v1",
+  "admittedAtUtc": "2026-10-01T20:00:52.160712+00:00",
+  "candidateHead": "3039ac9345503b2e0aec07759d5686493b3ff3c7",
+  "freezeSha256": "7300a819d200df909a2151e38433510019dc608ba03c780524e9ec44691caa05",
+  "patchSha256": "06e41fcc6eddaaecb3094d6d2c69fa92f14b5fd5d24351983c014dbf371f1383",
+  "reviewSha256": "ce165584fcf3d76c8159e5d775fb38ff24df0560aafad429ef6e11bfd8031d04",
+  "orderSha256": "cff353580916c7550b255f61ee20370e5f2b6a4a9d72aaa3020122cf5382d2e0",
+  "assetManifestSha256": "a1105a0cf70adb5c53c30380bff3da8c558740dc8d3c52a77c16920a419b42a2",
+  "admittedPaths": [
+    {
+      "path": "frontend/yellow/src/ui/OperatorHeader.tsx",
+      "sha256": "724c8404c72490aa22b5f7627bf7bc657b8d59a24cb835ec36604249e9140101",
+      "bytes": 20444
+    },
+    {
+      "path": "frontend/yellow/src/reservation-navigation.ts",
+      "sha256": "0c4bce53c40637b1d8e4ea7f34da882dc6815dbb1e91596272706439000f64ec",
+      "bytes": 1912
+    },
+    {
+      "path": "frontend/yellow/src/workspaces/ReservationWorkspace.tsx",
+      "sha256": "8c4c20613d94eacb5c196b64902120b91fd2659124a3b408fda33c25bd417364",
+      "bytes": 228215
+    },
+    {
+      "path": "frontend/yellow/src/App.tsx",
+      "sha256": "ed49db9cddc44a99c4217686e05cc002f5b9465dbd449f7f1e272b0f0d8796d2",
+      "bytes": 525188
+    },
+    {
+      "path": "frontend/yellow/src/workspaces/StaffCrsWorkspace.tsx",
+      "sha256": "3a52618f950857854851e408cc663945882d692723b8aeeff650ca06bd6fffde",
+      "bytes": 6977
+    },
+    {
+      "path": "frontend/yellow/src/workspaces/staff-crs-client.ts",
+      "sha256": "2429da525a2cf7ee5dea57c8cabd204c41b4720495a6a91e83de07a129b0b946",
+      "bytes": 14015
+    },
+    {
+      "path": "frontend/yellow/src/workspaces/StaffRmsWorkspace.tsx",
+      "sha256": "42bd1e36d2133e93a3c5ba1c90515b62732050ce482900893a4db4a6219c6d06",
+      "bytes": 8544
+    },
+    {
+      "path": "frontend/yellow/src/workspaces/staff-rms-client.ts",
+      "sha256": "574a47ea016675c8daa14092cf8832bfd8b30bfad582a027f14dd159ccdc6262",
+      "bytes": 7512
+    },
+    {
+      "path": "tests/staff-module-navigation.ui.test.tsx",
+      "sha256": "a16177a0745e326f5b0986c8303e0ba3e6b0e97d36a30a47f6216a424ea946af",
+      "bytes": 9292
+    },
+    {
+      "path": "tests/staff-crs-client.test.ts",
+      "sha256": "5b4e4084da140419b59e773a37d3753a69cac32c9179f64ef9ae6ecdf173bf0c",
+      "bytes": 5746
+    },
+    {
+      "path": "tests/staff-rms-client.test.ts",
+      "sha256": "3f42eba2b40c74943305af130138b00b79491462a1d06e0cd9f30d6a88661798",
+      "bytes": 5817
+    }
+  ],
+  "protectedPathCount": 2617,
+  "actualOtherTrackedFilesPreserved": 2627,
+  "acceptedPriorCommitDifferences": [
+    "docs/PROJECT-STATUS.md",
+    "tests/database-acceptance.integration.test.ts"
+  ],
+  "protectedBytesReverified": true,
+  "assetCount": 22,
+  "indexFlagsNormal": true,
+  "staged": false,
+  "committed": false,
+  "runtimeOrDatabaseChanged": false,
+  "browserAcceptance": "unverified",
+  "reviewLimits": [
+    "CRM entry reveals existing Guests/profiles and Department tasks; no claim of segments/loyalty completeness",
+    "RMS exposes actual read models/quotes/recorded economics, not autonomous pricing or forecasting",
+    "CRS availability remains evidence, followed by canonical reservation workflow; booking-engine endpoint not invented",
+    "No browser visual/touch/microphone acceptance; root runtime/public/API and external CI gates remain independent",
+    "No candidate/canonical/backend/DB/runtime/device/dependency/Git edits"
+  ],
+  "rootFocusedTests": {
+    "pass": 14,
+    "fail": 0,
+    "assertions": 143,
+    "files": 3,
+    "browserExecution": false
+  },
+  "rootControllerCoauthored": true
+}

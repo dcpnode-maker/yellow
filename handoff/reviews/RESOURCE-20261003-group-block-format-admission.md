@@ -1,0 +1,7 @@
+# Group caller final source-format admission
+
+Independent Astra accepts parent formatting successor FREEZE0d688be791f9fe9025ef153c40f8927d225719affa185450920669f04ed1d503. REVIEWd5c8bb24296c14e110dfff3b9986b95f7e2ddcaa674b650844e88527e3c8ea94: E:/YellowWorkspace/Documents/Codex/yellow-prototype-review-20261002/journey-v2/astra/group-block-caller-v2-review/REVIEW.md. Parent source/proof: E:/YellowWorkspace/Data/BuildArtifacts/yellow-pms-research-flow-20261003-v1/group-caller-admission-v2.
+
+Five exact copied pure files remove one excess terminal LF, all preceding bytes unchanged. All36bundlefiles including23freshrootfiles byte-exact to accepted parentV1; all2727protectedsourcefiles, completeReservationbackprojection, independent12connected/3geometry/10tests88assertions/type/boundary proof remain valid. OriginalV1/V2child and parentV1 freezes remain immutable. Scope amendment preserves the failed Git whitespace gate and successful read-only check; no gate weakened. Independent verified18staged/working/snapshot paths at6f064fde. Newly issued isolated Party identity order is documentation only; no Party product source is admitted by this commit.
+
+Source commitment allowed; live activation still requires separately reviewed V7/publicV9 helper derivation/exact committed source/new readiness and served-byte/native read proof. Full18/nativecommercial/financial/physicalphone/manualUAT acceptance remains pending. No product/auth/native behavior changes from formatting.
