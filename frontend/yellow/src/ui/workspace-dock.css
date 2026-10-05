@@ -1,0 +1,242 @@
+/* Placementable collapsed workspace ribbon. Kept separate from the full sidebar theme. */
+.operator-dock-visible-tooltip {
+  position: fixed;
+  z-index: 2000;
+  pointer-events: none;
+  box-sizing: border-box;
+  width: max-content;
+  max-width: min(220px, calc(100vw - 24px));
+  padding: 7px 10px;
+  border: 1px solid #dfe1e5;
+  border-radius: 8px;
+  background: #fff;
+  color: #30343b;
+  font: 500 12px/1.35 system-ui, sans-serif;
+  box-shadow: 0 4px 12px #20242b18;
+}
+.yellow-next .operator-header .operator-workspace-dock {
+  position: fixed;
+  z-index: 45;
+  display: flex;
+  width: max-content;
+  gap: 6px;
+  box-sizing: border-box;
+  padding: 6px;
+  border: 1px solid #d8dce3;
+  border-radius: 18px;
+  background: #f4f5f8f2;
+  box-shadow: inset 0 1px 0 #fff, 0 8px 28px #25293224;
+  color: #39404a;
+  opacity: .48;
+  transition: left 180ms ease, top 180ms ease, bottom 180ms ease, transform 180ms ease, box-shadow 140ms ease, opacity 140ms ease;
+}
+
+/* The idle dock may cover content, but remains a real, visible hit target. */
+.yellow-next .operator-header .operator-workspace-dock:is(:hover, :focus-within, [data-dragging="true"]) { opacity: 1; }
+
+.yellow-next .operator-header .operator-workspace-dock[data-placement="left"] {
+  top: calc(50% + 34px);
+  bottom: auto;
+  left: calc(8px + env(safe-area-inset-left, 0px));
+  max-height: calc(100dvh - 92px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
+  transform: translateY(-50%);
+  flex-direction: column;
+  height: max-content;
+  overflow: visible;
+}
+
+.yellow-next .operator-header .operator-workspace-dock[data-placement="bottom"] {
+  top: auto;
+  right: auto;
+  bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+  left: 50%;
+  max-width: calc(100vw - 24px - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px));
+  transform: translateX(-50%);
+  flex-direction: row;
+  gap: 2px;
+  border-radius: 17px;
+}
+
+.yellow-next .operator-header .operator-workspace-dock[data-dragging="true"] {
+  border-color: #aab3c0;
+  box-shadow: inset 0 1px 0 #fff, 0 10px 30px #25293236;
+}
+
+.yellow-next .operator-header .operator-workspace-dock .operator-quick-dock {
+  position: static;
+  inset: auto;
+  display: flex;
+  flex: 1 1 auto;
+  width: auto;
+  max-width: none;
+  min-height: 0;
+  gap: 6px;
+  overflow: visible;
+  padding: 0;
+  transform: none;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.yellow-next .operator-header .operator-workspace-dock[data-placement="left"] .operator-quick-dock {
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  max-height: calc(100dvh - 170px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+  scrollbar-width: thin;
+}
+
+.yellow-next .operator-header .operator-workspace-dock[data-placement="bottom"] .operator-quick-dock {
+  flex-direction: row;
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: calc(100vw - 86px - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px));
+  overflow-x: auto;
+  overflow-y: hidden;
+  overscroll-behavior-x: contain;
+  touch-action: pan-x;
+  scrollbar-width: thin;
+  gap: 2px;
+}
+
+.yellow-next .operator-header .operator-workspace-dock :is(.operator-dock-grip, .operator-quick-dock > button) {
+  position: relative;
+  display: grid;
+  flex: 0 0 44px;
+  place-items: center;
+  box-sizing: border-box;
+  width: 44px;
+  min-width: 44px;
+  height: 44px;
+  min-height: 44px;
+  padding: 0;
+  border: 1px solid #e0e3e9;
+  border-radius: 13px;
+  background: linear-gradient(#fff, #f0f2f6);
+  color: #39404a;
+  box-shadow: 0 1px 2px #25293212;
+  cursor: pointer;
+  transform-origin: center center;
+}
+
+.yellow-next .operator-header .operator-workspace-dock :is(.operator-dock-grip, .operator-quick-dock > button):hover,
+.yellow-next .operator-header .operator-workspace-dock :is(.operator-dock-grip, .operator-quick-dock > button):focus-visible {
+  border-color: #cbd1da;
+  background: #fff;
+  box-shadow: 0 3px 9px #2529321c;
+}
+
+.yellow-next .operator-header .operator-workspace-dock .operator-dock-grip {
+  touch-action: none;
+  cursor: grab;
+}
+
+.yellow-next .operator-header .operator-workspace-dock[data-dragging="true"] .operator-dock-grip {
+  cursor: grabbing;
+  outline: 2px solid #758296;
+  outline-offset: 2px;
+}
+
+.yellow-next .operator-header .operator-workspace-dock .operator-dock-grip svg {
+  width: 18px;
+  height: 18px;
+}
+
+.yellow-next .operator-header .operator-workspace-dock .operator-quick-dock > button[aria-current="page"] {
+  background: #eceef0;
+  color: #20242a;
+  box-shadow: inset 0 0 0 1px #dce0e5;
+}
+
+.yellow-next .operator-header .operator-workspace-dock .operator-quick-dock > button[aria-current="page"]::after {
+  content: "";
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  bottom: auto;
+  left: auto;
+  width: 3px;
+  height: 14px;
+  border-radius: 50%;
+  background: #424957;
+}
+
+.yellow-next .operator-header .operator-workspace-dock :is(.operator-dock-grip, .operator-quick-dock > button):disabled {
+  opacity: .55;
+  cursor: not-allowed;
+}
+
+.yellow-next .operator-header .operator-workspace-dock :is(.operator-dock-grip, .operator-quick-dock > button):focus-visible {
+  outline: 2px solid #526174;
+  outline-offset: 2px;
+}
+
+.yellow-next .operator-header .operator-workspace-dock .operator-quick-dock svg {
+  width: 21px;
+  height: 21px;
+}
+
+.yellow-next .operator-header .operator-workspace-dock .operator-dock-tooltip {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+@media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
+  .yellow-next .operator-header .operator-workspace-dock :is(.operator-dock-grip, .operator-quick-dock > button) {
+    transition: transform 140ms ease, box-shadow 140ms ease;
+  }
+  .yellow-next .operator-header .operator-workspace-dock .operator-quick-dock > button:not(:disabled):hover,
+  .yellow-next .operator-header .operator-workspace-dock .operator-dock-grip:not(:disabled):hover,
+  .yellow-next .operator-header .operator-workspace-dock :is(.operator-dock-grip, .operator-quick-dock > button):focus-visible {
+    transform: translateY(-3px) scale(1.08);
+  }
+}
+
+@media (max-width: 980px) {
+  .yellow-next .operator-header .operator-workspace-dock[data-placement="left"] {
+    top: calc(50% + 32px);
+    left: calc(6px + env(safe-area-inset-left, 0px));
+    max-height: calc(100dvh - 84px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
+  }
+  .yellow-next .operator-header .operator-workspace-dock[data-placement="left"] .operator-quick-dock {
+    max-height: calc(100dvh - 162px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
+  }
+  .yellow-next .operator-header .operator-workspace-dock[data-placement="bottom"] {
+    bottom: calc(10px + env(safe-area-inset-bottom, 0px));
+    width: calc(100vw - 24px - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px));
+    max-width: calc(100vw - 24px - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px));
+    gap: 2px;
+    padding: 6px;
+  }
+}
+
+.yellow-next:has(> .operator-header .operator-workspace-dock[data-placement="left"]) > main {
+  margin-left: 64px;
+}
+
+.yellow-next:has(> .operator-header .operator-workspace-dock[data-placement="bottom"]) > main {
+  padding-bottom: max(96px, calc(84px + env(safe-area-inset-bottom, 0px)));
+  scroll-padding-bottom: max(96px, calc(84px + env(safe-area-inset-bottom, 0px)));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .yellow-next .operator-header .operator-workspace-dock,
+  .yellow-next .operator-header .operator-workspace-dock * {
+    scroll-behavior: auto;
+    transition: none !important;
+    animation: none !important;
+  }
+}

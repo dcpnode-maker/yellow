@@ -1,0 +1,357 @@
+{
+  "schema": "yellow-root-reference-ui-admission/v1",
+  "observedAt": "2026-10-01T18:09:13.446215+00:00",
+  "baseRevision": "444072ffdff2b7745345d88f71b603c17e11ace6",
+  "freezeSha256": "ab0d4ae8bbaa1cab4cd3f1251683706fabf745178a5ff0b8f681c50ba501cc31",
+  "independentReviewSha256": "cca76a136f1b28e41b34d9481ba12f31a53d5304166b57cf1f10e4c8ca86e873",
+  "paths": [
+    {
+      "path": "frontend/yellow/src/App.tsx",
+      "beforeSha256": "d33d57b944ced91d1fdf93ad25914f335e7265dac9944533351dc2d9f258d377",
+      "afterSha256": "3767a193d2496e9605b8fcf3b71505aab1d0042dd828cf7397d47f1f2e311098",
+      "bytes": 524464,
+      "lane": "restoration",
+      "savedReferenceSha256": "d9ef6ddbca9b990f2523417bf7447f8cc77f9ede41b84d70f5de2a97365a87b9"
+    },
+    {
+      "path": "frontend/yellow/src/AuthenticationGate.tsx",
+      "beforeSha256": null,
+      "afterSha256": "4fec7d5b45c5883759be79388a6f1731ae06ba3cab37b237fd8f230da5e4d937",
+      "bytes": 5081,
+      "lane": "admitted-normal-auth"
+    },
+    {
+      "path": "frontend/yellow/src/auth-session.ts",
+      "beforeSha256": null,
+      "afterSha256": "eea0c4173c16422d0b4a6a3b0765e7f82ae23cf3df31a701a8084e985d67d388",
+      "bytes": 9443,
+      "lane": "admitted-normal-auth"
+    },
+    {
+      "path": "frontend/yellow/src/authentication.css",
+      "beforeSha256": null,
+      "afterSha256": "f67fca5cf0d70cda6d98db8e7c2adf3c30f9bd40e129835cdf57bd99c4a04acc",
+      "bytes": 2153,
+      "lane": "admitted-normal-auth"
+    },
+    {
+      "path": "frontend/yellow/src/hotel-search.ts",
+      "beforeSha256": null,
+      "afterSha256": "961fe1679686f9041f999191508e7f347aa4b2fbc2472d8793fc26fc8a78b5ac",
+      "bytes": 9006,
+      "lane": "restoration",
+      "savedReferenceSha256": "961fe1679686f9041f999191508e7f347aa4b2fbc2472d8793fc26fc8a78b5ac"
+    },
+    {
+      "path": "frontend/yellow/src/main.tsx",
+      "beforeSha256": "528553c029ac0a6bb33f06efc391e00da85d635fd266f4c63e240e2afea026e6",
+      "afterSha256": "e9b823f08032fc6fb1d19460edea1ee439496e43197f354f460bfb58e1685065",
+      "bytes": 785,
+      "lane": "restoration",
+      "savedReferenceSha256": "a18f6a8b7304557a47d4dbc444674f05b1029433c06907e83bf4130849d9ae9d"
+    },
+    {
+      "path": "frontend/yellow/src/movement-table-query.ts",
+      "beforeSha256": null,
+      "afterSha256": "7c367e612d7704e33ae2e3fcb287923e29bb7c8fe5903fd7d294e997bbc6f132",
+      "bytes": 5654,
+      "lane": "restoration",
+      "savedReferenceSha256": "1ba3d4e4ef04cb71932a89a159a0f05a57ffb2a6183c42c92f7f98cb016edc65"
+    },
+    {
+      "path": "frontend/yellow/src/portfolio-navigation.ts",
+      "beforeSha256": null,
+      "afterSha256": "fef3bcfa4438ba53e6b563e5cb4b749eedb4ceb5ace9313102e54decf591008f",
+      "bytes": 4396,
+      "lane": "restoration",
+      "savedReferenceSha256": "fef3bcfa4438ba53e6b563e5cb4b749eedb4ceb5ace9313102e54decf591008f"
+    },
+    {
+      "path": "frontend/yellow/src/styles.css",
+      "beforeSha256": "655d16f2673adfa1bf06bcefddf7ffc2726e4a0e9cfccd87cf566ad097ed46cd",
+      "afterSha256": "c744a047317f9ad3d34dc1ea42f0fcb2294f08fc0e33b1e44d4f4919eee9f394",
+      "bytes": 171327,
+      "lane": "restoration",
+      "savedReferenceSha256": "c4ab9ea8704d32e76c375dbb7b561e3461fe8752a523bc6237fcf8008914cfe3"
+    },
+    {
+      "path": "frontend/yellow/src/table-query.ts",
+      "beforeSha256": null,
+      "afterSha256": "bb719b3bacd25b661d6f987c1a82b8090448d2f9a53a9aefbee999fdbe7efefe",
+      "bytes": 4925,
+      "lane": "restoration",
+      "savedReferenceSha256": "bb719b3bacd25b661d6f987c1a82b8090448d2f9a53a9aefbee999fdbe7efefe"
+    },
+    {
+      "path": "frontend/yellow/src/today-workspace.ts",
+      "beforeSha256": "01707a170d96d56b8e73838cf64b7c7960c1b8de9fad90ec04bca8409fa3303d",
+      "afterSha256": "446723bd47177652b43f387a51277b7cec02194dd232deb1f37f37146e50501c",
+      "bytes": 11751,
+      "lane": "restoration",
+      "savedReferenceSha256": "e23eb4e3905b0f41012c120f0d16029dfece094ec63229ad755bc5fd507bdc37"
+    },
+    {
+      "path": "frontend/yellow/src/ui/CopyCellButton.tsx",
+      "beforeSha256": null,
+      "afterSha256": "5b45f5826bf9910e9b7cdba048afc7a2a1cc654e64ba03e846b21b615ee3200f",
+      "bytes": 1791,
+      "lane": "restoration",
+      "savedReferenceSha256": "5b45f5826bf9910e9b7cdba048afc7a2a1cc654e64ba03e846b21b615ee3200f"
+    },
+    {
+      "path": "frontend/yellow/src/ui/HotelSearch.tsx",
+      "beforeSha256": null,
+      "afterSha256": "841618bc309284858bde08f41fccb8750ab2a125c2c596faae155ce616342fba",
+      "bytes": 9863,
+      "lane": "restoration",
+      "savedReferenceSha256": "841618bc309284858bde08f41fccb8750ab2a125c2c596faae155ce616342fba"
+    },
+    {
+      "path": "frontend/yellow/src/ui/MovementTableControls.tsx",
+      "beforeSha256": null,
+      "afterSha256": "f37ca04ef3908861f0da3ee9f3c1be53140cbad754926750ecb524d695fe9270",
+      "bytes": 8479,
+      "lane": "restoration",
+      "savedReferenceSha256": "05f6a3f1b7c0674b0ae14ace987ad2d628646c436b7b9fd08afed974e7d3c512"
+    },
+    {
+      "path": "frontend/yellow/src/ui/OperatorHeader.tsx",
+      "beforeSha256": null,
+      "afterSha256": "7bd8dc1ebf77323e9ee9bee4b8d59204d3c319b62a865f96cf0ffc8a87f6e4ab",
+      "bytes": 18677,
+      "lane": "restoration",
+      "savedReferenceSha256": "70cd8e0a30aebc41f7b8250e310a33b80b5259f612b9fbb67b528fed945f90e7"
+    },
+    {
+      "path": "frontend/yellow/src/ui/PortfolioExplorer.css",
+      "beforeSha256": null,
+      "afterSha256": "0e11d1c04511ec0828d06c9b3396c40007477dac73bd1ba1064d6e6448bd58a5",
+      "bytes": 6029,
+      "lane": "restoration",
+      "savedReferenceSha256": "0e11d1c04511ec0828d06c9b3396c40007477dac73bd1ba1064d6e6448bd58a5"
+    },
+    {
+      "path": "frontend/yellow/src/ui/PortfolioExplorer.tsx",
+      "beforeSha256": null,
+      "afterSha256": "5bdf3b99a9652fa5bdced866e4c2d38a4d71550799129f8acec0658f27042fab",
+      "bytes": 11213,
+      "lane": "restoration",
+      "savedReferenceSha256": "90bcdf8e5da3ff5d0d2647c1c759e50f8953e7f22014b988f3b86b7ec1b491aa"
+    },
+    {
+      "path": "frontend/yellow/src/ui/RibbonPanel.tsx",
+      "beforeSha256": null,
+      "afterSha256": "a2e576dab5c0c8c01d08c4a778b0059325ffbbaca889827adb374cfc213a2b1c",
+      "bytes": 1316,
+      "lane": "restoration",
+      "savedReferenceSha256": "a2e576dab5c0c8c01d08c4a778b0059325ffbbaca889827adb374cfc213a2b1c"
+    },
+    {
+      "path": "frontend/yellow/src/ui/SegmentedRibbon.tsx",
+      "beforeSha256": "28fd36b2e8860b1367be34935aecb7a552e83ffc4daf1c67915845a364781551",
+      "afterSha256": "06e404cd5aae37b85cd26f1465e248c27d4297cccb68129bbf87e9d420fe382d",
+      "bytes": 7643,
+      "lane": "restoration",
+      "savedReferenceSha256": "06e404cd5aae37b85cd26f1465e248c27d4297cccb68129bbf87e9d420fe382d"
+    },
+    {
+      "path": "frontend/yellow/src/ui/TableColumnMenu.tsx",
+      "beforeSha256": null,
+      "afterSha256": "4ba3adbf40f060e9e89289e1be010b3bc557007d7732c2916db178f8d9d42bdb",
+      "bytes": 9263,
+      "lane": "restoration",
+      "savedReferenceSha256": "4ba3adbf40f060e9e89289e1be010b3bc557007d7732c2916db178f8d9d42bdb"
+    },
+    {
+      "path": "frontend/yellow/src/ui/TableControls.tsx",
+      "beforeSha256": null,
+      "afterSha256": "e3372da2a1d57ebe155b4115c1cb0d7f2939157ad27e156b9e8cf0a4af2a6c85",
+      "bytes": 10510,
+      "lane": "restoration",
+      "savedReferenceSha256": "e3372da2a1d57ebe155b4115c1cb0d7f2939157ad27e156b9e8cf0a4af2a6c85"
+    },
+    {
+      "path": "frontend/yellow/src/ui/VoiceField.tsx",
+      "beforeSha256": null,
+      "afterSha256": "e01a6bb6d288bb3cd02652c47ac5787c01d2210418a4c3db8c294e7316d19d5e",
+      "bytes": 12254,
+      "lane": "restoration",
+      "savedReferenceSha256": "e01a6bb6d288bb3cd02652c47ac5787c01d2210418a4c3db8c294e7316d19d5e"
+    },
+    {
+      "path": "frontend/yellow/src/ui/WorkspaceDock.tsx",
+      "beforeSha256": null,
+      "afterSha256": "6da582f0d040a4f223f7925a8d430860dcdf63266effb0b102db7330aec85f92",
+      "bytes": 6038,
+      "lane": "restoration",
+      "savedReferenceSha256": "1d016a3f6e8d6ac0dd798a57b3f93bd5fa5c5761158091ddef30a69f09a6cbe5"
+    },
+    {
+      "path": "frontend/yellow/src/ui/cell-copy.ts",
+      "beforeSha256": null,
+      "afterSha256": "48efa0e33d0237de331a14381f2d5bc4fdc961a5d688a7b3a345c80ba548939f",
+      "bytes": 736,
+      "lane": "restoration",
+      "savedReferenceSha256": "48efa0e33d0237de331a14381f2d5bc4fdc961a5d688a7b3a345c80ba548939f"
+    },
+    {
+      "path": "frontend/yellow/src/ui/field-dictation.ts",
+      "beforeSha256": null,
+      "afterSha256": "470c300b34d4a11d5ec383d96102aec1d85b9b2e8157552f7355db9a9b03bb0c",
+      "bytes": 8812,
+      "lane": "restoration",
+      "savedReferenceSha256": "470c300b34d4a11d5ec383d96102aec1d85b9b2e8157552f7355db9a9b03bb0c"
+    },
+    {
+      "path": "frontend/yellow/src/ui/hotel-search.css",
+      "beforeSha256": null,
+      "afterSha256": "545e5f071fc383cd83eccd3ba6c1e8008493e96589b95a03a5b941883cdcf9f8",
+      "bytes": 6322,
+      "lane": "restoration",
+      "savedReferenceSha256": "545e5f071fc383cd83eccd3ba6c1e8008493e96589b95a03a5b941883cdcf9f8"
+    },
+    {
+      "path": "frontend/yellow/src/ui/movement-ribbon.css",
+      "beforeSha256": null,
+      "afterSha256": "18c5f6f36b2849b59a86df983120ea05ca48e9206602efc90f2277096c59bdcf",
+      "bytes": 1378,
+      "lane": "restoration",
+      "savedReferenceSha256": "18c5f6f36b2849b59a86df983120ea05ca48e9206602efc90f2277096c59bdcf"
+    },
+    {
+      "path": "frontend/yellow/src/ui/reference-theme.css",
+      "beforeSha256": null,
+      "afterSha256": "06f80608a2211c1d0ff49fbe49d628dafaae578ce0e5a07b53fa4cba2639221e",
+      "bytes": 29249,
+      "lane": "restoration",
+      "savedReferenceSha256": "06f80608a2211c1d0ff49fbe49d628dafaae578ce0e5a07b53fa4cba2639221e"
+    },
+    {
+      "path": "frontend/yellow/src/ui/table-controls.css",
+      "beforeSha256": null,
+      "afterSha256": "6876f173dadb814538c4e1adf8a60612a584ef23d6ccbb7525e2a272ab406e80",
+      "bytes": 18482,
+      "lane": "restoration",
+      "savedReferenceSha256": "6876f173dadb814538c4e1adf8a60612a584ef23d6ccbb7525e2a272ab406e80"
+    },
+    {
+      "path": "frontend/yellow/src/ui/voice-field.css",
+      "beforeSha256": null,
+      "afterSha256": "e8a249ec5399d1758071bb2c91a1a8b083d549b41bd6966f59993c75f45b1ba1",
+      "bytes": 2881,
+      "lane": "restoration",
+      "savedReferenceSha256": "e8a249ec5399d1758071bb2c91a1a8b083d549b41bd6966f59993c75f45b1ba1"
+    },
+    {
+      "path": "frontend/yellow/src/ui/workspace-dock.css",
+      "beforeSha256": null,
+      "afterSha256": "2c268377d8266a92810bae1b68f758d9e19023d0f0d2efaf86ac9573e17fa870",
+      "bytes": 7841,
+      "lane": "restoration",
+      "savedReferenceSha256": "2c268377d8266a92810bae1b68f758d9e19023d0f0d2efaf86ac9573e17fa870"
+    },
+    {
+      "path": "frontend/yellow/src/ui/workspace-dock.ts",
+      "beforeSha256": null,
+      "afterSha256": "2b77412f4770f33849a84f4ca384b9b964d54e7b925edea3930d942bf00a5da0",
+      "bytes": 6521,
+      "lane": "restoration",
+      "savedReferenceSha256": "2b77412f4770f33849a84f4ca384b9b964d54e7b925edea3930d942bf00a5da0"
+    },
+    {
+      "path": "frontend/yellow/src/yellow-api.tsx",
+      "beforeSha256": "48822cf46b917a3b050134374beafab7f3aa39d09ced30d8c05f38e7cfa92502",
+      "afterSha256": "2e76477c647d594e6be011ad3f62c6f7d30ebe338ed7b0af534ebfc9b6b7b537",
+      "bytes": 133429,
+      "lane": "admitted-normal-auth",
+      "savedReferenceSha256": "f01523b5aa8170b3e4cba294e784d46a45df1ce9df1e830d9e47dd7415587c31"
+    },
+    {
+      "path": "frontend/yellow/vite.config.ts",
+      "beforeSha256": "09bcafd5ddfa8462048f2f2fbe3d25f161f2397b5171c4a9e9943dfa1fd2cc5f",
+      "afterSha256": "f4cdc4da8c996de68a7ebb430512ae1da05bde31a12e41f1fe2779cc29f5aae1",
+      "bytes": 1064,
+      "lane": "admitted-normal-auth",
+      "savedReferenceSha256": "a9f56348b7052be297d35b9f82e99813f5978bb58b5c577e9c6eb9679fa33590"
+    },
+    {
+      "path": "tests/order610-reservation-transitions.test.ts",
+      "beforeSha256": "0e55f9c9aad51d385187872414b3db38dcac768f89ea3dea85c84f9f20f645c2",
+      "afterSha256": "592d6e94afb8a0d7fc69a99228cefeaf7243abf7b99a229a8d6248587f233fca",
+      "bytes": 9388,
+      "lane": "admitted-normal-auth"
+    },
+    {
+      "path": "tests/yellow-cashier-bill-window-allocation.test.ts",
+      "beforeSha256": "3158fd9303f14ae46138120d756e72c437b61cdf42a5a0bd03f916561de6163d",
+      "afterSha256": "3d6db7336ee17184703b7f4a9aad5d6a368ba435894d9b85bb9b7212b0c576cb",
+      "bytes": 12173,
+      "lane": "admitted-normal-auth"
+    },
+    {
+      "path": "tests/yellow-react-auth-gate.ui.test.ts",
+      "beforeSha256": null,
+      "afterSha256": "201f5aa8221938467abace7a668086c7833078044cf1810a328d8d5c089d2c79",
+      "bytes": 6032,
+      "lane": "admitted-normal-auth"
+    },
+    {
+      "path": "tests/yellow-react-auth-session.test.ts",
+      "beforeSha256": null,
+      "afterSha256": "76b3919d117c4237d32c1d04acb79de40659005f9e6911d3e102ec57be772a04",
+      "bytes": 8912,
+      "lane": "admitted-normal-auth"
+    },
+    {
+      "path": "tests/yellow-reference-ui-restoration.test.tsx",
+      "beforeSha256": null,
+      "afterSha256": "8c6f83f5c1115c5590312cd7e78b5fc9cd5c19ae23ac22a934850f1a1139c7ef",
+      "bytes": 14229,
+      "lane": "restoration"
+    },
+    {
+      "path": "tests/yellow-reservation-board-pages.test.ts",
+      "beforeSha256": "58754152376310e6b4f0ec9072b7ddfd7b7cf70476a28cbb2bac705711c14c91",
+      "afterSha256": "80620e6a9b63c0a2c44c8ebab1bff758da0cb16ce17c00f1b205f236edfc3707",
+      "bytes": 3029,
+      "lane": "restoration"
+    },
+    {
+      "path": "tests/yellow-today-workspace.test.ts",
+      "beforeSha256": "cf6dabca38c0bee7b592a11a4e4fb2dc2f46d7e360b9b336e73b05bb895f98ae",
+      "afterSha256": "f0e1062ae4923ad81d7bf7f4ad17a30696f2c60c7ced557944748fa936ea6eb4",
+      "bytes": 8059,
+      "lane": "restoration"
+    }
+  ],
+  "unadmittedTrackedPathsUnchanged": 2574,
+  "servableAssetCount": 21,
+  "servableAssetManifestSha256": "4cc890805b7699f7ef869a8ae508f8101adbf8d806b2db94d8f8bbfd16f59fd1",
+  "catalogueOracleBeforeSha256": "cc2050ecd0926120b4cec35a059eb9b155bb883864e6c064df13d6bbd95eb2d0",
+  "catalogueOracleAfterSha256": "a3456c09f2e23782091a6f1c545d2c8117e22a77128f6c27aafead02129569ab",
+  "runtimeStarted": false,
+  "publicEndpointStarted": false,
+  "browserAcceptance": "unverified",
+  "limits": [
+    "Normal auth full-page navigation/reload/new-tab requires re-sign-in",
+    "Map and Reports visible unavailable; no route fallback invented",
+    "Current status readers do not provide property business-day scope",
+    "CRS/RMS/CRM/booking-engine registry statuses unchanged; later completed module code is a separate integration"
+  ],
+  "rootExecuted": {
+    "observedAt": "2026-10-01T18:10:51.527085+00:00",
+    "tests": {
+      "passed": 19,
+      "failed": 0,
+      "assertions": 128
+    },
+    "compiledVM": {
+      "passed": true,
+      "modules": 17,
+      "links": 57,
+      "anonymousFetches": 0,
+      "chosenPropertyCapture": true
+    },
+    "browserAcceptance": false
+  }
+}

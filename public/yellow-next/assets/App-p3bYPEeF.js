@@ -1,0 +1,1 @@
+import"./react-runtime-eCBuSmuH.js";import"./yellow-api-DOP9Uiuo.js";import{n as e,t}from"./yellow-app-CiqQkffj.js";e();export{t as App};
