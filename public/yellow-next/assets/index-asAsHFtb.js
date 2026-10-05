@@ -1,0 +1,1 @@
+import{t as e}from"./yellow-BB_UcbCV.js";e();

@@ -1,0 +1,11 @@
+# RMS presentation live release
+
+Parent published independently accepted source bdc721b26d2811afeff902d537e13761c1212434 through exact helperV5 and public-proofV7, once each. Astra's source/theme V2 and release/public successor reviews remain external immutable evidence. No PR/push/merge was performed.
+
+Stage produced22fresh manifest files; activation accepted public readiness. Only prior owned Bun22504/watcher24432 were replaced with Bun28976/watcher22272. New owner SHA25619ad953e72db9580cc025c67febf3403baaa10013f87b4db61ed2e39bdd4879f. PostgreSQL2124/frontier103, named connector7876, authentication/900-second preview/configuration and worker stops remain unchanged. Predecessor source/runtime/receipts are preserved.
+
+Public proof passed21fresh React asset hashes plus5legacy HTML/JS/model/view/CSS byte/MIME/nosniff/public no-store/origin no-cache checks, native inventory structural parsing, anonymous401/foreign403 without collections, retained housekeeping concealed404/invalid400, Calendar/Today and scoped RMS reads. Native RMS contains10model families, one configured plan, two sellable units, zero model drafts/target drafts/releases and parsed recorded economics. Quote returns exact404 rates/not_found for missing referenced configuration, recorded as unavailable and quoteParsedfalse. It is not a successful quote or complete RMS production coverage. No configuration seed or money/reservation command was executed.
+
+Current root live pointer was atomically recorded only after successful public proof. Fixed hostname: https://yellow-live-app.yellow-dcpnode-1676cc6f.workers.dev. Receipts are under database/research-flow-private-bdc721b2; predecessor pointer archive remains hosting/research-flow-release-v1/live-pointer-predecessor-c2ba896a.json.
+
+Founder whole-theme/manual UAT, physical device compilation, initial fast-read/date behavior, legacy inventory session continuation, native financial/referee acceptance, RMS forecast/override/publication and full18-part implementation remain pending. Synthetic22caller checks/sixlayout sets and24pure cases are browser fixture proof; API/served bytes are a separate acceptance boundary. No get_usage_limits call or quota/provider stop clearing.
