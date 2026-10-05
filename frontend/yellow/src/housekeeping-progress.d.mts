@@ -1,0 +1,18 @@
+export type RoomCondition = 'clean' | 'dirty' | 'pickup' | 'inspected';
+export type HousekeepingAction = 'start' | 'complete' | 'verify';
+export type RoomConditionRow = Readonly<{ spaceId: string; code: string; floor: string | null; condition: RoomCondition; updatedAt: string }>;
+export type HousekeepingTaskRow = Readonly<{ taskId: string; spaceId: string; spaceCode: string; floor: string | null;
+  roomCondition: RoomCondition; roomUpdatedAt: string; taskStatus: 'assigned' | 'in_progress' | 'done' | 'verified';
+  priority: number; assigned: boolean; dueAt: string | null; completedAt: string | null; allowedActions: readonly HousekeepingAction[] }>;
+export type ProgressSnapshot = Readonly<{ rooms: readonly RoomConditionRow[]; tasks: readonly HousekeepingTaskRow[];
+  nextCursor: string | null; stale: boolean; tasksMayBeIncomplete?: boolean }>;
+export type TaskProgress = Readonly<{ task: HousekeepingTaskRow; stage: string; evidenceState: 'recorded' | 'unknown';
+  problems: readonly string[]; deadlineState: 'not_recorded' | 'unknown' | 'completed' | 'overdue' | 'due_now' | 'upcoming';
+  eta: Readonly<{ state: 'unavailable'; at: null; reason: string }> }>;
+export type RoomProgress = Readonly<{ room: RoomConditionRow; conditionEvidenceState: 'unknown' | 'recorded'; tasks: readonly TaskProgress[] }>;
+export type ProgressView = Readonly<{ now: string; stale: boolean; rooms: readonly RoomProgress[]; tasks: readonly TaskProgress[];
+  unlinkedTasks: readonly TaskProgress[]; loadedConditionCount: number; loadedTaskCount: number; conditionPagesIncomplete: boolean;
+  tasksMayBeIncomplete: boolean; nextCursor: string | null; counts: Readonly<Record<HousekeepingTaskRow['taskStatus'], number>>; unknownProgressCount: number }>;
+export function instantMicros(value: string): bigint;
+export function buildHousekeepingProgress(snapshot: ProgressSnapshot, now: string): ProgressView;
+export function formatHousekeepingInstant(value: string, timezone: string): string;

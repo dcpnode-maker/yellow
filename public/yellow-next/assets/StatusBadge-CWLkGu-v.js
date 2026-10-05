@@ -1,0 +1,1 @@
+import{n as e}from"./rolldown-runtime-8BhlS34s.js";import{t}from"./react-runtime-eCBuSmuH.js";function n({tone:e,children:t}){return(0,r.jsxs)(`span`,{className:`status-badge status-${e}`,children:[(0,r.jsx)(`span`,{"aria-hidden":`true`,children:i[e]}),t]})}var r,i;function a(){return(a=e((()=>{r=t(),i={verified:`✓`,warning:`!`,urgent:`×`,neutral:`—`}})))()}export{a as n,n as t};

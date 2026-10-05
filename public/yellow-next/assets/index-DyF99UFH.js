@@ -1,0 +1,1 @@
+import{t as e}from"./yellow-BFaTHh64.js";e();
