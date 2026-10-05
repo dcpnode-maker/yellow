@@ -1,0 +1,11 @@
+# Reservation/calendar59 source admission
+
+Base c1b7c2b80a103b53d29d175e8087776f3cdd776e. Scoped54(15 paths)+57(9 paths; shared754 test) =23 product/test paths plus authorized orders/status/decision/review notes. No58 or other pending source adoption.
+
+Root personally executed11 combined checks;67 focused/retained tests,4 retained calendar outer tests with actual routing child, actual full App reservation1/106 and calendar1/159, all three strict type checks,211 boundaries and Vite562 passed. Exact result SHAa081183ca548c225f7f4081832015c49243cfdf08600d8d5ad024bbe971cc81f; composition SHA8b7f1c91aa3793294b9b3173aebd5c26f92f0d8b1907e917de2f94c84457dff0. Source pins unchanged during proof; emulated320/375/1440 pixels and synthetic request bodies are not physical phone/live authority proof.
+
+Astra final57 review:E:/YellowWorkspace/Documents/Codex/yellow-prototype-review-20261002/journey-v2/astra/calendar57-presentation-review-v1; FREEZE3630fa7437a6568f68be4bb261495d991a5e5c4c093afb87f2ffe9d121a76cfc; REVIEWc4d26d0ac49d0b607aa7bce8740f467b4d15fba3f7755c11857fb9c059265160. Root personally read this review before invoking admission. Native54 read outcome is separately accepted by root and Astra under native54-read-outcome55-v2-review-v2;14 groups/51 fixtures/166 comparisons/103 migration hashes, all digests/settlement and owned stop. Failed55v1 evidence preserved.
+
+57 untouched App/ReservationWorkspace/HostingCalendar/API/auth/domain/model/migrations. The inherited754 fixture repair fixes inconsistent synthetic segment dates while keeping all command/routing/draft/idempotency assertions. The ninth legacy test repair removes only the unrelated export modifier in its evaluation harness. Both original failures and final proof retained. No conflict fence or native authority was relaxed.
+
+The accepted controller template e151ba017404f217bd267c6d7e1a9966da877d1ae993b2070be0141b74614ca1 derives by exact four declared substitutions. Separate fresh ownership/stage/activate/served-byte/public checks required. Existing live c1b7/runtime/config, PostgreSQL2124/frontier103 and connector8236 remain the predecessor until recorded transition. Full PMS, writable rate/block/policy/note/media and Lost and Found/guest notification/physical acceptance remain unfinished. No selfmerge or release acceptance is implied by this source admission.

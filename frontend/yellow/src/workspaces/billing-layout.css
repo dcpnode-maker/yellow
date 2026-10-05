@@ -1,0 +1,30 @@
+.billing-workspace .cashier-workbench { grid-template-columns: minmax(250px, 310px) minmax(0, 1fr); gap: 16px; align-items: start; }
+.billing-workspace .cashier-panel:first-child { grid-column: 1; grid-row: 1 / span 2; }
+.billing-workspace .cashier-panel:nth-child(2), .billing-workspace .cashier-posting { grid-column: 2; }
+.billing-workspace[data-has-reservation="false"] .cashier-panel:nth-child(2), .billing-workspace[data-has-reservation="false"] .cashier-posting { display: none; }
+.billing-workspace[data-has-reservation="false"] .cashier-workbench { grid-template-columns: minmax(0, 1fr); }
+.billing-workspace[data-has-reservation="false"] .cashier-panel:first-child { width: 100%; max-width: 920px; }
+.billing-workspace .cashier-panel { box-shadow: none; border-color: var(--reference-line, #ddd); background: var(--reference-paper, #fff); }
+.billing-workspace .cashier-panel h2 { font-size: 20px; font-weight: 650; letter-spacing: -.025em; }
+.billing-workspace .cashier-balance { display: flex; align-items: baseline; flex-wrap: wrap; gap: 8px; }
+.billing-workspace .cashier-balance strong { font-size: 30px; letter-spacing: -.035em; }
+.billing-workspace .cashier-result-evidence { display: none; }
+.billing-workspace .cashier-stay-list > button { min-height: 64px; }
+.billing-action, .billing-custody { margin-top: 12px; border: 1px solid var(--reference-line, #ddd); border-radius: 12px; overflow: clip; }
+.billing-action > summary, .billing-custody > summary { padding: 14px 16px; min-height: 48px; box-sizing: border-box; cursor: pointer; font-size: 14px; font-weight: 650; color: var(--reference-ink, #222); }
+.billing-action > summary:hover, .billing-custody > summary:hover { background: var(--reference-soft, #f5f5f5); }
+.billing-action > summary:focus-visible, .billing-custody > summary:focus-visible { outline: 2px solid currentColor; outline-offset: -3px; }
+.billing-action[open] > summary { border-bottom: 1px solid var(--reference-line, #ddd); }
+.billing-action > :not(summary) { margin: 12px; }
+.billing-action .cashier-charge-form { padding: 0; }
+.billing-workspace .cashier-window-tabs { gap: 8px; }
+.billing-workspace .cashier-window-tabs button { min-height: 44px; }
+.billing-custody > article { margin: 0; border: 0; box-shadow: none; }
+@media (max-width: 760px) {
+ .billing-workspace .cashier-workbench { grid-template-columns: minmax(0, 1fr); }
+ .billing-workspace .cashier-panel:first-child, .billing-workspace .cashier-panel:nth-child(2), .billing-workspace .cashier-posting { grid-column: 1; grid-row: auto; }
+ .billing-workspace .cashier-panel { padding: 14px; }
+ .billing-workspace .cashier-balance strong { font-size: 26px; }
+ .billing-action > :not(summary) { margin: 10px; }
+}
+@media (forced-colors: active) { .billing-action, .billing-custody { border-color: CanvasText; } }
