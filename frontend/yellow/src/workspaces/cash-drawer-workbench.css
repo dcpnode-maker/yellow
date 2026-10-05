@@ -1,0 +1,26 @@
+.cash-drawer-workbench { display: grid; gap: 1rem; padding: 1rem; border: 1px solid var(--line, #d5dcd7); border-radius: 1rem; background: var(--surface, #fff); color: var(--ink, #18211b); }
+.cash-drawer-heading { display: flex; align-items: start; justify-content: space-between; gap: 1rem; }
+.cash-drawer-heading h3, .cash-drawer-form h4, .cash-drawer-review h4 { margin: 0 0 .35rem; }
+.cash-drawer-heading p, .cash-drawer-meta, .cash-drawer-note { margin: 0; color: var(--muted, #506058); }
+.cash-drawer-picker, .cash-drawer-actions, .cash-drawer-buttons { display: flex; flex-wrap: wrap; gap: .5rem; }
+.cash-drawer-picker button { display: grid; text-align: left; }
+.cash-drawer-picker button.selected { outline: 2px solid var(--accent, #39e75f); outline-offset: 1px; }
+.cash-drawer-picker small { font-size: .8rem; opacity: .8; }
+.cash-drawer-detail, .cash-drawer-form, .cash-drawer-review { display: grid; gap: .75rem; min-width: 0; }
+.cash-drawer-form, .cash-drawer-review, .cash-drawer-uncertain { padding: 1rem; border: 1px solid var(--line, #d5dcd7); border-radius: .75rem; }
+.cash-drawer-denominations { display: grid; grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr)); gap: .75rem; }
+.cash-drawer-denominations label, .cash-drawer-field { display: grid; gap: .3rem; }
+.cash-drawer-denominations input, .cash-drawer-field input, .cash-drawer-field textarea { min-width: 0; width: 100%; box-sizing: border-box; padding: .7rem; border: 1px solid var(--line, #d5dcd7); border-radius: .5rem; background: var(--surface, #fff); color: inherit; }
+.cash-drawer-field textarea { min-height: 5rem; resize: vertical; }
+.cash-drawer-workbench button { min-height: 44px; padding: .55rem .9rem; border: 1px solid var(--line, #d5dcd7); border-radius: .6rem; background: var(--accent, #39e75f); color: var(--ink, #18211b); cursor: pointer; }
+.cash-drawer-workbench button.quiet { background: transparent; }
+.cash-drawer-workbench button:disabled { opacity: .55; cursor: not-allowed; }
+.cash-drawer-confirm { display: flex; align-items: center; gap: .5rem; min-height: 44px; }
+.cash-drawer-confirm input { width: 1.25rem; height: 1.25rem; }
+.cash-drawer-error { color: var(--danger, #a22222); }
+.cash-drawer-uncertain { border-color: var(--warning, #ad741f); }
+.cash-drawer-ready { color: var(--positive, #196735); }
+.cash-drawer-review ul { margin: 0; padding-left: 1.25rem; }
+.cash-drawer-review li { overflow-wrap: anywhere; }
+.cash-drawer-meta, .cash-drawer-review p, .cash-drawer-uncertain p { overflow-wrap: anywhere; }
+@media (max-width: 600px) { .cash-drawer-heading { display: grid; } .cash-drawer-heading > button { justify-self: start; } .cash-drawer-picker button { flex: 1 1 100%; } .cash-drawer-buttons button { flex: 1 1 100%; } }

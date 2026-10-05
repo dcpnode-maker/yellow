@@ -1,0 +1,5 @@
+# Order679 scope question — resolved by coordinator within founder authority
+
+2026-09-24: Current CSP permits only same-origin connections and scripts. Direct cloud fetch and default external worker loading would not run. Preserve this policy rather than weaken it across the PMS. Extend the order for a public-data-only same-origin, pinned-release HTTP byte-range adapter with strict range caps, timeout, concurrency and bounded memory cache; no tenant data, arbitrary URL proxy, bulk download, or persistent cache. Include source/API negative tests and independent security review. Existing src/app.ts matches the current676 running image byte-for-byte (SHA256 09d28b2198246923ea1aaa8e0e129442b1a8292c27c2e9d952621e8537e0adc4), so ship only the reviewed import/route delta and new adapter with frontend. Bundle the worker locally and split mapping dependencies out of the ordinary PMS vendor bundle. No new CSP allowances needed.
+
+This is a routine reversible implementation decision needed for the requested existing live map, no founder credential/spend/policy choice. Approved scope amendment below; no silent widening.

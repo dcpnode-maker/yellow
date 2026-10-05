@@ -1,0 +1,80 @@
+.folio-window-comparison {
+  box-sizing: border-box;
+  grid-column: 1 / -1;
+  min-width: 0;
+  margin-block: 12px;
+  padding: 16px;
+  border: 1px solid #dce2e8;
+  border-radius: 12px;
+  background: #fff;
+  color: #263241;
+}
+.folio-window-comparison :is(button, input, select) { font: inherit; }
+.folio-window-comparison button {
+  min-height: 40px;
+  padding: 8px 12px;
+  border: 1px solid #d2d8df;
+  border-radius: 8px;
+  background: #fff;
+  color: #293543;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.folio-window-comparison button:hover:not(:disabled) { background: #f3f5f7; }
+.folio-window-comparison button:disabled { cursor: not-allowed; opacity: .55; }
+.folio-window-comparison :is(button, input):focus-visible { outline: 2px solid #526b83; outline-offset: 2px; }
+.folio-window-comparison-heading { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+.folio-window-comparison-heading h2 { margin: 3px 0; font-size: clamp(17px, 2vw, 21px); }
+.folio-window-comparison-heading p { margin: 0; color: #5f6b78; font-size: 12px; }
+.folio-window-comparison-eyebrow { color: #697687; font-size: 10px; font-weight: 750; letter-spacing: .09em; }
+.folio-window-comparison-picker { box-sizing: border-box; min-width: 0; margin: 14px 0 10px; padding: 12px; border: 1px solid #e1e5ea; border-radius: 10px; }
+.folio-window-comparison-picker legend { padding-inline: 5px; color: #3c4653; font-size: 12px; font-weight: 650; }
+.folio-window-comparison-options {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(205px, 100%), 1fr));
+  gap: 6px;
+  max-height: 260px;
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+.folio-window-comparison-options label { display: flex; align-items: center; gap: 9px; min-width: 0; min-height: 50px; padding: 6px 9px; border: 1px solid #e3e6ea; border-radius: 8px; background: #fafbfc; cursor: pointer; }
+.folio-window-comparison-options label:has(input:checked) { border-color: #aeb9c5; background: #f2f4f6; }
+.folio-window-comparison-options input { flex: none; width: 18px; height: 18px; accent-color: #465c73; }
+.folio-window-comparison-options label > span { display: grid; gap: 2px; min-width: 0; }
+.folio-window-comparison-options strong { font-size: 12px; }
+.folio-window-comparison-options small { overflow: hidden; color: #697482; font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
+.folio-window-comparison-picker-footer { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; margin-top: 9px; }
+.folio-window-comparison-picker-footer > span { color: #65717d; font-size: 12px; font-variant-numeric: tabular-nums; }
+.folio-window-comparison-snapshot-note { margin: 8px 0 0; color: #5f6b78; font-size: 12px; line-height: 1.45; }
+.folio-window-comparison-limit { margin: 8px 0; color: #634f1f; font-size: 12px; }
+.folio-window-comparison-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(460px, 100%), 1fr)); align-items: start; gap: 12px; min-width: 0; }
+.folio-window-comparison-pane { box-sizing: border-box; min-width: 0; overflow: hidden; border: 1px solid #dfe4e9; border-radius: 10px; background: #fff; }
+.folio-window-comparison-pane[data-active="true"] { border-color: #95a4b5; box-shadow: 0 0 0 1px #95a4b5 inset; }
+.folio-window-comparison-pane > header { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; padding: 12px; background: #f7f8fa; }
+.folio-window-comparison-pane > header > div { min-width: 0; }
+.folio-window-comparison-pane > header span { color: #647181; font-size: 10px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; }
+.folio-window-comparison-pane > header h3 { margin: 2px 0; overflow-wrap: anywhere; font-size: 14px; }
+.folio-window-comparison-pane > header p { margin: 3px 0 0; color: #556170; font-size: 12px; }
+.folio-window-comparison-pane > header p strong { color: #273442; font-variant-numeric: tabular-nums; }
+.folio-window-comparison-pane .folio-statement-view { min-width: 0; margin: 0; padding: 12px; border: 0; border-radius: 0; box-shadow: none; }
+.folio-window-comparison-pane .folio-table-scroll { max-width: 100%; min-width: 0; overflow: auto; overscroll-behavior-x: contain; }
+.folio-window-comparison-pane .folio-statement-table { min-width: 620px; }
+.folio-window-comparison-loading, .folio-window-comparison-refreshing, .folio-window-comparison-empty { margin: 12px; color: #596675; font-size: 12px; }
+.folio-window-comparison-error { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; margin: 10px 12px; padding: 10px; border: 1px solid #e5c7c4; border-radius: 8px; background: #fff8f7; color: #743d38; }
+.folio-window-comparison-error p { margin: 0; font-size: 12px; }
+@media (max-width: 700px) {
+  .folio-window-comparison { padding: 12px; }
+  .folio-window-comparison-heading { align-items: stretch; }
+  .folio-window-comparison-toggle { width: 100%; }
+  .folio-window-comparison-options { grid-template-columns: minmax(0, 1fr); max-height: 240px; }
+  .folio-window-comparison-options label { min-height: 54px; }
+  .folio-window-comparison-picker-footer { align-items: stretch; }
+  .folio-window-comparison-picker-footer button { width: 100%; }
+  .folio-window-comparison-grid { grid-template-columns: minmax(0, 1fr); }
+  .folio-window-comparison-pane > header > button { width: 100%; }
+}
+@media (pointer: coarse) {
+  .folio-window-comparison button { min-height: 44px; }
+  .folio-window-comparison-options label { min-height: 56px; }
+}

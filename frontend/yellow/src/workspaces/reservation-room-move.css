@@ -1,0 +1,28 @@
+.reservation-room-move { display: grid; gap: .65rem; margin-top: .75rem; min-width: 0; }
+.reservation-room-move-panel { display: grid; gap: .85rem; min-width: 0; padding: 1rem; border: 1px solid var(--reference-line, #d8d8d8); border-radius: 14px; background: var(--reference-paper, #fff); box-sizing: border-box; }
+.reservation-room-move-panel > p { margin: 0; color: var(--reference-muted, #595959); overflow-wrap: anywhere; }
+.reservation-room-move-heading { display: flex; align-items: start; justify-content: space-between; gap: .8rem; }
+.reservation-room-move-heading > div { min-width: 0; }
+.reservation-room-move-heading h3 { margin: 0 0 .3rem; color: var(--reference-ink, #222); }
+.reservation-room-move-heading p { margin: 0; color: var(--reference-muted, #595959); }
+.reservation-room-move :is(button, select) { box-sizing: border-box; min-height: 44px; max-width: 100%; border: 1px solid var(--reference-line, #d8d8d8); border-radius: 9px; color: var(--reference-ink, #222); background: var(--reference-paper, #fff); font: inherit; }
+.reservation-room-move button { width: fit-content; padding: .5rem .8rem; font-weight: 650; cursor: pointer; }
+.reservation-room-move .reservation-room-move-toggle { border-radius: 11px; background: var(--reference-soft, #f3f3f3); }
+.reservation-room-move .reservation-room-move-primary { background: var(--reference-ink, #222); color: var(--reference-paper, #fff); }
+.reservation-room-move .reservation-room-move-secondary { background: transparent; }
+.reservation-room-move button:disabled, .reservation-room-move select:disabled { opacity: .58; cursor: not-allowed; }
+.reservation-room-move-field { display: grid; gap: .35rem; min-width: 0; color: var(--reference-ink, #222); font-weight: 650; }
+.reservation-room-move select { width: 100%; min-width: 0; padding: .5rem .65rem; }
+.reservation-room-move-confirm { display: flex; align-items: center; gap: .55rem; min-height: 44px; color: var(--reference-ink, #222); }
+.reservation-room-move-confirm input { width: 20px; height: 20px; flex: none; }
+.reservation-room-move-recovery { display: grid; gap: .65rem; padding: .85rem; border: 1px solid color-mix(in srgb, rgb(var(--reference-ai-rgb, 212, 175, 44)) 45%, var(--reference-line, #d8d8d8)); border-radius: 12px; background: color-mix(in srgb, rgb(var(--reference-ai-rgb, 212, 175, 44)) 8%, var(--reference-paper, #fff)); }
+.reservation-room-move-recovery p { margin: 0; }
+.reservation-room-move-error { margin: 0; color: var(--danger, #9e2f33); }
+.reservation-room-move-success { padding: .6rem .75rem; border: 1px solid var(--reference-line, #d8d8d8); border-radius: 10px; color: var(--reference-ink, #222); background: var(--reference-soft, #f3f3f3); }
+.reservation-room-move :focus-visible { outline: 3px solid color-mix(in srgb, rgb(var(--reference-ai-rgb, 212, 175, 44)) 55%, transparent); outline-offset: 2px; }
+@media (max-width: 620px) {
+  .reservation-room-move-panel { padding: .8rem; }
+  .reservation-room-move-heading { flex-wrap: wrap; }
+  .reservation-room-move-heading .reservation-room-move-secondary { margin-left: auto; }
+  .reservation-room-move button { width: 100%; }
+}
