@@ -1,0 +1,3 @@
+# Root staff module receiving order
+
+Root executes the exact independently reviewed11 product/test paths and copies the author order, five bounded review/admission files and this order. Only docs/PROJECT-STATUS.md additionally changes to report actual3039 public cookie proof and pending new staff runtime verification. All other actual committed3039 tracked bytes, including the previously corrected current-frontier catalogue test, remain exact. No backend, migration, role, business data, provider or browser acceptance change is authorized. Root performs focused tests and publishes a draft source commit; a separate clean runtime and public proof precede promotion.
