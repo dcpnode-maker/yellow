@@ -1,0 +1,263 @@
+{
+  "status": "PASS_independent_source_contract_security_and_executable_review",
+  "sourceFreezeSha256": "7300a819d200df909a2151e38433510019dc608ba03c780524e9ec44691caa05",
+  "sourcePatchSha256": "06e41fcc6eddaaecb3094d6d2c69fa92f14b5fd5d24351983c014dbf371f1383",
+  "exactScopePaths": 11,
+  "existingLedgerReplacements": 24,
+  "unadmittedSourceBytesExact": 2617,
+  "protectedReservationCreateCommandSha256": "1b35f054b013a4c4242d9af1f88a39d38dbec06a38ea7450d969f148636eaf6f",
+  "otherProtectedCommandBodies": [
+    {
+      "path": "frontend/yellow/src/App.tsx",
+      "start": "  const workflow =",
+      "end": "  const review =",
+      "beforeBodySha256": "a5a3055e640e6d0277da99343c15f7968218f2c55015b6df640bbcdb33f6c8af",
+      "afterBodySha256": "a5a3055e640e6d0277da99343c15f7968218f2c55015b6df640bbcdb33f6c8af",
+      "exact": true
+    },
+    {
+      "path": "frontend/yellow/src/workspaces/ReservationWorkspace.tsx",
+      "start": "  const resetOffer =",
+      "end": "  const duplicates =",
+      "beforeBodySha256": "90045203a3801418dbbe866eb5685e14c1c42f1fd9dd8ccebba789f6e42ee693",
+      "afterBodySha256": "90045203a3801418dbbe866eb5685e14c1c42f1fd9dd8ccebba789f6e42ee693",
+      "exact": true
+    }
+  ],
+  "results": [
+    {
+      "mode": "tests",
+      "exit": 0,
+      "logSha256": "b84a40383dbdf398f5b2c51d687d83ff79510b80d11b135d5e1d589ad1101b92",
+      "sourceFreezeSha256": "7300a819d200df909a2151e38433510019dc608ba03c780524e9ec44691caa05",
+      "pins": 11,
+      "protectedSource": 2617,
+      "ledger": 24,
+      "protectedCreateCommandExact": true,
+      "assets": 22
+    },
+    {
+      "mode": "attacks",
+      "exit": 0,
+      "logSha256": "4c0a1356f25e93a197c1660c69b22f5d0a418917e032a5d3da977f31eec72beb",
+      "sourceFreezeSha256": "7300a819d200df909a2151e38433510019dc608ba03c780524e9ec44691caa05",
+      "pins": 11,
+      "protectedSource": 2617,
+      "ledger": 24,
+      "protectedCreateCommandExact": true,
+      "assets": 22
+    },
+    {
+      "mode": "roottypes",
+      "exit": 0,
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "sourceFreezeSha256": "7300a819d200df909a2151e38433510019dc608ba03c780524e9ec44691caa05",
+      "pins": 11,
+      "protectedSource": 2617,
+      "ledger": 24,
+      "protectedCreateCommandExact": true,
+      "assets": 22
+    },
+    {
+      "mode": "fronttypes",
+      "exit": 0,
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "sourceFreezeSha256": "7300a819d200df909a2151e38433510019dc608ba03c780524e9ec44691caa05",
+      "pins": 11,
+      "protectedSource": 2617,
+      "ledger": 24,
+      "protectedCreateCommandExact": true,
+      "assets": 22
+    },
+    {
+      "mode": "boundaries",
+      "exit": 0,
+      "logSha256": "a71285359dee34c33197966d9f08c97dc293f525da95142930aebe1f386273e8",
+      "sourceFreezeSha256": "7300a819d200df909a2151e38433510019dc608ba03c780524e9ec44691caa05",
+      "pins": 11,
+      "protectedSource": 2617,
+      "ledger": 24,
+      "protectedCreateCommandExact": true,
+      "assets": 22
+    },
+    {
+      "mode": "vm",
+      "exit": 0,
+      "logSha256": "919a99a5838862e6ac960756aad3e9e0ee8ccac9e7894e77984b71273a9c7a4f",
+      "sourceFreezeSha256": "7300a819d200df909a2151e38433510019dc608ba03c780524e9ec44691caa05",
+      "pins": 11,
+      "protectedSource": 2617,
+      "ledger": 24,
+      "protectedCreateCommandExact": true,
+      "assets": 22
+    }
+  ],
+  "focusedAuthorSuite": {
+    "pass": 154,
+    "fail": 0,
+    "assertions": 1130,
+    "files": 24
+  },
+  "independentAttacks": {
+    "pass": 11,
+    "fail": 0,
+    "assertions": 53,
+    "files": 3
+  },
+  "independentBuild": {
+    "exit": 0,
+    "logSha256": "ce412f9b72b2ecf6193bc692c146c7544abadb23cae7f1e7eb03a79f30943c6f",
+    "servableOutputs": [
+      {
+        "path": "assets/App-AACamMw8.js",
+        "sha256": "dc1ab3d15caca19f67c0543f42614273c91138f2030da73b16df00403ec8dd31",
+        "bytes": 146
+      },
+      {
+        "path": "assets/EcosystemHub-CxCj0qkq.js",
+        "sha256": "0624a3fe38927bb5a166b331678e29406d02fb9b2271980a7baccc1c31284036",
+        "bytes": 43226
+      },
+      {
+        "path": "assets/FinanceWorkspace-DKRzwjFL.js",
+        "sha256": "604c3da9c835effcbad1fefb98ca72b8913dd95f51f7caaefd7f5c6c8f88a79d",
+        "bytes": 58543
+      },
+      {
+        "path": "assets/index-CMA93Qqb.js",
+        "sha256": "ac5b983daeb27bcb2ac994f4641e284995bba78ca52dfc5f6b82009d833e32e4",
+        "bytes": 45
+      },
+      {
+        "path": "assets/MarketIntelligenceLab-Cry2RCKA.js",
+        "sha256": "c43f690d45fc0ccb334864c2235db35e58e5c64445a17e0c8c3910fefb32df13",
+        "bytes": 10086
+      },
+      {
+        "path": "assets/OperationalHub-EFSUsDM3.js",
+        "sha256": "b19bbed726e7f5c93b06678b402576011801d81796ce74333dbf500527aefd18",
+        "bytes": 16480
+      },
+      {
+        "path": "assets/OptionsDrawer-BHLqSNu4.js",
+        "sha256": "380c1721ca4acca19d04e789f777c5f311771be7cafc4730555fc3689481e0db",
+        "bytes": 1665
+      },
+      {
+        "path": "assets/PropertyOperatingModeCard-BL-4dn-9.js",
+        "sha256": "896b598bcaca8f6ff036e38cb5da3c841df0b05bbe437df942497a09b3800009",
+        "bytes": 8792
+      },
+      {
+        "path": "assets/react-runtime-eCBuSmuH.js",
+        "sha256": "8857226d0c01c6c3543be7b1af6a2fd81ab2e9ec89a27497d23508792e3a6493",
+        "bytes": 218840
+      },
+      {
+        "path": "assets/ReservationWorkspace-DmxcYCgK.js",
+        "sha256": "cf3224446082af039958ac7fffa25b682e0dd255b7c161c49172d67caa51b07a",
+        "bytes": 155816
+      },
+      {
+        "path": "assets/ReservationWorkspace-GJ2ReXAQ.css",
+        "sha256": "c5091fa136d2f7f80cb6ff91867f504bcc4b27db09cc4c7596f1d367f390a562",
+        "bytes": 2375
+      },
+      {
+        "path": "assets/rolldown-runtime-8BhlS34s.js",
+        "sha256": "1cb5c6ead7e29370203f12e2d5cdf50ec1f02dd70ee2d050d909afbf2406f6b1",
+        "bytes": 807
+      },
+      {
+        "path": "assets/staff-crs-client-BP6Qwxuf.js",
+        "sha256": "252a2f40efc5032c80d62981da855ff008a6977b6cef94d60053c57f696b543c",
+        "bytes": 7523
+      },
+      {
+        "path": "assets/StaffRmsWorkspace-DxyqCfqf.js",
+        "sha256": "b6d66a2d0fc83c06548594b6372f2038527fb351bd61542fd54120b7239515fd",
+        "bytes": 10338
+      },
+      {
+        "path": "assets/StatusBadge-CWLkGu-v.js",
+        "sha256": "b8c7e14885a6af92fcef1a9596f3e000864272a2de35453489c063b412d924d3",
+        "bytes": 387
+      },
+      {
+        "path": "assets/TodayGlassDashboard-BlB1BxHD.css",
+        "sha256": "5d74f5250cff008d07960ebd71ec3ba27a46721baafe42f5d745742406f959e7",
+        "bytes": 43860
+      },
+      {
+        "path": "assets/TodayGlassDashboard-Cq_NYG2F.js",
+        "sha256": "27301a1801ef103d902cc2c44f7c2e2def1d4ecb2bbf7bb40aec04161211fc85",
+        "bytes": 200396
+      },
+      {
+        "path": "assets/vendor-BeoTU2to.js",
+        "sha256": "de6bac9792f8a73b41856349c3d59e300b91e84f44c95cf84a53e03feaeac623",
+        "bytes": 179497
+      },
+      {
+        "path": "assets/yellow-app-Dljw4bQt.js",
+        "sha256": "0e3dccaad6c0de4a63cfd437e51171b8bdec1a81e745b29e238942b36a2d4688",
+        "bytes": 116484
+      },
+      {
+        "path": "assets/yellow-DyGQg-rM.js",
+        "sha256": "2871a72e88d2088d12c7faf1564dae72afffe8ae9bb24c34f37749b10ecafc26",
+        "bytes": 13727
+      },
+      {
+        "path": "assets/yellow-Y5fgVUv3.css",
+        "sha256": "2c9de61b75f2a95c09ea2635c43d3948ea17ccdd9c6c8fb3fd37091ae9ef1faa",
+        "bytes": 172949
+      },
+      {
+        "path": "index.html",
+        "sha256": "d7bf790f25dcf71604ad3a3096d9f853175a95ade983ea88d63abc6c82e6ec48",
+        "bytes": 760
+      }
+    ],
+    "crossBuildByteEqualityAsserted": false,
+    "ownCompiledVM": {
+      "corrected": {
+        "entryName": "index-CMA93Qqb.js",
+        "beforeSelectionReads": [],
+        "afterSelectionReads": [
+          "/p/01e4e102-c54f-5205-9542-d84d103084f8/today",
+          "/p/01e4e102-c54f-5205-9542-d84d103084f8/today"
+        ],
+        "selectedProperty": "01e4e102-c54f-5205-9542-d84d103084f8",
+        "staticModulesLinked": 18,
+        "staticLinksResolved": 59,
+        "anonymousFetches": 0,
+        "actualReactRuntimeWithSyntheticRenderSink": true,
+        "browserAcceptance": false
+      }
+    }
+  },
+  "securityEvidence": [
+    "Fresh memory Bearer and granted property set before any transport; no cookie write authority or persisted token",
+    "One to four unique scoped CRS properties, canonical per-property timezone stays, exact party and availability evidence,16KiB UTF8 body cap",
+    "Unknown/duplicate/unbounded/noncanonical URL draft fields rejected; draft carries no guest/token/idempotency/price authority",
+    "Selected CRS draft still uses original canonical guest, fresh search/refresh, explicit confirmation, exact same-key commit and authoritative recovery commands",
+    "RMS10 server catalogue only; authoring commands excluded, actual read-only quote endpoint with guest/channel response binding and nullable successful reason",
+    "Recorded economics uses actual reservation.lifecycle:read endpoint and exact money strings above Number precision; no forecasts, inferred profit, commercial grants or pricing mutations",
+    "Existing navigation hierarchy, guarded callbacks, pending lifecycle/mode locks, module preview/planned statuses and normal browser-session authentication unchanged"
+  ],
+  "findings": [],
+  "limits": [
+    "CRM entry reveals existing Guests/profiles and Department tasks; no claim of segments/loyalty completeness",
+    "RMS exposes actual read models/quotes/recorded economics, not autonomous pricing or forecasting",
+    "CRS availability remains evidence, followed by canonical reservation workflow; booking-engine endpoint not invented",
+    "No browser visual/touch/microphone acceptance; root runtime/public/API and external CI gates remain independent",
+    "No candidate/canonical/backend/DB/runtime/device/dependency/Git edits"
+  ],
+  "retainedRedEvidence": [
+    "draft-attacks-provisional-second.log",
+    "rms-attacks-provisional.log",
+    "reviewer-ledger-encoding-red.txt"
+  ],
+  "reviewFixtureNote": "RMS fixture amended solely to include real result.guests and distributionEvidence; frozen implementation unchanged"
+}
