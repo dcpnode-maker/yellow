@@ -1,0 +1,7 @@
+# Root integration: restore the requested Yellow design and normal login
+
+User authorizes the full Yellow app with the previous design, navigation and flows. Laptop is authoritative; CompSet Studio remains separate. Root admits exactly the reviewed41 frontend/auth/test paths from combined freeze ab0d4ae8, normal-auth cdf6266, independent review cca76a13. The saved theme/header/dock/ribbons/tables/search/dictation use current readers and lifecycle guards. Map/reports and unfinished module status remain truthful. No domain/API/roles/migrations/data changes in this integration.
+
+Also admit the independently executed catalogue oracle correction: migrations100→103, permissions24→26 and explicit property-mode permission pair; all other schema/RLS/grant expectations unchanged. Isolated PG18 proof24/0/75 and shutdown retained.
+
+Scope: the41 exact paths in the attached admission manifest, tests/database-acceptance.integration.test.ts, the two proposal order files, this order, handoff/reviews/RESOURCE-20261001-reference-ui/**, docs/PROJECT-STATUS.md receiving note/current task, order and lifecycle comments only. Generated assets stay outside Git. Root owns immutable runtime clone, private normal-login configuration, exact asset selection, launch/readiness and hosting. Existing3183 automatic-demo process may not be published. Browser visual acceptance remains unverified and memory-session document navigation is a known follow-up, not completed. CRS/RMS/CRM/public booking gaps remain actual build work.

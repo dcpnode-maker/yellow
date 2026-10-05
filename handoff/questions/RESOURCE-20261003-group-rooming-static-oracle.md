@@ -1,0 +1,5 @@
+# Group caller scope amendment: executable rooming regression
+
+Parent composition removes the old six-row truncation. Existing tests/order626-group-block-rooming-list.test.ts failed because it asserts that obsolete truncation and old workspace strings, despite the connected40/30-row browser proof passing. Its seven native-service, two operator, two API and three retained CSS assertions remain authoritative and unchanged.
+
+Under the founder's full researched-flow directive, parent admits this one existing test into RESOURCE-20261003-group-block-caller-integration scope. Replace only four old presentation assertions with actual board-widget composition, complete non-truncated rooming map, current existing reservation href, and unchanged accessible reservation label from executable parent/presentation sources. Preserve assertion count and all backend/API/CSS predicates. No source/native/auth/permission or runtime expansion. Initial failure retained with caller proof provenance. Independent reviewer checks amendment and exact diff before source admission.

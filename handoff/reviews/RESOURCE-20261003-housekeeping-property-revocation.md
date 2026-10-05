@@ -1,0 +1,9 @@
+# Independently accepted housekeeping property-denial correction
+
+Order RESOURCE-20261003-housekeeping-property-revocation; base312d4f46384fc90accc78506d846631133524025. Laptop authors the permission-sensitive predicate and paired mounted proof; Astra is independent. Exact SHA256: Workbench dbd2b9b03879f712bc19d1824540a86439ac47e5e81da98e5d145a9c219546ae; test c66ed31691a95a75ee87409c32f441827756c58fe302d89f1f06758407f6d922. No remaining blocking source finding.
+
+Canonical conditions, board/tasks and task-detail handlers conceal an ungranted property with404 housekeeping/not_found. Public native probes confirmed404 problem bodies without rooms/tasks. Parent reproduced the old-predicate stale-data failure, then passed2 tests with23 mounted scenarios after adding404 to the existing evidence-revocation path. Parent root/frontend strict types and211 boundaries pass. Initial test-setup selector failure, meaningful RED and GREEN receipts remain external and immutable.
+
+Astra personally reproduced the meaningful RED in its own exact-source fixture, restored the reviewed candidate, and passed focused13 tests/50 assertions, retained14 tests/141 assertions,23 mounted scenarios, both strict types and211 boundaries. Original21 cases and20/30second budgets,401/403/token/property fences,500 labeled staleness, keyboard/focus and canonical prepare intent remain preserved. No backend/client/domain/grant/database/dependency changes.
+
+Full independent review: E:/YellowWorkspace/Documents/Codex/yellow-prototype-review-20261002/journey-v2/astra/housekeeping-property-revocation-v1/REVIEW.md. Parent receipts: E:/YellowWorkspace/Data/BuildArtifacts/yellow-pms-research-flow-20261003-v1/property-revocation. Source/component acceptance does not imply live visual UAT, financial journey acceptance, physical integrated phone compilation or all18 research parts. Exact preview publication is a separate admitted release operation; founder manual testing remains pending.
