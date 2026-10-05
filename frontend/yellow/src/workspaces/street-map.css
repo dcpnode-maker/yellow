@@ -1,0 +1,61 @@
+.street-map-workspace{display:grid;gap:14px;padding:18px 22px 96px;max-width:1600px;margin:0 auto;color:#26353a}
+.street-map-heading{display:flex;align-items:start;justify-content:space-between;gap:16px}
+.street-map-heading h1{margin:0;font-size:clamp(1.45rem,2.5vw,2rem);line-height:1.15;font-weight:650;letter-spacing:-.025em}
+.street-map-heading p{margin:5px 0 0;color:#59666b;font-size:.9rem;line-height:1.45}
+.street-map-heading .street-map-provider{margin:0;border:1px solid #d3dadd;border-radius:3px;padding:8px 10px;background:#fff;color:#47545a;font-size:.78rem;white-space:nowrap}
+.street-map-tools{display:grid;gap:10px;padding:12px 0;border-block:1px solid #dce1e3}
+.street-map-cities{display:flex;flex-wrap:wrap;gap:7px}
+.street-map-workspace button{min-height:44px;border:1px solid #c5ced1;border-radius:9px;background:#fff;color:#29383e;padding:8px 13px;font-family:inherit;font-size:.87rem;font-weight:600;line-height:1.2;cursor:pointer}
+.street-map-workspace button:hover{background:#f1f4f4}
+.street-map-workspace button:focus-visible,.street-map-workspace a:focus-visible,.street-map-workspace input:focus-visible,.street-map-workspace select:focus-visible{outline:3px solid #237368;outline-offset:2px}
+.street-map-coordinate-form{display:flex;flex-wrap:wrap;align-items:end;gap:9px}
+.street-map-coordinate-form label{display:grid;gap:4px;color:#536168;font-size:.78rem;font-weight:600}
+.street-map-coordinate-form input{width:168px;max-width:100%;min-height:44px;border:1px solid #c5ced1;border-radius:8px;background:#fff;color:#26353a;padding:8px 10px;font-family:inherit;font-size:.95rem;font-weight:500;line-height:1.2}
+.street-map-coordinate-form input[aria-invalid=true]{border-color:#ad3737}
+.street-map-preview-button{background:#e8eeec!important;border-color:#9daea9!important}
+.street-map-coordinate-error{margin:0;color:#a72f2f;font-size:.85rem}
+.street-map-privacy-note{margin:0;color:#657176;font-size:.78rem;line-height:1.4}
+.street-map-preview-status{margin:0;color:#374b46;font-size:.86rem;font-weight:600}
+.street-map-frame{position:relative;min-width:0;height:min(65vh,690px);min-height:340px;overflow:hidden;border:1px solid #cbd3d6;border-radius:12px;background:#e9edef}
+.street-map-canvas{position:absolute;inset:0}
+.street-map-canvas .maplibregl-canvas:focus-visible{outline:3px solid #237368;outline-offset:-4px}
+.street-map-state{position:absolute;z-index:2;top:14px;left:14px;display:grid;gap:8px;max-width:min(360px,calc(100% - 28px));padding:12px 14px;border:1px solid #d5dddf;background:#fffffff2;color:#344146;font-size:.9rem;box-shadow:0 2px 10px #17252920}
+.street-map-state-error{border-color:#c58a8a}
+.street-map-state button{justify-self:start}
+.street-map-attribution{display:flex;align-items:center;flex-wrap:wrap;gap:7px 16px;padding:3px 1px;color:#566268;font-size:.76rem;line-height:1.5}
+.street-map-attribution a{color:#334f48;text-decoration:underline;text-underline-offset:2px}
+.street-map-market-panel,.street-map-results{display:grid;gap:12px;min-width:0;padding:15px;border:1px solid #d4ded6;border-radius:12px;background:#fff}
+.street-map-market-intro{display:flex;align-items:start;justify-content:space-between;gap:16px}
+.street-map-market-intro h2,.street-map-results h2{margin:0;font-size:1.07rem;line-height:1.3}
+.street-map-market-intro p,.street-map-results p{margin:5px 0 0;color:#56646a;font-size:.85rem;line-height:1.45}
+.street-map-market-intro code{font-size:.8rem;overflow-wrap:anywhere}
+.street-map-market-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap;flex-shrink:0}
+.street-map-file-label{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:8px 13px;border:1px solid #344833;border-radius:9px;background:#c5ff52;color:#17321c;font-size:.87rem;font-weight:700;cursor:pointer}
+.street-map-file-label:hover{background:#b7f43e}
+.street-map-file-label:focus-within{outline:3px solid #237368;outline-offset:2px}
+.street-map-file-label input{position:absolute;width:1px;height:1px;opacity:0;overflow:hidden}
+.street-map-source-card{display:grid;gap:4px;padding:12px;border:1px solid #b8d893;border-radius:9px;background:#f2ffe4;font-size:.82rem;line-height:1.4;overflow-wrap:anywhere}
+.street-map-source-card strong{font-size:.94rem}
+.street-map-filter-row{display:flex;flex-wrap:wrap;gap:10px}
+.street-map-filter-row label{display:grid;gap:4px;min-width:min(240px,100%);font-size:.8rem;font-weight:650;color:#4a5a57}
+.street-map-filter-row input,.street-map-filter-row select{min-height:44px;max-width:100%;padding:8px 10px;border:1px solid #c5ced1;border-radius:8px;background:#fff;color:#26353a;font:inherit}
+.street-map-result-count{margin:0!important;color:#324638!important;font-weight:650}
+.street-map-results-heading{display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.street-map-results-heading span{font-size:.8rem;color:#59666b}
+.street-map-result-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;list-style:none;margin:0;padding:0}
+.street-map-result-list li{min-width:0}
+.street-map-result-list button{display:grid;gap:4px;width:100%;height:100%;text-align:left;overflow-wrap:anywhere;font-weight:400}
+.street-map-result-list button[aria-pressed=true]{border-color:#3b6d14;background:#f0ffd9;box-shadow:inset 0 0 0 1px #7db72b}
+.street-map-result-title{font-weight:700}
+.street-map-result-list button span:last-child{font-size:.78rem;color:#53635b}
+.street-map-pages{display:flex;align-items:center;justify-content:center;gap:12px;font-size:.83rem}
+.street-map-pages button:disabled{opacity:.55;cursor:not-allowed}
+.street-map-selected{display:grid;gap:4px;min-width:0;padding:13px;border:1px solid #8bbf42;border-radius:9px;background:#f7ffe9;overflow-wrap:anywhere}
+.street-map-selected h3{margin:0;font-size:1rem}
+.street-map-selected p{margin:0;color:#34443b}
+.street-map-market-caveat{padding-top:8px;border-top:1px solid #e0e7df}
+@media(max-width:700px){.street-map-workspace{gap:12px;padding:14px 12px 104px}.street-map-heading{display:block}.street-map-heading .street-map-provider{display:inline-block;margin-top:9px}.street-map-coordinate-form{display:grid;grid-template-columns:1fr 1fr}.street-map-coordinate-form input{width:100%}.street-map-preview-button{grid-column:1/-1}.street-map-frame{height:58vh;min-height:320px}}
+@media(max-width:700px){.street-map-market-intro{display:grid}.street-map-market-actions{width:100%}.street-map-result-list{grid-template-columns:1fr}.street-map-filter-row{display:grid;grid-template-columns:1fr 1fr}.street-map-filter-row label{min-width:0}.street-map-filter-row input,.street-map-filter-row select{width:100%}}
+@media(max-width:400px){.street-map-cities{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}.street-map-cities button:last-child{grid-column:1/-1}}
+@media(max-width:400px){.street-map-market-actions{display:grid;grid-template-columns:1fr 1fr}.street-map-market-actions button,.street-map-file-label{width:100%;padding-inline:6px}.street-map-filter-row{grid-template-columns:1fr}}
+@media(prefers-reduced-motion:reduce){.street-map-workspace *{scroll-behavior:auto!important}}

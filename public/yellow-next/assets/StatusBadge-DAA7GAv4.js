@@ -1,0 +1,1 @@
+import{t as e}from"./react-runtime-CR5VJ85Q.js";var t=e(),n={verified:`✓`,warning:`!`,urgent:`×`,neutral:`—`};function r({tone:e,children:r}){return(0,t.jsxs)(`span`,{className:`status-badge status-${e}`,children:[(0,t.jsx)(`span`,{"aria-hidden":`true`,children:n[e]}),r]})}export{r as t};

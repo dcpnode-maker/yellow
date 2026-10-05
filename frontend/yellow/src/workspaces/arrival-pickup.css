@@ -1,0 +1,13 @@
+.arrival-pickup { border-top: 1px solid #d8dce0; margin-top: 18px; padding-top: 16px; }
+.arrival-pickup h3 { margin: 0 0 8px; }
+.arrival-pickup p { font-size: 13px; line-height: 1.5; letter-spacing: normal; text-transform: none; }
+.arrival-pickup-fields, .arrival-pickup-staff { display: grid; grid-template-columns: repeat(auto-fit, minmax(205px, 1fr)); gap: 12px; margin: 14px 0; }
+.arrival-pickup label { display: grid; gap: 6px; font-size: 13px; }
+.arrival-pickup input, .arrival-pickup select { width: 100%; min-height: 44px; box-sizing: border-box; border: 1px solid #c9ced4; border-radius: 8px; background: #fff; color: inherit; font: inherit; padding: 8px 10px; }
+.arrival-pickup button { min-height: 44px; border-radius: 8px; font: inherit; }
+.arrival-pickup button:not(.primary):not(.quiet) { border: 1px solid #b9c0c8; background: #f5f6f7; color: inherit; padding: 8px 12px; }
+.arrival-pickup-check { display: flex !important; align-items: center; gap: 9px !important; }
+.arrival-pickup-check input { width: 20px; min-height: 20px; padding: 0; }
+.arrival-pickup-task, .arrival-pickup-recovery { border: 1px solid #d8dce0; border-radius: 8px; padding: 12px; margin-top: 12px; }
+.arrival-pickup-recovery { border-color: #b78547; background: #fff8ed; }
+.arrival-pickup-recovery button { margin-right: 8px; }
