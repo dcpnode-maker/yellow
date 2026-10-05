@@ -1,0 +1,130 @@
+/* One bill workspace; styling is local to the lazy finance route. */
+.yellow-next .folio-workspace {
+  --folio-surface: #fff;
+  --folio-soft: #f6f7f6;
+  --folio-ink: #20251f;
+  --folio-muted: #586156;
+  --folio-border: #d8ded4;
+  --folio-selected: #f1ffdc;
+  --folio-accent: #b6ff00;
+  --folio-focus: #69bd29;
+  color: var(--folio-ink);
+}
+.folio-workspace .cashier-workbench { grid-template-columns: minmax(180px, 220px) minmax(0, 1fr); align-items: start; gap: 12px; }
+.folio-workspace .cashier-panel { min-width: 0; padding: 16px; border-color: var(--folio-border); background: var(--folio-surface); border-radius: 12px; box-shadow: none; }
+.folio-workspace .board-hero { margin: 0 0 12px; padding: 0; min-height: 0; }
+.folio-workspace .board-hero h1 { font-size: 24px; margin: 0; line-height: 1.3; }
+.folio-workspace .billing-icon { flex: 0 0 16px; width: 16px; height: 16px; vertical-align: middle; }
+.folio-workspace button { font-family: inherit; }
+.folio-reservation-picker { grid-column: 1 / -1; }
+.folio-workspace .folio-reservation-picker { padding: 0 14px; }
+.folio-reservation-picker > summary { cursor: pointer; padding: 12px 0; min-height: 44px; box-sizing: border-box; font-size: 13px; font-weight: 650; }
+.folio-reservation-picker > summary .billing-icon { margin: 0 8px; }
+.folio-reservation-picker[open] { padding-bottom: 12px; }
+.folio-reservation-picker[open] > summary { margin-bottom: 12px; }
+.folio-reservation-picker .cashier-stay-list { grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); max-height: 320px; }
+.folio-workspace .folio-guest-context { padding: 16px; }
+.folio-workspace .cashier-selected-stay { padding: 0 0 12px; border: 0; background: transparent; }
+.folio-workspace .cashier-selected-stay strong { font-size: 20px; overflow-wrap: anywhere; }
+.folio-workspace .cashier-billing-context { line-height: 1.5; color: var(--folio-muted); }
+.folio-workspace .additional-folio-window:has(> .additional-folio-window-toggle) { padding: 0; border: 0; margin: 12px 0 0; }
+.folio-workspace .additional-folio-window-toggle { width: 100%; background: #fff; font-size: 12px; }
+.folio-workspace .additional-folio-window-actions button { font-size: 13px; }
+.folio-window-cards { display: grid; gap: 8px; margin-top: 12px; }
+.folio-window-cards > button { display: grid; gap: 4px; min-height: 88px; padding: 12px; text-align: left; border: 1px solid var(--folio-border); border-radius: 9px; background: var(--folio-soft); color: var(--folio-ink); overflow-wrap: anywhere; }
+.folio-workspace .folio-window-cards > button.selected { border-color: #82bd16; background: var(--folio-selected); box-shadow: none; }
+.folio-window-number { color: var(--folio-muted); font-size: 11px; font-weight: 750; text-transform: uppercase; letter-spacing: .06em; }
+.folio-window-cards small { color: var(--folio-muted); font-size: 11px; }
+.folio-window-amount { font-variant-numeric: tabular-nums; font-size: 18px; }
+.folio-workspace .cashier-status { width: fit-content; }
+.folio-summary { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 12px 0 18px; }
+.folio-summary > div { display: grid; gap: 4px; padding: 0 12px; border: 0; border-left: 1px solid var(--folio-border); min-width: 0; }
+.folio-summary > div:first-child { padding-left: 0; border-left: 0; }
+.folio-summary span, .folio-summary small { color: var(--folio-muted); font-size: 12px; }
+.folio-summary strong { font-size: clamp(17px, 2vw, 22px); font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.folio-statement-heading { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; }
+.folio-workspace .folio-statement-heading h2 { margin: 0; font-size: 21px; }
+.folio-workspace .folio-reservation-action { display: inline-flex; align-items: center; justify-content: center; gap: 7px; min-height: 40px; padding: 8px 10px; border: 1px solid var(--folio-border); border-radius: 8px; background: #fff; color: var(--folio-ink); font-size: 12px; cursor: pointer; }
+.folio-workspace .folio-reservation-action:disabled { opacity: .5; }
+.folio-action-ribbon { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); padding: 3px; gap: 3px; border: 1px solid var(--folio-border); border-radius: 10px; background: var(--folio-soft); }
+.folio-workspace .folio-action-ribbon > button { display: flex; align-items: center; justify-content: center; gap: 7px; min-width: 0; min-height: 44px; padding: 8px 6px; border: 1px solid transparent; border-radius: 7px; background: transparent; color: var(--folio-ink); font-size: 12px; line-height: 1.3; cursor: pointer; transition: background .16s, border-color .16s; }
+.folio-workspace .folio-action-ribbon > button:hover { background: #fff; }
+.folio-workspace .folio-action-ribbon > button.active { border-color: #82bd16; background: var(--folio-selected); }
+.folio-workspace .folio-action-ribbon > button:disabled:not(.active) { opacity: .55; }
+.folio-command-panels > legend { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.folio-action-panel[hidden] { display: none; }
+.folio-workspace .cashier-posting-tabs { flex-wrap: wrap; }
+.folio-workspace .cashier-posting-tabs button { min-height: 44px; }
+.folio-workspace .table-controls { min-width: 0; margin: 14px 0; padding: 12px; border: 1px solid var(--folio-border); border-radius: 12px; }
+.folio-workspace .table-controls legend { font-size: 12px; padding: 0 6px; font-weight: 700; }
+.folio-workspace .table-controls-main { display: flex; flex-wrap: wrap; gap: 12px; align-items: end; }
+.folio-workspace .table-controls-main > label { flex: 1 1 200px; }
+.folio-workspace .table-controls-main > span { padding: 12px 0; font-size: 12px; color: var(--folio-muted); }
+.folio-workspace .table-controls label { display: grid; gap: 6px; font-size: 12px; }
+.folio-workspace .table-controls :is(input, select) { min-width: 0; max-width: 100%; width: 100%; min-height: 44px; border: 1px solid var(--folio-border); border-radius: 8px; background: var(--folio-surface); padding: 8px; color: var(--folio-ink); }
+.folio-workspace .table-controls button { min-height: 44px; border: 1px solid var(--folio-border); border-radius: 8px; background: var(--folio-soft); color: var(--folio-ink); padding: 8px 12px; }
+.folio-workspace .table-controls-advanced > summary { min-height: 44px; padding: 14px 0 8px; cursor: pointer; font-size: 12px; font-weight: 700; }
+.folio-workspace .table-controls-advanced p { font-size: 12px; color: var(--folio-muted); }
+.folio-workspace .table-controls-rule { display: flex; flex-wrap: wrap; gap: 8px; align-items: end; margin: 10px 0; }
+.folio-workspace .table-controls-rule label { flex: 1 1 130px; }
+.folio-table-scroll { overflow-x: auto; max-width: 100%; border: 1px solid var(--folio-border); border-radius: 12px; }
+.folio-statement-table { width: 100%; border-collapse: collapse; font-size: 12px; text-align: left; }
+.folio-statement-table caption { text-align: left; padding: 12px; font-size: 14px; font-weight: 750; }
+.folio-statement-table th { padding: 12px; background: var(--folio-soft); border-bottom: 1px solid var(--folio-border); color: var(--folio-muted); font-size: 11px; white-space: nowrap; }
+.folio-workspace .folio-statement-table th .table-column-trigger { white-space: normal; font-size: 11px; padding: 4px 2px; }
+.folio-workspace .folio-statement-table th .table-column-label { white-space: normal; line-height: 1.35; overflow: visible; }
+.folio-workspace .folio-statement-table td:first-child { white-space: nowrap; }
+.folio-statement-table td { padding: 14px 12px; border-bottom: 1px solid var(--folio-border); vertical-align: top; font-variant-numeric: tabular-nums; }
+.folio-statement-table tbody tr:last-child td { border-bottom: 0; }
+.folio-statement-table .folio-money-cell { text-align: right; white-space: nowrap; }
+.folio-statement-table td small { display: block; margin-top: 4px; color: var(--folio-muted); }
+.folio-statement-note { font-size: 11px; line-height: 1.6; color: var(--folio-muted); }
+.folio-actions-heading { margin: 26px 0 14px; }
+.folio-actions-heading h2 { margin-bottom: 5px; }
+.folio-actions-heading p { font-size: 12px; color: var(--folio-muted); }
+.folio-command-panels { border: 0; padding: 0; margin: 0; min-width: 0; }
+.folio-action-panel { margin-top: 10px; border: 1px solid var(--folio-border); border-radius: 12px; overflow: hidden; }
+.folio-action-panel > h3 { margin: 0; }
+.folio-action-panel > h3 > button { display: flex; justify-content: space-between; align-items: center; gap: 12px; width: 100%; min-height: 64px; padding: 14px; border: 0; background: var(--folio-soft); color: var(--folio-ink); text-align: left; }
+.folio-action-panel > h3 strong { display: block; font-size: 14px; }
+.folio-action-panel > h3 small { display: block; margin-top: 4px; color: var(--folio-muted); font-size: 12px; font-weight: 400; line-height: 1.5; }
+.folio-action-content { padding: 14px; }
+.folio-action-content[hidden] { display: none; }
+.folio-action-content :is(.cashier-bill-allocation, .cashier-receivable, .cashier-charge-form) { margin-top: 0; }
+.folio-workspace :is(button, input, select, textarea, summary):focus-visible { outline: 3px solid var(--folio-focus); outline-offset: 3px; }
+.folio-workspace button:disabled { cursor: not-allowed; }
+.folio-workspace .folio-action-panel > h3 > button:disabled { opacity: 1; }
+@media (max-width: 900px) {
+  .folio-workspace .cashier-workbench { grid-template-columns: minmax(0, 1fr); }
+  .folio-window-cards { grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); }
+  .folio-workspace .cashier-selected-stay { max-width: none; }
+}
+@media (max-width: 600px) {
+  .folio-workspace .cashier-panel { padding: 14px; }
+  .folio-workspace .folio-guest-context { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 8px; align-items: start; }
+  .folio-workspace .folio-guest-context > :not(.cashier-selected-stay):not(.folio-window-cards) { grid-column: 1 / -1; }
+  .folio-workspace .folio-guest-context .cashier-selected-stay { grid-column: 1; grid-row: 1; padding: 0; margin: 0; }
+  .folio-workspace .cashier-selected-stay strong { font-size: 17px; }
+  .folio-workspace .folio-guest-context .cashier-billing-context { margin: 0; font-size: 11px; }
+  .folio-workspace .folio-guest-context .folio-window-cards { grid-column: 2; grid-row: 1; display: grid; grid-template-columns: minmax(0, 1fr); margin: 0; }
+  .folio-workspace .folio-window-cards > button { min-height: 0; padding: 8px; font-size: 12px; gap: 3px; }
+  .folio-workspace .folio-window-cards > button small { font-size: 10px; }
+  .folio-summary { gap: 8px; }
+  .folio-summary span, .folio-summary small { font-size: 11px; }
+  .folio-summary > div { padding-right: 0; padding-left: 8px; }
+  .folio-workspace .folio-reservation-action { min-height: 44px; }
+  .folio-workspace .folio-action-ribbon > button { flex-direction: column; gap: 4px; font-size: 11px; min-height: 58px; padding: 5px 2px; }
+  .folio-workspace .cashier-unified-search { grid-template-columns: minmax(0, 1fr) auto; }
+  .folio-workspace .cashier-unified-search > button { max-width: 84px; font-size: 11px; padding: 6px; }
+  .folio-workspace .cashier-search-scope button { font-size: 11px; }
+  .folio-window-cards { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .folio-window-cards > button { padding: 12px; }
+  .folio-window-cards > button:only-child { grid-column: 1 / -1; }
+  .folio-window-amount { font-size: 16px; }
+  .folio-workspace .table-controls :is(input, select) { font-size: 16px; }
+  .folio-statement-table { min-width: 100%; }
+  .folio-action-content { padding: 10px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .folio-workspace *, .folio-workspace *::before { animation: none !important; transition: none !important; }
+}

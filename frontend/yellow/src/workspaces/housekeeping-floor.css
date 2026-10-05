@@ -1,0 +1,23 @@
+.hk-floor-workbench { display:grid; gap:1rem; padding:1rem; border:1px solid var(--line); border-radius:18px; background:var(--card); color:var(--ink); }
+.hk-floor-heading { display:flex; align-items:start; justify-content:space-between; gap:1rem; }
+.hk-floor-heading h2 { margin:.2rem 0; }
+.hk-floor-heading p { max-width:70ch; color:var(--muted); }
+.hk-floor-heading button,.hk-floor-nav button,.hk-floor-drawer button { min-height:44px; }
+.hk-floor-count,.hk-floor-note { color:var(--muted); margin:0; }
+.hk-floor-alert { color:var(--danger,#a4262c); }
+.hk-floor-layout { display:grid; grid-template-columns:minmax(10rem,15rem) minmax(0,1fr); gap:1rem; }
+.hk-floor-nav { display:grid; align-content:start; gap:.5rem; }
+.hk-floor-nav button { display:flex; justify-content:space-between; gap:.5rem; text-align:left; padding:.7rem; border:1px solid var(--line); border-radius:12px; background:var(--surface-subtle); color:inherit; }
+.hk-floor-nav button[aria-pressed="true"],.hk-floor-cube[aria-pressed="true"] { outline:2px solid var(--accent); outline-offset:1px; }
+.hk-floor-room-area { min-width:0; }
+.hk-floor-cubes { display:grid; grid-template-columns:repeat(auto-fill,minmax(10rem,1fr)); gap:.65rem; }
+.hk-floor-cube { display:grid; align-content:start; gap:.25rem; min-height:7rem; text-align:left; padding:.75rem; border:1px solid var(--line); border-radius:14px; color:var(--ink); background:var(--surface-subtle); }
+.hk-floor-cube.is-clean { border-inline-start:4px solid var(--success,#247a43); }
+.hk-floor-cube.is-dirty,.hk-floor-cube.is-pickup { border-inline-start:4px solid var(--attention,#a05b00); }
+.hk-floor-cube.is-inspected { border-inline-start:4px solid var(--accent); }
+.hk-floor-cube small,.hk-floor-nav small { color:var(--muted); overflow-wrap:anywhere; }
+.hk-floor-drawer { padding:1rem; border:1px solid var(--line); border-radius:14px; background:var(--surface-subtle); }
+.hk-floor-drawer ul { display:grid; gap:.75rem; padding-inline-start:1.2rem; }
+.hk-floor-task-detail { display:grid; justify-items:start; gap:.5rem; padding:.5rem 0; }
+.hk-floor-task-select,.hk-floor-back { padding:.5rem; }
+@media(max-width:700px) { .hk-floor-layout { grid-template-columns:1fr; } .hk-floor-nav { grid-template-columns:repeat(auto-fit,minmax(9rem,1fr)); } .hk-floor-heading { flex-direction:column; } }

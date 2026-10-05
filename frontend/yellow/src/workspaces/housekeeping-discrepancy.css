@@ -1,0 +1,44 @@
+.housekeeping-discrepancy {
+  display: grid;
+  gap: 14px;
+  min-width: 0;
+  margin-top: 18px;
+  padding: clamp(16px, 2vw, 22px);
+  border: 1px solid var(--reference-line, #d8d8d8);
+  border-radius: 18px;
+  background: var(--reference-paper, #fff);
+  color: var(--reference-ink, #222);
+  box-sizing: border-box;
+  overflow-wrap: anywhere;
+}
+.housekeeping-discrepancy__header { display: flex; justify-content: space-between; align-items: start; gap: 16px; }
+.housekeeping-discrepancy__header h2,.housekeeping-discrepancy__form h3 { margin: 4px 0; }
+.housekeeping-discrepancy__header p,.housekeeping-discrepancy__limit { margin: 0; color: var(--reference-muted, #595959); font-size: .88rem; line-height: 1.5; }
+.housekeeping-discrepancy__eyebrow { color: var(--reference-muted, #595959); font-size: .7rem; font-weight: 800; letter-spacing: .13em; text-transform: uppercase; }
+.housekeeping-discrepancy__quiet,.housekeeping-discrepancy__primary { min-height: 44px; padding: 10px 14px; border: 1px solid var(--reference-line, #d8d8d8); border-radius: 10px; background: var(--reference-paper, #fff); color: var(--reference-ink, #222); font: inherit; font-weight: 750; }
+.housekeeping-discrepancy__primary { background: var(--reference-highlight, #ffe24b); border-color: var(--reference-line, #d8d8d8); }
+.housekeeping-discrepancy button:disabled { cursor: not-allowed; opacity: .55; }
+.housekeeping-discrepancy__list { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.housekeeping-discrepancy__list li { display: grid; gap: 4px; min-width: 0; padding: 12px; border: 1px solid var(--reference-line, #d8d8d8); border-radius: 12px; background: var(--reference-paper, #fff); overflow-wrap: anywhere; }
+.housekeeping-discrepancy__list li span { color: var(--reference-ink, #222); }
+.housekeeping-discrepancy__list li small { color: var(--reference-muted, #595959); }
+.housekeeping-discrepancy__empty,.housekeeping-discrepancy__success { padding: 12px; border-radius: 10px; background: var(--reference-soft, #f3f3f3); }
+.housekeeping-discrepancy__form { display: grid; gap: 12px; min-width: 0; padding-top: 14px; border-top: 1px solid var(--reference-line, #d8d8d8); }
+.housekeeping-discrepancy__form label { display: grid; gap: 6px; font-weight: 700; }
+.housekeeping-discrepancy__form select,.housekeeping-discrepancy__form input[type="number"] { box-sizing: border-box; width: 100%; max-width: 100%; min-width: 0; min-height: 44px; padding: 9px 11px; border: 1px solid var(--reference-line, #d8d8d8); border-radius: 9px; background: var(--reference-paper, #fff); color: var(--reference-ink, #222); font: inherit; }
+.housekeeping-discrepancy__form fieldset { display: flex; flex-wrap: wrap; gap: 8px 16px; min-width: 0; margin: 0; padding: 10px 12px; border: 1px solid var(--reference-line, #d8d8d8); border-radius: 10px; }
+.housekeeping-discrepancy__form legend { padding: 0 5px; font-weight: 750; }
+.housekeeping-discrepancy__form fieldset label,.housekeeping-discrepancy__confirm { display: flex !important; align-items: center; gap: 9px !important; min-height: 44px; }
+.housekeeping-discrepancy__form input[type="radio"],.housekeeping-discrepancy__confirm input { width: 20px; height: 20px; flex: 0 0 auto; margin: 0; }
+.housekeeping-discrepancy__actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.housekeeping-discrepancy__pending,.housekeeping-discrepancy__error { margin: 0; padding: 11px 12px; border: 1px solid var(--reference-line, #d8d8d8); border-radius: 9px; background: var(--reference-soft, #f3f3f3); color: var(--reference-ink, #222); overflow-wrap: anywhere; }
+.housekeeping-discrepancy__success { margin: 0; color: #185c3a; background: #e8f5ec; }
+@media (max-width: 560px) {
+  .housekeeping-discrepancy__header { flex-direction: column; align-items: stretch; }
+  .housekeeping-discrepancy__quiet,.housekeeping-discrepancy__primary { width: 100%; }
+  .housekeeping-discrepancy__form fieldset { display: grid; }
+}
+@media (forced-colors: active) {
+  .housekeeping-discrepancy,.housekeeping-discrepancy__list li,.housekeeping-discrepancy__form fieldset { border: 1px solid CanvasText; background: Canvas; color: CanvasText; }
+  .housekeeping-discrepancy button { border: 1px solid ButtonText; background: ButtonFace; color: ButtonText; }
+}

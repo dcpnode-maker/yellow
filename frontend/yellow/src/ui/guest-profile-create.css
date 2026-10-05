@@ -1,0 +1,35 @@
+.guest-profile-create { display: grid; gap: .65rem; margin-top: .75rem; }
+.guest-profile-create-toggle { width: fit-content; min-height: 44px; padding: .55rem .85rem; border: 1px solid var(--reference-line, #d8d8d8); border-radius: 11px; color: var(--reference-ink, #222); background: var(--reference-soft, #f3f3f3); font: inherit; font-weight: 650; cursor: pointer; }
+.guest-profile-create-panel { display: grid; gap: 1rem; min-width: 0; padding: 1rem; border: 1px solid var(--reference-line, #d8d8d8); border-radius: 14px; background: var(--reference-paper, #fff); box-sizing: border-box; }
+.guest-profile-create-heading { display: flex; align-items: start; justify-content: space-between; gap: .8rem; }
+.guest-profile-create .guest-profile-create-heading > div { flex: 1 1 0; min-width: 0; overflow-wrap: anywhere; }
+.guest-profile-create .guest-profile-create-heading > .guest-profile-create-cancel { flex: 0 0 auto; width: auto; min-width: max-content; min-height: 44px; padding: .5rem .75rem; border: 1px solid var(--reference-line, #d8d8d8); border-radius: 9px; background: transparent; color: var(--reference-ink, #222); font: inherit; font-weight: 650; white-space: nowrap; }
+.guest-profile-create-heading h3, .guest-profile-create-duplicates h4 { margin: 0 0 .35rem; }
+.guest-profile-create-heading p, .guest-profile-create-duplicates > p, .guest-profile-create-note { margin: 0; color: var(--reference-muted, #595959); }
+.guest-profile-create-form { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .85rem; }
+.guest-profile-create-form > label { display: grid; align-content: start; gap: .35rem; font-weight: 700; }
+.guest-profile-create-form > label > span { color: var(--reference-muted, #595959); font-size: .88em; font-weight: 500; }
+.guest-profile-create input:not([type="checkbox"]) { width: 100%; min-width: 0; min-height: 44px; padding: .55rem .7rem; border: 1px solid var(--reference-line, #d8d8d8); border-radius: 9px; background: var(--reference-canvas, #f7f7f7); color: var(--reference-ink, #222); font: inherit; box-sizing: border-box; }
+.guest-profile-create-form .voice-field { display: block; min-width: 0; }
+.guest-profile-create button:not(.guest-profile-create-toggle):not(.voice-field-mic):not(.guest-profile-create-cancel):not(.guest-profile-create-secondary) { min-height: 44px; padding: .5rem .75rem; border: 1px solid var(--reference-line, #d8d8d8); border-radius: 9px; background: var(--reference-ink, #222); color: var(--reference-paper, #fff); font: inherit; font-weight: 650; cursor: pointer; }
+.guest-profile-create button:disabled { cursor: not-allowed; opacity: .58; }
+.guest-profile-create-note { grid-column: 1 / -1; font-size: .9rem; }
+.guest-profile-create-actions { grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: center; gap: .55rem; }
+.guest-profile-create button.guest-profile-create-secondary, .guest-profile-create button.guest-profile-create-cancel { min-height: 44px; padding: .5rem .75rem; border: 1px solid var(--reference-line, #d8d8d8); border-radius: 9px; color: var(--reference-ink, #222); background: transparent; font: inherit; font-weight: 650; cursor: pointer; }
+.guest-profile-create-duplicates, .guest-profile-create-recovery { display: grid; gap: .7rem; padding: .85rem; border: 1px solid color-mix(in srgb, rgb(var(--reference-ai-rgb, 212, 175, 44)) 45%, var(--reference-line, #d8d8d8)); border-radius: 12px; background: color-mix(in srgb, rgb(var(--reference-ai-rgb, 212, 175, 44)) 8%, var(--reference-paper, white)); }
+.guest-profile-create-duplicates ul { display: grid; gap: .6rem; margin: 0; padding: 0; list-style: none; }
+.guest-profile-create-duplicates li { display: flex; align-items: center; justify-content: space-between; gap: .75rem; min-width: 0; padding: .65rem; border: 1px solid var(--reference-line, #d8d8d8); border-radius: 10px; background: var(--reference-paper, white); }
+.guest-profile-create-duplicates li > div { min-width: 0; display: grid; gap: .2rem; overflow-wrap: anywhere; }
+.guest-profile-create-duplicates li span, .guest-profile-create-duplicates li small { color: var(--reference-muted, #595959); }
+.guest-profile-create-ack { display: flex; align-items: center; gap: .55rem; min-height: 44px; }
+.guest-profile-create-ack input { width: 20px; height: 20px; flex: none; }
+.guest-profile-create-message { margin: 0; color: var(--danger, #9e2f33); }
+.guest-profile-create-success { margin: 0; padding: .6rem .75rem; border: 1px solid var(--reference-line, #d8d8d8); border-radius: 10px; color: var(--reference-ink, #222); background: var(--reference-soft, #f3f3f3); }
+.guest-profile-create :focus-visible { outline: 3px solid color-mix(in srgb, rgb(var(--reference-ai-rgb, 212, 175, 44)) 55%, transparent); outline-offset: 2px; }
+@media (max-width: 620px) {
+  .guest-profile-create-panel { padding: .8rem; }
+  .guest-profile-create-form { grid-template-columns: 1fr; }
+  .guest-profile-create-note, .guest-profile-create-actions { grid-column: 1; }
+  .guest-profile-create-duplicates li { align-items: stretch; flex-direction: column; }
+  .guest-profile-create-duplicates li > button { width: 100%; }
+}

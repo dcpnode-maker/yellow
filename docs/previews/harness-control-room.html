@@ -1,0 +1,2221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Yellow Control — Company Harness Design Preview</title>
+  <style>
+    :root {
+      --bg-page: #f5f6f8;
+      --bg-surface: #ffffff;
+      --bg-subtle: #f0f2f5;
+      --bg-hover: #e8ecf1;
+      --bg-active: #ffffff;
+      --border-subtle: #e2e6eb;
+      --border-strong: #cdd4dc;
+      --ink-primary: #12161a;
+      --ink-secondary: #5a6470;
+      --ink-tertiary: #8792a0;
+      --accent-neon: #b8f76a;
+      --accent-neon-tint: #f3fde5;
+      --accent-neon-border: #92e035;
+      --focus-ring: #0052cc;
+      --status-running-bg: #e6f4ea;
+      --status-running-ink: #137333;
+      --status-review-bg: #fef7e0;
+      --status-review-ink: #b06000;
+      --status-queued-bg: #f1f3f4;
+      --status-queued-ink: #5f6368;
+      --status-done-bg: #e8f0fe;
+      --status-done-ink: #1967d2;
+      --status-need-bg: #fce8e6;
+      --status-need-ink: #c5221f;
+      --sidebar-w: 200px;
+      --sidebar-w-collapsed: 52px;
+      --header-h: 56px;
+      --inspector-w: 360px;
+      --font-stack: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: var(--font-stack);
+      font-size: 13px;
+      line-height: 1.45;
+      color: var(--ink-primary);
+      background-color: var(--bg-page);
+      -webkit-font-smoothing: antialiased;
+      overflow-x: hidden;
+    }
+
+    button, input, select {
+      font-family: inherit;
+      font-size: inherit;
+      color: inherit;
+    }
+
+    a { color: inherit; text-decoration: none; }
+
+    /* Notice Banner */
+    .preview-banner {
+      background-color: #12161a;
+      color: #f5f6f8;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 6px 16px;
+      font-size: 11px;
+      font-weight: 500;
+      letter-spacing: 0.02em;
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+    }
+    .preview-banner .tag {
+      background: var(--accent-neon);
+      color: #0b1a03;
+      padding: 2px 6px;
+      border-radius: 3px;
+      font-weight: 700;
+      text-transform: uppercase;
+      font-size: 10px;
+      margin-right: 8px;
+    }
+    .preview-banner-controls {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+    .preview-banner-controls button {
+      background: transparent;
+      border: 1px solid rgba(255,255,255,0.25);
+      color: #fff;
+      font-size: 11px;
+      padding: 2px 8px;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    .preview-banner-controls button:hover {
+      background: rgba(255,255,255,0.1);
+    }
+    .preview-banner-controls button.active {
+      background: var(--accent-neon);
+      color: #0d1e03;
+      border-color: var(--accent-neon);
+      font-weight: 600;
+    }
+
+    /* Outer Layout */
+    .app-viewport {
+      display: flex;
+      height: calc(100vh - 31px);
+      width: 100%;
+      overflow: hidden;
+      position: relative;
+    }
+
+    /* Simulation Phone Wrapper */
+    .app-viewport.mode-phone {
+      justify-content: center;
+      align-items: center;
+      background: #39424e;
+      padding: 16px;
+    }
+    .app-viewport.mode-phone .shell-container {
+      width: 390px;
+      height: 780px;
+      max-height: 94vh;
+      border-radius: 32px;
+      box-shadow: 0 25px 60px rgba(0,0,0,0.4), 0 0 0 10px #1a202c;
+      overflow: hidden;
+      border: 1px solid #4a5568;
+      position: relative;
+    }
+
+    .shell-container {
+      display: flex;
+      flex-direction: column;
+      width: 100%;
+      height: 100%;
+      background: var(--bg-page);
+      position: relative;
+    }
+
+    /* Header */
+    .top-header {
+      min-height: var(--header-h);
+      background: var(--bg-surface);
+      border-bottom: 1px solid var(--border-subtle);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 16px;
+      gap: 12px;
+      flex-shrink: 0;
+      z-index: 50;
+      flex-wrap: wrap;
+    }
+
+    .brand-group {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .logo-badge {
+      width: 26px;
+      height: 26px;
+      border-radius: 6px;
+      background: var(--ink-primary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--accent-neon);
+      font-weight: 800;
+      font-size: 13px;
+    }
+    .company-title {
+      font-size: 14px;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+      color: var(--ink-primary);
+    }
+    .workspace-sub {
+      font-size: 11px;
+      color: var(--ink-tertiary);
+      margin-left: 4px;
+      padding: 2px 6px;
+      background: var(--bg-subtle);
+      border-radius: 4px;
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .search-box {
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+    .search-box svg {
+      position: absolute;
+      left: 9px;
+      width: 14px;
+      height: 14px;
+      color: var(--ink-tertiary);
+    }
+    .search-input {
+      padding: 6px 10px 6px 28px;
+      border-radius: 6px;
+      border: 1px solid var(--border-subtle);
+      background: var(--bg-subtle);
+      font-size: 12px;
+      width: 180px;
+      transition: all 0.15s ease;
+    }
+    .search-input:focus {
+      outline: none;
+      border-color: var(--ink-primary);
+      background: var(--bg-surface);
+      width: 220px;
+    }
+
+    .header-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      border: 1px solid var(--border-subtle);
+      background: var(--bg-surface);
+      cursor: pointer;
+      transition: all 0.15s;
+      white-space: nowrap;
+    }
+    .header-btn:hover {
+      background: var(--bg-subtle);
+      border-color: var(--border-strong);
+    }
+    .header-btn.primary {
+      background: var(--ink-primary);
+      color: #fff;
+      border-color: var(--ink-primary);
+    }
+    .header-btn.primary:hover {
+      background: #2b313a;
+    }
+    .header-btn.paused {
+      background: #fff0f0;
+      color: #c5221f;
+      border-color: #f5c2c0;
+    }
+
+    .lane-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 4px 8px;
+      border-radius: 20px;
+      background: var(--accent-neon-tint);
+      color: #274b02;
+      border: 1px solid var(--accent-neon-border);
+      white-space: nowrap;
+    }
+    .lane-badge-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #509e07;
+    }
+
+    /* App Body (Sidebar + Content + Inspector) */
+    .app-body {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+      position: relative;
+    }
+    .app-body.dock-bottom-layout {
+      padding-bottom: 52px;
+    }
+
+    /* Left Sidebar Ribbon */
+    .left-sidebar {
+      width: var(--sidebar-w);
+      background: var(--bg-surface);
+      border-right: 1px solid var(--border-subtle);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      flex-shrink: 0;
+      transition: width 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      overflow-y: auto;
+      overflow-x: hidden;
+      z-index: 40;
+    }
+    .left-sidebar.collapsed {
+      width: var(--sidebar-w-collapsed);
+    }
+    .app-body.dock-bottom-layout .left-sidebar.collapsed {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      width: 100%;
+      height: 52px;
+      flex-direction: row;
+      border-right: none;
+      border-top: 1px solid var(--border-subtle);
+      overflow-y: hidden;
+      overflow-x: auto;
+    }
+    .app-body.dock-bottom-layout .left-sidebar.collapsed .nav-section {
+      padding: 4px 8px;
+      display: flex;
+      align-items: center;
+    }
+    .app-body.dock-bottom-layout .left-sidebar.collapsed .nav-ribbon {
+      flex-direction: row;
+      gap: 4px;
+    }
+    .app-body.dock-bottom-layout .left-sidebar.collapsed .sidebar-footer {
+      flex-direction: row;
+      border-top: none;
+      border-left: 1px solid var(--border-subtle);
+      padding: 4px 8px;
+      align-items: center;
+    }
+
+    .nav-section {
+      padding: 12px 8px;
+    }
+    .nav-section-title {
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--ink-tertiary);
+      padding: 6px 10px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .left-sidebar.collapsed .nav-section-title {
+      display: none;
+    }
+
+    .nav-ribbon {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      background: var(--bg-subtle);
+      padding: 3px;
+      border-radius: 8px;
+    }
+    .left-sidebar.collapsed .nav-ribbon {
+      background: transparent;
+      padding: 0;
+    }
+
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 7px 10px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--ink-secondary);
+      border: 1px solid transparent;
+      cursor: pointer;
+      background: transparent;
+      width: 100%;
+      text-align: left;
+      transition: background 0.15s, color 0.15s, border-color 0.15s;
+      position: relative;
+      white-space: nowrap;
+    }
+    .nav-item:hover {
+      background: var(--bg-hover);
+      color: var(--ink-primary);
+    }
+    .nav-item.active {
+      background: var(--bg-active);
+      color: var(--ink-primary);
+      font-weight: 600;
+      border-color: var(--border-subtle);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+    }
+    .nav-item.active::after {
+      content: "";
+      position: absolute;
+      right: 8px;
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #73c714;
+    }
+    .left-sidebar.collapsed .nav-item {
+      justify-content: center;
+      padding: 9px 0;
+      width: 38px;
+      height: 38px;
+    }
+    .left-sidebar.collapsed .nav-item span {
+      display: none;
+    }
+    .left-sidebar.collapsed .nav-item.active::after {
+      top: 5px;
+      right: 5px;
+    }
+
+    .nav-item svg {
+      width: 16px;
+      height: 16px;
+      flex-shrink: 0;
+      color: inherit;
+    }
+
+    .nav-badge-count {
+      margin-left: auto;
+      font-size: 10px;
+      font-weight: 700;
+      padding: 1px 5px;
+      border-radius: 10px;
+      background: var(--bg-subtle);
+      color: var(--ink-secondary);
+    }
+    .left-sidebar.collapsed .nav-badge-count {
+      display: none;
+    }
+
+    .sidebar-footer {
+      padding: 10px 8px;
+      border-top: 1px solid var(--border-subtle);
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .sidebar-footer-btn {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 7px 10px;
+      width: 100%;
+      border-radius: 6px;
+      background: transparent;
+      border: none;
+      color: var(--ink-secondary);
+      font-size: 12px;
+      cursor: pointer;
+    }
+    .sidebar-footer-btn:hover {
+      background: var(--bg-hover);
+      color: var(--ink-primary);
+    }
+    .left-sidebar.collapsed .sidebar-footer-btn span {
+      display: none;
+    }
+    .left-sidebar.collapsed .sidebar-footer-btn {
+      justify-content: center;
+      width: 38px;
+      height: 38px;
+      padding: 0;
+    }
+
+    .dock-toggle-btn {
+      display: none;
+    }
+    .left-sidebar.collapsed .dock-toggle-btn {
+      display: flex;
+    }
+
+    /* Main Area */
+    .main-workspace {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+      overflow-x: hidden;
+      background: var(--bg-page);
+      position: relative;
+    }
+
+    /* View Content Containers */
+    .view-pane {
+      display: none;
+      padding: 20px 24px;
+      flex-direction: column;
+      gap: 16px;
+      min-height: 100%;
+    }
+    .view-pane.active {
+      display: flex;
+    }
+
+    /* View Top Bar */
+    .view-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--border-subtle);
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    .view-title-block {
+      min-width: 160px;
+    }
+    .view-title-block h1 {
+      font-size: 18px;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+      color: var(--ink-primary);
+    }
+    .view-subtitle {
+      font-size: 12px;
+      color: var(--ink-secondary);
+      margin-top: 2px;
+    }
+
+    /* Horizontal Segmented Ribbon with Shared Sliding Plate */
+    .segmented-ribbon-container {
+      background: var(--bg-subtle);
+      padding: 3px;
+      border-radius: 7px;
+      display: inline-flex;
+      position: relative;
+      border: 1px solid var(--border-subtle);
+      width: fit-content;
+      max-width: 100%;
+      overflow-x: auto;
+      flex-shrink: 0;
+    }
+    .ribbon-slider-plate {
+      position: absolute;
+      top: 3px;
+      bottom: 3px;
+      left: 0;
+      width: 0;
+      background: #ffffff;
+      border-radius: 5px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      pointer-events: none;
+      z-index: 1;
+    }
+    .ribbon-btn {
+      padding: 5px 12px;
+      border-radius: 5px;
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--ink-secondary);
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      white-space: nowrap;
+      position: relative;
+      z-index: 2;
+      transition: color 0.15s;
+    }
+    .ribbon-btn:hover, .ribbon-btn:focus-visible {
+      color: var(--ink-primary);
+    }
+    .ribbon-btn.active {
+      color: var(--ink-primary);
+      font-weight: 600;
+    }
+    .ribbon-btn.active .ribbon-dot {
+      background: #73c714;
+    }
+    .ribbon-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: transparent;
+      border: 1px solid var(--ink-tertiary);
+      flex-shrink: 0;
+    }
+
+    /* Task Table / List */
+    .task-table-wrapper {
+      background: var(--bg-surface);
+      border-radius: 8px;
+      border: 1px solid var(--border-subtle);
+      overflow: hidden;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.02);
+    }
+    .task-table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+    }
+    .task-table th {
+      padding: 9px 14px;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--ink-tertiary);
+      border-bottom: 1px solid var(--border-subtle);
+      background: #fafbfc;
+    }
+    .task-table td {
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--border-subtle);
+      font-size: 12px;
+    }
+    .task-row {
+      cursor: pointer;
+      transition: background 0.1s;
+      outline: none;
+    }
+    .task-row:hover {
+      background: #f8fafc;
+    }
+    .task-row:focus-visible {
+      outline: 2px solid var(--ink-primary);
+      outline-offset: -2px;
+      background: #f8fafc;
+    }
+    .task-row.selected {
+      background: #f0f7ea;
+    }
+    .task-row:last-child td {
+      border-bottom: none;
+    }
+
+    .task-title-cell {
+      font-weight: 600;
+      color: var(--ink-primary);
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .task-id-sub {
+      font-size: 10px;
+      font-weight: 500;
+      color: var(--ink-tertiary);
+      font-family: monospace;
+    }
+
+    /* Status Pills */
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 2px 7px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+    .status-pill.running { background: var(--status-running-bg); color: var(--status-running-ink); }
+    .status-pill.review { background: var(--status-review-bg); color: var(--status-review-ink); }
+    .status-pill.queued { background: var(--status-queued-bg); color: var(--status-queued-ink); }
+    .status-pill.done { background: var(--status-done-bg); color: var(--status-done-ink); }
+    .status-pill.needs_approval { background: var(--status-need-bg); color: var(--status-need-ink); }
+
+    .worker-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 11px;
+      color: var(--ink-secondary);
+      background: var(--bg-subtle);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-family: monospace;
+    }
+
+    /* Inspector (Right Sidebar / Bottom Sheet) */
+    .inspector-pane {
+      width: var(--inspector-w);
+      background: var(--bg-surface);
+      border-left: 1px solid var(--border-subtle);
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+      overflow-y: auto;
+      z-index: 35;
+      transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .inspector-pane.closed {
+      display: none;
+    }
+
+    .inspector-header {
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--border-subtle);
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      background: #fafbfc;
+    }
+    .inspector-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--ink-primary);
+    }
+    .inspector-close-btn {
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      color: var(--ink-tertiary);
+      padding: 4px;
+      border-radius: 4px;
+      display: flex;
+    }
+    .inspector-close-btn:hover {
+      background: var(--bg-subtle);
+      color: var(--ink-primary);
+    }
+
+    .inspector-content {
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .inspector-section {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .section-label {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--ink-tertiary);
+    }
+    .section-value-box {
+      background: #fafbfc;
+      border: 1px solid var(--border-subtle);
+      border-radius: 6px;
+      padding: 10px;
+      font-size: 12px;
+      line-height: 1.5;
+    }
+
+    .metric-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 8px;
+    }
+    .metric-card {
+      background: var(--bg-subtle);
+      border-radius: 6px;
+      padding: 8px 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .metric-title {
+      font-size: 10px;
+      color: var(--ink-tertiary);
+      text-transform: uppercase;
+      font-weight: 600;
+    }
+    .metric-data {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--ink-primary);
+      font-family: monospace;
+    }
+
+    /* Inspector Proof Tabs */
+    .proof-tabs-ribbon {
+      display: flex;
+      background: var(--bg-subtle);
+      border-radius: 6px;
+      padding: 2px;
+      gap: 2px;
+    }
+    .proof-tab-btn {
+      flex: 1;
+      padding: 4px 0;
+      font-size: 11px;
+      font-weight: 600;
+      background: transparent;
+      border: none;
+      border-radius: 4px;
+      color: var(--ink-secondary);
+      cursor: pointer;
+    }
+    .proof-tab-btn.active {
+      background: #ffffff;
+      color: var(--ink-primary);
+      box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+    }
+    .proof-content-pane {
+      display: none;
+      font-size: 11px;
+      font-family: Consolas, "Liberation Mono", Menlo, Courier, monospace;
+      background: #191e24;
+      color: #d1d5db;
+      padding: 10px;
+      border-radius: 6px;
+      max-height: 160px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+    .proof-content-pane.active {
+      display: block;
+    }
+
+    .inspector-actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 6px;
+    }
+    .inspector-btn {
+      flex: 1;
+      padding: 7px 12px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      border: 1px solid var(--border-subtle);
+      background: var(--bg-surface);
+      cursor: pointer;
+      text-align: center;
+      transition: all 0.15s;
+    }
+    .inspector-btn.approve {
+      background: var(--accent-neon);
+      border-color: #92e035;
+      color: #0d1e03;
+    }
+    .inspector-btn.approve:hover {
+      background: #a9f351;
+    }
+    .inspector-btn:hover {
+      background: var(--bg-subtle);
+    }
+
+    /* Cards & Grids for Other Views */
+    .card-deck {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 12px;
+    }
+    .data-card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: 8px;
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .data-card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .card-title {
+      font-weight: 700;
+      font-size: 13px;
+      color: var(--ink-primary);
+    }
+
+    /* Diagram / Flow view */
+    .diagram-container {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: 8px;
+      padding: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      overflow-x: auto;
+    }
+    .diagram-step {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      min-width: 100px;
+      text-align: center;
+    }
+    .diagram-node {
+      width: 44px;
+      height: 44px;
+      border-radius: 8px;
+      background: var(--bg-subtle);
+      border: 1px solid var(--border-strong);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 12px;
+      color: var(--ink-primary);
+    }
+    .diagram-node.active-node {
+      background: var(--accent-neon-tint);
+      border-color: var(--accent-neon-border);
+      color: #1f3b03;
+    }
+    .diagram-arrow {
+      color: var(--ink-tertiary);
+      font-weight: 700;
+      font-size: 16px;
+    }
+
+    /* Modal Form */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(18, 22, 26, 0.4);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 2000;
+    }
+    .modal-overlay.open {
+      display: flex;
+    }
+    .modal-box {
+      width: 440px;
+      max-width: 90vw;
+      background: var(--bg-surface);
+      border-radius: 10px;
+      border: 1px solid var(--border-strong);
+      box-shadow: 0 16px 36px rgba(0,0,0,0.15);
+      overflow: hidden;
+    }
+    .modal-header {
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border-subtle);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: #fafbfc;
+      font-weight: 700;
+    }
+    .modal-body {
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .form-label {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--ink-secondary);
+    }
+    .form-input, .form-select, .form-textarea {
+      padding: 8px 10px;
+      border-radius: 6px;
+      border: 1px solid var(--border-subtle);
+      font-size: 12px;
+      background: var(--bg-surface);
+    }
+    .form-textarea {
+      resize: vertical;
+      min-height: 60px;
+    }
+    .form-input:focus, .form-select:focus, .form-textarea:focus {
+      outline: none;
+      border-color: var(--ink-primary);
+    }
+    .modal-footer {
+      padding: 12px 16px;
+      border-top: 1px solid var(--border-subtle);
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+      background: #fafbfc;
+    }
+
+    /* Toast Notification */
+    .toast-container {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      background: #191e24;
+      color: #fff;
+      padding: 9px 14px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.25);
+      border-left: 3px solid var(--accent-neon);
+      opacity: 0;
+      transform: translateY(10px);
+      transition: all 0.2s ease;
+      z-index: 3000;
+      pointer-events: none;
+    }
+    .toast-container.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    /* Bottom mobile nav */
+    .mobile-bottom-nav {
+      display: none;
+      height: 52px;
+      background: var(--bg-surface);
+      border-top: 1px solid var(--border-subtle);
+      flex-shrink: 0;
+      align-items: center;
+      justify-content: space-around;
+      padding: 0 8px;
+    }
+    .mobile-nav-btn {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+      font-size: 10px;
+      color: var(--ink-tertiary);
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      padding: 4px;
+    }
+    .mobile-nav-btn.active {
+      color: var(--ink-primary);
+      font-weight: 700;
+    }
+    .mobile-nav-btn svg {
+      width: 18px;
+      height: 18px;
+    }
+
+    /* Mobile Responsive rules shared by <=768px and .mode-phone simulation */
+    @media (max-width: 768px) {
+      .left-sidebar {
+        display: none !important;
+      }
+      .mobile-bottom-nav {
+        display: flex;
+      }
+      .app-viewport {
+        height: calc(100vh - 31px);
+      }
+      .inspector-pane {
+        position: absolute;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        max-width: 100%;
+        border-left: none;
+        z-index: 100;
+      }
+      .top-header {
+        padding: 8px 10px;
+      }
+      .workspace-sub, .lane-badge {
+        display: none;
+      }
+      .view-pane {
+        padding: 12px;
+      }
+      .task-table th:nth-child(3), .task-table td:nth-child(3),
+      .task-table th:nth-child(4), .task-table td:nth-child(4),
+      .task-table th:nth-child(5), .task-table td:nth-child(5) {
+        display: none;
+      }
+      .task-table th:nth-child(2), .task-table td:nth-child(2) {
+        text-align: right;
+      }
+    }
+
+    /* Explicit mode-phone rules so desktop viewports like 1256px correctly show phone layout */
+    .app-viewport.mode-phone .left-sidebar {
+      display: none !important;
+    }
+    .app-viewport.mode-phone .mobile-bottom-nav {
+      display: flex;
+    }
+    .app-viewport.mode-phone .inspector-pane {
+      position: absolute;
+      top: 0;
+      right: 0;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      max-width: 100%;
+      border-left: none;
+      z-index: 100;
+    }
+    .app-viewport.mode-phone .top-header {
+      padding: 8px 10px;
+      gap: 8px;
+    }
+    .app-viewport.mode-phone .workspace-sub,
+    .app-viewport.mode-phone .lane-badge {
+      display: none;
+    }
+    .app-viewport.mode-phone .view-pane {
+      padding: 12px;
+    }
+    .app-viewport.mode-phone .task-table th:nth-child(3),
+    .app-viewport.mode-phone .task-table td:nth-child(3),
+    .app-viewport.mode-phone .task-table th:nth-child(4),
+    .app-viewport.mode-phone .task-table td:nth-child(4),
+    .app-viewport.mode-phone .task-table th:nth-child(5),
+    .app-viewport.mode-phone .task-table td:nth-child(5) {
+      display: none;
+    }
+    .app-viewport.mode-phone .task-table th:nth-child(2),
+    .app-viewport.mode-phone .task-table td:nth-child(2) {
+      text-align: right;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Persistent Banner -->
+  <aside class="preview-banner" aria-label="Notice">
+    <div style="display: flex; align-items: center;">
+      <span class="tag">Design Preview</span>
+      <span>Sample data &middot; no agents running &middot; UI concept only</span>
+    </div>
+    <div class="preview-banner-controls">
+      <button id="btnViewDesktop" class="active" title="Switch to standard desktop view">1440px Desktop</button>
+      <button id="btnViewPhone" title="Switch to 390px mobile phone simulation">390px Phone</button>
+    </div>
+  </aside>
+
+  <!-- Viewport wrapper -->
+  <div id="appViewport" class="app-viewport">
+    <div class="shell-container">
+      
+      <!-- Header -->
+      <header class="top-header">
+        <div class="brand-group">
+          <div class="logo-badge" aria-hidden="true">Y</div>
+          <div>
+            <span class="company-title">Yellow Control</span>
+            <span class="workspace-sub">Harness / Product</span>
+          </div>
+        </div>
+
+        <div class="header-actions">
+          <div class="search-box">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="11" cy="11" r="8"></circle>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+            <input type="text" id="taskSearchInput" class="search-input" placeholder="Filter tasks..." maxlength="300" aria-label="Search and filter tasks">
+          </div>
+
+          <div class="lane-badge" title="Free-tier lane constraint active">
+            <span class="lane-badge-dot"></span>
+            <span>Free-only routing</span>
+          </div>
+
+          <button id="btnToggleQueue" class="header-btn" title="Simulate pausing queue dispatch">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+              <rect x="6" y="4" width="4" height="16"></rect>
+              <rect x="14" y="4" width="4" height="16"></rect>
+            </svg>
+            <span id="queueStatusText">Pause queue</span>
+          </button>
+
+          <button id="btnOpenNewTaskModal" class="header-btn primary" title="Draft new sample task">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <line x1="12" y1="5" x2="12" y2="19"></line>
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+            </svg>
+            <span>New task</span>
+          </button>
+        </div>
+      </header>
+
+      <!-- Main body layout -->
+      <div class="app-body">
+        
+        <!-- Left Sidebar Navigation -->
+        <nav class="left-sidebar" id="leftSidebar" aria-label="Company Navigation">
+          <div class="nav-section">
+            <div class="nav-section-title">Company</div>
+            <div class="nav-ribbon" role="tablist">
+              <button class="nav-item" data-view="overview" role="tab" aria-selected="false" title="Overview">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
+                <span>Overview</span>
+              </button>
+              <button class="nav-item" data-view="goals" role="tab" aria-selected="false" title="Goals">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="6"></circle><circle cx="12" cy="12" r="2"></circle></svg>
+                <span>Goals</span>
+              </button>
+              <button class="nav-item active" data-view="work" role="tab" aria-selected="true" title="Work (Tasks)">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path><rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect></svg>
+                <span>Work</span>
+                <span class="nav-badge-count" id="navWorkCount">6</span>
+              </button>
+              <button class="nav-item" data-view="agents" role="tab" aria-selected="false" title="Agents">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+                <span>Agents</span>
+              </button>
+              <button class="nav-item" data-view="models" role="tab" aria-selected="false" title="Models &amp; Harnesses">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect><rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect><line x1="6" y1="6" x2="6.01" y2="6"></line><line x1="6" y1="18" x2="6.01" y2="18"></line></svg>
+                <span>Models &amp; Harnesses</span>
+              </button>
+              <button class="nav-item" data-view="approvals" role="tab" aria-selected="false" title="Approvals">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+                <span>Approvals</span>
+                <span class="nav-badge-count" style="background:#fce8e6; color:#c5221f;">1</span>
+              </button>
+              <button class="nav-item" data-view="activity" role="tab" aria-selected="false" title="Activity">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
+                <span>Activity</span>
+              </button>
+            </div>
+          </div>
+
+          <div class="sidebar-footer">
+            <button class="nav-item" data-view="settings" role="tab" aria-selected="false" title="Settings">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+              <span>Settings</span>
+            </button>
+            <button id="btnToggleSidebar" class="sidebar-footer-btn" title="Collapse or expand sidebar rail">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="11 19 4 12 11 5"></polyline><polyline points="19 19 12 12 19 5"></polyline></svg>
+              <span>Collapse rail</span>
+            </button>
+            <button id="btnToggleDock" class="sidebar-footer-btn dock-toggle-btn" title="Toggle dock position: bottom or left">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="3" y1="15" x2="21" y2="15"></line></svg>
+              <span>Dock bottom/left</span>
+            </button>
+          </div>
+        </nav>
+
+        <!-- Main Content Area -->
+        <main class="main-workspace" id="mainWorkspace">
+          
+          <!-- View 1: Work (Default) -->
+          <section class="view-pane active" id="view-work">
+            <div class="view-header">
+              <div class="view-title-block">
+                <h1>Work</h1>
+                <div class="view-subtitle">Yellow / Product development queue</div>
+              </div>
+              
+              <!-- Horizontal Segmented Status Ribbon -->
+              <div class="segmented-ribbon-container" id="taskStatusRibbon" role="tablist" aria-label="Task Status Filters">
+                <div class="ribbon-slider-plate" id="ribbonSliderPlate" aria-hidden="true"></div>
+                <button class="ribbon-btn active" data-filter="all"><span class="ribbon-dot"></span>All (<span id="count-all">6</span>)</button>
+                <button class="ribbon-btn" data-filter="queued"><span class="ribbon-dot"></span>Queued (<span id="count-queued">2</span>)</button>
+                <button class="ribbon-btn" data-filter="running"><span class="ribbon-dot"></span>Running (<span id="count-running">1</span>)</button>
+                <button class="ribbon-btn" data-filter="review"><span class="ribbon-dot"></span>Review (<span id="count-review">1</span>)</button>
+                <button class="ribbon-btn" data-filter="done"><span class="ribbon-dot"></span>Done (<span id="count-done">1</span>)</button>
+              </div>
+            </div>
+
+            <!-- Task Table -->
+            <div class="task-table-wrapper">
+              <table class="task-table" aria-label="Sample Task Table">
+                <thead>
+                  <tr>
+                    <th style="width: 44%;">Task Title &amp; Scope</th>
+                    <th style="width: 18%;">Status</th>
+                    <th style="width: 14%;">Owner</th>
+                    <th style="width: 14%;">Worker</th>
+                    <th style="width: 10%;">Evidence</th>
+                  </tr>
+                </thead>
+                <tbody id="taskTableBody">
+                  <!-- Generated via JS for clean filtering -->
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          <!-- View 2: Overview -->
+          <section class="view-pane" id="view-overview">
+            <div class="view-header">
+              <div class="view-title-block">
+                <h1>Company Overview</h1>
+                <div class="view-subtitle">One company. One accountable work queue.</div>
+              </div>
+            </div>
+
+            <!-- Pipeline Diagram -->
+            <div class="diagram-container">
+              <div class="diagram-step">
+                <div class="diagram-node active-node">Goals</div>
+                <div style="font-size: 11px; font-weight: 600;">3 Milestones</div>
+              </div>
+              <div class="diagram-arrow">&rarr;</div>
+              <div class="diagram-step">
+                <div class="diagram-node active-node">Tasks</div>
+                <div style="font-size: 11px; font-weight: 600;" id="overviewTaskCount">6 Sample Tasks</div>
+              </div>
+              <div class="diagram-arrow">&rarr;</div>
+              <div class="diagram-step">
+                <div class="diagram-node">Workers</div>
+                <div style="font-size: 11px; font-weight: 600;">Codex &middot; Antigravity</div>
+              </div>
+              <div class="diagram-arrow">&rarr;</div>
+              <div class="diagram-step">
+                <div class="diagram-node">Evidence</div>
+                <div style="font-size: 11px; font-weight: 600;">Proof &middot; Diffs &middot; Tests</div>
+              </div>
+            </div>
+
+            <div class="card-deck">
+              <div class="data-card">
+                <div class="data-card-header">
+                  <span class="card-title">Attention Required</span>
+                  <span class="status-pill needs_approval">1 Item</span>
+                </div>
+                <div style="font-size: 12px; color: var(--ink-secondary);">
+                  <strong>Task #DEMO-005: Permission boundaries</strong> requires founder approval to edit scoped approved OS tools.
+                </div>
+              </div>
+              <div class="data-card">
+                <div class="data-card-header">
+                  <span class="card-title">Queue Status</span>
+                  <span class="status-pill running" id="overviewQueueBadge">Active (Free)</span>
+                </div>
+                <div style="font-size: 12px; color: var(--ink-secondary);">
+                  Concurrency capped at 1 worker. Next dispatch: Resume-safe queue check.
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- View 3: Goals -->
+          <section class="view-pane" id="view-goals">
+            <div class="view-header">
+              <div class="view-title-block">
+                <h1>Company Goals</h1>
+                <div class="view-subtitle">Hierarchical company &rarr; product &rarr; module outcomes</div>
+              </div>
+            </div>
+            <div class="card-deck">
+              <div class="data-card">
+                <div class="data-card-header">
+                  <span class="card-title">Company &rarr; Yellow PMS</span>
+                  <span class="status-pill review">Phase 7</span>
+                </div>
+                <div style="font-size: 12px; color: var(--ink-secondary);">
+                  Hospitality ERP foundational execution with verified PostgreSQL 18 authority and immutable ledger.
+                </div>
+              </div>
+              <div class="data-card">
+                <div class="data-card-header">
+                  <span class="card-title">Product &rarr; Reservations &amp; Frontdesk</span>
+                  <span class="status-pill running">In Progress</span>
+                </div>
+                <div style="font-size: 12px; color: var(--ink-secondary);">
+                  Interactive calendar interactions and reservation booking flow stability.
+                </div>
+              </div>
+              <div class="data-card">
+                <div class="data-card-header">
+                  <span class="card-title">Harness &rarr; Universal Control Room</span>
+                  <span class="status-pill review">Design Preview</span>
+                </div>
+                <div style="font-size: 12px; color: var(--ink-secondary);">
+                  Order744 UI approval before executing scheduler, adapters or backend state machinery.
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- View 4: Agents -->
+          <section class="view-pane" id="view-agents">
+            <div class="view-header">
+              <div class="view-title-block">
+                <h1>Agents Hierarchy</h1>
+                <div class="view-subtitle">Founder &rarr; Coordinator &rarr; Builder / Reviewer roles (Not running)</div>
+              </div>
+            </div>
+            <div class="card-deck">
+              <div class="data-card">
+                <div class="data-card-header">
+                  <span class="card-title">Founder</span>
+                  <span class="status-pill done">Authority</span>
+                </div>
+                <div style="font-size: 12px; color: var(--ink-secondary);">
+                  Reviews critical path changes, credentials, spending gates, and irreversible actions.
+                </div>
+              </div>
+              <div class="data-card">
+                <div class="data-card-header">
+                  <span class="card-title">Codex</span>
+                  <span class="status-pill running">Coordinator (Planned)</span>
+                </div>
+                <div style="font-size: 12px; color: var(--ink-secondary);">
+                  Primary coordination owner. Organizes work into bounded tasks; delegates execution to builders.
+                </div>
+              </div>
+              <div class="data-card">
+                <div class="data-card-header">
+                  <span class="card-title">Gemini / Antigravity</span>
+                  <span class="status-pill queued">Free-Only Builder (Active Lane)</span>
+                </div>
+                <div style="font-size: 12px; color: var(--ink-secondary);">
+                  Direct CLI tool lane under scoped approved OS tools for preview and bounded document tasks.
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- View 5: Models & Harnesses -->
+          <section class="view-pane" id="view-models">
+            <div class="view-header">
+              <div class="view-title-block">
+                <h1>Models &amp; Harnesses</h1>
+                <div class="view-subtitle">Entitled runtime adapters &middot; free-tier quotas &middot; no claimed spend</div>
+              </div>
+            </div>
+            <div class="card-deck">
+              <div class="data-card">
+                <div class="data-card-header">
+                  <span class="card-title">Antigravity CLI</span>
+                  <span class="status-pill running">Included Plan Lane</span>
+                </div>
+                <div style="font-size: 12px; color: var(--ink-secondary);">
+                  Runtime: Local shell/sandbox. Status: Not running tasks in background.
+                </div>
+              </div>
+              <div class="data-card">
+                <div class="data-card-header">
+                  <span class="card-title">DeepSeekHarness (DSH)</span>
+                  <span class="status-pill queued">Adapter Planned</span>
+                </div>
+                <div style="font-size: 12px; color: var(--ink-secondary);">
+                  External harness protocol adapter. Requires health check before enablement.
+                </div>
+              </div>
+              <div class="data-card">
+                <div class="data-card-header">
+                  <span class="card-title">Goose Execution Harness</span>
+                  <span class="status-pill queued">Adapter Planned</span>
+                </div>
+                <div style="font-size: 12px; color: var(--ink-secondary);">
+                  Toolkit-based agent runtime adapter. Status: Specification only.
+                </div>
+              </div>
+              <div class="data-card">
+                <div class="data-card-header">
+                  <span class="card-title">FreeLLMAPI Gateway</span>
+                  <span class="status-pill queued">Not Connected</span>
+                </div>
+                <div style="font-size: 12px; color: var(--ink-secondary);">
+                  Local token router for zero-cost model pools. No free-token guarantee.
+                </div>
+              </div>
+              <div class="data-card">
+                <div class="data-card-header">
+                  <span class="card-title">Local / Phone / VPS Workers</span>
+                  <span class="status-pill queued">Not Connected</span>
+                </div>
+                <div style="font-size: 12px; color: var(--ink-secondary);">
+                  Remote worker nodes. Planned future expansion after single-machine proof.
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- View 6: Approvals -->
+          <section class="view-pane" id="view-approvals">
+            <div class="view-header">
+              <div class="view-title-block">
+                <h1>Sensitive Approvals</h1>
+                <div class="view-subtitle">Audit gate for permissions, spend, and irreversible actions</div>
+              </div>
+            </div>
+            <div class="data-card" style="border-left: 3px solid #c5221f;">
+              <div class="data-card-header">
+                <span class="card-title">Request #AP-744-1: Permission Boundaries Scoped Tools</span>
+                <span class="status-pill needs_approval">Awaiting Decision</span>
+              </div>
+              <div style="font-size: 12px; color: var(--ink-secondary);">
+                <strong>Proposed Action:</strong> Grant scoped approved OS tools authorization for adapter check.
+                <br><strong>Requested by:</strong> Coordinator (Codex) &middot; <strong>Impact:</strong> Scoped tool execution only, no bypass.
+              </div>
+              <div style="display: flex; gap: 8px; margin-top: 8px;">
+                <button class="header-btn" onclick="showToast('Approval preview simulated: rejected request.')">Reject preview</button>
+                <button class="header-btn primary" onclick="showToast('Approval preview simulated: approved.')">Approve preview</button>
+              </div>
+            </div>
+          </section>
+
+          <!-- View 7: Activity -->
+          <section class="view-pane" id="view-activity">
+            <div class="view-header">
+              <div class="view-title-block">
+                <h1>Audit Activity</h1>
+                <div class="view-subtitle">Durable append-only run log &middot; sample events</div>
+              </div>
+            </div>
+            <div class="data-card">
+              <div style="font-family: monospace; font-size: 11px; line-height: 1.8; color: var(--ink-secondary);">
+                <div>[2026-09-26 14:40:02] NOTICE: Order744 design preview initialized.</div>
+                <div>[2026-09-26 14:38:10] QUEUE: Task #1 (Calendar interactions) marked In Review.</div>
+                <div>[2026-09-26 14:30:00] WORKER: Resume-safe checkpoint written for Task #2.</div>
+                <div>[2026-09-26 14:15:22] INVARIANT: Postgres 18 authority verified (11/11 battery green).</div>
+                <div>[2026-09-26 14:00:00] SYSTEM: Free-only routing enforcement policy applied.</div>
+              </div>
+            </div>
+          </section>
+
+          <!-- View 8: Settings -->
+          <section class="view-pane" id="view-settings">
+            <div class="view-header">
+              <div class="view-title-block">
+                <h1>Execution Settings</h1>
+                <div class="view-subtitle">Zero-cost doctrine &middot; concurrency limits &middot; preview policies</div>
+              </div>
+            </div>
+            <div class="data-card">
+              <div class="data-card-header">
+                <span class="card-title">Routing Policy</span>
+                <span class="status-pill done">Free-Only Strict</span>
+              </div>
+              <div style="font-size: 12px; color: var(--ink-secondary);">
+                Paid fallback lanes are disabled by policy. Max parallel runs: <strong>1</strong>.
+              </div>
+            </div>
+            <div class="data-card">
+              <div class="data-card-header">
+                <span class="card-title">Execution Sandboxing</span>
+                <span class="status-pill running">Standard Sandbox</span>
+              </div>
+              <div style="font-size: 12px; color: var(--ink-secondary);">
+                Filesystem isolation active. Network access blocked for worker processes.
+              </div>
+            </div>
+          </section>
+
+        </main>
+
+        <!-- Right Inspector Pane (Desktop in-place / Mobile sheet) -->
+        <aside class="inspector-pane" id="inspectorPane" aria-label="Task Detail Inspector">
+          <div class="inspector-header">
+            <div>
+              <div class="inspector-title" id="inspectorTaskTitle">Task Inspector</div>
+              <div class="task-id-sub" id="inspectorTaskId">#TASK-000</div>
+            </div>
+            <button class="inspector-close-btn" id="btnCloseInspector" title="Close inspector (Esc)">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+              </svg>
+            </button>
+          </div>
+
+          <div class="inspector-content">
+            <!-- Status & Worker -->
+            <div class="inspector-section">
+              <div class="section-label">State &amp; Assignment</div>
+              <div style="display: flex; gap: 8px; align-items: center;">
+                <span id="inspectorStatusPill" class="status-pill review">In Review</span>
+                <span id="inspectorWorkerPill" class="worker-pill">Worker: codex</span>
+              </div>
+            </div>
+
+            <!-- Scope -->
+            <div class="inspector-section">
+              <div class="section-label">Scope &amp; Dependencies</div>
+              <div class="section-value-box" id="inspectorScopeText">
+                Calendar interactions drag-and-drop availability verification.
+              </div>
+            </div>
+
+            <!-- Budget / Metrics -->
+            <div class="inspector-section">
+              <div class="section-label">Resource Budget (No Claimed Spend)</div>
+              <div class="metric-grid">
+                <div class="metric-card">
+                  <div class="metric-title">Token Budget</div>
+                  <div class="metric-data" id="inspectorTokenBudget">30,000 max</div>
+                </div>
+                <div class="metric-card">
+                  <div class="metric-title">Requests</div>
+                  <div class="metric-data" id="inspectorRequestCount">4 / 10</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Proof Tabs -->
+            <div class="inspector-section">
+              <div class="section-label">Proof &amp; Verification</div>
+              <div class="proof-tabs-ribbon">
+                <button class="proof-tab-btn active" data-proof="plan">Plan</button>
+                <button class="proof-tab-btn" data-proof="changes">Changes</button>
+                <button class="proof-tab-btn" data-proof="checks">Checks</button>
+              </div>
+              <div class="proof-content-pane active" id="proof-pane-plan">1. Read Calendar domain context
+2. Verify space_occupancy invariant
+3. Render SVG timegrid with click handlers</div>
+              <div class="proof-content-pane" id="proof-pane-changes">M src/contexts/frontdesk/calendar.ts
+M src/views/calendar.view.ts
++ tests/frontdesk/calendar.test.ts</div>
+              <div class="proof-content-pane" id="proof-pane-checks">PASS: tests/run_invariants.py (11/11)
+PASS: bun test (calendar boundary)
+Memory: 84MB heap</div>
+            </div>
+
+            <!-- Last Activity -->
+            <div class="inspector-section">
+              <div class="section-label">Last Activity</div>
+              <div style="font-size: 11px; color: var(--ink-secondary);" id="inspectorLastActivity">
+                2026-09-26 14:38:10 — Checkpoint saved by runner.
+              </div>
+            </div>
+
+            <!-- Actions -->
+            <div class="inspector-actions">
+              <button class="inspector-btn approve" id="btnSimulateApprove" title="Simulate passing review">Approve (Preview)</button>
+              <button class="inspector-btn" id="btnSimulateRerun" title="Simulate rerun dispatch">Rerun</button>
+            </div>
+          </div>
+        </aside>
+
+      </div>
+
+      <!-- Mobile Bottom Navigation Bar (Visible on <=768px) -->
+      <nav class="mobile-bottom-nav" aria-label="Mobile Navigation">
+        <button class="mobile-nav-btn active" data-view="work">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path></svg>
+          <span>Work</span>
+        </button>
+        <button class="mobile-nav-btn" data-view="overview">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
+          <span>Overview</span>
+        </button>
+        <button class="mobile-nav-btn" data-view="approvals">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+          <span>Approvals</span>
+        </button>
+        <button class="mobile-nav-btn" data-view="models">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="8"></rect></svg>
+          <span>Models</span>
+        </button>
+      </nav>
+
+    </div>
+  </div>
+
+  <!-- New Task Modal (In-memory simulation only) -->
+  <div class="modal-overlay" id="newTaskModal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <div class="modal-box">
+      <div class="modal-header">
+        <span id="modalTitle">Draft New Sample Task</span>
+        <button class="inspector-close-btn" id="btnCancelModal" title="Close modal">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+      <form id="newTaskForm" onsubmit="handleCreateTask(event)">
+        <div class="modal-body">
+          <div class="form-group">
+            <label class="form-label" for="taskTitleInput">Task Title (Required, max 300 chars)</label>
+            <input type="text" id="taskTitleInput" class="form-input" placeholder="e.g. Rate plan table refactor" required maxlength="300">
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="taskScopeInput">Scope &amp; Files</label>
+            <textarea id="taskScopeInput" class="form-textarea" placeholder="Bounded file paths and invariants" maxlength="300"></textarea>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="taskWorkerSelect">Assigned Worker (Simulation)</label>
+            <select id="taskWorkerSelect" class="form-select">
+              <option value="gemini" selected>Gemini / Antigravity (Free Lane Builder)</option>
+              <option value="reviewer">Independent Reviewer (Verification)</option>
+            </select>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="header-btn" id="btnModalClose">Cancel</button>
+          <button type="submit" class="header-btn primary">Add to Queue</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Toast Notification -->
+  <div class="toast-container" id="toastBox" role="status" aria-live="polite">
+    <span id="toastMessage">Action completed.</span>
+  </div>
+
+  <script>
+    // Sample Task Data (clearly DEMO tasks in memory only)
+    const initialTasks = [
+      {
+        id: "DEMO-001",
+        title: "Calendar interactions",
+        status: "review",
+        statusLabel: "In review",
+        owner: "Codex",
+        worker: "gemini",
+        evidence: "Proof (11/11)",
+        scope: "Frontdesk calendar drag/resize interactions conforming to Postgres claim-range occupancy invariants.",
+        tokenBudget: "25,000 limit",
+        requests: "6 / 10",
+        plan: "1. Read calendar context\n2. Add claim range check\n3. Execute invariant battery",
+        changes: "M src/contexts/frontdesk/calendar.ts\nM src/views/calendar.view.ts",
+        checks: "PASS: 11/11 invariant battery\nPASS: UI click test",
+        activity: "2026-09-26 14:38:10 — Checkpoint saved by runner."
+      },
+      {
+        id: "DEMO-002",
+        title: "Resume-safe queue",
+        status: "running",
+        statusLabel: "Running",
+        owner: "Codex",
+        worker: "antigravity",
+        evidence: "Checkpoint",
+        scope: "Bounded disk-backed execution ledger. Ensures crashed runs reconcile state without silent retry duplication.",
+        tokenBudget: "40,000 limit",
+        requests: "3 / 15",
+        plan: "1. Design state recovery schema\n2. Prevent duplicate step triggers",
+        changes: "M src/harness/queue.ts\n+ tests/harness/queue_crash.test.ts",
+        checks: "IN PROGRESS: Running crash reconciliation simulation",
+        activity: "2026-09-26 14:30:00 — Running step 4/7."
+      },
+      {
+        id: "DEMO-003",
+        title: "Model adapters",
+        status: "queued",
+        statusLabel: "Queued",
+        owner: "Codex",
+        worker: "gemini",
+        evidence: "Specs",
+        scope: "Pluggable provider interface distinguishing direct CLI lanes from external FreeLLMAPI gateways.",
+        tokenBudget: "20,000 limit",
+        requests: "0 / 10",
+        plan: "1. Define Adapter contract\n2. Create Antigravity & DSH stubs",
+        changes: "+ src/adapters/base.ts\n+ src/adapters/antigravity.ts",
+        checks: "PENDING: Awaiting queue dispatch",
+        activity: "2026-09-26 14:10:00 — Task enqueued."
+      },
+      {
+        id: "DEMO-004",
+        title: "Reservation flow",
+        status: "queued",
+        statusLabel: "Queued",
+        owner: "Founder",
+        worker: "unassigned",
+        evidence: "None",
+        scope: "Public booking engine step-by-step guest checkout with zero-PAN tokenization edge boundary.",
+        tokenBudget: "50,000 limit",
+        requests: "0 / 20",
+        plan: "1. Guest intake form\n2. Stripe/network tokenization boundary",
+        changes: "Pending assignment",
+        checks: "PENDING",
+        activity: "2026-09-26 13:50:00 — Task drafted."
+      },
+      {
+        id: "DEMO-005",
+        title: "Permission boundaries",
+        status: "needs_approval",
+        statusLabel: "Needs approval",
+        owner: "Founder",
+        worker: "gemini",
+        evidence: "Approval AP-744-1",
+        scope: "Define scoped approved OS tools authorization gates, strictly preserving sandbox denials without bypass.",
+        tokenBudget: "15,000 limit",
+        requests: "1 / 5",
+        plan: "1. Strict denial list audit\n2. Scoped tool approval modal hook",
+        changes: "M docs/SECURITY.md\nM config/permissions.json",
+        checks: "BLOCKED: Requires founder approval",
+        activity: "2026-09-26 13:20:00 — Approval requested."
+      },
+      {
+        id: "DEMO-006",
+        title: "Window session helper",
+        status: "done",
+        statusLabel: "Done",
+        owner: "Codex",
+        worker: "gemini",
+        evidence: "Verified",
+        scope: "Windows terminal bash-missing fallback handler preventing repeated WSL launch retry loops.",
+        tokenBudget: "10,000 limit",
+        requests: "2 / 5",
+        plan: "1. Detect missing wsl.exe\n2. Fall back safely to native pwsh",
+        changes: "M scripts/session-ritual.ps1",
+        checks: "PASS: Verified on Windows host without WSL bash",
+        activity: "2026-09-26 12:45:00 — Marked Done by reviewer."
+      }
+    ];
+
+    let tasks = [...initialTasks];
+    let selectedTaskId = "DEMO-001";
+    let currentFilter = "all";
+    let isQueuePaused = false;
+    let isSidebarCollapsed = false;
+
+    // DOM Elements
+    const taskTableBody = document.getElementById("taskTableBody");
+    const taskSearchInput = document.getElementById("taskSearchInput");
+    const inspectorPane = document.getElementById("inspectorPane");
+    const btnToggleSidebar = document.getElementById("btnToggleSidebar");
+    const leftSidebar = document.getElementById("leftSidebar");
+    const btnToggleQueue = document.getElementById("btnToggleQueue");
+    const queueStatusText = document.getElementById("queueStatusText");
+    const toastBox = document.getElementById("toastBox");
+    const toastMessage = document.getElementById("toastMessage");
+    const appViewport = document.getElementById("appViewport");
+    const btnViewDesktop = document.getElementById("btnViewDesktop");
+    const btnViewPhone = document.getElementById("btnViewPhone");
+    const newTaskModal = document.getElementById("newTaskModal");
+    const btnOpenNewTaskModal = document.getElementById("btnOpenNewTaskModal");
+    const btnCancelModal = document.getElementById("btnCancelModal");
+    const btnModalClose = document.getElementById("btnModalClose");
+
+    // Toast helper
+    function showToast(msg) {
+      toastMessage.textContent = msg;
+      toastBox.classList.add("show");
+      setTimeout(() => {
+        toastBox.classList.remove("show");
+      }, 2800);
+    }
+
+    // Render counts
+    function updateCounts() {
+      const counts = {
+        all: tasks.length,
+        queued: tasks.filter(t => t.status === "queued").length,
+        running: tasks.filter(t => t.status === "running").length,
+        review: tasks.filter(t => t.status === "review").length,
+        done: tasks.filter(t => t.status === "done").length,
+      };
+
+      document.getElementById("count-all").textContent = counts.all;
+      document.getElementById("count-queued").textContent = counts.queued;
+      document.getElementById("count-running").textContent = counts.running;
+      document.getElementById("count-review").textContent = counts.review;
+      document.getElementById("count-done").textContent = counts.done;
+      document.getElementById("navWorkCount").textContent = counts.all;
+      document.getElementById("overviewTaskCount").textContent = counts.all + " Sample Tasks";
+    }
+
+    // Render Task Table
+    function renderTaskTable() {
+      taskTableBody.innerHTML = "";
+      const search = taskSearchInput.value.trim().toLowerCase();
+
+      const filtered = tasks.filter(task => {
+        const matchesFilter = currentFilter === "all" || task.status === currentFilter;
+        const matchesSearch = !search ||
+          task.title.toLowerCase().includes(search) ||
+          task.id.toLowerCase().includes(search) ||
+          task.scope.toLowerCase().includes(search);
+        return matchesFilter && matchesSearch;
+      });
+
+      if (filtered.length === 0) {
+        const emptyRow = document.createElement("tr");
+        const emptyCell = document.createElement("td");
+        emptyCell.colSpan = 5;
+        emptyCell.style.textAlign = "center";
+        emptyCell.style.padding = "24px";
+        emptyCell.style.color = "var(--ink-tertiary)";
+        emptyCell.textContent = "No sample tasks found matching filter.";
+        emptyRow.appendChild(emptyCell);
+        taskTableBody.appendChild(emptyRow);
+        return;
+      }
+
+      filtered.forEach(task => {
+        const row = document.createElement("tr");
+        row.className = "task-row" + (task.id === selectedTaskId ? " selected" : "");
+        row.tabIndex = 0;
+        row.setAttribute("role", "button");
+        row.setAttribute("aria-label", "Select " + task.title + " (" + task.statusLabel + ")");
+        row.onclick = () => selectTask(task.id);
+        row.onkeydown = (e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            selectTask(task.id);
+          }
+        };
+
+        // Title Cell
+        const tdTitle = document.createElement("td");
+        tdTitle.className = "task-title-cell";
+        const titleSpan = document.createElement("span");
+        titleSpan.textContent = task.title;
+        const idSpan = document.createElement("span");
+        idSpan.className = "task-id-sub";
+        idSpan.textContent = task.id + " \u00B7 " + task.scope.substring(0, 48) + "...";
+        tdTitle.appendChild(titleSpan);
+        tdTitle.appendChild(idSpan);
+
+        // Status Cell
+        const tdStatus = document.createElement("td");
+        const statusPill = document.createElement("span");
+        statusPill.className = "status-pill " + task.status;
+        statusPill.textContent = task.statusLabel;
+        tdStatus.appendChild(statusPill);
+
+        // Owner Cell
+        const tdOwner = document.createElement("td");
+        tdOwner.textContent = task.owner;
+
+        // Worker Cell
+        const tdWorker = document.createElement("td");
+        const workerPill = document.createElement("span");
+        workerPill.className = "worker-pill";
+        workerPill.textContent = task.worker;
+        tdWorker.appendChild(workerPill);
+
+        // Evidence Cell
+        const tdEvidence = document.createElement("td");
+        tdEvidence.style.color = "var(--ink-secondary)";
+        tdEvidence.style.fontFamily = "monospace";
+        tdEvidence.style.fontSize = "11px";
+        tdEvidence.textContent = task.evidence;
+
+        row.appendChild(tdTitle);
+        row.appendChild(tdStatus);
+        row.appendChild(tdOwner);
+        row.appendChild(tdWorker);
+        row.appendChild(tdEvidence);
+
+        taskTableBody.appendChild(row);
+      });
+    }
+
+    // Update sliding plate position for horizontal segmented ribbon
+    function updateRibbonPlate(targetBtn) {
+      const plate = document.getElementById("ribbonSliderPlate");
+      const ribbonContainer = document.getElementById("taskStatusRibbon");
+      if (!plate || !targetBtn || !ribbonContainer) return;
+      const btnRect = targetBtn.getBoundingClientRect();
+      const containerRect = ribbonContainer.getBoundingClientRect();
+      const leftOffset = btnRect.left - containerRect.left + ribbonContainer.scrollLeft;
+      plate.style.left = leftOffset + "px";
+      plate.style.width = btnRect.width + "px";
+    }
+
+    // Select Task & Populate Inspector
+    function selectTask(taskId) {
+      selectedTaskId = taskId;
+      const task = tasks.find(t => t.id === taskId);
+      if (!task) return;
+
+      inspectorPane.classList.remove("closed");
+
+      document.getElementById("inspectorTaskTitle").textContent = task.title;
+      document.getElementById("inspectorTaskId").textContent = task.id;
+
+      const statusPill = document.getElementById("inspectorStatusPill");
+      statusPill.className = "status-pill " + task.status;
+      statusPill.textContent = task.statusLabel;
+
+      document.getElementById("inspectorWorkerPill").textContent = "Worker: " + task.worker;
+      document.getElementById("inspectorScopeText").textContent = task.scope;
+      document.getElementById("inspectorTokenBudget").textContent = task.tokenBudget;
+      document.getElementById("inspectorRequestCount").textContent = task.requests;
+
+      document.getElementById("proof-pane-plan").textContent = task.plan;
+      document.getElementById("proof-pane-changes").textContent = task.changes;
+      document.getElementById("proof-pane-checks").textContent = task.checks;
+      document.getElementById("inspectorLastActivity").textContent = task.activity;
+
+      // Re-highlight table rows
+      document.querySelectorAll(".task-row").forEach(r => r.classList.remove("selected"));
+      renderTaskTable();
+    }
+
+    // Filter ribbon buttons
+    const ribbonButtons = document.querySelectorAll(".segmented-ribbon-container .ribbon-btn");
+    ribbonButtons.forEach(btn => {
+      btn.onclick = () => {
+        ribbonButtons.forEach(b => b.classList.remove("active"));
+        btn.classList.add("active");
+        currentFilter = btn.dataset.filter;
+        updateRibbonPlate(btn);
+        renderTaskTable();
+      };
+      btn.onmouseenter = () => updateRibbonPlate(btn);
+    });
+    const ribbonContainerEl = document.getElementById("taskStatusRibbon");
+    if (ribbonContainerEl) {
+      ribbonContainerEl.onmouseleave = () => {
+        const activeBtn = ribbonContainerEl.querySelector(".ribbon-btn.active");
+        if (activeBtn) updateRibbonPlate(activeBtn);
+      };
+    }
+
+    // Navigation switching (Left sidebar and mobile nav)
+    function switchView(viewName) {
+      document.querySelectorAll(".nav-item").forEach(item => {
+        item.classList.toggle("active", item.dataset.view === viewName);
+        item.setAttribute("aria-selected", item.dataset.view === viewName);
+      });
+      document.querySelectorAll(".mobile-nav-btn").forEach(item => {
+        item.classList.toggle("active", item.dataset.view === viewName);
+      });
+      document.querySelectorAll(".view-pane").forEach(pane => {
+        pane.classList.toggle("active", pane.id === "view-" + viewName);
+      });
+      if (viewName !== "work") {
+        inspectorPane.classList.add("closed");
+        document.querySelectorAll(".task-row").forEach(r => r.classList.remove("selected"));
+      }
+      if (viewName === "work") {
+        setTimeout(() => {
+          const activeBtn = document.querySelector(".segmented-ribbon-container .ribbon-btn.active");
+          if (activeBtn) updateRibbonPlate(activeBtn);
+        }, 30);
+      }
+    }
+
+    document.querySelectorAll(".nav-item").forEach(item => {
+      item.onclick = () => {
+        if (item.dataset.view) switchView(item.dataset.view);
+      };
+    });
+    document.querySelectorAll(".mobile-nav-btn").forEach(item => {
+      item.onclick = () => {
+        if (item.dataset.view) switchView(item.dataset.view);
+      };
+    });
+
+    // Sidebar collapse toggle
+    btnToggleSidebar.onclick = () => {
+      isSidebarCollapsed = !isSidebarCollapsed;
+      leftSidebar.classList.toggle("collapsed", isSidebarCollapsed);
+      const span = btnToggleSidebar.querySelector("span");
+      if (span) span.textContent = isSidebarCollapsed ? "" : "Collapse rail";
+      if (!isSidebarCollapsed) {
+        document.querySelector(".app-body").classList.remove("dock-bottom-layout");
+      }
+    };
+
+    // Dock bottom/left toggle (visible when collapsed)
+    const btnToggleDock = document.getElementById("btnToggleDock");
+    let isDockBottom = false;
+    if (btnToggleDock) {
+      btnToggleDock.onclick = () => {
+        isDockBottom = !isDockBottom;
+        document.querySelector(".app-body").classList.toggle("dock-bottom-layout", isDockBottom);
+        showToast(isDockBottom ? "Collapsed rail docked to bottom." : "Collapsed rail docked to left.");
+      };
+    }
+
+    // Close Inspector
+    document.getElementById("btnCloseInspector").onclick = () => {
+      inspectorPane.classList.add("closed");
+      document.querySelectorAll(".task-row").forEach(r => r.classList.remove("selected"));
+    };
+
+    // Proof tab switching
+    document.querySelectorAll(".proof-tab-btn").forEach(tab => {
+      tab.onclick = () => {
+        document.querySelectorAll(".proof-tab-btn").forEach(t => t.classList.remove("active"));
+        tab.classList.add("active");
+        const proofKey = tab.dataset.proof;
+        document.querySelectorAll(".proof-content-pane").forEach(p => {
+          p.classList.toggle("active", p.id === "proof-pane-" + proofKey);
+        });
+      };
+    });
+
+    // Toggle Queue Pause (Simulated)
+    btnToggleQueue.onclick = () => {
+      isQueuePaused = !isQueuePaused;
+      if (isQueuePaused) {
+        btnToggleQueue.classList.add("paused");
+        queueStatusText.textContent = "Resume queue";
+        document.getElementById("overviewQueueBadge").className = "status-pill needs_approval";
+        document.getElementById("overviewQueueBadge").textContent = "Paused (Manual)";
+        showToast("Simulated notice: Task dispatch paused.");
+      } else {
+        btnToggleQueue.classList.remove("paused");
+        queueStatusText.textContent = "Pause queue";
+        document.getElementById("overviewQueueBadge").className = "status-pill running";
+        document.getElementById("overviewQueueBadge").textContent = "Active (Free)";
+        showToast("Simulated notice: Task dispatch resumed.");
+      }
+    };
+
+    // Viewport Mode Toggles (Desktop vs Phone preview)
+    btnViewDesktop.onclick = () => {
+      appViewport.classList.remove("mode-phone");
+      btnViewDesktop.classList.add("active");
+      btnViewPhone.classList.remove("active");
+      setTimeout(() => {
+        const activeBtn = document.querySelector(".segmented-ribbon-container .ribbon-btn.active");
+        if (activeBtn) updateRibbonPlate(activeBtn);
+      }, 50);
+    };
+    btnViewPhone.onclick = () => {
+      appViewport.classList.add("mode-phone");
+      btnViewPhone.classList.add("active");
+      btnViewDesktop.classList.remove("active");
+      // Phone enter: inspector initially closed
+      inspectorPane.classList.add("closed");
+      document.querySelectorAll(".task-row").forEach(r => r.classList.remove("selected"));
+    };
+
+    // Inspector Action Buttons (Simulations)
+    document.getElementById("btnSimulateApprove").onclick = () => {
+      const task = tasks.find(t => t.id === selectedTaskId);
+      if (task) {
+        task.status = "done";
+        task.statusLabel = "Done";
+        task.evidence = "Approved (Preview)";
+        selectTask(task.id);
+        updateCounts();
+        showToast("Toast preview: Task marked approved in local state.");
+      }
+    };
+
+    document.getElementById("btnSimulateRerun").onclick = () => {
+      showToast("Simulation: Task #" + selectedTaskId + " queued for rerun.");
+    };
+
+    // Search input filtering
+    taskSearchInput.oninput = () => {
+      renderTaskTable();
+    };
+
+    // Modal Handling
+    btnOpenNewTaskModal.onclick = () => {
+      newTaskModal.classList.add("open");
+      document.getElementById("taskTitleInput").focus();
+    };
+    function closeModal() {
+      newTaskModal.classList.remove("open");
+      document.getElementById("newTaskForm").reset();
+    }
+    btnCancelModal.onclick = closeModal;
+    btnModalClose.onclick = closeModal;
+
+    function handleCreateTask(e) {
+      e.preventDefault();
+      const titleInput = document.getElementById("taskTitleInput");
+      const scopeInput = document.getElementById("taskScopeInput");
+      const workerSelect = document.getElementById("taskWorkerSelect");
+
+      const title = titleInput.value.trim();
+      const scope = scopeInput.value.trim() || "User defined scope in design preview.";
+      const worker = workerSelect.value;
+
+      if (!title) return;
+
+      const numStr = String(tasks.length + 1).padStart(3, "0");
+      const newId = "DEMO-" + numStr;
+      const newTask = {
+        id: newId,
+        title: title,
+        status: "queued",
+        statusLabel: "Queued",
+        owner: "Founder",
+        worker: worker,
+        evidence: "Drafted",
+        scope: scope,
+        tokenBudget: "20,000 limit",
+        requests: "0 / 10",
+        plan: "1. Bounded task plan drafted via preview modal",
+        changes: "None yet",
+        checks: "PENDING",
+        activity: new Date().toISOString().replace("T", " ").substring(0, 19) + " \u2014 Task drafted."
+      };
+
+      tasks.unshift(newTask);
+      closeModal();
+      updateCounts();
+      selectTask(newId);
+      renderTaskTable();
+      showToast("Sample task created: " + newId);
+    }
+
+    // Keyboard support: Escape closes modal or inspector
+    window.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") {
+        if (newTaskModal.classList.contains("open")) {
+          closeModal();
+        } else if (!inspectorPane.classList.contains("closed")) {
+          inspectorPane.classList.add("closed");
+          document.querySelectorAll(".task-row").forEach(r => r.classList.remove("selected"));
+        }
+      }
+    });
+
+    // Initialize
+    updateCounts();
+    selectTask("DEMO-001");
+    renderTaskTable();
+    setTimeout(() => {
+      const activeBtn = document.querySelector(".segmented-ribbon-container .ribbon-btn.active");
+      if (activeBtn) updateRibbonPlate(activeBtn);
+    }, 50);
+  </script>
+</body>
+</html>

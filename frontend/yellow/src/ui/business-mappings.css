@@ -1,0 +1,228 @@
+.business-mappings {
+  --mapping-ink: #192a34;
+  --mapping-muted: #647781;
+  --mapping-line: rgba(91, 122, 134, 0.2);
+  --mapping-paper: rgba(255, 255, 255, 0.78);
+  --mapping-accent: #b88628;
+  color: var(--mapping-ink);
+  display: grid;
+  gap: 1rem;
+  min-width: 0;
+}
+
+.business-mappings * { box-sizing: border-box; }
+.settings-exit-confirm { color: #192a34; background: #f8fcfa; border: 1px solid #c9d7cf; border-radius: 20px; padding: 24px; width: min(460px, calc(100vw - 32px)); box-sizing: border-box; box-shadow: 0 20px 70px #17382f33; }
+.settings-exit-confirm::backdrop { background: #10271f66; }
+.settings-exit-confirm button { min-height: 44px; margin: 8px 8px 0 0; padding: 10px 14px; background: #193e30; color: white; border: 1px solid #193e30; border-radius: 10px; cursor: pointer; }
+.settings-exit-confirm button:focus-visible { outline: 3px solid #b0f239; outline-offset: 3px; }
+.business-mappings-header,
+.business-mappings-card-heading,
+.business-mappings-nested-heading,
+.business-mappings-footer,
+.business-mappings-version,
+.business-mappings-market-row {
+  align-items: center;
+  display: flex;
+  gap: 0.85rem;
+  justify-content: space-between;
+}
+
+.business-mappings-header { align-items: flex-start; }
+.business-mappings-header h2,
+.business-mappings-card h3 { margin: 0; }
+.business-mappings-header p,
+.business-mappings-card-heading p,
+.business-mappings-advanced p { color: var(--mapping-muted); margin: 0.35rem 0 0; }
+.business-mappings-eyebrow {
+  color: #8a6b2e !important;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  margin: 0 0 0.35rem !important;
+  text-transform: uppercase;
+}
+
+.business-mappings button {
+  background: #273e48;
+  border: 1px solid #273e48;
+  border-radius: 0.7rem;
+  color: #fff;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 650;
+  min-height: 2.6rem;
+  padding: 0.55rem 0.9rem;
+}
+.business-mappings button:hover:not(:disabled) { background: #36535e; }
+.business-mappings button:focus-visible,
+.business-mappings input:focus-visible,
+.business-mappings select:focus-visible,
+.business-mappings summary:focus-visible { outline: 3px solid #b0f239; outline-offset: 2px; }
+.business-mappings button:disabled { cursor: not-allowed; opacity: 0.48; }
+.business-mappings .business-mappings-secondary,
+.business-mappings .business-mappings-remove,
+.business-mappings .business-mappings-link {
+  background: transparent;
+  border-color: var(--mapping-line);
+  color: #344e59;
+}
+.business-mappings .business-mappings-remove { color: #8c4642; }
+.business-mappings .business-mappings-link { min-height: auto; padding: 0.45rem 0.2rem; }
+
+.business-mappings-notice {
+  background: rgba(248, 241, 225, 0.76);
+  border: 1px solid rgba(184, 134, 40, 0.25);
+  border-radius: 0.85rem;
+  color: #5f512f;
+  line-height: 1.5;
+  padding: 0.85rem 1rem;
+}
+.business-mappings-version { flex-wrap: wrap; justify-content: flex-start; }
+.business-mappings-version > span {
+  background: rgba(235, 242, 242, 0.72);
+  border: 1px solid var(--mapping-line);
+  border-radius: 999px;
+  color: var(--mapping-muted);
+  font-size: 0.83rem;
+  padding: 0.45rem 0.75rem;
+}
+.business-mappings-version strong { color: var(--mapping-ink); margin-left: 0.25rem; }
+.business-mappings-version .business-mappings-access { color: #34634c; }
+.business-mappings-version .business-mappings-readonly { color: #8b6031; }
+.business-mappings-message,
+.business-mappings-unsaved,
+.business-mappings-loading,
+.business-mappings-error { margin: 0; }
+.business-mappings-message { color: #365965; }
+.business-mappings-unsaved { color: #87652b; font-weight: 700; }
+.business-mappings-error { color: #9a3f39; }
+
+.business-mappings form { display: grid; gap: 1rem; min-width: 0; }
+.business-mappings-grid { display: grid; gap: 1rem; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.business-mappings-card,
+.business-mappings-advanced {
+  background: var(--mapping-paper);
+  border: 1px solid var(--mapping-line);
+  border-radius: 1rem;
+  box-shadow: 0 12px 36px rgba(36, 64, 75, 0.055);
+  min-width: 0;
+  padding: 1rem;
+}
+.business-mappings-card { display: grid; align-content: start; gap: 0.9rem; }
+.business-mappings-card-heading { align-items: flex-start; }
+.business-mappings-nested {
+  background: rgba(245, 249, 248, 0.72);
+  border: 1px solid var(--mapping-line);
+  border-radius: 0.8rem;
+  display: block;
+  min-width: 0;
+  padding: 0.8rem;
+}
+.business-mappings-nested > summary { cursor: pointer; font-weight: 650; min-height: 28px; line-height: 1.6; }
+.business-mappings-nested > summary small { color: var(--mapping-muted); font-size: .75rem; font-weight: 500; display: block; padding-left: 1rem; }
+.business-mappings-nested[open] > :not(summary) { margin-top: .75rem; }
+.business-mappings-nested h4 { margin: 0; }
+.business-mappings-nested-heading > span { font-size: 0.9rem; font-weight: 700; }
+.business-mappings-fields { display: grid; gap: 0.65rem; grid-template-columns: minmax(7rem, 0.7fr) minmax(9rem, 1.3fr); }
+.business-mappings label { color: #4b6068; display: grid; font-size: 0.82rem; font-weight: 650; gap: 0.35rem; min-width: 0; }
+.business-mappings input,
+.business-mappings select {
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(91, 122, 134, 0.3);
+  border-radius: 0.65rem;
+  color: var(--mapping-ink);
+  font: inherit;
+  font-size: 0.95rem;
+  min-height: 2.65rem;
+  min-width: 0;
+  padding: 0.5rem 0.65rem;
+  width: 100%;
+}
+.business-mappings input:disabled,
+.business-mappings select:disabled { background: #f0f3f2; color: #63737a; }
+.business-mappings-child-list { display: grid; gap: 0.65rem; }
+.business-mappings-child {
+  background: var(--mapping-paper);
+  border: 1px solid rgba(91, 122, 134, 0.16);
+  border-radius: 0.7rem;
+  display: grid;
+  gap: 0.6rem;
+  min-width: 0;
+  padding: 0.7rem;
+}
+.business-mappings-channel-field span { color: var(--mapping-muted); font-size: 0.74rem; font-weight: 400; }
+.business-mappings-empty { color: var(--mapping-muted); margin: 0; padding: 0.4rem 0; }
+.business-mappings-market { grid-column: 1 / -1; }
+.business-mappings-market-list { display: grid; gap: 0.65rem; }
+.business-mappings-market-table { width: 100%; table-layout: fixed; border-collapse: collapse; font-size: 13px; }
+.business-mappings-market-table caption { text-align: left; font-size: 12px; color: var(--mapping-muted); padding-bottom: 6px; }
+.business-mappings-market-table :is(th,td) { padding: 6px; text-align: left; border-bottom: 1px solid var(--mapping-line); vertical-align: middle; }
+.business-mappings-market-table th { background: #f3f6f3; font-weight: 600; }
+.business-mappings-market-table th:last-child { width: 82px; }
+.business-mappings-market-table .business-mappings-remove { padding: 6px 8px; font-size: 12px; }
+.business-mappings-cell-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.business-mappings .table-controls button { background: white; color: #263a35; border-color: #dce3de; }
+.business-mappings .table-controls button:hover:not(:disabled) { background: #f3f6f3; }
+.business-mappings .table-column-trigger { color: #263a35; background: transparent; border-color: transparent; padding: 4px 6px; font-size: 12px; }
+.business-mappings .table-column-trigger:hover:not(:disabled), .business-mappings .table-column-trigger[data-active="true"] { background: white; border-color: #dce3de; }
+.business-mappings-market-row {
+  align-items: end;
+  background: rgba(245, 249, 248, 0.7);
+  border: 1px solid rgba(91, 122, 134, 0.16);
+  border-radius: 0.75rem;
+  display: grid;
+  grid-template-columns: minmax(7rem, 0.8fr) minmax(11rem, 1.2fr) auto;
+  padding: 0.7rem;
+}
+.business-mappings-advanced { padding: 0.85rem 1rem; }
+.business-mappings-advanced summary { cursor: pointer; font-weight: 700; }
+.business-mappings-validation {
+  background: #fff5f2;
+  border: 1px solid rgba(161, 68, 58, 0.23);
+  border-radius: 0.8rem;
+  color: #813d36;
+  padding: 0.85rem 1rem;
+}
+.business-mappings-validation h3 { font-size: 0.95rem; margin: 0; }
+.business-mappings-validation ul { margin: 0.5rem 0 0; padding-left: 1.2rem; }
+.business-mappings-footer {
+  border-top: 1px solid var(--mapping-line);
+  color: var(--mapping-muted);
+  padding-top: 0.9rem;
+}
+.business-mappings-footer button { background: var(--mapping-accent); border-color: var(--mapping-accent); color: #fff; }
+
+@media (max-width: 760px) {
+  .business-mappings-header { align-items: stretch; flex-direction: column; }
+  .business-mappings-grid { grid-template-columns: minmax(0, 1fr); }
+  .business-mappings-market { grid-column: auto; }
+  .business-mappings-market-row { grid-template-columns: minmax(0, 1fr); }
+  .business-mappings-market-row > button { justify-self: end; }
+}
+
+@media (max-width: 420px) {
+  .business-mappings-fields { grid-template-columns: minmax(0, 1fr); }
+  .business-mappings-version { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  .property-settings > .segmented-ribbon { max-width: 100%; display: grid; grid-template-columns: 1fr 1fr; }
+  .property-settings > .segmented-ribbon button { font-size: 12px; padding-inline: 10px; min-width: 0; }
+  .business-mappings-footer { align-items: stretch; flex-direction: column; }
+  .business-mappings-card-heading { align-items: stretch; flex-direction: column; }
+}
+
+.business-mappings-confirm {
+  background: #fff;
+  border: 1px solid rgba(54, 83, 94, 0.2);
+  border-radius: 1rem;
+  box-shadow: 0 24px 80px rgba(21, 43, 51, 0.22);
+  color: var(--mapping-ink);
+  margin: auto;
+  max-width: min(30rem, calc(100vw - 2rem));
+  padding: 1.25rem;
+  width: 100%;
+}
+.business-mappings-confirm::backdrop { background: rgba(20, 38, 45, 0.42); backdrop-filter: blur(3px); }
+.business-mappings-confirm h3 { margin: 0; }
+.business-mappings-confirm p { color: var(--mapping-muted); line-height: 1.5; margin: 0.65rem 0 1rem; }
+.business-mappings-confirm-actions { display: flex; flex-wrap: wrap; gap: 0.65rem; justify-content: flex-end; }
+.business-mappings .business-mappings-confirm-danger { background: #9b4d43; border-color: #9b4d43; }
+.business-mappings .business-mappings-confirm-danger:hover:not(:disabled) { background: #813d36; }
