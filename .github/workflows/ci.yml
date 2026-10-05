@@ -1,0 +1,343 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  windows-state:
+    runs-on: windows-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+
+      - name: Prove PowerShell handoff-state transitions
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $probePath = 'handoff/questions/zz-ci-windows-state-probe.md'
+          $probeListing = "  $($probePath -replace '\\', '/')"
+
+          function Get-StateSnapshot([string] $step) {
+            $output = @(& .\state.ps1 6>&1 | ForEach-Object { "$_" })
+            $line = @($output | Where-Object { $_ -match '^Open work:' })
+            if ($line.Count -ne 1) {
+              throw "$step diverged: expected exactly one Open work line, got $($line.Count)"
+            }
+            if ($line[0] -notmatch '^Open work: orders=(\d+) open \((\d+) total\) reviews=(\d+) open \((\d+) total\) questions=(\d+) open \((\d+) total\)$') {
+              throw "$step diverged: could not parse Open work line: $($line[0])"
+            }
+            return [pscustomobject]@{
+              Output = $output
+              Line = $line[0]
+              OrdersOpen = [int] $Matches[1]
+              OrdersTotal = [int] $Matches[2]
+              ReviewsOpen = [int] $Matches[3]
+              ReviewsTotal = [int] $Matches[4]
+              QuestionsOpen = [int] $Matches[5]
+              QuestionsTotal = [int] $Matches[6]
+            }
+          }
+
+          function Assert-Counts(
+            [string] $step,
+            [object] $actual,
+            [object] $baseline,
+            [int] $questionOpenDelta,
+            [int] $questionTotalDelta
+          ) {
+            $sameNonQuestionCounts =
+              $actual.OrdersOpen -eq $baseline.OrdersOpen -and
+              $actual.OrdersTotal -eq $baseline.OrdersTotal -and
+              $actual.ReviewsOpen -eq $baseline.ReviewsOpen -and
+              $actual.ReviewsTotal -eq $baseline.ReviewsTotal
+            $expectedQuestionsOpen = $baseline.QuestionsOpen + $questionOpenDelta
+            $expectedQuestionsTotal = $baseline.QuestionsTotal + $questionTotalDelta
+            if (
+              -not $sameNonQuestionCounts -or
+              $actual.QuestionsOpen -ne $expectedQuestionsOpen -or
+              $actual.QuestionsTotal -ne $expectedQuestionsTotal
+            ) {
+              throw "$step diverged: expected question deltas open=$questionOpenDelta total=$questionTotalDelta from '$($baseline.Line)', got '$($actual.Line)'"
+            }
+          }
+
+          if (Test-Path -LiteralPath $probePath) {
+            throw "baseline diverged: probe already exists at $probePath"
+          }
+
+          $baseline = Get-StateSnapshot 'baseline'
+          try {
+            Set-Content -LiteralPath $probePath -Value '# Windows state CI probe'
+            $unmarked = Get-StateSnapshot 'unmarked question'
+            Assert-Counts 'unmarked question' $unmarked $baseline 1 1
+            if ($unmarked.Output -notcontains $probeListing) {
+              throw "unmarked question diverged: $probePath was not listed under Open questions"
+            }
+
+            Add-Content -LiteralPath $probePath -Value '## RESOLVED'
+            $resolved = Get-StateSnapshot 'resolved question'
+            Assert-Counts 'resolved question' $resolved $baseline 0 1
+
+            Set-Content -LiteralPath $probePath -Value '# Windows state CI probe', '## RATIFIED'
+            $ratified = Get-StateSnapshot 'ratified question'
+            Assert-Counts 'ratified question' $ratified $baseline 0 1
+
+            Set-Content -LiteralPath $probePath -Value '# Windows state CI probe', 'This line contains ## RESOLVED inside it.'
+            $nearMiss = Get-StateSnapshot 'inline-marker near-miss'
+            Assert-Counts 'inline-marker near-miss' $nearMiss $baseline 1 1
+            if ($nearMiss.Output -notcontains $probeListing) {
+              throw "inline-marker near-miss diverged: $probePath was not listed under Open questions"
+            }
+          } finally {
+            Remove-Item -LiteralPath $probePath -Force -ErrorAction SilentlyContinue
+          }
+
+          $restored = Get-StateSnapshot 'probe cleanup'
+          if ($restored.Line -ne $baseline.Line) {
+            throw "probe cleanup diverged: expected '$($baseline.Line)', got '$($restored.Line)'"
+          }
+
+  quality:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+
+      - name: Reject UTF-8 BOMs
+        shell: bash
+        run: |
+          set -euo pipefail
+          tracked_files="$(mktemp)"
+          trap 'rm -f "$tracked_files"' EXIT
+          git ls-files -z > "$tracked_files"
+
+          found=0
+          while IFS= read -r -d '' file; do
+            if [[ -f "$file" ]] && [[ "$(head -c 3 "$file" | od -An -tx1 | tr -d ' \n')" == "efbbbf" ]]; then
+              echo "UTF-8 BOM: $file"
+              found=1
+            fi
+          done < "$tracked_files"
+          exit "$found"
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
+        with:
+          bun-version: 1.3.14
+
+      - name: Install frozen dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Check dependency licenses
+        run: bun run license-check
+
+      - name: Audit dependency vulnerabilities
+        run: bun audit
+
+      - name: Typecheck
+        run: bun run typecheck
+
+      - name: Test
+        run: bun test
+
+  container-smoke:
+    needs: quality
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+
+      - name: Build application image
+        run: docker build --tag yellow-ci-app:${{ github.sha }} .
+
+      - name: Start application container
+        run: >-
+          docker run --detach
+          --name yellow-ci-health
+          --publish 127.0.0.1::3000
+          yellow-ci-app:${{ github.sha }}
+
+      - name: Verify exact health response
+        shell: bash
+        run: |
+          set -euo pipefail
+          if ! app_address="$(docker port yellow-ci-health 3000/tcp 2>/dev/null)"; then
+            echo "yellow-ci-health has no published application address" >&2
+            exit 1
+          fi
+          if [[ -z "$app_address" ]]; then
+            echo "yellow-ci-health has no published application address" >&2
+            exit 1
+          fi
+
+          for attempt in {1..30}; do
+            status=""
+            if ! status="$(curl --silent --show-error --output /tmp/yellow-health-body --write-out '%{http_code}' "http://${app_address}/health")"; then
+              status=""
+            fi
+            body=""
+            if [[ -f /tmp/yellow-health-body ]]; then
+              body="$(cat /tmp/yellow-health-body)"
+            fi
+            if [[ "$status" == "200" && "$body" == '{"status":"ok"}' ]]; then
+              exit 0
+            fi
+            sleep 1
+          done
+
+          docker logs yellow-ci-health
+          exit 1
+
+      - name: Remove smoke-test container
+        if: always()
+        run: docker rm --force yellow-ci-health || true
+
+  database:
+    needs: quality
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      COMPOSE_PROJECT_NAME: yellow-ci-database
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
+        with:
+          bun-version: 1.3.14
+
+      - name: Set up Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
+        with:
+          python-version: "3.12"
+
+      - name: Install frozen dependencies
+        run: |
+          bun install --frozen-lockfile
+          python -m pip install --require-hashes --only-binary=:all: -r requirements-ci.txt
+
+      - name: Start pinned PostgreSQL
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker compose up --detach postgres
+          for attempt in {1..30}; do
+            container_id="$(docker compose ps --quiet postgres)"
+            health=""
+            if [[ -n "$container_id" ]]; then
+              health="$(docker inspect --format '{{.State.Health.Status}}' "$container_id")"
+            fi
+            if [[ "$health" == "healthy" ]]; then exit 0; fi
+            sleep 1
+          done
+          exit 1
+
+      - name: Resolve PostgreSQL address through Compose
+        shell: bash
+        run: |
+          set -euo pipefail
+          if ! postgres_address="$(docker compose port postgres 5432 2>/dev/null)"; then
+            echo "postgres service has no published database address" >&2
+            exit 1
+          fi
+          if [[ -z "$postgres_address" ]]; then
+            echo "postgres service has no published database address" >&2
+            exit 1
+          fi
+
+          {
+            echo "ADMIN_URL=postgres://yellow:yellow@${postgres_address}/postgres"
+            echo "DEPLOYMENT_URL=postgres://yellow:yellow@${postgres_address}/yellow_ci_deployment"
+            echo "INVARIANT_URL=postgres://yellow:yellow@${postgres_address}/yellow_ci_invariant"
+            echo "YELLOW_MIGRATION_TEST_ADMIN_URL=postgres://yellow:yellow@${postgres_address}/postgres"
+            echo "YELLOW_SEED_TEST_ADMIN_URL=postgres://yellow:yellow@${postgres_address}/postgres"
+          } >> "$GITHUB_ENV"
+
+      - name: Run migration integration suite
+        run: bun run test:db:migrate
+
+      - name: Run seed integration suite
+        run: bun run test:db:seed
+
+      - name: Create fresh acceptance databases
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker compose exec -T postgres psql --username yellow --dbname postgres --set ON_ERROR_STOP=1 <<'SQL'
+          DROP DATABASE IF EXISTS yellow_ci_deployment WITH (FORCE);
+          CREATE DATABASE yellow_ci_deployment;
+          DROP DATABASE IF EXISTS yellow_ci_invariant WITH (FORCE);
+          CREATE DATABASE yellow_ci_invariant;
+          SQL
+
+      - name: Prove deployment migration and seed
+        run: |
+          export DATABASE_URL="$DEPLOYMENT_URL"
+          export YELLOW_DATABASE_ACCEPTANCE_URL="$DEPLOYMENT_URL"
+          export YELLOW_SCHEMA_DATABASE=yellow_ci_deployment
+          bun run db:migrate
+          bun run db:seed
+          bun run test:database
+          bun run schema:check
+
+      - name: Start application and verify exact health
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker compose up --detach app
+          if ! app_address="$(docker compose port app 3000 2>/dev/null)"; then
+            echo "app service has no published application address" >&2
+            exit 1
+          fi
+          if [[ -z "$app_address" ]]; then
+            echo "app service has no published application address" >&2
+            exit 1
+          fi
+
+          for attempt in {1..30}; do
+            status=""
+            if ! status="$(curl --silent --show-error --output /tmp/yellow-health-body --write-out '%{http_code}' "http://${app_address}/health")"; then
+              status=""
+            fi
+            body=""
+            if [[ -f /tmp/yellow-health-body ]]; then
+              body="$(cat /tmp/yellow-health-body)"
+            fi
+            if [[ "$status" == "200" && "$body" == '{"status":"ok"}' ]]; then exit 0; fi
+            sleep 1
+          done
+          exit 1
+
+      - name: Prove invariant database through canonical referee
+        shell: bash
+        run: |
+          set -euo pipefail
+          export DATABASE_URL="$INVARIANT_URL"
+          export YELLOW_DSN="$INVARIANT_URL"
+          bun run db:migrate
+          docker compose exec -T postgres psql --username yellow --dbname yellow_ci_invariant --set ON_ERROR_STOP=1 < tests/seed_fixture.sql
+          python tests/run_invariants.py yellow_ci_invariant
+
+      - name: Print database logs on failure
+        if: failure()
+        run: docker compose logs --no-color postgres app
+
+      - name: Remove database stack and volumes
+        if: always()
+        run: docker compose down --volumes --remove-orphans

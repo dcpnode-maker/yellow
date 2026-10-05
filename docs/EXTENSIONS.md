@@ -1,0 +1,256 @@
+# EXTENSIONS.md — Extension Registry content schemas
+
+Everything configurable lives in `extension` rows, validated against the JSON Schema
+registered in `extension_type.content_schema`. **One lifecycle for all config** (draft →
+active → retired, bitemporal via fact_log). Adding a vertical, a tax regime, a policy
+kind, or a statutory country is DATA, not code — unless it needs an adapter (Tier C).
+
+Schemas below are the launch set. Claude Code: when implementing, load these into
+`extension_type` in the Phase-1 seed migration, exactly as written.
+
+---
+
+## 1. `vertical_profile` — what makes a hostel not a hotel
+
+```json
+{ "$id": "pms:vertical_profile:1", "type": "object", "required": ["terminology","claim_mode_default","features"],
+  "properties": {
+    "terminology": { "type":"object", "additionalProperties":{"type":"string"} },
+    "claim_mode_default": { "enum": ["exclusive","positional"] },
+    "features": { "type":"object", "properties": {
+      "dorm_beds":{"type":"boolean"}, "hourly_slots":{"type":"boolean"},
+      "long_stay_billing":{"type":"boolean"}, "owner_statements":{"type":"boolean"},
+      "kiosk_checkin":{"type":"boolean"}, "meal_plans":{"type":"boolean"} } },
+    "default_policies": { "type":"array", "items":{"type":"string"} },
+    "housekeeping_cadence": { "enum":["daily","on_departure","weekly","custom"] },
+    "default_unit_types": { "type":"array", "items":{ "type":"object",
+      "required":["code","name","claim_mode"], "properties":{
+        "code":{"type":"string"},"name":{"type":"string"},
+        "claim_mode":{"enum":["exclusive","positional"]},
+        "capacity":{"type":"integer","minimum":1} } } }
+  } }
+```
+
+Launch instances (seed these four):
+
+```json
+{ "key":"hotel", "content": { "terminology":{"space":"Room","unit_type":"Room Type"},
+  "claim_mode_default":"exclusive",
+  "features":{"dorm_beds":false,"hourly_slots":false,"long_stay_billing":false,
+    "owner_statements":false,"kiosk_checkin":true,"meal_plans":true},
+  "default_policies":["flex_24h","deposit_first_night"],
+  "housekeeping_cadence":"daily",
+  "default_unit_types":[{"code":"STD","name":"Standard","claim_mode":"exclusive","capacity":2},
+    {"code":"DLX","name":"Deluxe","claim_mode":"exclusive","capacity":3}] } }
+
+{ "key":"hostel", "content": { "terminology":{"space":"Room","unit_type":"Bed Category"},
+  "claim_mode_default":"positional",
+  "features":{"dorm_beds":true,"hourly_slots":false,"long_stay_billing":false,
+    "owner_statements":false,"kiosk_checkin":true,"meal_plans":false},
+  "default_policies":["flex_24h"],
+  "housekeeping_cadence":"daily",
+  "default_unit_types":[
+    {"code":"DORM6","name":"6-Bed Mixed Dorm","claim_mode":"positional","capacity":6},
+    {"code":"DORM6F","name":"6-Bed Female Dorm","claim_mode":"positional","capacity":6},
+    {"code":"PRIV","name":"Private Room","claim_mode":"exclusive","capacity":2}] } }
+
+{ "key":"serviced_apartment", "content": { "terminology":{"space":"Apartment","unit_type":"Apartment Type"},
+  "claim_mode_default":"exclusive",
+  "features":{"dorm_beds":false,"hourly_slots":false,"long_stay_billing":true,
+    "owner_statements":true,"kiosk_checkin":false,"meal_plans":false},
+  "default_policies":["long_stay_30d","deposit_one_month"],
+  "housekeeping_cadence":"weekly",
+  "default_unit_types":[{"code":"STU","name":"Studio","claim_mode":"exclusive","capacity":2},
+    {"code":"1BR","name":"1 Bedroom","claim_mode":"exclusive","capacity":3}] } }
+
+{ "key":"str", "content": { "terminology":{"space":"Property","unit_type":"Listing"},
+  "claim_mode_default":"exclusive",
+  "features":{"dorm_beds":false,"hourly_slots":false,"long_stay_billing":false,
+    "owner_statements":true,"kiosk_checkin":true,"meal_plans":false},
+  "default_policies":["str_strict_5d","deposit_damage"],
+  "housekeeping_cadence":"on_departure",
+  "default_unit_types":[{"code":"UNIT","name":"Entire Unit","claim_mode":"exclusive","capacity":6}] } }
+```
+
+---
+
+## 2. `tax_jurisdiction` — regime as data
+
+```json
+{ "$id": "pms:tax_jurisdiction:1", "type":"object",
+  "required":["country","taxes"],
+  "properties": {
+    "country": {"type":"string","pattern":"^[A-Z]{2}$"},
+    "region": {"type":"string"},
+    "price_display": {"enum":["tax_inclusive","tax_exclusive"]},
+    "rounding": {"enum":["line","document"], "default":"line"},
+    "taxes": {"type":"array","items":{"type":"object",
+      "required":["code","name","mode"],
+      "properties":{
+        "code":{"type":"string"}, "name":{"type":"string"},
+        "mode":{"enum":["percent","fixed_per_night","fixed_per_person_night","slab_percent"]},
+        "rate":{"type":"number"},
+        "amount_minor":{"type":"integer"},
+        "applies_to":{"type":"array","items":{"type":"string"}},
+        "slabs":{"type":"array","items":{"type":"object",
+          "required":["upto_minor","rate"],
+          "properties":{
+            "upto_minor":{"type":["integer","null"]},
+            "rate":{"type":"number"},
+            "itc_eligible":{"type":"boolean"} }}},
+        "slab_basis":{"enum":["declared_tariff_per_night","transaction_value"]},
+        "compound_on":{"type":"array","items":{"type":"string"}} } } }
+  } }
+```
+
+India GST launch instance (CBIC 15/2025 slabs, slab on transaction value per night):
+
+```json
+{ "key":"in-gst-lodging", "content": { "country":"IN",
+  "price_display":"tax_exclusive", "rounding":"document",
+  "taxes":[{ "code":"GST_ROOM", "name":"GST on accommodation", "mode":"slab_percent",
+    "slab_basis":"transaction_value", "applies_to":["room_revenue"],
+    "slabs":[
+      {"upto_minor":100000,  "rate":0,    "itc_eligible":false},
+      {"upto_minor":750000,  "rate":0.05, "itc_eligible":false},
+      {"upto_minor":null,    "rate":0.18, "itc_eligible":true}] },
+   { "code":"GST_FNB", "name":"GST on F&B (restaurant in hotel)", "mode":"percent",
+     "rate":0.05, "applies_to":["fnb_revenue"] }] } }
+```
+
+KSA and AE launch instances: flat `percent` VAT 0.15 / 0.05 on all revenue groups,
+`price_display":"tax_inclusive"`.
+
+---
+
+## 3. `policy` — cancellation / deposit / guarantee / no-show
+
+```json
+{ "$id":"pms:policy:1", "type":"object", "required":["kind"],
+  "properties":{
+    "kind":{"enum":["cancellation","deposit","guarantee","no_show"]},
+    "rules":{"type":"array","items":{"type":"object","properties":{
+      "before_hours":{"type":"integer"},
+      "penalty":{"type":"object","properties":{
+        "basis":{"enum":["nights","percent","fixed"]},
+        "value":{"type":"number"}}}}}},
+    "deposit":{"type":"object","properties":{
+      "basis":{"enum":["first_night","percent","fixed","one_month"]},
+      "value":{"type":"number"},
+      "due":{"enum":["at_booking","days_before_arrival"]},
+      "days_before":{"type":"integer"}}},
+    "guarantee":{"enum":["card_on_file","deposit_paid","company_letter","none"]},
+    "no_show_charge":{"type":"object","properties":{
+      "basis":{"enum":["first_night","full_stay","fixed"]},"value":{"type":"number"}}}
+  } }
+```
+
+Seed: `flex_24h`, `flex_48h`, `str_strict_5d`, `non_refundable`, `deposit_first_night`,
+`deposit_one_month`, `deposit_damage`, `long_stay_30d`.
+
+---
+
+## 4. `statutory_adapter` — guest registration per country (Tier B config / Tier C code)
+
+```json
+{ "$id":"pms:statutory_adapter:1", "type":"object",
+  "required":["country","adapter_key","schedule"],
+  "properties":{
+    "country":{"type":"string","pattern":"^[A-Z]{2}$"},
+    "adapter_key":{"type":"string"},
+    "schedule":{"enum":["on_checkin","daily_batch","within_24h"]},
+    "required_identity_fields":{"type":"array","items":{"type":"string"}},
+    "transport":{"enum":["sftp","https_form","soap","rest"]},
+    "credential_ref":{"type":"string"},
+    "format":{"type":"string"}
+  } }
+```
+
+Launch instances: `it-alloggiati` (within_24h, 168-char fixed-width, https_form),
+`pt-siba` (daily_batch, sftp), `in-form-c` (on_checkin for foreign nationals, rest,
+e-FRRO), `hr-evisitor` (on_checkin, rest). `adapter_key` maps to a registered adapter
+module; countries with no mandate simply have no row.
+
+---
+
+## 5. `fiscal_provider` — clearance routing (the 5-pattern port)
+
+```json
+{ "$id":"pms:fiscal_provider:1", "type":"object",
+  "required":["jurisdiction","mode","provider_key"],
+  "properties":{
+    "jurisdiction":{"type":"string"},
+    "mode":{"enum":["none","in_house_clearance","in_house_reporting","provider_routed","peppol"]},
+    "provider_key":{"type":"string"},
+    "document_formats":{"type":"array","items":{"type":"string"}},
+    "chain":{"type":"object","properties":{
+      "hash_algo":{"enum":["sha256"]},
+      "pih_required":{"type":"boolean"},
+      "qr":{"enum":["tlv_base64","none"]}}},
+    "endpoints":{"type":"object","additionalProperties":{"type":"string"}},
+    "credential_ref":{"type":"string"}
+  } }
+```
+
+Launch instances:
+
+```json
+{ "key":"sa-zatca", "content":{ "jurisdiction":"SA", "mode":"in_house_clearance",
+  "provider_key":"zatca-phase2", "document_formats":["ubl21_xadhes"],
+  "chain":{"hash_algo":"sha256","pih_required":true,"qr":"tlv_base64"},
+  "credential_ref":"vault:sa-zatca" } }
+
+{ "key":"in-irp", "content":{ "jurisdiction":"IN", "mode":"in_house_reporting",
+  "provider_key":"india-irp", "document_formats":["irp_json_1_1"],
+  "chain":{"hash_algo":"sha256","pih_required":false,"qr":"none"},
+  "credential_ref":"vault:in-irp" } }
+
+{ "key":"ae-asp", "content":{ "jurisdiction":"AE", "mode":"provider_routed",
+  "provider_key":"ae-asp:tbd", "document_formats":["pint_ae"],
+  "credential_ref":"vault:ae-asp" } }
+```
+
+UAE note: PINT AE must flow through an Accredited Service Provider — in-house clearance
+is not a legal option there. `provider_key` `ae-asp:<vendor>` is chosen at onboarding.
+
+---
+
+## 6. `automation_action` — the action vocabulary (CONTRACTS §6 AST targets)
+
+```json
+{ "$id":"pms:automation_action:1", "type":"object",
+  "required":["action","params_schema"],
+  "properties":{
+    "action":{"type":"string"},
+    "params_schema":{"type":"object"},
+    "idempotent":{"type":"boolean"},
+    "allowed_triggers":{"type":"array","items":{"type":"string"}}
+  } }
+```
+
+Launch action set (each row registers one action + its params schema):
+
+| action | params | typical trigger |
+|---|---|---|
+| `route_charge` | `{tx_code_group, to_folio_role}` | posting.created |
+| `post_scheduled_charge` | `{tx_code, amount|rate_ref, cadence}` | day.rolled |
+| `send_message` | `{template, channel, to_role}` | reservation.* |
+| `create_task` | `{kind, queue, due_offset_h}` | reservation.checked_out |
+| `apply_deposit_schedule` | `{policy_key}` | reservation.confirmed |
+| `set_restriction` | `{restriction, scope, period}` | occupancy.threshold |
+| `owner_statement_accrual` | `{split_percent}` | posting.created (owner spaces) |
+| `escalate_approval` | `{approval_kind, role}` | adjustment.requested |
+
+Rules: actions are the ONLY thing automations may do (no arbitrary code); every action
+implementation is idempotent on `(automation_id, trigger_event_id)`; new verticals add
+actions by registering rows + one handler module.
+
+---
+
+## Tier map (recap)
+
+- **Tier A** — most countries: tax_jurisdiction row only, or nothing. No code.
+- **Tier B** — config-only statutory/fiscal variation: extension rows, existing adapters.
+- **Tier C** — clearance/registration mandates needing code: ZATCA, India IRP,
+  UAE ASP, Alloggiati/SIBA/Form-C/eVisitor. Each is one adapter module conforming to
+  the FiscalDocumentProvider / StatutoryAdapter port. Never touch the core.
