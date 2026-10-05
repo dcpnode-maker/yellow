@@ -1,0 +1,9 @@
+# Order75 — bounded native calendar rate context
+
+Base: immutable 3cfa8b3bd6ce5038a4a6947726b80a9bacd26773. Scope: import the frozen Order58 frontend reader and its two focused tests; change `frontend/yellow/src/workspaces/HostReservationCalendar.tsx`; add `tests/order775-calendar-rate-context.test.tsx`. No native writes, migrations, auth policy, money arithmetic, App routing or publication.
+
+The selected-unit Calendar settings panel fetches the existing granted property rate-configuration list, requires an explicit configured plan, occupancy and channel code, and asks the frozen Order58 reader for the selected date. It displays only an actually returned unit-type occupancy tier with the existing exact-minor formatter. The response must match the full property, timezone, unit, plan, occupancy, channel and date context. A price does not establish per-unit quote, channel applicability, tax terms or daily availability. Blank dates and unavailable/denied reads remain unknown. No automatic price fan-out or invented default is permitted.
+
+The rate configuration and Order58 inventory/current-price reads are separate snapshots. Native endpoint execution and live acceptance remain separate root-owned gates. The Order60v2 source proof has no native executions.
+
+Receiving review note: the retained `astra/calendar60-native-outcome-review-v2/REVIEW.md` records independently accepted native endpoint proof (10 groups, 96 comparisons, 103 migrations). This lane did not execute a new native proof. The calendar UI still has no atomic inventory/rate snapshot, availability or bookability verdict, tax-inclusive quote or grant-mutation-during-body proof. Its own mounted browser fixture tests explicit context, exact value, changed occupancy, denied price and logout clearing; it does not replace full App or phone acceptance.
